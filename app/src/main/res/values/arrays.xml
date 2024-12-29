@@ -1,0 +1,10 @@
+<!-- res/values/arrays.xml -->
+<resources>
+    <string-array name="cargo_types">
+        <item>ذرت</item>
+        <item>سویا</item>
+        <item>دانه روغنی</item>
+        <item>گندم</item>
+        <item>جو</item>
+    </string-array>
+</resources>
