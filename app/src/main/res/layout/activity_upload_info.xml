@@ -1,0 +1,22 @@
+<!-- res/layout/activity_upload_info.xml -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".UploadInfoActivity">
+
+    <TextView
+        android:id="@+id/tvInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="اطلاعات بارگذاری شده"
+        android:textSize="18sp" />
+
+    <Button
+        android:id="@+id/btnLoadInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="بارگذاری اطلاعات" />
+</LinearLayout>

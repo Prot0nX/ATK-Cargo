@@ -1,0 +1,72 @@
+package com.atk.atk_cargo.api
+
+import android.content.Context
+import android.content.Intent
+import android.util.Log
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import java.io.IOException
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
+
+class UserPreferencesManager(private val context: Context) {
+    private val dataStore: DataStore<Preferences> = context.dataStore
+
+    val username = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[USERNAME_KEY] ?: ""
+        }
+
+    val userType = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[USER_TYPE_KEY] ?: ""
+        }
+
+    suspend fun saveUserCredentials(username: String, userType: String) {
+        dataStore.edit { preferences ->
+            preferences[USERNAME_KEY] = username
+            preferences[USER_TYPE_KEY] = userType
+        }
+    }
+
+    suspend fun clearUserCredentials() {
+        dataStore.edit { preferences ->
+            preferences.clear()
+        }
+
+        context.getSharedPreferences("loading_alerts", Context.MODE_PRIVATE).edit().clear().apply()
+        context.getSharedPreferences("LoadingCheckPrefs", Context.MODE_PRIVATE).edit().clear().apply()
+
+        try {
+            val serviceIntent = Intent(context, LoadingCheckService::class.java)
+            context.stopService(serviceIntent)
+        } catch (e: Exception) {
+            Log.e("UserPreferencesManager", "Error stopping service", e)
+        }
+    }
+
+    companion object {
+        private val USERNAME_KEY = stringPreferencesKey("username")
+        private val USER_TYPE_KEY = stringPreferencesKey("user_type")
+    }
+}
