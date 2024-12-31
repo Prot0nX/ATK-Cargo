@@ -100,6 +100,7 @@ import androidx.compose.material.icons.filled.AddTask
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Check
@@ -730,6 +731,7 @@ fun ShipSection(
 ) {
     val isSectionActive = title.contains("فعال")
     val mainColor = if (isSectionActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+    var expandedShipName by remember { mutableStateOf<String?>(null) }
 
     Card(
         modifier = modifier
@@ -815,7 +817,11 @@ fun ShipSection(
                             ship = ship,
                             onClick = { onShipSelected(ship.name) },
                             color = mainColor,
-                            isActive = ship.isActive
+                            isActive = ship.isActive,
+                            isExpanded = expandedShipName == ship.name,
+                            onExpandToggle = {
+                                expandedShipName = if (expandedShipName == ship.name) null else ship.name
+                            }
                         )
                     }
                 }
@@ -875,12 +881,13 @@ fun ShipCard(
     onClick: () -> Unit,
     color: Color,
     isActive: Boolean,
+    isExpanded: Boolean,
+    onExpandToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val cardAlpha = if (isActive) 0.1f else 0.05f
     val contentAlpha = if (isActive) 1f else 0.35f
     val borderAlpha = if (isActive) 0.2f else 0.05f
-    val secondaryAlpha = if (isActive) 0.7f else 0.25f
 
     val progress = calculateProgress(
         ship.totalTonnage - ship.remainingTonnage,
@@ -890,8 +897,8 @@ fun ShipCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .clickable(onClick = onClick),
+            .animateContentSize()
+            .clickable(onClick = onExpandToggle),
         colors = CardDefaults.cardColors(
             containerColor = color.copy(alpha = cardAlpha)
         ),
@@ -899,174 +906,172 @@ fun ShipCard(
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(
-                                color.copy(alpha = if (isActive) 0.1f else 0.03f),
-                                CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DirectionsBoat,
-                            contentDescription = null,
-                            tint = color.copy(alpha = contentAlpha),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
                     Column {
                         Text(
-                            text = ship.name,
+                            text = if (ship.name.length > 10) "${ship.name.take(10)}..." else ship.name,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = color.copy(alpha = contentAlpha)
                         )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Description,
-                                contentDescription = null,
-                                tint = color.copy(alpha = secondaryAlpha),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = "${formatNumber(ship.quotaCount)} کوتاژ",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = color.copy(alpha = secondaryAlpha)
-                            )
-                        }
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isActive) {
-                        color.copy(alpha = 0.1f)
-                    } else {
-                        MaterialTheme.colorScheme.error.copy(alpha = 0.05f)
-                    },
-                    border = BorderStroke(
-                        1.dp,
-                        if (isActive) {
-                            color.copy(alpha = borderAlpha)
-                        } else {
-                            MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-                        }
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (!isActive) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
-                        Text(
-                            text = if (isActive) "${(progress * 100).toInt()}%" else "غیرفعال",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = if (isActive) {
-                                color.copy(alpha = contentAlpha)
-                            } else {
-                                MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-                            }
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier
+                                .fillMaxWidth(0.4f)
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp)),
+                            color = color.copy(alpha = contentAlpha),
+                            trackColor = color.copy(alpha = 0.1f)
                         )
                     }
                 }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    InfoChip(
+                        icon = Icons.Default.Description,
+                        value = formatNumber(ship.quotaCount),
+                        color = color.copy(alpha = contentAlpha)
+                    )
+                    InfoChip(
+                        icon = Icons.Default.Scale,
+                        value = formatNumber(ship.remainingTonnage.toInt()),
+                        color = color.copy(alpha = contentAlpha)
+                    )
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (isExpanded) "بستن" else "باز کردن",
+                        tint = color.copy(alpha = contentAlpha)
+                    )
+                }
             }
 
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp)),
-                    color = if (isActive) {
-                        color.copy(alpha = contentAlpha)
-                    } else {
-                        MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-                    },
-                    trackColor = color.copy(alpha = 0.1f)
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    Text(
-                        text = formatNumber(ship.totalTonnage.toInt()),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = color.copy(alpha = contentAlpha)
-                    )
-                    Text(
-                        text = "کل",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = color.copy(alpha = secondaryAlpha)
-                    )
-                }
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = formatNumber((ship.totalTonnage - ship.remainingTonnage).toInt()),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = color.copy(alpha = contentAlpha)
-                    )
-                    Text(
-                        text = "بارگیری",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = color.copy(alpha = secondaryAlpha)
-                    )
-                }
-
-                Column(
-                    horizontalAlignment = Alignment.End
-                ) {
-                    Text(
-                        text = formatNumber(ship.remainingTonnage.toInt()),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = color.copy(alpha = contentAlpha)
-                    )
-                    Text(
-                        text = "مانده",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = color.copy(alpha = secondaryAlpha)
-                    )
-                }
+            if (isExpanded) {
+                ExpandedContent(ship, color, contentAlpha, onClick)
             }
         }
+    }
+}
+
+@Composable
+private fun InfoChip(icon: ImageVector, value: String, color: Color) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = color.copy(alpha = 0.1f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodySmall,
+                color = color
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExpandedContent(
+    ship: Ship,
+    color: Color,
+    contentAlpha: Float,
+    onClick: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            InfoColumn(
+                label = "کل",
+                value = formatNumber(ship.totalTonnage.toInt()),
+                color = color.copy(alpha = contentAlpha)
+            )
+            InfoColumn(
+                label = "بارگیری",
+                value = formatNumber((ship.totalTonnage - ship.remainingTonnage).toInt()),
+                color = color.copy(alpha = contentAlpha)
+            )
+            InfoColumn(
+                label = "مانده",
+                value = formatNumber(ship.remainingTonnage.toInt()),
+                color = color.copy(alpha = contentAlpha)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "تعداد حواله: ${formatNumber(ship.quotaCount)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = color.copy(alpha = contentAlpha)
+            )
+            Text(
+                text = "${(calculateProgress(ship.totalTonnage - ship.remainingTonnage, ship.totalTonnage) * 100).toInt()}% تکمیل شده",
+                style = MaterialTheme.typography.bodyMedium,
+                color = color.copy(alpha = contentAlpha)
+            )
+        }
+
+        Button(
+            onClick = onClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = false) {},
+            colors = ButtonDefaults.buttonColors(
+                containerColor = color.copy(alpha = 0.1f),
+                contentColor = color
+            )
+        ) {
+            Text("مشاهده جزئیات")
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = Icons.Default.ArrowForward,
+                contentDescription = "مشاهده جزئیات",
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun InfoColumn(label: String, value: String, color: Color) {
+    Column(horizontalAlignment = Alignment.Start) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = color.copy(alpha = 0.7f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
     }
 }
 
@@ -1089,10 +1094,6 @@ fun ShipDetails(
     }
 
     val tabs = listOf(
-        TabItem(
-            icon = Icons.Filled.Analytics,
-            title = "آمار کلی"
-        ),
         TabItem(
             icon = Icons.Filled.Warehouse,
             title = "انبار و کوتاژ"
@@ -1175,8 +1176,7 @@ fun ShipDetails(
                                 label = "Page transition"
                             ) { targetPage ->
                                 when (targetPage) {
-                                    0 -> ShipStatisticsTab(shipDetails)
-                                    1 -> WarehousesAndQuotasTab(
+                                    0 -> WarehousesAndQuotasTab(
                                         shipDetails = shipDetails,
                                         onWarehouseSelected = onWarehouseSelected,
                                         viewModel = viewModel
@@ -1302,340 +1302,6 @@ data class TabItem(
     val icon: ImageVector,
     val title: String
 )
-
-@Composable
-fun ShipStatisticsTab(shipDetails: Ship) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        MainInfoSection(shipDetails)
-    }
-}
-
-@Composable
-fun MainInfoSection(shipDetails: Ship) {
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Basic Info Card
-        item {
-            StatisticsCard(
-                title = "اطلاعات کشتی",
-                icon = Icons.Default.DirectionsBoat,
-                content = {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // شناسه‌های اصلی
-                        StatRow(
-                            label = "نام کشتی",
-                            value = shipDetails.name,
-                            icon = Icons.Default.Title
-                        )
-                        StatRow(
-                            label = "وضعیت",
-                            value = if (shipDetails.isActive) "فعال" else "غیرفعال",
-                            icon = if (shipDetails.isActive) Icons.Default.Check else Icons.Default.Close,
-                        )
-
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                        // آمار انبارها و کوتاژها
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                StatBox(
-                                    title = "تعداد انبارها",
-                                    value = formatNumber(shipDetails.warehouseCount),
-                                    icon = Icons.Default.Warehouse,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                StatBox(
-                                    title = "تعداد کوتاژها",
-                                    value = formatNumber(shipDetails.quotaCount),
-                                    icon = Icons.Default.Description,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                StatBox(
-                                    title = "تعداد حواله ها",
-                                    value = formatNumber(shipDetails.totalVoucherCount),
-                                    icon = Icons.Default.Receipt,
-                                    color = MaterialTheme.colorScheme.tertiary
-                                )
-                            }
-                        }
-                    }
-                }
-            )
-        }
-
-        // Tonnage Card
-        item {
-            StatisticsCard(
-                title = "آمار تناژ و بارگیری",
-                icon = Icons.Default.Scale,
-                content = {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // پیشرفت کلی
-                        val progress = calculateProgress(
-                            shipDetails.totalTonnage - shipDetails.remainingTonnage,
-                            shipDetails.totalTonnage
-                        )
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = "پیشرفت کلی بارگیری",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "${(progress * 100).toInt()}% تکمیل شده",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-
-                            CircularProgress(
-                                progress = progress,
-                                size = 60.dp,
-                                strokeWidth = 8.dp
-                            )
-                        }
-
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                        // آمار اصلی تناژ
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            TonnageStatBox(
-                                title = "تناژ کل",
-                                value = shipDetails.totalTonnage,
-                                icon = Icons.Default.Scale,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            TonnageStatBox(
-                                title = "بارگیری شده",
-                                value = shipDetails.totalTonnage - shipDetails.remainingTonnage,
-                                icon = Icons.Default.LocalShipping,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                            TonnageStatBox(
-                                title = "مانده",
-                                value = shipDetails.remainingTonnage,
-                                icon = Icons.Default.PendingActions,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                }
-            )
-        }
-    }
-}
-
-@Composable
-private fun StatBox(
-    title: String,
-    value: String,
-    icon: ImageVector,
-    color: Color
-) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = color.copy(alpha = 0.1f),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = color.copy(alpha = 0.8f)
-                )
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = color,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun TonnageStatBox(
-    title: String,
-    value: Float,
-    icon: ImageVector,
-    color: Color
-) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Surface(
-            shape = CircleShape,
-            color = color.copy(alpha = 0.1f),
-            modifier = Modifier.size(60.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier
-                    .padding(16.dp)
-                    .size(28.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-        Text(
-            text = "${formatNumber(value.toInt())} تن",
-            style = MaterialTheme.typography.titleMedium,
-            color = color,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
-private fun CircularProgress(
-    progress: Float,
-    size: Dp,
-    strokeWidth: Dp
-) {
-    Box(
-        modifier = Modifier.size(size),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator(
-            progress = { progress },
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-            strokeWidth = strokeWidth
-        )
-        Text(
-            text = "${(progress * 100).toInt()}%",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
-}
-
-@Composable
-private fun StatisticsCard(
-    title: String,
-    icon: ImageVector,
-    content: @Composable () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Content
-            content()
-        }
-    }
-}
-
-@Composable
-private fun StatRow(
-    label: String,
-    value: String,
-    icon: ImageVector
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                modifier = Modifier.size(20.dp)
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
 
 @Composable
 fun WarehousesAndQuotasTab(
@@ -3357,19 +3023,6 @@ private fun WarehouseCard(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(color.copy(alpha = 0.1f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Warehouse,
-                            contentDescription = null,
-                            tint = color,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
                     Column {
                         Text(
                             text = warehouse.name,
@@ -3378,7 +3031,7 @@ private fun WarehouseCard(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${warehouse.quotaCount} کوتاژ فعال",
+                            text = "${warehouse.quotaCount} کوتاژ",
                             style = MaterialTheme.typography.bodyMedium,
                             color = color.copy(alpha = 0.7f)
                         )
@@ -3438,7 +3091,7 @@ private fun WarehouseCard(
                     label = "بارگیری شده",
                     value = formatWeightWithDetail(loadedTonnage),
                     color = color,
-                    alignment = Alignment.End
+                    alignment = Alignment.Start
                 )
             }
         }
