@@ -9133,18 +9133,15 @@ private fun ShiftDetailedStats(
         GeneralStatsSection(shift, color)
 
         // باربری‌های فعال
-        HorizontalDivider(color = color.copy(alpha = 0.1f))
         CarriersSection(shift, color)
 
         // ساعت اوج
         if (shift.peak_hour != null && shift.peak_hour_detail != null) {
-            HorizontalDivider(color = color.copy(alpha = 0.1f))
             PeakHoursSection(shift, color)
         }
 
         // عملیات‌های تاخیردار
         if (!shift.delayed_operations_detail.isNullOrEmpty()) {
-            HorizontalDivider(color = color.copy(alpha = 0.1f))
             DelayedOperationsSection(shift, color)
         }
     }
@@ -9298,26 +9295,118 @@ private fun PeakHoursSection(
                 color = color
             )
 
+            val details = shift.peak_hour_detail?.split("|") ?: emptyList()
+            val firstDetail = details.firstOrNull()
+            val startTime = if (firstDetail != null) {
+                val parts = firstDetail.split(":", limit = 6)
+                if (parts.size >= 6) {
+                    val startTimeFull = parts[5].substringBefore("-")
+                    parts[4] + ":" + startTimeFull
+                } else {
+                    ""
+                }
+            } else {
+                ""
+            }
+
+            val endTimes = details.mapNotNull { detail ->
+                val parts = detail.split(":", limit = 6)
+                if (parts.size >= 6) {
+                    parts[5].substringAfter("-")
+                } else {
+                    null
+                }
+            }
+
             Text(
                 text = buildString {
-                    append("ساعت ${shift.peak_hour}")
-                    append(" با ${formatNumber(shift.peak_hour_operations ?: 0)} کوتاژ")
-                    append(" و ${formatNumber(shift.peak_hour_vouchers ?: 0)} حواله")
+                    append("${formatNumber(shift.peak_hour_operations ?: 0)} کوتاژ")
+                    append(" | ${formatNumber(shift.peak_hour_vouchers ?: 0)} حواله")
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = color
             )
 
+            // نمایش جزئیات هر ساعت اوج عملیات
             shift.peak_hour_detail?.split("|")?.forEach { detail ->
-                val (carrier, kotazh, vouchers, weight, time) = detail.split(":")
-                PeakHourItem(
-                    carrier = carrier,
-                    kotazh = kotazh,
-                    voucherCount = vouchers.toInt(),
-                    weight = weight.toDouble(),
-                    time = time,
+                val parts = detail.split(":", limit = 6)
+                if (parts.size >= 6) {
+                    val carrier = parts[0]
+                    val kotazh = parts[1]
+                    val vouchers = parts[2].toIntOrNull() ?: 0
+                    val weight = parts[3].toDoubleOrNull() ?: 0.0
+                    val timePart = parts[5]
+                    val start = "${parts[4]}:${timePart.substringBefore("-")}"
+                    val end = timePart.substringAfter("-")
+                    val time = "از $start تا $end"
+
+                    PeakHourItem(
+                        carrier = carrier,
+                        kotazh = kotazh,
+                        voucherCount = vouchers,
+                        weight = weight,
+                        time = time,
+                        color = color
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PeakHourItem(
+    carrier: String,
+    kotazh: String,
+    voucherCount: Int,
+    weight: Double,
+    time: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = color.copy(alpha = 0.05f),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            // ردیف اول: نام باربری و شماره کوتاژ
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = carrier,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = color
                 )
+                Text(
+                    text = "کوتاژ: $kotazh",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = color.copy(alpha = 0.7f)
+                )
+            }
+
+            // ردیف دوم: حواله، تناژ و زمان
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ChipText("${formatNumber(voucherCount)} حواله", color)
+                    ChipText("${formatNumber(weight.roundToInt())} تن", color)
+                    ChipText(time, color)
+                }
             }
         }
     }
@@ -9406,64 +9495,6 @@ private fun CarrierItem(
 }
 
 @Composable
-private fun PeakHourItem(
-    carrier: String,
-    kotazh: String,
-    voucherCount: Int,
-    weight: Double,
-    time: String,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = color.copy(alpha = 0.05f),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            // ردیف اول: نام باربری و شماره کوتاژ
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = carrier,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = color
-                )
-                Text(
-                    text = "کوتاژ: $kotazh",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = color.copy(alpha = 0.7f)
-                )
-            }
-
-            // ردیف دوم: حواله، تناژ و زمان
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ChipText("${formatNumber(voucherCount)} حواله", color)
-                    ChipText("${formatNumber(weight.roundToInt())} تن", color)
-                    ChipText("${time}:00", color)
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun DelayedOperationItem(
     kotazh: String,
     carrier: String,
@@ -9504,18 +9535,35 @@ private fun DelayedOperationItem(
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = "بیشترین: ${formatHoursToPersian(hours)}",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = if (hours > 2) MaterialTheme.colorScheme.error else color
                     )
                     ChipText("$voucherCount حواله", color)
                 }
             }
             if (voucherNumbers.isNotEmpty()) {
-                Text(
-                    text = "حواله‌ها: $voucherNumbers",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = color.copy(alpha = 0.7f)
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ) {
+                    Text(
+                        text = "حواله‌ها:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = color.copy(alpha = 0.7f),
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        textAlign = TextAlign.Start
+                    )
+
+                    Text(
+                        text = voucherNumbers,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = color.copy(alpha = 0.7f),
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        textAlign = TextAlign.End
+                    )
+                }
             }
         }
     }
@@ -9784,7 +9832,6 @@ private fun QuotaDetailedStats(
 
         // پیش‌بینی تکمیل
         prediction?.let {
-            HorizontalDivider(color = color.copy(alpha = 0.1f))
             PredictionSection(it, color)
         }
     }
