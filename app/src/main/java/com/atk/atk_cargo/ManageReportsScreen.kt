@@ -8658,9 +8658,6 @@ fun SwipeableTabContent(
                     if (data?.warehouseEfficiencyAnalysis != null) {
                         WarehouseAnalysis(
                             efficiencyData = data.warehouseEfficiencyAnalysis,
-                            speedData = data.warehouseSpeedAnalysis,
-                            trafficData = data.warehouseTrafficAnalysis,
-                            peakData = data.warehousePeakAnalysis
                         )
                     } else {
                         Box(
@@ -10173,8 +10170,8 @@ private fun QuickStats(carrier: CarrierPerformanceAnalysis, color: Color) {
         )
         StatItem(
             icon = Icons.Default.Speed,
-            value = "${carrier.operations_per_hour}",
-            label = "حواله بر ساعت",
+            value = formatNumber(carrier.avg_net_weight.roundToInt()),
+            label = "میانگین",
             color = color
         )
     }
@@ -10217,29 +10214,6 @@ private fun DetailedStats(carrier: CarrierPerformanceAnalysis, color: Color) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         HorizontalDivider(color = color.copy(alpha = 0.1f))
-
-        // آمار اصلی در کارت‌های جداگانه
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            StatCard(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.Timer,
-                label = "زمان عملیات",
-                value = formatHoursToPersian(carrier.avg_operation_time / 60f),
-                color = color
-            )
-            StatCard(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.Speed,
-                label = "سرعت عملیات",
-                value = "${carrier.operations_per_hour}/h",
-                color = color
-            )
-        }
 
         // بخش کوتاژها
         Surface(
@@ -10382,46 +10356,6 @@ private fun DetailedStats(carrier: CarrierPerformanceAnalysis, color: Color) {
 }
 
 @Composable
-private fun StatCard(
-    modifier: Modifier = Modifier,
-    icon: ImageVector,
-    label: String,
-    value: String,
-    color: Color
-) {
-    Surface(
-        modifier = modifier,
-        color = color.copy(alpha = 0.05f),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(20.dp)
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = color
-            )
-        }
-    }
-}
-
-@Composable
 private fun QuotaNumbersGrid(
     quotaNumbers: List<String>,
     color: Color
@@ -10486,12 +10420,7 @@ private fun QuotaChip(
 @Composable
 fun WarehouseAnalysis(
     efficiencyData: List<WarehouseEfficiencyData>,
-    speedData: List<WarehouseSpeedData>,
-    trafficData: List<WarehouseTrafficData>,
-    peakData: List<WarehousePeakData>
 ) {
-    var expandedWarehouse by remember { mutableStateOf<String?>(null) }
-
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -10503,15 +10432,7 @@ fun WarehouseAnalysis(
             key = { it.loadingWarehouse }
         ) { warehouse ->
             ModernWarehouseCard(
-                warehouse = warehouse,
-                speedData = speedData.find { it.loadingWarehouse == warehouse.loadingWarehouse },
-                trafficData = trafficData.filter { it.loadingWarehouse == warehouse.loadingWarehouse },
-                peakData = peakData.filter { it.loadingWarehouse == warehouse.loadingWarehouse },
-                isExpanded = expandedWarehouse == warehouse.loadingWarehouse,
-                onExpandChange = {
-                    expandedWarehouse = if (expandedWarehouse == warehouse.loadingWarehouse) null
-                    else warehouse.loadingWarehouse
-                }
+                warehouse = warehouse
             )
         }
     }
@@ -10520,11 +10441,6 @@ fun WarehouseAnalysis(
 @Composable
 private fun ModernWarehouseCard(
     warehouse: WarehouseEfficiencyData,
-    speedData: WarehouseSpeedData?,
-    trafficData: List<WarehouseTrafficData>,
-    peakData: List<WarehousePeakData>,
-    isExpanded: Boolean,
-    onExpandChange: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val efficiency = warehouse.daily_throughput / 1000 // تبدیل به تن
@@ -10537,14 +10453,7 @@ private fun ModernWarehouseCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp)
-            .clickable { onExpandChange() }
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ),
+            .padding(vertical = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = color.copy(alpha = 0.05f)
         ),
@@ -10590,35 +10499,10 @@ private fun ModernWarehouseCard(
                         }
                     }
                 }
-
-                IconButton(onClick = { onExpandChange() }) {
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        tint = color
-                    )
-                }
             }
 
             // آمار سریع
-            if (!isExpanded) {
-                QuickWarehouseStats(warehouse, color)
-            }
-
-            // محتوای گسترش‌یافته
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                DetailedWarehouseStats(
-                    warehouse = warehouse,
-                    speedData = speedData,
-                    trafficData = trafficData,
-                    peakData = peakData,
-                    color = color
-                )
-            }
+            QuickWarehouseStats(warehouse, color)
         }
     }
 }
@@ -10655,19 +10539,19 @@ private fun QuickWarehouseStats(
             .padding(top = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        StatItem(
+        StatItems(
             icon = Icons.AutoMirrored.Filled.Assignment,
             value = formatNumber(warehouse.total_operations),
             label = "عملیات",
             color = color
         )
-        StatItem(
+        StatItems(
             icon = Icons.Default.Speed,
             value = String.format("%.1f", warehouse.daily_operations),
             label = "عملیات در روز",
             color = color
         )
-        StatItem(
+        StatItems(
             icon = Icons.Default.Scale,
             value = formatNumber((warehouse.total_processed_weight / 1000).roundToInt()),
             label = "تناژ بارگیری (تن)",
@@ -10677,201 +10561,32 @@ private fun QuickWarehouseStats(
 }
 
 @Composable
-private fun DetailedWarehouseStats(
-    warehouse: WarehouseEfficiencyData,
-    speedData: WarehouseSpeedData?,
-    trafficData: List<WarehouseTrafficData>,
-    peakData: List<WarehousePeakData>,
+private fun StatItems(
+    icon: ImageVector,
+    value: String,
+    label: String,
     color: Color
 ) {
     Column(
-        modifier = Modifier.padding(top = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        HorizontalDivider(color = color.copy(alpha = 0.1f))
-
-        // بخش کارایی
-        WarehouseEfficiencySection(warehouse, color)
-
-        // اطلاعات سرعت عملیات
-        speedData?.let {
-            HorizontalDivider(color = color.copy(alpha = 0.1f))
-            WarehouseSpeedSection(it, color)
-        }
-
-        // الگوهای ترافیکی
-        if (trafficData.isNotEmpty()) {
-            HorizontalDivider(color = color.copy(alpha = 0.1f))
-            WarehouseTrafficSection(trafficData, color)
-        }
-
-        // ساعات اوج
-        if (peakData.isNotEmpty()) {
-            HorizontalDivider(color = color.copy(alpha = 0.1f))
-            WarehousePeakTimesSection(peakData, color)
-        }
-    }
-}
-
-@SuppressLint("DefaultLocale")
-@Composable
-private fun WarehouseEfficiencySection(
-    warehouse: WarehouseEfficiencyData,
-    color: Color
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionTitle(
-            icon = Icons.Default.Analytics,
-            title = "کارایی انبار",
-            color = color
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(16.dp)
         )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            StatCard(
-                modifier = Modifier.weight(1f),
-                icon = Icons.AutoMirrored.Filled.Assignment,
-                label = "کوتاژهای فعال",
-                value = formatNumber(warehouse.active_quotas),
-                color = color
-            )
-            StatCard(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.Speed,
-                label = "عملیات روزانه",
-                value = String.format("%.1f", warehouse.daily_operations),
-                color = color
-            )
-        }
-
-        // نمایش درصد عملیات
-        LinearProgressIndicator(
-            progress = { warehouse.operation_percentage / 100f },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp)),
-            color = color,
-            trackColor = color.copy(alpha = 0.1f)
-        )
-
         Text(
-            text = "${warehouse.operation_percentage}% از کل عملیات",
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = color,
-            modifier = Modifier.align(Alignment.End)
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
-    }
-}
-
-@Composable
-private fun WarehouseSpeedSection(
-    speedData: WarehouseSpeedData,
-    color: Color
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionTitle(
-            icon = Icons.Default.Timer,
-            title = "سرعت عملیات",
-            color = color
-        )
-
-        // کارت‌های آماری
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            StatCard(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.Timer,
-                label = "میانگین زمان",
-                value = "${speedData.avg_processing_minutes.roundToInt()} دقیقه",
-                color = color
-            )
-            StatCard(
-                modifier = Modifier.weight(1f),
-                icon = Icons.Default.Scale,
-                label = "وزن در دقیقه",
-                value = "${formatNumber(speedData.weight_per_minute.roundToInt())} کیلوگرم",
-                color = color
-            )
-        }
-
-        // نرخ تکمیل
-        CompletionRateIndicator(
-            rate = speedData.completion_rate,
-            color = color
-        )
-    }
-}
-
-@Composable
-private fun WarehouseTrafficSection(
-    trafficData: List<WarehouseTrafficData>,
-    color: Color
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionTitle(
-            icon = Icons.Default.Timeline,
-            title = "الگوی ترافیک",
-            color = color
-        )
-
-        // نمودار ترافیک ساعتی
-        Surface(
-            color = color.copy(alpha = 0.05f),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                trafficData.forEach { hourData ->
-                    HourlyTrafficRow(
-                        hour = hourData.hour,
-                        entries = hourData.entries,
-                        exits = hourData.exits,
-                        percentage = hourData.hour_percentage,
-                        avgWeight = hourData.avg_processed_weight,
-                        color = color
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WarehousePeakTimesSection(
-    peakData: List<WarehousePeakData>,
-    color: Color
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionTitle(
-            icon = Icons.Default.Schedule,
-            title = "ساعات اوج",
-            color = color
-        )
-
-        // نمایش ساعات اوج
-        Surface(
-            color = color.copy(alpha = 0.05f),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                peakData.forEach { peak ->
-                    PeakTimeRow(
-                        hour = peak.hour,
-                        operationCount = peak.operation_count,
-                        avgWeight = peak.avg_weight,
-                        percentage = peak.period_percentage,
-                        activityLevel = peak.activity_level,
-                        color = color
-                    )
-                }
-            }
-        }
     }
 }
 
