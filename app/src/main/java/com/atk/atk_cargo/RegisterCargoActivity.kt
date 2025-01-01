@@ -1015,7 +1015,7 @@ fun NetWeightDialog(
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
-                                    "تایید",
+                                    "تائید",
                                     color = MaterialTheme.colors.primary,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -1449,7 +1449,7 @@ fun FormSection(
         currentCargo?.let {
             when {
                 it.status == "ورود" && it.confirm == "تائید شده" -> true
-                it.confirm == "تائید نشده" -> false
+                it.confirm == "در انتظار تائید" -> false
                 it.status == "خروج" -> false
                 else -> false
             }
@@ -1509,14 +1509,14 @@ fun FormSection(
         if (isDuplicate) {
             Text(
                 text = when {
-                    currentCargo?.status == "خروج" -> "این حواله قبلاً خارج شده و قابل تغییر نیست!"
-                    currentCargo?.confirm == "تائید نشده" -> "این حواله هنوز تائید نشده و قابل ویرایش نیست!"
+                    currentCargo?.status == "خروج" -> "این حواله قبلاً خروج شده و قابل تغییر نیست!"
+                    currentCargo?.confirm == "در انتظار تائید" -> "این حواله هنوز تائید نشده و قابل ویرایش نیست!"
                     canEditWeights -> "امکان ثبت کسری/اضافه بار یا خروج حواله وجود دارد!"
-                    else -> "این شماره حواله در وضعیت فعلی قابل ویرایش نیست!"
+                    else -> "این حواله هنوز تائید نشده و قابل ویرایش نیست!"
                 },
                 color = when {
                     currentCargo?.status == "خروج" -> MaterialTheme.colors.error
-                    currentCargo?.confirm == "تائید نشده" -> MaterialTheme.colors.error
+                    currentCargo?.confirm == "در انتظار تائید" -> MaterialTheme.colors.error
                     canEditWeights -> MaterialTheme.colors.primary
                     else -> MaterialTheme.colors.error
                 },
@@ -2602,7 +2602,7 @@ private fun ConfirmationChip(isLightTheme: Boolean) {
                 modifier = Modifier.size(14.dp)
             )
             Text(
-                text = "تایید شده",
+                text = "تائید شده",
                 style = MaterialTheme.typography.caption.copy(
                     fontWeight = FontWeight.Bold
                 ),
@@ -2813,8 +2813,8 @@ private fun AdditionalInfoContent(info: CargoInfo) {
         InfoItem("شرکت باربری", info.shippingCompany)
         CopyableInfoItem("شماره کوتاژ", info.loadingQuotaNumber)
         StatusItem(
-            "وضعیت تایید",
-            if (info.confirm == "تائید شده") "تایید شده" else "در انتظار تایید",
+            "وضعیت تائید",
+            if (info.confirm == "تائید شده") "تائید شده" else "در انتظار تائید",
             if (info.confirm == "تائید شده") Color.Green else Color.Gray
         )
     }
@@ -3087,7 +3087,7 @@ private fun DeleteDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                "تایید حذف حواله",
+                "تائید حذف حواله",
                 style = MaterialTheme.typography.h6,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth()
