@@ -742,7 +742,7 @@ fun ConfirmationDialog(
     loadingQuotaNumber: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
-) {
+)  {
     var isVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
