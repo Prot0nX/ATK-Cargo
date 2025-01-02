@@ -216,6 +216,7 @@ class MainActivity : ComponentActivity() {
     private val _isSessionValid = MutableStateFlow(false)
     private lateinit var signatureVerifier: SignatureVerifier
     private var isSecurityCheckPassed by mutableStateOf(false)
+    private var isSecurityCheckLoading by mutableStateOf(true)
     val isSessionValid: StateFlow<Boolean> = _isSessionValid.asStateFlow()
 
     @RequiresApi(Build.VERSION_CODES.P)
@@ -223,48 +224,37 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // مقداردهی اولیه وابستگی‌ها
         initializeDependencies()
-
-        // درخواست مجوزهای مورد نیاز
         requestRequiredPermissions()
         requestBackgroundPermissions()
-
-        // راه‌اندازی سرویس‌های پس‌زمینه
         startBackgroundServices()
         startLoadingCheckService()
 
-        // بررسی امنیت برنامه
-        performSecurityCheck()
-
         setContent {
             ATKCargoTheme {
-//                HandleSecurityCheck {
-                    var showMainContent by remember { mutableStateOf(false) }
+                var showMainContent by remember { mutableStateOf(false) }
 
-                    // بررسی بروزرسانی و نمایش محتوا
-                    LaunchedEffect(Unit) {
-                        checkForUpdate()
-                        showMainContent = true
-                    }
+                LaunchedEffect(Unit) {
+                    performSecurityCheck()
+                    checkForUpdate()
+                    showMainContent = true
+                }
 
-                    // مدیریت وضعیت بروزرسانی و نمایش محتوای اصلی
+                HandleSecurityCheck {
                     HandleMainContent(
                         showMainContent = showMainContent,
                         isUpdateAvailable = isUpdateAvailable,
                         updateInfo = updateInfo
                     )
-
-                    // مدیریت Intent و جلسه کاربر
-                    LaunchedEffect(Unit) {
-                        handleIntent(intent)
-                        checkUserSession()
-                    }
                 }
-//            }
+
+                LaunchedEffect(Unit) {
+                    handleIntent(intent)
+                    checkUserSession()
+                }
+            }
         }
 
-        // جمع‌آوری وضعیت‌های برنامه
         observeApplicationStates()
     }
 
@@ -308,15 +298,20 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun performSecurityCheck() {
-        val isSignatureValid = signatureVerifier.verifyAppSignature()
-        signatureVerifier.setSignatureVerified(isSignatureValid)
-        isSecurityCheckPassed = isSignatureValid
+        lifecycleScope.launch {
+            isSecurityCheckLoading = true
+            isSecurityCheckPassed = signatureVerifier.verifyAppSignature()
+            isSecurityCheckLoading = false
+            if (!isSecurityCheckPassed) {
+                showMessage("خطای امنیتی: امضای برنامه نامعتبر است.")
+            }
+        }
     }
 
     @Composable
     private fun HandleSecurityCheck(content: @Composable () -> Unit) {
-        if (!isSecurityCheckPassed) {
-            SecurityBlockScreen()
+        if (!isSecurityCheckPassed || isSecurityCheckLoading) {
+            SecurityBlockScreen(isLoading = isSecurityCheckLoading)
         } else {
             content()
         }
@@ -356,14 +351,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun observeApplicationStates() {
-        // مشاهده وضعیت دانلود
         lifecycleScope.launch {
             updateManager.downloadProgress.collect { progress ->
                 downloadProgress = progress
             }
         }
 
-        // مشاهده وضعیت بروزرسانی
         lifecycleScope.launch {
             updateManager.downloadState.collect { state ->
                 downloadState = state
@@ -382,7 +375,7 @@ class MainActivity : ComponentActivity() {
             is UpdateManager.DownloadState.Error -> {
                 showMessage(state.message)
             }
-            else -> { /* دیگر حالت‌ها نیاز به مدیریت خاصی ندارند */ }
+            else -> { /* Other states don't require specific handling */ }
         }
     }
 
@@ -417,7 +410,7 @@ class MainActivity : ComponentActivity() {
         when (intent?.action) {
             "com.atk.atk_cargo.NEW_LOADING" -> {
                 intent.getStringExtra("kotazh") ?: return
-                // اینجا می‌توانید منطق مربوط به بارگیری جدید را اضافه کنید
+                // Add logic for new loading here
             }
         }
     }
@@ -453,7 +446,6 @@ class MainActivity : ComponentActivity() {
         Intent(this, LoadingCheckService::class.java).also { intent ->
             startForegroundService(intent)
         }
-        // راه‌اندازی WorkManager
         LoadingCheckWorker.startPeriodicWorker(this)
     }
 

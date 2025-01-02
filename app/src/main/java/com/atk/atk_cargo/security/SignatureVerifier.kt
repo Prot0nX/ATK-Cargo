@@ -6,16 +6,31 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.Signature
 import android.os.Build
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 import java.security.MessageDigest
 
 class SignatureVerifier(private val context: Context) {
     companion object {
-        private const val VALID_APP_SIGNATURE = "8ca349c0fb572e9d10c62eb5ec6a83c9733eb3b15c362916f6a6efbbd8c2090b"
+        private const val VALID_APP_SIGNATURE = "0b0838afbe74afd97e781c9533015294ce86b70627017cccb807ca2af208ba21"
         private const val SIGNATURE_VERIFIED_KEY = "signature_verified"
+        private const val SIGNATURE_CHECK_URL = "https://atk-nk.site/check_signature.php"
     }
 
-    @SuppressLint("PackageManagerGetSignatures")
-    fun verifyAppSignature(): Boolean {
+    private val preferences = context.getSharedPreferences("app_security", Context.MODE_PRIVATE)
+
+    suspend fun verifyAppSignature(): Boolean {
+        val localVerification = verifyLocalSignature()
+        val onlineVerification = verifyOnlineSignature()
+        val isValid = localVerification && onlineVerification
+        setSignatureVerified(isValid)
+        return isValid
+    }
+
+    private fun verifyLocalSignature(): Boolean {
         return try {
             val packageInfo = getPackageInfo()
             val signatures = getSignatures(packageInfo)
@@ -33,6 +48,26 @@ class SignatureVerifier(private val context: Context) {
         }
     }
 
+    private suspend fun verifyOnlineSignature(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val url = URL(SIGNATURE_CHECK_URL)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+
+            val response = connection.inputStream.bufferedReader().use { it.readText() }
+            val jsonResponse = JSONObject(response)
+
+            val validSignature = jsonResponse.getString("valid_signature")
+            val currentSignature = calculateSignatureHash(getSignatures(getPackageInfo())[0])
+
+            currentSignature == validSignature
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    @SuppressLint("PackageManagerGetSignatures")
     private fun getPackageInfo(): PackageInfo {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             context.packageManager.getPackageInfo(
@@ -40,7 +75,6 @@ class SignatureVerifier(private val context: Context) {
                 PackageManager.GET_SIGNING_CERTIFICATES
             )
         } else {
-            @Suppress("DEPRECATION")
             context.packageManager.getPackageInfo(
                 context.packageName,
                 PackageManager.GET_SIGNATURES
@@ -56,8 +90,6 @@ class SignatureVerifier(private val context: Context) {
             packageInfo.signatures
         }
     }
-
-    private val preferences = context.getSharedPreferences("app_security", Context.MODE_PRIVATE)
 
     private fun calculateSignatureHash(signature: Signature): String {
         return try {
