@@ -59,6 +59,36 @@ private val LightColorScheme = lightColorScheme(
     outline = Gray400
 )
 
+fun getCompletionColor(percentage: Float, isDarkTheme: Boolean): Color {
+    return when {
+        percentage >= 95f -> if (isDarkTheme) Green300 else Green700
+        percentage >= 85f -> if (isDarkTheme) Green200 else Green600
+        percentage >= 75f -> if (isDarkTheme) Green100 else Green500
+        percentage >= 65f -> if (isDarkTheme) Teal100 else Teal700
+        percentage >= 55f -> if (isDarkTheme) Amber100 else Amber700
+        percentage >= 45f -> if (isDarkTheme) Amber50 else Amber900
+        percentage >= 35f -> if (isDarkTheme) DeepOrange100 else DeepOrange700
+        percentage >= 25f -> if (isDarkTheme) DeepOrange50 else DeepOrange900
+        percentage >= 15f -> if (isDarkTheme) Gray300 else Gray700
+        else -> if (isDarkTheme) Gray200 else Gray800
+    }
+}
+
+fun getCompletionStatus(percentage: Float): String {
+    return when {
+        percentage >= 95f -> "بسیار عالی"
+        percentage >= 85f -> "عالی"
+        percentage >= 75f -> "خیلی خوب"
+        percentage >= 65f -> "خوب"
+        percentage >= 55f -> "نسبتاً خوب"
+        percentage >= 45f -> "متوسط"
+        percentage >= 35f -> "ضعیف"
+        percentage >= 25f -> "خیلی ضعیف"
+        percentage >= 15f -> "بسیار ضعیف"
+        else -> "بسیار بد"
+    }
+}
+
 @Composable
 fun ATKCargoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
