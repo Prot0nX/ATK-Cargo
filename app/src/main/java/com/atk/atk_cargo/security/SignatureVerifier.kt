@@ -9,13 +9,14 @@ import android.os.Build
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 
 class SignatureVerifier(private val context: Context) {
     companion object {
-        private const val VALID_APP_SIGNATURE = "0b0838afbe74afd97e781c9533015294ce86b70627017cccb807ca2af208ba21"
+        private const val VALID_APP_SIGNATURE = "8ca349c0fb572e9d10c62eb5ec6a83c9733eb3b15c362916f6a6efbbd8c2090b"
         private const val SIGNATURE_VERIFIED_KEY = "signature_verified"
         private const val SIGNATURE_CHECK_URL = "https://atk-nk.site/check_signature.php"
     }
@@ -50,17 +51,37 @@ class SignatureVerifier(private val context: Context) {
 
     private suspend fun verifyOnlineSignature(): Boolean = withContext(Dispatchers.IO) {
         try {
+            val currentSignature = calculateSignatureHash(getSignatures(getPackageInfo())[0])
             val url = URL(SIGNATURE_CHECK_URL)
             val connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "GET"
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
 
-            val response = connection.inputStream.bufferedReader().use { it.readText() }
-            val jsonResponse = JSONObject(response)
+            // ایجاد JSON شامل امضا
+            val jsonInput = JSONObject()
+            jsonInput.put("app_signature", currentSignature)
 
-            val validSignature = jsonResponse.getString("valid_signature")
-            val currentSignature = calculateSignatureHash(getSignatures(getPackageInfo())[0])
+            // ارسال داده به سرور
+            val outputStream: OutputStream = connection.outputStream
+            outputStream.write(jsonInput.toString().toByteArray(Charsets.UTF_8))
+            outputStream.flush()
+            outputStream.close()
 
-            currentSignature == validSignature
+            // دریافت پاسخ از سرور
+            val responseCode = connection.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                val jsonResponse = JSONObject(response)
+
+                if (jsonResponse.has("is_valid")) {
+                    jsonResponse.getBoolean("is_valid")
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             false
@@ -102,7 +123,7 @@ class SignatureVerifier(private val context: Context) {
         }
     }
 
-    fun setSignatureVerified(verified: Boolean) {
+    private fun setSignatureVerified(verified: Boolean) {
         preferences.edit().putBoolean(SIGNATURE_VERIFIED_KEY, verified).apply()
     }
 }
