@@ -1692,7 +1692,6 @@ class ReportsViewModel(
                                 completion_rate = shift.completion_rate,
                                 efficiency_score = shift.efficiency_score,
                                 total_active_carriers = shift.total_active_carriers,
-                                total_delayed_operations = shift.total_delayed_operations,
                                 weight_standard_deviation = shift.weight_standard_deviation
                             )
                         } ?: emptyList(),
@@ -3064,7 +3063,6 @@ data class ShiftPerformanceData(
     val completion_rate: Float,
     val efficiency_score: Float,
     val total_active_carriers: Int,
-    val total_delayed_operations: Int,
     val weight_standard_deviation: Float
 )
 

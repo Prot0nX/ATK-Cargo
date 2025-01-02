@@ -95,6 +95,9 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.StarHalf
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingFlat
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddTask
 import androidx.compose.material.icons.filled.Analytics
@@ -121,6 +124,8 @@ import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.LowPriority
+import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.PendingActions
@@ -137,11 +142,15 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingFlat
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material.icons.filled.Warning
@@ -265,6 +274,8 @@ import com.atk.atk_cargo.api.WarningStatus
 import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.api.toTon
+import com.atk.atk_cargo.ui.theme.getCompletionColor
+import com.atk.atk_cargo.ui.theme.getCompletionStatus
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
@@ -9179,11 +9190,6 @@ private fun GeneralStatsSection(
                     value = formatNumber(shift.total_vouchers),
                     color = color
                 )
-                StatColumn(
-                    label = "عملیات تاخیردار",
-                    value = formatNumber(shift.total_delayed_operations),
-                    color = color
-                )
             }
 
             Row(
@@ -9592,7 +9598,7 @@ private fun ShiftIcon(
 ) {
     Box(
         modifier = modifier
-            .size(48.dp)
+            .size(38.dp)
             .background(
                 color = color.copy(alpha = 0.1f),
                 shape = CircleShape
@@ -9668,11 +9674,8 @@ private fun ModernQuotaCard(
     onExpandChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val color = when {
-        quota.completion_percentage >= 80 -> MaterialTheme.colorScheme.primary
-        quota.completion_percentage >= 50 -> MaterialTheme.colorScheme.secondary
-        else -> MaterialTheme.colorScheme.error
-    }
+    val isDarkTheme = isSystemInDarkTheme()
+    val color = getCompletionColor(quota.completion_percentage, isDarkTheme)
 
     Card(
         modifier = modifier
@@ -9720,7 +9723,13 @@ private fun ModernQuotaCard(
                                 containerColor = color.copy(alpha = 0.1f),
                                 contentColor = color
                             ) {
-                                Text("${formatNumber(quota.last_24h_vouchers)} حواله جدید")
+                                Text(getCompletionStatus(quota.completion_percentage))
+                            }
+                            Badge(
+                                containerColor = color.copy(alpha = 0.1f),
+                                contentColor = color
+                            ) {
+                                Text("${formatNumber(quota.last_24h_vouchers)} حواله")
                             }
                             Badge(
                                 containerColor = color.copy(alpha = 0.1f),
@@ -9763,15 +9772,22 @@ private fun ModernQuotaCard(
 private fun QuotaStatusIcon(percentage: Float, color: Color) {
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(38.dp)
             .background(color.copy(alpha = 0.1f), CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = when {
-                percentage >= 80 -> Icons.Default.Star
-                percentage >= 50 -> Icons.Default.CheckCircle
-                else -> Icons.Default.Warning
+                percentage >= 95f -> Icons.Default.Stars
+                percentage >= 85f -> Icons.Default.Star
+                percentage >= 75f -> Icons.Default.CheckCircle
+                percentage >= 65f -> Icons.Default.Check
+                percentage >= 55f -> Icons.Default.ThumbUp
+                percentage >= 45f -> Icons.AutoMirrored.Filled.TrendingUp
+                percentage >= 35f -> Icons.AutoMirrored.Filled.TrendingFlat
+                percentage >= 25f -> Icons.AutoMirrored.Filled.TrendingDown
+                percentage >= 15f -> Icons.Default.LowPriority
+                else -> Icons.Default.NewReleases
             },
             contentDescription = null,
             tint = color,
