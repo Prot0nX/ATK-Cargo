@@ -6,26 +6,30 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.Signature
 import android.os.Build
+import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
-import android.util.Base64
 
 class SignatureVerifier(private val context: Context) {
     companion object {
         private const val VALID_APP_SIGNATURE = "8ca349c0fb572e9d10c62eb5ec6a83c9733eb3b15c362916f6a6efbbd8c2090b"
         private const val SIGNATURE_VERIFIED_KEY = "signature_verified"
-        private const val SIGNATURE_CHECK_ENCODED_URL = "aHR0cHM6Ly9hdGstbmsuc2l0ZS9jaGVja19zaWduYXR1cmUucGhw"
+        private const val SIGNATURE_CHECK = "aHR0cHM6Ly9hdGstbmsuc2l0ZS9jaGVja19zaWduYXR1cmUucGhw"
     }
 
     private val preferences = context.getSharedPreferences("app_security", Context.MODE_PRIVATE)
 
     private val signatureCheckUrl: String by lazy {
-        decodeBase64(SIGNATURE_CHECK_ENCODED_URL)
+        try {
+            String(Base64.decode(SIGNATURE_CHECK, Base64.NO_WRAP), Charsets.UTF_8)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""
+        }
     }
 
     suspend fun verifyAppSignature(): Boolean {
@@ -61,19 +65,18 @@ class SignatureVerifier(private val context: Context) {
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             connection.doOutput = true
-            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8"
 
-            // ایجاد JSON شامل امضا
+            )
+
             val jsonInput = JSONObject()
             jsonInput.put("app_signature", currentSignature)
 
-            // ارسال داده به سرور
-            val outputStream: OutputStream = connection.outputStream
-            outputStream.write(jsonInput.toString().toByteArray(Charsets.UTF_8))
-            outputStream.flush()
-            outputStream.close()
+            connection.outputStream.use { outputStream ->
+                outputStream.write(jsonInput.toString().toByteArray(Charsets.UTF_8))
+                outputStream.flush()
+            }
 
-            // دریافت پاسخ از سرور
             val responseCode = connection.responseCode
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
@@ -101,6 +104,7 @@ class SignatureVerifier(private val context: Context) {
                 PackageManager.GET_SIGNING_CERTIFICATES
             )
         } else {
+            @Suppress("DEPRECATION")
             context.packageManager.getPackageInfo(
                 context.packageName,
                 PackageManager.GET_SIGNATURES
@@ -130,16 +134,5 @@ class SignatureVerifier(private val context: Context) {
 
     private fun setSignatureVerified(verified: Boolean) {
         preferences.edit().putBoolean(SIGNATURE_VERIFIED_KEY, verified).apply()
-    }
-
-    // متد برای دیکود کردن Base64
-    private fun decodeBase64(encodedUrl: String): String {
-        return try {
-            val decodedBytes = Base64.decode(encodedUrl, Base64.NO_WRAP)
-            String(decodedBytes, Charsets.UTF_8)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            ""
-        }
     }
 }

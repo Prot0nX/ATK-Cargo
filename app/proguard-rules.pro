@@ -1,4 +1,6 @@
+# ========================================
 # بهینه‌سازی عمومی
+# ========================================
 -optimizationpasses 5
 -dontusemixedcaseclassnames
 -dontskipnonpubliclibraryclasses
@@ -6,31 +8,67 @@
 -verbose
 -optimizations !code/simplification/arithmetic,!field/*,!class/merging/*
 
-# حفظ کلاس‌های اصلی پکیج (با امکان مبهم‌سازی)
--keep class com.atk.atk_cargo.** { *; }
--keepclassmembers class com.atk.atk_cargo.** { *; }
--keepnames class com.atk.atk_cargo.** { *; }
+# ========================================
+# حفظ اطلاعات خطایابی
+# ========================================
+-keepattributes SourceFile, LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# حفظ و مبهم‌سازی ApiService
--keep interface com.atk.atk_cargo.api.ApiService {
-    <methods>;
-}
--keepnames interface com.atk.atk_cargo.api.ApiService
+# ========================================
+# اجازه مبهم‌سازی برای MainActivity و SignatureVerifier
+# ========================================
+# اجازه مبهم‌سازی برای MainActivity
+-keep,allowobfuscation class com.atk.atk_cargo.MainActivity { *; }
 
+# اجازه مبهم‌سازی برای SignatureVerifier
+-keep,allowobfuscation class com.atk.atk_cargo.security.SignatureVerifier { *; }
+
+# ========================================
 # حفظ RetrofitClient و Secrets
+# ========================================
 -keep class com.atk.atk_cargo.api.RetrofitClient { *; }
 -keep class com.atk.atk_cargo.api.Secrets { *; }
 -keepnames class com.atk.atk_cargo.api.RetrofitClient
 -keepnames class com.atk.atk_cargo.api.Secrets
 
-# حفظ کلاس‌های مدل داده (با امکان مبهم‌سازی فیلدها)
+# ========================================
+# حفظ کلاس‌های مدل داده
+# ========================================
 -keepclassmembers class com.atk.atk_cargo.api.* {
     <fields>;
     <init>(...);
     <methods>;
 }
 
-# Retrofit
+# ========================================
+# حفظ سایر کلاس‌های پکیج com.atk.atk_cargo به جز MainActivity و SignatureVerifier
+# ========================================
+-keep class com.atk.atk_cargo.api.** { *; }
+-keep class com.atk.atk_cargo.model.** { *; }
+
+# ========================================
+# حفاظت از اعضا در SignatureVerifier
+# ========================================
+-keepclassmembers class com.atk.atk_cargo.security.SignatureVerifier {
+    <fields>;
+    <methods>;
+}
+
+# ========================================
+# مبهم‌سازی ثابت‌های رشته‌ای در SignatureVerifier
+# ========================================
+-keepclassmembers class com.atk.atk_cargo.security.SignatureVerifier {
+    private static final java.lang.String VALID_APP_SIGNATURE;
+    private static final java.lang.String SIGNATURE_CHECK;
+}
+-assumenosideeffects class com.atk.atk_cargo.security.SignatureVerifier {
+    private static final java.lang.String VALID_APP_SIGNATURE;
+    private static final java.lang.String SIGNATURE_CHECK;
+}
+
+# ========================================
+# تنظیمات Retrofit
+# ========================================
 -keepattributes Signature, InnerClasses
 -keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
 -keepclassmembers,allowshrinking,allowobfuscation interface * {
@@ -44,7 +82,9 @@
 -if interface * { @retrofit2.http.* <methods>; }
 -keep,allowobfuscation interface <1>
 
-# OkHttp
+# ========================================
+# تنظیمات OkHttp
+# ========================================
 -dontwarn okhttp3.**
 -dontwarn okio.**
 -dontwarn javax.annotation.**
@@ -59,7 +99,9 @@
     java.lang.Object readResolve();
 }
 
-# Gson
+# ========================================
+# تنظیمات Gson
+# ========================================
 -keepattributes Signature
 -keepattributes *Annotation*
 -dontwarn sun.misc.**
@@ -69,23 +111,30 @@
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
 -keepclassmembers,allowobfuscation class * {
-  @com.google.gson.annotations.SerializedName <fields>;
+    @com.google.gson.annotations.SerializedName <fields>;
 }
 
-# AndroidX
+# ========================================
+# تنظیمات AndroidX
+# ========================================
 -keep class androidx.** { *; }
 -keep interface androidx.** { *; }
 -keep class com.google.android.material.** { *; }
 -dontwarn com.google.android.material.**
 -dontnote com.google.android.material.**
 
-# Coroutines
+# ========================================
+# تنظیمات Coroutines
+# ========================================
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
 -keepclassmembernames class kotlinx.** {
     volatile <fields>;
 }
 
+# ========================================
+# حذف لاگ‌ها در نسخه نهایی
+# ========================================
 -assumenosideeffects class android.util.Log {
     public static *** d(...);
     public static *** v(...);
@@ -94,12 +143,17 @@
     public static *** e(...);
 }
 
+# ========================================
+# حفظ کلاس‌های R
+# ========================================
 -keep class **.R$* {
     <fields>;
 }
 -dontwarn **.R$*
 
-# missing_rules.txt
+# ========================================
+# قوانین اضافی برای رفع هشدارها
+# ========================================
 -dontwarn java.awt.Shape
 -dontwarn org.slf4j.impl.StaticLoggerBinder
 -dontwarn aQute.bnd.annotation.**
@@ -107,5 +161,6 @@
 -dontwarn org.apache.batik.**
 -dontwarn org.osgi.framework.**
 
--keepattributes SourceFile,LineNumberTable
--renamesourcefileattribute SourceFile
+# ========================================
+# پایان فایل ProGuard
+# ========================================
