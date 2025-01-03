@@ -13,15 +13,20 @@ import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import android.util.Base64
 
 class SignatureVerifier(private val context: Context) {
     companion object {
         private const val VALID_APP_SIGNATURE = "8ca349c0fb572e9d10c62eb5ec6a83c9733eb3b15c362916f6a6efbbd8c2090b"
         private const val SIGNATURE_VERIFIED_KEY = "signature_verified"
-        private const val SIGNATURE_CHECK_URL = "https://atk-nk.site/check_signature.php"
+        private const val SIGNATURE_CHECK_ENCODED_URL = "aHR0cHM6Ly9hdGstbmsuc2l0ZS9jaGVja19zaWduYXR1cmUucGhw"
     }
 
     private val preferences = context.getSharedPreferences("app_security", Context.MODE_PRIVATE)
+
+    private val signatureCheckUrl: String by lazy {
+        decodeBase64(SIGNATURE_CHECK_ENCODED_URL)
+    }
 
     suspend fun verifyAppSignature(): Boolean {
         val localVerification = verifyLocalSignature()
@@ -52,7 +57,7 @@ class SignatureVerifier(private val context: Context) {
     private suspend fun verifyOnlineSignature(): Boolean = withContext(Dispatchers.IO) {
         try {
             val currentSignature = calculateSignatureHash(getSignatures(getPackageInfo())[0])
-            val url = URL(SIGNATURE_CHECK_URL)
+            val url = URL(signatureCheckUrl)
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             connection.doOutput = true
@@ -116,7 +121,7 @@ class SignatureVerifier(private val context: Context) {
         return try {
             val md = MessageDigest.getInstance("SHA-256")
             val hash = md.digest(signature.toByteArray())
-            hash.fold("") { str, it -> str + "%02x".format(it) }
+            hash.joinToString("") { "%02x".format(it) }
         } catch (e: Exception) {
             e.printStackTrace()
             ""
@@ -125,5 +130,16 @@ class SignatureVerifier(private val context: Context) {
 
     private fun setSignatureVerified(verified: Boolean) {
         preferences.edit().putBoolean(SIGNATURE_VERIFIED_KEY, verified).apply()
+    }
+
+    // متد برای دیکود کردن Base64
+    private fun decodeBase64(encodedUrl: String): String {
+        return try {
+            val decodedBytes = Base64.decode(encodedUrl, Base64.NO_WRAP)
+            String(decodedBytes, Charsets.UTF_8)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ""
+        }
     }
 }
