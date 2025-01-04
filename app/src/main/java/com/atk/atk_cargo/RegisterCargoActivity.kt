@@ -106,7 +106,6 @@ import androidx.compose.material.icons.filled.AddChart
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Camera
-import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
@@ -163,7 +162,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -1168,20 +1166,20 @@ fun CameraPreview(
             modifier = Modifier.matchParentSize()
         )
 
-        // Overlay for detected number
-        detectedNumber?.let { number ->
-            Text(
-                text = "وزن خالص: $number",
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 16.dp)
-                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-                    .padding(8.dp)
-            )
-        }
+//        // Overlay for detected number
+//        detectedNumber?.let { number ->
+//            Text(
+//                text = "وزن خالص: $number",
+//                color = Color.White,
+//                fontSize = 18.sp,
+//                fontWeight = FontWeight.Bold,
+//                modifier = Modifier
+//                    .align(Alignment.TopCenter)
+//                    .padding(top = 16.dp)
+//                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+//                    .padding(8.dp)
+//            )
+//        }
 
         // Capture button
         IconButton(
