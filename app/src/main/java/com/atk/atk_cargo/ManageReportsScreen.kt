@@ -143,14 +143,10 @@ import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.ThumbUp
-import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Title
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingFlat
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material.icons.filled.Warning
@@ -267,9 +263,6 @@ import com.atk.atk_cargo.api.VoucherDetail
 import com.atk.atk_cargo.api.Warehouse
 import com.atk.atk_cargo.api.WarehouseAnalytics
 import com.atk.atk_cargo.api.WarehouseEfficiencyData
-import com.atk.atk_cargo.api.WarehousePeakData
-import com.atk.atk_cargo.api.WarehouseSpeedData
-import com.atk.atk_cargo.api.WarehouseTrafficData
 import com.atk.atk_cargo.api.WarningStatus
 import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
@@ -2782,20 +2775,31 @@ fun QuotasList(
     onDelete: (Quota) -> Unit,
     viewModel: ReportsViewModel
 ) {
-    val sortedQuotas = quotas.sortedWith(
-        compareBy<Quota> { !it.isActive }
-            .thenBy { it.remainingTonnage }
-    )
+    // ساخت یک مپ برای نگهداری کوتاژهای هر شرکت
+    val groupedQuotas = remember(quotas) {
+        val map = mutableMapOf<String, MutableList<Quota>>()
 
-    val groupedAndSortedQuotas = sortedQuotas
-        .groupBy { it.shippingCompany }
-        .toSortedMap()
+        quotas.forEach { quota ->
+            // تقسیم شرکت‌های باربری در صورت وجود چند شرکت
+            val companies = quota.shippingCompany.split(",").map { it.trim() }
 
-    val filteredQuotas = remember(searchQuery, groupedAndSortedQuotas) {
+            companies.forEach { company ->
+                if (!map.containsKey(company)) {
+                    map[company] = mutableListOf()
+                }
+                map[company]?.add(quota.copy(shippingCompany = company))
+            }
+        }
+
+        map.toSortedMap()
+    }
+
+    // فیلتر کردن کوتاژها براساس جستجو
+    val filteredQuotas = remember(searchQuery, groupedQuotas) {
         if (searchQuery.isEmpty()) {
-            groupedAndSortedQuotas
+            groupedQuotas
         } else {
-            groupedAndSortedQuotas.mapValues { (_, quotas) ->
+            groupedQuotas.mapValues { (_, quotas) ->
                 quotas.filter { it.number.contains(searchQuery, ignoreCase = true) }
             }.filter { it.value.isNotEmpty() }
         }
@@ -2820,8 +2824,11 @@ fun QuotasList(
                 }
 
                 items(
-                    items = companyQuotas,
-                    key = { it.number }
+                    items = companyQuotas.sortedWith(
+                        compareBy<Quota> { !it.isActive }
+                            .thenBy { it.remainingTonnage }
+                    ),
+                    key = { "${it.number}_${it.shippingCompany}" }
                 ) { quota ->
                     QuotaCard(
                         quota = quota,
@@ -4099,6 +4106,1172 @@ fun QuotasDialog(
                 Spacer(modifier = Modifier
                     .windowInsetsPadding(WindowInsets.navigationBars)
                     .height(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun VouchersAnalyticsContent(
+    analytics: VoucherAnalytics,
+    viewModel: ReportsViewModel
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Stats Grid
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(0.dp)
+        ) {
+            // Total Row - Spans full width
+            item(span = { GridItemSpan(2) }) {
+                BigStatCard(
+                    title = "کل حواله‌ها",
+                    value = viewModel.formatNumber(analytics.totalEntryVouchers + analytics.totalExitVouchers),
+                    icon = Icons.Default.Inventory,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            // Entry Vouchers
+            item {
+                DetailStatCard(
+                    title = "حواله‌های ورودی",
+                    mainValue = viewModel.formatNumber(analytics.totalEntryVouchers),
+                    icon = Icons.Default.ArrowDownward,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+
+            // Exit Vouchers
+            item {
+                DetailStatCard(
+                    title = "حواله‌های خروجی",
+                    mainValue = viewModel.formatNumber(analytics.totalExitVouchers),
+                    icon = Icons.Default.ArrowUpward,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
+
+            // Exit Percentage
+            item {
+                DetailStatCard(
+                    title = "درصد خروج از کل",
+                    mainValue = viewModel.formatPercentage(analytics.exitPercentage),
+                    icon = Icons.Default.PieChart,
+                    color = MaterialTheme.colorScheme.secondary,
+                    secondaryValue = "${viewModel.formatNumber(analytics.totalExitVouchers)} از ${viewModel.formatNumber(analytics.totalEntryVouchers + analytics.totalExitVouchers)}"
+                )
+            }
+
+            // Average Weight
+            item {
+                DetailStatCard(
+                    title = "میانگین وزن خروج",
+                    mainValue = viewModel.formatWeight(analytics.averageExitWeight),
+                    icon = Icons.Default.Scale,
+                    color = MaterialTheme.colorScheme.error,
+                    secondaryValue = "به ازای هر حواله"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BigStatCard(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    color: Color
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = color.copy(alpha = 0.1f)
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            // Title and Icon
+            Row(
+                modifier = Modifier.align(Alignment.TopStart),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            // Value
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+                color = color,
+                modifier = Modifier.align(Alignment.BottomEnd)
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailStatCard(
+    title: String,
+    mainValue: String,
+    icon: ImageVector,
+    color: Color,
+    secondaryValue: String? = null
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = color.copy(alpha = 0.1f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Header
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            // Main Value
+            Text(
+                text = mainValue,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+
+            // Secondary Value (if exists)
+            secondaryValue?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WarehousesAnalyticsContent(
+    analytics: List<WarehouseAnalytics>,
+    viewModel: ReportsViewModel
+) {
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(analytics) { warehouse ->
+            WarehouseCard(
+                warehouse = warehouse,
+                viewModel = viewModel
+            )
+        }
+    }
+}
+
+@Composable
+private fun WarehouseCard(
+    warehouse: WarehouseAnalytics,
+    viewModel: ReportsViewModel
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RankBadge(rank = warehouse.rank)
+                    Column {
+                        Text(
+                            text = warehouse.warehouseName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "عملکرد: ${viewModel.formatPercentage(warehouse.operationPercentage)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
+            LinearProgressIndicator(
+                progress = { warehouse.operationPercentage / 100f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                WarehouseStatItem(
+                    label = "وزن کل",
+                    value = viewModel.formatWeight(warehouse.totalWeight),
+                    icon = Icons.Default.Scale
+                )
+                WarehouseStatItem(
+                    label = "میانگین وزن",
+                    value = viewModel.formatWeight(warehouse.averageWeight),
+                    icon = Icons.Default.Analytics
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RankBadge(rank: Int) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .background(
+                color = when (rank) {
+                    1 -> Color(0xFFFFD700) // Gold
+                    2 -> Color(0xFFC0C0C0) // Silver
+                    3 -> Color(0xFFCD7F32) // Bronze
+                    else -> MaterialTheme.colorScheme.surfaceVariant
+                },
+                shape = CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = rank.toString(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = if (rank <= 3) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun WarehouseStatItem(
+    label: String,
+    value: String,
+    icon: ImageVector
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShipsAnalyticsContent(
+    analytics: List<ShipAnalytics>,
+    viewModel: ReportsViewModel
+) {
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(analytics) { ship ->
+            ShipProgressCard(
+                ship = ship,
+                viewModel = viewModel
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShipProgressCard(
+    ship: ShipAnalytics,
+    viewModel: ReportsViewModel
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val backgroundColor = MaterialTheme.colorScheme.surface
+    val borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        border = BorderStroke(1.dp, borderColor)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = rememberRipple(bounded = true),
+                        onClick = { expanded = !expanded }
+                    ),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = ship.shipName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${ship.warehouseCount} انبار فعال",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+
+                Icon(
+                    imageVector = Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "بستن" else "بازکردن",
+                    modifier = Modifier.graphicsLayer {
+                        rotationZ = if (expanded) 180f else 0f
+                    }
+                )
+            }
+
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                ShipExpandedContent(ship = ship, viewModel = viewModel)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            ProgressSection(
+                loaded = ship.totalExitVouchers.toFloat(),
+                total = ship.totalVouchers.toFloat()
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShipExpandedContent(
+    ship: ShipAnalytics,
+    viewModel: ReportsViewModel
+) {
+    Column(
+        modifier = Modifier
+            .padding(top = 16.dp)
+            .fillMaxWidth()
+    ) {
+        // آمار حواله‌ها
+        StatisticsRow(ship = ship, viewModel = viewModel)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // اطلاعات وزن
+        WeightInfoRow(ship = ship, viewModel = viewModel)
+
+        if (ship.warehouses.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(ship.warehouses) { warehouse ->
+                    WarehouseChip(name = warehouse)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatisticsRow(
+    ship: ShipAnalytics,
+    viewModel: ReportsViewModel
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        ShipStatBoxs(
+            value = viewModel.formatNumber(ship.totalEntryVouchers),
+            label = "ورودی",
+            icon = Icons.Default.ArrowDownward,
+            tint = MaterialTheme.colorScheme.primary
+        )
+        ShipStatBoxs(
+            value = viewModel.formatNumber(ship.totalExitVouchers),
+            label = "خروجی",
+            icon = Icons.Default.ArrowUpward,
+            tint = MaterialTheme.colorScheme.secondary
+        )
+        ShipStatBoxs(
+            value = viewModel.formatPercentage(ship.exitRatio),
+            label = "درصد خروج",
+            icon = Icons.Default.PieChart,
+            tint = MaterialTheme.colorScheme.tertiary
+        )
+    }
+}
+
+@Composable
+private fun WeightInfoRow(
+    ship: ShipAnalytics,
+    viewModel: ReportsViewModel
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(horizontalAlignment = Alignment.Start) {
+            Text(
+                text = viewModel.formatWeight(ship.totalNetWeight),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "وزن کل",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = viewModel.formatWeight(ship.averageWeight),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.secondary
+            )
+            Text(
+                text = "میانگین وزن",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShipStatBoxs(
+    value: String,
+    label: String,
+    icon: ImageVector,
+    tint: Color
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(20.dp)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = tint
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+    }
+}
+
+@Composable
+private fun WarehouseChip(name: String) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warehouse,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProgressSection(loaded: Float, total: Float) {
+    val progress = if (total > 0f) loaded / total else 0f
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
+        label = "Progress Animation"
+    )
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "پیشرفت بارگیری",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+            Text(
+                text = "${(progress * 100).toInt()}%",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        LinearProgressIndicator(
+            progress = { animatedProgress },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp)),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+        )
+    }
+}
+
+@Composable
+private fun CompaniesAnalyticsContent(
+    analytics: List<ShippingCompanyAnalytics>,
+    viewModel: ReportsViewModel
+) {
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(analytics) { company ->
+            CompanyCard(
+                company = company,
+                viewModel = viewModel
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompanyCard(
+    company: ShippingCompanyAnalytics,
+    viewModel: ReportsViewModel
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = company.companyName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "سهم عملیات: ${viewModel.formatPercentage(company.operationPercentage)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                CompanyStatItem(
+                    label = "تعداد حواله",
+                    value = viewModel.formatNumber(company.totalVouchers),
+                    icon = Icons.Default.Receipt
+                )
+                CompanyStatItem(
+                    label = "وزن کل",
+                    value = viewModel.formatWeight(company.totalWeight),
+                    icon = Icons.Default.Scale
+                )
+            }
+
+            LinearProgressIndicator(
+                progress = { company.operationPercentage / 100f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompanyStatItem(
+    label: String,
+    value: String,
+    icon: ImageVector
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuotasAnalyticsContent(
+    analytics: List<QuotaAnalytics>,
+    viewModel: ReportsViewModel
+) {
+    var expandedQuotaId by remember { mutableStateOf<String?>(null) }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(analytics) { quota ->
+                QuotaAnalyticsCard(
+                    quota = quota,
+                    isExpanded = expandedQuotaId == quota.quotaNumber,
+                    onExpandToggle = {
+                        expandedQuotaId = if (expandedQuotaId == quota.quotaNumber) null else quota.quotaNumber
+                    },
+                    viewModel = viewModel
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuotaAnalyticsCard(
+    quota: QuotaAnalytics,
+    isExpanded: Boolean,
+    onExpandToggle: () -> Unit,
+    viewModel: ReportsViewModel
+) {
+    val operationProgress = remember(quota) {
+        if (quota.totalVouchers > 0) {
+            (quota.exitVouchers.toFloat() / quota.totalVouchers * 100).coerceIn(0f, 100f)
+        } else 0f
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onExpandToggle() }
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Header Section - Always visible
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Description,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+
+                    Column {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "کوتاژ ${quota.quotaNumber}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "${operationProgress.toInt()}%",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // شرکت باربری
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Business,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = quota.shippingCompany,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .size(4.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                                        CircleShape
+                                    )
+                            )
+
+                            // نام انبار
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Warehouse,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = quota.warehouseName,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "بستن" else "باز کردن",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+
+            // Progress Bar - Always visible
+            LinearProgressIndicator(
+                progress = { operationProgress / 100f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            )
+
+            // Expanded Content
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // آمار حواله‌ها
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        VoucherStatBox(
+                            title = "ورودی",
+                            value = quota.entryVouchers,
+                            icon = Icons.Default.ArrowDownward,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                        VoucherStatBox(
+                            title = "خروجی",
+                            value = quota.exitVouchers,
+                            icon = Icons.Default.ArrowUpward,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        VoucherStatBox(
+                            title = "کل",
+                            value = quota.totalVouchers,
+                            icon = Icons.Default.Inventory,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                    // آمار وزن
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        WeightStatBox(
+                            title = "وزن بارگیری شده",
+                            value = viewModel.formatWeight(quota.totalWeight),
+                            icon = Icons.Default.Scale,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        WeightStatBox(
+                            title = "میانگین وزن در ساعت",
+                            value = viewModel.formatWeight(quota.weightPerHour),
+                            icon = Icons.Default.Schedule,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        WeightStatBox(
+                            title = "میانگین وزن هر حواله",
+                            value = viewModel.formatWeight(quota.averageWeight),
+                            icon = Icons.Default.Analytics,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        WeightStatBox(
+                            title = "درصد تکمیل",
+                            value = "${quota.completionRate.toInt()}%",
+                            icon = Icons.Default.PieChart,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    // کارایی عملیات
+                    EfficiencySection(efficiency = quota.operationEfficiency)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VoucherStatBox(
+    title: String,
+    value: Int,
+    icon: ImageVector,
+    color: Color
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(24.dp)
+        )
+        Text(
+            text = value.toString(),
+            style = MaterialTheme.typography.titleLarge,
+            color = color,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+    }
+}
+
+@Composable
+private fun WeightStatBox(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = color.copy(alpha = 0.1f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.2f)),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+        }
+    }
+}
+
+@Composable
+private fun EfficiencySection(efficiency: Float) {
+    val (color, icon, description) = when {
+        efficiency >= 90 -> Triple(
+            MaterialTheme.colorScheme.primary,
+            Icons.Default.Stars,
+            "عملکرد عالی"
+        )
+        efficiency >= 70 -> Triple(
+            MaterialTheme.colorScheme.secondary,
+            Icons.Default.Star,
+            "عملکرد خوب"
+        )
+        efficiency >= 50 -> Triple(
+            MaterialTheme.colorScheme.tertiary,
+            Icons.AutoMirrored.Filled.StarHalf,
+            "عملکرد متوسط"
+        )
+        else -> Triple(
+            MaterialTheme.colorScheme.error,
+            Icons.Default.StarBorder,
+            "نیاز به بهبود"
+        )
+    }
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = color.copy(alpha = 0.1f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "کارایی عملیات",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = color
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = color.copy(alpha = 0.7f)
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = "${efficiency.toInt()}%",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = color,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun WeightDetailsDialog(
+    weightDetails: Map<String, Map<String, Float>>,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(dismissOnClickOutside = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 600.dp),
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth()
+            ) {
+                DialogHeader()
+                Spacer(modifier = Modifier.height(8.dp))
+                WeightDetailsList(weightDetails)
+                Spacer(modifier = Modifier.height(8.dp))
+                DialogFooter(onDismiss)
             }
         }
     }
@@ -5631,1172 +6804,6 @@ private fun getTabInfo(tab: AnalyticsTab) = when(tab) {
     AnalyticsTab.COMPANIES -> TabInfo("باربری‌ها", Icons.Default.Business)
     AnalyticsTab.WAREHOUSES -> TabInfo("انبارها", Icons.Default.Warehouse)
     AnalyticsTab.QUOTAS -> TabInfo("کوتاژها", Icons.Default.Description)
-}
-
-@Composable
-private fun VouchersAnalyticsContent(
-    analytics: VoucherAnalytics,
-    viewModel: ReportsViewModel
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Stats Grid
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(0.dp)
-        ) {
-            // Total Row - Spans full width
-            item(span = { GridItemSpan(2) }) {
-                BigStatCard(
-                    title = "کل حواله‌ها",
-                    value = viewModel.formatNumber(analytics.totalEntryVouchers + analytics.totalExitVouchers),
-                    icon = Icons.Default.Inventory,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            // Entry Vouchers
-            item {
-                DetailStatCard(
-                    title = "حواله‌های ورودی",
-                    mainValue = viewModel.formatNumber(analytics.totalEntryVouchers),
-                    icon = Icons.Default.ArrowDownward,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            }
-
-            // Exit Vouchers
-            item {
-                DetailStatCard(
-                    title = "حواله‌های خروجی",
-                    mainValue = viewModel.formatNumber(analytics.totalExitVouchers),
-                    icon = Icons.Default.ArrowUpward,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-            }
-
-            // Exit Percentage
-            item {
-                DetailStatCard(
-                    title = "درصد خروج از کل",
-                    mainValue = viewModel.formatPercentage(analytics.exitPercentage),
-                    icon = Icons.Default.PieChart,
-                    color = MaterialTheme.colorScheme.secondary,
-                    secondaryValue = "${viewModel.formatNumber(analytics.totalExitVouchers)} از ${viewModel.formatNumber(analytics.totalEntryVouchers + analytics.totalExitVouchers)}"
-                )
-            }
-
-            // Average Weight
-            item {
-                DetailStatCard(
-                    title = "میانگین وزن خروج",
-                    mainValue = viewModel.formatWeight(analytics.averageExitWeight),
-                    icon = Icons.Default.Scale,
-                    color = MaterialTheme.colorScheme.error,
-                    secondaryValue = "به ازای هر حواله"
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BigStatCard(
-    title: String,
-    value: String,
-    icon: ImageVector,
-    color: Color
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.1f)
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            // Title and Icon
-            Row(
-                modifier = Modifier.align(Alignment.TopStart),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color
-                )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            // Value
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = color,
-                modifier = Modifier.align(Alignment.BottomEnd)
-            )
-        }
-    }
-}
-
-@Composable
-private fun DetailStatCard(
-    title: String,
-    mainValue: String,
-    icon: ImageVector,
-    color: Color,
-    secondaryValue: String? = null
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.1f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // Header
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            // Main Value
-            Text(
-                text = mainValue,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
-
-            // Secondary Value (if exists)
-            secondaryValue?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun WarehousesAnalyticsContent(
-    analytics: List<WarehouseAnalytics>,
-    viewModel: ReportsViewModel
-) {
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(analytics) { warehouse ->
-            WarehouseCard(
-                warehouse = warehouse,
-                viewModel = viewModel
-            )
-        }
-    }
-}
-
-@Composable
-private fun WarehouseCard(
-    warehouse: WarehouseAnalytics,
-    viewModel: ReportsViewModel
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RankBadge(rank = warehouse.rank)
-                    Column {
-                        Text(
-                            text = warehouse.warehouseName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "عملکرد: ${viewModel.formatPercentage(warehouse.operationPercentage)}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-
-            LinearProgressIndicator(
-                progress = { warehouse.operationPercentage / 100f },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                WarehouseStatItem(
-                    label = "وزن کل",
-                    value = viewModel.formatWeight(warehouse.totalWeight),
-                    icon = Icons.Default.Scale
-                )
-                WarehouseStatItem(
-                    label = "میانگین وزن",
-                    value = viewModel.formatWeight(warehouse.averageWeight),
-                    icon = Icons.Default.Analytics
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RankBadge(rank: Int) {
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .background(
-                color = when (rank) {
-                    1 -> Color(0xFFFFD700) // Gold
-                    2 -> Color(0xFFC0C0C0) // Silver
-                    3 -> Color(0xFFCD7F32) // Bronze
-                    else -> MaterialTheme.colorScheme.surfaceVariant
-                },
-                shape = CircleShape
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = rank.toString(),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = if (rank <= 3) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun WarehouseStatItem(
-    label: String,
-    value: String,
-    icon: ImageVector
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp)
-        )
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Composable
-private fun ShipsAnalyticsContent(
-    analytics: List<ShipAnalytics>,
-    viewModel: ReportsViewModel
-) {
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(analytics) { ship ->
-            ShipProgressCard(
-                ship = ship,
-                viewModel = viewModel
-            )
-        }
-    }
-}
-
-@Composable
-private fun ShipProgressCard(
-    ship: ShipAnalytics,
-    viewModel: ReportsViewModel
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val backgroundColor = MaterialTheme.colorScheme.surface
-    val borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioLowBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        border = BorderStroke(1.dp, borderColor)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = rememberRipple(bounded = true),
-                        onClick = { expanded = !expanded }
-                    ),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = ship.shipName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${ship.warehouseCount} انبار فعال",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
-                }
-
-                Icon(
-                    imageVector = Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) "بستن" else "بازکردن",
-                    modifier = Modifier.graphicsLayer {
-                        rotationZ = if (expanded) 180f else 0f
-                    }
-                )
-            }
-
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                ShipExpandedContent(ship = ship, viewModel = viewModel)
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-            ProgressSection(
-                loaded = ship.totalExitVouchers.toFloat(),
-                total = ship.totalVouchers.toFloat()
-            )
-        }
-    }
-}
-
-@Composable
-private fun ShipExpandedContent(
-    ship: ShipAnalytics,
-    viewModel: ReportsViewModel
-) {
-    Column(
-        modifier = Modifier
-            .padding(top = 16.dp)
-            .fillMaxWidth()
-    ) {
-        // آمار حواله‌ها
-        StatisticsRow(ship = ship, viewModel = viewModel)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // اطلاعات وزن
-        WeightInfoRow(ship = ship, viewModel = viewModel)
-
-        if (ship.warehouses.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(16.dp))
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(ship.warehouses) { warehouse ->
-                    WarehouseChip(name = warehouse)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatisticsRow(
-    ship: ShipAnalytics,
-    viewModel: ReportsViewModel
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        ShipStatBoxs(
-            value = viewModel.formatNumber(ship.totalEntryVouchers),
-            label = "ورودی",
-            icon = Icons.Default.ArrowDownward,
-            tint = MaterialTheme.colorScheme.primary
-        )
-        ShipStatBoxs(
-            value = viewModel.formatNumber(ship.totalExitVouchers),
-            label = "خروجی",
-            icon = Icons.Default.ArrowUpward,
-            tint = MaterialTheme.colorScheme.secondary
-        )
-        ShipStatBoxs(
-            value = viewModel.formatPercentage(ship.exitRatio),
-            label = "درصد خروج",
-            icon = Icons.Default.PieChart,
-            tint = MaterialTheme.colorScheme.tertiary
-        )
-    }
-}
-
-@Composable
-private fun WeightInfoRow(
-    ship: ShipAnalytics,
-    viewModel: ReportsViewModel
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(horizontalAlignment = Alignment.Start) {
-            Text(
-                text = viewModel.formatWeight(ship.totalNetWeight),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "وزن کل",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-        }
-
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                text = viewModel.formatWeight(ship.averageWeight),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.secondary
-            )
-            Text(
-                text = "میانگین وزن",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ShipStatBoxs(
-    value: String,
-    label: String,
-    icon: ImageVector,
-    tint: Color
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(20.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = tint
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-    }
-}
-
-@Composable
-private fun WarehouseChip(name: String) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.Warehouse,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                text = name,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
-    }
-}
-
-@Composable
-private fun ProgressSection(loaded: Float, total: Float) {
-    val progress = if (total > 0f) loaded / total else 0f
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
-        label = "Progress Animation"
-    )
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "پیشرفت بارگیری",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-            Text(
-                text = "${(progress * 100).toInt()}%",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        LinearProgressIndicator(
-            progress = { animatedProgress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp)),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-        )
-    }
-}
-
-@Composable
-private fun CompaniesAnalyticsContent(
-    analytics: List<ShippingCompanyAnalytics>,
-    viewModel: ReportsViewModel
-) {
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(analytics) { company ->
-            CompanyCard(
-                company = company,
-                viewModel = viewModel
-            )
-        }
-    }
-}
-
-@Composable
-private fun CompanyCard(
-    company: ShippingCompanyAnalytics,
-    viewModel: ReportsViewModel
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = company.companyName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "سهم عملیات: ${viewModel.formatPercentage(company.operationPercentage)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                CompanyStatItem(
-                    label = "تعداد حواله",
-                    value = viewModel.formatNumber(company.totalVouchers),
-                    icon = Icons.Default.Receipt
-                )
-                CompanyStatItem(
-                    label = "وزن کل",
-                    value = viewModel.formatWeight(company.totalWeight),
-                    icon = Icons.Default.Scale
-                )
-            }
-
-            LinearProgressIndicator(
-                progress = { company.operationPercentage / 100f },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun CompanyStatItem(
-    label: String,
-    value: String,
-    icon: ImageVector
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp)
-        )
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Composable
-private fun QuotasAnalyticsContent(
-    analytics: List<QuotaAnalytics>,
-    viewModel: ReportsViewModel
-) {
-    var expandedQuotaId by remember { mutableStateOf<String?>(null) }
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(analytics) { quota ->
-                QuotaAnalyticsCard(
-                    quota = quota,
-                    isExpanded = expandedQuotaId == quota.quotaNumber,
-                    onExpandToggle = {
-                        expandedQuotaId = if (expandedQuotaId == quota.quotaNumber) null else quota.quotaNumber
-                    },
-                    viewModel = viewModel
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuotaAnalyticsCard(
-    quota: QuotaAnalytics,
-    isExpanded: Boolean,
-    onExpandToggle: () -> Unit,
-    viewModel: ReportsViewModel
-) {
-    val operationProgress = remember(quota) {
-        if (quota.totalVouchers > 0) {
-            (quota.exitVouchers.toFloat() / quota.totalVouchers * 100).coerceIn(0f, 100f)
-        } else 0f
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onExpandToggle() }
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Header Section - Always visible
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Description,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
-
-                    Column {
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "کوتاژ ${quota.quotaNumber}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "${operationProgress.toInt()}%",
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // شرکت باربری
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Business,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Text(
-                                    text = quota.shippingCompany,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .size(4.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                                        CircleShape
-                                    )
-                            )
-
-                            // نام انبار
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Warehouse,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Text(
-                                    text = quota.warehouseName,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Icon(
-                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) "بستن" else "باز کردن",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
-
-            // Progress Bar - Always visible
-            LinearProgressIndicator(
-                progress = { operationProgress / 100f },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-            )
-
-            // Expanded Content
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // آمار حواله‌ها
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        VoucherStatBox(
-                            title = "ورودی",
-                            value = quota.entryVouchers,
-                            icon = Icons.Default.ArrowDownward,
-                            color = MaterialTheme.colorScheme.tertiary
-                        )
-                        VoucherStatBox(
-                            title = "خروجی",
-                            value = quota.exitVouchers,
-                            icon = Icons.Default.ArrowUpward,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                        VoucherStatBox(
-                            title = "کل",
-                            value = quota.totalVouchers,
-                            icon = Icons.Default.Inventory,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                    // آمار وزن
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        WeightStatBox(
-                            title = "وزن بارگیری شده",
-                            value = viewModel.formatWeight(quota.totalWeight),
-                            icon = Icons.Default.Scale,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f)
-                        )
-                        WeightStatBox(
-                            title = "میانگین وزن در ساعت",
-                            value = viewModel.formatWeight(quota.weightPerHour),
-                            icon = Icons.Default.Schedule,
-                            color = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        WeightStatBox(
-                            title = "میانگین وزن هر حواله",
-                            value = viewModel.formatWeight(quota.averageWeight),
-                            icon = Icons.Default.Analytics,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.weight(1f)
-                        )
-                        WeightStatBox(
-                            title = "درصد تکمیل",
-                            value = "${quota.completionRate.toInt()}%",
-                            icon = Icons.Default.PieChart,
-                            color = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    // کارایی عملیات
-                    EfficiencySection(efficiency = quota.operationEfficiency)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun VoucherStatBox(
-    title: String,
-    value: Int,
-    icon: ImageVector,
-    color: Color
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(24.dp)
-        )
-        Text(
-            text = value.toString(),
-            style = MaterialTheme.typography.titleLarge,
-            color = color,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-    }
-}
-
-@Composable
-private fun WeightStatBox(
-    title: String,
-    value: String,
-    icon: ImageVector,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = color.copy(alpha = 0.1f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.2f)),
-        modifier = modifier
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(16.dp)
-                )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-            }
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
-        }
-    }
-}
-
-@Composable
-private fun EfficiencySection(efficiency: Float) {
-    val (color, icon, description) = when {
-        efficiency >= 90 -> Triple(
-            MaterialTheme.colorScheme.primary,
-            Icons.Default.Stars,
-            "عملکرد عالی"
-        )
-        efficiency >= 70 -> Triple(
-            MaterialTheme.colorScheme.secondary,
-            Icons.Default.Star,
-            "عملکرد خوب"
-        )
-        efficiency >= 50 -> Triple(
-            MaterialTheme.colorScheme.tertiary,
-            Icons.AutoMirrored.Filled.StarHalf,
-            "عملکرد متوسط"
-        )
-        else -> Triple(
-            MaterialTheme.colorScheme.error,
-            Icons.Default.StarBorder,
-            "نیاز به بهبود"
-        )
-    }
-
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = color.copy(alpha = 0.1f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = "کارایی عملیات",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = color
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = color.copy(alpha = 0.7f)
-                )
-            }
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(24.dp)
-                )
-                Text(
-                    text = "${efficiency.toInt()}%",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = color,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun WeightDetailsDialog(
-    weightDetails: Map<String, Map<String, Float>>,
-    onDismiss: () -> Unit
-) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(dismissOnClickOutside = false)
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 600.dp),
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surface
-        ) {
-            Column(
-                modifier = Modifier
-                    .padding(24.dp)
-                    .fillMaxWidth()
-            ) {
-                DialogHeader()
-                Spacer(modifier = Modifier.height(8.dp))
-                WeightDetailsList(weightDetails)
-                Spacer(modifier = Modifier.height(8.dp))
-                DialogFooter(onDismiss)
-            }
-        }
-    }
 }
 
 @Composable
@@ -10602,160 +10609,6 @@ private fun StatItems(
             text = label,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-    }
-}
-
-@Composable
-private fun CompletionRateIndicator(
-    rate: Float,
-    color: Color
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "نرخ تکمیل عملیات",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                text = "${rate.roundToInt()}%",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = color
-            )
-        }
-        LinearProgressIndicator(
-            progress = { rate / 100f },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp)),
-            color = color,
-            trackColor = color.copy(alpha = 0.1f)
-        )
-    }
-}
-
-@SuppressLint("DefaultLocale")
-@Composable
-private fun HourlyTrafficRow(
-    hour: Int,
-    entries: Int,
-    exits: Int,
-    percentage: Float,
-    avgWeight: Float,
-    color: Color
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // ساعت و آمار
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // نمایش ساعت
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(color.copy(alpha = 0.1f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = hour.toString(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = color,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            // آمار ورود و خروج
-            Column {
-                Text(
-                    text = "${formatNumber(entries)} ورود • ${formatNumber(exits)} خروج",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = "${formatNumber(avgWeight.roundToInt())} کیلوگرم",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-            }
-        }
-
-        // درصد
-        Text(
-            text = String.format("%.1f%%", percentage),
-            style = MaterialTheme.typography.bodyMedium,
-            color = color,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Composable
-private fun PeakTimeRow(
-    hour: Int,
-    operationCount: Int,
-    avgWeight: Float,
-    percentage: Float,
-    activityLevel: String,
-    color: Color
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // ساعت و آمار
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // نمایش ساعت با پس‌زمینه
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(color.copy(alpha = 0.1f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = hour.toString(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = color,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            // اطلاعات عملیات
-            Column {
-                Text(
-                    text = "${formatNumber(operationCount)} عملیات",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    text = "${formatNumber(avgWeight.roundToInt())} کیلوگرم",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-            }
-        }
-
-        // نمایش وضعیت فعالیت
-        ActivityLevelBadge(
-            activityLevel = activityLevel,
-            percentage = percentage,
-            color = color
         )
     }
 }
