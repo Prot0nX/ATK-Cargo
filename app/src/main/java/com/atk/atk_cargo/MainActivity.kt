@@ -300,7 +300,7 @@ class MainActivity : ComponentActivity() {
     private fun performSecurityCheck() {
         lifecycleScope.launch {
             isSecurityCheckLoading = true
-            isSecurityCheckPassed = signatureVerifier.verifyAppSignature()
+            isSecurityCheckPassed = signatureVerifier.i()
             isSecurityCheckLoading = false
             if (!isSecurityCheckPassed) {
                 showMessage("خطای امنیتی: امضای برنامه نامعتبر است.")

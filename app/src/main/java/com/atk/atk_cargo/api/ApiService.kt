@@ -40,7 +40,7 @@ interface ApiService {
     @GET("getActiveShips.php")
     suspend fun getActiveShips(): Response<List<ActiveShipInfo>>
 
-    @POST("saveOrUpdateCargoInfo2.php")
+    @POST("saveOrUpdateCargoInfo.php")
     suspend fun saveOrUpdateCargoInfo(@Body cargoInfo: CargoInfo): Response<SaveOrUpdateResponse>
 
     @POST("deleteCargoInfo.php")

@@ -16,88 +16,86 @@ import java.security.MessageDigest
 
 class SignatureVerifier(private val context: Context) {
     companion object {
-        private const val VALID_APP_SIGNATURE = "8ca349c0fb572e9d10c62eb5ec6a83c9733eb3b15c362916f6a6efbbd8c2090b"
-        private const val SIGNATURE_VERIFIED_KEY = "signature_verified"
-        private const val SIGNATURE_CHECK = "aHR0cHM6Ly9hdGstbmsuc2l0ZS9jaGVja19zaWduYXR1cmUucGhw"
+        private const val C = "8ca349c0fb572e9d10c62eb5ec6a83c9733eb3b15c362916f6a6efbbd8c2090b"
+        private const val D = "e1f2g3h4i5j6k7l8m9n0o1p2q3r4s5t6"
+        private const val E = "aHR0cHM6Ly9hdGstbmsuc2l0ZS9jaGVja19zaWduYXR1cmUucGhw"
     }
 
-    private val preferences = context.getSharedPreferences("app_security", Context.MODE_PRIVATE)
+    private val f = context.getSharedPreferences("x1y2z3", Context.MODE_PRIVATE)
 
-    private val signatureCheckUrl: String by lazy {
+    private val g: String by lazy {
         try {
-            String(Base64.decode(SIGNATURE_CHECK, Base64.NO_WRAP), Charsets.UTF_8)
-        } catch (e: Exception) {
-            e.printStackTrace()
+            String(Base64.decode(E, Base64.NO_WRAP), Charsets.UTF_8)
+        } catch (h: Exception) {
+            h.printStackTrace()
             ""
         }
     }
 
-    suspend fun verifyAppSignature(): Boolean {
-        val localVerification = verifyLocalSignature()
-        val onlineVerification = verifyOnlineSignature()
-        val isValid = localVerification && onlineVerification
-        setSignatureVerified(isValid)
-        return isValid
+    suspend fun i(): Boolean {
+        val j = k()
+        val l = m()
+        val n = j && l
+        o(n)
+        return n
     }
 
-    private fun verifyLocalSignature(): Boolean {
+    private fun k(): Boolean {
         return try {
-            val packageInfo = getPackageInfo()
-            val signatures = getSignatures(packageInfo)
+            val p = q()
+            val r = s(p)
 
-            if (signatures.isNotEmpty()) {
-                val currentSignature = signatures[0]
-                val signatureHash = calculateSignatureHash(currentSignature)
-                signatureHash == VALID_APP_SIGNATURE
+            if (r.isNotEmpty()) {
+                val t = r[0]
+                val u = v(t)
+                u == C
             } else {
                 false
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (w: Exception) {
+            w.printStackTrace()
             false
         }
     }
 
-    private suspend fun verifyOnlineSignature(): Boolean = withContext(Dispatchers.IO) {
+    private suspend fun m(): Boolean = withContext(Dispatchers.IO) {
         try {
-            val currentSignature = calculateSignatureHash(getSignatures(getPackageInfo())[0])
-            val url = URL(signatureCheckUrl)
-            val connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "POST"
-            connection.doOutput = true
-            connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8"
+            val x = v(s(q())[0])
+            val y = URL(g)
+            val z = y.openConnection() as HttpURLConnection
+            z.requestMethod = "POST"
+            z.doOutput = true
+            z.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
 
-            )
+            val aa = JSONObject()
+            aa.put("app_signature", x)
 
-            val jsonInput = JSONObject()
-            jsonInput.put("app_signature", currentSignature)
-
-            connection.outputStream.use { outputStream ->
-                outputStream.write(jsonInput.toString().toByteArray(Charsets.UTF_8))
-                outputStream.flush()
+            z.outputStream.use { ab ->
+                ab.write(aa.toString().toByteArray(Charsets.UTF_8))
+                ab.flush()
             }
 
-            val responseCode = connection.responseCode
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                val response = connection.inputStream.bufferedReader().use { it.readText() }
-                val jsonResponse = JSONObject(response)
+            val ac = z.responseCode
+            if (ac == HttpURLConnection.HTTP_OK) {
+                val ad = z.inputStream.bufferedReader().use { ae -> ae.readText() }
+                val af = JSONObject(ad)
 
-                if (jsonResponse.has("is_valid")) {
-                    jsonResponse.getBoolean("is_valid")
+                if (af.has("is_valid")) {
+                    af.getBoolean("is_valid")
                 } else {
                     false
                 }
             } else {
                 false
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (ag: Exception) {
+            ag.printStackTrace()
             false
         }
     }
 
     @SuppressLint("PackageManagerGetSignatures")
-    private fun getPackageInfo(): PackageInfo {
+    private fun q(): PackageInfo {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             context.packageManager.getPackageInfo(
                 context.packageName,
@@ -112,27 +110,27 @@ class SignatureVerifier(private val context: Context) {
         }
     }
 
-    private fun getSignatures(packageInfo: PackageInfo): Array<Signature> {
+    private fun s(ah: PackageInfo): Array<Signature> {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            packageInfo.signingInfo.apkContentsSigners
+            ah.signingInfo.apkContentsSigners
         } else {
             @Suppress("DEPRECATION")
-            packageInfo.signatures
+            ah.signatures
         }
     }
 
-    private fun calculateSignatureHash(signature: Signature): String {
+    private fun v(ai: Signature): String {
         return try {
-            val md = MessageDigest.getInstance("SHA-256")
-            val hash = md.digest(signature.toByteArray())
-            hash.joinToString("") { "%02x".format(it) }
-        } catch (e: Exception) {
-            e.printStackTrace()
+            val aj = MessageDigest.getInstance("SHA-256")
+            val ak = aj.digest(ai.toByteArray())
+            ak.joinToString("") { "%02x".format(it) }
+        } catch (al: Exception) {
+            al.printStackTrace()
             ""
         }
     }
 
-    private fun setSignatureVerified(verified: Boolean) {
-        preferences.edit().putBoolean(SIGNATURE_VERIFIED_KEY, verified).apply()
+    private fun o(am: Boolean) {
+        f.edit().putBoolean(D, am).apply()
     }
 }

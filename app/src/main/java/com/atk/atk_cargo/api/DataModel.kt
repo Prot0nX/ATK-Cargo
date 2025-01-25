@@ -309,8 +309,7 @@ class CargoViewModel(
                         shippingCompany = info.shippingCompany,
                         warehouse = info.loadingWarehouse,
                         cargoType = info.cargoType,
-                        onProgress = {
-                        },
+                        onProgress = {},
                         onComplete = {
                             val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
                             showUpdateMessage(
