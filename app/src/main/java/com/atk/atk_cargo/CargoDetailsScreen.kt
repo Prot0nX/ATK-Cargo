@@ -1,6 +1,5 @@
 package com.atk.atk_cargo
 
-//noinspection UsingMaterialAndMaterial3Libraries
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -38,7 +37,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.CircularProgressIndicator
+//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.TabRowDefaults.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
@@ -58,6 +59,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Scale
 import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -74,6 +76,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -147,7 +150,7 @@ fun CargoDetailsScreen(
     var selectedCargoInfo by remember { mutableStateOf<CargoInfo?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     var updateTime by remember { mutableStateOf(getCurrentTime()) }
-    var loadingProgress by remember { mutableStateOf(0f) }
+    var loadingProgress by remember { mutableFloatStateOf(0f) }
     var showLoadingDialog by remember { mutableStateOf(true) }
     val groupedCargoList by remember(filteredCargoInfoList) {
         derivedStateOf {
@@ -175,21 +178,21 @@ fun CargoDetailsScreen(
         viewModel.filterCargoInfoList(searchQuery)
     }
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(30000)
-            refreshData(
-                viewModel,
-                quotaNumber = quotaNumber,
-                shippingCompany = shippingCompany,
-                warehouse = warehouse,
-                cargoType = cargoType
-            ) {
-                updateTime = getCurrentTime()
-                Toast.makeText(context, "اطلاعات به‌روزرسانی شد", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
+//    LaunchedEffect(Unit) {
+//        while (true) {
+//            delay(30000)
+//            refreshData(
+//                viewModel,
+//                quotaNumber = quotaNumber,
+//                shippingCompany = shippingCompany,
+//                warehouse = warehouse,
+//                cargoType = cargoType
+//            ) {
+//                updateTime = getCurrentTime()
+//                Toast.makeText(context, "اطلاعات به‌روزرسانی شد", Toast.LENGTH_SHORT).show()
+//            }
+//        }
+//    }
 
     Scaffold { paddingValues ->
         Column(
@@ -197,7 +200,6 @@ fun CargoDetailsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-
             InitialInfoSection(
                 initialInfo = initialInfo,
                 cargoWeight = cargoWeight,
@@ -242,7 +244,7 @@ fun CargoDetailsScreen(
         MessageDialog(
             message = resultMessage,
             type = messageType,
-            visible = showAnimatedMessage,
+            visible = true,
             onDismiss = { viewModel.dismissMessage() }
         )
     }
@@ -458,15 +460,17 @@ fun SearchAndRefreshSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
+            Button(
                 onClick = onRefresh,
-                modifier = Modifier.size(48.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(
                     Icons.Default.Refresh,
                     contentDescription = "بارگذاری مجدد",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onPrimary
                 )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("بروزرسانی اطلاعات", color = MaterialTheme.colorScheme.onPrimary)
             }
 
             Text(
@@ -587,9 +591,6 @@ fun CargoListSection(
 
 @Composable
 fun CargoInfoCard(cargoInfo: CargoInfo, onClick: () -> Unit) {
-    val cardElevation by remember(cargoInfo.confirm) {
-        derivedStateOf { if (cargoInfo.confirm == "تائید شده") 0.dp else 2.dp }
-    }
 
     Card(
         modifier = Modifier

@@ -123,6 +123,7 @@ import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Scale
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Warehouse
@@ -380,12 +381,12 @@ fun RegisterCargoScreen(
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
     var showQuotaWarning by remember { mutableStateOf<WarningStatus?>(null) }
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(30000)
-            viewModel.refreshCargoInfo()
-        }
-    }
+//    LaunchedEffect(Unit) {
+//        while (true) {
+//            delay(30000)
+//            viewModel.refreshCargoInfo()
+//        }
+//    }
 
     fun clearInputFields() {
         trackingNumber = ""
@@ -587,6 +588,18 @@ fun RegisterCargoScreen(
                         contentDescription = if (isSearchExpanded) "بستن جستجو" else "باز کردن جستجو",
                         tint = MaterialTheme.colors.onSurface
                     )
+                }
+
+                // دکمه بروزرسانی
+                Button(
+                    onClick = { viewModel.refreshCargoInfo() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = "بروزرسانی")
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text("بروزرسانی اطلاعات")
                 }
 
                 ExpandableSection(
