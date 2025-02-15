@@ -38,10 +38,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -103,7 +100,6 @@ import androidx.compose.material.icons.filled.AddTask
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Check
@@ -166,6 +162,8 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -226,7 +224,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -239,7 +236,6 @@ import com.atk.atk_cargo.api.CalculationResult
 import com.atk.atk_cargo.api.CargoInfo
 import com.atk.atk_cargo.api.CarrierPerformanceAnalysis
 import com.atk.atk_cargo.api.ColorSelector
-import com.atk.atk_cargo.api.ComprehensiveAnalytics
 import com.atk.atk_cargo.api.FabItem
 import com.atk.atk_cargo.api.FilteredSummary
 import com.atk.atk_cargo.api.Quota
@@ -247,6 +243,7 @@ import com.atk.atk_cargo.api.QuotaAnalytics
 import com.atk.atk_cargo.api.QuotaCompletionData
 import com.atk.atk_cargo.api.QuotaDetails
 import com.atk.atk_cargo.api.QuotaEditData
+import com.atk.atk_cargo.api.QuotaGroupingMode
 import com.atk.atk_cargo.api.QuotaPercentageData
 import com.atk.atk_cargo.api.QuotaPredictionData
 import com.atk.atk_cargo.api.RealTimeLoadingData
@@ -1054,7 +1051,7 @@ private fun ExpandedContent(
             Text("مشاهده جزئیات")
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
-                imageVector = Icons.Default.ArrowForward,
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = "مشاهده جزئیات",
                 modifier = Modifier.size(16.dp)
             )
@@ -4000,6 +3997,7 @@ fun QuotaDetails(
     }
 }
 
+@SuppressLint("RememberReturnType")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QuotasDialog(
@@ -5333,7 +5331,7 @@ fun QuotaCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Box(
-                        modifier = Modifier
+            modifier = Modifier
                             .size(40.dp)
                             .background(
                                 color = accentColor.copy(alpha = 0.1f),
@@ -5431,8 +5429,8 @@ fun QuotaCard(
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         val progress = calculateProgress(quota.loadedTonnage, quota.totalTonnage)
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
@@ -5522,7 +5520,7 @@ fun QuotaCard(
 
     if (showPercentageDialog) {
         QuotaPercentageDialog(
-            quota = quota,
+                            quota = quota,
             onDismiss = { showPercentageDialog = false },
             onConfirm = onPercentageChange
         )
@@ -5629,7 +5627,7 @@ fun DeleteQuotaDialog(
                 color = MaterialTheme.colorScheme.surface
             ) {
                 Column(
-                    modifier = Modifier
+        modifier = Modifier
                         .fillMaxWidth()
                         .padding(24.dp),
                     horizontalAlignment = Alignment.End
@@ -5687,8 +5685,8 @@ fun ToggleQuotaStatusDialog(
                         .fillMaxWidth()
                         .padding(24.dp),
                     horizontalAlignment = Alignment.End
-                ) {
-                    Text(
+            ) {
+                Text(
                         text = "تغییر وضعیت کوتاژ",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         modifier = Modifier.fillMaxWidth()
@@ -5763,12 +5761,12 @@ fun EditQuotaDialog(
             color = MaterialTheme.colorScheme.surface
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
                     .padding(24.dp),
                 horizontalAlignment = Alignment.End
-            ) {
-                Text(
+    ) {
+        Text(
                     text = "ویرایش اطلاعات کوتاژ",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.fillMaxWidth()
@@ -5787,7 +5785,7 @@ fun EditQuotaDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (!isValidQuotaNumber(editedData.quotaNumber)) {
-                    Text(
+        Text(
                         "شماره کوتاژ باید حداقل 5 رقم باشد",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium
@@ -5929,7 +5927,7 @@ fun QuotaMainCard(details: QuotaDetails) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
+        Text(
                 text = "کوتاژ ${details.number}",
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -8508,6 +8506,7 @@ fun ComprehensiveAnalyticsDialog(
                         .fillMaxSize()
                         .padding(24.dp)
                 ) {
+                    // هدر دیالوگ
                     AnalyticsHeader(
                         title = "تحلیل جامع عملیات",
                         onClose = onDismiss
@@ -8515,6 +8514,7 @@ fun ComprehensiveAnalyticsDialog(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    // نوار تب‌ها
                     AnalyticsTabRow(
                         selectedTab = selectedTab,
                         onTabSelected = { selectedTab = it }
@@ -8522,171 +8522,96 @@ fun ComprehensiveAnalyticsDialog(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    when (loadingState) {
-                        is ReportsViewModel.LoadingState.Loading -> {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
+                    // محتوای اصلی با توجه به وضعیت بارگذاری
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f)
+                    ) {
+                        when (loadingState) {
+                            is ReportsViewModel.LoadingState.Loading -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator()
+                                }
                             }
-                        }
-                        is ReportsViewModel.LoadingState.Error -> {
-                            val error = (loadingState as ReportsViewModel.LoadingState.Error).message
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(error)
+                            is ReportsViewModel.LoadingState.Error -> {
+                                val error = (loadingState as ReportsViewModel.LoadingState.Error).message
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Error,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(48.dp)
+                                        )
+                                        Text(
+                                            text = error,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            textAlign = TextAlign.Center,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
                             }
-                        }
-                        is ReportsViewModel.LoadingState.Success -> {
-                            SwipeableTabContent(
-                                selectedTab = selectedTab,
-                                onTabSelected = { selectedTab = it },
-                                data = analyticsData,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                        ReportsViewModel.LoadingState.Idle -> {
-                            LaunchedEffect(Unit) {
-                                viewModel.loadComprehensiveAnalytics()
+                            ReportsViewModel.LoadingState.Success -> {
+                                // نمایش محتوای تب انتخاب شده
+                                AnimatedContent(
+                                    targetState = selectedTab,
+                                    transitionSpec = {
+                                        fadeIn(animationSpec = tween(300)) togetherWith
+                                                fadeOut(animationSpec = tween(300))
+                                    },
+                                    label = "تغییر تب"
+                                ) { tab ->
+                                    when (tab) {
+                                        AnalyticsTabType.PEAK_HOURS ->
+                                            analyticsData?.shiftPerformanceAnalysis?.let { shiftData ->
+                                                PeakHoursAnalysis(shiftData = shiftData)
+                                            }
+                                        AnalyticsTabType.QUOTAS ->
+                                            analyticsData?.quotaCompletionAnalysis?.let { quotaData ->
+                                                analyticsData?.quotaPredictionAnalysis?.let {
+                                                    QuotaAnalysis(
+                                                        completionData = quotaData,
+                                                        predictionData = it,
+                                                        viewModel = viewModel
+                                                    )
+                                                }
+                                            }
+                                        AnalyticsTabType.CARRIERS ->
+                                            analyticsData?.carrierPerformanceAnalysis?.let { carrierData ->
+                                                CarrierAnalysis(carrierPerformanceData = carrierData)
+                                            }
+                                        AnalyticsTabType.WAREHOUSES ->
+                                            analyticsData?.warehouseEfficiencyAnalysis?.let { warehouseData ->
+                                                WarehouseAnalysis(efficiencyData = warehouseData)
+                                            } ?: Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "داده‌ای برای نمایش وجود ندارد",
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
+                                    }
+                                }
                             }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun SwipeableTabContent(
-    selectedTab: AnalyticsTabType,
-    onTabSelected: (AnalyticsTabType) -> Unit,
-    data: ComprehensiveAnalytics?,
-    modifier: Modifier = Modifier
-) {
-    val tabs = remember {
-        listOf(
-            AnalyticsTabType.PEAK_HOURS,
-            AnalyticsTabType.QUOTAS,
-            AnalyticsTabType.CARRIERS,
-            AnalyticsTabType.WAREHOUSES
-        )
-    }
-
-    var offsetX by remember { mutableFloatStateOf(0f) }
-    val draggableState = rememberDraggableState { delta ->
-        offsetX += delta
-    }
-
-    val currentIndex = tabs.indexOf(selectedTab)
-    val animatedOffset by animateFloatAsState(
-        targetValue = 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "offset"
-    )
-
-    // تشخیص جهت لایوت
-    val layoutDirection = LocalLayoutDirection.current
-    val isRtl = layoutDirection == LayoutDirection.Rtl
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .draggable(
-                state = draggableState,
-                orientation = Orientation.Horizontal,
-                onDragStarted = { },
-                onDragStopped = {
-                    when {
-                        // در حالت RTL: حرکت به راست برای تب بعدی
-                        isRtl && offsetX > 100f && currentIndex < tabs.lastIndex -> {
-                            onTabSelected(tabs[currentIndex + 1])
-                        }
-                        // در حالت RTL: حرکت به چپ برای تب قبلی
-                        isRtl && offsetX < -100f && currentIndex > 0 -> {
-                            onTabSelected(tabs[currentIndex - 1])
-                        }
-                        // در حالت LTR: حرکت به راست برای تب قبلی
-                        !isRtl && offsetX > 100f && currentIndex > 0 -> {
-                            onTabSelected(tabs[currentIndex - 1])
-                        }
-                        // در حالت LTR: حرکت به چپ برای تب بعدی
-                        !isRtl && offsetX < -100f && currentIndex < tabs.lastIndex -> {
-                            onTabSelected(tabs[currentIndex + 1])
-                        }
-                    }
-                    offsetX = 0f
-                }
-            )
-    ) {
-        AnimatedContent(
-            targetState = selectedTab,
-            transitionSpec = {
-                // تنظیم انیمیشن با توجه به RTL
-                if (isRtl) {
-                    slideInHorizontally(
-                        animationSpec = tween(300),
-                        initialOffsetX = { fullWidth ->
-                            if (targetState.ordinal > initialState.ordinal) -fullWidth else fullWidth
-                        }
-                    ) togetherWith slideOutHorizontally(
-                        animationSpec = tween(300),
-                        targetOffsetX = { fullWidth ->
-                            if (targetState.ordinal > initialState.ordinal) fullWidth else -fullWidth
-                        }
-                    )
-                } else {
-                    slideInHorizontally(
-                        animationSpec = tween(300),
-                        initialOffsetX = { fullWidth ->
-                            if (targetState.ordinal > initialState.ordinal) fullWidth else -fullWidth
-                        }
-                    ) togetherWith slideOutHorizontally(
-                        animationSpec = tween(300),
-                        targetOffsetX = { fullWidth ->
-                            if (targetState.ordinal > initialState.ordinal) -fullWidth else fullWidth
-                        }
-                    )
-                }
-            },
-            modifier = Modifier.offset {
-                val xOffset = if (isRtl) -offsetX else offsetX
-                IntOffset((xOffset + animatedOffset).roundToInt(), 0)
-            }, label = ""
-        ) { tab ->
-            when (tab) {
-                AnalyticsTabType.PEAK_HOURS -> data?.shiftPerformanceAnalysis?.let { shiftData ->
-                    PeakHoursAnalysis(shiftData = shiftData)
-                }
-                AnalyticsTabType.QUOTAS -> {
-                    if (data?.quotaCompletionAnalysis != null) {
-                        QuotaAnalysis(
-                            completionData = data.quotaCompletionAnalysis,
-                            predictionData = data.quotaPredictionAnalysis
-                        )
-                    }
-                }
-                AnalyticsTabType.CARRIERS -> data?.carrierPerformanceAnalysis?.let { carrierData ->
-                    CarrierAnalysis(carrierPerformanceData = carrierData)
-                }
-                AnalyticsTabType.WAREHOUSES -> {
-                    if (data?.warehouseEfficiencyAnalysis != null) {
-                        WarehouseAnalysis(
-                            efficiencyData = data.warehouseEfficiencyAnalysis,
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "داده‌ای برای نمایش وجود ندارد",
-                                style = MaterialTheme.typography.bodyLarge,
-                                textAlign = TextAlign.Center
-                            )
+                            ReportsViewModel.LoadingState.Idle -> {
+                                LaunchedEffect(Unit) {
+                                    viewModel.loadComprehensiveAnalytics()
+                                }
+                            }
                         }
                     }
                 }
@@ -9624,50 +9549,302 @@ private fun ShiftIcon(
 @Composable
 fun QuotaAnalysis(
     completionData: List<QuotaCompletionData>,
-    predictionData: List<QuotaPredictionData>
+    predictionData: List<QuotaPredictionData>,
+    viewModel: ReportsViewModel
 ) {
-    // متغیر برای ذخیره شماره کوتاژ باز شده
-    var expandedQuotaNumber by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(completionData) {
+        viewModel.updateInitialQuotas(completionData)
+    }
 
-    val activeQuotas = completionData
+    var expandedQuotaNumber by remember { mutableStateOf<String?>(null) }
+    var expandedGroup by remember { mutableStateOf<String?>(null) }
+    val groupingMode by viewModel.groupingMode.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val filteredQuotas by viewModel.filteredQuotas.collectAsState()
+
+    val activeQuotas = filteredQuotas
         .filter { it.last_24h_vouchers > 0 }
         .sortedByDescending { it.last_24h_vouchers }
 
-    if (activeQuotas.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "کوتاژ فعالی در 24 ساعت گذشته وجود ندارد",
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center
-            )
-        }
-        return
-    }
-
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 4.dp)
     ) {
-        items(
-            items = activeQuotas,
-            key = { it.loadingQuotaNumber }
-        ) { quota ->
-            ModernQuotaCard(
-                quota = quota,
-                prediction = predictionData.find { it.loadingQuotaNumber == quota.loadingQuotaNumber },
-                isExpanded = expandedQuotaNumber == quota.loadingQuotaNumber,
-                onExpandChange = { shouldExpand ->
-                    expandedQuotaNumber = if (shouldExpand) {
-                        quota.loadingQuotaNumber
-                    } else {
-                        null
+        // هدر جستجو و فیلتر
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // جستجو
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.updateSearchQuery(it) },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("جستجو...") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                    )
+                )
+
+                // دکمه‌های تغییر حالت گروه‌بندی
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.height(56.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        IconToggleButton(
+                            checked = groupingMode == QuotaGroupingMode.BY_SHIP,
+                            onCheckedChange = { viewModel.setGroupingMode(QuotaGroupingMode.BY_SHIP) },
+                            colors = IconButtonDefaults.iconToggleButtonColors(
+                                checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                containerColor = Color.Transparent
+                            ),
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DirectionsBoat,
+                                contentDescription = "براساس کشتی"
+                            )
+                        }
+                        IconToggleButton(
+                            checked = groupingMode == QuotaGroupingMode.BY_CARRIER,
+                            onCheckedChange = { viewModel.setGroupingMode(QuotaGroupingMode.BY_CARRIER) },
+                            colors = IconButtonDefaults.iconToggleButtonColors(
+                                checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                containerColor = Color.Transparent
+                            ),
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocalShipping,
+                                contentDescription = "براساس باربری"
+                            )
+                        }
                     }
                 }
+            }
+        }
+
+        // لیست کوتاژها
+        if (activeQuotas.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "کوتاژ فعالی در 24 ساعت گذشته وجود ندارد",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val grouped = when (groupingMode) {
+                    QuotaGroupingMode.BY_SHIP -> activeQuotas.groupBy { it.shipName }
+                    QuotaGroupingMode.BY_CARRIER -> activeQuotas.groupBy { it.shippingCompany }
+                }
+
+                // مرتب‌سازی گروه‌ها براساس تعداد کوتاژ و تناژ کل
+                val sortedGroups = grouped.map { (groupName, quotas) ->
+                    Triple(
+                        groupName,
+                        quotas,
+                        quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
+                    )
+                }.sortedWith(
+                    compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> { it.second.size }
+                        .thenByDescending { it.third }
+                )
+
+                for ((groupName, quotas, _) in sortedGroups) {
+                    item(key = "header_$groupName") {
+                        GroupHeader(
+                            title = groupName,
+                            quotas = quotas,
+                            icon = if (groupingMode == QuotaGroupingMode.BY_SHIP) {
+                                Icons.Default.DirectionsBoat
+                            } else {
+                                Icons.Default.LocalShipping
+                            },
+                            isExpanded = expandedGroup == groupName,
+                            onExpandClick = {
+                                expandedGroup = if (expandedGroup == groupName) null else groupName
+                            }
+                        )
+                    }
+
+                    if (expandedGroup == groupName) {
+                        items(
+                            items = quotas,
+                            key = { it.loadingQuotaNumber }
+                        ) { quota ->
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = expandVertically(
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessLow
+                                    )
+                                ) + fadeIn(
+                                    animationSpec = tween(
+                                        durationMillis = 300
+                                    )
+                                ),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                ModernQuotaCard(
+                                    quota = quota,
+                                    prediction = predictionData.find { it.loadingQuotaNumber == quota.loadingQuotaNumber },
+                                    isExpanded = expandedQuotaNumber == quota.loadingQuotaNumber,
+                                    onExpandChange = { shouldExpand ->
+                                        expandedQuotaNumber = if (shouldExpand) {
+                                            quota.loadingQuotaNumber
+                                        } else {
+                                            null
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GroupHeader(
+    title: String,
+    quotas: List<QuotaCompletionData>,
+    icon: ImageVector,
+    isExpanded: Boolean,
+    onExpandClick: () -> Unit
+) {
+    val totalWeight = quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable(onClick = onExpandClick)
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(12.dp),
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    modifier = Modifier
+                        .size(40.dp)
+                        .rotate(
+                            animateFloatAsState(
+                                targetValue = if (isExpanded) 180f else 0f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                ), label = ""
+                            ).value
+                        )
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .size(24.dp)
+                    )
+                }
+                Column {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "${quotas.size} کوتاژ",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "${formatNumber(totalWeight.roundToInt())} تن",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.rotate(
+                    animateFloatAsState(
+                        targetValue = if (isExpanded) 180f else 0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ), label = ""
+                    ).value
+                )
             )
         }
     }
@@ -9809,8 +9986,8 @@ private fun QuotaQuickStats(
     color: Color
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
             .padding(top = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -9840,8 +10017,8 @@ private fun QuotaDetailedStats(
     quota: QuotaCompletionData,
     prediction: QuotaPredictionData?,
     color: Color
-) {
-    Column(
+        ) {
+            Column(
         modifier = Modifier.padding(top = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -9863,7 +10040,7 @@ private fun ShipAndWeightSection(
     color: Color
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
         color = color.copy(alpha = 0.05f),
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
@@ -9950,7 +10127,7 @@ private fun QuataInfoColumn(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
+                        Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = color.copy(alpha = 0.7f),
@@ -9994,8 +10171,8 @@ private fun PredictionSection(
                 color = color
             )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 InfoItem(
@@ -10038,12 +10215,12 @@ private fun InfoItem(
 fun CarrierAnalysis(
     carrierPerformanceData: List<CarrierPerformanceAnalysis>
 ) {
-    LazyColumn(
+            LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
         items(
             items = carrierPerformanceData.sortedByDescending { it.quality_score },
             key = { it.shippingCompany }
@@ -10248,8 +10425,8 @@ private fun DetailedStats(carrier: CarrierPerformanceAnalysis, color: Color) {
             Column(
                 modifier = Modifier.padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Row(
+) {
+    Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -10426,12 +10603,12 @@ private fun QuotaChip(
     quotaNumber: String,
     color: Color
 ) {
-    Surface(
+            Surface(
         color = color.copy(alpha = 0.1f),
-        shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
-    ) {
-        Text(
+            ) {
+                Text(
             text = quotaNumber,
             style = MaterialTheme.typography.bodySmall,
             color = color,
@@ -10445,7 +10622,7 @@ fun WarehouseAnalysis(
     efficiencyData: List<WarehouseEfficiencyData>,
 ) {
     LazyColumn(
-        modifier = Modifier
+                    modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -10613,25 +10790,6 @@ private fun StatItems(
     }
 }
 
-@SuppressLint("DefaultLocale")
-@Composable
-private fun ActivityLevelBadge(
-    activityLevel: String,
-    percentage: Float,
-    color: Color
-) {
-    Badge(
-        containerColor = color.copy(alpha = 0.1f),
-        contentColor = color
-    ) {
-        Text(
-            text = "$activityLevel (${String.format("%.1f%%", percentage)})",
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = 4.dp)
-        )
-    }
-}
-
 @Composable
 private fun SectionTitle(
     icon: ImageVector,
@@ -10695,7 +10853,7 @@ fun calculatePercentage(value: Float, total: Float): Int {
 
 fun Double.format(digits: Int) = "%.${digits}f".format(this)
 
-private fun formatNumber(number: Int): String {
+public fun formatNumber(number: Int): String {
     return NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
 }
 

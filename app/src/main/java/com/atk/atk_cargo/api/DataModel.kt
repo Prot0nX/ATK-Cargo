@@ -128,6 +128,8 @@ class CargoViewModel(
     private val _shownWarningForQuotas = mutableSetOf<String>()
     private val _pendingMessages = MutableStateFlow<Queue<Pair<String, MessageType>>>(LinkedList())
     private val _isShowingMessage = MutableStateFlow(false)
+    private val _loadableTonnage = MutableStateFlow("")
+    val loadableTonnage: StateFlow<String> = _loadableTonnage.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -516,11 +518,11 @@ class CargoViewModel(
     private suspend fun checkQuotaStatus(initialInfo: InitialInfo) {
         try {
             val status = repository.checkQuotaStatus(
-                quotaNumber = initialInfo.loadingQuotaNumber.toString(),
-                shipName = initialInfo.shipName,
-                cargoType = initialInfo.cargoType,
-                shippingCompany = initialInfo.shippingCompany
-            )
+                    quotaNumber = initialInfo.loadingQuotaNumber.toString(),
+                    shipName = initialInfo.shipName,
+                    cargoType = initialInfo.cargoType,
+                    shippingCompany = initialInfo.shippingCompany
+                )
 
             if (status.isActive) {
                 // اگر کوتاژ فعال است، بررسی وضعیت درصد
@@ -532,15 +534,15 @@ class CargoViewModel(
             if (!status.status) {
                 // پیام غیرفعال بودن بعد از هشدار درصدی نمایش داده می‌شود
                 delay(5000) // تاخیر بیشتر از هشدار درصدی
-                showMessage(status.message, MessageType.WARNING)
+                    showMessage(status.message, MessageType.WARNING)
                 return
             }
         } catch (e: Exception) {
             Log.e("CargoViewModel", "Error in checkQuotaStatus", e)
-            _resultMessage.value = "خطا در بررسی وضعیت کوتاژ: ${e.message ?: "خطای ناشناخته"}"
-            _messageType.value = MessageType.ERROR
-            _showAnimatedMessage.value = true
-            _isQuotaActive.value = false
+                _resultMessage.value = "خطا در بررسی وضعیت کوتاژ: ${e.message ?: "خطای ناشناخته"}"
+                _messageType.value = MessageType.ERROR
+                _showAnimatedMessage.value = true
+                _isQuotaActive.value = false
         }
     }
 
@@ -596,7 +598,7 @@ class CargoViewModel(
     private suspend fun checkScaleReceiptNumber(scaleReceiptNumber: String): Boolean {
 
         if (!isValidScaleReceipt(scaleReceiptNumber)) {
-            showMessage("شماره قبض باسکول معتبر نیست. لطفاً دوباره اسکن کنید.", MessageType.ERROR)
+                showMessage("شماره قبض باسکول معتبر نیست. لطفاً دوباره اسکن کنید.", MessageType.ERROR)
             return false
         }
 
@@ -607,18 +609,18 @@ class CargoViewModel(
                 val result = response.body()
 
                 if (result?.exists == true) {
-                    showMessage(result.message, MessageType.ERROR)
+                        showMessage(result.message, MessageType.ERROR)
                     false
                 } else {
                     true
                 }
             } else {
                 val errorBody = response.errorBody()?.string()
-                showMessage("خطا در بررسی شماره قبض باسکول: $errorBody", MessageType.ERROR)
+                    showMessage("خطا در بررسی شماره قبض باسکول: $errorBody", MessageType.ERROR)
                 false
             }
         } catch (e: Exception) {
-            showMessage("خطا در ارتباط با سرور: ${e.message}", MessageType.ERROR)
+                showMessage("خطا در ارتباط با سرور: ${e.message}", MessageType.ERROR)
             false
         }
     }
@@ -782,7 +784,7 @@ class CargoViewModel(
                         )
 
                         // تاخیر کوتاه قبل از غیرفعال کردن
-                        delay(5000)
+                        delay(3000)
                         toggleQuotaStatus(quota.number)
                     }
                 }
@@ -810,7 +812,7 @@ class CargoViewModel(
                                 _messageType.value = MessageType.WARNING
 
                                 // تاخیر کوتاه قبل از غیرفعال کردن
-                                delay(5000)
+                                delay(3000)
 
                                 toggleQuotaStatus(quotaNumber)
                                 throw Exception("امکان ثبت حواله جدید وجود ندارد")
@@ -842,7 +844,7 @@ class CargoViewModel(
                         quotas.find { it.number == cargoInfo.loadingQuotaNumber }?.let {
                             checkQuotaPercentage(it)
                         }
-                    }
+                        }
 
                     _resultMessage.value = "اطلاعات بروزرسانی شد"
                     _showAnimatedMessage.value = true
@@ -904,17 +906,17 @@ class CargoViewModel(
         showLoadingDialog: Boolean,
         onProgress: (Float) -> Unit
     ) {
-        val startProgress = 0.55f
-        val endProgress = 0.85f
-        val progressRange = endProgress - startProgress
+            val startProgress = 0.55f
+            val endProgress = 0.85f
+            val progressRange = endProgress - startProgress
 
         filteredList.chunked(10).forEachIndexed { chunkIndex, chunk ->
-            _cargoInfoList.update { currentList -> currentList + chunk }
+                _cargoInfoList.update { currentList -> currentList + chunk }
 
-            if (showLoadingDialog) {
+                if (showLoadingDialog) {
                 val chunkProgress = (chunkIndex + 1).toFloat() / ((totalItems + 9) / 10)
-                val currentProgress = startProgress + (progressRange * chunkProgress)
-                onProgress(currentProgress.coerceIn(0f, endProgress))
+                    val currentProgress = startProgress + (progressRange * chunkProgress)
+                    onProgress(currentProgress.coerceIn(0f, endProgress))
             }
         }
     }
@@ -944,6 +946,16 @@ class CargoViewModel(
                     _averageNetWeight.value = DecimalFormat("#,###").format(averageNet.roundToInt())
                     _remainingServices.value = if (averageNet > 0) (remaining / averageNet).toInt().toString() else "0"
                     _totalServices.value = _cargoCount.value.toString()
+                    
+                    // محاسبه تناژ قابل بارگیری
+                    _initialInfo.value?.let { info ->
+                        val quotas = repository.getShipQuotas(info.shipName)
+                        quotas.find { it.number == info.loadingQuotaNumber.toString() }?.let { quota ->
+                            val loadableTonnage = calculateLoadableTonnage(quota)
+                            _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnage.roundToInt())
+                        }
+                    }
+                    
                 } catch (e: Exception) {
                     Log.e("CargoViewModel", "Error in updateInfoValues: ${e.message}")
                 }
@@ -954,15 +966,20 @@ class CargoViewModel(
     fun deleteCargo(cargoInfoRequest: CargoInfoRequest, password: String) {
         viewModelScope.launch {
             try {
-                val passwordResponse =
+                // بررسی صحت رمز عبور در رشته IO
+                val passwordResponse = withContext(Dispatchers.IO) {
                     apiService.checkPassword(password, "delete_info")
+                }
                 if (passwordResponse.isSuccessful && passwordResponse.body()?.success == true) {
-                    val response = apiService.deleteCargo(cargoInfoRequest)
-                    if (response.isSuccessful) {
+                    // حذف حواله در رشته IO
+                    val deleteResponse = withContext(Dispatchers.IO) {
+                        apiService.deleteCargo(cargoInfoRequest)
+                    }
+                    if (deleteResponse.isSuccessful) {
                         _resultMessage.value = "حواله با موفقیت حذف شد."
                         _showAnimatedMessage.value = true
                         _messageType.value = MessageType.SUCCESS
-
+                        // بارگذاری مجدد اطلاعات پس از حذف
                         _initialInfo.value?.let { info ->
                             loadCargoInfoList(
                                 quotaNumber = info.loadingQuotaNumber.toString(),
@@ -974,13 +991,12 @@ class CargoViewModel(
                             )
                         }
                     } else {
-                        _resultMessage.value = "خطا در حذف حواله: ${response.errorBody()?.string()}"
+                        _resultMessage.value = "خطا در حذف حواله: ${deleteResponse.errorBody()?.string()}"
                         _showAnimatedMessage.value = true
                         _messageType.value = MessageType.ERROR
                     }
                 } else {
-                    _resultMessage.value =
-                        passwordResponse.body()?.message ?: "خطا در بررسی رمز عبور"
+                    _resultMessage.value = passwordResponse.body()?.message ?: "خطا در بررسی رمز عبور"
                     _showAnimatedMessage.value = true
                     _messageType.value = MessageType.ERROR
                 }
@@ -998,6 +1014,22 @@ class CargoViewModel(
 
     private fun getCurrentDate(): String {
         return gregorianToJalali(Calendar.getInstance())
+    }
+
+    private fun calculateLoadableTonnage(quota: Quota): Double {
+        return if (quota.isPercentageRestricted == true && quota.percentage != null) {
+            val percentageAmount = quota.totalTonnage * (quota.percentage / 100)
+            val remainingTonnage = quota.remainingTonnage
+            
+            // محاسبه تناژ قابل بارگیری
+            val loadableTonnage = remainingTonnage - percentageAmount
+            
+            // برگرداندن مقدار (حتی اگر منفی باشد)
+            loadableTonnage
+            
+        } else {
+            quota.remainingTonnage.toDouble()
+        }
     }
 }
 
@@ -1055,6 +1087,94 @@ class ReportsViewModel(
     val comprehensiveAnalytics: StateFlow<ComprehensiveAnalytics?> = _comprehensiveAnalytics.asStateFlow()
     private val _analyticsLoadingState = MutableStateFlow<LoadingState>(LoadingState.Idle)
     val analyticsLoadingState: StateFlow<LoadingState> = _analyticsLoadingState.asStateFlow()
+    
+    // اضافه کردن State های جدید
+    private val _groupingMode = MutableStateFlow(QuotaGroupingMode.BY_SHIP)
+    val groupingMode: StateFlow<QuotaGroupingMode> = _groupingMode
+    
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery
+    
+    private val _filteredQuotas = MutableStateFlow<List<QuotaCompletionData>>(emptyList())
+    val filteredQuotas: StateFlow<List<QuotaCompletionData>> = _filteredQuotas
+    
+    // تابع تغییر حالت گروه‌بندی
+    fun setGroupingMode(mode: QuotaGroupingMode) {
+        _groupingMode.value = mode
+        updateFilteredQuotas()
+    }
+    
+    // تابع به‌روزرسانی کوئری جستجو
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+        updateFilteredQuotas()
+    }
+    
+    // تابع به‌روزرسانی لیست اولیه کوتاژها
+    fun updateInitialQuotas(quotas: List<QuotaCompletionData>) {
+        viewModelScope.launch {
+            _initialQuotas.value = quotas  // ذخیره لیست اولیه
+            updateFilteredQuotas()
+        }
+    }
+    
+    // تابع به‌روزرسانی لیست فیلتر شده
+    private fun updateFilteredQuotas() {
+        viewModelScope.launch {
+            val query = _searchQuery.value.trim().lowercase()
+            
+            // فیلتر کردن بر اساس جستجو
+            val filtered = if (query.isEmpty()) {
+                _initialQuotas.value
+            } else {
+                _initialQuotas.value.filter { quota ->
+                    quota.shipName.lowercase().contains(query) ||
+                    quota.loadingQuotaNumber.contains(query) ||
+                    quota.shippingCompany.lowercase().contains(query)
+                }
+            }
+
+            // گروه‌بندی و مرتب‌سازی ترکیبی
+            _filteredQuotas.value = when (_groupingMode.value) {
+                QuotaGroupingMode.BY_SHIP -> {
+                    filtered.groupBy { it.shipName }
+                        .map { (shipName, quotas) ->
+                            Triple(
+                                shipName,
+                                quotas.size,
+                                quotas.sumOf { it.last_24h_weight }
+                            )
+                        }
+                        .sortedWith(
+                            compareByDescending<Triple<String, Int, Float>> { it.second }
+                            .thenByDescending { it.third }
+                        )
+                        .flatMap { (shipName, _, _) ->
+                            filtered.filter { it.shipName == shipName }
+                        }
+                }
+                QuotaGroupingMode.BY_CARRIER -> {
+                    filtered.groupBy { it.shippingCompany }
+                        .map { (carrier, quotas) ->
+                            Triple(
+                                carrier,
+                                quotas.size,
+                                quotas.sumOf { it.last_24h_weight }
+                            )
+                        }
+                        .sortedWith(
+                            compareByDescending<Triple<String, Int, Float>> { it.second }
+                            .thenByDescending { it.third }
+                        )
+                        .flatMap { (carrier, _, _) ->
+                            filtered.filter { it.shippingCompany == carrier }
+                        }
+                }
+            }
+        }
+    }
+
+    private val _initialQuotas = MutableStateFlow<List<QuotaCompletionData>>(emptyList())
 
     init {
         loadShips()
@@ -3214,3 +3334,8 @@ data class WarehousePeakAnalysis(
     val period_percentage: Float,
     val activity_level: String
 )
+
+enum class QuotaGroupingMode {
+    BY_SHIP,
+    BY_CARRIER
+}
