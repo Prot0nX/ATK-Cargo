@@ -16,7 +16,7 @@ import java.security.MessageDigest
 
 class SignatureVerifier(private val context: Context) {
     companion object {
-        private const val C = "8ca349c0fb572e9d10c62eb5ec6a83c9733eb3b15c362916f6a6efbbd8c2090b"
+        private const val C = "0b0838afbe74afd97e781c9533015294ce86b70627017cccb807ca2af208ba21"
         private const val D = "e1f2g3h4i5j6k7l8m9n0o1p2q3r4s5t6"
         private const val E = "aHR0cHM6Ly9hdGstbmsuc2l0ZS9jaGVja19zaWduYXR1cmUucGhw"
     }

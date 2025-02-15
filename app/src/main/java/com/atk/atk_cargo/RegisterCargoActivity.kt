@@ -256,6 +256,7 @@ class RegisterCargoActivity : ComponentActivity() {
                         val messageType by viewModel.messageType.collectAsState()
                         var showLoadingDialog by remember { mutableStateOf(true) }
                         var loadingProgress by remember { mutableFloatStateOf(0f) }
+                        val loadableTonnage by viewModel.loadableTonnage.collectAsState()
 
                         RegisterCargoScreen(
                             initialInfo = initialInfo,
@@ -380,6 +381,7 @@ fun RegisterCargoScreen(
     var showStatisticsDialog by remember { mutableStateOf(false) }
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
     var showQuotaWarning by remember { mutableStateOf<WarningStatus?>(null) }
+    val loadableTonnage by viewModel.loadableTonnage.collectAsState()
 
 //    LaunchedEffect(Unit) {
 //        while (true) {
@@ -474,7 +476,8 @@ fun RegisterCargoScreen(
                 ShipInfoSection(
                     shipInfo = shipInfo,
                     isInfoVisible = isInfoVisible,
-                    onToggleVisibility = { isInfoVisible = !isInfoVisible }
+                    onToggleVisibility = { isInfoVisible = !isInfoVisible },
+                    loadableTonnage = loadableTonnage
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -1799,7 +1802,8 @@ enum class SearchMode {
 fun ShipInfoSection(
     shipInfo: ShipInfo,
     isInfoVisible: Boolean,
-    onToggleVisibility: () -> Unit
+    onToggleVisibility: () -> Unit,
+    loadableTonnage: String
 ) {
     val loadedPercentage = remember(shipInfo.cargoWeight, shipInfo.totalNetWeight) {
         try {
@@ -1817,12 +1821,7 @@ fun ShipInfoSection(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 8.dp)
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ),
+            .animateContentSize(),
         shape = RoundedCornerShape(8.dp),
         backgroundColor = MaterialTheme.colors.surface
     ) {
@@ -1831,7 +1830,8 @@ fun ShipInfoSection(
                 onToggle = onToggleVisibility,
                 loadedPercentage = loadedPercentage.toFloat(),
                 shipName = shipInfo.shipName,
-                quotaNumber = shipInfo.loadingQuotaNumber
+                quotaNumber = shipInfo.loadingQuotaNumber,
+                loadableTonnage = loadableTonnage
             )
 
             AnimatedVisibility(
@@ -1858,7 +1858,8 @@ private fun HeaderInfo(
     onToggle: () -> Unit,
     loadedPercentage: Float,
     shipName: String,
-    quotaNumber: String
+    quotaNumber: String,
+    loadableTonnage: String
 ) {
     Column(
         modifier = Modifier
@@ -1898,11 +1899,28 @@ private fun HeaderInfo(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            Text(
-                text = "${loadedPercentage.toInt()}%",
-                style = MaterialTheme.typography.subtitle1.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colors.primary
-            )
+            // نمایش تناژ قابل بارگیری
+            Column(
+                horizontalAlignment = Alignment.End
+            ) {
+                val tonnageValue = loadableTonnage.replace(",", "").toDoubleOrNull() ?: 0.0
+                val (textColor, statusText) = if (tonnageValue < 0) {
+                    MaterialTheme.colors.error to "بیش از حد"
+                } else {
+                    MaterialTheme.colors.primary to "قابل بارگیری"
+                }
+                
+                Text(
+                    text = "$loadableTonnage تن",
+                    style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold),
+                    color = textColor
+                )
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.caption,
+                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                )
+            }
         }
 
         LinearProgressIndicator(
@@ -2221,7 +2239,7 @@ fun DialogPassword(
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        val transition = updateTransition(targetState = isVisible, label = "dialogTransition")
+        val transition = updateTransition(targetState = isVisible, label = "مgTransition")
         val scale by transition.animateFloat(
             transitionSpec = { tween(durationMillis = 500) }, label = "scale"
         ) { visible -> if (visible) 1f else 0.8f }
