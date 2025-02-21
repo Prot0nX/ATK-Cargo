@@ -130,6 +130,13 @@ class CargoViewModel(
     private val _isShowingMessage = MutableStateFlow(false)
     private val _loadableTonnage = MutableStateFlow("")
     val loadableTonnage: StateFlow<String> = _loadableTonnage.asStateFlow()
+    
+    private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY)
+    val warehouseQuotaGroupingMode: StateFlow<WarehouseQuotaGroupingMode> = _warehouseQuotaGroupingMode.asStateFlow()
+    
+    fun setWarehouseQuotaGroupingMode(mode: WarehouseQuotaGroupingMode) {
+        _warehouseQuotaGroupingMode.value = mode
+    }
 
     init {
         viewModelScope.launch {
@@ -946,7 +953,7 @@ class CargoViewModel(
                     _averageNetWeight.value = DecimalFormat("#,###").format(averageNet.roundToInt())
                     _remainingServices.value = if (averageNet > 0) (remaining / averageNet).toInt().toString() else "0"
                     _totalServices.value = _cargoCount.value.toString()
-                    
+
                     // محاسبه تناژ قابل بارگیری
                     _initialInfo.value?.let { info ->
                         val quotas = repository.getShipQuotas(info.shipName)
@@ -955,7 +962,7 @@ class CargoViewModel(
                             _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnage.roundToInt())
                         }
                     }
-                    
+
                 } catch (e: Exception) {
                     Log.e("CargoViewModel", "Error in updateInfoValues: ${e.message}")
                 }
@@ -1020,13 +1027,13 @@ class CargoViewModel(
         return if (quota.isPercentageRestricted == true && quota.percentage != null) {
             val percentageAmount = quota.totalTonnage * (quota.percentage / 100)
             val remainingTonnage = quota.remainingTonnage
-            
+
             // محاسبه تناژ قابل بارگیری
             val loadableTonnage = remainingTonnage - percentageAmount
-            
+
             // برگرداندن مقدار (حتی اگر منفی باشد)
             loadableTonnage
-            
+
         } else {
             quota.remainingTonnage.toDouble()
         }
@@ -1087,29 +1094,32 @@ class ReportsViewModel(
     val comprehensiveAnalytics: StateFlow<ComprehensiveAnalytics?> = _comprehensiveAnalytics.asStateFlow()
     private val _analyticsLoadingState = MutableStateFlow<LoadingState>(LoadingState.Idle)
     val analyticsLoadingState: StateFlow<LoadingState> = _analyticsLoadingState.asStateFlow()
-    
+
     // اضافه کردن State های جدید
     private val _groupingMode = MutableStateFlow(QuotaGroupingMode.BY_SHIP)
     val groupingMode: StateFlow<QuotaGroupingMode> = _groupingMode
-    
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
-    
+
     private val _filteredQuotas = MutableStateFlow<List<QuotaCompletionData>>(emptyList())
     val filteredQuotas: StateFlow<List<QuotaCompletionData>> = _filteredQuotas
-    
+
+    private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY)
+    val warehouseQuotaGroupingMode: StateFlow<WarehouseQuotaGroupingMode> = _warehouseQuotaGroupingMode.asStateFlow()
+
     // تابع تغییر حالت گروه‌بندی
     fun setGroupingMode(mode: QuotaGroupingMode) {
         _groupingMode.value = mode
         updateFilteredQuotas()
     }
-    
+
     // تابع به‌روزرسانی کوئری جستجو
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
         updateFilteredQuotas()
     }
-    
+
     // تابع به‌روزرسانی لیست اولیه کوتاژها
     fun updateInitialQuotas(quotas: List<QuotaCompletionData>) {
         viewModelScope.launch {
@@ -1117,12 +1127,12 @@ class ReportsViewModel(
             updateFilteredQuotas()
         }
     }
-    
+
     // تابع به‌روزرسانی لیست فیلتر شده
     private fun updateFilteredQuotas() {
         viewModelScope.launch {
             val query = _searchQuery.value.trim().lowercase()
-            
+
             // فیلتر کردن بر اساس جستجو
             val filtered = if (query.isEmpty()) {
                 _initialQuotas.value
@@ -1940,6 +1950,10 @@ class ReportsViewModel(
             }
         }
     }
+
+    fun setWarehouseQuotaGroupingMode(mode: WarehouseQuotaGroupingMode) {
+        _warehouseQuotaGroupingMode.value = mode
+    }
 }
 
 class ReportsRepository(private val apiService: ApiService) {
@@ -2650,6 +2664,7 @@ data class InitialInfo(
     val totalNetWeight: Float,
     val averageNetWeight: Float,
     val remainingServices: Int,
+    val cargoOwner: String = "",
     val isActive: Int = 1,
     val totalVoucherCount: Int = 0
 ) : Parcelable
@@ -2833,7 +2848,8 @@ data class Quota(
     val isActive: Boolean,
     val shippingCompany: String,
     val percentage: Double? = null,
-    val isPercentageRestricted: Boolean? = false
+    val isPercentageRestricted: Boolean? = false,
+    val cargoOwner: String? = null
 )
 
 data class ExitDateInfo(
@@ -3338,4 +3354,9 @@ data class WarehousePeakAnalysis(
 enum class QuotaGroupingMode {
     BY_SHIP,
     BY_CARRIER
+}
+
+enum class WarehouseQuotaGroupingMode {
+    BY_SHIPPING_COMPANY,
+    BY_CARGO_OWNER
 }

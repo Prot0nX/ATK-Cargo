@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">ATK-Cargo</string>
+    <string name="app_name">ATK-Cargo2</string>
     <string name="ship_name_label">اسم کشتی</string>
     <string name="loading_warehouse_label">انبار بارگیری</string>
     <string name="cargo_type_label">نوع کالا</string>

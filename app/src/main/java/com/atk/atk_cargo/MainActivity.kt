@@ -14,7 +14,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -186,6 +185,7 @@ import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.UserTypeInfo
 import com.atk.atk_cargo.security.LoadingCheckWorker
 import com.atk.atk_cargo.security.SecurityBlockScreen
+import com.atk.atk_cargo.security.SecurityErrorType
 import com.atk.atk_cargo.security.SignatureVerifier
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.CoroutineScope
@@ -217,9 +217,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var signatureVerifier: SignatureVerifier
     private var isSecurityCheckPassed by mutableStateOf(false)
     private var isSecurityCheckLoading by mutableStateOf(true)
+    private var securityErrorType by mutableStateOf<SecurityErrorType?>(null)
     val isSessionValid: StateFlow<Boolean> = _isSessionValid.asStateFlow()
 
-    @RequiresApi(Build.VERSION_CODES.P)
     @SuppressLint("CoroutineCreationDuringComposition")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -300,10 +300,16 @@ class MainActivity : ComponentActivity() {
     private fun performSecurityCheck() {
         lifecycleScope.launch {
             isSecurityCheckLoading = true
-            isSecurityCheckPassed = signatureVerifier.i()
-            isSecurityCheckLoading = false
-            if (!isSecurityCheckPassed) {
-                showMessage("خطای امنیتی: امضای برنامه نامعتبر است.")
+            try {
+                val (isValid, error) = signatureVerifier.i()
+                isSecurityCheckPassed = isValid
+                securityErrorType = error
+            } catch (e: Exception) {
+                isSecurityCheckPassed = false
+                securityErrorType = SecurityErrorType.TAMPERED
+                Log.e("MainActivity", "Error during security check", e)
+            } finally {
+                isSecurityCheckLoading = false
             }
         }
     }
@@ -311,7 +317,10 @@ class MainActivity : ComponentActivity() {
     @Composable
     private fun HandleSecurityCheck(content: @Composable () -> Unit) {
         if (!isSecurityCheckPassed || isSecurityCheckLoading) {
-            SecurityBlockScreen(isLoading = isSecurityCheckLoading)
+            SecurityBlockScreen(
+                isLoading = isSecurityCheckLoading,
+                errorType = securityErrorType ?: SecurityErrorType.TAMPERED
+            )
         } else {
             content()
         }

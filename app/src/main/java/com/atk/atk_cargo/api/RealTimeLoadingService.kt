@@ -36,7 +36,7 @@ class RealTimeLoadingService : Service() {
             try {
                 Log.d("RealTimeLoadingService", "Updating widget data")
                 val retrofit = Retrofit.Builder()
-                    .baseUrl("https://atk-nk.site/")
+                    .baseUrl("https://cargo.atk-nk.site/")
                     .addConverterFactory(GsonConverterFactory.create())
                     .build()
 
