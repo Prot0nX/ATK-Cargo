@@ -22,14 +22,14 @@ interface ApiService {
         @Query("scaleReceiptNumber") scaleReceiptNumber: String
     ): Response<ScaleReceiptCheckResponse>
 
-    @GET("app_api2.php")
+    @GET("app_api.php")
     suspend fun checkQuotaExistenceCargo(
         @Query("action") action: String = "checkQuotaExistenceCargo",
         @Query("quotaNumber") quotaNumber: String,
         @Query("shipName") shipName: String
     ): Response<QuotaExistenceMultipleResponse>
 
-    @GET("getInitialInfo2.php")
+    @GET("getInitialInfo.php")
     suspend fun getCargoInfo(
         @Query("quotaNumber") quotaNumber: String,
         @Query("shippingCompany") shippingCompany: String,
@@ -56,35 +56,35 @@ interface ApiService {
     @POST("check_Auth.php")
     suspend fun checkLogin(@Body loginRequest: LoginRequest): Response<LoginResponse>
 
-    @GET("app_api2.php")
+    @GET("app_api.php")
     suspend fun getShipsList(@Query("action") action: String = "getShipsList"): Response<ApiResponse2<ShipsData>>
 
-    @GET("app_api2.php")
+    @GET("app_api.php")
     suspend fun getShipDetails(
         @Query("action") action: String = "getShipDetails",
         @Query("shipName") shipName: String
     ): Response<Ship>
 
-    @GET("app_api2.php")
+    @GET("app_api.php")
     suspend fun getWarehouseDetails(
         @Query("action") action: String = "getWarehouseDetails",
         @Query("shipName") shipName: String,
         @Query("warehouseName") warehouseName: String
     ): Response<Warehouse>
 
-    @GET("app_api2.php")
+    @GET("app_api.php")
     suspend fun getQuotaDetails(
         @Query("action") action: String = "getQuotaDetails",
         @Query("quotaNumber") quotaNumber: String
     ): Response<QuotaDetails>
 
-    @GET("app_api2.php")
+    @GET("app_api.php")
     suspend fun getShipQuotas(
         @Query("action") action: String = "getQuotasList",
         @Query("shipName") shipName: String
     ): Response<List<Quota>>
 
-    @GET("app_api2.php")
+    @GET("app_api.php")
     suspend fun getFilteredSummary(
         @Query("action") action: String,
         @Query("shipName") shipName: String,
@@ -94,7 +94,7 @@ interface ApiService {
         @Query("endDateTime") endDateTime: String
     ): Response<FilteredSummaryResponse>
 
-    @GET("app_api2.php")
+    @GET("app_api.php")
     suspend fun editQuota(
         @Query("action") action: String = "editQuota",
         @Query("oldQuotaNumber") oldQuotaNumber: String,
@@ -106,7 +106,7 @@ interface ApiService {
         @Query("totalTonnage") totalTonnage: Float
     ): Response<SuccessResponse>
 
-    @GET("app_api2.php")
+    @GET("app_api.php")
     suspend fun updateQuotaPercentage(
         @Query("action") action: String = "updateQuotaPercentage",
         @Query("quotaNumber") quotaNumber: String,
@@ -114,20 +114,20 @@ interface ApiService {
         @Query("isEnabled") isEnabled: Int
     ): Response<SuccessResponse>
 
-    @GET("app_api2.php")
+    @GET("app_api.php")
     suspend fun toggleQuotaStatus(
         @Query("action") action: String = "toggleQuotaStatus",
         @Query("quotaNumber") quotaNumber: String
     ): Response<SuccessResponse>
 
-    @GET("app_api2.php")
+    @GET("app_api.php")
     suspend fun updateQuotaPercentageRestriction(
         @Query("action") action: String = "updateQuotaPercentageRestriction",
         @Query("quotaNumber") quotaNumber: String,
         @Query("isEnabled") isEnabled: Int
     ): Response<SuccessResponse>
 
-    @GET("app_api2.php")
+    @GET("app_api.php")
     suspend fun deleteQuota(
         @Query("action") action: String = "deleteQuota",
         @Query("quotaNumber") quotaNumber: String,
@@ -137,7 +137,7 @@ interface ApiService {
         @Query("cargoType") cargoType: String
     ): Response<SuccessResponse>
 
-    @GET("app_api2.php")
+    @GET("app_api.php")
     suspend fun checkQuotaStatus(
         @Query("action") action: String = "checkQuotaStatus",
         @Query("quotaNumber") quotaNumber: String,
@@ -193,7 +193,6 @@ interface ApiService {
     suspend fun deleteUser(
         @Body request: DeleteUserRequest
     ): ApiResponse
-
 }
 
 data class ApiResponse(

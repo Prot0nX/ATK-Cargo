@@ -538,7 +538,7 @@ fun CargoListSection(
 
             if (isUnconfirmedExpanded) {
                 items(
-                    items = unconfirmedCargos,
+                    items = unconfirmedCargos.sortedByDescending { it.entryTime },
                     key = { it.trackingNumber }
                 ) { cargoInfo ->
                     CargoInfoCard(
@@ -568,7 +568,9 @@ fun CargoListSection(
 
             if (isConfirmedExpanded) {
                 items(
-                    items = confirmedCargos,
+                    items = confirmedCargos.sortedByDescending { 
+                        "${it.exitDate} ${it.exitTime}"
+                    },
                     key = { it.trackingNumber }/**/
                 ) { cargoInfo ->
                     CargoInfoCard(
@@ -1165,7 +1167,7 @@ private fun refreshData(
 suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): Result<String> {
     val client = HttpClient(CIO)
     return try {
-        val url = "https://atk-nk.site/confirm_cargo.php"
+        val url = "https://cargo.atk-nk.site/confirm_cargo.php"
         val requestBody = Json.encodeToString(mapOf(
             "trackingNumber" to info.trackingNumber,
             "loadingQuotaNumber" to info.loadingQuotaNumber,

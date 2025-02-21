@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.atk.atk_cargo"
-        minSdk = 26
+        minSdk = 28
         targetSdk = 33
         versionCode = 1
         versionName = "3.0.7"
@@ -43,6 +43,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

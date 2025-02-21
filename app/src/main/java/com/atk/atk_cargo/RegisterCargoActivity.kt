@@ -607,7 +607,7 @@ fun RegisterCargoScreen(
 
                 ExpandableSection(
                     title = "ورود شده",
-                    items = nonExitedCargos,
+                    items = nonExitedCargos.sortedByDescending { it.entryTime },
                     initiallyExpanded = true,
                     onItemClick = { selectedInfo ->
                         selectedCargoInfo.value = selectedInfo
@@ -617,7 +617,7 @@ fun RegisterCargoScreen(
 
                 ExpandableSection(
                     title = "خروج شده",
-                    items = exitedCargos,
+                    items = exitedCargos.sortedByDescending { "${it.exitDate} ${it.exitTime}" },
                     initiallyExpanded = false,
                     onItemClick = { selectedInfo ->
                         selectedCargoInfo.value = selectedInfo

@@ -102,6 +102,7 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -125,6 +126,7 @@ import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.PendingActions
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Receipt
@@ -175,6 +177,8 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -260,6 +264,7 @@ import com.atk.atk_cargo.api.VoucherDetail
 import com.atk.atk_cargo.api.Warehouse
 import com.atk.atk_cargo.api.WarehouseAnalytics
 import com.atk.atk_cargo.api.WarehouseEfficiencyData
+import com.atk.atk_cargo.api.WarehouseQuotaGroupingMode
 import com.atk.atk_cargo.api.WarningStatus
 import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
@@ -267,6 +272,7 @@ import com.atk.atk_cargo.api.toTon
 import com.atk.atk_cargo.ui.theme.getCompletionColor
 import com.atk.atk_cargo.ui.theme.getCompletionStatus
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -1179,6 +1185,7 @@ fun ShipDetails(
                                 when (targetPage) {
                                     0 -> WarehousesAndQuotasTab(
                                         shipDetails = shipDetails,
+                                        selectedShipQuotas = selectedShipQuotas,
                                         onWarehouseSelected = onWarehouseSelected,
                                         viewModel = viewModel
                                     )
@@ -1307,13 +1314,14 @@ data class TabItem(
 @Composable
 fun WarehousesAndQuotasTab(
     shipDetails: Ship,
+    selectedShipQuotas: List<Quota>,
     onWarehouseSelected: (String) -> Unit,
     viewModel: ReportsViewModel
 ) {
     var selectedSection by remember { mutableIntStateOf(0) }
     val sections = listOf("انبارها", "کوتاژها")
     var searchQuery by remember { mutableStateOf("") }
-    val selectedShipQuotas by viewModel.selectedShipQuotas.collectAsState()
+
     val filterInput: (String) -> String = { input ->
         when (selectedSection) {
             0 -> input.filter { char ->
@@ -1392,18 +1400,275 @@ fun WarehousesAndQuotasTab(
             1 -> QuotasList(
                 quotas = selectedShipQuotas,
                 searchQuery = searchQuery,
-                onEdit = { oldQuotaNumber, newQuotaData ->
-                    viewModel.editQuota(oldQuotaNumber, newQuotaData)
-                },
-                onToggleStatus = { quotaNumber ->
-                    viewModel.toggleQuotaStatus(quotaNumber)
-                },
-                onDelete = { quota ->
-                    viewModel.deleteQuota(quota)
-                },
+                groupingMode = viewModel.warehouseQuotaGroupingMode,
+                onGroupingModeChange = viewModel::setWarehouseQuotaGroupingMode,
+                onEdit = viewModel::editQuota,
+                onToggleStatus = viewModel::toggleQuotaStatus,
+                onDelete = viewModel::deleteQuota,
                 viewModel = viewModel
             )
         }
+    }
+}
+
+@Composable
+fun QuotasList(
+    quotas: List<Quota>,
+    searchQuery: String,
+    groupingMode: StateFlow<WarehouseQuotaGroupingMode>,
+    onGroupingModeChange: (WarehouseQuotaGroupingMode) -> Unit,
+    onEdit: (String, QuotaEditData) -> Unit,
+    onToggleStatus: (String) -> Unit,
+    onDelete: (Quota) -> Unit,
+    viewModel: ReportsViewModel
+) {
+    val currentGroupingMode by groupingMode.collectAsState()
+    var expandedGroup by remember { mutableStateOf<String?>(null) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        GroupingModeSelector(
+            currentMode = currentGroupingMode,
+            onModeChange = onGroupingModeChange
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        val groupedQuotas = remember(quotas, currentGroupingMode, searchQuery) {
+            quotas
+                .filter { quota ->
+                    quota.number.contains(searchQuery, ignoreCase = true) ||
+                            quota.shippingCompany.contains(searchQuery, ignoreCase = true) ||
+                            (quota.cargoOwner?.contains(searchQuery, ignoreCase = true) ?: false)
+                }
+                .groupBy {
+                    when (currentGroupingMode) {
+                        WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY -> it.shippingCompany
+                        WarehouseQuotaGroupingMode.BY_CARGO_OWNER -> it.cargoOwner ?: "نامشخص"
+                    }
+                }
+                .mapValues { (_, groupQuotas) ->
+                    groupQuotas.sortedWith(
+                        compareByDescending<Quota> { it.isActive }
+                            .thenBy { it.remainingTonnage }
+                    )
+                }
+                .toSortedMap(compareBy { it })
+        }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            groupedQuotas.forEach { (groupName, sortedQuotas) ->
+                item {
+                    QuotaGroupExpansionPanel(
+                        groupName = groupName,
+                        quotas = sortedQuotas,
+                        currentGroupingMode = currentGroupingMode,
+                        isExpanded = expandedGroup == groupName,
+                        onExpandToggle = {
+                            expandedGroup = if (expandedGroup == groupName) null else groupName
+                        },
+                        onEdit = onEdit,
+                        onToggleStatus = onToggleStatus,
+                        onDelete = onDelete,
+                        onPercentageChange = viewModel::updateQuotaPercentage
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun QuotaGroupExpansionPanel(
+    groupName: String,
+    quotas: List<Quota>,
+    currentGroupingMode: WarehouseQuotaGroupingMode,
+    isExpanded: Boolean,
+    onExpandToggle: () -> Unit,
+    onEdit: (String, QuotaEditData) -> Unit,
+    onToggleStatus: (String) -> Unit,
+    onDelete: (Quota) -> Unit,
+    onPercentageChange: (QuotaPercentageData) -> Unit
+) {
+    val loadedWeight = quotas.sumOf { it.loadedTonnage.toDouble() }
+    val activeQuotas = quotas.count { it.isActive }
+    val inactiveQuotas = quotas.size - activeQuotas
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onExpandToggle),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    GroupIcon(currentGroupingMode)
+                    Column {
+                        Text(
+                            text = groupName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        QuotaStats(loadedWeight, activeQuotas, inactiveQuotas)
+                    }
+                }
+                ExpandIcon(isExpanded)
+            }
+
+            if (isExpanded) {
+                Spacer(modifier = Modifier.height(8.dp))
+                quotas.forEach { quota ->
+                    QuotaCard(
+                        quota = quota,
+                        onEdit = onEdit,
+                        onToggleStatus = onToggleStatus,
+                        onDelete = onDelete,
+                        onPercentageChange = onPercentageChange
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GroupIcon(groupingMode: WarehouseQuotaGroupingMode) {
+    val icon = when (groupingMode) {
+        WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY -> Icons.Default.LocalShipping
+        WarehouseQuotaGroupingMode.BY_CARGO_OWNER -> Icons.Default.Person
+    }
+
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+        modifier = Modifier.size(40.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .padding(8.dp)
+                .size(24.dp)
+        )
+    }
+}
+
+@Composable
+private fun QuotaStats(loadedWeight: Double, activeQuotas: Int, inactiveQuotas: Int) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        StatChip(
+            icon = Icons.Default.Scale,
+            value = formatNumber(loadedWeight.toInt()),
+            color = MaterialTheme.colorScheme.primary
+        )
+        StatChip(
+            icon = Icons.Default.CheckCircle,
+            value = "$activeQuotas",
+            color = MaterialTheme.colorScheme.secondary
+        )
+        StatChip(
+            icon = Icons.Default.Cancel,
+            value = "$inactiveQuotas",
+            color = MaterialTheme.colorScheme.error
+        )
+    }
+}
+
+@Composable
+private fun StatChip(icon: ImageVector, value: String, color: Color) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = color.copy(alpha = 0.1f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodySmall,
+                color = color
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExpandIcon(isExpanded: Boolean) {
+    Icon(
+        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+        contentDescription = if (isExpanded) "بستن" else "باز کردن",
+        tint = MaterialTheme.colorScheme.primary
+    )
+}
+
+@Composable
+fun GroupingModeSelector(
+    currentMode: WarehouseQuotaGroupingMode,
+    onModeChange: (WarehouseQuotaGroupingMode) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "نوع دسته‌بندی:",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f)
+        )
+        Switch(
+            checked = currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER,
+            onCheckedChange = { isChecked ->
+                onModeChange(
+                    if (isChecked) WarehouseQuotaGroupingMode.BY_CARGO_OWNER
+                    else WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY
+                )
+            },
+            thumbContent = {
+                Icon(
+                    imageVector = if (currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER)
+                        Icons.Default.Person else Icons.Default.LocalShipping,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize)
+                )
+            }
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = if (currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER)
+                "صاحب کالا" else "شرکت باربری",
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 
@@ -2761,166 +3026,6 @@ private fun calculateValues(
         remainingAfterPercentage = remainingAfterPercentage,
         totalRemainingAfterPercentage = totalRemainingAfterPercentage
     )
-}
-
-@Composable
-fun QuotasList(
-    quotas: List<Quota>,
-    searchQuery: String,
-    onEdit: (String, QuotaEditData) -> Unit,
-    onToggleStatus: (String) -> Unit,
-    onDelete: (Quota) -> Unit,
-    viewModel: ReportsViewModel
-) {
-    // ساخت یک مپ برای نگهداری کوتاژهای هر شرکت
-    val groupedQuotas = remember(quotas) {
-        val map = mutableMapOf<String, MutableList<Quota>>()
-
-        quotas.forEach { quota ->
-            // تقسیم شرکت‌های باربری در صورت وجود چند شرکت
-            val companies = quota.shippingCompany.split(",").map { it.trim() }
-
-            companies.forEach { company ->
-                if (!map.containsKey(company)) {
-                    map[company] = mutableListOf()
-                }
-                map[company]?.add(quota.copy(shippingCompany = company))
-            }
-        }
-
-        map.toSortedMap()
-    }
-
-    // فیلتر کردن کوتاژها براساس جستجو
-    val filteredQuotas = remember(searchQuery, groupedQuotas) {
-        if (searchQuery.isEmpty()) {
-            groupedQuotas
-        } else {
-            groupedQuotas.mapValues { (_, quotas) ->
-                quotas.filter { it.number.contains(searchQuery, ignoreCase = true) }
-            }.filter { it.value.isNotEmpty() }
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            filteredQuotas.forEach { (company, companyQuotas) ->
-                item(key = company) {
-                    CompanyHeader(
-                        company = company,
-                        quotaCount = companyQuotas.size
-                    )
-                }
-
-                items(
-                    items = companyQuotas.sortedWith(
-                        compareBy<Quota> { !it.isActive }
-                            .thenBy { it.remainingTonnage }
-                    ),
-                    key = { "${it.number}_${it.shippingCompany}" }
-                ) { quota ->
-                    QuotaCard(
-                        quota = quota,
-                        onEdit = onEdit,
-                        onToggleStatus = onToggleStatus,
-                        onDelete = onDelete,
-                        onPercentageChange = { percentageData ->
-                            viewModel.updateQuotaPercentage(percentageData)
-                        }
-                    )
-                }
-
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CompanyHeader(
-    company: String,
-    quotaCount: Int
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocalShipping,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            Column {
-                Text(
-                    text = company,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "شرکت باربری",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                )
-            }
-        }
-
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-            border = BorderStroke(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-            )
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Description,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
-                )
-                Text(
-                    text = "$quotaCount کوتاژ",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-    }
 }
 
 @Composable
@@ -5331,7 +5436,7 @@ fun QuotaCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Box(
-            modifier = Modifier
+                        modifier = Modifier
                             .size(40.dp)
                             .background(
                                 color = accentColor.copy(alpha = 0.1f),
@@ -5429,8 +5534,8 @@ fun QuotaCard(
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         val progress = calculateProgress(quota.loadedTonnage, quota.totalTonnage)
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
@@ -5520,7 +5625,7 @@ fun QuotaCard(
 
     if (showPercentageDialog) {
         QuotaPercentageDialog(
-                            quota = quota,
+            quota = quota,
             onDismiss = { showPercentageDialog = false },
             onConfirm = onPercentageChange
         )
@@ -5627,7 +5732,7 @@ fun DeleteQuotaDialog(
                 color = MaterialTheme.colorScheme.surface
             ) {
                 Column(
-        modifier = Modifier
+                    modifier = Modifier
                         .fillMaxWidth()
                         .padding(24.dp),
                     horizontalAlignment = Alignment.End
@@ -5685,8 +5790,8 @@ fun ToggleQuotaStatusDialog(
                         .fillMaxWidth()
                         .padding(24.dp),
                     horizontalAlignment = Alignment.End
-            ) {
-                Text(
+                ) {
+                    Text(
                         text = "تغییر وضعیت کوتاژ",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         modifier = Modifier.fillMaxWidth()
@@ -5761,12 +5866,12 @@ fun EditQuotaDialog(
             color = MaterialTheme.colorScheme.surface
         ) {
             Column(
-        modifier = Modifier
-            .fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                     .padding(24.dp),
                 horizontalAlignment = Alignment.End
-    ) {
-        Text(
+            ) {
+                Text(
                     text = "ویرایش اطلاعات کوتاژ",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.fillMaxWidth()
@@ -5785,7 +5890,7 @@ fun EditQuotaDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (!isValidQuotaNumber(editedData.quotaNumber)) {
-        Text(
+                    Text(
                         "شماره کوتاژ باید حداقل 5 رقم باشد",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyMedium
@@ -5927,7 +6032,7 @@ fun QuotaMainCard(details: QuotaDetails) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-        Text(
+            Text(
                 text = "کوتاژ ${details.number}",
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -9986,8 +10091,8 @@ private fun QuotaQuickStats(
     color: Color
 ) {
     Row(
-            modifier = Modifier
-                .fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
             .padding(top = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -10017,8 +10122,8 @@ private fun QuotaDetailedStats(
     quota: QuotaCompletionData,
     prediction: QuotaPredictionData?,
     color: Color
-        ) {
-            Column(
+) {
+    Column(
         modifier = Modifier.padding(top = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -10040,7 +10145,7 @@ private fun ShipAndWeightSection(
     color: Color
 ) {
     Surface(
-                    modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         color = color.copy(alpha = 0.05f),
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
@@ -10127,7 +10232,7 @@ private fun QuataInfoColumn(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-                        Icon(
+            Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = color.copy(alpha = 0.7f),
@@ -10171,8 +10276,8 @@ private fun PredictionSection(
                 color = color
             )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 InfoItem(
@@ -10215,12 +10320,12 @@ private fun InfoItem(
 fun CarrierAnalysis(
     carrierPerformanceData: List<CarrierPerformanceAnalysis>
 ) {
-            LazyColumn(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         items(
             items = carrierPerformanceData.sortedByDescending { it.quality_score },
             key = { it.shippingCompany }
@@ -10425,8 +10530,8 @@ private fun DetailedStats(carrier: CarrierPerformanceAnalysis, color: Color) {
             Column(
                 modifier = Modifier.padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
-) {
-    Row(
+            ) {
+                Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -10603,12 +10708,12 @@ private fun QuotaChip(
     quotaNumber: String,
     color: Color
 ) {
-            Surface(
+    Surface(
         color = color.copy(alpha = 0.1f),
-                shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(8.dp),
         border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
-            ) {
-                Text(
+    ) {
+        Text(
             text = quotaNumber,
             style = MaterialTheme.typography.bodySmall,
             color = color,
@@ -10622,7 +10727,7 @@ fun WarehouseAnalysis(
     efficiencyData: List<WarehouseEfficiencyData>,
 ) {
     LazyColumn(
-                    modifier = Modifier
+        modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -10853,7 +10958,7 @@ fun calculatePercentage(value: Float, total: Float): Int {
 
 fun Double.format(digits: Int) = "%.${digits}f".format(this)
 
-public fun formatNumber(number: Int): String {
+fun formatNumber(number: Int): String {
     return NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
 }
 

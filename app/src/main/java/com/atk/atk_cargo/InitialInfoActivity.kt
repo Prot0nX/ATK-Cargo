@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Numbers
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Scale
 import androidx.compose.material.icons.filled.Warehouse
@@ -133,6 +134,7 @@ fun InitialInfoScreen() {
     var shippingCompany by remember { mutableStateOf("") }
     var cargoWeight by remember { mutableStateOf("") }
     var loadingQuotaNumber by remember { mutableStateOf("") }
+    var cargoOwner by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
     var dialogMessage by remember { mutableStateOf("") }
@@ -430,10 +432,8 @@ fun InitialInfoScreen() {
                                     OutlinedTextField(
                                         value = loadingQuotaNumber,
                                         onValueChange = { input ->
-                                            val filteredInput = input.replace("\n", "")
-                                            if (filteredInput.all { it.isDigit() } && filteredInput.length <= 10) {
-                                                loadingQuotaNumber = filteredInput
-                                            }
+                                            val filteredInput = input.replace(Regex("[^0-9]"), "")
+                                            loadingQuotaNumber = filteredInput
                                         },
                                         label = { Text("شماره کوتاژ") },
                                         leadingIcon = {
@@ -445,9 +445,54 @@ fun InitialInfoScreen() {
                                                 else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         },
+                                        supportingText = {
+                                            if (!isValidQuotaNumber(loadingQuotaNumber) && loadingQuotaNumber.isNotEmpty()) {
+                                                Text(
+                                                    "شماره کوتاژ حداقل باید 5 رقم باشد",
+                                                    color = MaterialTheme.colorScheme.error
+                                                )
+                                            }
+                                        },
+                                        isError = !isValidQuotaNumber(loadingQuotaNumber) && loadingQuotaNumber.isNotEmpty(),
                                         singleLine = true,
                                         keyboardOptions = KeyboardOptions(
                                             keyboardType = KeyboardType.Number,
+                                            imeAction = ImeAction.Done
+                                        ),
+                                        keyboardActions = KeyboardActions(
+                                            onDone = {
+                                                focusManager.clearFocus()
+                                            }
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = cargoOwner,
+                                        onValueChange = { input ->
+                                            cargoOwner = input.replace("\n", "")
+                                        },
+                                        label = { Text("صاحب کالا") },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.Person,
+                                                contentDescription = null,
+                                                tint = if (isValidPersianText(cargoOwner))
+                                                    MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        },
+                                        supportingText = {
+                                            if (!isValidPersianText(cargoOwner) && cargoOwner.isNotEmpty()) {
+                                                Text(
+                                                    "نام صاحب کالا باید شامل 3 تا 50 حرف فارسی باشد",
+                                                    color = MaterialTheme.colorScheme.error
+                                                )
+                                            }
+                                        },
+                                        isError = !isValidPersianText(cargoOwner) && cargoOwner.isNotEmpty(),
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(
                                             imeAction = ImeAction.Done
                                         ),
                                         keyboardActions = KeyboardActions(
@@ -475,7 +520,8 @@ fun InitialInfoScreen() {
                                             onClick = { currentStep++ },
                                             enabled = isValidPersianText(shippingCompany) &&
                                                     isValidWeight(cargoWeight) &&
-                                                    isValidQuotaNumber(loadingQuotaNumber),
+                                                    isValidQuotaNumber(loadingQuotaNumber) &&
+                                                    isValidPersianText(cargoOwner),
                                             modifier = Modifier.weight(1f)
                                         ) {
                                             Text("ادامه")
@@ -550,6 +596,11 @@ fun InitialInfoScreen() {
                                                 label = "شماره کوتاژ",
                                                 value = loadingQuotaNumber,
                                                 icon = Icons.Default.Numbers
+                                            )
+                                            SummaryItem(
+                                                label = "صاحب کالا",
+                                                value = cargoOwner,
+                                                icon = Icons.Default.Person
                                             )
                                         }
                                     }
@@ -633,10 +684,11 @@ fun InitialInfoScreen() {
                                 shippingCompany = shippingCompany,
                                 cargoWeight = cargoWeight.toFloatOrNull() ?: 0f,
                                 loadingQuotaNumber = loadingQuotaNumber.toIntOrNull() ?: 0,
-                                remainingWeight = 0f,
+                                remainingWeight = cargoWeight.toFloatOrNull() ?: 0f,
                                 totalNetWeight = 0f,
                                 averageNetWeight = 0f,
-                                remainingServices = 0
+                                remainingServices = 0,
+                                cargoOwner = cargoOwner
                             )
                         )
                     }
@@ -654,6 +706,7 @@ fun InitialInfoScreen() {
             shippingCompany = shippingCompany,
             cargoWeight = cargoWeight,
             loadingQuotaNumber = loadingQuotaNumber,
+            cargoOwner = cargoOwner,
             onConfirm = {
                 scope.launch {
                     try {
@@ -664,10 +717,11 @@ fun InitialInfoScreen() {
                             shippingCompany = shippingCompany,
                             cargoWeight = cargoWeight.toFloatOrNull() ?: 0f,
                             loadingQuotaNumber = loadingQuotaNumber.toIntOrNull() ?: 0,
-                            remainingWeight = 0f,
+                            remainingWeight = cargoWeight.toFloatOrNull() ?: 0f,
                             totalNetWeight = 0f,
                             averageNetWeight = 0f,
-                            remainingServices = 0
+                            remainingServices = 0,
+                            cargoOwner = cargoOwner
                         )
 
                         val response = RetrofitClient.apiService.saveInitialInfo(initialInfo)
@@ -709,10 +763,11 @@ fun InitialInfoScreen() {
                             shippingCompany = shippingCompany,
                             cargoWeight = cargoWeight.toFloatOrNull() ?: 0f,
                             loadingQuotaNumber = loadingQuotaNumber.toIntOrNull() ?: 0,
-                            remainingWeight = 0f,
+                            remainingWeight = cargoWeight.toFloatOrNull() ?: 0f,
                             totalNetWeight = 0f,
                             averageNetWeight = 0f,
-                            remainingServices = 0
+                            remainingServices = 0,
+                            cargoOwner = cargoOwner
                         )
                     )
                 }
@@ -740,6 +795,7 @@ fun ConfirmationDialog(
     shippingCompany: String,
     cargoWeight: String,
     loadingQuotaNumber: String,
+    cargoOwner: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 )  {
@@ -829,7 +885,8 @@ fun ConfirmationDialog(
                         title = "اطلاعات شرکت",
                         items = listOf(
                             Triple(Icons.Default.LocalShipping, "شرکت باربری", shippingCompany),
-                            Triple(Icons.Default.Numbers, "شماره کوتاژ", loadingQuotaNumber)
+                            Triple(Icons.Default.Numbers, "شماره کوتاژ", loadingQuotaNumber),
+                            Triple(Icons.Default.Person, "صاحب کالا", cargoOwner)
                         )
                     )
                 }
@@ -1289,7 +1346,7 @@ fun isValidWeight(weight: String): Boolean {
 }
 
 fun isValidQuotaNumber(number: String): Boolean {
-    return number.all { it.isDigit() } && number.length in 5..10
+    return number.all { it.isDigit() } && number.length == 5
 }
 
 private fun formatNumber(number: String): String {

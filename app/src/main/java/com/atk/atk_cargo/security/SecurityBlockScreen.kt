@@ -52,7 +52,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SecurityBlockScreen(isLoading: Boolean) {
+fun SecurityBlockScreen(isLoading: Boolean, errorType: SecurityErrorType = SecurityErrorType.TAMPERED) {
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Box(
             modifier = Modifier
@@ -124,7 +124,13 @@ fun SecurityBlockScreen(isLoading: Boolean) {
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
-                                text = "فایل و کدهای برنامه دستکاری شده است!",
+                                text = when (errorType) {
+                                    SecurityErrorType.TAMPERED -> "فایل و کدهای برنامه دستکاری شده است!"
+                                    SecurityErrorType.LICENSE_NOT_FOUND -> "لایسنس برنامه یافت نشد!"
+                                    SecurityErrorType.LICENSE_INACTIVE -> "لایسنس برنامه غیرفعال است!"
+                                    SecurityErrorType.NETWORK_ERROR -> "خطا در اتصال به سرور!"
+                                    SecurityErrorType.UNKNOWN_ERROR -> "خطای نامشخص رخ داده است!"
+                                },
                                 style = MaterialTheme.typography.titleMedium,
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colorScheme.error,
