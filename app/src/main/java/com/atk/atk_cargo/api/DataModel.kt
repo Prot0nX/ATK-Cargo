@@ -55,9 +55,6 @@ import java.io.FileNotFoundException
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
 import java.util.LinkedList
@@ -85,6 +82,7 @@ class CargoViewModel(
     private val repository: ReportsRepository,
     private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
+    private val quotasCache = mutableMapOf<String, List<Quota>>()
     private val _cargoInfoList = MutableStateFlow<List<CargoInfo>>(emptyList())
     val cargoInfoList: StateFlow<List<CargoInfo>> = _cargoInfoList.asStateFlow()
     private val _snackbarMessage = MutableStateFlow<SnackbarMessage?>(null)
@@ -130,9 +128,10 @@ class CargoViewModel(
     private val _isShowingMessage = MutableStateFlow(false)
     private val _loadableTonnage = MutableStateFlow("")
     val loadableTonnage: StateFlow<String> = _loadableTonnage.asStateFlow()
-    
     private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY)
     val warehouseQuotaGroupingMode: StateFlow<WarehouseQuotaGroupingMode> = _warehouseQuotaGroupingMode.asStateFlow()
+    private val _cachedTrackingNumbers = MutableStateFlow<Set<String>>(emptySet())
+    val cachedTrackingNumbers: StateFlow<Set<String>> = _cachedTrackingNumbers.asStateFlow()
     
     fun setWarehouseQuotaGroupingMode(mode: WarehouseQuotaGroupingMode) {
         _warehouseQuotaGroupingMode.value = mode
@@ -248,36 +247,6 @@ class CargoViewModel(
         }
     }
 
-    @SuppressLint("SimpleDateFormat")
-    fun isWithinExitTimeRange(exitDateStr: String, exitTimeStr: String): Boolean {
-        val currentJalaliDate = getCurrentDate()
-        val currentTime = LocalTime.now()
-
-        val exitDateTime = LocalDateTime.parse("$exitDateStr $exitTimeStr", DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm"))
-        val exitTime = exitDateTime.toLocalTime()
-
-        val morningStart = LocalTime.of(7, 30)
-        val eveningEnd = LocalTime.of(18, 30)
-        val nightStart = LocalTime.of(19, 30)
-        val nightEnd = LocalTime.of(7, 30)
-
-        return when (currentTime) {
-            in morningStart..eveningEnd -> {
-                exitDateStr == currentJalaliDate && exitTime in morningStart..currentTime
-            }
-            in nightStart..LocalTime.MAX -> {
-                exitDateStr == currentJalaliDate && exitTime in nightStart..currentTime
-            }
-            in LocalTime.MIN..nightEnd -> {
-                val yesterdayCalendar = Calendar.getInstance().apply { add(Calendar.DAY_OF_MONTH, -1) }
-                val yesterdayJalaliDate = JalaliCalendar(yesterdayCalendar).toString()
-                (exitDateStr == yesterdayJalaliDate && exitTime >= nightStart) ||
-                        (exitDateStr == currentJalaliDate && exitTime <= currentTime)
-            }
-            else -> false
-        }
-    }
-
     fun filterCargoInfoList(query: String) {
         _filteredCargoInfoList.value = if (query.isEmpty()) {
             _cargoInfoList.value
@@ -318,7 +287,6 @@ class CargoViewModel(
                         shippingCompany = info.shippingCompany,
                         warehouse = info.loadingWarehouse,
                         cargoType = info.cargoType,
-                        onProgress = {},
                         onComplete = {
                             val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
                             showUpdateMessage(
@@ -379,7 +347,7 @@ class CargoViewModel(
                 }
 
                 // بررسی اینکه آیا حواله جدید است یا خیر
-                val isNewCargo = _cargoInfoList.value.none { it.trackingNumber == trackingNumber }
+                val isNewCargo = !isTrackingNumberDuplicate(trackingNumber)
 
                 // بررسی اعتبار داده‌های ورودی
                 if (!isValidInput(
@@ -506,7 +474,6 @@ class CargoViewModel(
                 shippingCompany = info.shippingCompany,
                 warehouse = info.loadingWarehouse,
                 cargoType = info.cargoType,
-                onProgress = {},
                 onComplete = {}
             )
         } ?: run {
@@ -650,88 +617,71 @@ class CargoViewModel(
         shippingCompany: String,
         warehouse: String,
         cargoType: String,
-        onProgress: (Float) -> Unit,
-        onComplete: () -> Unit,
-        showLoadingDialog: Boolean = true
+        onComplete: () -> Unit = {}
     ) {
         viewModelScope.launch {
             try {
-                if (showLoadingDialog) onProgress(0.05f) // شروع با 5%
 
-                // دریافت اطلاعات کارگو
-                val cargoInfoResponse = repository.getCargoInfo(
-                    quotaNumber = quotaNumber,
-                    shippingCompany = shippingCompany,
-                    warehouse = warehouse,
-                    cargoType = cargoType
-                )
-
-                if (showLoadingDialog) onProgress(0.15f) // دریافت اطلاعات اولیه 15%
-
-                // بررسی تطابق نوع بار
-                if (cargoInfoResponse.initialInfo.cargoType != cargoType) {
-                    handleError(
-                        message = "خطا: نوع بار انتخاب شده با اطلاعات کوتاژ مطابقت ندارد",
-                        type = MessageType.ERROR,
-                        onComplete = onComplete
-                    )
-                    return@launch
+                // دریافت اطلاعات اصلی در Dispatchers.IO
+                val result = withContext(Dispatchers.IO) {
+                    repository.getCargoInfo(quotaNumber, shippingCompany, warehouse, cargoType)
                 }
 
-                if (showLoadingDialog) onProgress(0.25f) // بررسی تطابق 25%
+                // به‌روزرسانی UI با اطلاعات اصلی
+                _cargoInfoList.value = result.cargoInfoList
+                _initialInfo.value = result.initialInfo
+                _filteredCargoInfoList.value = result.cargoInfoList
 
-                // ذخیره و بررسی اطلاعات اولیه
-                handleInitialInfo(cargoInfoResponse.initialInfo)
+                // ذخیره شماره‌های حواله در کش
+                val allTrackingNumbers = result.allTrackingNumbers?.toSet() ?: emptySet()
+                _cachedTrackingNumbers.value = allTrackingNumbers
 
-                if (showLoadingDialog) onProgress(0.35f) // پردازش اطلاعات اولیه 35%
+                // به‌روزرسانی مقادیر اولیه
+                _cargoWeight.value = result.initialInfo.cargoWeight.toString()
+                _totalNetWeight.value = result.initialInfo.totalNetWeight.toString()
+                _remainingWeight.value = result.initialInfo.remainingWeight.toString()
+                _averageNetWeight.value = result.initialInfo.averageNetWeight.toString()
+                _remainingServices.value = result.initialInfo.remainingServices.toString()
+                _totalServices.value = result.initialInfo.totalVoucherCount.toString()
 
-                // تنظیم مقادیر اولیه
-                setInitialValues(cargoInfoResponse.initialInfo)
+                // بررسی وضعیت کوتاژها به صورت موازی
+                launch(Dispatchers.IO) {
+                    try {
+                        val currentQuotas = _cargoInfoList.value
+                        currentQuotas.forEach { cargoInfo ->
+                            val quota = repository.getShipQuotas(cargoInfo.shipName)
+                                .find { it.number == cargoInfo.loadingQuotaNumber }
 
-                if (showLoadingDialog) onProgress(0.45f) // تنظیم مقادیر اولیه 45%
-
-                // پردازش و فیلتر لیست کارگو
-                val totalItems = cargoInfoResponse.cargoInfoList.size
-                val filteredList = filterCargoList(cargoInfoResponse.cargoInfoList, cargoType)
-
-                if (showLoadingDialog) onProgress(0.55f) // فیلتر کردن لیست 55%
-
-                // بروزرسانی تدریجی لیست کارگو
-                updateCargoListInChunks(
-                    filteredList = filteredList,
-                    totalItems = totalItems,
-                    showLoadingDialog = showLoadingDialog,
-                    onProgress = onProgress
-                )
-
-                if (showLoadingDialog) onProgress(0.85f) // پردازش چانک‌ها 85%
-
-                // بروزرسانی نهایی مقادیر و فیلترها
-                updateFinalValues()
-
-                if (showLoadingDialog) onProgress(1f) // اتمام 100%
-
-                onComplete()
-
-                val currentQuotas = _cargoInfoList.value
-                currentQuotas.forEach { cargoInfo ->
-                    val quota = repository.getShipQuotas(cargoInfo.shipName)
-                        .find { it.number == cargoInfo.loadingQuotaNumber }
-
-                    quota?.let {
-                        checkQuotaPercentage(it)
+                            quota?.let {
+                                checkQuotaPercentage(it)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("CargoViewModel", "Error checking quota percentages", e)
                     }
                 }
 
+                // به‌روزرسانی مقادیر نهایی و محاسبه تناژ قابل بارگیری
+                updateFinalValues()
+
+                // اعلام اتمام بارگذاری
+                onComplete()
             } catch (e: Exception) {
-                handleError(
-                    message = "خطا در بارگیری اطلاعات: ${e.message}",
-                    type = MessageType.ERROR,
-                    onComplete = onComplete,
-                    error = e
-                )
+                Log.e("CargoViewModel", "Error loading cargo info", e)
+                showMessage("خطا در ارتباط با سرور: ${e.localizedMessage}", MessageType.ERROR)
+                onComplete()
             }
         }
+    }
+
+    private fun isTrackingNumberDuplicate(trackingNumber: String): Boolean {
+        // Check in cache
+        if (_cachedTrackingNumbers.value.contains(trackingNumber)) {
+            return true
+        }
+
+        // Also check in the currently loaded cargo info list
+        return _cargoInfoList.value.any { it.trackingNumber == trackingNumber }
     }
 
     suspend fun toggleQuotaStatus(quotaNumber: String) {
@@ -749,7 +699,6 @@ class CargoViewModel(
                             shippingCompany = info.shippingCompany,
                             warehouse = info.loadingWarehouse,
                             cargoType = info.cargoType,
-                            onProgress = {},
                             onComplete = {}
                         )
                     }
@@ -845,19 +794,10 @@ class CargoViewModel(
 
                 val response = apiService.saveOrUpdateCargoInfo(updatedCargoInfo)
                 if (response.isSuccessful) {
-                    // بعد از موفقیت در ثبت خروج، وضعیت درصد را چک می‌کنیم
-                    _initialInfo.value?.let { info ->
-                        val quotas = repository.getShipQuotas(info.shipName)
-                        quotas.find { it.number == cargoInfo.loadingQuotaNumber }?.let {
-                            checkQuotaPercentage(it)
-                        }
-                        }
-
+                    refreshCargoInfo()
                     _resultMessage.value = "اطلاعات بروزرسانی شد"
                     _showAnimatedMessage.value = true
                     _messageType.value = MessageType.SUCCESS
-
-                    refreshCargoInfo()
                 } else {
                     _resultMessage.value = "خطا در به روز رسانی اطلاعات بار"
                     _showAnimatedMessage.value = true
@@ -871,63 +811,6 @@ class CargoViewModel(
         }
     }
 
-    private fun handleError(
-        message: String,
-        type: MessageType,
-        onComplete: () -> Unit,
-        error: Exception? = null
-    ) {
-        error?.let { Log.e("CargoViewModel", "Error in loadCargoInfoList", it) }
-        _resultMessage.value = message
-        _showAnimatedMessage.value = true
-        _messageType.value = type
-        onComplete()
-    }
-
-    private suspend fun handleInitialInfo(initialInfo: InitialInfo) {
-        _initialInfo.value = initialInfo
-        initialInfo.let { info ->
-            checkQuotaStatus(info)
-            if (_isQuotaActive.value != true) {
-                _resultMessage.value = "کوتاژ غیرفعال است و امکان ثبت اطلاعات وجود ندارد!"
-                _showAnimatedMessage.value = true
-                _messageType.value = MessageType.WARNING
-            }
-        }
-    }
-
-    private fun setInitialValues(initialInfo: InitialInfo) {
-        _cargoWeight.value = DecimalFormat("#,###").format(initialInfo.cargoWeight.roundToInt())
-        _cargoCount.value = initialInfo.totalVoucherCount
-        _totalServices.value = initialInfo.totalVoucherCount.toString()
-    }
-
-    private fun filterCargoList(cargoList: List<CargoInfo>, cargoType: String): List<CargoInfo> {
-        _cargoInfoList.update { emptyList() }
-        return cargoList.filter { cargo -> cargo.cargoType == cargoType }
-    }
-
-    private fun updateCargoListInChunks(
-        filteredList: List<CargoInfo>,
-        totalItems: Int,
-        showLoadingDialog: Boolean,
-        onProgress: (Float) -> Unit
-    ) {
-            val startProgress = 0.55f
-            val endProgress = 0.85f
-            val progressRange = endProgress - startProgress
-
-        filteredList.chunked(10).forEachIndexed { chunkIndex, chunk ->
-                _cargoInfoList.update { currentList -> currentList + chunk }
-
-                if (showLoadingDialog) {
-                val chunkProgress = (chunkIndex + 1).toFloat() / ((totalItems + 9) / 10)
-                    val currentProgress = startProgress + (progressRange * chunkProgress)
-                    onProgress(currentProgress.coerceIn(0f, endProgress))
-            }
-        }
-    }
-
     private fun updateFinalValues() {
         updateInfoValues()
         filterCargoInfoList("")
@@ -935,37 +818,71 @@ class CargoViewModel(
 
     fun updateInfoValues() {
         viewModelScope.launch {
-            withContext(Dispatchers.Default) {
-                try {
-                    val netWeights = _cargoInfoList.value
-                        .filter { it.status == "خروج" }
-                        .mapNotNull { it.netWeight.toFloatOrNull() }
+            try {
+                // محاسبات محلی در Dispatchers.Default
+                val localCalculations = withContext(Dispatchers.Default) {
+                    // محاسبه وزن خالص کل و تعداد حواله‌های خارج شده
+                    val exitedCargos = _cargoInfoList.value.filter { it.status == "خروج" }
+                    val netWeights = exitedCargos.mapNotNull { it.netWeight.toFloatOrNull() }
                     val totalNet = netWeights.sum()
-                    val formattedTotalNet = DecimalFormat("#,###").format(totalNet.roundToInt())
-                    val cargoWeightValue = _cargoWeight.value.replace(",", "").toFloatOrNull() ?: 0f
-                    val remaining = (cargoWeightValue - totalNet).coerceAtLeast(0f)
+
+                    // محاسبه میانگین وزن خالص
                     val averageNet = if (netWeights.isNotEmpty()) netWeights.average() else 0.0
 
+                    // محاسبه وزن باقیمانده
+                    val cargoWeightValue = _cargoWeight.value.replace(",", "").toFloatOrNull() ?: 0f
+                    val remaining = (cargoWeightValue - totalNet).coerceAtLeast(0f)
+
+                    // محاسبه تعداد حواله‌های باقیمانده
+                    val remainingServicesCount = if (averageNet > 0) (remaining / averageNet).toInt() else 0
+
+                    // به‌روزرسانی مقادیر در StateFlow‌ها
                     _remainingWeight.value = DecimalFormat("#,###").format(remaining.roundToInt())
                     _loadedWeight.value = DecimalFormat("#,###").format(totalNet.roundToInt())
-                    _totalNetWeight.value = formattedTotalNet
-                    _remainingWeight.value = DecimalFormat("#,###").format(remaining.roundToInt())
+                    _totalNetWeight.value = DecimalFormat("#,###").format(totalNet.roundToInt())
                     _averageNetWeight.value = DecimalFormat("#,###").format(averageNet.roundToInt())
-                    _remainingServices.value = if (averageNet > 0) (remaining / averageNet).toInt().toString() else "0"
+                    _remainingServices.value = remainingServicesCount.toString()
                     _totalServices.value = _cargoCount.value.toString()
+                }
 
-                    // محاسبه تناژ قابل بارگیری
-                    _initialInfo.value?.let { info ->
-                        val quotas = repository.getShipQuotas(info.shipName)
-                        quotas.find { it.number == info.loadingQuotaNumber.toString() }?.let { quota ->
-                            val loadableTonnage = calculateLoadableTonnage(quota)
+                // محاسبه تناژ قابل بارگیری در یک coroutine جداگانه با Dispatchers.IO
+                _initialInfo.value?.let { info ->
+                    // استفاده از Dispatchers.IO برای عملیات شبکه
+                    // ذخیره‌سازی کوتاژها در کش برای دسترسی سریع‌تر
+                    val cachedQuotasKey = "quotas_${info.shipName}"
+                    val cachedQuotas = quotasCache[cachedQuotasKey]
+
+                    if (cachedQuotas != null) {
+                        // استفاده از کوتاژهای کش شده
+                        val quota = cachedQuotas.find { it.number == info.loadingQuotaNumber.toString() }
+                        quota?.let {
+                            val loadableTonnage = calculateLoadableTonnage(it)
                             _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnage.roundToInt())
                         }
-                    }
+                    } else {
+                        // دریافت کوتاژها از سرور
+                        viewModelScope.launch(Dispatchers.IO) {
+                            try {
+                                val quotas = repository.getShipQuotas(info.shipName)
+                                // ذخیره کوتاژها در کش
+                                quotasCache[cachedQuotasKey] = quotas
 
-                } catch (e: Exception) {
-                    Log.e("CargoViewModel", "Error in updateInfoValues: ${e.message}")
+                                val quota = quotas.find { it.number == info.loadingQuotaNumber.toString() }
+                                quota?.let {
+                                    val loadableTonnage = calculateLoadableTonnage(it)
+                                    // به‌روزرسانی UI در Dispatchers.Main
+                                    withContext(Dispatchers.Main) {
+                                        _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnage.roundToInt())
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("CargoViewModel", "Error calculating loadable tonnage", e)
+                            }
+                        }
+                    }
                 }
+            } catch (e: Exception) {
+                Log.e("CargoViewModel", "Error updating info values", e)
             }
         }
     }
@@ -993,7 +910,6 @@ class CargoViewModel(
                                 shippingCompany = info.shippingCompany,
                                 warehouse = info.loadingWarehouse,
                                 cargoType = info.cargoType,
-                                onProgress = {},
                                 onComplete = {}
                             )
                         }
@@ -2627,7 +2543,17 @@ data class ActiveShipInfo(
 
 data class CargoInfoResponse(
     val initialInfo: InitialInfo,
-    val cargoInfoList: List<CargoInfo>
+    val cargoInfoList: List<CargoInfo>,
+    val stats: CargoStats? = null,
+    val allTrackingNumbers: List<String>? = null
+)
+
+data class CargoStats(
+    val totalNetWeight: Int,
+    val exitedVouchers: Int,
+    val remainingWeight: Int,
+    val averageNetWeight: Float,
+    val remainingServices: Int
 )
 
 enum class MessageType {
@@ -3016,16 +2942,39 @@ data class UpdateInfo(
 )
 
 class ColorSelector(private val colors: List<Color>) {
-    private var currentIndex = 0
+    // Track already used indices to avoid immediate repetition
+    private val usedIndices = mutableSetOf<Int>()
+    private var lastIndex = -1
 
     fun getNextColor(): Color {
-        val color = colors[currentIndex]
-        currentIndex = (currentIndex + 3) % colors.size
-        return color
+        // If all colors have been used once, reset the used indices
+        if (usedIndices.size >= colors.size) {
+            usedIndices.clear()
+            // Keep track of the last index to avoid immediate repetition after reset
+            usedIndices.add(lastIndex)
+        }
+
+        // Choose the next available index using a prime number offset (7)
+        // This creates better visual spacing between sequential colors
+        var candidateIndex = (lastIndex + 7) % colors.size
+
+        // Find the next unused index
+        while (candidateIndex in usedIndices) {
+            candidateIndex = (candidateIndex + 1) % colors.size
+        }
+
+        // Mark this index as used and remember it
+        usedIndices.add(candidateIndex)
+        lastIndex = candidateIndex
+
+        return colors[candidateIndex]
     }
 
     fun reset() {
-        currentIndex = 0
+        usedIndices.clear()
+        if (lastIndex != -1) {
+            usedIndices.add(lastIndex)
+        }
     }
 }
 

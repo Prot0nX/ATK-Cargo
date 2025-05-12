@@ -23,6 +23,7 @@ import com.atk.atk_cargo.security.LoadingCheckWorker
 import com.atk.atk_cargo.security.ServiceRestartReceiver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -40,6 +41,7 @@ class LoadingCheckService : Service() {
     private lateinit var notificationManager: NotificationManager
     private val apiService = RetrofitClient.apiService
     private var isAdminUser = false
+    private lateinit var mainServiceJob: Job
 
     private val powerManager by lazy {
         getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -85,55 +87,169 @@ class LoadingCheckService : Service() {
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate() {
-        super.onCreate()
-        acquireWakeLock()
-        startForeground(NOTIFICATION_ID, createNotification())
-        userPreferencesManager = UserPreferencesManager(applicationContext)
-        notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        createNotificationChannels()
-        createMessageNotificationChannel()
-
-        // تنظیم نوع کاربر و بررسی admin بودن
-        serviceScope.launch {
-            userPreferencesManager.userType.collect { userType ->
-                isAdminUser = (userType == "admin")
-                Log.d("LoadingCheckService", "User type updated: $userType, isAdmin: $isAdminUser")
+        try {
+            Log.d("ATKLog", "LoadingCheckService: onCreate شروع شد")
+            super.onCreate()
+            
+            try {
+                Log.d("ATKLog", "LoadingCheckService: درخواست wakeLock")
+                acquireWakeLock()
+                Log.d("ATKLog", "LoadingCheckService: wakeLock با موفقیت دریافت شد")
+            } catch (e: Exception) {
+                Log.e("ATKLog", "LoadingCheckService: خطا در دریافت wakeLock", e)
             }
+            
+            try {
+                Log.d("ATKLog", "LoadingCheckService: مقداردهی اولیه متغیرها")
+                userPreferencesManager = UserPreferencesManager(applicationContext)
+                notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                Log.d("ATKLog", "LoadingCheckService: مقداردهی اولیه متغیرها با موفقیت انجام شد")
+            } catch (e: Exception) {
+                Log.e("ATKLog", "LoadingCheckService: خطا در مقداردهی اولیه متغیرها", e)
+            }
+            
+            try {
+                Log.d("ATKLog", "LoadingCheckService: ایجاد کانال‌های نوتیفیکیشن")
+                createNotificationChannels()
+                createMessageNotificationChannel()
+                Log.d("ATKLog", "LoadingCheckService: کانال‌های نوتیفیکیشن با موفقیت ایجاد شدند")
+            } catch (e: Exception) {
+                Log.e("ATKLog", "LoadingCheckService: خطا در ایجاد کانال‌های نوتیفیکیشن", e)
+            }
+            
+            try {
+                Log.d("ATKLog", "LoadingCheckService: ایجاد نوتیفیکیشن فورگراند")
+                val notification = createNotification()
+                Log.d("ATKLog", "LoadingCheckService: نوتیفیکیشن فورگراند ایجاد شد")
+                startForeground(NOTIFICATION_ID, notification)
+                Log.d("ATKLog", "LoadingCheckService: سرویس با موفقیت به حالت فورگراند رفت")
+            } catch (e: Exception) {
+                Log.e("ATKLog", "LoadingCheckService: خطا در شروع فورگراند سرویس", e)
+            }
+
+            // تنظیم نوع کاربر و بررسی admin بودن
+            try {
+                Log.d("ATKLog", "LoadingCheckService: شروع جمع‌آوری اطلاعات نوع کاربر")
+                serviceScope.launch {
+                    try {
+                        userPreferencesManager.userType.collect { userType ->
+                            isAdminUser = (userType == "admin")
+                            Log.d("ATKLog", "LoadingCheckService: نوع کاربر: $userType، آیا ادمین است: $isAdminUser")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("ATKLog", "LoadingCheckService: خطا در جمع‌آوری اطلاعات نوع کاربر", e)
+                    }
+                }
+                Log.d("ATKLog", "LoadingCheckService: کوروتین جمع‌آوری اطلاعات نوع کاربر با موفقیت شروع شد")
+            } catch (e: Exception) {
+                Log.e("ATKLog", "LoadingCheckService: خطا در شروع کوروتین جمع‌آوری اطلاعات نوع کاربر", e)
+            }
+            
+            try {
+                Log.d("ATKLog", "LoadingCheckService: شروع کار دوره‌ای")
+                LoadingCheckWorker.startPeriodicWorker(this)
+                Log.d("ATKLog", "LoadingCheckService: کار دوره‌ای با موفقیت شروع شد")
+            } catch (e: Exception) {
+                Log.e("ATKLog", "LoadingCheckService: خطا در شروع کار دوره‌ای", e)
+            }
+            
+            try {
+                Log.d("ATKLog", "LoadingCheckService: ثبت گیرنده برودکست")
+                registerReceiver(doNotShowReceiver, IntentFilter(ACTION_DO_NOT_SHOW), RECEIVER_NOT_EXPORTED)
+                Log.d("ATKLog", "LoadingCheckService: گیرنده برودکست با موفقیت ثبت شد")
+            } catch (e: Exception) {
+                Log.e("ATKLog", "LoadingCheckService: خطا در ثبت گیرنده برودکست", e)
+            }
+            
+            Log.d("ATKLog", "LoadingCheckService: onCreate با موفقیت به پایان رسید")
+        } catch (e: Exception) {
+            Log.e("ATKLog", "LoadingCheckService: خطای کلی در onCreate", e)
         }
-        LoadingCheckWorker.startPeriodicWorker(this)
-        registerReceiver(doNotShowReceiver, IntentFilter(ACTION_DO_NOT_SHOW), RECEIVER_NOT_EXPORTED)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(NOTIFICATION_ID, createNotification())
+        try {
+            Log.d("ATKLog", "LoadingCheckService: onStartCommand شروع شد")
+            
+            try {
+                Log.d("ATKLog", "LoadingCheckService: شروع مجدد فورگراند سرویس")
+                startForeground(NOTIFICATION_ID, createNotification())
+                Log.d("ATKLog", "LoadingCheckService: فورگراند سرویس با موفقیت مجدداً شروع شد")
+            } catch (e: Exception) {
+                Log.e("ATKLog", "LoadingCheckService: خطا در شروع مجدد فورگراند سرویس", e)
+            }
 
-        serviceScope.launch {
-            while (true) {
-                try {
-                    val userType = userPreferencesManager.userType.first()
+            // اگر کوروتین قبلاً شروع شده، آن را لغو نمی‌کنیم
+            if (!::mainServiceJob.isInitialized || mainServiceJob.isCancelled) {
+                mainServiceJob = serviceScope.launch {
+                    Log.d("ATKLog", "LoadingCheckService: شروع حلقه اصلی سرویس")
+                    while (true) {
+                        try {
+                            val userType = userPreferencesManager.userType.first()
+                            Log.d("ATKLog", "LoadingCheckService: نوع کاربر دریافت شد: $userType")
 
-                    // فقط برای کاربران admin اطلاعات لحظه‌ای را نمایش می‌دهد
-                    if (isAdminUser) {
-                        fetchRealTimeData()
+                            // فقط برای کاربران admin اطلاعات لحظه‌ای را نمایش می‌دهد
+                            if (isAdminUser) {
+                                Log.d("ATKLog", "LoadingCheckService: کاربر ادمین است، دریافت اطلاعات لحظه‌ای")
+                                try {
+                                    fetchRealTimeData()
+                                    Log.d("ATKLog", "LoadingCheckService: اطلاعات لحظه‌ای با موفقیت دریافت شد")
+                                } catch (e: Exception) {
+                                    Log.e("ATKLog", "LoadingCheckService: خطا در دریافت اطلاعات لحظه‌ای", e)
+                                }
+                            }
+
+                            try {
+                                Log.d("ATKLog", "LoadingCheckService: بررسی وضعیت بارگیری")
+                                checkLoadingStatus()
+                                Log.d("ATKLog", "LoadingCheckService: بررسی وضعیت بارگیری با موفقیت انجام شد")
+                            } catch (e: Exception) {
+                                Log.e("ATKLog", "LoadingCheckService: خطا در بررسی وضعیت بارگیری", e)
+                            }
+                            
+                            try {
+                                Log.d("ATKLog", "LoadingCheckService: بررسی پیام‌های جدید")
+                                checkNewMessages(userType)
+                                Log.d("ATKLog", "LoadingCheckService: بررسی پیام‌های جدید با موفقیت انجام شد")
+                            } catch (e: Exception) {
+                                Log.e("ATKLog", "LoadingCheckService: خطا در بررسی پیام‌های جدید", e)
+                            }
+                            
+                            Log.d("ATKLog", "LoadingCheckService: تاخیر ${CHECK_INTERVAL_SECONDS} ثانیه‌ای قبل از چرخه بعدی")
+                            delay(TimeUnit.SECONDS.toMillis(CHECK_INTERVAL_SECONDS))
+                        } catch (e: Exception) {
+                            Log.e("ATKLog", "LoadingCheckService: خطا در حلقه اصلی سرویس", e)
+                            delay(TimeUnit.SECONDS.toMillis(CHECK_INTERVAL_SECONDS))
+                        }
                     }
-
-                    checkLoadingStatus()
-                    checkNewMessages(userType)
-                    delay(TimeUnit.SECONDS.toMillis(CHECK_INTERVAL_SECONDS))
-                } catch (e: Exception) {
-                    Log.e("LoadingCheckService", "Error in service loop", e)
-                    delay(TimeUnit.SECONDS.toMillis(CHECK_INTERVAL_SECONDS))
                 }
             }
+            
+            Log.d("ATKLog", "LoadingCheckService: onStartCommand با موفقیت به پایان رسید")
+            return START_STICKY
+        } catch (e: Exception) {
+            Log.e("ATKLog", "LoadingCheckService: خطای کلی در onStartCommand", e)
+            return START_STICKY
         }
-
-        return START_STICKY
     }
 
     private fun acquireWakeLock() {
-        if (!wakeLock.isHeld) {
-            wakeLock.acquire(10*60*1000L)
+        try {
+            Log.d("ATKLog", "acquireWakeLock: شروع دریافت wakeLock")
+            if (!wakeLock.isHeld) {
+                try {
+                    Log.d("ATKLog", "acquireWakeLock: wakeLock در حال حاضر نگه داشته نشده است، تلاش برای دریافت")
+                    wakeLock.acquire(10*60*1000L)
+                    Log.d("ATKLog", "acquireWakeLock: wakeLock با موفقیت دریافت شد")
+                } catch (e: Exception) {
+                    Log.e("ATKLog", "acquireWakeLock: خطا در دریافت wakeLock", e)
+                }
+            } else {
+                Log.d("ATKLog", "acquireWakeLock: wakeLock قبلاً دریافت شده است")
+            }
+        } catch (e: Exception) {
+            Log.e("ATKLog", "acquireWakeLock: خطای کلی در دریافت wakeLock", e)
         }
     }
 
@@ -485,14 +601,57 @@ class LoadingCheckService : Service() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
-        if (wakeLock.isHeld) {
-            wakeLock.release()
+        try {
+            Log.d("ATKLog", "LoadingCheckService: onDestroy شروع شد")
+            super.onDestroy()
+            
+            try {
+                Log.d("ATKLog", "LoadingCheckService: آزادسازی wakeLock")
+                if (wakeLock.isHeld) {
+                    wakeLock.release()
+                    Log.d("ATKLog", "LoadingCheckService: wakeLock با موفقیت آزاد شد")
+                } else {
+                    Log.d("ATKLog", "LoadingCheckService: wakeLock قبلاً آزاد شده است")
+                }
+            } catch (e: Exception) {
+                Log.e("ATKLog", "LoadingCheckService: خطا در آزادسازی wakeLock", e)
+            }
+            
+            try {
+                Log.d("ATKLog", "LoadingCheckService: ارسال برودکست برای راه‌اندازی مجدد سرویس")
+                val broadcastIntent = Intent(this, ServiceRestartReceiver::class.java)
+                sendBroadcast(broadcastIntent)
+                Log.d("ATKLog", "LoadingCheckService: برودکست با موفقیت ارسال شد")
+            } catch (e: Exception) {
+                Log.e("ATKLog", "LoadingCheckService: خطا در ارسال برودکست", e)
+            }
+            
+            try {
+                Log.d("ATKLog", "LoadingCheckService: لغو ثبت گیرنده برودکست")
+                unregisterReceiver(doNotShowReceiver)
+                Log.d("ATKLog", "LoadingCheckService: گیرنده برودکست با موفقیت لغو ثبت شد")
+            } catch (e: Exception) {
+                Log.e("ATKLog", "LoadingCheckService: خطا در لغو ثبت گیرنده برودکست", e)
+            }
+            
+            try {
+                Log.d("ATKLog", "LoadingCheckService: لغو کوروتین‌ها")
+                // فقط کوروتین‌های غیر از mainServiceJob را لغو می‌کنیم
+                if (::mainServiceJob.isInitialized && !mainServiceJob.isCancelled) {
+                    // mainServiceJob را لغو نمی‌کنیم تا سرویس بتواند مجدداً راه‌اندازی شود
+                    Log.d("ATKLog", "LoadingCheckService: mainServiceJob لغو نشد تا سرویس بتواند مجدداً راه‌اندازی شود")
+                } else {
+                    serviceScope.cancel()
+                    Log.d("ATKLog", "LoadingCheckService: کوروتین‌ها با موفقیت لغو شدند")
+                }
+            } catch (e: Exception) {
+                Log.e("ATKLog", "LoadingCheckService: خطا در لغو کوروتین‌ها", e)
+            }
+            
+            Log.d("ATKLog", "LoadingCheckService: onDestroy با موفقیت به پایان رسید")
+        } catch (e: Exception) {
+            Log.e("ATKLog", "LoadingCheckService: خطای کلی در onDestroy", e)
         }
-        val broadcastIntent = Intent(this, ServiceRestartReceiver::class.java)
-        sendBroadcast(broadcastIntent)
-        unregisterReceiver(doNotShowReceiver)
-        serviceScope.cancel()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

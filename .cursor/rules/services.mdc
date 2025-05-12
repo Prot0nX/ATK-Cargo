@@ -1,0 +1,28 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# سرویس‌ها و کارگرهای برنامه ATK-Cargo
+
+این برنامه از سرویس‌ها و کارگرهای مختلف برای انجام عملیات در پس‌زمینه استفاده می‌کند.
+
+## سرویس‌های بارگیری
+
+### سرویس‌های اصلی
+- [app/src/main/java/com/atk/atk_cargo/api/LoadingCheckService.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/LoadingCheckService.kt) - سرویس بررسی وضعیت بارگیری
+- [app/src/main/java/com/atk/atk_cargo/api/RealTimeLoadingService.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/RealTimeLoadingService.kt) - سرویس اطلاعات بارگیری لحظه‌ای
+
+### کارگرها (Workers)
+- [app/src/main/java/com/atk/atk_cargo/security/LoadingCheckWorker.kt](mdc:app/src/main/java/com/atk/atk_cargo/security/LoadingCheckWorker.kt) - کارگر بررسی وضعیت بارگیری
+- [app/src/main/java/com/atk/atk_cargo/api/RealTimeLoadingWorker.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/RealTimeLoadingWorker.kt) - کارگر بارگیری لحظه‌ای
+- [app/src/main/java/com/atk/atk_cargo/api/RealTimeLoadingWidgetService.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/RealTimeLoadingWidgetService.kt) - سرویس ویجت بارگیری لحظه‌ای
+
+## دریافت‌کننده‌های رویداد سیستم
+- [app/src/main/java/com/atk/atk_cargo/api/BootReceiver.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/BootReceiver.kt) - دریافت‌کننده رویداد راه‌اندازی سیستم
+- [app/src/main/java/com/atk/atk_cargo/api/WidgetUpdateReceiver.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/WidgetUpdateReceiver.kt) - دریافت‌کننده به‌روزرسانی ویجت
+- [app/src/main/java/com/atk/atk_cargo/security/ServiceRestartReceiver.kt](mdc:app/src/main/java/com/atk/atk_cargo/security/ServiceRestartReceiver.kt) - دریافت‌کننده راه‌اندازی مجدد سرویس
+
+## به‌روزرسانی و مدیریت اپلیکیشن
+- [app/src/main/java/com/atk/atk_cargo/api/UpdateManager.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/UpdateManager.kt) - مدیریت به‌روزرسانی برنامه
+- [app/src/main/java/com/atk/atk_cargo/api/AtkCargoApplication.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/AtkCargoApplication.kt) - کلاس اصلی برنامه

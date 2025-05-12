@@ -21,11 +21,11 @@ import javax.crypto.spec.SecretKeySpec
 
 class SignatureVerifier(private val context: Context) {
     companion object {
-        private const val C = "0b0838afbe74afd97e781c9533015294ce86b70627017cccb807ca2af208ba21"
+        private const val C = "8ca349c0fb572e9d10c62eb5ec6a83c9733eb3b15c362916f6a6efbbd8c2090b"
         private const val D = "e1f2g3h4i5j6k7l8m9n0o1p2q3r4s5t6"
-        private const val E = "aHR0cHM6Ly9jYXJnby5hdGstbmsuc2l0ZS9jaGVja19zaWduYXR1cmUucGhw"
-        private const val LICENSE_ENDPOINT = "https://cargo.atk-nk.site/validate_license.php"
-        private const val LICENSE_INFO_ENDPOINT = "https://cargo.atk-nk.site/get_license_info.php"
+        private const val E = "aHR0cHM6Ly9hdGstbmsuc2l0ZS9DYXJnby9jaGVja19zaWduYXR1cmUucGhw"
+        private const val LICENSE_ENDPOINT = "https://atk-nk.site/Cargo/validate_license.php"
+        private const val LICENSE_INFO_ENDPOINT = "https://atk-nk.site/Cargo/get_license_info.php"
         private const val KEY_LICENSE = "13F71ADCB4585F1BE632FFB919F06691"
         private const val TIMEOUT_MILLIS = 30000
         private const val MAX_RETRIES = 3

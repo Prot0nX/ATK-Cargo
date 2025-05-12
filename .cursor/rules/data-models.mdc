@@ -1,0 +1,26 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# مدل‌های داده ATK-Cargo
+
+این فایل شامل اطلاعات مربوط به مدل‌های داده اصلی استفاده شده در برنامه است.
+
+## کلاس‌های اصلی مدل
+
+مدل‌های داده اصلی پروژه در فایل [app/src/main/java/com/atk/atk_cargo/api/DataModel.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/DataModel.kt) تعریف شده‌اند.
+
+### مدل‌های کلیدی
+بر اساس اطلاعات استخراج شده از README، مدل‌های زیر در پروژه استفاده می‌شوند:
+
+- **CargoInfo**: اطلاعات اصلی مربوط به بار
+- **QuotaAnalytics**: تحلیل عملکرد کوتاژها
+- **ShippingCompany**: اطلاعات شرکت‌های باربری
+- **UserData**: اطلاعات کاربران سیستم
+
+## تنظیمات کاربر
+تنظیمات کاربر در [app/src/main/java/com/atk/atk_cargo/api/UserPreferencesManager.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/UserPreferencesManager.kt) مدیریت می‌شود.
+
+## ثابت‌ها
+ثابت‌های کلیدی برنامه در [app/src/main/java/com/atk/atk_cargo/api/Constants.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/Constants.kt) تعریف شده‌اند.

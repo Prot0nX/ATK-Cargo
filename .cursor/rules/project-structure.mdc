@@ -1,0 +1,18 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# ساختار پروژه ATK-Cargo
+
+این پروژه یک سامانه مدیریت بارگیری برای اسکله‌ها و انبارها است که با استفاده از فناوری‌های Kotlin و Jetpack Compose توسعه یافته است.
+
+## فایل‌های اصلی
+
+- [app/src/main/java/com/atk/atk_cargo/MainActivity.kt](mdc:app/src/main/java/com/atk/atk_cargo/MainActivity.kt) - اکتیویتی اصلی برنامه
+- [app/src/main/java/com/atk/atk_cargo/RegisterCargoActivity.kt](mdc:app/src/main/java/com/atk/atk_cargo/RegisterCargoActivity.kt) - اکتیویتی ثبت اطلاعات بار
+- [app/src/main/java/com/atk/atk_cargo/ManageReportsScreen.kt](mdc:app/src/main/java/com/atk/atk_cargo/ManageReportsScreen.kt) - صفحه مدیریت گزارش‌ها
+- [app/src/main/java/com/atk/atk_cargo/api/DataModel.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/DataModel.kt) - مدل‌های داده برنامه
+- [app/src/main/java/com/atk/atk_cargo/api/ApiService.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/ApiService.kt) - سرویس‌های API
+- [app/src/main/AndroidManifest.xml](mdc:app/src/main/AndroidManifest.xml) - فایل مانیفست اندروید
+

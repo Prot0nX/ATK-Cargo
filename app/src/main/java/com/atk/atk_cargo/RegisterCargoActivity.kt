@@ -6,6 +6,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
@@ -17,6 +18,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.OptIn
+import androidx.camera.core.AspectRatio
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
@@ -52,6 +54,7 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -116,6 +119,8 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -130,11 +135,11 @@ import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -148,8 +153,12 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -163,6 +172,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -191,6 +201,7 @@ import com.atk.atk_cargo.api.recognizeText
 import com.atk.atk_cargo.ui.theme.Green800
 import com.atk.atk_cargo.ui.theme.Theme2
 import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.journeyapps.barcodescanner.ScanContract
@@ -202,8 +213,8 @@ import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.text.NumberFormat
-import java.time.LocalDateTime
 import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 class RegisterCargoActivity : ComponentActivity() {
@@ -254,9 +265,6 @@ class RegisterCargoActivity : ComponentActivity() {
                         val resultMessage by viewModel.resultMessage.collectAsState()
                         val showAnimatedMessage by viewModel.showAnimatedMessage.collectAsState()
                         val messageType by viewModel.messageType.collectAsState()
-                        var showLoadingDialog by remember { mutableStateOf(true) }
-                        var loadingProgress by remember { mutableFloatStateOf(0f) }
-                        val loadableTonnage by viewModel.loadableTonnage.collectAsState()
 
                         RegisterCargoScreen(
                             initialInfo = initialInfo,
@@ -274,13 +282,6 @@ class RegisterCargoActivity : ComponentActivity() {
                             activity = this
                         )
 
-                        if (showLoadingDialog) {
-                            LoadingDialog(
-                                progress = loadingProgress,
-                                onDismiss = { showLoadingDialog = false }
-                            )
-                        }
-
                         LaunchedEffect(initialInfoExtra) {
                             initialInfoExtra.let { info ->
                                 viewModel.loadCargoInfoList(
@@ -288,12 +289,7 @@ class RegisterCargoActivity : ComponentActivity() {
                                     shippingCompany = info.shippingCompany,
                                     warehouse = info.loadingWarehouse,
                                     cargoType = info.cargoType,
-                                    onProgress = { progress ->
-                                        loadingProgress = progress
-                                    },
-                                    onComplete = {
-                                        showLoadingDialog = false
-                                    }
+                                    onComplete = {}
                                 )
                             }
                         }
@@ -370,10 +366,7 @@ fun RegisterCargoScreen(
     var searchMode by remember { mutableStateOf(SearchMode.TRACKING_NUMBER) }
     var isFormExpanded by remember { mutableStateOf(true) }
     var isSearchExpanded by remember { mutableStateOf(false) }
-    val showOnlyEntryStatus by remember { mutableStateOf(false) }
-    val showOnlyExitStatus by remember { mutableStateOf(false) }
     val clearInputFields by viewModel.clearInputFields.collectAsState()
-    val currentDateTime = remember { mutableStateOf(LocalDateTime.now()) }
     val showNetWeightDialog by viewModel.showNetWeightDialog.collectAsState()
     val scaleReceiptNumber by viewModel.scaleReceiptNumber.collectAsState()
     val focusManager = LocalFocusManager.current
@@ -405,32 +398,15 @@ fun RegisterCargoScreen(
         }
     }
 
-    @SuppressLint("SimpleDateFormat")
-    fun isWithinExitTimeRange(exitDateStr: String, exitTimeStr: String): Boolean {
-        return viewModel.isWithinExitTimeRange(exitDateStr, exitTimeStr)
-    }
-
     val filteredCargoInfoList by remember(
         cargoInfoList,
-        showOnlyEntryStatus,
-        showOnlyExitStatus,
-        currentDateTime.value,
         searchQuery,
         exitDateQuery,
         searchMode
     ) {
         derivedStateOf {
             cargoInfoList.filter { cargoInfo ->
-                val baseFilter = when {
-                    showOnlyEntryStatus -> cargoInfo.status == "ورود"
-                    showOnlyExitStatus -> {
-                        cargoInfo.status == "خروج" && cargoInfo.exitDate != null && cargoInfo.exitTime != null &&
-                                isWithinExitTimeRange(cargoInfo.exitDate, cargoInfo.exitTime)
-                    }
-                    else -> true
-                }
-
-                baseFilter && when (searchMode) {
+                when (searchMode) {
                     SearchMode.TRACKING_NUMBER -> cargoInfo.trackingNumber.contains(
                         searchQuery,
                         ignoreCase = true
@@ -444,7 +420,8 @@ fun RegisterCargoScreen(
         }
     }
 
-    val (nonExitedCargos, exitedCargos) = filteredCargoInfoList.partition { it.status != "خروج" }
+    // تفکیک حواله‌ها به دو دسته خروج نشده و خروج شده
+    val (nonExitedCargos, exitedCargos) = filteredCargoInfoList.partition { it.status == "ورود" }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -465,12 +442,12 @@ fun RegisterCargoScreen(
                     cargoType = initialInfo?.cargoType ?: "",
                     shippingCompany = initialInfo?.shippingCompany ?: "",
                     loadingQuotaNumber = initialInfo?.loadingQuotaNumber.toString(),
-                    cargoWeight = cargoWeight,
-                    remainingWeight = remainingWeight,
-                    totalNetWeight = totalNetWeight,
-                    averageNetWeight = averageNetWeight,
-                    totalServices = totalServices,
-                    remainingServices = remainingServices
+                    cargoWeight = initialInfo?.cargoWeight.toString(),
+                    remainingWeight = initialInfo?.remainingWeight.toString(),
+                    totalNetWeight = initialInfo?.totalNetWeight.toString(),
+                    averageNetWeight = initialInfo?.averageNetWeight.toString(),
+                    totalServices = initialInfo?.totalVoucherCount.toString(),
+                    remainingServices = initialInfo?.remainingServices.toString()
                 )
 
                 ShipInfoSection(
@@ -1046,19 +1023,39 @@ fun NetWeightDialog(
             showCamera = false
         }) {
             CameraPreview(
-                onImageCaptured = { image ->
+                onImageCaptured = { image, detectedWeight ->
                     showCamera = false
                     coroutineScope.launch {
                         try {
-                            val preprocessedImage = preprocessImage(image)
-                            val recognizedText = recognizeText(preprocessedImage)
+                            // Use the detected weight directly if available
+                            if (!detectedWeight.isNullOrEmpty()) {
+                                // Check if within valid range
+                                val weightValue = detectedWeight.toDoubleOrNull()
+                                if (weightValue != null && weightValue in 5000.0..45000.0) {
+                                    netWeight = detectedWeight
+                                } else {
+                                    // Fallback to image processing if weight is invalid
+                                    val preprocessedImage = preprocessImage(image)
+                                    val recognizedText = recognizeText(preprocessedImage)
+                                    recognizedWeight = extractNumber(recognizedText)
 
-                            recognizedWeight = extractNumber(recognizedText)
-
-                            if (recognizedWeight.isNotEmpty()) {
-                                netWeight = recognizedWeight
+                                    if (recognizedWeight.isNotEmpty()) {
+                                        netWeight = recognizedWeight
+                                    } else {
+                                        isError = true
+                                    }
+                                }
                             } else {
-                                isError = true
+                                // Fallback to original implementation if no weight detected
+                                val preprocessedImage = preprocessImage(image)
+                                val recognizedText = recognizeText(preprocessedImage)
+                                recognizedWeight = extractNumber(recognizedText)
+
+                                if (recognizedWeight.isNotEmpty()) {
+                                    netWeight = recognizedWeight
+                                } else {
+                                    isError = true
+                                }
                             }
                         } catch (e: Exception) {
                             isError = true
@@ -1112,7 +1109,7 @@ fun preprocessImage(imageProxy: ImageProxy): InputImage {
 
 @Composable
 fun CameraPreview(
-    onImageCaptured: (ImageProxy) -> Unit,
+    onImageCaptured: (ImageProxy, String?) -> Unit,
     onError: (ImageCaptureException) -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -1124,7 +1121,20 @@ fun CameraPreview(
     val lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
     val executor = ContextCompat.getMainExecutor(context)
 
+    // Weight detection state
     var detectedNumber by remember { mutableStateOf<String?>(null) }
+    var detectedNumbers by remember { mutableStateOf<List<String>>(emptyList()) }
+    var isValidWeight by remember { mutableStateOf(false) }
+    var processingActive by remember { mutableStateOf(true) }
+
+    // Camera status
+    var hasTorch by remember { mutableStateOf(false) }
+    var isTorchOn by remember { mutableStateOf(false) }
+
+    // Scanner guide parameters
+    val guideColor = Color.Green.copy(alpha = 0.7f)
+    val guideThickness = 2.dp
+    val scanAreaSize = 0.7f // 70% of screen width
 
     Box(modifier = Modifier
         .fillMaxWidth()
@@ -1143,9 +1153,12 @@ fun CameraPreview(
 
                 cameraProviderFuture.addListener({
                     val cameraProvider = cameraProviderFuture.get()
-                    preview = Preview.Builder().build().also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
-                    }
+                    preview = Preview.Builder()
+                        .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                        .build()
+                        .also {
+                            it.setSurfaceProvider(previewView.surfaceProvider)
+                        }
 
                     val cameraSelector = CameraSelector.Builder()
                         .requireLensFacing(lensFacing)
@@ -1153,14 +1166,25 @@ fun CameraPreview(
 
                     imageCapture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                        .setTargetAspectRatio(AspectRatio.RATIO_4_3)
                         .build()
 
                     val imageAnalysis = ImageAnalysis.Builder()
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .setTargetAspectRatio(AspectRatio.RATIO_4_3)
                         .build()
                         .apply {
-                            setAnalyzer(executor, NumberAnalyzer { number ->
-                                detectedNumber = number
+                            setAnalyzer(executor, EnhancedNumberAnalyzer { extractedNumbers, bestEstimate ->
+                                if (processingActive) {
+                                    detectedNumbers = extractedNumbers
+
+                                    // Using smarter algorithm to select best number
+                                    if (bestEstimate.isNotEmpty()) {
+                                        detectedNumber = bestEstimate
+                                        val weight = bestEstimate.toDoubleOrNull()
+                                        isValidWeight = weight != null && weight in 5000.0..45000.0
+                                    }
+                                }
                             })
                         }
 
@@ -1173,6 +1197,9 @@ fun CameraPreview(
                             imageCapture,
                             imageAnalysis
                         )
+
+                        // Check flashlight support
+                        hasTorch = camera?.cameraInfo?.hasFlashUnit() ?: false
                     } catch (exc: Exception) {
                         exc.printStackTrace()
                     }
@@ -1182,29 +1209,81 @@ fun CameraPreview(
             modifier = Modifier.matchParentSize()
         )
 
-//        // Overlay for detected number
-//        detectedNumber?.let { number ->
-//            Text(
-//                text = "وزن خالص: $number",
-//                color = Color.White,
-//                fontSize = 18.sp,
-//                fontWeight = FontWeight.Bold,
-//                modifier = Modifier
-//                    .align(Alignment.TopCenter)
-//                    .padding(top = 16.dp)
-//                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-//                    .padding(8.dp)
-//            )
-//        }
+        // Scanner guide overlay
+        ScannerGuideOverlay(
+            scanAreaSize = scanAreaSize,
+            guideColor = guideColor,
+            guideThickness = guideThickness.value
+        )
+
+        // Display detected weight
+        if (detectedNumber != null) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 16.dp)
+                    .background(
+                        color = if (isValidWeight)
+                            Color(0xFF4CAF50).copy(alpha = 0.7f)
+                        else
+                            Color(0xFFE57373).copy(alpha = 0.7f),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = "وزن تشخیص داده شده:",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Text(
+                    text = "${NumberFormat.getNumberInstance(Locale("en", "US")).format(detectedNumber?.toDoubleOrNull() ?: 0)} کیلوگرم",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                if (!isValidWeight && detectedNumber?.isNotEmpty() == true) {
+                    Text(
+                        text = "وزن باید بین 5,000 تا 45,000 کیلوگرم باشد",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Normal
+                    )
+                }
+            }
+        }
+
+        // Display guidance message
+        if (detectedNumber == null) {
+            Text(
+                text = "قبض باسکول را در کادر قرار دهید",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 16.dp)
+                    .background(
+                        color = Color.Black.copy(alpha = 0.6f),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(8.dp)
+            )
+        }
 
         // Capture button
         IconButton(
             onClick = {
+                processingActive = false
                 imageCapture?.takePicture(
                     executor,
                     object : ImageCapture.OnImageCapturedCallback() {
                         override fun onCaptureSuccess(image: ImageProxy) {
-                            onImageCaptured(image)
+                            // Pass the current detected weight along with the image
+                            onImageCaptured(image, detectedNumber)
                         }
 
                         override fun onError(exception: ImageCaptureException) {
@@ -1217,7 +1296,7 @@ fun CameraPreview(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 16.dp)
                 .size(64.dp)
-                .background(Color.White.copy(alpha = 0.5f), CircleShape)
+                .background(Color.White.copy(alpha = 0.7f), CircleShape)
         ) {
             Icon(
                 imageVector = Icons.Default.Camera,
@@ -1226,25 +1305,419 @@ fun CameraPreview(
                 modifier = Modifier.size(32.dp)
             )
         }
+
+        // Flashlight button
+        if (hasTorch) {
+            IconButton(
+                onClick = {
+                    isTorchOn = !isTorchOn
+                    camera?.cameraControl?.enableTorch(isTorchOn)
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 16.dp)
+                    .size(48.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+            ) {
+                Icon(
+                    imageVector = if (isTorchOn) Icons.Default.FlashOff else Icons.Default.FlashOn,
+                    contentDescription = "چراغ قوه",
+                    tint = if (isTorchOn) Color.Yellow else Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+    }
+
+    // Release resources when leaving the screen
+    DisposableEffect(lifecycleOwner) {
+        onDispose {
+            processingActive = false
+        }
     }
 }
 
-class NumberAnalyzer(private val onNumberDetected: (String) -> Unit) : ImageAnalysis.Analyzer {
+@Composable
+fun ScannerGuideOverlay(
+    scanAreaSize: Float = 0.7f,
+    guideColor: Color = Color.Green.copy(alpha = 0.7f),
+    guideThickness: Float = 2f
+) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val width = size.width
+        val height = size.height
+
+        val scanAreaWidth = width * scanAreaSize
+        val scanAreaHeight = height * scanAreaSize
+        val left = (width - scanAreaWidth) / 2
+        val top = (height - scanAreaHeight) / 2
+
+        // Main rectangle frame
+        drawRect(
+            color = guideColor,
+            topLeft = Offset(left, top),
+            size = Size(scanAreaWidth, scanAreaHeight),
+            style = Stroke(width = guideThickness)
+        )
+
+        // Corner indicators
+        val cornerSize = 20f
+
+        // Top-left corner
+        drawLine(
+            color = guideColor,
+            start = Offset(left, top),
+            end = Offset(left + cornerSize, top),
+            strokeWidth = guideThickness
+        )
+        drawLine(
+            color = guideColor,
+            start = Offset(left, top),
+            end = Offset(left, top + cornerSize),
+            strokeWidth = guideThickness
+        )
+
+        // Top-right corner
+        drawLine(
+            color = guideColor,
+            start = Offset(left + scanAreaWidth, top),
+            end = Offset(left + scanAreaWidth - cornerSize, top),
+            strokeWidth = guideThickness
+        )
+        drawLine(
+            color = guideColor,
+            start = Offset(left + scanAreaWidth, top),
+            end = Offset(left + scanAreaWidth, top + cornerSize),
+            strokeWidth = guideThickness
+        )
+
+        // Bottom-left corner
+        drawLine(
+            color = guideColor,
+            start = Offset(left, top + scanAreaHeight),
+            end = Offset(left + cornerSize, top + scanAreaHeight),
+            strokeWidth = guideThickness
+        )
+        drawLine(
+            color = guideColor,
+            start = Offset(left, top + scanAreaHeight),
+            end = Offset(left, top + scanAreaHeight - cornerSize),
+            strokeWidth = guideThickness
+        )
+
+        // Bottom-right corner
+        drawLine(
+            color = guideColor,
+            start = Offset(left + scanAreaWidth, top + scanAreaHeight),
+            end = Offset(left + scanAreaWidth - cornerSize, top + scanAreaHeight),
+            strokeWidth = guideThickness
+        )
+        drawLine(
+            color = guideColor,
+            start = Offset(left + scanAreaWidth, top + scanAreaHeight),
+            end = Offset(left + scanAreaWidth, top + scanAreaHeight - cornerSize),
+            strokeWidth = guideThickness
+        )
+
+        // Horizontal guide line
+        drawLine(
+            color = guideColor.copy(alpha = 0.4f),
+            start = Offset(left, top + scanAreaHeight / 2),
+            end = Offset(left + scanAreaWidth, top + scanAreaHeight / 2),
+            strokeWidth = guideThickness / 2,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+        )
+    }
+}
+
+class EnhancedNumberAnalyzer(
+    private val onNumbersDetected: (List<String>, String) -> Unit
+) : ImageAnalysis.Analyzer {
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    private val previousNumbers = mutableListOf<DetectedNumber>()
+    private val maxHistorySize = 15
+    private var lastDetectionTime = 0L
+    private val detectionCooldown = 100L // میلی‌ثانیه
+
+    private data class DetectedNumber(
+        val value: String,
+        val confidence: Float,
+        val timestamp: Long
+    )
 
     @OptIn(ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
-        val preprocessedImage = preprocessImage(imageProxy)
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastDetectionTime < detectionCooldown) {
+            imageProxy.close()
+            return
+        }
+        lastDetectionTime = currentTime
+
+        val preprocessedImage = enhancedPreprocessImage(imageProxy)
         textRecognizer.process(preprocessedImage)
             .addOnSuccessListener { visionText ->
-                val detectedNumber = extractNumber(visionText.text)
-                if (detectedNumber.isNotEmpty()) {
-                    onNumberDetected(detectedNumber)
+                val text = visionText.text
+                val detectedNumbers = extractNetWeights(text)
+
+                // محاسبه اطمینان برای هر عدد تشخیص داده شده
+                val numbersWithConfidence = detectedNumbers.map { number ->
+                    val confidence = calculateConfidence(number, visionText)
+                    DetectedNumber(number, confidence, currentTime)
                 }
+
+                // به‌روزرسانی تاریخچه با حفظ اعداد معتبر
+                updateHistory(numbersWithConfidence)
+
+                // انتخاب بهترین تخمین با استفاده از الگوریتم وزن‌دار
+                val bestEstimate = selectBestEstimate()
+
+                onNumbersDetected(detectedNumbers, bestEstimate)
             }
             .addOnCompleteListener {
                 imageProxy.close()
             }
+    }
+
+    private fun calculateConfidence(number: String, visionText: Text): Float {
+        var confidence = 0f
+        
+        // بررسی وضوح و کیفیت متن
+        for (block in visionText.textBlocks) {
+            for (line in block.lines) {
+                if (line.text.contains(number)) {
+                    // محاسبه امتیاز بر اساس وضوح متن
+                    confidence = maxOf(confidence, calculateTextQuality(line))
+                }
+            }
+        }
+
+        // اعتبارسنجی محدوده عدد
+        val numValue = number.toDoubleOrNull() ?: return 0f
+        confidence *= when (numValue) {
+            in 10000.0..30000.0 -> 1.2f  // محدوده معمول
+            in 5000.0..45000.0 -> 1.0f   // محدوده قابل قبول
+            else -> 0.5f                          // خارج از محدوده معمول
+        }
+
+        return confidence.coerceIn(0f, 1f)
+    }
+
+    private fun calculateTextQuality(line: Text.Line): Float {
+        var quality = 0f
+        
+        // بررسی زاویه متن
+        quality += if (abs(line.angle) < 5) 0.3f else 0.1f
+        
+        // بررسی اندازه متن
+        val height = line.boundingBox?.height() ?: 0
+        quality += when {
+            height > 40 -> 0.4f  // متن بزرگ و واضح
+            height > 20 -> 0.3f  // متن متوسط
+            else -> 0.1f         // متن کوچک
+        }
+
+        // بررسی کنتراست محلی
+        quality += 0.3f // مقدار پایه برای کنتراست
+        
+        return quality
+    }
+
+    private fun updateHistory(newNumbers: List<DetectedNumber>) {
+        // حذف اعداد قدیمی
+        val currentTime = System.currentTimeMillis()
+        previousNumbers.removeAll { currentTime - it.timestamp > 2000 } // حذف اعداد قدیمی‌تر از 2 ثانیه
+
+        // اضافه کردن اعداد جدید
+        previousNumbers.addAll(newNumbers)
+
+        // محدود کردن اندازه تاریخچه
+        while (previousNumbers.size > maxHistorySize) {
+            previousNumbers.removeAt(0)
+        }
+    }
+
+    private fun selectBestEstimate(): String {
+        if (previousNumbers.isEmpty()) return ""
+
+        // گروه‌بندی اعداد و محاسبه امتیاز کل هر عدد
+        val scores = previousNumbers
+            .groupBy { it.value }
+            .mapValues { (_, detections) ->
+                val frequencyScore = detections.size.toFloat() / previousNumbers.size
+                val confidenceScore = detections.maxOf { it.confidence }
+                val timeScore = detections.maxOf { 1.0f - (System.currentTimeMillis() - it.timestamp) / 2000.0f }
+                
+                // ترکیب امتیازها با وزن‌های مختلف
+                (frequencyScore * 0.4f + confidenceScore * 0.4f + timeScore * 0.2f)
+            }
+
+        // انتخاب عدد با بالاترین امتیاز
+        return scores.maxByOrNull { it.value }?.key ?: ""
+    }
+
+    private fun enhancedPreprocessImage(imageProxy: ImageProxy): InputImage {
+        val bitmap = imageProxy.toBitmap()
+        val width = bitmap.width
+        val height = bitmap.height
+
+        val outputBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(outputBitmap)
+
+        // افزایش کنتراست و روشنایی برای تشخیص بهتر متون کمرنگ
+        val colorMatrix = ColorMatrix(floatArrayOf(
+            2.5f, 0f, 0f, 0f, -70f,  // افزایش کنتراست قرمز
+            0f, 2.5f, 0f, 0f, -70f,  // افزایش کنتراست سبز
+            0f, 0f, 2.5f, 0f, -70f,  // افزایش کنتراست آبی
+            0f, 0f, 0f, 1.3f, 0f     // افزایش شفافیت
+        ))
+
+        val paint = Paint().apply {
+            colorFilter = ColorMatrixColorFilter(colorMatrix)
+            // اضافه کردن فیلتر شارپنس برای وضوح بیشتر
+            maskFilter = BlurMaskFilter(1f, BlurMaskFilter.Blur.NORMAL)
+        }
+
+        // اعمال فیلترهای پیشرفته
+        canvas.drawBitmap(bitmap, 0f, 0f, paint)
+        
+        // تبدیل به سیاه و سفید با آستانه تطبیقی
+        val pixels = IntArray(width * height)
+        outputBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+        
+        // محاسبه آستانه تطبیقی برای هر بخش از تصویر
+        val blockSize = 15
+        for (y in 0 until height step blockSize) {
+            for (x in 0 until width step blockSize) {
+                val blockThreshold = calculateLocalThreshold(pixels, x, y, 
+                    minOf(blockSize, width - x), 
+                    minOf(blockSize, height - y), 
+                    width)
+                
+                applyThreshold(pixels, x, y, 
+                    minOf(blockSize, width - x), 
+                    minOf(blockSize, height - y), 
+                    width, blockThreshold)
+            }
+        }
+        
+        outputBitmap.setPixels(pixels, 0, width, 0, 0, width, height)
+
+        return InputImage.fromBitmap(outputBitmap, imageProxy.imageInfo.rotationDegrees)
+    }
+
+    private fun calculateLocalThreshold(pixels: IntArray, startX: Int, startY: Int, 
+                                     blockWidth: Int, blockHeight: Int, stride: Int): Int {
+        var sum = 0
+        var count = 0
+        
+        for (y in startY until startY + blockHeight) {
+            for (x in startX until startX + blockWidth) {
+                val pixel = pixels[y * stride + x]
+                val gray = ((pixel shr 16 and 0xFF) + (pixel shr 8 and 0xFF) + (pixel and 0xFF)) / 3
+                sum += gray
+                count++
+            }
+        }
+        
+        // محاسبه آستانه با استفاده از میانگین محلی
+        return (sum / count) - 10 // کاهش آستانه برای تشخیص بهتر متون کمرنگ
+    }
+
+    private fun applyThreshold(pixels: IntArray, startX: Int, startY: Int, 
+                             blockWidth: Int, blockHeight: Int, stride: Int, threshold: Int) {
+        for (y in startY until startY + blockHeight) {
+            for (x in startX until startX + blockWidth) {
+                val idx = y * stride + x
+                val pixel = pixels[idx]
+                val gray = ((pixel shr 16 and 0xFF) + (pixel shr 8 and 0xFF) + (pixel and 0xFF)) / 3
+                pixels[idx] = if (gray > threshold) -1 else -16777216 // White = -1, Black = -16777216
+            }
+        }
+    }
+
+    private fun extractNetWeights(text: String): List<String> {
+        val results = mutableListOf<String>()
+        
+        // الگوهای متداول وزن خالص در قبض‌های باسکول با انعطاف‌پذیری بیشتر
+        val patterns = listOf(
+            // الگوهای دقیق با کلمات کلیدی
+            Regex("(?:وزن\\s*خالص|خالص)[\\s:]*[\\d۰-۹,.\\s]+(?:کیلو(?:گرم)?|KG)?", RegexOption.IGNORE_CASE),
+            Regex("(?:NET\\s*WEIGHT|NET)[\\s:]*[\\d,.\\s]+(?:KG|Kg|kg)?", RegexOption.IGNORE_CASE),
+            
+            // الگوهای عمومی برای اعداد در محدوده وزن
+            Regex("(\\d{1,3}(?:[,\\s]\\d{3})*(?:\\.\\d+)?)", RegexOption.IGNORE_CASE),
+            
+            // الگو برای اعداد فارسی
+            Regex("[۰-۹]{2,6}(?:[,،٫]?[۰-۹]{3})*"),
+            
+            // الگوی ساده برای اعداد در محدوده مورد نظر
+            Regex("\\b\\d{4,6}\\b")
+        )
+
+        // تبدیل اعداد فارسی به انگلیسی
+        val persianDigits = "۰۱۲۳۴۵۶۷۸۹"
+        val englishDigits = "0123456789"
+        var normalizedText = text
+        for (i in persianDigits.indices) {
+            normalizedText = normalizedText.replace(persianDigits[i], englishDigits[i])
+        }
+
+        // جستجوی الگوها در متن نرمال‌سازی شده
+        for (pattern in patterns) {
+            val matches = pattern.findAll(normalizedText)
+            for (match in matches) {
+                // استخراج فقط اعداد از متن یافت شده
+                val numberStr = match.value.replace(Regex("[^0-9.]"), "")
+                
+                try {
+                    val number = numberStr.toDoubleOrNull()
+                    if (number != null) {
+                        // اعتبارسنجی محدوده وزن با تلرانس بیشتر
+                        if (number in 4000.0..50000.0) {
+                            val roundedNumber = number.roundToInt()
+                            results.add(roundedNumber.toString())
+                        }
+                    }
+                } catch (e: Exception) {
+                    // نادیده گرفتن خطاهای تبدیل عدد
+                    continue
+                }
+            }
+        }
+
+        // اگر هیچ عددی پیدا نشد، از روش ساده‌تر استفاده کن
+        if (results.isEmpty()) {
+            val simpleNumbers = extractSimpleNumbers(normalizedText)
+            results.addAll(simpleNumbers)
+        }
+
+        // حذف اعداد تکراری و مرتب‌سازی بر اساس فراوانی
+        return results.groupBy { it }
+            .mapValues { it.value.size }
+            .entries
+            .sortedByDescending { it.value }
+            .map { it.key }
+            .distinct()
+    }
+
+    private fun extractSimpleNumbers(text: String): List<String> {
+        // جستجوی ساده برای اعداد 4 تا 6 رقمی
+        val regex = Regex("\\b(\\d{4,6})\\b")
+        val matches = regex.findAll(text)
+
+        return matches.mapNotNull { matchResult ->
+            try {
+                val number = matchResult.value.toDoubleOrNull()
+                if (number != null && number in 4000.0..50000.0) {
+                    number.roundToInt().toString()
+                } else {
+                    null
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }.distinct().toList()
     }
 }
 
@@ -1911,7 +2384,7 @@ private fun HeaderInfo(
                 }
                 
                 Text(
-                    text = "$loadableTonnage تن",
+                    text = "$loadableTonnage کیلوگرم",
                     style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold),
                     color = textColor
                 )

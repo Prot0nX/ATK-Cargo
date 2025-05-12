@@ -4,11 +4,15 @@ import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +20,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,19 +27,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Warehouse
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -53,9 +59,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.atk.atk_cargo.api.ActiveShipInfo
@@ -63,13 +72,25 @@ import com.atk.atk_cargo.api.ColorSelector
 import com.atk.atk_cargo.api.MessageType
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.ShiftInfo
-import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
+
+val cardColors = listOf(
+    Color(0xFF1976D2), // آبی تیره
+    Color(0xFF388E3C), // سبز تیره
+    Color(0xFFF57C00), // نارنجی
+    Color(0xFF7B1FA2), // بنفش
+    Color(0xFFD32F2F), // قرمز
+    Color(0xFF00796B), // سبز آبی
+    Color(0xFF5D4037), // قهوه‌ای
+    Color(0xFF455A64), // آبی خاکستری
+    Color(0xFF689F38), // سبز لایم
+    Color(0xFFE64A19)  // نارنجی تیره
+)
 
 @Composable
 fun CargoCounterScreen(navController: NavController) {
@@ -84,12 +105,17 @@ fun CargoCounterScreen(navController: NavController) {
     val colorSelector = remember { ColorSelector(cardColors) }
     val shipColorMap = remember { mutableStateOf<Map<String, Color>>(emptyMap()) }
     var snackbarMessage by remember { mutableStateOf<SnackbarMessage?>(null) }
-    var groupByCargoType by remember { mutableStateOf(true) }
 
     fun updateShipColors(ships: List<ActiveShipInfo>) {
         colorSelector.reset()
         shipColorMap.value = ships.associate { ship ->
-            ship.shipName to adjustColorForTheme(colorSelector.getNextColor(), isDarkTheme)
+            val baseColor = colorSelector.getNextColor()
+            val adjustedColor = if (isDarkTheme) {
+                baseColor.copy(alpha = 0.8f)
+            } else {
+                baseColor
+            }
+            ship.shipName to adjustedColor
         }
     }
 
@@ -193,9 +219,7 @@ fun CargoCounterScreen(navController: NavController) {
                         onClick = { selectedShip ->
                             navigateToCargoDetailsScreen(navController, selectedShip)
                         },
-                        shipColorMap = shipColorMap.value,
-                        groupByCargoType = groupByCargoType,
-                        onGroupingChanged = { groupByCargoType = it }
+                        shipColorMap = shipColorMap.value
                     )
                 }
 
@@ -217,14 +241,21 @@ private fun GroupedShipList(
     expandedShipName: String?,
     onExpand: (String?) -> Unit,
     onClick: (ActiveShipInfo) -> Unit,
-    shipColorMap: Map<String, Color>,
-    groupByCargoType: Boolean,
-    onGroupingChanged: (Boolean) -> Unit
+    shipColorMap: Map<String, Color>
 ) {
+    // فیلتر کردن گروه‌های کشتی که حداقل یک کوتاژ با حواله دارند
+    val filteredGroupedShips = remember(groupedShips) {
+        groupedShips.mapValues { (_, ships) ->
+            ships.filter { it.entryVouchers + it.exitVouchers > 0 }
+        }.filter { (_, ships) -> 
+            ships.isNotEmpty() 
+        }
+    }
+    
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        groupedShips.forEach { (shipName, ships) ->
+        filteredGroupedShips.forEach { (shipName, ships) ->
             item {
                 ShipGroup(
                     shipName = shipName,
@@ -232,70 +263,8 @@ private fun GroupedShipList(
                     isExpanded = expandedShipName == shipName,
                     onExpand = { onExpand(shipName) },
                     onClick = onClick,
-                    color = shipColorMap[shipName] ?: MaterialTheme.colorScheme.primary,
-                    groupByCargoType = groupByCargoType,
-                    onGroupingChanged = onGroupingChanged
+                    color = shipColorMap[shipName] ?: MaterialTheme.colorScheme.primary
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ShipGroup(
-    shipName: String,
-    ships: List<ActiveShipInfo>,
-    isExpanded: Boolean,
-    onExpand: () -> Unit,
-    onClick: (ActiveShipInfo) -> Unit,
-    color: Color,
-    groupByCargoType: Boolean,
-    onGroupingChanged: (Boolean) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.1f)
-        )
-    ) {
-        Column {
-            ShipHeader(
-                shipName = shipName,
-                ships = ships,
-                isExpanded = isExpanded,
-                onExpand = onExpand,
-                color = color
-            )
-
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
-                Column(
-                    modifier = Modifier.padding(
-                        start = 16.dp,
-                        end = 16.dp,
-                        bottom = 16.dp
-                    )
-                ) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    WarehouseList(
-                        ships = ships,
-                        onClick = onClick,
-                        cardColor = color,
-                        groupByCargoType = groupByCargoType,
-                        onGroupingChanged = onGroupingChanged
-                    )
-                }
             }
         }
     }
@@ -312,156 +281,1217 @@ private fun ShipHeader(
     val totalEntry = ships.sumOf { it.entryVouchers }
     val totalExit = ships.sumOf { it.exitVouchers }
     val total = totalEntry + totalExit
+    val progress = if (total > 0) totalExit.toFloat() / total else 0f
+
+    // رنگ‌های اصلی برای آمار با کنتراست بهتر و هارمونی رنگی بیشتر
+    val entryColor = Color(0xFF2196F3) // آبی روشن برای ورود
+    val exitColor = Color(0xFF4CAF50) // سبز برای خروج
+    val totalColor = color // رنگ اصلی کشتی برای کل
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onExpand() },
-        color = Color.Transparent
+        color = Color.Transparent,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+        ) {
+            // ردیف اول - نام کشتی، آیکون و آمار اصلی
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // آیکون و نام کشتی
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    // آیکون کشتی با افکت ساده‌تر
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        color.copy(alpha = 0.6f),
+                                        color.copy(alpha = 0.2f)
+                                    )
+                                )
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsBoat,
+                            contentDescription = null,
+                            tint = color,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // نام کشتی
+                    Text(
+                        text = shipName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // آمار خلاصه و آیکون باز/بسته کردن
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    // آمار گرافیکی
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .padding(4.dp)
+                    ) {
+                        // آمار ورود با آیکون
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDownward,
+                                contentDescription = "ورود",
+                                tint = entryColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = totalEntry.toString(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = entryColor
+                            )
+                        }
+                        
+                        Box(
+                            modifier = Modifier
+                                .height(16.dp)
+                                .width(1.dp)
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                        )
+                        
+                        // آمار خروج با آیکون
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowUpward,
+                                contentDescription = "خروج",
+                                tint = exitColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = totalExit.toString(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = exitColor
+                            )
+                        }
+                        
+                        Box(
+                            modifier = Modifier
+                                .height(16.dp)
+                                .width(1.dp)
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                        )
+                        
+                        // آمار کل با آیکون
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ConfirmationNumber,
+                                contentDescription = "کل",
+                                tint = totalColor,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = total.toString(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = totalColor
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // آیکون باز/بسته کردن با انیمیشن چرخش
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = if (isExpanded) "بستن" else "بازکردن",
+                        tint = color,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .graphicsLayer {
+                                rotationZ = if (isExpanded) 180f else 0f
+                            }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // نوار پیشرفت با درصد
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // نمایش آیکون‌های کوچک برای نوع آمار
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        MiniIcon(
+                            icon = Icons.Default.ArrowDownward,
+                            color = entryColor,
+                            contentDescription = "ورود"
+                        )
+                        
+                        Spacer(modifier = Modifier.width(4.dp))
+                        
+                        MiniIcon(
+                            icon = Icons.Default.ArrowUpward,
+                            color = exitColor,
+                            contentDescription = "خروج"
+                        )
+                    }
+                    
+                    // درصد پیشرفت
+                    Text(
+                        text = "${(progress * 100).toInt()}% تکمیل",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = color
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // نوار پیشرفت با انیمیشن
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress)
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        color.copy(alpha = 0.7f),
+                                        color
+                                    )
+                                )
+                            )
+                            .animateContentSize(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessLow
+                                )
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniIcon(
+    icon: ImageVector,
+    color: Color,
+    contentDescription: String? = null
+) {
+    Icon(
+        imageVector = icon,
+        contentDescription = contentDescription,
+        tint = color,
+        modifier = Modifier.size(14.dp)
+    )
+}
+
+@Composable
+private fun ShipGroup(
+    shipName: String,
+    ships: List<ActiveShipInfo>,
+    isExpanded: Boolean,
+    onExpand: () -> Unit,
+    onClick: (ActiveShipInfo) -> Unit,
+    color: Color
+) {
+    // فیلتر کردن کوتاژهایی که حداقل یک حواله دارند
+    val filteredShips = remember(ships) {
+        ships.filter { it.entryVouchers + it.exitVouchers > 0 }
+    }
+
+    // اگر هیچ کوتاژی با حواله وجود ندارد، هیچ چیزی نمایش نده
+    if (filteredShips.isEmpty()) {
+        return
+    }
+
+    // انیمیشن برای گوشه‌های کارت
+    val animatedCornerSize by animateDpAsState(
+        targetValue = if (isExpanded) 16.dp else 20.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "corner"
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .animateContentSize(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ),
+        shape = RoundedCornerShape(animatedCornerSize),
+        colors = CardDefaults.cardColors(
+            containerColor = color.copy(alpha = 0.05f)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 0.dp
+        )
+    ) {
+        Column {
+            ShipHeader(
+                shipName = shipName,
+                ships = filteredShips,
+                isExpanded = isExpanded,
+                onExpand = onExpand,
+                color = color
+            )
+
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn(animationSpec = tween(300)) + expandVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                ),
+                exit = fadeOut(animationSpec = tween(300)) + shrinkVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 12.dp,
+                            vertical = 8.dp
+                        )
+                ) {
+                    // لیست انبارها با طراحی بهبود یافته
+                    WarehouseList(
+                        ships = filteredShips,
+                        onClick = onClick,
+                        cardColor = color
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WarehouseCard(
+    warehouse: String,
+    ships: List<ActiveShipInfo>,
+    isExpanded: Boolean,
+    onExpand: () -> Unit,
+    onClick: (ActiveShipInfo) -> Unit,
+    color: Color
+) {
+    // فیلتر کردن کوتاژهایی که حداقل یک حواله دارند
+    val filteredShips = remember(ships) {
+        ships.filter { it.entryVouchers + it.exitVouchers > 0 }
+    }
+    
+    // اگر هیچ کوتاژی با حواله وجود ندارد، هیچ چیزی نمایش نده
+    if (filteredShips.isEmpty()) {
+        return
+    }
+    
+    val totalEntry = filteredShips.sumOf { it.entryVouchers }
+    val totalExit = filteredShips.sumOf { it.exitVouchers }
+    val total = totalEntry + totalExit
+    val progress = if (total > 0) totalExit.toFloat() / total else 0f
+
+    // رنگ‌های آمار
+    val entryColor = Color(0xFF2196F3) // آبی روشن برای ورود
+    val exitColor = Color(0xFF4CAF50) // سبز برای خروج
+
+    // مرتب‌سازی کوتاژها:
+    val sortedShips = remember(filteredShips) {
+        filteredShips.sortedWith(
+            compareBy<ActiveShipInfo> { 
+                // ابتدا کوتاژهای تکمیل شده را به انتها منتقل می‌کنیم
+                val isCompleted = it.exitVouchers >= it.entryVouchers && it.entryVouchers > 0
+                if (isCompleted) 1 else 0
+            }.thenBy { 
+                // سپس کوتاژهای تکمیل نشده را براساس درصد پیشرفت به صورت صعودی مرتب می‌کنیم
+                // (کمترین درصد اول نمایش داده می‌شود)
+                if (it.entryVouchers > 0) {
+                    it.exitVouchers.toFloat() / it.entryVouchers
+                } else 0f
+            }
+        )
+    }
+
+    // گروه‌بندی داخلی بر اساس کالا یا باربری
+    var groupByCargoType by remember { mutableStateOf(true) }
+    val groupedItems = if (groupByCargoType) {
+        sortedShips.groupBy { it.cargoType }
+    } else {
+        sortedShips.groupBy { it.shippingCompany }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = color.copy(alpha = 0.05f)
+        ),
+    ) {
+        Column(modifier = Modifier.padding(vertical = 0.dp)) {
+            // هدر انبار
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onExpand() },
+                color = Color.Transparent
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // اطلاعات انبار
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = color.copy(alpha = 0.15f),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Warehouse,
+                                    contentDescription = null,
+                                    tint = color,
+                                    modifier = Modifier
+                                        .padding(8.dp)
+                                        .size(20.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Column {
+                                Text(
+                                    text = warehouse,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                
+                                Text(
+                                    text = "${groupedItems.size} ${if (groupByCargoType) "نوع کالا" else "باربری"} | ${ships.size} کوتاژ",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // آمار و آیکون باز/بسته کردن
+                        Column(
+                            horizontalAlignment = Alignment.End
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // نمایش گرافیکی آمار
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    // آمار ورود
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDownward,
+                                        contentDescription = "ورود",
+                                        tint = entryColor,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = totalEntry.toString(),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = entryColor,
+                                        modifier = Modifier.padding(start = 2.dp, end = 4.dp)
+                                    )
+                                    
+                                    // جداکننده
+                                    Box(
+                                        modifier = Modifier
+                                            .height(14.dp)
+                                            .width(1.dp)
+                                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                                    )
+                                    
+                                    // آمار خروج
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowUpward,
+                                        contentDescription = "خروج",
+                                        tint = exitColor,
+                                        modifier = Modifier
+                                            .padding(start = 4.dp)
+                                            .size(14.dp)
+                                    )
+                                    Text(
+                                        text = totalExit.toString(),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = exitColor,
+                                        modifier = Modifier.padding(start = 2.dp, end = 4.dp)
+                                    )
+                                    
+                                    // جداکننده
+                                    Box(
+                                        modifier = Modifier
+                                            .height(14.dp)
+                                            .width(1.dp)
+                                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                                    )
+                                    
+                                    // آمار کل
+                                    Icon(
+                                        imageVector = Icons.Default.ConfirmationNumber,
+                                        contentDescription = "کل",
+                                        tint = color,
+                                        modifier = Modifier
+                                            .padding(start = 4.dp)
+                                            .size(14.dp)
+                                    )
+                                    Text(
+                                        text = total.toString(),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = color,
+                                        modifier = Modifier.padding(start = 2.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                Icon(
+                                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = null,
+                                    tint = color,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            
+                            Text(
+                                text = "${(progress * 100).toInt()}% تکمیل",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    
+                    // نوار پیشرفت
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = color,
+                        trackColor = MaterialTheme.colorScheme.surface
+                    )
+                }
+            }
+
+            // محتوای باز شونده
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column(
+                    modifier = Modifier.padding(
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp,
+                        top = 0.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // دکمه‌های تغییر نوع گروه‌بندی
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (groupByCargoType) color.copy(alpha = 0.2f) else Color.Transparent,
+                            border = BorderStroke(1.dp, color.copy(alpha = 0.3f)),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { groupByCargoType = true }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                                    .fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Category,
+                                    contentDescription = null,
+                                    tint = color,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "نوع کالا",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (groupByCargoType) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (groupByCargoType) color else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (!groupByCargoType) color.copy(alpha = 0.2f) else Color.Transparent,
+                            border = BorderStroke(1.dp, color.copy(alpha = 0.3f)),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { groupByCargoType = false }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                                    .fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocalShipping,
+                                    contentDescription = null,
+                                    tint = color,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "باربری",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (!groupByCargoType) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (!groupByCargoType) color else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    // نمایش گروه‌ها
+                    if (groupedItems.size == 1) {
+                        // اگر فقط یک نوع کالا یا باربری وجود دارد، مستقیماً کوتاژها را نمایش بده
+                        val (groupKey, groupShips) = groupedItems.entries.first()
+                        
+                        // نمایش عنوان
+                        GroupHeader(
+                            title = if (groupByCargoType) "کالا: $groupKey" else "باربری: $groupKey",
+                            icon = if (groupByCargoType) Icons.Default.Category else Icons.Default.LocalShipping,
+                            color = color
+                        )
+
+                        // نمایش کوتاژها در گرید یا لیست
+                        if (groupShips.size > 4) {
+                            QuotaGrid(
+                                ships = groupShips,
+                                onClick = onClick
+                            )
+                        } else {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                groupShips.forEach { shipInfo ->
+                                    CompactQuotaCard(
+                                        shipInfo = shipInfo,
+                                        onClick = onClick,
+                                        color = color
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // اگر بیش از یک نوع کالا یا باربری وجود دارد، از ساختار گروهی استفاده کن
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            groupedItems.forEach { (groupKey, groupShips) ->
+                                CompactGroupCard(
+                                    title = if (groupByCargoType) "کالا: $groupKey" else "باربری: $groupKey",
+                                    icon = if (groupByCargoType) Icons.Default.Category else Icons.Default.LocalShipping,
+                                    ships = groupShips,
+                                    onClick = onClick,
+                                    color = color
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GroupHeader(
+    title: String,
+    icon: ImageVector,
+    color: Color
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = color.copy(alpha = 0.1f)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DirectionsBoat,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = shipName,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = color
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        StatItem(label = "ورود", value = totalEntry, color = color)
-                        StatDivider(color = color)
-                        StatItem(label = "خروج", value = totalExit, color = color)
-                        StatDivider(color = color)
-                        StatItem(label = "کل", value = total, color = color, isBold = true)
-                    }
-                }
-            }
             Icon(
-                imageVector = if (isExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = if (isExpanded) "بستن" else "بازکردن",
-                tint = color
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(18.dp)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
             )
         }
     }
 }
 
 @Composable
-private fun GroupingToggleButton(
-    groupByCargoType: Boolean,
-    onGroupingChanged: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.primary
+private fun CompactQuotaCard(
+    shipInfo: ActiveShipInfo,
+    onClick: (ActiveShipInfo) -> Unit,
+    color: Color
 ) {
-    Surface(
-        modifier = modifier
-            .height(44.dp)
-            .clip(RoundedCornerShape(12.dp)),
-        color = color.copy(alpha = 0.1f)
+    val total = shipInfo.entryVouchers + shipInfo.exitVouchers
+    val progress = if (total > 0) shipInfo.exitVouchers.toFloat() / total else 0f
+    val progressColor = when {
+        progress >= 0.9f -> color.copy(alpha = 0.9f)
+        progress >= 0.5f -> color.copy(alpha = 0.7f)
+        else -> color.copy(alpha = 0.5f)
+    }
+    
+    // رنگ‌های آمار
+    val entryColor = color.copy(alpha = 0.7f)
+    val exitColor = color.copy(alpha = 0.9f)
+    
+    // تعیین وضعیت فعالیت کوتاژ
+    val isActive = total > 0 && shipInfo.exitVouchers < total
+    val cardBgColor = if (isActive) {
+        color.copy(alpha = 0.03f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+            .clickable { onClick(shipInfo) },
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = cardBgColor
+        ),
+        border = BorderStroke(1.dp, color.copy(alpha = if (isActive) 0.3f else 0.1f))
     ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(8.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .padding(2.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (groupByCargoType) {
+                // اطلاعات اصلی کوتاژ
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    // آیکون وضعیت
                     Surface(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .clip(RoundedCornerShape(10.dp)),
-                        color = color
-                    ) {}
+                        shape = CircleShape,
+                        color = progressColor.copy(alpha = 0.15f),
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ConfirmationNumber,
+                            contentDescription = null,
+                            tint = progressColor,
+                            modifier = Modifier
+                                .padding(6.dp)
+                                .size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // اطلاعات کوتاژ
+                    Column {
+                        Text(
+                            text = "کوتاژ: ${shipInfo.loadingQuotaNumber.takeLast(4)}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        
+                        if (shipInfo.cargoType.isNotEmpty()) {
+                            Text(
+                                text = shipInfo.cargoType,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                 }
 
-                // Content
+                // آمار کوتاژ - نمایش گرافیکی
                 Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .matchParentSize()
-                        .clickable { onGroupingChanged(true) }
-                        .padding(horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
+                    // آمار ورود
                     Icon(
-                        imageVector = Icons.Default.Category,
-                        contentDescription = null,
-                        tint = if (groupByCargoType) Color.White else color,
-                        modifier = Modifier.size(18.dp)
+                        imageVector = Icons.Default.ArrowDownward,
+                        contentDescription = "ورود",
+                        tint = entryColor,
+                        modifier = Modifier.size(12.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "کالا",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (groupByCargoType) Color.White else color,
-                        fontWeight = FontWeight.Bold
+                        text = shipInfo.entryVouchers.toString(),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = entryColor,
+                        modifier = Modifier.padding(start = 2.dp, end = 4.dp)
+                    )
+                    
+                    // جداکننده
+                    Box(
+                        modifier = Modifier
+                            .height(12.dp)
+                            .width(1.dp)
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                    )
+                    
+                    // آمار خروج
+                    Icon(
+                        imageVector = Icons.Default.ArrowUpward,
+                        contentDescription = "خروج",
+                        tint = exitColor,
+                        modifier = Modifier
+                            .padding(start = 4.dp)
+                            .size(12.dp)
+                    )
+                    Text(
+                        text = shipInfo.exitVouchers.toString(),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = exitColor,
+                        modifier = Modifier.padding(start = 2.dp, end = 4.dp)
+                    )
+                    
+                    // جداکننده
+                    Box(
+                        modifier = Modifier
+                            .height(12.dp)
+                            .width(1.dp)
+                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                    )
+                    
+                    // آمار کل
+                    Icon(
+                        imageVector = Icons.Default.ConfirmationNumber,
+                        contentDescription = "کل",
+                        tint = progressColor,
+                        modifier = Modifier
+                            .padding(start = 4.dp)
+                            .size(12.dp)
+                    )
+                    Text(
+                        text = total.toString(),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = progressColor,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+                }
+            }
+            
+            // نوار پیشرفت
+            Spacer(modifier = Modifier.height(6.dp))
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = progressColor,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactGroupCard(
+    title: String,
+    icon: ImageVector,
+    ships: List<ActiveShipInfo>,
+    onClick: (ActiveShipInfo) -> Unit,
+    color: Color
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    
+    // فیلتر کردن کوتاژهایی که حداقل یک حواله دارند
+    val filteredShips = remember(ships) {
+        ships.filter { it.entryVouchers + it.exitVouchers > 0 }
+    }
+    
+    // اگر هیچ کوتاژی با حواله وجود ندارد، هیچ چیزی نمایش نده
+    if (filteredShips.isEmpty()) {
+        return
+    }
+    
+    val totalEntry = filteredShips.sumOf { it.entryVouchers }
+    val totalExit = filteredShips.sumOf { it.exitVouchers }
+    val total = totalEntry + totalExit
+    val progress = if (total > 0) totalExit.toFloat() / total else 0f
+
+    // مرتب‌سازی کوتاژها با همان منطق
+    val sortedShips = remember(filteredShips) {
+        filteredShips.sortedWith(
+            compareBy<ActiveShipInfo> { 
+                // ابتدا کوتاژهای تکمیل شده را به انتها منتقل می‌کنیم
+                val isCompleted = it.exitVouchers >= it.entryVouchers && it.entryVouchers > 0
+                if (isCompleted) 1 else 0
+            }.thenBy { 
+                // سپس کوتاژهای تکمیل نشده را براساس درصد پیشرفت به صورت صعودی مرتب می‌کنیم
+                // (کمترین درصد اول نمایش داده می‌شود)
+                if (it.entryVouchers > 0) {
+                    it.exitVouchers.toFloat() / it.entryVouchers
+                } else 0f
+            }
+        )
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
+    ) {
+        Column {
+            // هدر گروه
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded },
+                color = color.copy(alpha = 0.1f)
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // عنوان گروه
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = color.copy(alpha = 0.15f),
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = color,
+                                    modifier = Modifier
+                                        .padding(6.dp)
+                                        .size(20.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        // آمار و آیکون باز/بسته کردن
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "$totalExit/$total",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = null,
+                                tint = color,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    
+                    // نوار پیشرفت
+                    Spacer(modifier = Modifier.height(6.dp))
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp)),
+                        color = color,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .padding(2.dp)
+            // کارت‌های کوتاژ
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
             ) {
-                if (!groupByCargoType) {
-                    Surface(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .clip(RoundedCornerShape(10.dp)),
-                        color = color
-                    ) {}
-                }
-
-                // Content
-                Row(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clickable { onGroupingChanged(false) }
-                        .padding(horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier.padding(
+                        start = 12.dp,
+                        end = 12.dp,
+                        top = 4.dp,
+                        bottom = 8.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.LocalShipping,
-                        contentDescription = null,
-                        tint = if (!groupByCargoType) Color.White else color,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    // نمایش تعداد کوتاژها
                     Text(
-                        text = "باربری",
+                        text = "${sortedShips.size} کوتاژ",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (!groupByCargoType) Color.White else color,
-                        fontWeight = FontWeight.Bold
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 4.dp)
                     )
+                    
+                    // نمایش کوتاژها در گرید
+                    if (sortedShips.size > 4) {
+                        // نمایش گرید برای تعداد زیاد کوتاژ
+                        QuotaGrid(
+                            ships = sortedShips,
+                            onClick = onClick
+                        )
+                    } else {
+                        // نمایش لیست برای تعداد کم کوتاژ
+                        sortedShips.forEach { shipInfo ->
+                            CompactQuotaCard(
+                                shipInfo = shipInfo,
+                                onClick = onClick,
+                                color = color
+                            )
+                        }
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun QuotaGrid(
+    ships: List<ActiveShipInfo>,
+    onClick: (ActiveShipInfo) -> Unit
+) {
+    val chunkedShips = ships.chunked(2)
+    
+    Column(
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        chunkedShips.forEach { rowShips ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                rowShips.forEach { shipInfo ->
+                    Box(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        GridQuotaCard(
+                            shipInfo = shipInfo,
+                            onClick = onClick
+                        )
+                    }
+                }
+                
+                // اگر تعداد آیتم‌ها در ردیف کمتر از 2 است، فضای خالی اضافه کن
+                if (rowShips.size < 2) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GridQuotaCard(
+    shipInfo: ActiveShipInfo,
+    onClick: (ActiveShipInfo) -> Unit
+) {
+    val total = shipInfo.entryVouchers + shipInfo.exitVouchers
+    val progress = if (total > 0) shipInfo.exitVouchers.toFloat() / total else 0f
+    val progressColor = when {
+        progress >= 0.9f -> Color(0xFF4CAF50) // سبز
+        progress >= 0.5f -> Color(0xFFFFA000) // نارنجی
+        else -> Color(0xFF2196F3) // آبی
+    }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick(shipInfo) },
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
+        ),
+        border = BorderStroke(1.dp, progressColor.copy(alpha = 0.3f))
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // شماره کوتاژ
+            Text(
+                text = shipInfo.loadingQuotaNumber.takeLast(4),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // آمار
+            Text(
+                text = "${shipInfo.exitVouchers}/${total}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = progressColor
+            )
+            
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            // نوار پیشرفت
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = progressColor,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
         }
     }
 }
@@ -470,345 +1500,65 @@ private fun GroupingToggleButton(
 private fun WarehouseList(
     ships: List<ActiveShipInfo>,
     onClick: (ActiveShipInfo) -> Unit,
-    cardColor: Color,
-    groupByCargoType: Boolean,
-    onGroupingChanged: (Boolean) -> Unit
+    cardColor: Color
 ) {
-    var expandedWarehouse by remember { mutableStateOf<String?>(null) }
     val groupedByWarehouse = ships.groupBy { it.loadingWarehouse }
+    var expandedWarehouse by remember { mutableStateOf<String?>(null) }
 
-    val warehouseColors = remember(cardColor) {
-        val baseHsv = FloatArray(3)
-        android.graphics.Color.colorToHSV(cardColor.toArgb(), baseHsv)
+    // فیلتر کردن انبارهایی که حداقل یک کوتاژ با حواله دارند
+    val filteredGroupedByWarehouse = remember(groupedByWarehouse) {
+        groupedByWarehouse.mapValues { (_, warehouseShips) ->
+            warehouseShips.filter { it.entryVouchers + it.exitVouchers > 0 }
+        }.filter { (_, warehouseShips) -> 
+            warehouseShips.isNotEmpty() 
+        }
+    }
+    
+    // مرتب‌سازی انبارها براساس درصد پیشرفت کل
+    val sortedWarehouses = remember(filteredGroupedByWarehouse) {
+        filteredGroupedByWarehouse.entries.sortedWith(
+            compareBy<Map.Entry<String, List<ActiveShipInfo>>> { entry ->
+                val warehouseShips = entry.value
+                val totalEntry = warehouseShips.sumOf { it.entryVouchers }
+                val totalExit = warehouseShips.sumOf { it.exitVouchers }
 
-        groupedByWarehouse.keys.mapIndexed { index, warehouse ->
-            val hue = (baseHsv[0] + (index * 15)) % 360
-            val saturation = (baseHsv[1] + (index * 0.1f)).coerceIn(0f, 1f)
-            val value = (baseHsv[2] + (index * 0.1f)).coerceIn(0.3f, 0.9f)
-
-            warehouse to Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, value)))
-        }.toMap()
+                // انبارهایی که کاملاً تکمیل شده‌اند در انتها قرار می‌گیرند
+                if (totalEntry in 1..totalExit) {
+                    1
+                } else {
+                    0
+                }
+            }.thenBy { entry ->
+                val warehouseShips = entry.value
+                val totalEntry = warehouseShips.sumOf { it.entryVouchers }
+                val totalExit = warehouseShips.sumOf { it.exitVouchers }
+                val total = totalEntry + totalExit
+                
+                // انبارهای تکمیل نشده براساس درصد پیشرفت به صورت صعودی مرتب می‌شوند
+                if (total > 0) {
+                    totalExit.toFloat() / total
+                } else {
+                    0f
+                }
+            }
+        )
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 2.dp
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                GroupingToggleButton(
-                    groupByCargoType = groupByCargoType,
-                    onGroupingChanged = onGroupingChanged,
-                    color = cardColor,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-
-        groupedByWarehouse.forEach { (warehouse, warehouseShips) ->
-            WarehouseGroup(
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        sortedWarehouses.forEach { (warehouse, warehouseShips) ->
+            WarehouseCard(
                 warehouse = warehouse,
                 ships = warehouseShips,
-                onClick = onClick,
-                warehouseColor = warehouseColors[warehouse] ?: cardColor,
                 isExpanded = expandedWarehouse == warehouse,
-                onExpand = { isExpanded ->
-                    expandedWarehouse = if (isExpanded) warehouse else null
+                onExpand = {
+                    expandedWarehouse = if (expandedWarehouse == warehouse) null else warehouse
                 },
-                groupByCargoType = groupByCargoType
+                onClick = onClick,
+                color = cardColor
             )
         }
-    }
-}
-
-@Composable
-private fun WarehouseGroup(
-    warehouse: String,
-    ships: List<ActiveShipInfo>,
-    onClick: (ActiveShipInfo) -> Unit,
-    warehouseColor: Color,
-    isExpanded: Boolean,
-    onExpand: (Boolean) -> Unit,
-    groupByCargoType: Boolean
-) {
-    val totalEntry = ships.sumOf { it.entryVouchers }
-    val totalExit = ships.sumOf { it.exitVouchers }
-    val total = totalEntry + totalExit
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp)),
-        color = warehouseColor.copy(alpha = 0.08f),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Column {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onExpand(!isExpanded) },
-                color = warehouseColor.copy(alpha = 0.12f)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Warehouse,
-                            contentDescription = null,
-                            tint = warehouseColor,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text(
-                                text = "انبار: $warehouse",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = warehouseColor,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                SmallStatItem(label = "ورود", value = totalEntry, color = warehouseColor)
-                                SmallStatDivider(color = warehouseColor)
-                                SmallStatItem(label = "خروج", value = totalExit, color = warehouseColor)
-                                SmallStatDivider(color = warehouseColor)
-                                SmallStatItem(label = "کل", value = total, color = warehouseColor, isBold = true)
-                            }
-                        }
-                    }
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        tint = warehouseColor
-                    )
-                }
-            }
-
-            AnimatedVisibility(visible = isExpanded) {
-                Column(
-                    modifier = Modifier.padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (groupByCargoType) {
-                        ships.groupBy { it.cargoType }.forEach { (cargoType, cargoShips) ->
-                            FinalGroupCard(
-                                title = "کالا: $cargoType",
-                                ships = cargoShips,
-                                onClick = onClick,
-                                cardColor = warehouseColor,
-                                groupByCargoType = true
-                            )
-                        }
-                    } else {
-                        ships.groupBy { it.shippingCompany }.forEach { (company, companyShips) ->
-                            FinalGroupCard(
-                                title = "باربری: $company",
-                                ships = companyShips,
-                                onClick = onClick,
-                                cardColor = warehouseColor,
-                                groupByCargoType = false
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FinalGroupCard(
-    title: String,
-    ships: List<ActiveShipInfo>,
-    onClick: (ActiveShipInfo) -> Unit,
-    cardColor: Color,
-    groupByCargoType: Boolean
-) {
-    Surface(
-        color = cardColor.copy(alpha = 0.15f),
-        shape = RoundedCornerShape(6.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Category,
-                    contentDescription = null,
-                    tint = cardColor,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = cardColor,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            ships.forEach { shipInfo ->
-                ShipCard(
-                    shipInfo = shipInfo,
-                    onClick = onClick,
-                    cardColor = cardColor.copy(alpha = 0.9f),
-                    groupByCargoType = groupByCargoType
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatItem(label: String, value: Int, color: Color, isBold: Boolean = false) {
-    Text(
-        text = "$label: $value",
-        style = MaterialTheme.typography.bodyMedium,
-        color = color.copy(alpha = 0.7f),
-        fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
-    )
-}
-
-@Composable
-private fun SmallStatItem(label: String, value: Int, color: Color, isBold: Boolean = false) {
-    Text(
-        text = "$label: $value",
-        style = MaterialTheme.typography.bodySmall,
-        color = color.copy(alpha = 0.7f),
-        fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
-    )
-}
-
-@Composable
-private fun StatDivider(color: Color) {
-    Text(
-        text = "•",
-        style = MaterialTheme.typography.bodyMedium,
-        color = color.copy(alpha = 0.3f)
-    )
-}
-
-@Composable
-private fun SmallStatDivider(color: Color) {
-    Text(
-        text = "•",
-        style = MaterialTheme.typography.bodySmall,
-        color = color.copy(alpha = 0.3f)
-    )
-}
-
-@Composable
-private fun ShipCard(
-    shipInfo: ActiveShipInfo,
-    onClick: (ActiveShipInfo) -> Unit,
-    cardColor: Color,
-    groupByCargoType: Boolean
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick(shipInfo) },
-        shape = RoundedCornerShape(8.dp),
-        color = cardColor
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    // تغییر متن نمایشی بر اساس نوع گروه‌بندی
-                    text = "${shipInfo.loadingQuotaNumber.takeLast(4)} • ${if (groupByCargoType) shipInfo.shippingCompany else shipInfo.cargoType}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-                Row(
-                    horizontalArrangement = Arrangement.Start,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 2.dp)
-                ) {
-                    QuotaStats(
-                        entry = shipInfo.entryVouchers,
-                        exit = shipInfo.exitVouchers
-                    )
-                }
-            }
-
-            Button(
-                onClick = { onClick(shipInfo) },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = cardColor
-                ),
-                modifier = Modifier
-                    .height(32.dp)
-                    .padding(start = 8.dp)
-            ) {
-                Text(
-                    "انتخاب",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuotaStats(
-    entry: Int,
-    exit: Int
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "ورود: $entry",
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.8f)
-        )
-        Text(
-            text = "•",
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.5f)
-        )
-        Text(
-            text = "خروج: $exit",
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.8f)
-        )
-        Text(
-            text = "•",
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.5f)
-        )
-        Text(
-            text = "کل: ${entry + exit}",
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.White,
-            fontWeight = FontWeight.Bold
-        )
     }
 }
 

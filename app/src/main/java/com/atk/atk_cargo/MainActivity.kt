@@ -2,6 +2,7 @@ package com.atk.atk_cargo
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -188,13 +189,16 @@ import com.atk.atk_cargo.security.SecurityBlockScreen
 import com.atk.atk_cargo.security.SecurityErrorType
 import com.atk.atk_cargo.security.SignatureVerifier
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
+import com.atk.atk_cargo.utils.LogUtils
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.net.URLDecoder
@@ -203,6 +207,15 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+
+// توابع کمکی برای لاگ کردن
+private fun logDebug(tag: String, message: String) {
+    LogUtils.d(message, tag)
+}
+
+private fun logError(tag: String, message: String, throwable: Throwable? = null) {
+    LogUtils.e(message, throwable, tag)
+}
 
 class MainActivity : ComponentActivity() {
     private var updateInfo by mutableStateOf<UpdateInfo?>(null)
@@ -220,81 +233,312 @@ class MainActivity : ComponentActivity() {
     private var securityErrorType by mutableStateOf<SecurityErrorType?>(null)
     val isSessionValid: StateFlow<Boolean> = _isSessionValid.asStateFlow()
 
+    companion object {
+        // متغیر استاتیک برای جلوگیری از اجرای چندباره سرویس
+        private var isServiceStarted = false
+    }
+
     @SuppressLint("CoroutineCreationDuringComposition")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        initializeDependencies()
-        requestRequiredPermissions()
-        requestBackgroundPermissions()
-        startBackgroundServices()
-        startLoadingCheckService()
+        logDebug("ATKLog", "onCreate: شروع راه‌اندازی اکتیویتی اصلی")
+        
+        try {
+            logDebug("ATKLog", "onCreate: شروع مقداردهی وابستگی‌ها")
+            initializeDependencies()
+            logDebug("ATKLog", "onCreate: مقداردهی وابستگی‌ها با موفقیت انجام شد")
+            
+            logDebug("ATKLog", "onCreate: شروع تنظیم محتوای UI")
+            setContent {
+                logDebug("ATKLog", "setContent: شروع تنظیم تم و محتوای اصلی")
+                ATKCargoTheme {
+                    var showMainContent by remember { mutableStateOf(false) }
+                    // متغیر جدید برای کنترل نمایش دیالوگ‌های مجوز
+                    var canRequestPermissions by remember { mutableStateOf(false) }
 
-        setContent {
-            ATKCargoTheme {
-                var showMainContent by remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) {
+                        logDebug("ATKLog", "LaunchedEffect اول: شروع اجرای عملیات‌های اولیه")
 
-                LaunchedEffect(Unit) {
-                    performSecurityCheck()
-                    checkForUpdate()
-                    showMainContent = true
+                        // ابتدا بررسی امنیتی را انجام می‌دهیم
+                        logDebug("ATKLog", "LaunchedEffect اول: شروع بررسی امنیتی")
+                        performSecurityCheck()
+                        logDebug("ATKLog", "LaunchedEffect اول: بررسی امنیتی انجام شد، تاخیر 1500ms")
+                        delay(1500) // افزایش تاخیر
+                        
+                        // سپس بررسی بروزرسانی را انجام می‌دهیم
+                        logDebug("ATKLog", "LaunchedEffect اول: شروع بررسی بروزرسانی")
+                        checkForUpdate()
+                        logDebug("ATKLog", "LaunchedEffect اول: بررسی بروزرسانی انجام شد، تاخیر 1500ms")
+                        delay(1500) // افزایش تاخیر
+                        
+                        // نمایش محتوای اصلی
+                        logDebug("ATKLog", "LaunchedEffect اول: آماده‌سازی برای نمایش محتوای اصلی")
+                        showMainContent = true
+                        logDebug("ATKLog", "LaunchedEffect اول: محتوای اصلی آماده نمایش شد")
+                        
+                        // تاخیر طولانی‌تر قبل از شروع سرویس‌ها
+                        logDebug("ATKLog", "LaunchedEffect اول: تاخیر 3000ms قبل از شروع سرویس‌ها")
+                        delay(3000)
+                        logDebug("ATKLog", "LaunchedEffect اول: تاخیر به پایان رسید، آماده شروع سرویس‌ها")
+                        
+                        // شروع سرویس‌ها را به یک کوروتین جداگانه منتقل می‌کنیم
+                        logDebug("ATKLog", "LaunchedEffect اول: شروع کوروتین جداگانه برای سرویس‌ها")
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            try {
+                                logDebug("ATKLog", "کوروتین سرویس‌ها: شروع راه‌اندازی سرویس‌های پس‌زمینه")
+                                withContext(Dispatchers.Main) {
+                                    try {
+                                        logDebug("ATKLog", "کوروتین سرویس‌ها: فراخوانی startBackgroundServices در thread اصلی")
+                                        startBackgroundServices()
+                                        logDebug("ATKLog", "کوروتین سرویس‌ها: فراخوانی startBackgroundServices با موفقیت انجام شد")
+                                    } catch (e: Exception) {
+                                        logError("ATKLog", "کوروتین سرویس‌ها: خطا در فراخوانی startBackgroundServices در thread اصلی", e)
+                                    }
+                                }
+                                logDebug("ATKLog", "کوروتین سرویس‌ها: سرویس‌های پس‌زمینه راه‌اندازی شدند")
+                                
+                                logDebug("ATKLog", "کوروتین سرویس‌ها: تاخیر 2000ms قبل از شروع سرویس بررسی بارگیری")
+                                delay(2000)
+                                logDebug("ATKLog", "کوروتین سرویس‌ها: شروع سرویس بررسی بارگیری")
+                                withContext(Dispatchers.Main) {
+                                    try {
+                                        logDebug("ATKLog", "کوروتین سرویس‌ها: فراخوانی startLoadingCheckService در thread اصلی")
+                                        startLoadingCheckService()
+                                        logDebug("ATKLog", "کوروتین سرویس‌ها: فراخوانی startLoadingCheckService با موفقیت انجام شد")
+                                    } catch (e: Exception) {
+                                        logError("ATKLog", "کوروتین سرویس‌ها: خطا در فراخوانی startLoadingCheckService در thread اصلی", e)
+                                    }
+                                }
+                                logDebug("ATKLog", "کوروتین سرویس‌ها: سرویس بررسی بارگیری راه‌اندازی شد")
+                            } catch (e: Exception) {
+                                logError("ATKLog", "کوروتین سرویس‌ها: خطا در اجرای عملیات‌ها", e)
+                            }
+                        }
+                        logDebug("ATKLog", "LaunchedEffect اول: کوروتین جداگانه برای سرویس‌ها شروع شد")
+                        
+                        // تاخیر بیشتر قبل از فعال کردن درخواست مجوزها
+                        logDebug("ATKLog", "LaunchedEffect اول: تاخیر 5000ms قبل از فعال کردن درخواست مجوزها")
+                        delay(5000)
+                        logDebug("ATKLog", "LaunchedEffect اول: فعال کردن امکان درخواست مجوزها")
+                        canRequestPermissions = true
+                    }
+
+                    // اگر امکان درخواست مجوزها فعال شده باشد، درخواست مجوزها را انجام می‌دهیم
+                    LaunchedEffect(canRequestPermissions) {
+                        if (canRequestPermissions) {
+                            logDebug("ATKLog", "LaunchedEffect مجوزها: شروع درخواست مجوزها")
+                            
+                            try {
+                                // ابتدا مجوز نوتیفیکیشن را درخواست می‌کنیم
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    logDebug("ATKLog", "LaunchedEffect مجوزها: بررسی مجوز نوتیفیکیشن")
+                                    if (ContextCompat.checkSelfPermission(
+                                            this@MainActivity,
+                                            Manifest.permission.POST_NOTIFICATIONS
+                                        ) != PackageManager.PERMISSION_GRANTED
+                                    ) {
+                                        logDebug("ATKLog", "LaunchedEffect مجوزها: درخواست مجوز نوتیفیکیشن")
+                                        withContext(Dispatchers.Main) {
+                                            try {
+                                                ActivityCompat.requestPermissions(
+                                                    this@MainActivity,
+                                                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                                                    0
+                                                )
+                                                logDebug("ATKLog", "LaunchedEffect مجوزها: درخواست مجوز نوتیفیکیشن ارسال شد")
+                                            } catch (e: Exception) {
+                                                logError("ATKLog", "LaunchedEffect مجوزها: خطا در درخواست مجوز نوتیفیکیشن", e)
+                                            }
+                                        }
+                                        
+                                        // تاخیر قبل از درخواست مجوز بعدی
+                                        logDebug("ATKLog", "LaunchedEffect مجوزها: تاخیر 3000ms قبل از درخواست مجوز بعدی")
+                                        delay(3000)
+                                    } else {
+                                        logDebug("ATKLog", "LaunchedEffect مجوزها: مجوز نوتیفیکیشن قبلاً اعطا شده است")
+                                    }
+                                }
+                                
+                                // تاخیر اضافی برای اطمینان از پایداری برنامه
+                                logDebug("ATKLog", "LaunchedEffect مجوزها: تاخیر اضافی 2000ms برای اطمینان از پایداری")
+                                delay(2000)
+                                
+                                // سپس مجوز بهینه‌سازی باتری را درخواست می‌کنیم
+                                logDebug("ATKLog", "LaunchedEffect مجوزها: بررسی مجوز بهینه‌سازی باتری")
+                                val packageName = packageName
+                                val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                                
+                                if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                                    logDebug("ATKLog", "LaunchedEffect مجوزها: نیاز به درخواست مجوز بهینه‌سازی باتری")
+                                    withContext(Dispatchers.Main) {
+                                        try {
+                                            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                                data = Uri.parse("package:$packageName")
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            }
+                                            
+                                            try {
+                                                logDebug("ATKLog", "LaunchedEffect مجوزها: شروع اکتیویتی درخواست مجوز بهینه‌سازی باتری")
+                                                startActivity(intent)
+                                                logDebug("ATKLog", "LaunchedEffect مجوزها: اکتیویتی درخواست مجوز بهینه‌سازی باتری با موفقیت شروع شد")
+                                            } catch (e: Exception) {
+                                                logError("ATKLog", "LaunchedEffect مجوزها: خطا در درخواست مجوز بهینه‌سازی باتری", e)
+                                                try {
+                                                    val fallbackIntent = Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS).apply {
+                                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                    }
+                                                    startActivity(fallbackIntent)
+                                                    showMessage("لطفاً برنامه را از محدودیت‌های بهینه‌سازی باتری خارج کنید")
+                                                } catch (e2: Exception) {
+                                                    logError("ATKLog", "LaunchedEffect مجوزها: خطا در هدایت به صفحه تنظیمات باتری", e2)
+                                                }
+                                            }
+                                        } catch (e: Exception) {
+                                            logError("ATKLog", "LaunchedEffect مجوزها: خطای کلی در درخواست مجوز بهینه‌سازی باتری", e)
+                                        }
+                                    }
+                                } else {
+                                    logDebug("ATKLog", "LaunchedEffect مجوزها: مجوز بهینه‌سازی باتری قبلاً اعطا شده است")
+                                }
+                            } catch (e: Exception) {
+                                logError("ATKLog", "LaunchedEffect مجوزها: خطای کلی در فرآیند درخواست مجوزها", e)
+                            }
+                            
+                            logDebug("ATKLog", "LaunchedEffect مجوزها: فرآیند درخواست مجوزها به پایان رسید")
+                        }
+                    }
+
+                    logDebug("ATKLog", "setContent: شروع بررسی وضعیت امنیتی برای نمایش محتوا")
+                    HandleSecurityCheck {
+                        logDebug("ATKLog", "HandleSecurityCheck: بررسی امنیتی تایید شد، نمایش محتوای اصلی")
+                        HandleMainContent(
+                            showMainContent = showMainContent,
+                            isUpdateAvailable = isUpdateAvailable,
+                            updateInfo = updateInfo
+                        )
+                    }
+
+                    LaunchedEffect(Unit) {
+                        logDebug("ATKLog", "LaunchedEffect دوم: شروع بررسی intent و جلسه کاربر")
+                        handleIntent(intent)
+                        checkUserSession()
+                        logDebug("ATKLog", "LaunchedEffect دوم: بررسی intent و جلسه کاربر انجام شد")
+                    }
                 }
-
-                HandleSecurityCheck {
-                    HandleMainContent(
-                        showMainContent = showMainContent,
-                        isUpdateAvailable = isUpdateAvailable,
-                        updateInfo = updateInfo
-                    )
-                }
-
-                LaunchedEffect(Unit) {
-                    handleIntent(intent)
-                    checkUserSession()
-                }
+                logDebug("ATKLog", "setContent: تنظیم تم و محتوای اصلی به پایان رسید")
             }
-        }
+            logDebug("ATKLog", "onCreate: تنظیم محتوای UI به پایان رسید")
 
-        observeApplicationStates()
+            logDebug("ATKLog", "onCreate: شروع مشاهده وضعیت‌های برنامه")
+            observeApplicationStates()
+            logDebug("ATKLog", "onCreate: مشاهده وضعیت‌های برنامه تنظیم شد")
+            
+            logDebug("ATKLog", "onCreate: راه‌اندازی اکتیویتی اصلی با موفقیت به پایان رسید")
+        } catch (e: Exception) {
+            logError("ATKLog", "onCreate: خطای کلی در راه‌اندازی برنامه", e)
+        }
     }
 
     private fun initializeDependencies() {
-        updateManager = ViewModelProvider(
-            this,
-            UpdateManagerFactory(this)
-        )[UpdateManager::class.java]
+        try {
+            updateManager = ViewModelProvider(
+                this,
+                UpdateManagerFactory(this)
+            )[UpdateManager::class.java]
 
-        signatureVerifier = SignatureVerifier(this)
-        userPreferencesManager = UserPreferencesManager(this)
-        reportsRepository = ReportsRepository(RetrofitClient.apiService)
-        cargoViewModelFactory = CargoViewModelFactory(reportsRepository, userPreferencesManager)
-    }
+            signatureVerifier = SignatureVerifier(this)
 
-    private fun requestRequiredPermissions() {
-        requestNotificationPermission()
-    }
+            userPreferencesManager = UserPreferencesManager(this)
 
-    @SuppressLint("BatteryLife")
-    private fun requestBackgroundPermissions() {
-        val packageName = packageName
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-            try {
-                val intent = Intent().apply {
-                    action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
-                    data = Uri.parse("package:$packageName")
-                }
-                startActivity(intent)
-            } catch (e: Exception) {
-                Log.e("MainActivity", "Error requesting battery optimization permission", e)
-            }
+            reportsRepository = ReportsRepository(RetrofitClient.apiService)
+
+            cargoViewModelFactory = CargoViewModelFactory(reportsRepository, userPreferencesManager)
+
+        } catch (e: Exception) {
+            logError("ATKLog", "initializeDependencies: خطا در مقداردهی وابستگی‌ها", e)
+            throw e // پرتاب مجدد خطا برای مدیریت در سطح بالاتر
         }
     }
 
     private fun startBackgroundServices() {
-        Intent(this, LoadingCheckService::class.java).also { intent ->
-            startForegroundService(intent)
+
+        // بررسی می‌کنیم که آیا سرویس قبلاً شروع شده است یا خیر
+        if (isServiceStarted) {
+            logDebug("ATKLog", "startBackgroundServices: سرویس قبلاً شروع شده است")
+            return
         }
+        
+        try {
+            logDebug("ATKLog", "startBackgroundServices: شروع فرآیند راه‌اندازی سرویس‌های پس‌زمینه")
+            
+            // بررسی وضعیت سرویس قبل از شروع
+            val serviceRunning = isServiceRunning(LoadingCheckService::class.java)
+            logDebug("ATKLog", "startBackgroundServices: وضعیت فعلی سرویس: ${if (serviceRunning) "در حال اجرا" else "متوقف"}")
+            
+            if (serviceRunning) {
+                logDebug("ATKLog", "startBackgroundServices: سرویس در حال حاضر در حال اجراست، نیازی به شروع مجدد نیست")
+                isServiceStarted = true
+                return
+            }
+            
+            val serviceIntent = Intent(this, LoadingCheckService::class.java).apply {
+                // اضافه کردن یک فلگ برای جلوگیری از راه‌اندازی چندباره
+                putExtra("restart_count", System.currentTimeMillis())
+            }
+            logDebug("ATKLog", "startBackgroundServices: Intent برای سرویس LoadingCheckService ایجاد شد")
+            
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    logDebug("ATKLog", "startBackgroundServices: استفاده از startForegroundService برای اندروید O و بالاتر")
+                    startForegroundService(serviceIntent)
+                    logDebug("ATKLog", "startBackgroundServices: startForegroundService با موفقیت فراخوانی شد")
+                } else {
+                    logDebug("ATKLog", "startBackgroundServices: استفاده از startService برای اندروید زیر O")
+                    startService(serviceIntent)
+                    logDebug("ATKLog", "startBackgroundServices: startService با موفقیت فراخوانی شد")
+                }
+                isServiceStarted = true
+                logDebug("ATKLog", "startBackgroundServices: سرویس با موفقیت شروع شد و متغیر isServiceStarted به true تنظیم شد")
+            } catch (e: Exception) {
+                logError("ATKLog", "startBackgroundServices: خطا در راه‌اندازی سرویس‌های پس‌زمینه", e)
+                // در صورت خطا، متغیر isServiceStarted را false نگه می‌داریم
+                isServiceStarted = false
+                
+                // تلاش برای راه‌اندازی سرویس با روش جایگزین
+                try {
+                    logDebug("ATKLog", "startBackgroundServices: تلاش برای راه‌اندازی سرویس با روش جایگزین")
+                    val alternativeIntent = Intent(this, LoadingCheckService::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        putExtra("restart_count", System.currentTimeMillis())
+                    }
+                    startService(alternativeIntent)
+                    isServiceStarted = true
+                    logDebug("ATKLog", "startBackgroundServices: سرویس با روش جایگزین با موفقیت شروع شد")
+                } catch (e2: Exception) {
+                    logError("ATKLog", "startBackgroundServices: خطا در راه‌اندازی سرویس با روش جایگزین", e2)
+                }
+            }
+        } catch (e: Exception) {
+            logError("ATKLog", "startBackgroundServices: خطای کلی در فرآیند راه‌اندازی سرویس‌ها", e)
+            // در صورت خطای کلی، متغیر isServiceStarted را false نگه می‌داریم
+            isServiceStarted = false
+        }
+    }
+    
+    // تابع کمکی برای بررسی وضعیت اجرای سرویس
+    private fun isServiceRunning(serviceClass: Class<*>): Boolean {
+        try {
+            val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
+                if (serviceClass.name == service.service.className) {
+                    return true
+                }
+            }
+        } catch (e: Exception) {
+            logError("ATKLog", "isServiceRunning: خطا در بررسی وضعیت سرویس", e)
+        }
+        return false
     }
 
     private fun performSecurityCheck() {
@@ -307,9 +551,9 @@ class MainActivity : ComponentActivity() {
             } catch (e: Exception) {
                 isSecurityCheckPassed = false
                 securityErrorType = SecurityErrorType.TAMPERED
-                Log.e("MainActivity", "Error during security check", e)
             } finally {
                 isSecurityCheckLoading = false
+                logDebug("ATKLog", "performSecurityCheck: بررسی امنیتی به پایان رسید")
             }
         }
     }
@@ -424,62 +668,103 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    0
-                )
-            }
-        }
-    }
-
     fun startLoadingCheckService() {
-        lifecycleScope.launch {
+        Log.d("MainActivity", "شروع راه‌اندازی سرویس بررسی بارگیری")
+        
+        // استفاده از یک متغیر استاتیک برای جلوگیری از اجرای چندباره سرویس
+        if (isServiceStarted) {
+            return
+        }
+        
+        try {
+            // ابتدا سرویس را بدون بررسی نوع کاربر شروع می‌کنیم
             try {
-                val userType = userPreferencesManager.userType.first()
-                if (userType.isNotEmpty()) {
-                    val serviceIntent = Intent(this@MainActivity, LoadingCheckService::class.java)
-                    startForegroundService(serviceIntent)
+                val serviceIntent = Intent(this, LoadingCheckService::class.java).apply {
+                    // اضافه کردن یک فلگ برای جلوگیری از راه‌اندازی چندباره
+                    putExtra("restart_count", System.currentTimeMillis())
+                }
+                
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(serviceIntent)
+                    } else {
+                        startService(serviceIntent)
+                    }
+                    isServiceStarted = true
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "خطا در شروع سرویس", e)
+                    // در صورت خطا، متغیر isServiceStarted را false نگه می‌داریم
+                    isServiceStarted = false
+                    
+                    // تلاش برای راه‌اندازی سرویس با روش جایگزین
+                    try {
+                        val alternativeIntent = Intent(this, LoadingCheckService::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            putExtra("restart_count", System.currentTimeMillis())
+                        }
+                        startService(alternativeIntent)
+                        isServiceStarted = true
+                    } catch (e2: Exception) {
+                        Log.e("MainActivity", "خطا در راه‌اندازی سرویس با روش جایگزین", e2)
+                    }
                 }
             } catch (e: Exception) {
-                Log.e("MainActivity", "Error starting LoadingCheckService", e)
+                Log.e("MainActivity", "خطا در ساخت Intent برای سرویس", e)
             }
+            
+            // سپس کارگر دوره‌ای را شروع می‌کنیم
+            try {
+                LoadingCheckWorker.startPeriodicWorker(this)
+            } catch (e: Exception) {
+                Log.e("MainActivity", "خطا در شروع کارگر دوره‌ای", e)
+            }
+            
+            // در نهایت، نوع کاربر را بررسی می‌کنیم (اما سرویس قبلاً شروع شده است)
+            lifecycleScope.launch {
+                try {
+                    userPreferencesManager.userType.first()
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "خطا در دریافت نوع کاربر", e)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "خطای کلی در راه‌اندازی سرویس", e)
+            // در صورت خطای کلی، متغیر isServiceStarted را false نگه می‌داریم
+            isServiceStarted = false
         }
-        Intent(this, LoadingCheckService::class.java).also { intent ->
-            startForegroundService(intent)
-        }
-        LoadingCheckWorker.startPeriodicWorker(this)
     }
 
     private fun checkUserSession() {
+        logDebug("ATKLog", "checkUserSession: شروع بررسی جلسه کاربر")
         lifecycleScope.launch {
             try {
+                logDebug("ATKLog", "checkUserSession: دریافت نام کاربری")
                 val username = userPreferencesManager.username.first()
                 if (username.isNotEmpty()) {
+                    logDebug("ATKLog", "checkUserSession: نام کاربری معتبر است: $username")
                     val apiService = RetrofitClient.apiService
+                    logDebug("ATKLog", "checkUserSession: ارسال درخواست بررسی جلسه به سرور")
                     val response = apiService.checkSession(SessionCheckRequest(username))
                     when {
                         response.isSuccessful && response.body()?.success == true -> {
+                            logDebug("ATKLog", "checkUserSession: جلسه کاربر معتبر است")
                             _isSessionValid.value = true
+                            logDebug("ATKLog", "checkUserSession: شروع سرویس بررسی بارگیری")
                             startLoadingCheckService()
                         }
                         else -> {
+                            logDebug("ATKLog", "checkUserSession: جلسه کاربر نامعتبر است")
                             _isSessionValid.value = false
                             userPreferencesManager.clearUserCredentials()
                             showMessage("لطفاً دوباره وارد شوید!")
                         }
                     }
                 } else {
+                    logDebug("ATKLog", "checkUserSession: نام کاربری خالی است")
                     _isSessionValid.value = false
                 }
             } catch (e: Exception) {
+                logError("ATKLog", "checkUserSession: خطا در بررسی جلسه کاربر", e)
                 _isSessionValid.value = false
                 showMessage("خطا در بررسی جلسه کاربر. لطفاً دوباره تلاش کنید.")
             }
@@ -508,7 +793,7 @@ fun UpdateDialog(
 ) {
     // انیمیشن برای نمایش دیالوگ
     val dialogAlpha by animateFloatAsState(targetValue = 1f, label = "")
-
+    
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Dialog(
             onDismissRequest = {
@@ -541,7 +826,7 @@ fun UpdateDialog(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .fillMaxWidth()
+                                    .fillMaxWidth()
                     ) {
                         ChangeLogSection(updateInfo.changeLog)
                     }
@@ -551,11 +836,11 @@ fun UpdateDialog(
                         downloadProgress = downloadProgress,
                         updateSize = updateInfo.updateSize,
                         onUpdateClick = onUpdateClick,
-                        onPauseClick = onPauseClick,
-                        onResumeClick = onResumeClick,
-                        onCancelClick = onCancelClick
-                    )
-                }
+                                        onPauseClick = onPauseClick,
+                                        onResumeClick = onResumeClick,
+                                        onCancelClick = onCancelClick
+                                    )
+                                }
             }
         }
     }
@@ -921,8 +1206,8 @@ private fun ExpandableChangeLogCategory(
     onExpandChange: (Boolean) -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
             .padding(vertical = 4.dp)
             .animateContentSize(
                 animationSpec = spring(
@@ -935,26 +1220,26 @@ private fun ExpandableChangeLogCategory(
             containerColor = color.copy(alpha = 0.1f)
         ),
         shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
+) {
+    Column(
             modifier = Modifier.padding(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
+        ) {
+            Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
+            ) {
+                Icon(
                         imageVector = icon,
-                        contentDescription = null,
+                    contentDescription = null,
                         tint = color,
                         modifier = Modifier.size(20.dp)
-                    )
-                    Text(
+                )
+                Text(
                         text = title,
                         style = MaterialTheme.typography.titleSmall,
                         color = color,
@@ -975,15 +1260,15 @@ private fun ExpandableChangeLogCategory(
                     animationSpec = tween(
                         durationMillis = 300,
                         easing = FastOutSlowInEasing
-                    ),
-                    label = ""
-                )
+            ),
+            label = ""
+        )
 
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
                     contentDescription = if (isExpanded) "بستن" else "باز کردن",
                     tint = color,
-                    modifier = Modifier
+            modifier = Modifier
                         .size(24.dp)
                         .rotate(rotation)
                 )
@@ -998,8 +1283,8 @@ private fun ExpandableChangeLogCategory(
                     )
                 ) + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(
+) {
+    Column(
                     modifier = Modifier
                         .padding(top = 12.dp)
                         .fillMaxWidth()
@@ -1017,10 +1302,10 @@ private fun ExpandableChangeLogCategory(
                                     .size(6.dp)
                                     .offset(y = 8.dp)
                                     .background(color.copy(alpha = 0.5f), CircleShape)
-                            )
-                            Text(
+                )
+                Text(
                                 text = item,
-                                style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -1049,29 +1334,29 @@ private fun UpdateActionSection(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
         shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
+) {
+    Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
             when (downloadState) {
                 is UpdateManager.DownloadState.Idle -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+                Text(
                             text = "حجم فایل: $updateSize مگابایت",
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        Button(
+            Button(
                             onClick = onUpdateClick,
                             contentPadding = PaddingValues(horizontal = 24.dp)
-                        ) {
-                            Icon(
+            ) {
+                Icon(
                                 Icons.Default.Add,
-                                contentDescription = null,
+                    contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -1142,7 +1427,7 @@ private fun ErrorState(
                 )
             }
         }
-
+ 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1301,11 +1586,6 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                         "امین تجار خوزستان (سایت نیاکوزرین)",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        "نسخه ${BuildConfig.VERSION_NAME}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                     )
                                 }
                             }
@@ -1603,7 +1883,7 @@ fun ProfileMenu(
                 }
             }
         } catch (e: Exception) {
-            Log.e("ProfileMenu", "Error fetching messages", e)
+            logError("ProfileMenu", "Error fetching messages", e)
         }
     }
 
@@ -1942,15 +2222,15 @@ fun ProfileSettingsDialog(
                     .verticalScroll(rememberScrollState())
                     .padding(vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Card(
+        ) {
+            Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
+                colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    ),
+                ),
                     shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(
+            ) {
+                Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -1968,12 +2248,12 @@ fun ProfileSettingsDialog(
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
                                 "نام و نام خانوادگی:",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1993,7 +2273,7 @@ fun ProfileSettingsDialog(
                             )
                             Text(
                                 getUserTypeDisplay(user.userType),
-                                fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.Bold,
                                 color = when (user.userType) {
                                     "admin" -> MaterialTheme.colorScheme.primary
                                     "operator" -> MaterialTheme.colorScheme.secondary
@@ -2062,7 +2342,7 @@ fun ProfileSettingsDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
+                                        Icon(
                             Icons.Default.Info,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
@@ -2126,7 +2406,7 @@ fun ProfileSettingsDialog(
         AlertDialog(
             onDismissRequest = { showConfirmation = false },
             title = {
-                Text(
+                            Text(
                     "تأیید تغییر رمز عبور",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
@@ -2245,7 +2525,7 @@ fun MessageItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
+                                Text(
                     text = message.title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = if (isUnread) FontWeight.Bold else FontWeight.Normal
@@ -2320,8 +2600,8 @@ private fun WelcomeSection(username: String) {
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -2400,8 +2680,8 @@ private fun AnimatedMenuGrid(
                     )
                 )
             ) {
-                Card(
-                    modifier = Modifier
+                    Card(
+                        modifier = Modifier
                         .let {
                             when {
                                 // مدیریت کاربران یا تک آیتم
@@ -2418,14 +2698,14 @@ private fun AnimatedMenuGrid(
                         .animateContentSize()
                         .clickable { onItemClick(item) },
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    colors = CardDefaults.cardColors(
+                        colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                    ),
+                        ),
                     shape = RoundedCornerShape(24.dp)
-                ) {
+                    ) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
+                            modifier = Modifier
+                                .fillMaxSize()
                             .border(
                                 width = 1.dp,
                                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
@@ -2493,8 +2773,8 @@ private fun AnimatedMenuGrid(
 @Composable
 private fun LoginPrompt(onLoginClick: () -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -2623,17 +2903,17 @@ fun UserManagementDialog(
                 // Header with Add Button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                     IconButton(onClick = onDismiss) {
                         Icon(Icons.Default.Close, contentDescription = "Close")
                     }
-                    Text(
+                                Text(
                         "مدیریت کاربران",
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
+                                    fontWeight = FontWeight.Bold
+                                )
                     if (currentUserType == "admin") {
                         IconButton(
                             onClick = { showAddDialog = true },
@@ -2642,7 +2922,7 @@ fun UserManagementDialog(
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.primary)
                         ) {
-                            Icon(
+                                Icon(
                                 Icons.Default.Add,
                                 contentDescription = "Add User",
                                 tint = MaterialTheme.colorScheme.onPrimary
@@ -2781,13 +3061,13 @@ private fun UserListItem(
         else -> MaterialTheme.colorScheme.outline
     }
 
-    Card(
+                    Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .animateContentSize(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
+                        colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
@@ -2963,9 +3243,9 @@ fun AddUserDialog(
             )
         },
         text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -3051,7 +3331,7 @@ fun AddUserDialog(
             }
         },
         confirmButton = {
-            Button(
+                                    Button(
                 onClick = {
                     when {
                         username.isEmpty() -> {
@@ -3145,7 +3425,7 @@ private fun UserTypeSelection(
     onUserTypeSelected: (String) -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
@@ -3400,15 +3680,15 @@ private fun AddConfirmationDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // اطلاعات کاربر
-                Card(
+            Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
+                colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    ),
+                ),
                     shape = RoundedCornerShape(8.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
+            ) {
+                Column(
+                    modifier = Modifier
                             .fillMaxWidth()
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -3496,8 +3776,8 @@ private fun AddConfirmationDialog(
                 } else {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                         Icon(
                             Icons.Default.Add,
                             contentDescription = null,
@@ -3532,9 +3812,9 @@ private fun EditConfirmationDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
+                                Text(
                 "تأیید تغییرات",
-                style = MaterialTheme.typography.titleLarge,
+                                    style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
         },
@@ -3601,7 +3881,7 @@ private fun EditConfirmationDialog(
                             Column(
                                 verticalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
-                                Text(
+                            Text(
                                     "نام و نام خانوادگی:",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -3612,7 +3892,7 @@ private fun EditConfirmationDialog(
                                     Row(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Text(
+                                Text(
                                             originalUser.fullName ?: "",
                                             style = TextStyle(textDecoration = TextDecoration.LineThrough),
                                             color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
@@ -3638,9 +3918,9 @@ private fun EditConfirmationDialog(
                                 color = MaterialTheme.colorScheme.tertiaryContainer,
                                 shape = RoundedCornerShape(4.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
                                         .padding(8.dp),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
@@ -3745,15 +4025,15 @@ private fun DeleteConfirmationDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // اطلاعات کاربر
-                Card(
+                    Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    ),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
                     shape = RoundedCornerShape(8.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
+                    ) {
+                        Column(
+                            modifier = Modifier
                             .fillMaxWidth()
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -3794,26 +4074,26 @@ private fun DeleteConfirmationDialog(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.errorContainer,
                     shape = RoundedCornerShape(4.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
                             .padding(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                         Icon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(20.dp)
                         )
-                        Text(
+                                Text(
                             "توجه: این عملیات قابل بازگشت نیست!",
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                                    fontWeight = FontWeight.Bold
+                                )
                     }
                 }
             }
@@ -3840,7 +4120,7 @@ private fun DeleteConfirmationDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
+                                Icon(
                             Icons.Default.Delete,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp)
@@ -4026,7 +4306,7 @@ fun LoginDialog(
                             },
                             label = { Text("نام کاربری") },
                             singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                             textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
                             leadingIcon = {
                                 Icon(
@@ -4041,7 +4321,7 @@ fun LoginDialog(
                                 imeAction = ImeAction.Next
                             ),
                             isError = errorMessage != null && username.isEmpty(),
-                            shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(16.dp)
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -4091,9 +4371,9 @@ fun LoginDialog(
                             exit = fadeOut() + shrinkVertically()
                         ) {
                             Box(
-                                modifier = Modifier
+                            modifier = Modifier
                                     .padding(vertical = 8.dp)
-                                    .fillMaxWidth()
+                                .fillMaxWidth()
                                     .background(
                                         MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
                                         RoundedCornerShape(8.dp)
@@ -4101,7 +4381,7 @@ fun LoginDialog(
                                     .padding(12.dp)
                             ) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
