@@ -1,21 +1,13 @@
 package com.atk.atk_cargo
 
+//noinspection UsingMaterialAndMaterial3Libraries
+import android.annotation.SuppressLint
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,14 +29,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.CircularProgressIndicator
-//noinspection UsingMaterialAndMaterial3Libraries
 import androidx.compose.material.TabRowDefaults.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CheckCircle
@@ -76,7 +65,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -84,14 +72,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -135,23 +122,22 @@ fun CargoDetailsScreen(
     val userPreferencesManager = remember { UserPreferencesManager(context) }
     val viewModel: CargoViewModel = viewModel(factory = CargoViewModelFactory(repository, userPreferencesManager))
     val coroutineScope = rememberCoroutineScope()
-    val cargoCount by viewModel.cargoCount.collectAsState()
+    
+    // StateFlow collectors
     val username by userPreferencesManager.username.collectAsState(initial = "")
     val userType by userPreferencesManager.userType.collectAsState(initial = "")
     val cargoInfoList by viewModel.cargoInfoList.collectAsState()
     val filteredCargoInfoList by viewModel.filteredCargoInfoList.collectAsState()
     val initialInfo by viewModel.initialInfo.collectAsState()
-    val cargoWeight by viewModel.cargoWeight.collectAsState()
-    val remainingWeight by viewModel.remainingWeight.collectAsState()
-    val loadedWeight by viewModel.loadedWeight.collectAsState()
     val resultMessage by viewModel.resultMessage.collectAsState()
     val showAnimatedMessage by viewModel.showAnimatedMessage.collectAsState()
     val messageType by viewModel.messageType.collectAsState()
+
     var selectedCargoInfo by remember { mutableStateOf<CargoInfo?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     var updateTime by remember { mutableStateOf(getCurrentTime()) }
-    var loadingProgress by remember { mutableFloatStateOf(0f) }
-    var showLoadingDialog by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(true) }
+    
     val groupedCargoList by remember(filteredCargoInfoList) {
         derivedStateOf {
             filteredCargoInfoList.groupBy { it.confirm == "تائید شده" }
@@ -169,74 +155,95 @@ fun CargoDetailsScreen(
             shippingCompany = decodedShippingCompany,
             warehouse = decodedWarehouse,
             cargoType = decodedcargoType,
-            onProgress = { progress -> loadingProgress = progress },
-            onComplete = { showLoadingDialog = false }
+            onComplete = { 
+                isLoading = false
+                viewModel.updateInfoValues()
+            }
         )
     }
 
     LaunchedEffect(cargoInfoList) {
         viewModel.filterCargoInfoList(searchQuery)
+        viewModel.updateInfoValues() // به‌روزرسانی مقادیر پس از تغییر لیست
     }
 
-//    LaunchedEffect(Unit) {
-//        while (true) {
-//            delay(30000)
-//            refreshData(
-//                viewModel,
-//                quotaNumber = quotaNumber,
-//                shippingCompany = shippingCompany,
-//                warehouse = warehouse,
-//                cargoType = cargoType
-//            ) {
-//                updateTime = getCurrentTime()
-//                Toast.makeText(context, "اطلاعات به‌روزرسانی شد", Toast.LENGTH_SHORT).show()
-//            }
-//        }
-//    }
+    // Auto-refresh timer
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(30000) // هر 30 ثانیه
+            refreshData(
+                viewModel = viewModel,
+                quotaNumber = quotaNumber,
+                shippingCompany = shippingCompany,
+                warehouse = warehouse,
+                cargoType = cargoType
+            ) {
+                updateTime = getCurrentTime()
+                viewModel.updateInfoValues()
+                Toast.makeText(context, "اطلاعات به‌روزرسانی شد", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     Scaffold { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            InitialInfoSection(
-                initialInfo = initialInfo,
-                cargoWeight = cargoWeight,
-                cargoCount = cargoCount,
-                remainingWeight = remainingWeight,
-                loadedWeight = loadedWeight
-            )
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                InitialInfoSection(
+                    initialInfo = initialInfo
+                )
 
-            SearchAndRefreshSection(
-                searchQuery = searchQuery,
-                onSearchQueryChange = {
-                    searchQuery = it
-                    viewModel.filterCargoInfoList(it)
-                },
-                onRefresh = {
-                    coroutineScope.launch {
-                        refreshData(
-                            viewModel = viewModel,
-                            quotaNumber = quotaNumber,
-                            shippingCompany = shippingCompany,
-                            warehouse = warehouse,
-                            cargoType = cargoType
-                        ) {
-                            updateTime = getCurrentTime()
-                            Toast.makeText(context, "اطلاعات به‌روزرسانی شد", Toast.LENGTH_SHORT).show()
+                SearchAndRefreshSection(
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = {
+                        searchQuery = it
+                        viewModel.filterCargoInfoList(it)
+                    },
+                    onRefresh = {
+                        coroutineScope.launch {
+                            isLoading = true
+                            refreshData(
+                                viewModel = viewModel,
+                                quotaNumber = quotaNumber,
+                                shippingCompany = shippingCompany,
+                                warehouse = warehouse,
+                                cargoType = cargoType
+                            ) {
+                                isLoading = false
+                                updateTime = getCurrentTime()
+                                viewModel.updateInfoValues()
+                                Toast.makeText(context, "اطلاعات به‌روزرسانی شد", Toast.LENGTH_SHORT).show()
+                            }
                         }
-                    }
-                },
-                updateTime = updateTime
-            )
+                    },
+                    updateTime = updateTime
+                )
 
-            Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-            CargoListSection(
-                groupedCargoList = groupedCargoList,
-                onCargoSelected = { selectedCargoInfo = it }
-            )
+                CargoListSection(
+                    groupedCargoList = groupedCargoList,
+                    onCargoSelected = { selectedCargoInfo = it }
+                )
+            }
+            
+            // نمایش نشانگر بارگذاری
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+            }
         }
     }
 
@@ -271,22 +278,11 @@ fun CargoDetailsScreen(
             showConfirmButton = info.status == "ورود" && info.confirm != "تائید شده"
         )
     }
-
-    if (showLoadingDialog) {
-        LoadingDialog(
-            progress = loadingProgress,
-            onDismiss = { showLoadingDialog = false }
-        )
-    }
 }
 
 @Composable
 fun InitialInfoSection(
-    initialInfo: InitialInfo?,
-    cargoWeight: String,
-    cargoCount: Int,
-    remainingWeight: String,
-    loadedWeight: String
+    initialInfo: InitialInfo?
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
@@ -301,131 +297,443 @@ fun InitialInfoSection(
                     stiffness = Spring.StiffnessLow
                 )
             ),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+        )
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // هدر کشتی در هر دو حالت باز و بسته نمایش داده می‌شود
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // نام کشتی با آیکون دریایی
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsBoat,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = initialInfo?.shipName ?: "",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // آیکون باز/بسته کردن
+                IconButton(
+                    onClick = { isExpanded = !isExpanded },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        )
+                ) {
                     Icon(
-                        imageVector = Icons.Default.DirectionsBoat,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = initialInfo?.shipName ?: "",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (isExpanded) "بستن" else "باز کردن",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
-                Icon(
-                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) "بستن" else "باز کردن",
-                    tint = MaterialTheme.colorScheme.primary
+            }
+
+            // حالت باز - اطلاعات کامل
+            AnimatedVisibility(visible = isExpanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                ) {
+                    initialInfo?.let { info ->
+                        // نمایش گرید اطلاعات در حالت باز
+                        InfoGrid(initialInfo = info)
+                    }
+                }
+            }
+
+            // حالت بسته - چیپ‌های اطلاعات ضروری
+            if (!isExpanded) {
+                InfoChips(initialInfo = initialInfo)
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoGrid(initialInfo: InitialInfo) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // ردیف اول
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                InfoGridItem(
+                    icon = Icons.Default.Warehouse,
+                    label = "انبار بارگیری",
+                    value = initialInfo.loadingWarehouse,
+                    modifier = Modifier.weight(1f)
+                )
+
+                InfoGridItem(
+                    icon = Icons.Default.Business,
+                    label = "شرکت باربری",
+                    value = initialInfo.shippingCompany,
+                    modifier = Modifier.weight(1f)
                 )
             }
 
-            AnimatedVisibility(visible = isExpanded) {
-                Column(modifier = Modifier.padding(top = 8.dp)) {
-                    initialInfo?.let { info ->
-                        Row(modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                MiniInfoRow(Icons.Default.Warehouse, "انبار", info.loadingWarehouse)
-                                MiniInfoRow(Icons.Default.Category, "نوع کالا", info.cargoType)
-                                MiniInfoRow(Icons.Default.Scale, "وزن کل", cargoWeight)
-                                MiniInfoRow(Icons.AutoMirrored.Filled.TrendingDown, "تناژ مانده", remainingWeight)
+            // ردیف دوم
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                InfoGridItem(
+                    icon = Icons.Default.Category,
+                    label = "نوع کالا",
+                    value = initialInfo.cargoType,
+                    modifier = Modifier.weight(1f)
+                )
+
+                InfoGridItem(
+                    icon = Icons.Default.ConfirmationNumber,
+                    label = "شماره کوتاژ",
+                    value = initialInfo.loadingQuotaNumber.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoGridItem(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Row(
+            modifier = Modifier.padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoChips(initialInfo: InitialInfo?) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // شماره کوتاژ
+        ModernInfoChip(
+            icon = Icons.Default.ConfirmationNumber,
+            label = "کوتاژ",
+            value = initialInfo?.loadingQuotaNumber?.toString() ?: "",
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f)
+        )
+
+        // انبار
+        ModernInfoChip(
+            icon = Icons.Default.Warehouse,
+            label = "انبار",
+            value = initialInfo?.loadingWarehouse ?: "",
+            color = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.weight(1f)
+        )
+
+        // شرکت باربری
+        ModernInfoChip(
+            icon = Icons.Default.Business,
+            label = "شرکت",
+            value = initialInfo?.shippingCompany ?: "",
+            color = MaterialTheme.colorScheme.tertiary,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun ModernInfoChip(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = color.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(16.dp)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = color.copy(alpha = 0.7f)
+                )
+
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = color,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CargoInfoCard(cargoInfo: CargoInfo, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .border(
+                0.5.dp,
+                when {
+                    cargoInfo.confirm == "تائید شده" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    cargoInfo.status == "ورود" -> MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                    else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                },
+                RoundedCornerShape(8.dp)
+            )
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = when {
+                cargoInfo.confirm == "تائید شده" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                cargoInfo.status == "ورود" -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                else -> MaterialTheme.colorScheme.surface
+            }
+        ),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // ستون سمت راست - شماره حواله و تعداد نفرات
+            Column(
+                modifier = Modifier.weight(0.65f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // شماره حواله و وضعیت تأیید
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = cargoInfo.trackingNumber,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    )
+                    if (cargoInfo.confirm == "تائید شده") {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+
+                // تعداد نفرات
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Group,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "تعداد نفرات: ${cargoInfo.numberOfPeople}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                // نمایش کسری و اضافه بار در یک خط
+                if (cargoInfo.shortageWeight.isNotBlank() || cargoInfo.excessWeight.isNotBlank()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // کسری
+                        if (cargoInfo.shortageWeight.isNotBlank() && (cargoInfo.shortageWeight.toDoubleOrNull() ?: 0.0) > 0) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.TrendingDown,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = "${cargoInfo.shortageWeight} kg",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                MiniInfoRow(Icons.Default.Business, "شرکت باربری", info.shippingCompany)
-                                MiniInfoRow(Icons.Default.ConfirmationNumber, "شماره کوتاژ", info.loadingQuotaNumber.toString())
-                                MiniInfoRow(Icons.Default.Inventory, "تعداد حواله", cargoCount.toString())
-                                MiniInfoRow(Icons.AutoMirrored.Filled.TrendingUp, "تناژ بارگیری شده", loadedWeight)
+                        }
+
+                        // اضافه بار
+                        if (cargoInfo.excessWeight.isNotBlank() && (cargoInfo.excessWeight.toDoubleOrNull() ?: 0.0) > 0) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.tertiary,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = "${cargoInfo.excessWeight} kg",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
                         }
                     }
                 }
             }
 
-            if (!isExpanded) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    MiniInfoChip(Icons.AutoMirrored.Filled.TrendingDown, "مانده", remainingWeight)
-                    MiniInfoChip(Icons.AutoMirrored.Filled.ViewList, "کوتاژ", initialInfo?.loadingQuotaNumber.toString())
-                    MiniInfoChip(Icons.AutoMirrored.Filled.TrendingUp, "بارگیری", loadedWeight)
-                }
-            }
-        }
-    }
-}
+            // خط عمودی جداکننده
+            Box(
+                modifier = Modifier
+                    .height(40.dp)
+                    .width(1.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+            )
 
-@Composable
-fun MiniInfoRow(icon: ImageVector, label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-    }
-}
-
-@Composable
-fun MiniInfoChip(icon: ImageVector, label: String, value: String) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Column {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+            // ستون سمت چپ - وضعیت حواله
+            Column(
+                modifier = Modifier.weight(0.35f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // نشانگر وضعیت
+                StatusBadge(
+                    status = cargoInfo.status,
+                    isConfirmed = cargoInfo.confirm == "تائید شده"
                 )
+
+                // تاریخ و زمان مربوطه
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    text = when (cargoInfo.status) {
+                        "ورود" -> "ورود: ${cargoInfo.entryTime}"
+                        "خروج" -> "خروج: ${cargoInfo.exitTime}"
+                        else -> ""
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
             }
         }
@@ -516,9 +824,33 @@ fun CargoListSection(
     groupedCargoList: Map<Boolean, List<CargoInfo>>,
     onCargoSelected: (CargoInfo) -> Unit
 ) {
-    // مدیریت وضعیت باز یا بسته بودن هر گروه به صورت جداگانه
     var isConfirmedExpanded by remember { mutableStateOf(false) }
     var isUnconfirmedExpanded by remember { mutableStateOf(true) }
+
+    // وقتی یک گروه باز می‌شود، گروه دیگر بسته می‌شود
+    // همیشه فقط یکی از آنها باز است
+    fun toggleConfirmedSection() {
+        if (!isConfirmedExpanded) {
+            isConfirmedExpanded = true
+            isUnconfirmedExpanded = false
+        }
+    }
+
+    fun toggleUnconfirmedSection() {
+        if (!isUnconfirmedExpanded) {
+            isUnconfirmedExpanded = true
+            isConfirmedExpanded = false
+        }
+    }
+
+    // محاسبه آمار فقط برای گروه تأیید شده
+    val confirmedStats = remember(groupedCargoList[true]) {
+        groupedCargoList[true]?.let { confirmedCargos ->
+            val totalWeight = confirmedCargos.sumOf { it.netWeight.toDoubleOrNull() ?: 0.0 }
+            val avgWeight = if (confirmedCargos.isNotEmpty()) totalWeight / confirmedCargos.size else 0.0
+            Triple(confirmedCargos.size, totalWeight, avgWeight)
+        } ?: Triple(0, 0.0, 0.0)
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -526,14 +858,15 @@ fun CargoListSection(
     ) {
         // گروه تأیید نشده
         groupedCargoList[false]?.let { unconfirmedCargos ->
-            val groupTitle = "تأیید نشده (${unconfirmedCargos.size})"
             item(key = "unconfirmed_header") {
-                GroupHeader(
-                    title = groupTitle,
-                    isExpanded = isUnconfirmedExpanded,
-                    isConfirmed = false,
-                    onToggle = { isUnconfirmedExpanded = !isUnconfirmedExpanded }
-                )
+                Column {
+                    GroupHeader(
+                        title = "تأیید نشده (${unconfirmedCargos.size})",
+                        isExpanded = isUnconfirmedExpanded,
+                        isConfirmed = false,
+                        onToggle = { toggleUnconfirmedSection() }
+                    )
+                }
             }
 
             if (isUnconfirmedExpanded) {
@@ -556,31 +889,35 @@ fun CargoListSection(
 
         // گروه تأیید شده
         groupedCargoList[true]?.let { confirmedCargos ->
-            val groupTitle = "تأیید شده"
             item(key = "confirmed_header") {
-                GroupHeader(
-                    title = groupTitle,
-                    isExpanded = isConfirmedExpanded,
-                    isConfirmed = true,
-                    onToggle = { isConfirmedExpanded = !isConfirmedExpanded }
-                )
+                Column {
+                    GroupHeader(
+                        title = "تأیید شده (${confirmedCargos.size})",
+                        isExpanded = isConfirmedExpanded,
+                        isConfirmed = true,
+                        onToggle = { toggleConfirmedSection() }
+                    )
+                    if (isConfirmedExpanded && confirmedCargos.isNotEmpty()) {
+                        GroupStats(
+                            count = confirmedStats.first,
+                            totalWeight = confirmedStats.second,
+                            avgWeight = confirmedStats.third,
+                            isConfirmed = true
+                        )
+                    }
+                }
             }
 
             if (isConfirmedExpanded) {
                 items(
-                    items = confirmedCargos.sortedByDescending { 
-                        "${it.exitDate} ${it.exitTime}"
-                    },
-                    key = { it.trackingNumber }/**/
+                    items = confirmedCargos.sortedByDescending { "${it.exitDate} ${it.exitTime}" },
+                    key = { it.trackingNumber }
                 ) { cargoInfo ->
                     CargoInfoCard(
                         cargoInfo = cargoInfo,
                         onClick = { onCargoSelected(cargoInfo) }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                }
-                item(key = "confirmed_spacer") {
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
 
@@ -591,202 +928,125 @@ fun CargoListSection(
     }
 }
 
+@SuppressLint("DefaultLocale")
 @Composable
-fun CargoInfoCard(cargoInfo: CargoInfo, onClick: () -> Unit) {
-
+private fun GroupStats(
+    count: Int,
+    totalWeight: Double,
+    avgWeight: Double,
+    isConfirmed: Boolean
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .border(
-                0.5.dp,
-                when {
-                    cargoInfo.confirm == "تائید شده" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                    cargoInfo.status == "ورود" -> MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-                    else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                },
-                RoundedCornerShape(8.dp)
-            )
-            .clickable(onClick = onClick),
+            .padding(vertical = 8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = when {
-                cargoInfo.confirm == "تائید شده" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-                cargoInfo.status == "ورود" -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-                else -> MaterialTheme.colorScheme.surface
-            }
-        ),
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Header Section
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Tracking Number and Confirmation Status
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = cargoInfo.trackingNumber,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                    )
-                    if (cargoInfo.confirm == "تائید شده") {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
-                }
-
-                // Status Badge
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = when (cargoInfo.status) {
-                        "ورود" -> MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-                        "خروج" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                        else -> MaterialTheme.colorScheme.surfaceVariant
-                    },
-                    border = BorderStroke(
-                        0.5.dp,
-                        when (cargoInfo.status) {
-                            "ورود" -> MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-                            "خروج" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                            else -> MaterialTheme.colorScheme.outline
-                        }
-                    )
-                ) {
-                    Text(
-                        text = cargoInfo.status,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = when (cargoInfo.status) {
-                            "ورود" -> MaterialTheme.colorScheme.error
-                            "خروج" -> MaterialTheme.colorScheme.primary
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            // Weight Status Section
-            if (cargoInfo.shortageWeight.isNotBlank() || cargoInfo.excessWeight.isNotBlank() || cargoInfo.netWeight.isNotBlank()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // People Count
-                    PeopleCount(cargoInfo.numberOfPeople)
-
-                    // Weight Badges
-                    Row(
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        WeightStatusBadges(
-                            shortageWeight = cargoInfo.shortageWeight,
-                            excessWeight = cargoInfo.excessWeight
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PeopleCount(count: String) {
-    Surface(
-        shape = RoundedCornerShape(4.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+            containerColor = if (isConfirmed) 
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+            else 
+                MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+        )
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceAround
         ) {
-            Icon(
-                imageVector = Icons.Default.Group,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(12.dp)
+            StatItem(
+                label = "تعداد",
+                value = count.toString(),
+                icon = Icons.Default.Inventory
             )
-            Text(
-                text = count,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+            StatItem(
+                label = "مجموع وزن",
+                value = "${String.format("%,d", totalWeight.toLong())} کیلوگرم",
+                icon = Icons.Default.Scale
             )
-        }
-    }
-}
-
-@Composable
-private fun WeightStatusBadges(
-    shortageWeight: String,
-    excessWeight: String
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (shortageWeight.isNotBlank() && (shortageWeight.toDoubleOrNull() ?: 0.0) > 0) {
-            WeightBadge(
-                value = shortageWeight,
-                label = "کسری",
-                icon = Icons.AutoMirrored.Filled.TrendingDown,
-                color = MaterialTheme.colorScheme.error
-            )
-        }
-
-        if (excessWeight.isNotBlank() && (excessWeight.toDoubleOrNull() ?: 0.0) > 0) {
-            WeightBadge(
-                value = excessWeight,
-                label = "اضافه",
-                icon = Icons.AutoMirrored.Filled.TrendingUp,
-                color = MaterialTheme.colorScheme.tertiary
+            StatItem(
+                label = "میانگین",
+                value = "${String.format("%,d", avgWeight.toLong())} کیلوگرم",
+                icon = Icons.AutoMirrored.Filled.TrendingUp
             )
         }
     }
 }
 
 @Composable
-private fun WeightBadge(
-    value: String,
+private fun StatItem(
     label: String,
-    icon: ImageVector,
-    color: Color
+    value: String,
+    icon: ImageVector
 ) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun StatusBadge(status: String, isConfirmed: Boolean) {
     Surface(
-        shape = RoundedCornerShape(4.dp),
-        color = color.copy(alpha = 0.1f),
-        border = BorderStroke(0.5.dp, color.copy(alpha = 0.5f))
+        shape = RoundedCornerShape(16.dp),
+        color = when {
+            isConfirmed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+            status == "ورود" -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+            else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+        },
+        border = BorderStroke(
+            1.dp,
+            when {
+                isConfirmed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                status == "ورود" -> MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+            }
+        )
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Icon(
-                imageVector = icon,
+                imageVector = when (status) {
+                    "ورود" -> Icons.Default.Inventory
+                    "خروج" -> Icons.Default.CheckCircle
+                    else -> Icons.Default.DirectionsBoat
+                },
                 contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(12.dp)
+                tint = when {
+                    isConfirmed -> MaterialTheme.colorScheme.primary
+                    status == "ورود" -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.secondary
+                },
+                modifier = Modifier.size(16.dp)
             )
+
             Text(
-                text = "$label: $value کیلوگرم",
-                style = MaterialTheme.typography.labelSmall,
-                color = color
+                text = status,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                color = when {
+                    isConfirmed -> MaterialTheme.colorScheme.primary
+                    status == "ورود" -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.secondary
+                }
             )
         }
     }
@@ -982,169 +1242,6 @@ fun DialogActions(onDismiss: () -> Unit, onConfirm: () -> Unit, showConfirmButto
     }
 }
 
-@Composable
-private fun LoadingDialog(
-    progress: Float,
-    onDismiss: () -> Unit
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "loading_rotation")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "loading_rotation"
-    )
-
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(
-            durationMillis = 500,
-            easing = FastOutSlowInEasing
-        ),
-        label = "progress_animation"
-    )
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            dismissOnBackPress = false,
-            dismissOnClickOutside = false,
-            usePlatformDefaultWidth = false
-        )
-    ) {
-        Surface(
-            modifier = Modifier
-                .padding(24.dp)
-                .clip(RoundedCornerShape(28.dp)),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp,
-            shadowElevation = 6.dp
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(280.dp)
-                    .padding(24.dp)
-            ) {
-                // Background Progress
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .size(200.dp),
-                    progress = 1f,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    strokeWidth = 10.dp,
-                    strokeCap = StrokeCap.Round
-                )
-
-                // Animated Progress
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .size(200.dp),
-                    progress = animatedProgress,
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 10.dp,
-                    strokeCap = StrokeCap.Round
-                )
-
-                // Rotating Loading Indicator
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .size(180.dp)
-                        .rotate(rotation),
-                    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f),
-                    strokeWidth = 2.dp
-                )
-
-                // Center Content
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    // Progress Percentage
-                    Text(
-                        text = "${(animatedProgress * 100).toInt()}%",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Loading Status Chip with MD3 styling
-                    Surface(
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "در حال بارگذاری",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            LoadingDots()
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LoadingDots() {
-    val dotSize = 4.dp
-    val delayUnit = 200
-
-    @Composable
-    fun Dot(delay: Int) {
-        var visible by remember { mutableStateOf(true) }
-
-        LaunchedEffect(Unit) {
-            while (true) {
-                delay(delay.toLong())
-                visible = !visible
-                delay(1000)
-            }
-        }
-
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(
-                animationSpec = tween(200)
-            ),
-            exit = fadeOut(
-                animationSpec = tween(200)
-            )
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(dotSize)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.onSecondaryContainer)
-            )
-        }
-    }
-
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 2.dp)
-    ) {
-        Dot(0)
-        Dot(delayUnit)
-        Dot(delayUnit * 2)
-    }
-}
-
 private fun refreshData(
     viewModel: CargoViewModel,
     quotaNumber: String,
@@ -1158,7 +1255,6 @@ private fun refreshData(
         shippingCompany = shippingCompany,
         warehouse = warehouse,
         cargoType = cargoType,
-        onProgress = { /* You can handle progress updates here if needed */ },
         onComplete = onComplete
     )
 }
@@ -1167,7 +1263,7 @@ private fun refreshData(
 suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): Result<String> {
     val client = HttpClient(CIO)
     return try {
-        val url = "https://cargo.atk-nk.site/confirm_cargo.php"
+        val url = "https://atk-nk.site/Cargo/confirm_cargo.php"
         val requestBody = Json.encodeToString(mapOf(
             "trackingNumber" to info.trackingNumber,
             "loadingQuotaNumber" to info.loadingQuotaNumber,
@@ -1215,11 +1311,9 @@ suspend fun handleCargoConfirmation(
                     shippingCompany = shippingCompany,
                     warehouse = warehouse,
                     cargoType = cargoType,
-                    onProgress = { /* Handle progress if needed */ },
                     onComplete = {
                         viewModel.showMessage(message, MessageType.SUCCESS)
-                    },
-                    showLoadingDialog = false
+                    }
                 )
             },
             onFailure = { error ->

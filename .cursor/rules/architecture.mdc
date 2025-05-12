@@ -1,0 +1,30 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# معماری برنامه ATK-Cargo
+
+این پروژه بر اساس معماری MVVM توسعه یافته و از الگوهای طراحی مدرن اندروید استفاده می‌کند.
+
+## لایه‌های اصلی
+
+### مدل‌های داده
+- [app/src/main/java/com/atk/atk_cargo/api/DataModel.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/DataModel.kt) - تعریف کلاس‌های مدل داده
+
+### رابط کاربری (UI)
+- [app/src/main/java/com/atk/atk_cargo/ui/theme/Theme.kt](mdc:app/src/main/java/com/atk/atk_cargo/ui/theme/Theme.kt) - تم اصلی برنامه
+- [app/src/main/java/com/atk/atk_cargo/ui/theme/Color.kt](mdc:app/src/main/java/com/atk/atk_cargo/ui/theme/Color.kt) - تعریف رنگ‌های برنامه
+- [app/src/main/java/com/atk/atk_cargo/ui/theme/Type.kt](mdc:app/src/main/java/com/atk/atk_cargo/ui/theme/Type.kt) - تعریف فونت‌ها و سبک‌های متن
+
+### شبکه و API
+- [app/src/main/java/com/atk/atk_cargo/api/RetrofitClient.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/RetrofitClient.kt) - پیکربندی کلاینت Retrofit
+- [app/src/main/java/com/atk/atk_cargo/api/ApiService.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/ApiService.kt) - تعریف سرویس‌های API
+
+### امنیت
+- [app/src/main/java/com/atk/atk_cargo/security/SignatureVerifier.kt](mdc:app/src/main/java/com/atk/atk_cargo/security/SignatureVerifier.kt) - تأیید امضای برنامه
+- [app/src/main/java/com/atk/atk_cargo/security/SecurityBlockScreen.kt](mdc:app/src/main/java/com/atk/atk_cargo/security/SecurityBlockScreen.kt) - صفحه مسدودسازی در صورت مشکلات امنیتی
+
+### ابزارها و کمک‌کننده‌ها
+- [app/src/main/java/com/atk/atk_cargo/utils/LogUtils.kt](mdc:app/src/main/java/com/atk/atk_cargo/utils/LogUtils.kt) - ابزارهای مدیریت لاگ
+- [app/src/main/java/com/atk/atk_cargo/api/JalaliCalendar.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/JalaliCalendar.kt) - ابزار تبدیل تاریخ جلالی

@@ -1,0 +1,29 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# صفحه‌های اصلی برنامه ATK-Cargo
+
+این پروژه شامل چندین صفحه و اکتیویتی کلیدی است که عملکردهای مختلف برنامه را پوشش می‌دهند.
+
+## صفحه‌های مدیریت بار
+
+### صفحه اصلی
+- [app/src/main/java/com/atk/atk_cargo/MainActivity.kt](mdc:app/src/main/java/com/atk/atk_cargo/MainActivity.kt) - صفحه اصلی برنامه و داشبورد مدیریتی
+
+### ثبت بار
+- [app/src/main/java/com/atk/atk_cargo/RegisterCargoActivity.kt](mdc:app/src/main/java/com/atk/atk_cargo/RegisterCargoActivity.kt) - صفحه ثبت اطلاعات بار جدید
+- [app/src/main/java/com/atk/atk_cargo/InitialInfoActivity.kt](mdc:app/src/main/java/com/atk/atk_cargo/InitialInfoActivity.kt) - صفحه ثبت اطلاعات اولیه بار
+
+### جزئیات و گزارش‌ها
+- [app/src/main/java/com/atk/atk_cargo/CargoDetailsScreen.kt](mdc:app/src/main/java/com/atk/atk_cargo/CargoDetailsScreen.kt) - صفحه نمایش جزئیات بار
+- [app/src/main/java/com/atk/atk_cargo/ManageReportsScreen.kt](mdc:app/src/main/java/com/atk/atk_cargo/ManageReportsScreen.kt) - صفحه مدیریت گزارش‌ها
+- [app/src/main/java/com/atk/atk_cargo/CargoCounterScreen.kt](mdc:app/src/main/java/com/atk/atk_cargo/CargoCounterScreen.kt) - صفحه شمارنده و آمار بار
+
+### انتخاب اطلاعات
+- [app/src/main/java/com/atk/atk_cargo/SelectInfoScreen.kt](mdc:app/src/main/java/com/atk/atk_cargo/SelectInfoScreen.kt) - صفحه انتخاب و فیلتر اطلاعات
+
+## ویجت و اعلان‌ها
+- [app/src/main/java/com/atk/atk_cargo/api/RealTimeLoadingWidget.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/RealTimeLoadingWidget.kt) - ویجت نمایش اطلاعات بارگیری به صورت لحظه‌ای
+- [app/src/main/java/com/atk/atk_cargo/api/PopupActivity.kt](mdc:app/src/main/java/com/atk/atk_cargo/api/PopupActivity.kt) - صفحه نمایش پیام‌های پاپ‌آپ

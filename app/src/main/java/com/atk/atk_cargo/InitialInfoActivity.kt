@@ -1346,7 +1346,7 @@ fun isValidWeight(weight: String): Boolean {
 }
 
 fun isValidQuotaNumber(number: String): Boolean {
-    return number.all { it.isDigit() } && number.length == 5
+    return number.all { it.isDigit() } && number.length >= 5
 }
 
 private fun formatNumber(number: String): String {
