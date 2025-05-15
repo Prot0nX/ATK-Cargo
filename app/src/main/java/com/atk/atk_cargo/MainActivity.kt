@@ -189,7 +189,6 @@ import com.atk.atk_cargo.security.SecurityBlockScreen
 import com.atk.atk_cargo.security.SecurityErrorType
 import com.atk.atk_cargo.security.SignatureVerifier
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
-import com.atk.atk_cargo.utils.LogUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -207,15 +206,6 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-
-// توابع کمکی برای لاگ کردن
-private fun logDebug(tag: String, message: String) {
-    LogUtils.d(message, tag)
-}
-
-private fun logError(tag: String, message: String, throwable: Throwable? = null) {
-    LogUtils.e(message, throwable, tag)
-}
 
 class MainActivity : ComponentActivity() {
     private var updateInfo by mutableStateOf<UpdateInfo?>(null)
@@ -242,103 +232,70 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        logDebug("ATKLog", "onCreate: شروع راه‌اندازی اکتیویتی اصلی")
-        
         try {
-            logDebug("ATKLog", "onCreate: شروع مقداردهی وابستگی‌ها")
             initializeDependencies()
-            logDebug("ATKLog", "onCreate: مقداردهی وابستگی‌ها با موفقیت انجام شد")
             
-            logDebug("ATKLog", "onCreate: شروع تنظیم محتوای UI")
             setContent {
-                logDebug("ATKLog", "setContent: شروع تنظیم تم و محتوای اصلی")
                 ATKCargoTheme {
                     var showMainContent by remember { mutableStateOf(false) }
                     // متغیر جدید برای کنترل نمایش دیالوگ‌های مجوز
                     var canRequestPermissions by remember { mutableStateOf(false) }
 
                     LaunchedEffect(Unit) {
-                        logDebug("ATKLog", "LaunchedEffect اول: شروع اجرای عملیات‌های اولیه")
-
                         // ابتدا بررسی امنیتی را انجام می‌دهیم
-                        logDebug("ATKLog", "LaunchedEffect اول: شروع بررسی امنیتی")
                         performSecurityCheck()
-                        logDebug("ATKLog", "LaunchedEffect اول: بررسی امنیتی انجام شد، تاخیر 1500ms")
                         delay(1500) // افزایش تاخیر
                         
                         // سپس بررسی بروزرسانی را انجام می‌دهیم
-                        logDebug("ATKLog", "LaunchedEffect اول: شروع بررسی بروزرسانی")
                         checkForUpdate()
-                        logDebug("ATKLog", "LaunchedEffect اول: بررسی بروزرسانی انجام شد، تاخیر 1500ms")
                         delay(1500) // افزایش تاخیر
                         
                         // نمایش محتوای اصلی
-                        logDebug("ATKLog", "LaunchedEffect اول: آماده‌سازی برای نمایش محتوای اصلی")
                         showMainContent = true
-                        logDebug("ATKLog", "LaunchedEffect اول: محتوای اصلی آماده نمایش شد")
                         
                         // تاخیر طولانی‌تر قبل از شروع سرویس‌ها
-                        logDebug("ATKLog", "LaunchedEffect اول: تاخیر 3000ms قبل از شروع سرویس‌ها")
                         delay(3000)
-                        logDebug("ATKLog", "LaunchedEffect اول: تاخیر به پایان رسید، آماده شروع سرویس‌ها")
                         
                         // شروع سرویس‌ها را به یک کوروتین جداگانه منتقل می‌کنیم
-                        logDebug("ATKLog", "LaunchedEffect اول: شروع کوروتین جداگانه برای سرویس‌ها")
                         lifecycleScope.launch(Dispatchers.IO) {
                             try {
-                                logDebug("ATKLog", "کوروتین سرویس‌ها: شروع راه‌اندازی سرویس‌های پس‌زمینه")
                                 withContext(Dispatchers.Main) {
                                     try {
-                                        logDebug("ATKLog", "کوروتین سرویس‌ها: فراخوانی startBackgroundServices در thread اصلی")
                                         startBackgroundServices()
-                                        logDebug("ATKLog", "کوروتین سرویس‌ها: فراخوانی startBackgroundServices با موفقیت انجام شد")
                                     } catch (e: Exception) {
-                                        logError("ATKLog", "کوروتین سرویس‌ها: خطا در فراخوانی startBackgroundServices در thread اصلی", e)
+                                        // خطا در فراخوانی startBackgroundServices
                                     }
                                 }
-                                logDebug("ATKLog", "کوروتین سرویس‌ها: سرویس‌های پس‌زمینه راه‌اندازی شدند")
                                 
-                                logDebug("ATKLog", "کوروتین سرویس‌ها: تاخیر 2000ms قبل از شروع سرویس بررسی بارگیری")
                                 delay(2000)
-                                logDebug("ATKLog", "کوروتین سرویس‌ها: شروع سرویس بررسی بارگیری")
                                 withContext(Dispatchers.Main) {
                                     try {
-                                        logDebug("ATKLog", "کوروتین سرویس‌ها: فراخوانی startLoadingCheckService در thread اصلی")
                                         startLoadingCheckService()
-                                        logDebug("ATKLog", "کوروتین سرویس‌ها: فراخوانی startLoadingCheckService با موفقیت انجام شد")
                                     } catch (e: Exception) {
-                                        logError("ATKLog", "کوروتین سرویس‌ها: خطا در فراخوانی startLoadingCheckService در thread اصلی", e)
+                                        // خطا در فراخوانی startLoadingCheckService
                                     }
                                 }
-                                logDebug("ATKLog", "کوروتین سرویس‌ها: سرویس بررسی بارگیری راه‌اندازی شد")
                             } catch (e: Exception) {
-                                logError("ATKLog", "کوروتین سرویس‌ها: خطا در اجرای عملیات‌ها", e)
+                                // خطا در اجرای عملیات‌ها
                             }
                         }
-                        logDebug("ATKLog", "LaunchedEffect اول: کوروتین جداگانه برای سرویس‌ها شروع شد")
                         
                         // تاخیر بیشتر قبل از فعال کردن درخواست مجوزها
-                        logDebug("ATKLog", "LaunchedEffect اول: تاخیر 5000ms قبل از فعال کردن درخواست مجوزها")
                         delay(5000)
-                        logDebug("ATKLog", "LaunchedEffect اول: فعال کردن امکان درخواست مجوزها")
                         canRequestPermissions = true
                     }
 
                     // اگر امکان درخواست مجوزها فعال شده باشد، درخواست مجوزها را انجام می‌دهیم
                     LaunchedEffect(canRequestPermissions) {
                         if (canRequestPermissions) {
-                            logDebug("ATKLog", "LaunchedEffect مجوزها: شروع درخواست مجوزها")
-                            
                             try {
                                 // ابتدا مجوز نوتیفیکیشن را درخواست می‌کنیم
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    logDebug("ATKLog", "LaunchedEffect مجوزها: بررسی مجوز نوتیفیکیشن")
                                     if (ContextCompat.checkSelfPermission(
                                             this@MainActivity,
                                             Manifest.permission.POST_NOTIFICATIONS
                                         ) != PackageManager.PERMISSION_GRANTED
                                     ) {
-                                        logDebug("ATKLog", "LaunchedEffect مجوزها: درخواست مجوز نوتیفیکیشن")
                                         withContext(Dispatchers.Main) {
                                             try {
                                                 ActivityCompat.requestPermissions(
@@ -346,31 +303,24 @@ class MainActivity : ComponentActivity() {
                                                     arrayOf(Manifest.permission.POST_NOTIFICATIONS),
                                                     0
                                                 )
-                                                logDebug("ATKLog", "LaunchedEffect مجوزها: درخواست مجوز نوتیفیکیشن ارسال شد")
                                             } catch (e: Exception) {
-                                                logError("ATKLog", "LaunchedEffect مجوزها: خطا در درخواست مجوز نوتیفیکیشن", e)
+                                                // خطا در درخواست مجوز نوتیفیکیشن
                                             }
                                         }
                                         
                                         // تاخیر قبل از درخواست مجوز بعدی
-                                        logDebug("ATKLog", "LaunchedEffect مجوزها: تاخیر 3000ms قبل از درخواست مجوز بعدی")
                                         delay(3000)
-                                    } else {
-                                        logDebug("ATKLog", "LaunchedEffect مجوزها: مجوز نوتیفیکیشن قبلاً اعطا شده است")
                                     }
                                 }
                                 
                                 // تاخیر اضافی برای اطمینان از پایداری برنامه
-                                logDebug("ATKLog", "LaunchedEffect مجوزها: تاخیر اضافی 2000ms برای اطمینان از پایداری")
                                 delay(2000)
                                 
                                 // سپس مجوز بهینه‌سازی باتری را درخواست می‌کنیم
-                                logDebug("ATKLog", "LaunchedEffect مجوزها: بررسی مجوز بهینه‌سازی باتری")
                                 val packageName = packageName
                                 val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
                                 
                                 if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-                                    logDebug("ATKLog", "LaunchedEffect مجوزها: نیاز به درخواست مجوز بهینه‌سازی باتری")
                                     withContext(Dispatchers.Main) {
                                         try {
                                             val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
@@ -379,11 +329,8 @@ class MainActivity : ComponentActivity() {
                                             }
                                             
                                             try {
-                                                logDebug("ATKLog", "LaunchedEffect مجوزها: شروع اکتیویتی درخواست مجوز بهینه‌سازی باتری")
                                                 startActivity(intent)
-                                                logDebug("ATKLog", "LaunchedEffect مجوزها: اکتیویتی درخواست مجوز بهینه‌سازی باتری با موفقیت شروع شد")
                                             } catch (e: Exception) {
-                                                logError("ATKLog", "LaunchedEffect مجوزها: خطا در درخواست مجوز بهینه‌سازی باتری", e)
                                                 try {
                                                     val fallbackIntent = Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS).apply {
                                                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -391,27 +338,21 @@ class MainActivity : ComponentActivity() {
                                                     startActivity(fallbackIntent)
                                                     showMessage("لطفاً برنامه را از محدودیت‌های بهینه‌سازی باتری خارج کنید")
                                                 } catch (e2: Exception) {
-                                                    logError("ATKLog", "LaunchedEffect مجوزها: خطا در هدایت به صفحه تنظیمات باتری", e2)
+                                                    // خطا در هدایت به صفحه تنظیمات باتری
                                                 }
                                             }
                                         } catch (e: Exception) {
-                                            logError("ATKLog", "LaunchedEffect مجوزها: خطای کلی در درخواست مجوز بهینه‌سازی باتری", e)
+                                            // خطای کلی در درخواست مجوز بهینه‌سازی باتری
                                         }
                                     }
-                                } else {
-                                    logDebug("ATKLog", "LaunchedEffect مجوزها: مجوز بهینه‌سازی باتری قبلاً اعطا شده است")
                                 }
                             } catch (e: Exception) {
-                                logError("ATKLog", "LaunchedEffect مجوزها: خطای کلی در فرآیند درخواست مجوزها", e)
+                                // خطای کلی در فرآیند درخواست مجوزها
                             }
-                            
-                            logDebug("ATKLog", "LaunchedEffect مجوزها: فرآیند درخواست مجوزها به پایان رسید")
                         }
                     }
 
-                    logDebug("ATKLog", "setContent: شروع بررسی وضعیت امنیتی برای نمایش محتوا")
                     HandleSecurityCheck {
-                        logDebug("ATKLog", "HandleSecurityCheck: بررسی امنیتی تایید شد، نمایش محتوای اصلی")
                         HandleMainContent(
                             showMainContent = showMainContent,
                             isUpdateAvailable = isUpdateAvailable,
@@ -420,23 +361,16 @@ class MainActivity : ComponentActivity() {
                     }
 
                     LaunchedEffect(Unit) {
-                        logDebug("ATKLog", "LaunchedEffect دوم: شروع بررسی intent و جلسه کاربر")
                         handleIntent(intent)
                         checkUserSession()
-                        logDebug("ATKLog", "LaunchedEffect دوم: بررسی intent و جلسه کاربر انجام شد")
                     }
                 }
-                logDebug("ATKLog", "setContent: تنظیم تم و محتوای اصلی به پایان رسید")
             }
-            logDebug("ATKLog", "onCreate: تنظیم محتوای UI به پایان رسید")
 
-            logDebug("ATKLog", "onCreate: شروع مشاهده وضعیت‌های برنامه")
             observeApplicationStates()
-            logDebug("ATKLog", "onCreate: مشاهده وضعیت‌های برنامه تنظیم شد")
             
-            logDebug("ATKLog", "onCreate: راه‌اندازی اکتیویتی اصلی با موفقیت به پایان رسید")
         } catch (e: Exception) {
-            logError("ATKLog", "onCreate: خطای کلی در راه‌اندازی برنامه", e)
+            // خطای کلی در راه‌اندازی برنامه
         }
     }
 
@@ -456,7 +390,7 @@ class MainActivity : ComponentActivity() {
             cargoViewModelFactory = CargoViewModelFactory(reportsRepository, userPreferencesManager)
 
         } catch (e: Exception) {
-            logError("ATKLog", "initializeDependencies: خطا در مقداردهی وابستگی‌ها", e)
+            // خطا در مقداردهی وابستگی‌ها
             throw e // پرتاب مجدد خطا برای مدیریت در سطح بالاتر
         }
     }
@@ -465,19 +399,14 @@ class MainActivity : ComponentActivity() {
 
         // بررسی می‌کنیم که آیا سرویس قبلاً شروع شده است یا خیر
         if (isServiceStarted) {
-            logDebug("ATKLog", "startBackgroundServices: سرویس قبلاً شروع شده است")
             return
         }
         
         try {
-            logDebug("ATKLog", "startBackgroundServices: شروع فرآیند راه‌اندازی سرویس‌های پس‌زمینه")
-            
             // بررسی وضعیت سرویس قبل از شروع
             val serviceRunning = isServiceRunning(LoadingCheckService::class.java)
-            logDebug("ATKLog", "startBackgroundServices: وضعیت فعلی سرویس: ${if (serviceRunning) "در حال اجرا" else "متوقف"}")
             
             if (serviceRunning) {
-                logDebug("ATKLog", "startBackgroundServices: سرویس در حال حاضر در حال اجراست، نیازی به شروع مجدد نیست")
                 isServiceStarted = true
                 return
             }
@@ -486,42 +415,32 @@ class MainActivity : ComponentActivity() {
                 // اضافه کردن یک فلگ برای جلوگیری از راه‌اندازی چندباره
                 putExtra("restart_count", System.currentTimeMillis())
             }
-            logDebug("ATKLog", "startBackgroundServices: Intent برای سرویس LoadingCheckService ایجاد شد")
             
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    logDebug("ATKLog", "startBackgroundServices: استفاده از startForegroundService برای اندروید O و بالاتر")
                     startForegroundService(serviceIntent)
-                    logDebug("ATKLog", "startBackgroundServices: startForegroundService با موفقیت فراخوانی شد")
                 } else {
-                    logDebug("ATKLog", "startBackgroundServices: استفاده از startService برای اندروید زیر O")
                     startService(serviceIntent)
-                    logDebug("ATKLog", "startBackgroundServices: startService با موفقیت فراخوانی شد")
                 }
                 isServiceStarted = true
-                logDebug("ATKLog", "startBackgroundServices: سرویس با موفقیت شروع شد و متغیر isServiceStarted به true تنظیم شد")
             } catch (e: Exception) {
-                logError("ATKLog", "startBackgroundServices: خطا در راه‌اندازی سرویس‌های پس‌زمینه", e)
-                // در صورت خطا، متغیر isServiceStarted را false نگه می‌داریم
+                // خطا در راه‌اندازی سرویس‌های پس‌زمینه
                 isServiceStarted = false
                 
                 // تلاش برای راه‌اندازی سرویس با روش جایگزین
                 try {
-                    logDebug("ATKLog", "startBackgroundServices: تلاش برای راه‌اندازی سرویس با روش جایگزین")
                     val alternativeIntent = Intent(this, LoadingCheckService::class.java).apply {
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         putExtra("restart_count", System.currentTimeMillis())
                     }
                     startService(alternativeIntent)
                     isServiceStarted = true
-                    logDebug("ATKLog", "startBackgroundServices: سرویس با روش جایگزین با موفقیت شروع شد")
                 } catch (e2: Exception) {
-                    logError("ATKLog", "startBackgroundServices: خطا در راه‌اندازی سرویس با روش جایگزین", e2)
+                    // خطا در راه‌اندازی سرویس با روش جایگزین
                 }
             }
         } catch (e: Exception) {
-            logError("ATKLog", "startBackgroundServices: خطای کلی در فرآیند راه‌اندازی سرویس‌ها", e)
-            // در صورت خطای کلی، متغیر isServiceStarted را false نگه می‌داریم
+            // خطای کلی در فرآیند راه‌اندازی سرویس‌ها
             isServiceStarted = false
         }
     }
@@ -536,7 +455,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         } catch (e: Exception) {
-            logError("ATKLog", "isServiceRunning: خطا در بررسی وضعیت سرویس", e)
+            // خطا در بررسی وضعیت سرویس
         }
         return false
     }
@@ -553,7 +472,6 @@ class MainActivity : ComponentActivity() {
                 securityErrorType = SecurityErrorType.TAMPERED
             } finally {
                 isSecurityCheckLoading = false
-                logDebug("ATKLog", "performSecurityCheck: بررسی امنیتی به پایان رسید")
             }
         }
     }
@@ -735,36 +653,27 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun checkUserSession() {
-        logDebug("ATKLog", "checkUserSession: شروع بررسی جلسه کاربر")
         lifecycleScope.launch {
             try {
-                logDebug("ATKLog", "checkUserSession: دریافت نام کاربری")
                 val username = userPreferencesManager.username.first()
                 if (username.isNotEmpty()) {
-                    logDebug("ATKLog", "checkUserSession: نام کاربری معتبر است: $username")
                     val apiService = RetrofitClient.apiService
-                    logDebug("ATKLog", "checkUserSession: ارسال درخواست بررسی جلسه به سرور")
                     val response = apiService.checkSession(SessionCheckRequest(username))
                     when {
                         response.isSuccessful && response.body()?.success == true -> {
-                            logDebug("ATKLog", "checkUserSession: جلسه کاربر معتبر است")
                             _isSessionValid.value = true
-                            logDebug("ATKLog", "checkUserSession: شروع سرویس بررسی بارگیری")
                             startLoadingCheckService()
                         }
                         else -> {
-                            logDebug("ATKLog", "checkUserSession: جلسه کاربر نامعتبر است")
                             _isSessionValid.value = false
                             userPreferencesManager.clearUserCredentials()
                             showMessage("لطفاً دوباره وارد شوید!")
                         }
                     }
                 } else {
-                    logDebug("ATKLog", "checkUserSession: نام کاربری خالی است")
                     _isSessionValid.value = false
                 }
             } catch (e: Exception) {
-                logError("ATKLog", "checkUserSession: خطا در بررسی جلسه کاربر", e)
                 _isSessionValid.value = false
                 showMessage("خطا در بررسی جلسه کاربر. لطفاً دوباره تلاش کنید.")
             }
@@ -1883,7 +1792,7 @@ fun ProfileMenu(
                 }
             }
         } catch (e: Exception) {
-            logError("ProfileMenu", "Error fetching messages", e)
+            Log.d("ProfileMenu", "Error fetching messages", e)
         }
     }
 
