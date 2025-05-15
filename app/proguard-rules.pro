@@ -1,59 +1,31 @@
 # =======================================================================
-# 1. تنظیمات API و ارتباطات شبکه
+# تنظیمات ProGuard برای برنامه ATK-Cargo
 # =======================================================================
 
-# Retrofit
--keepattributes Signature
--keepattributes Exceptions
--keepattributes *Annotation*
--keep class retrofit2.** { *; }
--keepclasseswithmembers class * {
-    @retrofit2.http.* <methods>;
-}
--keepclassmembers,allowshrinking,allowobfuscation interface * {
-    @retrofit2.http.* <methods>;
-}
-
-# OkHttp
--keepattributes Signature
--keepattributes *Annotation*
--keep class okhttp3.** { *; }
--keep interface okhttp3.** { *; }
--dontwarn okhttp3.**
--dontwarn okio.**
--keep class okio.** { *; }
-
-# مدل‌های API (نگهداری کلاس‌های مدل برای سریالیزیشن/دیسریالیزیشن صحیح)
--keep class com.atk.atk_cargo.api.** { *; }
--keep class com.atk.atk_cargo.models.** { *; }
--keep class com.atk.atk_cargo.network.** { *; }
-
-# Gson
--keep class com.google.gson.** { *; }
--keepattributes Signature
--keepattributes *Annotation*
--dontwarn sun.misc.**
--keep class * implements com.google.gson.TypeAdapterFactory
--keep class * implements com.google.gson.JsonSerializer
--keep class * implements com.google.gson.JsonDeserializer
--keepclassmembers,allowobfuscation class * {
-    @com.google.gson.annotations.SerializedName <fields>;
-}
+# =======================================================================
+# 1. تنظیمات پایه و بهینه‌سازی (اولویت بالا - تنظیمات اصلی)
+# =======================================================================
+-optimizationpasses 5                  # تعداد دفعات بهینه‌سازی
+-dontusemixedcaseclassnames            # نام کلاس‌ها را با حروف مختلط نسازد
+-dontskipnonpubliclibraryclasses       # کلاس‌های غیرعمومی کتابخانه‌ها را نادیده نگیرد
+-dontpreverify                         # تأیید قبلی را انجام ندهد (سرعت بیشتر)
+-verbose                               # گزارش‌های مفصل
+-optimizations !code/simplification/arithmetic,!field/*,!class/merging/*  # بهینه‌سازی‌های خاص
 
 # =======================================================================
-# 2. تنظیمات پایه و بهینه‌سازی
+# 2. تنظیمات حفظ ویژگی‌ها (اولویت بالا - برای عملکرد صحیح)
 # =======================================================================
--optimizationpasses 5
--dontusemixedcaseclassnames
--dontskipnonpubliclibraryclasses
--dontpreverify
--verbose
--optimizations !code/simplification/arithmetic,!field/*,!class/merging/*
+-keepattributes *Annotation*           # حفظ همه آنوتیشن‌ها
+-keepattributes Signature              # حفظ اطلاعات امضا
+-keepattributes Exceptions             # حفظ اطلاعات استثناها
+-keepattributes InnerClasses,EnclosingMethod  # حفظ کلاس‌های داخلی
+-keepattributes SourceFile,LineNumberTable    # حفظ اطلاعات خط برای دیباگ
+-keepattributes RuntimeVisibleAnnotations,AnnotationDefault  # برای کامپوز
 
 # =======================================================================
-# 3. تنظیمات امنیتی و SignatureVerifier
+# 3. تنظیمات امنیتی برای محافظت از توابع امنیتی (اولویت بالا)
 # =======================================================================
-# مبهم‌سازی کلاس اصلی امضاپژیر
+# حفظ کلاس امضاپژیر با سازنده
 -keep class com.atk.atk_cargo.security.SignatureVerifier {
     <init>(android.content.Context);
 }
@@ -63,8 +35,69 @@
     private static final <fields>;
 }
 
+# حفظ enum SecurityErrorType
+-keep enum com.atk.atk_cargo.security.SecurityErrorType
+
+# محافظت از کلاس‌های مربوط به امنیت
+-keep class com.atk.atk_cargo.security.** { *; }
+
+# محافظت از MainActivity با حفظ ساختار اصلی
+-keep class com.atk.atk_cargo.MainActivity {
+    public <init>();  # سازنده عمومی
+    protected void onCreate(android.os.Bundle);  # متد اصلی چرخه حیات
+}
+
+# محافظت از توابع امنیتی اصلی (با اجازه مبهم‌سازی محتوا)
+-keepclasseswithmembers,includedescriptorclasses,allowshrinking,allowobfuscation class com.atk.atk_cargo.MainActivity {
+    private void performSecurityCheck();  # تابع بررسی امنیتی
+    @androidx.compose.runtime.Composable private void HandleSecurityCheck(kotlin.jvm.functions.Function0);  # تابع نمایش بررسی امنیتی
+}
+
+# حفظ فیلدهای امنیتی با الگوی وایلدکارد
+-keepclassmembers class com.atk.atk_cargo.MainActivity {
+    private *** isSecurityCheck*;  # متغیرهای وضعیت امنیتی
+    private *** signatureVerifier;  # متغیر امضاپژیر
+}
+
 # =======================================================================
-# 4. تنظیمات Kotlin
+# 4. تنظیمات API و ارتباطات شبکه (اولویت متوسط)
+# =======================================================================
+# Retrofit
+-keep class retrofit2.** { *; }
+-keepclasseswithmembers class * {
+    @retrofit2.http.* <methods>;
+}
+-keepclassmembers,allowshrinking,allowobfuscation interface * {
+    @retrofit2.http.* <methods>;
+}
+
+# OkHttp
+-keep class okhttp3.** { *; }
+-keep interface okhttp3.** { *; }
+-dontwarn okhttp3.**
+-keep class okio.** { *; }
+-dontwarn okio.**
+
+# Gson
+-keep class com.google.gson.** { *; }
+-keep class * implements com.google.gson.TypeAdapterFactory
+-keep class * implements com.google.gson.JsonSerializer
+-keep class * implements com.google.gson.JsonDeserializer
+-keepclassmembers,allowobfuscation class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+-dontwarn sun.misc.**
+
+# =======================================================================
+# 5. مدل‌های برنامه (اولویت متوسط)
+# =======================================================================
+# حفظ مدل‌های داده برای سریالیزیشن/دیسریالیزیشن
+-keep class com.atk.atk_cargo.api.** { *; }
+-keep class com.atk.atk_cargo.models.** { *; }
+-keep class com.atk.atk_cargo.network.** { *; }
+
+# =======================================================================
+# 6. تنظیمات Kotlin (اولویت متوسط)
 # =======================================================================
 -keep class kotlin.** { *; }
 -keep class kotlin.Metadata { *; }
@@ -77,19 +110,7 @@
 }
 
 # =======================================================================
-# 5. تنظیمات Android
-# =======================================================================
--keepattributes *Annotation*
--keepattributes SourceFile,LineNumberTable,Signature
--keepattributes InnerClasses,EnclosingMethod
--keep public class * extends android.app.Activity
--keep public class * extends android.app.Application
--keep public class * extends android.app.Service
--keep public class * extends android.content.BroadcastReceiver
--keep public class * extends android.content.ContentProvider
-
-# =======================================================================
-# 6. تنظیمات Coroutines
+# 7. تنظیمات Coroutines (اولویت متوسط)
 # =======================================================================
 -keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
 -keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
@@ -101,7 +122,25 @@
 }
 
 # =======================================================================
-# 7. حذف لاگ‌ها
+# 8. تنظیمات Android (اولویت متوسط)
+# =======================================================================
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Application
+-keep public class * extends android.app.Service
+-keep public class * extends android.content.BroadcastReceiver
+-keep public class * extends android.content.ContentProvider
+
+# =======================================================================
+# 9. تنظیمات پیشرفته جهت جلوگیری از مهندسی معکوس (اولویت پایین)
+# =======================================================================
+-renamesourcefileattribute SourceFile  # تغییر نام فایل منبع
+-repackageclasses 'o'                  # بسته‌بندی مجدد کلاس‌ها
+-allowaccessmodification               # اجازه تغییر سطح دسترسی
+-overloadaggressively                  # بازنویسی انبوه
+-flattenpackagehierarchy               # مسطح‌سازی سلسله مراتب بسته‌ها
+
+# =======================================================================
+# 10. حذف لاگ‌ها (اولویت پایین)
 # =======================================================================
 -assumenosideeffects class android.util.Log {
     public static *** d(...);
@@ -112,17 +151,7 @@
 }
 
 # =======================================================================
-# 8. تنظیمات پیشرفته جهت جلوگیری از مهندسی معکوس
-# =======================================================================
--keepattributes SourceFile,LineNumberTable,*Annotation*
--renamesourcefileattribute SourceFile
--repackageclasses 'o'
--allowaccessmodification
--overloadaggressively
--flattenpackagehierarchy
-
-# =======================================================================
-# 9. سرکوب هشدارها
+# 11. سرکوب هشدارها (اولویت پایین)
 # =======================================================================
 -dontwarn org.bouncycastle.**
 -dontwarn org.conscrypt.**

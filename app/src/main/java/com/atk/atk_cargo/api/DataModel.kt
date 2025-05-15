@@ -133,8 +133,22 @@ class CargoViewModel(
     private val _cachedTrackingNumbers = MutableStateFlow<Set<String>>(emptySet())
     val cachedTrackingNumbers: StateFlow<Set<String>> = _cachedTrackingNumbers.asStateFlow()
     
+    // وضعیت کشتی‌های انتخاب شده
+    private val _selectedShipNames = MutableStateFlow<Set<String>>(emptySet())
+    val selectedShipNames: StateFlow<Set<String>> = _selectedShipNames.asStateFlow()
+    
+    // تابع توسعه‌ای برای بروزرسانی MutableStateFlow با نوع Set<String>
+    private fun MutableStateFlow<Set<String>>.updateSet(function: (Set<String>) -> Set<String>) {
+        this.value = function(this.value)
+    }
+    
     fun setWarehouseQuotaGroupingMode(mode: WarehouseQuotaGroupingMode) {
         _warehouseQuotaGroupingMode.value = mode
+    }
+    
+    // به‌روزرسانی کشتی‌های انتخاب شده
+    fun updateSelectedShips(ships: Set<String>) {
+        _selectedShipNames.value = ships
     }
 
     init {
@@ -1163,23 +1177,62 @@ class ReportsViewModel(
                 _shiftInfo.value = response.shiftInfo
                 _loadingError.value = null
 
-                // ایجاد نقشه رنگ‌ها برای کشتی‌ها و کوتاژها
-                val newColorMap = response.data.groupBy { it.shipName }.mapValues { (_, data) ->
-                    val shipColor = _shipColorMap.value.getOrElse(data.first().shipName) {
-                        colorSelector.getNextColor()
-                    }
-                    val adjustedColor = adjustColorForTheme(shipColor, isDarkTheme)
-                    Pair(adjustedColor, adjustedColor) // رنگ یکسان برای کشتی و کوتاژها
+                // گام 1: ابتدا اسامی کشتی‌ها را استخراج می‌کنیم
+                val shipNames = response.data.map { it.shipName }.distinct().toSet()
+                
+                // گام 2: تخصیص رنگ‌های کاملاً متمایز فقط به کشتی‌ها
+                // از روش جدید استفاده می‌کنیم که رنگ‌های غیرتکراری را اختصاص می‌دهد
+                val shipColors = colorSelector.assignDistinctColors(shipNames)
+                    .mapValues { (_, color) -> adjustColorForTheme(color, isDarkTheme) }
+                
+                // گام 3: به‌روزرسانی رنگ‌های کشتی‌ها در ViewModel
+                _shipColorMap.value = shipColors
+                
+                // برای حفظ سازگاری با کدهای دیگر، رنگ کوتاژها را برابر با رنگ کشتی مربوطه قرار می‌دهیم
+                val quotaColors = mutableMapOf<String, Color>()
+                response.data.forEach { data ->
+                    // رنگ کوتاژ را برابر با رنگ کشتی مربوطه قرار می‌دهیم
+                    val shipColor = shipColors[data.shipName] ?: adjustColorForTheme(defaultColor, isDarkTheme)
+                    quotaColors[data.loadingQuotaNumber] = shipColor
                 }
-
-                _shipColorMap.value = newColorMap.mapValues { it.value.first }
-                _quotaColorMap.value = response.data.associate {
-                    it.loadingQuotaNumber to (newColorMap[it.shipName]?.second ?: adjustColorForTheme(defaultColor, isDarkTheme))
-                }
+                _quotaColorMap.value = quotaColors
+                
+                // اطلاعات تشخیصی برای خطایابی
+                Log.d("ColorManager", "Ships: ${shipNames.size}, Unique colors: ${shipColors.values.toSet().size}")
+                
             } catch (e: Exception) {
                 _loadingError.value = "خطا در دریافت اطلاعات: ${e.message}"
             }
         }
+    }
+    
+    /**
+     * تابع کمکی برای ایجاد رنگ کاملاً متمایز از رنگ اصلی
+     * این تابع رنگی را برمی‌گرداند که با رنگ اصلی به اندازه کافی متفاوت است
+     * اما همچنان در محدوده خوانایی و جذابیت بصری قرار دارد
+     */
+    private fun deriveColor(baseColor: Color, isDarkTheme: Boolean): Color {
+        val hsl = FloatArray(7)
+        androidx.core.graphics.ColorUtils.colorToHSL(baseColor.toArgb(), hsl)
+        
+        // تغییر قابل توجه در رنگ اصلی با چرخش 180 درجه‌ای رنگ (رنگ مکمل)
+        hsl[0] = (hsl[0] + 180) % 360
+        
+        // اشباع را در محدوده مناسب برای خوانایی تنظیم می‌کنیم
+        hsl[1] = if (isDarkTheme) {
+            0.7f  // برای تم تیره، اشباع بیشتر برای تمایز بهتر
+        } else {
+            0.5f  // برای تم روشن، اشباع متوسط
+        }
+        
+        // روشنایی را در محدوده مناسب برای خوانایی تنظیم می‌کنیم
+        hsl[2] = if (isDarkTheme) {
+            0.6f  // برای تم تیره، روشن‌تر
+        } else {
+            0.4f  // برای تم روشن، کمی تیره‌تر
+        }
+        
+        return Color(androidx.core.graphics.ColorUtils.HSLToColor(hsl))
     }
 
     fun calculateWeightDetails(loadingData: List<RealTimeLoadingData>): Map<String, Map<String, Float>> {
@@ -1831,6 +1884,22 @@ class ReportsViewModel(
                                 period_percentage = peak.period_percentage,
                                 activity_level = peak.activity_level
                             )
+                        } ?: emptyList(),
+                        cargoOwnerAnalysis = response.data.cargoOwnerAnalysis?.map { ship ->
+                            CargoOwnerData(
+                                shipName = ship.shipName,
+                                owner_count = ship.owner_count,
+                                total_vouchers = ship.total_vouchers,
+                                total_net_weight = ship.total_net_weight,
+                                owners = ship.owners.map { owner ->
+                                    CargoOwnerDetailsData(
+                                        cargoOwner = owner.cargoOwner,
+                                        voucher_count = owner.voucher_count,
+                                        net_weight = owner.net_weight, 
+                                        quota_count = owner.quota_count
+                                    )
+                                }
+                            )
                         } ?: emptyList()
                     )
                     _analyticsLoadingState.value = LoadingState.Success
@@ -1869,6 +1938,61 @@ class ReportsViewModel(
 
     fun setWarehouseQuotaGroupingMode(mode: WarehouseQuotaGroupingMode) {
         _warehouseQuotaGroupingMode.value = mode
+    }
+
+        fun shareRealTimeLoadingData(loadingData: List<RealTimeLoadingData>, shiftInfo: ShiftInfo?): String {
+        // محاسبه کل حواله‌های خروجی
+        val totalExitVouchers = loadingData.sumOf { it.exitVouchers.toFloat() }.toInt()
+        
+        // ساخت متن قابل اشتراک‌گذاری
+        val shareText = StringBuilder()
+        
+        // عنوان گزارش با اطلاعات شیفت و تاریخ شمسی
+        val shiftType = shiftInfo?.type ?: "نامشخص"
+        val calendar = Calendar.getInstance()
+        
+        // تنظیم تاریخ براساس قوانین شیفت شب
+        if (shiftType == "شب") {
+            val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+            // اگر شیفت شب باشد و ساعت کمتر از 7 صبح باشد، یک روز از تاریخ کم می‌کنیم
+            if (currentHour < 7) {
+                calendar.add(Calendar.DAY_OF_MONTH, -1)
+            }
+        }
+        
+        val jalaliDate = gregorianToJalali(calendar)
+        shareText.append("بارگیری ($shiftType) $jalaliDate - کل: $totalExitVouchers حواله\n\n")
+        
+        // ایجاد یک لیست از تمام ترکیب‌های انبار-کشتی با حواله‌های خروجی آنها
+        val combinedData = mutableListOf<Triple<String, String, Int>>()
+        
+        // گروه‌بندی داده‌ها بر اساس انبار
+        val warehouseGroupedData = loadingData.groupBy { it.loadingWarehouse }
+        
+        warehouseGroupedData.forEach { (warehouseName, data) ->
+            // گروه‌بندی داده‌های هر انبار بر اساس کشتی
+            val shipGroupedData = data.groupBy { it.shipName }
+            
+            shipGroupedData.forEach { (shipName, shipData) ->
+                // محاسبه تعداد حواله‌های خروج شده برای این انبار و کشتی
+                val exitVouchers = shipData.sumOf { it.exitVouchers.toFloat() }.toInt()
+                
+                // اضافه کردن به لیست ترکیبی فقط اگر حواله خروجی داشته باشد
+                if (exitVouchers > 0) {
+                    combinedData.add(Triple(warehouseName, shipName, exitVouchers))
+                }
+            }
+        }
+        
+        // مرتب‌سازی لیست براساس نام کشتی
+        combinedData.sortBy { it.second }
+        
+        // افزودن اطلاعات مرتب شده به متن خروجی
+        combinedData.forEach { (warehouseName, shipName, exitVouchers) ->
+            shareText.append("$warehouseName [$shipName]: $exitVouchers حواله\n")
+        }
+        
+        return shareText.toString()
     }
 }
 
@@ -2942,39 +3066,121 @@ data class UpdateInfo(
 )
 
 class ColorSelector(private val colors: List<Color>) {
-    // Track already used indices to avoid immediate repetition
-    private val usedIndices = mutableSetOf<Int>()
-    private var lastIndex = -1
-
-    fun getNextColor(): Color {
-        // If all colors have been used once, reset the used indices
-        if (usedIndices.size >= colors.size) {
-            usedIndices.clear()
-            // Keep track of the last index to avoid immediate repetition after reset
-            usedIndices.add(lastIndex)
-        }
-
-        // Choose the next available index using a prime number offset (7)
-        // This creates better visual spacing between sequential colors
-        var candidateIndex = (lastIndex + 7) % colors.size
-
-        // Find the next unused index
-        while (candidateIndex in usedIndices) {
-            candidateIndex = (candidateIndex + 1) % colors.size
-        }
-
-        // Mark this index as used and remember it
-        usedIndices.add(candidateIndex)
-        lastIndex = candidateIndex
-
-        return colors[candidateIndex]
+    // تمام رنگ‌های اختصاص داده شده به هر شناسه
+    private val assignedColors = mutableMapOf<String, Color>()
+    // کلید مپ: رنگ، مقدار: آیا استفاده شده است؟
+    private val usedColors = mutableMapOf<Color, Boolean>()
+    private val random = java.util.Random(System.currentTimeMillis())
+    
+    init {
+        // در شروع، همه رنگ‌ها به عنوان استفاده نشده علامت‌گذاری می‌شوند
+        colors.forEach { usedColors[it] = false }
     }
-
-    fun reset() {
-        usedIndices.clear()
-        if (lastIndex != -1) {
-            usedIndices.add(lastIndex)
+    
+    /**
+     * تخصیص رنگ‌های متمایز به مجموعه‌ای از شناسه‌ها
+     * @param identifiers مجموعه شناسه‌هایی که باید به آنها رنگ اختصاص داده شود
+     * @return نگاشت از شناسه به رنگ اختصاص داده شده
+     */
+    fun assignDistinctColors(identifiers: Set<String>): Map<String, Color> {
+        // اگر تعداد شناسه‌ها بیشتر از تعداد رنگ‌های موجود است، باید رنگ‌های جدید تولید کنیم
+        if (identifiers.size > colors.size) {
+            return assignColorsWithGeneration(identifiers)
         }
+        
+        // پاک کردن تمام رنگ‌های قبلی
+        reset()
+        
+        val result = mutableMapOf<String, Color>()
+        val availableColors = colors.toMutableList()
+        
+        // ابتدا شناسه‌هایی که قبلاً رنگی به آنها اختصاص داده شده را پردازش می‌کنیم
+        // تا حد امکان همان رنگ‌های قبلی را حفظ کنیم
+        identifiers.filter { assignedColors.containsKey(it) }.forEach { id ->
+            val previousColor = assignedColors[id]
+            if (previousColor != null && previousColor in availableColors) {
+                result[id] = previousColor
+                availableColors.remove(previousColor)
+                usedColors[previousColor] = true
+            }
+        }
+        
+        // برای شناسه‌های باقیمانده، رنگ‌های جدید اختصاص می‌دهیم
+        identifiers.filter { !result.containsKey(it) }.forEach { id ->
+            if (availableColors.isNotEmpty()) {
+                // اختصاص رنگ تصادفی از رنگ‌های باقیمانده
+                val colorIndex = random.nextInt(availableColors.size)
+                val selectedColor = availableColors[colorIndex]
+                result[id] = selectedColor
+                availableColors.removeAt(colorIndex)
+                assignedColors[id] = selectedColor
+                usedColors[selectedColor] = true
+            }
+        }
+        
+        return result
+    }
+    
+    /**
+     * وقتی تعداد شناسه‌ها بیشتر از تعداد رنگ‌های موجود است، رنگ‌های جدید تولید می‌کنیم
+     */
+    private fun assignColorsWithGeneration(identifiers: Set<String>): Map<String, Color> {
+        val result = mutableMapOf<String, Color>()
+        
+        // برای هر شناسه، یک رنگ منحصر به فرد تولید می‌کنیم
+        identifiers.forEachIndexed { index, id ->
+            val color = if (index < colors.size) {
+                // استفاده از رنگ‌های از پیش تعریف شده
+                colors[index]
+            } else {
+                // تولید رنگ جدید با HSL برای اطمینان از تمایز
+                val hue = (360f * index / identifiers.size) % 360f
+                val saturation = 0.7f + (random.nextFloat() * 0.3f) // 0.7-1.0
+                val lightness = 0.4f + (random.nextFloat() * 0.3f) // 0.4-0.7
+                
+                val hsl = floatArrayOf(hue, saturation, lightness)
+                Color(ColorUtils.HSLToColor(hsl))
+            }
+            
+            result[id] = color
+            assignedColors[id] = color
+        }
+        
+        return result
+    }
+    
+    /**
+     * گرفتن رنگ بعدی از رنگ‌های استفاده نشده
+     * اگر تمام رنگ‌ها استفاده شده باشند، یک رنگ تصادفی برمی‌گرداند
+     */
+    fun getNextColor(): Color {
+        // بررسی می‌کنیم آیا رنگ‌های استفاده نشده وجود دارند
+        val unusedColors = usedColors.filter { !it.value }.keys.toList()
+        
+        if (unusedColors.isNotEmpty()) {
+            // انتخاب یک رنگ استفاده نشده
+            val selectedColor = unusedColors[random.nextInt(unusedColors.size)]
+            usedColors[selectedColor] = true
+            return selectedColor
+        }
+        
+        // اگر تمام رنگ‌ها استفاده شده‌اند، یک رنگ را به صورت تصادفی انتخاب می‌کنیم
+        return colors[random.nextInt(colors.size)]
+    }
+    
+    /**
+     * بازنشانی وضعیت استفاده از رنگ‌ها
+     */
+    fun reset() {
+        colors.forEach { usedColors[it] = false }
+    }
+    
+    /**
+     * پاک کردن تمام رنگ‌های اختصاص داده شده
+     */
+    fun clearAssignments() {
+        assignedColors.clear()
+        reset()
     }
 }
 
@@ -3050,7 +3256,29 @@ val cardColors = listOf(
     Color(0xFF689F38), // Olive Green
     Color(0xFF00695C), // Very Dark Teal
     Color(0xFF827717), // Dark Yellow
-    Color(0xFF6A1B9A)  // Deep Purple
+    Color(0xFF6A1B9A),  // Deep Purple
+    
+    // رنگ های جدید اضافه شده
+    Color(0xFF00897B), // Teal 600
+    Color(0xFF8BC34A), // Light Green
+    Color(0xFFFF5722), // Deep Orange
+    Color(0xFF5D4037), // Brown 700
+    Color(0xFF00796B), // Teal 700
+    Color(0xFF3F51B5), // Indigo
+    Color(0xFFFF8F00), // Amber 800
+    Color(0xFF558B2F), // Light Green 800
+    Color(0xFF283593), // Indigo 800
+    Color(0xFF1565C0), // Blue 800
+    Color(0xFF6200EA), // Deep Purple A700
+    Color(0xFF2962FF), // Blue A700
+    Color(0xFF00B8D4), // Cyan A700
+    Color(0xFF00C853), // Green A700
+    Color(0xFF4A148C), // Purple 900
+    Color(0xFFFF6F00), // Amber 900
+    Color(0xFF33691E), // Light Green 900
+    Color(0xFFFFA000), // Orange 700
+    Color(0xFF039BE5), // Light Blue 600
+    Color(0xFFBF360C)  // Deep Orange 900
 )
 
 fun Float.toTon(): Int = (this / 1000).toInt()
@@ -3077,7 +3305,8 @@ data class AnalyticsData(
     val warehouseEfficiencyAnalysis: List<WarehouseEfficiencyAnalysis>?,
     val warehouseSpeedAnalysis: List<WarehouseSpeedAnalysis>?,
     val warehouseTrafficAnalysis: List<WarehouseTrafficAnalysis>?,
-    val warehousePeakAnalysis: List<WarehousePeakAnalysis>?
+    val warehousePeakAnalysis: List<WarehousePeakAnalysis>?,
+    val cargoOwnerAnalysis: List<CargoOwnerAnalysis>?
 )
 
 data class ComprehensiveAnalytics(
@@ -3090,7 +3319,8 @@ data class ComprehensiveAnalytics(
     val warehouseEfficiencyAnalysis: List<WarehouseEfficiencyData> = emptyList(),
     val warehouseSpeedAnalysis: List<WarehouseSpeedData> = emptyList(),
     val warehouseTrafficAnalysis: List<WarehouseTrafficData> = emptyList(),
-    val warehousePeakAnalysis: List<WarehousePeakData> = emptyList()
+    val warehousePeakAnalysis: List<WarehousePeakData> = emptyList(),
+    val cargoOwnerAnalysis: List<CargoOwnerData> = emptyList()
 )
 
 data class PeakHourAnalysis(
@@ -3309,3 +3539,26 @@ enum class WarehouseQuotaGroupingMode {
     BY_SHIPPING_COMPANY,
     BY_CARGO_OWNER
 }
+
+data class CargoOwnerAnalysis(
+    val shipName: String,
+    val owner_count: Int,
+    val total_vouchers: Int,
+    val total_net_weight: Float,
+    val owners: List<CargoOwnerDetailsData>
+)
+
+data class CargoOwnerDetailsData(
+    val cargoOwner: String,
+    val voucher_count: Int,
+    val net_weight: Float,
+    val quota_count: Int
+)
+
+data class CargoOwnerData(
+    val shipName: String,
+    val owner_count: Int,
+    val total_vouchers: Int,
+    val total_net_weight: Float,
+    val owners: List<CargoOwnerDetailsData>
+)
