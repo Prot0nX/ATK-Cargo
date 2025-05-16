@@ -1751,7 +1751,7 @@ private fun CompactStatItem(
 }
 
 @Composable
-fun VerticalDivider(
+private fun VerticalDivider(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.outline,
     thickness: Dp = 1.dp
