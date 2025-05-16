@@ -216,6 +216,7 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 class RegisterCargoActivity : ComponentActivity() {
     private lateinit var viewModel: CargoViewModel
@@ -1540,19 +1541,43 @@ class EnhancedNumberAnalyzer(
     private fun selectBestEstimate(): String {
         if (previousNumbers.isEmpty()) return ""
 
-        // گروه‌بندی اعداد و محاسبه امتیاز کل هر عدد
+        // گروه‌بندی اعداد و محاسبه امتیاز کل هر عدد با الگوریتم بهبود یافته
         val scores = previousNumbers
             .groupBy { it.value }
-            .mapValues { (_, detections) ->
+            .mapValues { (number, detections) ->
+                // 1. امتیاز فراوانی - وزن اعداد پرتکرار بیشتر است
                 val frequencyScore = detections.size.toFloat() / previousNumbers.size
+                
+                // 2. امتیاز اطمینان - بیشترین اطمینان بین همه تشخیص‌ها
                 val confidenceScore = detections.maxOf { it.confidence }
+                
+                // 3. امتیاز زمانی - اعداد جدیدتر ارزش بیشتری دارند
                 val timeScore = detections.maxOf { 1.0f - (System.currentTimeMillis() - it.timestamp) / 2000.0f }
                 
-                // ترکیب امتیازها با وزن‌های مختلف
-                (frequencyScore * 0.4f + confidenceScore * 0.4f + timeScore * 0.2f)
+                // 4. امتیاز محدوده - اعداد در محدوده معقول امتیاز بیشتری می‌گیرند
+                val numberValue = number.toIntOrNull() ?: 0
+                val rangeScore = when {
+                    numberValue in 10000..30000 -> 1.0f  // محدوده بسیار محتمل
+                    numberValue in 5000..45000 -> 0.7f   // محدوده محتمل
+                    numberValue in 4000..50000 -> 0.3f   // محدوده ممکن
+                    else -> 0.0f                       // خارج از محدوده
+                }
+
+                // 5. امتیاز پایداری - اعدادی که در زمان‌های مختلف تشخیص داده شده‌اند
+                val timeSpan = if (detections.size > 1) {
+                    detections.maxOf { it.timestamp } - detections.minOf { it.timestamp }
+                } else 0L
+                val stabilityScore = (timeSpan / 500.0f).coerceIn(0.0f, 1.0f)
+                
+                // ترکیب امتیازها با وزن‌های بهینه
+                (frequencyScore * 0.3f +        // 30% وزن برای فراوانی
+                 confidenceScore * 0.3f +       // 30% وزن برای اطمینان الگوریتم تشخیص
+                 timeScore * 0.1f +             // 10% وزن برای تازگی
+                 rangeScore * 0.2f +            // 20% وزن برای محدوده معقول
+                 stabilityScore * 0.1f)         // 10% وزن برای پایداری
             }
 
-        // انتخاب عدد با بالاترین امتیاز
+        // انتخاب عدد با بالاترین امتیاز (یا خالی اگر هیچ عددی نباشد)
         return scores.maxByOrNull { it.value }?.key ?: ""
     }
 
@@ -1564,18 +1589,18 @@ class EnhancedNumberAnalyzer(
         val outputBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(outputBitmap)
 
-        // افزایش کنتراست و روشنایی برای تشخیص بهتر متون کمرنگ
+        // بهبود ماتریکس رنگ با تنظیمات بهتر برای تشخیص متن روی قبض باسکول
         val colorMatrix = ColorMatrix(floatArrayOf(
-            2.5f, 0f, 0f, 0f, -70f,  // افزایش کنتراست قرمز
-            0f, 2.5f, 0f, 0f, -70f,  // افزایش کنتراست سبز
-            0f, 0f, 2.5f, 0f, -70f,  // افزایش کنتراست آبی
-            0f, 0f, 0f, 1.3f, 0f     // افزایش شفافیت
+            3.0f, 0f, 0f, 0f, -80f,  // افزایش کنتراست قرمز
+            0f, 3.0f, 0f, 0f, -80f,  // افزایش کنتراست سبز
+            0f, 0f, 3.0f, 0f, -80f,  // افزایش کنتراست آبی
+            0f, 0f, 0f, 1.5f, 0f     // افزایش شفافیت
         ))
 
         val paint = Paint().apply {
             colorFilter = ColorMatrixColorFilter(colorMatrix)
-            // اضافه کردن فیلتر شارپنس برای وضوح بیشتر
-            maskFilter = BlurMaskFilter(1f, BlurMaskFilter.Blur.NORMAL)
+            // استفاده از فیلتر شارپنس با پارامتر بهینه‌تر
+            maskFilter = BlurMaskFilter(0.8f, BlurMaskFilter.Blur.NORMAL)
         }
 
         // اعمال فیلترهای پیشرفته
@@ -1585,53 +1610,146 @@ class EnhancedNumberAnalyzer(
         val pixels = IntArray(width * height)
         outputBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
         
-        // محاسبه آستانه تطبیقی برای هر بخش از تصویر
-        val blockSize = 15
+        // بهبود اندازه بلوک برای تشخیص دقیق‌تر آستانه محلی
+        val blockSize = 12 // کاهش اندازه بلوک برای دقت بالاتر
+        
+        // استفاده از تکنیک نیک تصویر (Nick thresholding)
+        // این تکنیک برای تشخیص متون کم‌کنتراست بهتر عمل می‌کند
         for (y in 0 until height step blockSize) {
             for (x in 0 until width step blockSize) {
-                val blockThreshold = calculateLocalThreshold(pixels, x, y, 
-                    minOf(blockSize, width - x), 
-                    minOf(blockSize, height - y), 
-                    width)
+                val actualBlockWidth = minOf(blockSize, width - x)
+                val actualBlockHeight = minOf(blockSize, height - y)
                 
-                applyThreshold(pixels, x, y, 
-                    minOf(blockSize, width - x), 
-                    minOf(blockSize, height - y), 
-                    width, blockThreshold)
+                // استفاده از آستانه‌گذاری پیشرفته Nick
+                val (mean, stdDev) = calculateNickParameters(
+                    pixels, x, y, 
+                    actualBlockWidth, 
+                    actualBlockHeight, 
+                    width
+                )
+                
+                // فرمول بهبود یافته برای آستانه Nick
+                val k = -0.2f  // پارامتر قابل تنظیم برای حساسیت آستانه
+                val nickThreshold = mean + k * stdDev
+                
+                applyThresholdWithDenoising(
+                    pixels, x, y, 
+                    actualBlockWidth, 
+                    actualBlockHeight, 
+                    width, nickThreshold.toInt()
+                )
             }
         }
+        
+        // فیلتر نویز پس از آستانه‌گذاری
+        applyMedianFilter(pixels, width, height)
         
         outputBitmap.setPixels(pixels, 0, width, 0, 0, width, height)
 
         return InputImage.fromBitmap(outputBitmap, imageProxy.imageInfo.rotationDegrees)
     }
 
-    private fun calculateLocalThreshold(pixels: IntArray, startX: Int, startY: Int, 
-                                     blockWidth: Int, blockHeight: Int, stride: Int): Int {
-        var sum = 0
-        var count = 0
+        private fun calculateNickParameters(
+            pixels: IntArray, 
+            startX: Int, 
+            startY: Int, 
+            blockWidth: Int, 
+            blockHeight: Int, 
+            stride: Int
+        ): Pair<Float, Float> {
+            var sum = 0
+            var sumSquared = 0
+            var count = 0
+            
+            for (y in startY until startY + blockHeight) {
+                for (x in startX until startX + blockWidth) {
+                    if (y < pixels.size / stride && x < stride) {
+                        val idx = y * stride + x
+                        if (idx < pixels.size) {
+                            val pixel = pixels[idx]
+                            val gray = ((pixel shr 16 and 0xFF) + (pixel shr 8 and 0xFF) + (pixel and 0xFF)) / 3
+                            sum += gray
+                            sumSquared += gray * gray
+                            count++
+                        }
+                    }
+                }
+            }
+            
+            if (count == 0) return Pair(128f, 0f)
+            
+            val mean = sum.toFloat() / count
+            val variance = (sumSquared.toFloat() / count) - (mean * mean)
+            val stdDev = kotlin.math.sqrt(kotlin.math.max(0f, variance))
+            
+            return Pair(mean, stdDev)
+        }
+
+    private fun applyThresholdWithDenoising(
+        pixels: IntArray, 
+        startX: Int, 
+        startY: Int, 
+        blockWidth: Int, 
+        blockHeight: Int, 
+        stride: Int, 
+        threshold: Int
+    ) {
+        // مقادیر رنگ برای سیاه و سفید
+        val BLACK = -16777216 // 0xFF000000
+        val WHITE = -1        // 0xFFFFFFFF
         
         for (y in startY until startY + blockHeight) {
             for (x in startX until startX + blockWidth) {
-                val pixel = pixels[y * stride + x]
-                val gray = ((pixel shr 16 and 0xFF) + (pixel shr 8 and 0xFF) + (pixel and 0xFF)) / 3
-                sum += gray
-                count++
+                if (y < pixels.size / stride && x < stride) {
+                    val idx = y * stride + x
+                    if (idx < pixels.size) {
+                        val pixel = pixels[idx]
+                        val gray = ((pixel shr 16 and 0xFF) + (pixel shr 8 and 0xFF) + (pixel and 0xFF)) / 3
+                        
+                        // آستانه‌گذاری با وزن بیشتر به سمت سفید کردن پیکسل‌ها
+                        pixels[idx] = if (gray > threshold - 5) WHITE else BLACK
+                    }
+                }
             }
         }
-        
-        // محاسبه آستانه با استفاده از میانگین محلی
-        return (sum / count) - 10 // کاهش آستانه برای تشخیص بهتر متون کمرنگ
     }
 
-    private fun applyThreshold(pixels: IntArray, startX: Int, startY: Int, 
-                             blockWidth: Int, blockHeight: Int, stride: Int, threshold: Int) {
-        for (y in startY until startY + blockHeight) {
-            for (x in startX until startX + blockWidth) {
-                val idx = y * stride + x
-                val pixel = pixels[idx]
-                val gray = ((pixel shr 16 and 0xFF) + (pixel shr 8 and 0xFF) + (pixel and 0xFF)) / 3
-                pixels[idx] = if (gray > threshold) -1 else -16777216 // White = -1, Black = -16777216
+    private fun applyMedianFilter(pixels: IntArray, width: Int, height: Int) {
+        // فیلتر میانه برای حذف نویز نقطه‌ای (salt and pepper noise)
+        val tempPixels = pixels.copyOf()
+        val windowSize = 3 // اندازه پنجره فیلتر میانه
+        val halfWindow = windowSize / 2
+        
+        for (y in halfWindow until height - halfWindow) {
+            for (x in halfWindow until width - halfWindow) {
+                val idx = y * width + x
+                
+                // اگر پیکسل مرکزی سیاه است و اکثر همسایه‌ها سفید هستند، به سفید تبدیل می‌شود و برعکس
+                val isBlack = tempPixels[idx] == -16777216
+                var blackCount = 0
+                var whiteCount = 0
+                
+                // بررسی همسایه‌ها
+                for (dy in -halfWindow..halfWindow) {
+                    for (dx in -halfWindow..halfWindow) {
+                        val neighborIdx = (y + dy) * width + (x + dx)
+                        if (neighborIdx >= 0 && neighborIdx < tempPixels.size) {
+                            if (tempPixels[neighborIdx] == -16777216) { // سیاه
+                                blackCount++
+                            } else { // سفید
+                                whiteCount++
+                            }
+                        }
+                    }
+                }
+                
+                // تصمیم‌گیری برای تغییر رنگ پیکسل
+                val totalPixels = windowSize * windowSize
+                if (isBlack && blackCount < totalPixels / 3) {
+                    pixels[idx] = -1 // تبدیل به سفید
+                } else if (!isBlack && whiteCount < totalPixels / 3) {
+                    pixels[idx] = -16777216 // تبدیل به سیاه
+                }
             }
         }
     }
@@ -1639,66 +1757,103 @@ class EnhancedNumberAnalyzer(
     private fun extractNetWeights(text: String): List<String> {
         val results = mutableListOf<String>()
         
-        // الگوهای متداول وزن خالص در قبض‌های باسکول با انعطاف‌پذیری بیشتر
+        // الگوهای پیشرفته برای تشخیص وزن خالص با دقت بیشتر
         val patterns = listOf(
-            // الگوهای دقیق با کلمات کلیدی
-            Regex("(?:وزن\\s*خالص|خالص)[\\s:]*[\\d۰-۹,.\\s]+(?:کیلو(?:گرم)?|KG)?", RegexOption.IGNORE_CASE),
-            Regex("(?:NET\\s*WEIGHT|NET)[\\s:]*[\\d,.\\s]+(?:KG|Kg|kg)?", RegexOption.IGNORE_CASE),
+            // الگوی دقیق برای عبارت‌های وزن خالص کلیدی با پشتیبانی بهتر از فرمت‌های مختلف
+            Regex("(?:وزن\\s*خالص|خالص|NET\\s*WEIGHT|NET)[\\s:=]*([\\d۰-۹,.\\s]+)(?:\\s*(?:کیلو(?:گرم)?|KG|Kg|kg))?", RegexOption.IGNORE_CASE),
             
-            // الگوهای عمومی برای اعداد در محدوده وزن
-            Regex("(\\d{1,3}(?:[,\\s]\\d{3})*(?:\\.\\d+)?)", RegexOption.IGNORE_CASE),
+            // الگو برای ساختارهای خاص که در قبض‌های باسکول ایرانی رایج هستند
+            Regex("(?:وزن(?:\\s+با)?(?:\\s+بار)?:?[\\s:=]*)(\\d{1,3}(?:[,\\s]\\d{3})*)", RegexOption.IGNORE_CASE),
+            Regex("(?:وزن[^\\n:]*خالص:?[\\s:=]*)(\\d{1,3}(?:[,\\s]\\d{3})*)", RegexOption.IGNORE_CASE),
             
-            // الگو برای اعداد فارسی
-            Regex("[۰-۹]{2,6}(?:[,،٫]?[۰-۹]{3})*"),
+            // الگوی پیشرفته برای اعداد فرمت شده با کاما یا فاصله در محدوده وزن مورد نظر
+            Regex("(\\d{1,2}[,\\s]\\d{3}[,\\s]\\d{3}|\\d{2,3}[,\\s]\\d{3})", RegexOption.IGNORE_CASE),
             
-            // الگوی ساده برای اعداد در محدوده مورد نظر
-            Regex("\\b\\d{4,6}\\b")
+            // الگوهای متنوع برای اعداد فارسی
+            Regex("[۰-۹]{2,3}[,،٫]?[۰-۹]{3}(?:[,،٫]?[۰-۹]{3})?"),
+            
+            // اعداد ساده 5 یا 6 رقمی که احتمالاً وزن هستند
+            Regex("\\b(\\d{5,6})\\b")
         )
 
-        // تبدیل اعداد فارسی به انگلیسی
-        val persianDigits = "۰۱۲۳۴۵۶۷۸۹"
-        val englishDigits = "0123456789"
-        var normalizedText = text
-        for (i in persianDigits.indices) {
-            normalizedText = normalizedText.replace(persianDigits[i], englishDigits[i])
+        // بهبود تبدیل اعداد فارسی به انگلیسی با پشتیبانی از نویسه‌های بیشتر
+        val persianDigits = "۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩"
+        val englishDigits = "01234567890123456789"
+        var normalizedText = text.replace(Regex("[،٫]"), ",") // جایگزینی جداکننده‌های فارسی با کاما
+        
+        for (i in 0 until persianDigits.length) {
+            normalizedText = normalizedText.replace(persianDigits[i], englishDigits[i % 10])
         }
 
-        // جستجوی الگوها در متن نرمال‌سازی شده
-        for (pattern in patterns) {
+        // جستجوی الگوها در متن نرمال‌سازی شده با اولویت به الگوهای دقیق‌تر
+        val weightCandidates = mutableMapOf<String, Double>() // نگهداری عدد و امتیاز اطمینان
+        
+        // اول: جستجوی الگوهای کلیدی دقیق که بیشترین اطمینان را دارند
+        var foundExactMatch = false
+        for ((index, pattern) in patterns.withIndex()) {
+            val confidenceBase = 1.0 - (index * 0.1) // اولویت بالاتر به الگوهای ابتدایی
             val matches = pattern.findAll(normalizedText)
+            
             for (match in matches) {
                 // استخراج فقط اعداد از متن یافت شده
-                val numberStr = match.value.replace(Regex("[^0-9.]"), "")
+                var numberStr = match.value.replace(Regex("[^0-9.,]"), "")
+                // تبدیل فرمت‌های متنوع به فرمت استاندارد
+                numberStr = numberStr.replace(",", "").replace(" ", "")
                 
                 try {
                     val number = numberStr.toDoubleOrNull()
                     if (number != null) {
-                        // اعتبارسنجی محدوده وزن با تلرانس بیشتر
-                        if (number in 4000.0..50000.0) {
-                            val roundedNumber = number.roundToInt()
-                            results.add(roundedNumber.toString())
+                        val valueConfidence = when {
+                            number in 10000.0..30000.0 -> 1.0  // محدوده بسیار محتمل
+                            number in 5000.0..45000.0 -> 0.8   // محدوده محتمل
+                            number in 4000.0..50000.0 -> 0.5   // محدوده ممکن
+                            else -> 0.1 // خارج از محدوده معمول
+                        }
+                        
+                        val contextConfidence = when {
+                            match.value.contains(Regex("وزن\\s*خالص|خالص|NET\\s*WEIGHT", RegexOption.IGNORE_CASE)) -> 2.0
+                            match.value.contains("وزن") -> 1.5
+                            match.value.contains(Regex("KG|کیلو", RegexOption.IGNORE_CASE)) -> 1.3
+                            else -> 1.0
+                        }
+                        
+                        // محاسبه نمره نهایی
+                        val finalConfidence = confidenceBase * valueConfidence * contextConfidence
+                        val roundedNumber = number.roundToInt().toString()
+                        
+                        // ذخیره عدد و بهبود امتیاز اگر قبلاً دیده شده
+                        weightCandidates[roundedNumber] = (weightCandidates[roundedNumber] ?: 0.0) + finalConfidence
+                        
+                        // اگر یک عدد با اطمینان خیلی بالا پیدا شد (حاوی کلمات کلیدی)
+                        if (finalConfidence > 1.5) {
+                            foundExactMatch = true
                         }
                     }
                 } catch (e: Exception) {
-                    // نادیده گرفتن خطاهای تبدیل عدد
                     continue
                 }
             }
+            
+            // اگر الگوهای اولیه دقیق یافتند، دیگر الگوهای کم دقت‌تر را بررسی نکن
+            if (foundExactMatch && weightCandidates.isNotEmpty()) {
+                break
+            }
         }
 
-        // اگر هیچ عددی پیدا نشد، از روش ساده‌تر استفاده کن
-        if (results.isEmpty()) {
+        // اگر با الگوهای دقیق هیچ عددی پیدا نشد، از روش ساده‌تر استفاده کن
+        if (weightCandidates.isEmpty()) {
             val simpleNumbers = extractSimpleNumbers(normalizedText)
-            results.addAll(simpleNumbers)
+            for (number in simpleNumbers) {
+                weightCandidates[number] = 0.5 // امتیاز پایین برای اعداد ساده
+            }
         }
 
-        // حذف اعداد تکراری و مرتب‌سازی بر اساس فراوانی
-        return results.groupBy { it }
-            .mapValues { it.value.size }
-            .entries
+        // مرتب‌سازی نتایج براساس امتیاز اطمینان و برگرداندن بهترین نتایج
+        return weightCandidates.entries
             .sortedByDescending { it.value }
             .map { it.key }
             .distinct()
+            .take(5) // محدود کردن نتایج به 5 مورد برتر
     }
 
     private fun extractSimpleNumbers(text: String): List<String> {
