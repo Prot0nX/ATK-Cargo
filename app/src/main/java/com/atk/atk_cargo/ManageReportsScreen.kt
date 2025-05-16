@@ -63,6 +63,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
@@ -182,6 +183,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerState
 import androidx.compose.material3.Typography
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -731,8 +733,15 @@ fun ShipSection(
 	modifier: Modifier = Modifier
 ) {
 	val isSectionActive = title.contains("فعال")
-	val mainColor = if (isSectionActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+	val mainColor = if (isSectionActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
 	var expandedShipName by remember { mutableStateOf<String?>(null) }
+	
+	// انیمیشن چرخش آیکون
+	val rotationState by animateFloatAsState(
+		targetValue = if (isExpanded) 180f else 0f,
+		animationSpec = tween(durationMillis = 300),
+		label = "rotation"
+	)
 
 	Card(
 		modifier = modifier
@@ -745,22 +754,29 @@ fun ShipSection(
 			),
 		colors = CardDefaults.cardColors(
 			containerColor = if (isSectionActive) {
-				MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+				MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
 			} else {
-				MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+				MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
 			}
 		),
-		shape = RoundedCornerShape(16.dp),
+		shape = RoundedCornerShape(12.dp),
 		border = BorderStroke(
 			width = 1.dp,
-			color = mainColor.copy(alpha = 0.2f)
+			color = mainColor.copy(alpha = 0.15f)
 		)
 	) {
 		Column(modifier = Modifier.padding(16.dp)) {
+			// هدر بخش
 			Row(
 				modifier = Modifier
 					.fillMaxWidth()
-					.clickable { onExpandChange() },
+					.clip(RoundedCornerShape(8.dp))
+					.clickable(
+						interactionSource = remember { MutableInteractionSource() },
+						indication = rememberRipple(bounded = true, color = mainColor),
+						onClick = onExpandChange
+					)
+					.padding(vertical = 8.dp, horizontal = 4.dp),
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
@@ -768,62 +784,102 @@ fun ShipSection(
 					verticalAlignment = Alignment.CenterVertically,
 					horizontalArrangement = Arrangement.spacedBy(12.dp)
 				) {
-					Box(
-						modifier = Modifier
-							.size(48.dp)
-							.background(mainColor.copy(alpha = 0.1f), CircleShape),
-						contentAlignment = Alignment.Center
+					// آیکون شناسه بخش
+					Surface(
+						shape = CircleShape,
+						color = mainColor.copy(alpha = 0.1f),
+						modifier = Modifier.size(40.dp)
 					) {
-						Icon(
-							imageVector = if (isSectionActive) Icons.Default.DirectionsBoat else Icons.Default.Archive,
-							contentDescription = null,
-							tint = mainColor,
-							modifier = Modifier.size(28.dp)
-						)
+						Box(contentAlignment = Alignment.Center) {
+							Icon(
+								imageVector = if (isSectionActive) Icons.Default.DirectionsBoat else Icons.Default.Archive,
+								contentDescription = null,
+								tint = mainColor,
+								modifier = Modifier.size(20.dp)
+							)
+						}
 					}
+					
+					// اطلاعات اصلی بخش
 					Column {
 						Text(
 							text = title,
-							style = MaterialTheme.typography.titleLarge,
+							style = MaterialTheme.typography.titleMedium,
 							fontWeight = FontWeight.Bold,
 							color = mainColor
 						)
-						Text(
-							text = "${ships.size} کشتی • ${formatWeightWithDetail(ships.sumOf { it.remainingTonnage.toDouble() }.toFloat())}",
-							style = MaterialTheme.typography.bodyMedium,
-							color = mainColor.copy(alpha = 0.7f)
-						)
+						
+						Row(
+							verticalAlignment = Alignment.CenterVertically,
+							horizontalArrangement = Arrangement.spacedBy(4.dp)
+						) {
+							Text(
+								text = "${ships.size} کشتی",
+								style = MaterialTheme.typography.bodySmall,
+								color = mainColor.copy(alpha = 0.7f)
+							)
+							
+							Box(
+								modifier = Modifier
+									.size(4.dp)
+									.background(mainColor.copy(alpha = 0.5f), CircleShape)
+							)
+							
+							Text(
+								text = formatWeightWithDetail(ships.sumOf { it.remainingTonnage.toDouble() }.toFloat()),
+								style = MaterialTheme.typography.bodySmall,
+								color = mainColor.copy(alpha = 0.7f)
+							)
+						}
 					}
 				}
 
+				// آیکون باز/بسته کردن با انیمیشن
 				Icon(
 					imageVector = Icons.Default.KeyboardArrowDown,
 					contentDescription = if (isExpanded) "بستن" else "باز کردن",
-					modifier = Modifier.rotate(if (isExpanded) 180f else 0f),
+					modifier = Modifier
+						.size(24.dp)
+						.rotate(rotationState),
 					tint = mainColor
 				)
 			}
 
-			if (isExpanded) {
-				Spacer(modifier = Modifier.height(16.dp))
-				TonnageInfo(ships)
-				Spacer(modifier = Modifier.height(16.dp))
-				HorizontalDivider(color = mainColor.copy(alpha = 0.1f))
-				Spacer(modifier = Modifier.height(16.dp))
-				LazyColumn(
-					verticalArrangement = Arrangement.spacedBy(12.dp)
-				) {
-					items(ships) { ship ->
-						ShipCard(
-							ship = ship,
-							onClick = { onShipSelected(ship.name) },
-							color = mainColor,
-							isActive = ship.isActive,
-							isExpanded = expandedShipName == ship.name,
-							onExpandToggle = {
-								expandedShipName = if (expandedShipName == ship.name) null else ship.name
-							}
-						)
+			// محتوای قابل باز/بسته شدن
+			AnimatedVisibility(
+				visible = isExpanded,
+				enter = expandVertically() + fadeIn(
+					animationSpec = tween(durationMillis = 300)
+				),
+				exit = shrinkVertically() + fadeOut(
+					animationSpec = tween(durationMillis = 200)
+				)
+			) {
+				Column(modifier = Modifier.padding(top = 12.dp)) {
+					// اطلاعات تناژ
+					TonnageInfo(ships)
+					
+					Spacer(modifier = Modifier.height(12.dp))
+					HorizontalDivider(color = mainColor.copy(alpha = 0.1f))
+					Spacer(modifier = Modifier.height(12.dp))
+					
+					// لیست کشتی‌ها
+					LazyColumn(
+						verticalArrangement = Arrangement.spacedBy(8.dp),
+						contentPadding = PaddingValues(vertical = 4.dp)
+					) {
+						items(ships) { ship ->
+							ShipCard(
+								ship = ship,
+								onClick = { onShipSelected(ship.name) },
+								color = mainColor,
+								isActive = ship.isActive,
+								isExpanded = expandedShipName == ship.name,
+								onExpandToggle = {
+									expandedShipName = if (expandedShipName == ship.name) null else ship.name
+								}
+							)
+						}
 					}
 				}
 			}
@@ -837,42 +893,77 @@ private fun TonnageInfo(ships: List<Ship>) {
 	val loadedTonnage = ships.sumOf { (it.totalTonnage - it.remainingTonnage).toDouble() }.toFloat()
 	val remainingTonnage = totalTonnage - loadedTonnage
 	val progress = calculateProgress(loadedTonnage, totalTonnage)
+	
+	// گرفتن پیشرفت بارگیری برای محاسبات داخلی (در صورت نیاز)
+	val loadingProgress = progress
 
-	Row(
-		modifier = Modifier.fillMaxWidth(),
-		horizontalArrangement = Arrangement.SpaceBetween
+	Surface(
+		shape = RoundedCornerShape(8.dp),
+		color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+		modifier = Modifier.fillMaxWidth()
 	) {
-		Column {
-			TonnageInfoItem("کل", totalTonnage, MaterialTheme.colorScheme.primary)
-			Spacer(Modifier.height(4.dp))
-			TonnageInfoItem("بارگیری شده", loadedTonnage, MaterialTheme.colorScheme.secondary)
-		}
-		Column(horizontalAlignment = Alignment.End) {
-			TonnageInfoItem("مانده", remainingTonnage, MaterialTheme.colorScheme.error)
-			Spacer(Modifier.height(4.dp))
-			Text(
-				text = "${(progress * 100).toInt()}% تکمیل شده",
-				style = MaterialTheme.typography.bodyMedium,
-				color = MaterialTheme.colorScheme.primary
-			)
+		Column(
+			modifier = Modifier.padding(12.dp),
+			verticalArrangement = Arrangement.spacedBy(12.dp)
+		) {
+			
+			// مقادیر پیشرفت
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.SpaceEvenly,
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				// بخش مقدار کل
+				TonnageChip(
+					icon = Icons.Default.Scale,
+					label = "کل",
+					value = formatNumber(totalTonnage.toInt()),
+					color = MaterialTheme.colorScheme.primary
+				)
+				
+				// بخش بارگیری شده
+				TonnageChip(
+					icon = Icons.Default.Inventory,
+					label = "بارگیری",
+					value = formatNumber(loadedTonnage.toInt()),
+					color = MaterialTheme.colorScheme.secondary
+				)
+			}
 		}
 	}
 }
 
 @Composable
-private fun TonnageInfoItem(label: String, value: Float, color: Color) {
-	Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-		Text(
-			text = formatNumber(value.toInt()),
-			style = MaterialTheme.typography.titleMedium,
-			fontWeight = FontWeight.Bold,
-			color = color
+private fun TonnageChip(
+	icon: ImageVector,
+	label: String,
+	value: String,
+	color: Color
+) {
+	Row(
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(4.dp)
+	) {
+		Icon(
+			imageVector = icon,
+			contentDescription = null,
+			tint = color,
+			modifier = Modifier.size(16.dp)
 		)
-		Text(
-			text = "$label تن",
-			style = MaterialTheme.typography.bodySmall,
-			color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-		)
+		
+		Column(horizontalAlignment = Alignment.Start) {
+			Text(
+				text = value,
+				style = MaterialTheme.typography.titleSmall,
+				fontWeight = FontWeight.Bold,
+				color = color
+			)
+			Text(
+				text = "$label تن",
+				style = MaterialTheme.typography.bodySmall,
+				color = color.copy(alpha = 0.7f)
+			)
+		}
 	}
 }
 
@@ -886,80 +977,126 @@ fun ShipCard(
 	onExpandToggle: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
-	val cardAlpha = if (isActive) 0.1f else 0.05f
-	val contentAlpha = if (isActive) 1f else 0.35f
-	val borderAlpha = if (isActive) 0.2f else 0.05f
+	val cardAlpha = if (isActive) 0.08f else 0.03f
+	val contentAlpha = if (isActive) 1f else 0.4f
+	val borderAlpha = if (isActive) 0.15f else 0.05f
 
 	val progress = calculateProgress(
 		ship.totalTonnage - ship.remainingTonnage,
 		ship.totalTonnage
 	)
+	
+	// انیمیشن چرخش آیکون باز/بسته کردن
+	val rotationState by animateFloatAsState(
+		targetValue = if (isExpanded) 180f else 0f,
+		animationSpec = tween(durationMillis = 300),
+		label = "rotation"
+	)
+	
+	// پیشرفت بارگیری (برای محاسبات داخلی)
+	val loadingProgress = progress
 
 	Card(
 		modifier = modifier
 			.fillMaxWidth()
-			.animateContentSize()
-			.clickable(onClick = onExpandToggle),
+			.animateContentSize(
+				animationSpec = spring(
+					dampingRatio = Spring.DampingRatioMediumBouncy,
+					stiffness = Spring.StiffnessLow
+				)
+			)
+			.clip(RoundedCornerShape(10.dp))
+			.clickable(
+				interactionSource = remember { MutableInteractionSource() },
+				indication = rememberRipple(bounded = true),
+				onClick = onExpandToggle
+			),
 		colors = CardDefaults.cardColors(
 			containerColor = color.copy(alpha = cardAlpha)
 		),
 		border = BorderStroke(1.dp, color.copy(alpha = borderAlpha)),
-		shape = RoundedCornerShape(12.dp)
+		shape = RoundedCornerShape(10.dp)
 	) {
-		Column(
-			modifier = Modifier.padding(12.dp),
-			verticalArrangement = Arrangement.spacedBy(8.dp)
-		) {
+		Column(modifier = Modifier.padding(12.dp)) {
+			// هدر کارت کشتی
 			Row(
 				modifier = Modifier.fillMaxWidth(),
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
+				// نام کشتی و آیکون
 				Row(
-					horizontalArrangement = Arrangement.spacedBy(8.dp),
+					horizontalArrangement = Arrangement.spacedBy(10.dp),
 					verticalAlignment = Alignment.CenterVertically
 				) {
-					Column {
-						Text(
-							text = if (ship.name.length > 10) "${ship.name.take(10)}..." else ship.name,
-							style = MaterialTheme.typography.titleMedium,
-							fontWeight = FontWeight.Bold,
-							color = color.copy(alpha = contentAlpha)
-						)
-						LinearProgressIndicator(
-							progress = { progress },
-							modifier = Modifier
-								.fillMaxWidth(0.4f)
-								.height(4.dp)
-								.clip(RoundedCornerShape(2.dp)),
-							color = color.copy(alpha = contentAlpha),
-							trackColor = color.copy(alpha = 0.1f)
-						)
+					// آیکون کشتی
+					Surface(
+						shape = CircleShape,
+						color = color.copy(alpha = 0.1f),
+						modifier = Modifier.size(36.dp)
+					) {
+						Box(contentAlignment = Alignment.Center) {
+							Icon(
+								imageVector = Icons.Default.DirectionsBoat,
+								contentDescription = null,
+								tint = color.copy(alpha = contentAlpha),
+								modifier = Modifier.size(18.dp)
+							)
+						}
 					}
+					
+					// نام کشتی - محدود به یک خط
+					Text(
+						text = if (ship.name.length > 9) "${ship.name.take(9)}..." else ship.name,
+						style = MaterialTheme.typography.titleMedium,
+						fontWeight = FontWeight.SemiBold,
+						color = color.copy(alpha = contentAlpha),
+						maxLines = 1,
+						overflow = TextOverflow.Ellipsis,
+						modifier = Modifier.widthIn(max = 120.dp)
+					)
 				}
+				
+				// اطلاعات آماری کوتاژها و تناژ باقیمانده
 				Row(
 					horizontalArrangement = Arrangement.spacedBy(8.dp),
 					verticalAlignment = Alignment.CenterVertically
 				) {
+					// آمار کوتاژها
 					InfoChip(
 						icon = Icons.Default.Description,
 						value = formatNumber(ship.quotaCount),
 						color = color.copy(alpha = contentAlpha)
 					)
+					
+					// آمار تناژ باقیمانده
 					InfoChip(
 						icon = Icons.Default.Scale,
 						value = formatNumber(ship.remainingTonnage.toInt()),
 						color = color.copy(alpha = contentAlpha)
 					)
+					
+					// آیکون باز/بسته کردن
 					Icon(
-						imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+						imageVector = Icons.Default.KeyboardArrowDown,
 						contentDescription = if (isExpanded) "بستن" else "باز کردن",
+						modifier = Modifier
+							.size(24.dp)
+							.rotate(rotationState),
 						tint = color.copy(alpha = contentAlpha)
 					)
 				}
 			}
+			
+			// فضای خالی قبل از محتوای توسعه یافته
+			Spacer(modifier = Modifier.height(4.dp))
 
-			if (isExpanded) {
+			// محتوای قابل باز/بسته شدن
+			AnimatedVisibility(
+				visible = isExpanded,
+				enter = expandVertically() + fadeIn(),
+				exit = shrinkVertically() + fadeOut()
+			) {
 				ExpandedContent(ship, color, contentAlpha, onClick)
 			}
 		}
@@ -969,11 +1106,12 @@ fun ShipCard(
 @Composable
 private fun InfoChip(icon: ImageVector, value: String, color: Color) {
 	Surface(
-		shape = RoundedCornerShape(8.dp),
-		color = color.copy(alpha = 0.1f)
+		shape = RoundedCornerShape(6.dp),
+		color = color.copy(alpha = 0.08f),
+		border = BorderStroke(0.5.dp, color.copy(alpha = 0.15f))
 	) {
 		Row(
-			modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+			modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
 			horizontalArrangement = Arrangement.spacedBy(4.dp),
 			verticalAlignment = Alignment.CenterVertically
 		) {
@@ -981,11 +1119,12 @@ private fun InfoChip(icon: ImageVector, value: String, color: Color) {
 				imageVector = icon,
 				contentDescription = null,
 				tint = color,
-				modifier = Modifier.size(16.dp)
+				modifier = Modifier.size(12.dp)
 			)
 			Text(
 				text = value,
 				style = MaterialTheme.typography.bodySmall,
+				fontWeight = FontWeight.Medium,
 				color = color
 			)
 		}
@@ -999,63 +1138,172 @@ private fun ExpandedContent(
 	contentAlpha: Float,
 	onClick: () -> Unit
 ) {
-	Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.SpaceBetween
+	Column(
+		modifier = Modifier.padding(top = 12.dp),
+		verticalArrangement = Arrangement.spacedBy(16.dp)
+	) {
+		// جداکننده افقی
+		HorizontalDivider(
+			color = color.copy(alpha = 0.1f),
+			thickness = 1.dp
+		)
+		
+		// اطلاعات آماری تناژ
+		Surface(
+			shape = RoundedCornerShape(8.dp),
+			color = color.copy(alpha = 0.05f),
+			modifier = Modifier.fillMaxWidth()
 		) {
-			InfoColumn(
-				label = "کل",
-				value = formatNumber(ship.totalTonnage.toInt()),
-				color = color.copy(alpha = contentAlpha)
-			)
-			InfoColumn(
-				label = "بارگیری",
-				value = formatNumber((ship.totalTonnage - ship.remainingTonnage).toInt()),
-				color = color.copy(alpha = contentAlpha)
-			)
-			InfoColumn(
-				label = "مانده",
-				value = formatNumber(ship.remainingTonnage.toInt()),
-				color = color.copy(alpha = contentAlpha)
-			)
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(12.dp),
+				horizontalArrangement = Arrangement.SpaceEvenly,
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				// تناژ کل
+				DetailInfoItem(
+					icon = Icons.Default.Scale,
+					label = "تناژ کل",
+					value = formatNumber(ship.totalTonnage.toInt()),
+					color = color.copy(alpha = contentAlpha)
+				)
+				
+				// جداکننده عمودی
+				Box(
+					modifier = Modifier
+						.height(30.dp)
+						.width(1.dp)
+						.background(color.copy(alpha = 0.1f))
+				)
+				
+				// تناژ بارگیری شده
+				DetailInfoItem(
+					icon = Icons.Default.Inventory,
+					label = "بارگیری شده",
+					value = formatNumber((ship.totalTonnage - ship.remainingTonnage).toInt()),
+					color = color.copy(alpha = contentAlpha)
+				)
+				
+				// جداکننده عمودی
+				Box(
+					modifier = Modifier
+						.height(30.dp)
+						.width(1.dp)
+						.background(color.copy(alpha = 0.1f))
+				)
+				
+				// تناژ باقیمانده
+				DetailInfoItem(
+					icon = Icons.Default.PendingActions,
+					label = "مانده",
+					value = formatNumber(ship.remainingTonnage.toInt()),
+					color = color.copy(alpha = contentAlpha)
+				)
+			}
 		}
-
+		
+		// اطلاعات انبارها و کوتاژها
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
 			verticalAlignment = Alignment.CenterVertically
 		) {
-			Text(
-				text = "تعداد حواله: ${formatNumber(ship.quotaCount)}",
-				style = MaterialTheme.typography.bodyMedium,
-				color = color.copy(alpha = contentAlpha)
-			)
-			Text(
-				text = "${(calculateProgress(ship.totalTonnage - ship.remainingTonnage, ship.totalTonnage) * 100).toInt()}% تکمیل شده",
-				style = MaterialTheme.typography.bodyMedium,
-				color = color.copy(alpha = contentAlpha)
-			)
+			// آمار انبارها
+			Row(
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(6.dp)
+			) {
+				Icon(
+					imageVector = Icons.Default.Warehouse,
+					contentDescription = null,
+					modifier = Modifier.size(16.dp),
+					tint = color.copy(alpha = contentAlpha)
+				)
+				Text(
+					text = "${ship.warehouseCount} انبار",
+					style = MaterialTheme.typography.bodyMedium,
+					color = color.copy(alpha = contentAlpha)
+				)
+			}
+			
+			// آمار کوتاژها
+			Row(
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(6.dp)
+			) {
+				Icon(
+					imageVector = Icons.Default.Description,
+					contentDescription = null,
+					modifier = Modifier.size(16.dp),
+					tint = color.copy(alpha = contentAlpha)
+				)
+				Text(
+					text = "${formatNumber(ship.quotaCount)} کوتاژ",
+					style = MaterialTheme.typography.bodyMedium,
+					color = color.copy(alpha = contentAlpha)
+				)
+			}
 		}
 
+		// دکمه مشاهده جزئیات
 		Button(
 			onClick = onClick,
 			modifier = Modifier
 				.fillMaxWidth()
-				.clickable(enabled = false) {},
+				.height(40.dp),
 			colors = ButtonDefaults.buttonColors(
 				containerColor = color.copy(alpha = 0.1f),
 				contentColor = color
-			)
+			),
+			shape = RoundedCornerShape(8.dp),
+			contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
 		) {
-			Text("مشاهده جزئیات")
-			Spacer(modifier = Modifier.width(4.dp))
+			Text(
+				"مشاهده جزئیات",
+				style = MaterialTheme.typography.bodyMedium,
+				fontWeight = FontWeight.Medium
+			)
+			Spacer(modifier = Modifier.width(8.dp))
 			Icon(
 				imageVector = Icons.AutoMirrored.Filled.ArrowForward,
 				contentDescription = "مشاهده جزئیات",
 				modifier = Modifier.size(16.dp)
 			)
 		}
+	}
+}
+
+@Composable
+private fun DetailInfoItem(
+	icon: ImageVector,
+	label: String,
+	value: String,
+	color: Color
+) {
+	Column(
+		horizontalAlignment = Alignment.CenterHorizontally,
+		verticalArrangement = Arrangement.spacedBy(4.dp)
+	) {
+		Icon(
+			imageVector = icon,
+			contentDescription = null,
+			tint = color,
+			modifier = Modifier.size(16.dp)
+		)
+		
+		Text(
+			text = value,
+			style = MaterialTheme.typography.titleSmall,
+			fontWeight = FontWeight.Bold,
+			color = color
+		)
+		
+		Text(
+			text = label,
+			style = MaterialTheme.typography.bodySmall,
+			color = color.copy(alpha = 0.7f)
+		)
 	}
 }
 
