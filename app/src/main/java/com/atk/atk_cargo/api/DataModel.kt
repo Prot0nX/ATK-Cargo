@@ -580,7 +580,7 @@ class CargoViewModel(
 
         // بررسی دو رقم اول
         val firstTwoDigits = scaleReceipt.substring(0, 2)
-        return !(firstTwoDigits != "39" && firstTwoDigits != "40" && firstTwoDigits != "41")
+        return !(firstTwoDigits != "42" && firstTwoDigits != "43" && firstTwoDigits != "44")
     }
 
     private suspend fun checkScaleReceiptNumber(scaleReceiptNumber: String): Boolean {
