@@ -128,6 +128,14 @@ class CargoViewModel(
     private val _isShowingMessage = MutableStateFlow(false)
     private val _loadableTonnage = MutableStateFlow("")
     val loadableTonnage: StateFlow<String> = _loadableTonnage.asStateFlow()
+    
+    // اضافه کردن StateFlow برای تعداد ماشین‌های قابل بارگیری
+    private val _loadableTrucks18Wheeler = MutableStateFlow("")
+    val loadableTrucks18Wheeler: StateFlow<String> = _loadableTrucks18Wheeler.asStateFlow()
+    
+    private val _loadableTrucks10Wheeler = MutableStateFlow("")
+    val loadableTrucks10Wheeler: StateFlow<String> = _loadableTrucks10Wheeler.asStateFlow()
+    
     private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY)
     val warehouseQuotaGroupingMode: StateFlow<WarehouseQuotaGroupingMode> = _warehouseQuotaGroupingMode.asStateFlow()
     private val _cachedTrackingNumbers = MutableStateFlow<Set<String>>(emptySet())
@@ -635,7 +643,6 @@ class CargoViewModel(
     ) {
         viewModelScope.launch {
             try {
-
                 // دریافت اطلاعات اصلی در Dispatchers.IO
                 val result = withContext(Dispatchers.IO) {
                     repository.getCargoInfo(quotaNumber, shippingCompany, warehouse, cargoType)
@@ -658,6 +665,42 @@ class CargoViewModel(
                 _remainingServices.value = result.initialInfo.remainingServices.toString()
                 _totalServices.value = result.initialInfo.totalVoucherCount.toString()
 
+                // محاسبه سریع loadableTonnage با استفاده از کش یا دریافت مستقیم
+                val cachedQuotasKey = "quotas_${result.initialInfo.shipName}"
+                val cachedQuotas = quotasCache[cachedQuotasKey]
+
+                if (cachedQuotas != null) {
+                    // استفاده از کوتاژهای کش شده برای محاسبه سریع
+                    val quota = cachedQuotas.find { it.number == result.initialInfo.loadingQuotaNumber.toString() }
+                    quota?.let {
+                        val loadableTonnageValue = calculateLoadableTonnage(it)
+                        _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
+                        // محاسبه تعداد ماشین‌های قابل بارگیری
+                        updateLoadableTrucksCount(loadableTonnageValue)
+                    }
+                } else {
+                    // دریافت کوتاژها از سرور به صورت موازی با سایر عملیات
+                    launch(Dispatchers.IO) {
+                        try {
+                            val quotas = repository.getShipQuotas(result.initialInfo.shipName)
+                            // ذخیره کوتاژها در کش
+                            quotasCache[cachedQuotasKey] = quotas
+
+                            val quota = quotas.find { it.number == result.initialInfo.loadingQuotaNumber.toString() }
+                            quota?.let {
+                                val loadableTonnageValue = calculateLoadableTonnage(it)
+                                withContext(Dispatchers.Main) {
+                                    _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
+                                    // محاسبه تعداد ماشین‌های قابل بارگیری
+                                    updateLoadableTrucksCount(loadableTonnageValue)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("CargoViewModel", "Error calculating loadable tonnage", e)
+                        }
+                    }
+                }
+
                 // بررسی وضعیت کوتاژها به صورت موازی
                 launch(Dispatchers.IO) {
                     try {
@@ -675,8 +718,8 @@ class CargoViewModel(
                     }
                 }
 
-                // به‌روزرسانی مقادیر نهایی و محاسبه تناژ قابل بارگیری
-                updateFinalValues()
+                // به‌روزرسانی مقادیر نهایی
+                updateInfoValues()
 
                 // اعلام اتمام بارگذاری
                 onComplete()
@@ -857,36 +900,51 @@ class CargoViewModel(
                     _averageNetWeight.value = DecimalFormat("#,###").format(averageNet.roundToInt())
                     _remainingServices.value = remainingServicesCount.toString()
                     _totalServices.value = _cargoCount.value.toString()
-                }
 
-                // محاسبه تناژ قابل بارگیری در یک coroutine جداگانه با Dispatchers.IO
-                _initialInfo.value?.let { info ->
-                    // استفاده از Dispatchers.IO برای عملیات شبکه
-                    // ذخیره‌سازی کوتاژها در کش برای دسترسی سریع‌تر
-                    val cachedQuotasKey = "quotas_${info.shipName}"
-                    val cachedQuotas = quotasCache[cachedQuotasKey]
-
-                    if (cachedQuotas != null) {
-                        // استفاده از کوتاژهای کش شده
-                        val quota = cachedQuotas.find { it.number == info.loadingQuotaNumber.toString() }
-                        quota?.let {
-                            val loadableTonnage = calculateLoadableTonnage(it)
-                            _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnage.roundToInt())
+                    // اگر loadableTonnage هنوز تنظیم نشده، محاسبه مستقیم آن در همین بلاک
+                    if (_loadableTonnage.value.isBlank()) {
+                        _initialInfo.value?.let { info ->
+                            val cachedQuotasKey = "quotas_${info.shipName}"
+                            val cachedQuotas = quotasCache[cachedQuotasKey]
+                            
+                            if (cachedQuotas != null) {
+                                val quota = cachedQuotas.find { it.number == info.loadingQuotaNumber.toString() }
+                                quota?.let {
+                                    val loadableTonnageValue = calculateLoadableTonnage(it)
+                                    _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
+                                    // محاسبه تعداد ماشین‌های قابل بارگیری
+                                    updateLoadableTrucksCount(loadableTonnageValue)
+                                }
+                            }
                         }
                     } else {
-                        // دریافت کوتاژها از سرور
+                        // اگر loadableTonnage تنظیم شده، اما تعداد ماشین‌ها هنوز محاسبه نشده
+                        if (_loadableTrucks18Wheeler.value.isBlank() || _loadableTrucks10Wheeler.value.isBlank()) {
+                            val loadableTonnageValue = _loadableTonnage.value.replace(",", "").toDoubleOrNull() ?: 0.0
+                            updateLoadableTrucksCount(loadableTonnageValue)
+                        } else {
+                            // مقادیر تعداد ماشین‌ها قبلاً محاسبه شده‌اند و نیازی به محاسبه مجدد نیست
+                        }
+                    }
+                }
+
+                // فقط اگر loadableTonnage هنوز خالی است، آن را در یک coroutine جداگانه محاسبه کنیم
+                if (_loadableTonnage.value.isBlank()) {
+                    _initialInfo.value?.let { info ->
                         viewModelScope.launch(Dispatchers.IO) {
                             try {
                                 val quotas = repository.getShipQuotas(info.shipName)
                                 // ذخیره کوتاژها در کش
-                                quotasCache[cachedQuotasKey] = quotas
+                                quotasCache["quotas_${info.shipName}"] = quotas
 
                                 val quota = quotas.find { it.number == info.loadingQuotaNumber.toString() }
                                 quota?.let {
-                                    val loadableTonnage = calculateLoadableTonnage(it)
+                                    val loadableTonnageValue = calculateLoadableTonnage(it)
                                     // به‌روزرسانی UI در Dispatchers.Main
                                     withContext(Dispatchers.Main) {
-                                        _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnage.roundToInt())
+                                        _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
+                                        // محاسبه تعداد ماشین‌های قابل بارگیری
+                                        updateLoadableTrucksCount(loadableTonnageValue)
                                     }
                                 }
                             } catch (e: Exception) {
@@ -967,6 +1025,19 @@ class CargoViewModel(
         } else {
             quota.remainingTonnage.toDouble()
         }
+    }
+
+    private fun updateLoadableTrucksCount(loadableTonnage: Double) {
+        // محاسبه تعداد ماشین‌های 18 چرخ (22000 تا 26000 کیلوگرم)
+        // از میانگین 24000 کیلوگرم استفاده می‌کنیم
+        val trucks18Wheeler = if (loadableTonnage > 0) (loadableTonnage / 24000.0).toInt() else 0
+        
+        // محاسبه تعداد ماشین‌های 10 چرخ (12000 تا 15000 کیلوگرم)
+        // از میانگین 13500 کیلوگرم استفاده می‌کنیم
+        val trucks10Wheeler = if (loadableTonnage > 0 && loadableTonnage < 50000) (loadableTonnage / 13500.0).toInt() else 0
+        
+        _loadableTrucks18Wheeler.value = trucks18Wheeler.toString()
+        _loadableTrucks10Wheeler.value = trucks10Wheeler.toString()
     }
 }
 
@@ -1940,7 +2011,7 @@ class ReportsViewModel(
         _warehouseQuotaGroupingMode.value = mode
     }
 
-        fun shareRealTimeLoadingData(loadingData: List<RealTimeLoadingData>, shiftInfo: ShiftInfo?): String {
+    fun shareRealTimeLoadingData(loadingData: List<RealTimeLoadingData>, shiftInfo: ShiftInfo?): String {
         // محاسبه کل حواله‌های خروجی
         val totalExitVouchers = loadingData.sumOf { it.exitVouchers.toFloat() }.toInt()
         
@@ -1954,8 +2025,9 @@ class ReportsViewModel(
         // تنظیم تاریخ براساس قوانین شیفت شب
         if (shiftType == "شب") {
             val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
-            // اگر شیفت شب باشد و ساعت کمتر از 7 صبح باشد، یک روز از تاریخ کم می‌کنیم
-            if (currentHour < 7) {
+            val currentMinute = calendar.get(Calendar.MINUTE)
+            // اگر شیفت شب باشد و ساعت کمتر از 7:30 صبح باشد، یک روز از تاریخ کم می‌کنیم
+            if (currentHour < 7 || (currentHour == 7 && currentMinute < 30)) {
                 calendar.add(Calendar.DAY_OF_MONTH, -1)
             }
         }
@@ -2464,7 +2536,7 @@ class LoadingAnalytics {
                     averageWeight = if (exitVouchers > 0) loadedWeight / exitVouchers else 0f,
                     warehouses = warehouses,
                     warehouseCount = warehouses.size,
-                    exitRatio = if (totalVouchers > 0) (exitVouchers / totalVouchers) * 100 else 0f
+                    exitRatio = if (totalVouchers > 0) (exitVouchers / totalVouchers * 100) else 0f
                 )
             }
     }
