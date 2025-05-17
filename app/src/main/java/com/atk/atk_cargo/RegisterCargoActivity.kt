@@ -216,7 +216,6 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import kotlin.math.sqrt
 
 class RegisterCargoActivity : ComponentActivity() {
     private lateinit var viewModel: CargoViewModel
@@ -376,13 +375,8 @@ fun RegisterCargoScreen(
     val snackbarMessage by viewModel.snackbarMessage.collectAsState()
     var showQuotaWarning by remember { mutableStateOf<WarningStatus?>(null) }
     val loadableTonnage by viewModel.loadableTonnage.collectAsState()
-
-//    LaunchedEffect(Unit) {
-//        while (true) {
-//            delay(30000)
-//            viewModel.refreshCargoInfo()
-//        }
-//    }
+    val loadableTrucks18Wheeler by viewModel.loadableTrucks18Wheeler.collectAsState()
+    val loadableTrucks10Wheeler by viewModel.loadableTrucks10Wheeler.collectAsState()
 
     fun clearInputFields() {
         trackingNumber = ""
@@ -455,9 +449,11 @@ fun RegisterCargoScreen(
                     shipInfo = shipInfo,
                     isInfoVisible = isInfoVisible,
                     onToggleVisibility = { isInfoVisible = !isInfoVisible },
-                    loadableTonnage = loadableTonnage
+                    loadableTonnage = loadableTonnage,
+                    loadableTrucks18Wheeler = loadableTrucks18Wheeler,
+                    loadableTrucks10Wheeler = loadableTrucks10Wheeler
                 )
-
+                
                 Spacer(modifier = Modifier.height(4.dp))
 
                 AnimatedVisibility(
@@ -2431,7 +2427,9 @@ fun ShipInfoSection(
     shipInfo: ShipInfo,
     isInfoVisible: Boolean,
     onToggleVisibility: () -> Unit,
-    loadableTonnage: String
+    loadableTonnage: String,
+    loadableTrucks18Wheeler: String,
+    loadableTrucks10Wheeler: String
 ) {
     val loadedPercentage = remember(shipInfo.cargoWeight, shipInfo.totalNetWeight) {
         try {
@@ -2459,7 +2457,9 @@ fun ShipInfoSection(
                 loadedPercentage = loadedPercentage.toFloat(),
                 shipName = shipInfo.shipName,
                 quotaNumber = shipInfo.loadingQuotaNumber,
-                loadableTonnage = loadableTonnage
+                loadableTonnage = loadableTonnage,
+                loadableTrucks18Wheeler = loadableTrucks18Wheeler,
+                loadableTrucks10Wheeler = loadableTrucks10Wheeler
             )
 
             AnimatedVisibility(
@@ -2487,7 +2487,9 @@ private fun HeaderInfo(
     loadedPercentage: Float,
     shipName: String,
     quotaNumber: String,
-    loadableTonnage: String
+    loadableTonnage: String,
+    loadableTrucks18Wheeler: String,
+    loadableTrucks10Wheeler: String
 ) {
     Column(
         modifier = Modifier
@@ -2527,7 +2529,7 @@ private fun HeaderInfo(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // نمایش تناژ قابل بارگیری
+            // نمایش اطلاعات تناژ و ماشین‌های قابل بارگیری
             Column(
                 horizontalAlignment = Alignment.End
             ) {
@@ -2538,16 +2540,55 @@ private fun HeaderInfo(
                     MaterialTheme.colors.primary to "قابل بارگیری"
                 }
                 
-                Text(
-                    text = "$loadableTonnage کیلوگرم",
-                    style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold),
-                    color = textColor
-                )
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.caption,
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
-                )
+                // نمایش تناژ قابل بارگیری
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.caption,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                    Text(
+                        text = loadableTonnage,
+                        style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold),
+                        color = textColor
+                    )
+                }
+                
+                // نمایش تعداد ماشین‌های قابل بارگیری
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocalShipping,
+                        contentDescription = null,
+                        tint = MaterialTheme.colors.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    
+                    // نمایش ماشین‌های 10 چرخ فقط اگر تناژ کمتر از 50000 کیلوگرم باشد
+                    val tonnageValue = loadableTonnage.replace(",", "").toDoubleOrNull() ?: 0.0
+                    if (tonnageValue < 50000 && (loadableTrucks10Wheeler.toIntOrNull() ?: 0) > 0) {
+                        Text(
+                            text = "$loadableTrucks10Wheeler×10چرخ",
+                            style = MaterialTheme.typography.subtitle2,
+                            color = MaterialTheme.colors.primary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    
+                    Text(
+                        text = "$loadableTrucks18Wheeler×18چرخ",
+                        style = MaterialTheme.typography.subtitle2,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colors.primary
+                    )
+                }
             }
         }
 
