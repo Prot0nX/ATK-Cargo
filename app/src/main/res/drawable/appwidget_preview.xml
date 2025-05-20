@@ -1,9 +1,0 @@
-<svg xmlns:tools="http://schemas.android.com/tools"
-    xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 40">
-    <rect width="110" height="40" fill="#f0f0f0"/>
-    <rect x="5" y="5" width="100" height="30" rx="5" ry="5" fill="#ffffff" stroke="#000000" stroke-width="1"/>
-    <text x="55" y="25" font-family="Arial" font-size="10" text-anchor="middle">بارگیری لحظه‌ای</text>
-    <path d="M20 15 L30 15 L25 20 Z" fill="#000000"/>
-    <rect x="40" y="13" width="40" height="4" fill="#cccccc"/>
-    <rect x="40" y="23" width="40" height="4" fill="#cccccc"/>
-</svg>

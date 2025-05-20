@@ -1774,7 +1774,7 @@ private fun ShipSelectionDialog(
         
         // کشتی‌هایی که از قبل انتخاب شده‌اند را به ابتدای لیست منتقل می‌کنیم
         alphabeticallySorted.sortedWith(
-            compareByDescending<Map.Entry<String, List<ActiveShipInfo>>> { (shipName, _) ->
+            compareByDescending { (shipName, _) ->
                 selectedShipNames.contains(shipName)
             }
         )
