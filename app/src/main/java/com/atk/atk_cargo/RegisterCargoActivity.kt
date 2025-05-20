@@ -90,7 +90,6 @@ import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedButton
@@ -269,12 +268,6 @@ class RegisterCargoActivity : ComponentActivity() {
                         RegisterCargoScreen(
                             initialInfo = initialInfo,
                             cargoInfoList = cargoInfoList,
-                            cargoWeight = cargoWeight,
-                            totalNetWeight = totalNetWeight,
-                            remainingWeight = remainingWeight,
-                            averageNetWeight = averageNetWeight,
-                            remainingServices = remainingServices,
-                            totalServices = totalServices,
                             resultMessage = resultMessage,
                             showAnimatedMessage = showAnimatedMessage,
                             messageType = messageType,
@@ -336,12 +329,6 @@ class RegisterCargoActivity : ComponentActivity() {
 fun RegisterCargoScreen(
     initialInfo: InitialInfo?,
     cargoInfoList: List<CargoInfo>,
-    cargoWeight: String,
-    totalNetWeight: String,
-    remainingWeight: String,
-    averageNetWeight: String,
-    remainingServices: String,
-    totalServices: String,
     resultMessage: String,
     showAnimatedMessage: Boolean,
     messageType: MessageType,
@@ -567,16 +554,46 @@ fun RegisterCargoScreen(
                     )
                 }
 
-                // دکمه بروزرسانی
+                // دکمه بروزرسانی با انیمیشن چرخش
+                var isRefreshing by remember { mutableStateOf(false) }
+                var rotationState by remember { mutableStateOf(0f) }
+                val rotation = animateFloatAsState(
+                    targetValue = rotationState,
+                    animationSpec = tween(500, easing = FastOutSlowInEasing),
+                    label = "rotation"
+                )
+                
                 Button(
-                    onClick = { viewModel.refreshCargoInfo() },
+                    onClick = { 
+                        if (!isRefreshing) {
+                            isRefreshing = true
+                            rotationState += 360f
+                            viewModel.refreshCargoInfo()
+                            // بعد از 1.5 ثانیه امکان بروزرسانی مجدد فراهم می‌شود
+                            coroutineScope.launch {
+                                delay(1500)
+                                isRefreshing = false
+                            }
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = MaterialTheme.colors.primary,
+                        contentColor = Color.White,
+                        disabledBackgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.7f),
+                        disabledContentColor = Color.White.copy(alpha = 0.7f)
+                    ),
+                    enabled = !isRefreshing
                 ) {
-                    Icon(Icons.Default.Refresh, contentDescription = "بروزرسانی")
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text("بروزرسانی اطلاعات")
+                    Icon(
+                        Icons.Default.Refresh, 
+                        contentDescription = "بروزرسانی",
+                        modifier = Modifier.rotate(rotation.value)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (isRefreshing) "در حال بروزرسانی..." else "بروزرسانی اطلاعات")
                 }
 
                 ExpandableSection(
@@ -667,9 +684,9 @@ fun RegisterCargoScreen(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = 16.dp)
+                    modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
         snackbarMessage?.let { message ->
             StatusSnackbar(
@@ -719,15 +736,48 @@ fun QuotaWarningDialog(
     viewModel: CargoViewModel
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val scale by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = ""
-    )
-    val alpha by animateFloatAsState(targetValue = 1f, label = "")
+
+    // انیمیشن‌های ورودی
+    val scale = remember { androidx.compose.animation.core.Animatable(0.8f) }
+    val alpha = remember { androidx.compose.animation.core.Animatable(0f) }
+
+    // انیمیشن پالس برای آیکون هشدار
+    val iconScale = remember { androidx.compose.animation.core.Animatable(1f) }
+
+    // انیمیشن‌های ورودی
+    LaunchedEffect(Unit) {
+        launch {
+            scale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+            )
+        }
+
+        launch {
+            alpha.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(300)
+            )
+        }
+
+        // انیمیشن پالس برای آیکون هشدار
+        launch {
+            while (true) {
+                iconScale.animateTo(
+                    targetValue = 1.2f,
+                    animationSpec = tween(600, easing = FastOutSlowInEasing)
+                )
+                iconScale.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(600, easing = FastOutSlowInEasing)
+                )
+                delay(1000)
+            }
+        }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -739,73 +789,221 @@ fun QuotaWarningDialog(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
+                .fillMaxWidth(0.9f)
                 .wrapContentHeight()
                 .padding(vertical = 8.dp)
-                .scale(scale)
-                .alpha(alpha),
-            shape = RoundedCornerShape(16.dp),
-            elevation = 6.dp
+                .scale(scale.value)
+                .alpha(alpha.value),
+            shape = RoundedCornerShape(24.dp),
+            elevation = 8.dp,
+            color = Color.White
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Warning Icon
+                // آیکون هشدار با انیمیشن
                 Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(
-                            MaterialTheme.colors.error.copy(alpha = 0.1f),
-                            CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
+                    modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = MaterialTheme.colors.error,
-                        modifier = Modifier.size(32.dp)
+                    // دایره خارجی با گرادیان
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .scale(iconScale.value)
+                            .background(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colors.error.copy(alpha = 0.7f),
+                                        MaterialTheme.colors.error.copy(alpha = 0.0f)
+                                    )
+                                ),
+                                shape = CircleShape
+                            )
                     )
+
+                    // دایره داخلی با آیکون
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .align(Alignment.Center)
+                            .background(
+                                color = MaterialTheme.colors.error,
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Title
+                // عنوان با طراحی جدید
                 Text(
                     text = "هشدار محدودیت درصد کوتاژ",
                     style = MaterialTheme.typography.h6,
                     color = MaterialTheme.colors.error,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Message
+                // کارت اطلاعات کوتاژ
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colors.error.copy(alpha = 0.08f),
+                    border = BorderStroke(1.dp, MaterialTheme.colors.error.copy(alpha = 0.2f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    "شماره کوتاژ",
+                                    style = MaterialTheme.typography.caption,
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                                )
+                                Text(
+                                    warning.quotaNumber,
+                                    style = MaterialTheme.typography.subtitle1,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = MaterialTheme.colors.error.copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    "${warning.percentage}%",
+                                    style = MaterialTheme.typography.h5,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colors.error,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // نمایش نوار پیشرفت با طراحی بهبود یافته
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            // پس‌زمینه نوار پیشرفت
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(10.dp)
+                                    .clip(RoundedCornerShape(5.dp))
+                                    .background(MaterialTheme.colors.error.copy(alpha = 0.15f))
+                            )
+
+                            // نوار پیشرفت اصلی
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth((warning.percentage / 100f).toFloat())
+                                    .height(10.dp)
+                                    .clip(RoundedCornerShape(5.dp))
+                                    .background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colors.error.copy(alpha = 0.7f),
+                                                MaterialTheme.colors.error
+                                            )
+                                        )
+                                    )
+                            )
+
+                            // نقاط نشانگر در نوار پیشرفت
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                for (i in 1..4) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(4.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (warning.percentage >= i * 25) Color.White.copy(alpha = 0.9f)
+                                                else Color.Transparent
+                                            )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // پیام هشدار
                 Text(
-                    text = "کوتاژ ${warning.quotaNumber} به حد نصاب ${warning.percentage}% رسیده است و امکان ثبت حواله جدید و خروج وجود ندارد.",
+                    text = "کوتاژ به حد نصاب مجاز رسیده است و امکان ثبت حواله جدید و خروج وجود ندارد.",
                     style = MaterialTheme.typography.body1,
-                    textAlign = TextAlign.Center,
+                    textAlign = TextAlign.Justify,
                     color = MaterialTheme.colors.onSurface
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Close Button
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            viewModel.toggleQuotaStatus(warning.quotaNumber)
-                            onDismiss()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = MaterialTheme.colors.error,
-                        contentColor = MaterialTheme.colors.onError
-                    ),
-                    shape = RoundedCornerShape(8.dp)
+                // دکمه‌های عملیات
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text("متوجه شدم")
+                    // دکمه بستن
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colors.error.copy(alpha = 0.5f))
+                    ) {
+                        Text(
+                            "بستن",
+                            color = MaterialTheme.colors.error
+                        )
+                    }
+
+                    // دکمه تایید
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                viewModel.toggleQuotaStatus(warning.quotaNumber)
+                                onDismiss()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = MaterialTheme.colors.error,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = ButtonDefaults.elevation(
+                            defaultElevation = 4.dp,
+                            pressedElevation = 8.dp
+                        )
+                    ) {
+                        Text(
+                            "متوجه شدم",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
@@ -838,8 +1036,25 @@ fun NetWeightDialog(
         ) + fadeOut(animationSpec = tween(300))
     }
 
+    // انیمیشن برای دکمه دوربین
+    val cameraButtonScale = remember { androidx.compose.animation.core.Animatable(1f) }
+
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+        // انیمیشن پالس برای دکمه دوربین
+        launch {
+            while (true) {
+                cameraButtonScale.animateTo(
+                    targetValue = 1.1f,
+                    animationSpec = tween(500, easing = FastOutSlowInEasing)
+                )
+                cameraButtonScale.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(500, easing = FastOutSlowInEasing)
+                )
+                delay(1500)
+            }
+        }
     }
 
     fun validateAndConfirm() {
@@ -872,143 +1087,245 @@ fun NetWeightDialog(
                 Surface(
                     modifier = Modifier
                         .width(dialogWidth)
-                        .clip(RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
+                        .clip(RoundedCornerShape(24.dp))
+                        .align(Alignment.Center),
+                    shape = RoundedCornerShape(24.dp),
+                    color = Color.White,
                     elevation = 8.dp
                 ) {
-                    Box(
+                    Column(
                         modifier = Modifier
-                            .background(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colors.primary,
-                                        MaterialTheme.colors.primaryVariant
-                                    )
-                                )
-                            )
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(
+                        // هدر با آیکون و عنوان
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(24.dp)
+                                .padding(bottom = 16.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 16.dp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(
+                                            MaterialTheme.colors.primary.copy(alpha = 0.1f),
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Scale,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colors.primary,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
                                 Text(
                                     "ثبت وزن خالص",
                                     style = MaterialTheme.typography.h5,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth()
+                                    color = MaterialTheme.colors.primary,
+                                    fontWeight = FontWeight.Bold
                                 )
-                                IconButton(
-                                    onClick = {
-                                        focusManager.clearFocus()
-                                        onDismiss()
-                                    },
-                                    modifier = Modifier.align(Alignment.TopEnd)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "بستن",
-                                        tint = Color.White
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    focusManager.clearFocus()
+                                    onDismiss()
+                                },
+                                modifier = Modifier.align(Alignment.TopEnd)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "بستن",
+                                    tint = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+
+                        // نمایش شماره قبض باسکول در کارت
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colors.primary.copy(alpha = 0.05f),
+                            border = BorderStroke(1.dp, MaterialTheme.colors.primary.copy(alpha = 0.2f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Receipt,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colors.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column {
+                                    Text(
+                                        "شماره قبض باسکول",
+                                        style = MaterialTheme.typography.caption,
+                                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                                    )
+
+                                    Text(
+                                        scaleReceiptNumber,
+                                        style = MaterialTheme.typography.subtitle1,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colors.onSurface
                                     )
                                 }
                             }
+                        }
 
-                            Text(
-                                "شماره قبض باسکول: $scaleReceiptNumber",
-                                style = MaterialTheme.typography.body1,
-                                color = Color.White.copy(alpha = 0.8f),
-                                textAlign = TextAlign.Right,
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                OutlinedTextField(
-                                    value = netWeight,
-                                    onValueChange = {
-                                        netWeight = it
-                                        isError = false
-                                    },
-                                    label = {
-                                        Text("وزن خالص (کیلوگرم)", color = Color.White.copy(alpha = 0.7f))
-                                    },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    keyboardActions = KeyboardActions(onDone = {
-                                        focusManager.clearFocus()
-                                        validateAndConfirm()
-                                    }),
-                                    isError = isError,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .focusRequester(focusRequester),
-                                    textStyle = LocalTextStyle.current.copy(
-                                        textAlign = TextAlign.Center,
-                                        color = Color.White
-                                    ),
-                                    singleLine = true,
-                                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                                        focusedBorderColor = Color.White,
-                                        unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
-                                        cursorColor = Color.White
-                                    )
+                        // فیلد ورودی وزن خالص
+                        OutlinedTextField(
+                            value = netWeight,
+                            onValueChange = {
+                                netWeight = it
+                                isError = false
+                            },
+                            label = {
+                                Text("وزن خالص (کیلوگرم)")
+                            },
+                            placeholder = {
+                                Text(
+                                    "مثال: 25000",
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.4f)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                IconButton(
-                                    onClick = { showCamera = true },
-                                    modifier = Modifier
-                                        .size(56.dp)
-                                        .background(Color.White, CircleShape)
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Scale,
+                                    contentDescription = null
+                                )
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            keyboardActions = KeyboardActions(onDone = {
+                                focusManager.clearFocus()
+                                validateAndConfirm()
+                            }),
+                            isError = isError,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequester),
+                            textStyle = LocalTextStyle.current.copy(
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            ),
+                            singleLine = true,
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                focusedBorderColor = MaterialTheme.colors.primary,
+                                unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.2f),
+                                focusedLabelColor = MaterialTheme.colors.primary
+                            )
+                        )
+
+                        if (isError) {
+                            Text(
+                                "وزن خالص باید بین 5000 تا 45000 کیلوگرم باشد",
+                                color = MaterialTheme.colors.error,
+                                style = MaterialTheme.typography.caption,
+                                textAlign = TextAlign.Justify,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        // دکمه‌های عملیات
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // دکمه دوربین برای اسکن وزن
+                            Button(
+                                onClick = { showCamera = true },
+                                modifier = Modifier
+                                    .weight(0.4f)
+                                    .height(48.dp)
+                                    .scale(cameraButtonScale.value),
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = MaterialTheme.colors.secondary
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                elevation = ButtonDefaults.elevation(
+                                    defaultElevation = 4.dp,
+                                    pressedElevation = 8.dp
+                                )
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Camera,
                                         contentDescription = "اسکن وزن",
-                                        tint = MaterialTheme.colors.primary,
-                                        modifier = Modifier.size(24.dp)
+                                        tint = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "اسکن",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
 
-                            if (isError) {
-                                Text(
-                                    "وزن خالص باید بین 5000 تا 45000 کیلوگرم باشد",
-                                    color = Color.Red,
-                                    style = MaterialTheme.typography.caption,
-                                    textAlign = TextAlign.Right,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 4.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(24.dp))
-
+                            // دکمه تایید
                             Button(
                                 onClick = {
                                     focusManager.clearFocus()
                                     validateAndConfirm()
                                 },
-                                colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp)
+                                colors = ButtonDefaults.buttonColors(
+                                    backgroundColor = MaterialTheme.colors.primary
+                                ),
+                                modifier = Modifier
+                                    .weight(0.6f)
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                elevation = ButtonDefaults.elevation(
+                                    defaultElevation = 4.dp,
+                                    pressedElevation = 8.dp
+                                )
                             ) {
                                 Text(
-                                    "تائید",
-                                    color = MaterialTheme.colors.primary,
+                                    "ثبت وزن خالص",
+                                    color = Color.White,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // راهنمای کاربر
+                        Text(
+                            "برای اسکن خودکار وزن از دکمه اسکن استفاده کنید",
+                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                            textAlign = TextAlign.Justify,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
                     }
                 }
             }
@@ -2097,6 +2414,7 @@ fun FormSection(
     // منطق جدید برای فعال/غیرفعال کردن دکمه ثبت
     val isSubmitEnabled = remember(
         trackingNumber,
+        numberOfPeople,
         isDuplicate,
         shortageWeight,
         excessWeight,
@@ -2104,7 +2422,7 @@ fun FormSection(
     ) {
         when {
             trackingNumber.isBlank() -> false
-            !isDuplicate -> true
+            !isDuplicate -> numberOfPeople.isNotBlank() && numberOfPeople.toIntOrNull() != null && numberOfPeople.toIntOrNull()!! > 0
             !canEditWeights -> false
             else -> {
                 val hasShortage = shortageWeight.isNotBlank() && shortageWeight != "0"
@@ -2272,63 +2590,117 @@ fun MessageDialog(
         ) + fadeOut(animationSpec = tween(300))
     }
 
-    val backgroundColor = when (type) {
-        MessageType.SUCCESS -> Color(0xFF4CAF50)
-        MessageType.WARNING -> Color(0xFFFFA000)
-        MessageType.ERROR -> Color(0xFFF44336)
+    val (backgroundColor, iconTint, titleText) = when (type) {
+        MessageType.SUCCESS -> Triple(
+            Color.White,
+            Color(0xFF4CAF50),
+            "عملیات موفق"
+        )
+        MessageType.WARNING -> Triple(
+            Color.White,
+            Color(0xFFFFA000),
+            "هشدار"
+        )
+        MessageType.ERROR -> Triple(
+            Color.White,
+            Color(0xFFF44336),
+            "خطا"
+        )
     }
 
     if (visible) {
         Dialog(
             onDismissRequest = { /* Prevent dismissal on outside click */ },
-            properties = DialogProperties(dismissOnClickOutside = false)
+            properties = DialogProperties(
+                dismissOnClickOutside = false,
+                usePlatformDefaultWidth = false
+            )
         ) {
-            BoxWithConstraints {
-                val dialogWidth = maxWidth
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .wrapContentHeight()
+                    .clip(RoundedCornerShape(24.dp)),
+                shape = RoundedCornerShape(24.dp),
+                color = backgroundColor,
+                elevation = 8.dp
+            ) {
                 AnimatedVisibility(
                     visible = true,
                     enter = dialogEnterTransition,
                     exit = dialogExitTransition
                 ) {
-                    Surface(
-                        modifier = Modifier
-                            .width(dialogWidth)
-                            .padding(8.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        color = backgroundColor,
-                        elevation = 8.dp
+                    Column(
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(
-                            modifier = Modifier.padding(8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        // Header with colored circle background
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .background(iconTint.copy(alpha = 0.1f), CircleShape)
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             LottieAnimation(
                                 composition = composition,
                                 progress = { lottieAnimatable.progress },
-                                modifier = Modifier.size(120.dp)
+                                modifier = Modifier.size(80.dp)
                             )
+                        }
 
-                            Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
+                        // Title
+                        Text(
+                            text = titleText,
+                            style = MaterialTheme.typography.h6,
+                            fontWeight = FontWeight.Bold,
+                            color = iconTint
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Message with card background
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = iconTint.copy(alpha = 0.05f),
+                            border = BorderStroke(1.dp, iconTint.copy(alpha = 0.2f))
+                        ) {
                             Text(
                                 text = message,
                                 style = MaterialTheme.typography.body1.copy(
-                                    color = Color.White,
                                     fontWeight = FontWeight.Medium,
-                                    textAlign = TextAlign.Right
+                                    textAlign = TextAlign.Justify
                                 ),
-                                modifier = Modifier.fillMaxWidth()
+                                color = MaterialTheme.colors.onSurface,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
                             )
+                        }
 
-                            Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                            Button(
-                                onClick = onDismiss,
-                                colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("باشه", color = backgroundColor)
-                            }
+                        // Button with gradient background
+                        Button(
+                            onClick = onDismiss,
+                            colors = ButtonDefaults.buttonColors(backgroundColor = iconTint),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = ButtonDefaults.elevation(
+                                defaultElevation = 4.dp,
+                                pressedElevation = 8.dp
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                        ) {
+                            Text(
+                                "متوجه شدم",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
@@ -2537,7 +2909,7 @@ private fun HeaderInfo(
                 val (textColor, statusText) = if (tonnageValue < 0) {
                     MaterialTheme.colors.error to "بیش از حد"
                 } else {
-                    MaterialTheme.colors.primary to "قابل بارگیری"
+                    MaterialTheme.colors.primary to "تناژ مجاز"
                 }
                 
                 // نمایش تناژ قابل بارگیری
@@ -2563,43 +2935,91 @@ private fun HeaderInfo(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End
                 ) {
+                    // نمایش ماشین‌های 10 چرخ در هر شرایطی، با رنگ قرمز و انیمیشن برای مقادیر صفر
+                    val truck10Value = loadableTrucks10Wheeler.toIntOrNull() ?: 0
+                    val truck18Value = loadableTrucks18Wheeler.toIntOrNull() ?: 0
+                    
+                    // انیمیشن چشمک‌زن برای مقادیر صفر
+                    val infiniteTransition = rememberInfiniteTransition(label = "blinkingAnimation")
+                    val truck10Alpha by infiniteTransition.animateFloat(
+                        initialValue = if (truck10Value <= 0) 0.1f else 1f,
+                        targetValue = if (truck10Value <= 0) 1f else 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(800, easing = LinearEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "truck10Alpha"
+                    )
+                    
+                    val truck18Alpha by infiniteTransition.animateFloat(
+                        initialValue = if (truck18Value <= 0) 0.1f else 1f,
+                        targetValue = if (truck18Value <= 0) 1f else 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(800, easing = LinearEasing),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "truck18Alpha"
+                    )
+                    
+                    // تنظیم رنگ‌ها بر اساس مقادیر
+                    val truck10Color = if (truck10Value <= 0) MaterialTheme.colors.error else MaterialTheme.colors.primary
+                    val truck18Color = if (truck18Value <= 0) MaterialTheme.colors.error else MaterialTheme.colors.primary
+                    
+                    // نمایش اطلاعات 10 چرخ
                     Icon(
                         imageVector = Icons.Default.LocalShipping,
                         contentDescription = null,
-                        tint = MaterialTheme.colors.primary,
-                        modifier = Modifier.size(16.dp)
+                        tint = truck10Color,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .alpha(truck10Alpha)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    Text(
+                        text = "$loadableTrucks10Wheeler = 10چرخ",
+                        style = MaterialTheme.typography.subtitle2,
+                        fontWeight = FontWeight.Bold,
+                        color = truck10Color,
+                        modifier = Modifier.alpha(truck10Alpha)
+                    )
+                    Spacer(modifier = Modifier.width(14.dp))
+                    
+                    // نمایش اطلاعات 18 چرخ
+                    Icon(
+                        imageVector = Icons.Default.LocalShipping,
+                        contentDescription = null,
+                        tint = truck18Color,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .alpha(truck18Alpha)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     
-                    // نمایش ماشین‌های 10 چرخ فقط اگر تناژ کمتر از 50000 کیلوگرم باشد
-                    val tonnageValue = loadableTonnage.replace(",", "").toDoubleOrNull() ?: 0.0
-                    if (tonnageValue < 50000 && (loadableTrucks10Wheeler.toIntOrNull() ?: 0) > 0) {
-                        Text(
-                            text = "$loadableTrucks10Wheeler×10چرخ",
-                            style = MaterialTheme.typography.subtitle2,
-                            color = MaterialTheme.colors.primary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                    
                     Text(
-                        text = "$loadableTrucks18Wheeler×18چرخ",
+                        text = "$loadableTrucks18Wheeler = 18چرخ",
                         style = MaterialTheme.typography.subtitle2,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colors.primary
+                        color = truck18Color,
+                        modifier = Modifier.alpha(truck18Alpha)
                     )
                 }
             }
         }
 
-        LinearProgressIndicator(
-            progress = loadedPercentage / 100f,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(4.dp),
-            color = MaterialTheme.colors.primary,
-            backgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.2f)
-        )
+                .height(4.dp)
+                .background(MaterialTheme.colors.primary.copy(alpha = 0.2f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(loadedPercentage / 100f)
+                    .height(4.dp)
+                    .background(MaterialTheme.colors.primary)
+            )
+        }
     }
 }
 
@@ -3013,7 +3433,7 @@ fun CargoInfoDetailsDialog(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
+                .fillMaxWidth(0.9f)
                 .fillMaxHeight(0.9f)
                 .clip(RoundedCornerShape(16.dp)),
             elevation = 4.dp

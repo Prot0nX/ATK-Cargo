@@ -39,7 +39,9 @@ import com.itextpdf.text.pdf.PdfPCell
 import com.itextpdf.text.pdf.PdfPTable
 import com.itextpdf.text.pdf.PdfWriter
 import com.patrykandpatrick.vico.core.extension.sumOf
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,6 +52,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
+import retrofit2.Response
 import java.io.File
 import java.io.FileNotFoundException
 import java.text.DecimalFormat
@@ -95,9 +98,6 @@ class CargoViewModel(
     val cargoCount: StateFlow<Int> = _cargoCount.asStateFlow()
     private val _clearInputFields = MutableStateFlow(false)
     val clearInputFields: StateFlow<Boolean> = _clearInputFields.asStateFlow()
-    private fun MutableStateFlow<List<CargoInfo>>.update(function: (List<CargoInfo>) -> List<CargoInfo>) {
-        this.value = function(this.value)
-    }
     private val _initialInfo = MutableStateFlow<InitialInfo?>(null)
     val initialInfo: StateFlow<InitialInfo?> = _initialInfo.asStateFlow()
     private val _cargoWeight = MutableStateFlow("")
@@ -144,15 +144,6 @@ class CargoViewModel(
     // وضعیت کشتی‌های انتخاب شده
     private val _selectedShipNames = MutableStateFlow<Set<String>>(emptySet())
     val selectedShipNames: StateFlow<Set<String>> = _selectedShipNames.asStateFlow()
-    
-    // تابع توسعه‌ای برای بروزرسانی MutableStateFlow با نوع Set<String>
-    private fun MutableStateFlow<Set<String>>.updateSet(function: (Set<String>) -> Set<String>) {
-        this.value = function(this.value)
-    }
-    
-    fun setWarehouseQuotaGroupingMode(mode: WarehouseQuotaGroupingMode) {
-        _warehouseQuotaGroupingMode.value = mode
-    }
     
     // به‌روزرسانی کشتی‌های انتخاب شده
     fun updateSelectedShips(ships: Set<String>) {
@@ -300,10 +291,31 @@ class CargoViewModel(
     }
 
     fun refreshCargoInfo() {
+        // بروزرسانی فوری تناژ قابل بارگیری قبل از هر کار دیگر
+        updateLoadableTonnage()
+        
         viewModelScope.launch {
             _initialInfo.value?.let { info ->
                 try {
+                    // اطمینان از اعتبار اطلاعات جاری
+                    if (info.loadingQuotaNumber.toString().isBlank() || info.shippingCompany.isBlank() ||
+                        info.loadingWarehouse.isBlank() || info.cargoType.isBlank()) {
+                        Log.e("CargoViewModel", "Invalid initial info for refresh: $info")
+                        return@launch
+                    }
+                    
+                    // بررسی وضعیت کوتاژ و سپس بارگذاری اطلاعات
                     checkQuotaStatus(info)
+                    
+                    // وقفه کوتاه برای دریافت بهترین داده‌ها
+                    delay(300)
+                    
+                    // لاگ قبل از بروزرسانی
+                    Log.d("CargoViewModel", "قبل از بروزرسانی - حواله‌های خروج: ${_cargoInfoList.value.count { it.status == "خروج" }}")
+                    
+                    // نگهداری آخرین لیست برای مقایسه
+                    val oldCargoList = _cargoInfoList.value
+                    
                     loadCargoInfoList(
                         quotaNumber = info.loadingQuotaNumber.toString(),
                         shippingCompany = info.shippingCompany,
@@ -311,13 +323,33 @@ class CargoViewModel(
                         cargoType = info.cargoType,
                         onComplete = {
                             val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-                            showUpdateMessage(
-                                "اطلاعات در ساعت $currentTime به‌روزرسانی شد",
-                                MessageType.SUCCESS
-                            )
+                            
+                            // بررسی تغییرات لیست
+                            val newCargoList = _cargoInfoList.value
+                            val hasStatusChanges = oldCargoList.any { oldCargo ->
+                                val newCargo = newCargoList.find { it.trackingNumber == oldCargo.trackingNumber }
+                                newCargo != null && oldCargo.status != newCargo.status
+                            }
+                            
+                            // نمایش پیام مناسب
+                            if (hasStatusChanges) {
+                                showUpdateMessage(
+                                    "وضعیت حواله‌ها به‌روزرسانی شد",
+                                    MessageType.SUCCESS
+                                )
+                            } else {
+                                showUpdateMessage(
+                                    "اطلاعات در ساعت $currentTime به‌روزرسانی شد",
+                                    MessageType.SUCCESS
+                                )
+                            }
+                            
+                            // بروزرسانی نهایی تناژ قابل بارگیری بعد از تکمیل همه عملیات‌ها
+                            updateLoadableTonnage()
                         }
                     )
                 } catch (e: Exception) {
+                    Log.e("CargoViewModel", "Error in refreshCargoInfo: ${e.message}", e)
                     _resultMessage.value = "خطا در به‌روزرسانی اطلاعات: ${e.message}"
                     _showAnimatedMessage.value = true
                     _messageType.value = MessageType.ERROR
@@ -343,17 +375,20 @@ class CargoViewModel(
     ) {
         viewModelScope.launch {
             try {
-                val initialInfo = _initialInfo.value
-                _initialInfo.value?.let { info ->
-                    checkAndHandleQuotaPercentage(info.loadingQuotaNumber.toString())
-                }
-                if (initialInfo == null) {
-                    _resultMessage.value = "اطلاعات اولیه در دسترس نیست"
-                    _showAnimatedMessage.value = true
-                    _messageType.value = MessageType.ERROR
+                // اعتبارسنجی سریع اولیه برای جلوگیری از ارسال‌های غیرضروری به سرور
+                if (trackingNumber.isBlank()) {
+                    showErrorMessage("شماره حواله نمی‌تواند خالی باشد.")
                     return@launch
                 }
 
+                // بررسی اطلاعات اولیه
+                val initialInfo = _initialInfo.value ?: run {
+                    showErrorMessage("اطلاعات اولیه در دسترس نیست")
+                    return@launch
+                }
+
+                // بررسی وضعیت کوتاژ (درصد و فعال بودن)
+                checkAndHandleQuotaPercentage(initialInfo.loadingQuotaNumber.toString())
                 checkQuotaStatus(initialInfo)
 
                 if (_isQuotaActive.value != true) {
@@ -362,100 +397,206 @@ class CargoViewModel(
                     } else {
                         "کوتاژ غیرفعال است و امکان ثبت حواله جدید وجود ندارد"
                     }
-                    _resultMessage.value = message
-                    _showAnimatedMessage.value = true
-                    _messageType.value = MessageType.ERROR
+                    showErrorMessage(message)
                     return@launch
                 }
 
-                // بررسی اینکه آیا حواله جدید است یا خیر
+                // بررسی تکراری نبودن حواله
                 val isNewCargo = !isTrackingNumberDuplicate(trackingNumber)
 
-                // بررسی اعتبار داده‌های ورودی
-                if (!isValidInput(
-                        trackingNumber,
-                        netWeight,
-                        numberOfPeople,
-                        shortageWeight,
-                        excessWeight,
-                        isNewCargo
-                    )
-                ) {
-                    _resultMessage.value = "داده‌های ورودی نامعتبر است."
-                    _showAnimatedMessage.value = true
-                    _messageType.value = MessageType.ERROR
+                // بررسی جامع اعتبار داده‌های ورودی
+                if (!validateInputData(trackingNumber, netWeight, numberOfPeople, shortageWeight, excessWeight, isNewCargo, scaleReceiptNumber)) {
                     return@launch
                 }
 
-                // دریافت نام کاربری و نوع کاربر از UserPreferencesManager
+                // دریافت اطلاعات کاربری
                 val username = userPreferencesManager.username.first()
                 val userType = userPreferencesManager.userType.first()
 
                 if (username.isBlank() || userType.isBlank()) {
-                    _resultMessage.value = "اطلاعات کاربری در دسترس نیست. لطفاً دوباره وارد شوید."
-                    _showAnimatedMessage.value = true
-                    _messageType.value = MessageType.ERROR
+                    showErrorMessage("اطلاعات کاربری در دسترس نیست. لطفاً دوباره وارد شوید.")
                     return@launch
                 }
 
-                // ایجاد شیء CargoInfo
-                val cargoInfo = CargoInfo(
-                    trackingNumber = trackingNumber,
-                    numberOfPeople = numberOfPeople,
-                    username = username,
-                    userType = userType,
-                    entryTime = getCurrentTime(),
-                    netWeight = netWeight,
-                    scaleReceiptNumber = scaleReceiptNumber,
-                    shortageWeight = shortageWeight,
-                    excessWeight = excessWeight,
-                    exitTime = if (netWeight.isBlank()) null else getCurrentTime(),
-                    exitDate = if (netWeight.isBlank()) null else getCurrentDate(),
-                    status = if (netWeight.isBlank()) "ورود" else "خروج",
-                    shipName = initialInfo.shipName,
-                    loadingWarehouse = initialInfo.loadingWarehouse,
-                    cargoType = initialInfo.cargoType,
-                    shippingCompany = initialInfo.shippingCompany,
-                    loadingQuotaNumber = initialInfo.loadingQuotaNumber.toString(),
-                    confirm = "",
-                    confirmation = "no"
+                // آماده‌سازی مدل داده برای ارسال
+                val cargoInfo = prepareCargoInfoForSubmission(
+                    trackingNumber, numberOfPeople, username, userType,
+                    netWeight, scaleReceiptNumber, shortageWeight, excessWeight,
+                    initialInfo
                 )
 
-                // ارسال اطلاعات به سرور
-                val response = apiService.saveOrUpdateCargoInfo(cargoInfo)
-                if (response.isSuccessful) {
-                    val responseBody = response.body()
+                // ارسال اطلاعات به سرور با مدیریت خطا
+                sendCargoInfoToServer(
+                    cargoInfo, trackingNumber, netWeight, 
+                    scaleReceiptNumber, shortageWeight, excessWeight
+                )
+            } catch (e: Exception) {
+                Log.e("CargoViewModel", "خطا در submitCargoInfo: ${e.message}", e)
+                showErrorMessage("خطا در ثبت اطلاعات بار: ${e.message}")
+            }
+        }
+    }
 
-                    when {
-                        responseBody?.error == true -> {
-                            handleErrorResponse(responseBody)
-                        }
-                        responseBody?.status == "confirmation_needed" -> {
-                            _resultMessage.value = responseBody.message
-                            _showAnimatedMessage.value = true
-                            _messageType.value = MessageType.WARNING
-                        }
-                        else -> {
-                            handleSuccessResponse(responseBody, trackingNumber, netWeight, scaleReceiptNumber, shortageWeight, excessWeight)
-                        }
+    private fun showErrorMessage(message: String) {
+        _resultMessage.value = message
+        _showAnimatedMessage.value = true
+        _messageType.value = MessageType.ERROR
+    }
+
+    private fun validateInputData(
+        trackingNumber: String,
+        netWeight: String,
+        numberOfPeople: String,
+        shortageWeight: String,
+        excessWeight: String,
+        isNewCargo: Boolean,
+        scaleReceiptNumber: String
+    ): Boolean {
+        // بررسی شماره حواله
+        if (trackingNumber.isBlank()) {
+            showErrorMessage("شماره حواله نمی‌تواند خالی باشد.")
+            return false
+        }
+
+        // بررسی تعداد نفرات برای حواله‌های جدید
+        if (isNewCargo) {
+            val peopleCount = numberOfPeople.toIntOrNull()
+            if (peopleCount == null || peopleCount < 1) {
+                showErrorMessage("تعداد نفرات باید عددی بزرگتر از صفر باشد.")
+                return false
+            }
+        }
+
+        // بررسی وزن خالص برای حواله‌های خروجی
+        if (netWeight.isNotBlank()) {
+            val weight = netWeight.toFloatOrNull()
+            if (weight == null || weight <= 0) {
+                showErrorMessage("وزن خالص باید عددی مثبت باشد.")
+                return false
+            }
+            
+            if (weight < 5000 || weight > 45000) {
+                showErrorMessage("وزن خالص باید بین 5000 تا 45000 کیلوگرم باشد.")
+                return false
+            }
+            
+            // بررسی شماره قبض باسکول
+            if (scaleReceiptNumber.isBlank()) {
+                showErrorMessage("برای ثبت خروج، شماره قبض باسکول الزامی است.")
+                return false
+            }
+            
+            if (scaleReceiptNumber.length < 8 || scaleReceiptNumber.length > 10) {
+                showErrorMessage("شماره قبض باسکول باید بین 8 تا 10 رقم باشد.")
+                return false
+            }
+        }
+
+        // بررسی کسری و اضافه بار
+        if (shortageWeight.isNotBlank()) {
+            val shortage = shortageWeight.toFloatOrNull()
+            if (shortage == null || shortage < 0) {
+                showErrorMessage("کسری بار باید عددی مثبت یا صفر باشد.")
+                return false
+            }
+        }
+
+        if (excessWeight.isNotBlank()) {
+            val excess = excessWeight.toFloatOrNull()
+            if (excess == null || excess < 0) {
+                showErrorMessage("اضافه بار باید عددی مثبت یا صفر باشد.")
+                return false
+            }
+        }
+
+        return true
+    }
+
+    private fun prepareCargoInfoForSubmission(
+        trackingNumber: String,
+        numberOfPeople: String,
+        username: String,
+        userType: String,
+        netWeight: String,
+        scaleReceiptNumber: String,
+        shortageWeight: String,
+        excessWeight: String,
+        initialInfo: InitialInfo
+    ): CargoInfo {
+        val isExit = netWeight.isNotBlank()
+        
+        return CargoInfo(
+            trackingNumber = trackingNumber,
+            numberOfPeople = numberOfPeople,
+            username = username,
+            userType = userType,
+            entryTime = getCurrentTime(),
+            netWeight = netWeight,
+            scaleReceiptNumber = scaleReceiptNumber,
+            shortageWeight = shortageWeight,
+            excessWeight = excessWeight,
+            exitTime = if (isExit) getCurrentTime() else null,
+            exitDate = if (isExit) getCurrentDate() else null,
+            status = if (isExit) "خروج" else "ورود",
+            shipName = initialInfo.shipName,
+            loadingWarehouse = initialInfo.loadingWarehouse,
+            cargoType = initialInfo.cargoType,
+            shippingCompany = initialInfo.shippingCompany,
+            loadingQuotaNumber = initialInfo.loadingQuotaNumber.toString(),
+            confirm = "",
+            confirmation = "no"
+        )
+    }
+
+    private suspend fun sendCargoInfoToServer(
+        cargoInfo: CargoInfo,
+        trackingNumber: String,
+        netWeight: String,
+        scaleReceiptNumber: String,
+        shortageWeight: String,
+        excessWeight: String
+    ) {
+        try {
+            val response = apiService.saveOrUpdateCargoInfo(cargoInfo)
+            
+            if (response.isSuccessful) {
+                val responseBody = response.body()
+
+                when {
+                    responseBody?.error == true -> {
+                        handleErrorResponse(responseBody)
                     }
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    val errorCode = response.code()
-                    val parsedError = parseErrorResponse(errorBody)
-                    if (parsedError != null) {
-                        handleErrorResponse(parsedError)
-                    } else {
-                        _resultMessage.value = "خطا در ارسال اطلاعات بار: کد وضعیت $errorCode"
+                    responseBody?.status == "confirmation_needed" -> {
+                        _resultMessage.value = responseBody.message
                         _showAnimatedMessage.value = true
-                        _messageType.value = MessageType.ERROR
+                        _messageType.value = MessageType.WARNING
+                    }
+                    else -> {
+                        handleSuccessResponse(responseBody, trackingNumber, netWeight, scaleReceiptNumber, shortageWeight, excessWeight)
                     }
                 }
-            } catch (e: Exception) {
-                _resultMessage.value = "خطا در ثبت اطلاعات بار: ${e.message}"
-                _showAnimatedMessage.value = true
-                _messageType.value = MessageType.ERROR
+            } else {
+                handleErrorHttpResponse(response)
             }
+        } catch (e: Exception) {
+            Log.e("CargoViewModel", "خطا در ارسال به سرور: ${e.message}", e)
+            showErrorMessage("خطا در ارتباط با سرور: ${e.message}")
+        }
+    }
+
+    private fun handleErrorHttpResponse(response: Response<SaveOrUpdateResponse>) {
+        val errorBody = response.errorBody()?.string()
+        val errorCode = response.code()
+        
+        try {
+            val parsedError = parseErrorResponse(errorBody)
+            if (parsedError != null) {
+                handleErrorResponse(parsedError)
+            } else {
+                showErrorMessage("خطا در ارسال اطلاعات بار: کد خطا $errorCode")
+            }
+        } catch (e: Exception) {
+            showErrorMessage("خطا در پردازش پاسخ سرور: ${e.message}")
         }
     }
 
@@ -490,17 +631,56 @@ class CargoViewModel(
         _messageType.value = MessageType.SUCCESS
         _clearInputFields.value = true
 
+        // بروزرسانی فوری وضعیت حواله در لیست محلی
+        if (netWeight.isNotBlank()) {
+            updateLocalCargoListForExit(trackingNumber, netWeight, responseBody)
+        }
+
+        // فوراً تناژ قابل بارگیری را بروزرسانی می‌کنیم
+        updateLoadableTonnage()
+        
         _initialInfo.value?.let { info ->
+            // بارگذاری مجدد اطلاعات با تأکید بر دریافت به‌روزترین داده‌ها
             loadCargoInfoList(
                 quotaNumber = info.loadingQuotaNumber.toString(),
                 shippingCompany = info.shippingCompany,
                 warehouse = info.loadingWarehouse,
                 cargoType = info.cargoType,
-                onComplete = {}
+                onComplete = {
+                    // یک بروزرسانی اضافی بعد از بارگذاری مجدد
+                    viewModelScope.launch {
+                        delay(300) // تأخیر کوتاه
+                        refreshCargoInfo() // بروزرسانی مجدد بعد از دریافت اطلاعات
+                    }
+                }
             )
         } ?: run {
             Log.e("CargoViewModel", "Unable to reload cargo info: Initial info is null")
         }
+    }
+
+    private fun updateLocalCargoListForExit(trackingNumber: String, netWeight: String, responseBody: SaveOrUpdateResponse?) {
+        // این متد وضعیت حواله را بلافاصله در لیست محلی به‌روز می‌کند
+        val updatedList = _cargoInfoList.value.map { cargo ->
+            if (cargo.trackingNumber == trackingNumber) {
+                cargo.copy(
+                    status = "خروج",
+                    netWeight = netWeight,
+                    exitDate = responseBody?.exitDate ?: getCurrentDate(),
+                    exitTime = responseBody?.exitTime ?: getCurrentTime()
+                )
+            } else {
+                cargo
+            }
+        }
+        _cargoInfoList.value = updatedList
+        
+        // بروزرسانی فیلتر شده هم برای نمایش صحیح در دسته‌بندی‌ها
+        _filteredCargoInfoList.value = updatedList
+        
+        // لاگ برای دیباگ
+        Log.d("CargoViewModel", "حواله با شماره $trackingNumber به وضعیت خروج تغییر یافت")
+        Log.d("CargoViewModel", "تعداد کل حواله‌ها: ${updatedList.size}, تعداد حواله‌های خروج: ${updatedList.count { it.status == "خروج" }}")
     }
 
     private fun parseErrorResponse(errorBody: String?): SaveOrUpdateResponse? {
@@ -544,35 +724,6 @@ class CargoViewModel(
 
     fun resetClearInputFields() {
         _clearInputFields.value = false
-    }
-
-    private fun isValidInput(
-        trackingNumber: String,
-        netWeight: String,
-        numberOfPeople: String,
-        shortageWeight: String,
-        excessWeight: String,
-        isNewCargo: Boolean
-    ): Boolean {
-        // شماره حواله همیشه باید وارد شود
-        if (trackingNumber.isBlank()) return false
-
-        // اگر حواله جدید است، تعداد نفرات باید یک عدد مثبت باشد
-        if (isNewCargo) {
-            val peopleCount = numberOfPeople.toIntOrNull()
-            if (peopleCount == null || peopleCount <= 0) return false
-        }
-
-        // بررسی وزن خالص (اگر وارد شده باشد)
-        if (netWeight.isNotBlank() && netWeight.toDoubleOrNull() == null) return false
-
-        // بررسی کسری بار (اگر وارد شده باشد)
-        if (shortageWeight.isNotBlank() && shortageWeight.toDoubleOrNull() == null) return false
-
-        // بررسی اضافه بار (اگر وارد شده باشد)
-        if (excessWeight.isNotBlank() && excessWeight.toDoubleOrNull() == null) return false
-
-        return true
     }
 
     private fun isValidScaleReceipt(scaleReceipt: String): Boolean {
@@ -641,6 +792,53 @@ class CargoViewModel(
         cargoType: String,
         onComplete: () -> Unit = {}
     ) {
+        CoroutineScope(Dispatchers.Default + SupervisorJob()).launch {
+            try {
+                val initialShipInfo = withContext(Dispatchers.IO) {
+                    repository.getInitialInfo(quotaNumber, shippingCompany, warehouse, cargoType)
+                }
+                
+                initialShipInfo?.let { info ->
+                    // استفاده از API جدید برای دریافت فوری تناژ قابل بارگیری
+                    try {
+                        val response = withContext(Dispatchers.IO) {
+                            apiService.getLoadableTonnage(quotaNumber = info.loadingQuotaNumber.toString())
+                        }
+                        
+                        if (response.isSuccessful && response.body()?.success == true) {
+                            val data = response.body()!!
+                            
+                            withContext(Dispatchers.Main.immediate) {
+                                data.loadableTonnage?.let { tonnage ->
+                                    _loadableTonnage.value = DecimalFormat("#,###").format(tonnage.roundToInt())
+                                }
+                                
+                                // بروزرسانی تعداد کامیون‌ها از مقادیر محاسبه‌شده در سرور
+                                data.trucks18Wheeler?.let { count ->
+                                    _loadableTrucks18Wheeler.value = count.toString()
+                                }
+                                
+                                data.trucks10Wheeler?.let { count ->
+                                    _loadableTrucks10Wheeler.value = count.toString()
+                                }
+                                
+                                Log.d("CargoViewModel", "Initial loadable tonnage updated via API: ${_loadableTonnage.value}")
+                            }
+                        } else {
+                            // در صورت خطا، از روش قدیمی استفاده می‌کنیم
+                            fallbackLoadableTonnageCalculation(info)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("CargoViewModel", "Error in API call for loadable tonnage", e)
+                        fallbackLoadableTonnageCalculation(info)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("CargoViewModel", "Error in pre-loading tonnage data", e)
+            }
+        }
+        
+        // سپس بقیه اطلاعات را بارگذاری می‌کنیم
         viewModelScope.launch {
             try {
                 // دریافت اطلاعات اصلی در Dispatchers.IO
@@ -652,58 +850,56 @@ class CargoViewModel(
                 _cargoInfoList.value = result.cargoInfoList
                 _initialInfo.value = result.initialInfo
                 _filteredCargoInfoList.value = result.cargoInfoList
+                
+                // لاگ برای دیباگ بعد از بارگذاری
+                Log.d("CargoViewModel", "بارگذاری داده‌ها - تعداد کل: ${result.cargoInfoList.size}, حواله‌های خروج: ${result.cargoInfoList.count { it.status == "خروج" }}")
 
                 // ذخیره شماره‌های حواله در کش
                 val allTrackingNumbers = result.allTrackingNumbers?.toSet() ?: emptySet()
                 _cachedTrackingNumbers.value = allTrackingNumbers
 
                 // به‌روزرسانی مقادیر اولیه
-                _cargoWeight.value = result.initialInfo.cargoWeight.toString()
-                _totalNetWeight.value = result.initialInfo.totalNetWeight.toString()
-                _remainingWeight.value = result.initialInfo.remainingWeight.toString()
-                _averageNetWeight.value = result.initialInfo.averageNetWeight.toString()
-                _remainingServices.value = result.initialInfo.remainingServices.toString()
-                _totalServices.value = result.initialInfo.totalVoucherCount.toString()
+                withContext(Dispatchers.Main.immediate) {
+                    _cargoWeight.value = result.initialInfo.cargoWeight.toString()
+                    _totalNetWeight.value = result.initialInfo.totalNetWeight.toString()
+                    _remainingWeight.value = result.initialInfo.remainingWeight.toString()
+                    _averageNetWeight.value = result.initialInfo.averageNetWeight.toString()
+                    _remainingServices.value = result.initialInfo.remainingServices.toString()
+                    _totalServices.value = result.initialInfo.totalVoucherCount.toString()
+                }
 
-                // محاسبه سریع loadableTonnage با استفاده از کش یا دریافت مستقیم
-                val cachedQuotasKey = "quotas_${result.initialInfo.shipName}"
-                val cachedQuotas = quotasCache[cachedQuotasKey]
-
-                if (cachedQuotas != null) {
-                    // استفاده از کوتاژهای کش شده برای محاسبه سریع
-                    val quota = cachedQuotas.find { it.number == result.initialInfo.loadingQuotaNumber.toString() }
-                    quota?.let {
-                        val loadableTonnageValue = calculateLoadableTonnage(it)
-                        _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
-                        // محاسبه تعداد ماشین‌های قابل بارگیری
-                        updateLoadableTrucksCount(loadableTonnageValue)
-                    }
-                } else {
-                    // دریافت کوتاژها از سرور به صورت موازی با سایر عملیات
-                    launch(Dispatchers.IO) {
-                        try {
-                            val quotas = repository.getShipQuotas(result.initialInfo.shipName)
-                            // ذخیره کوتاژها در کش
-                            quotasCache[cachedQuotasKey] = quotas
-
-                            val quota = quotas.find { it.number == result.initialInfo.loadingQuotaNumber.toString() }
-                            quota?.let {
-                                val loadableTonnageValue = calculateLoadableTonnage(it)
-                                withContext(Dispatchers.Main) {
-                                    _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
-                                    // محاسبه تعداد ماشین‌های قابل بارگیری
-                                    updateLoadableTrucksCount(loadableTonnageValue)
-                                }
-                            }
-                        } catch (e: Exception) {
-                            Log.e("CargoViewModel", "Error calculating loadable tonnage", e)
+                // محاسبه مستقیم و فوری تناژ قابل بارگیری با اولویت بالا
+                // این بخش اولین محاسبه برای نمایش سریع را انجام می‌دهد
+                val shipName = result.initialInfo.shipName
+                val quotaNumber = result.initialInfo.loadingQuotaNumber.toString()
+                
+                // استفاده از CoroutineScope جدید با Dispatchers.Main.immediate برای اجرای با اولویت بالا
+                CoroutineScope(Dispatchers.Default + SupervisorJob()).launch {
+                    try {
+                        val quotas = withContext(Dispatchers.IO) { 
+                            repository.getShipQuotas(shipName)
                         }
+                        
+                        val quota = quotas.find { it.number == quotaNumber }
+                        quota?.let {
+                            val loadableTonnageValue = calculateLoadableTonnage(it)
+                            withContext(Dispatchers.Main.immediate) {
+                                _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
+                                // محاسبه تعداد ماشین‌های قابل بارگیری
+                                updateLoadableTrucksCount(loadableTonnageValue)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("CargoViewModel", "Error calculating loadable tonnage", e)
                     }
                 }
 
-                // بررسی وضعیت کوتاژها به صورت موازی
+                // بررسی وضعیت کوتاژها با اولویت پایین بعد از بروزرسانی تناژ
                 launch(Dispatchers.IO) {
                     try {
+                        // تاخیر اندک برای اطمینان از اینکه UI ابتدا بروزرسانی شود
+                        delay(100)
+                        
                         val currentQuotas = _cargoInfoList.value
                         currentQuotas.forEach { cargoInfo ->
                             val quota = repository.getShipQuotas(cargoInfo.shipName)
@@ -728,6 +924,27 @@ class CargoViewModel(
                 showMessage("خطا در ارتباط با سرور: ${e.localizedMessage}", MessageType.ERROR)
                 onComplete()
             }
+        }
+    }
+    
+    // متد کمکی برای محاسبه تناژ قابل بارگیری به روش قدیمی
+    private suspend fun fallbackLoadableTonnageCalculation(info: InitialInfo) {
+        try {
+            val quotas = withContext(Dispatchers.IO) {
+                repository.getShipQuotas(info.shipName)
+            }
+            
+            val quota = quotas.find { it.number == info.loadingQuotaNumber.toString() }
+            quota?.let {
+                val loadableTonnageValue = calculateLoadableTonnage(it)
+                withContext(Dispatchers.Main.immediate) {
+                    _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
+                    updateLoadableTrucksCount(loadableTonnageValue)
+                    Log.d("CargoViewModel", "Initial loadable tonnage updated via fallback: ${_loadableTonnage.value}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("CargoViewModel", "Error in fallback tonnage calculation", e)
         }
     }
 
@@ -851,6 +1068,29 @@ class CargoViewModel(
 
                 val response = apiService.saveOrUpdateCargoInfo(updatedCargoInfo)
                 if (response.isSuccessful) {
+                    // فوراً تناژ قابل بارگیری را بروزرسانی می‌کنیم
+                    updateLoadableTonnage()
+                    
+                    // یک تأخیر کوتاه برای اطمینان از ثبت کامل در سرور
+                    delay(500)
+                    
+                    // بروزرسانی مستقیم در لیست محلی
+                    val updatedList = _cargoInfoList.value.map { cargo ->
+                        if (cargo.trackingNumber == cargoInfo.trackingNumber) {
+                            updatedCargoInfo
+                        } else {
+                            cargo
+                        }
+                    }
+                    
+                    // بروزرسانی هر دو لیست برای نمایش صحیح
+                    _cargoInfoList.value = updatedList
+                    _filteredCargoInfoList.value = updatedList
+                    
+                    // لاگ برای دیباگ
+                    Log.d("CargoViewModel", "حواله با شماره ${cargoInfo.trackingNumber} به وضعیت خروج تغییر یافت")
+                    Log.d("CargoViewModel", "تعداد کل حواله‌ها: ${updatedList.size}, تعداد حواله‌های خروج: ${updatedList.count { it.status == "خروج" }}")
+                    
                     refreshCargoInfo()
                     _resultMessage.value = "اطلاعات بروزرسانی شد"
                     _showAnimatedMessage.value = true
@@ -868,32 +1108,26 @@ class CargoViewModel(
         }
     }
 
-    private fun updateFinalValues() {
-        updateInfoValues()
-        filterCargoInfoList("")
-    }
-
     fun updateInfoValues() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Default) {
             try {
-                // محاسبات محلی در Dispatchers.Default
-                val localCalculations = withContext(Dispatchers.Default) {
-                    // محاسبه وزن خالص کل و تعداد حواله‌های خارج شده
-                    val exitedCargos = _cargoInfoList.value.filter { it.status == "خروج" }
-                    val netWeights = exitedCargos.mapNotNull { it.netWeight.toFloatOrNull() }
-                    val totalNet = netWeights.sum()
+                // محاسبه وزن خالص کل و تعداد حواله‌های خارج شده
+                val exitedCargos = _cargoInfoList.value.filter { it.status == "خروج" }
+                val netWeights = exitedCargos.mapNotNull { it.netWeight.toFloatOrNull() }
+                val totalNet = netWeights.sum()
 
-                    // محاسبه میانگین وزن خالص
-                    val averageNet = if (netWeights.isNotEmpty()) netWeights.average() else 0.0
+                // محاسبه میانگین وزن خالص
+                val averageNet = if (netWeights.isNotEmpty()) netWeights.average() else 0.0
 
-                    // محاسبه وزن باقیمانده
-                    val cargoWeightValue = _cargoWeight.value.replace(",", "").toFloatOrNull() ?: 0f
-                    val remaining = (cargoWeightValue - totalNet).coerceAtLeast(0f)
+                // محاسبه وزن باقیمانده
+                val cargoWeightValue = _cargoWeight.value.replace(",", "").toFloatOrNull() ?: 0f
+                val remaining = (cargoWeightValue - totalNet).coerceAtLeast(0f)
 
-                    // محاسبه تعداد حواله‌های باقیمانده
-                    val remainingServicesCount = if (averageNet > 0) (remaining / averageNet).toInt() else 0
+                // محاسبه تعداد حواله‌های باقیمانده
+                val remainingServicesCount = if (averageNet > 0) (remaining / averageNet).toInt() else 0
 
-                    // به‌روزرسانی مقادیر در StateFlow‌ها
+                // به‌روزرسانی مقادیر در StateFlow‌ها (انتقال به نخ اصلی)
+                withContext(Dispatchers.Main) {
                     _remainingWeight.value = DecimalFormat("#,###").format(remaining.roundToInt())
                     _loadedWeight.value = DecimalFormat("#,###").format(totalNet.roundToInt())
                     _totalNetWeight.value = DecimalFormat("#,###").format(totalNet.roundToInt())
@@ -901,56 +1135,10 @@ class CargoViewModel(
                     _remainingServices.value = remainingServicesCount.toString()
                     _totalServices.value = _cargoCount.value.toString()
 
-                    // اگر loadableTonnage هنوز تنظیم نشده، محاسبه مستقیم آن در همین بلاک
-                    if (_loadableTonnage.value.isBlank()) {
-                        _initialInfo.value?.let { info ->
-                            val cachedQuotasKey = "quotas_${info.shipName}"
-                            val cachedQuotas = quotasCache[cachedQuotasKey]
-                            
-                            if (cachedQuotas != null) {
-                                val quota = cachedQuotas.find { it.number == info.loadingQuotaNumber.toString() }
-                                quota?.let {
-                                    val loadableTonnageValue = calculateLoadableTonnage(it)
-                                    _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
-                                    // محاسبه تعداد ماشین‌های قابل بارگیری
-                                    updateLoadableTrucksCount(loadableTonnageValue)
-                                }
-                            }
-                        }
-                    } else {
-                        // اگر loadableTonnage تنظیم شده، اما تعداد ماشین‌ها هنوز محاسبه نشده
-                        if (_loadableTrucks18Wheeler.value.isBlank() || _loadableTrucks10Wheeler.value.isBlank()) {
-                            val loadableTonnageValue = _loadableTonnage.value.replace(",", "").toDoubleOrNull() ?: 0.0
-                            updateLoadableTrucksCount(loadableTonnageValue)
-                        } else {
-                            // مقادیر تعداد ماشین‌ها قبلاً محاسبه شده‌اند و نیازی به محاسبه مجدد نیست
-                        }
-                    }
-                }
-
-                // فقط اگر loadableTonnage هنوز خالی است، آن را در یک coroutine جداگانه محاسبه کنیم
-                if (_loadableTonnage.value.isBlank()) {
-                    _initialInfo.value?.let { info ->
-                        viewModelScope.launch(Dispatchers.IO) {
-                            try {
-                                val quotas = repository.getShipQuotas(info.shipName)
-                                // ذخیره کوتاژها در کش
-                                quotasCache["quotas_${info.shipName}"] = quotas
-
-                                val quota = quotas.find { it.number == info.loadingQuotaNumber.toString() }
-                                quota?.let {
-                                    val loadableTonnageValue = calculateLoadableTonnage(it)
-                                    // به‌روزرسانی UI در Dispatchers.Main
-                                    withContext(Dispatchers.Main) {
-                                        _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
-                                        // محاسبه تعداد ماشین‌های قابل بارگیری
-                                        updateLoadableTrucksCount(loadableTonnageValue)
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                Log.e("CargoViewModel", "Error calculating loadable tonnage", e)
-                            }
-                        }
+                    // بررسی و به‌روزرسانی تعداد ماشین‌های قابل بارگیری
+                    if (_loadableTrucks18Wheeler.value.isBlank() || _loadableTrucks10Wheeler.value.isBlank()) {
+                        val loadableTonnageValue = _loadableTonnage.value.replace(",", "").toDoubleOrNull() ?: 0.0
+                        updateLoadableTrucksCount(loadableTonnageValue)
                     }
                 }
             } catch (e: Exception) {
@@ -975,6 +1163,10 @@ class CargoViewModel(
                         _resultMessage.value = "حواله با موفقیت حذف شد."
                         _showAnimatedMessage.value = true
                         _messageType.value = MessageType.SUCCESS
+                        
+                        // فوراً تناژ قابل بارگیری را بروزرسانی می‌کنیم
+                        updateLoadableTonnage()
+                        
                         // بارگذاری مجدد اطلاعات پس از حذف
                         _initialInfo.value?.let { info ->
                             loadCargoInfoList(
@@ -1026,15 +1218,87 @@ class CargoViewModel(
             quota.remainingTonnage.toDouble()
         }
     }
+    
+    // بروزرسانی فوری مقدار تناژ قابل بارگیری با اولویت بالا
+    private fun updateLoadableTonnage() {
+        // استفاده از CoroutineScope جدید با اولویت بالا
+        CoroutineScope(Dispatchers.Default + SupervisorJob()).launch {
+            try {
+                _initialInfo.value?.let { info ->
+                    // استفاده از API مستقیم برای دریافت سریع تناژ قابل بارگیری
+                    val response = withContext(Dispatchers.IO) {
+                        apiService.getLoadableTonnage(quotaNumber = info.loadingQuotaNumber.toString())
+                    }
+                    
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        val data = response.body()!!
+                        
+                        // استفاده از Main.immediate برای بروزرسانی فوری UI
+                        withContext(Dispatchers.Main.immediate) {
+                            data.loadableTonnage?.let { tonnage ->
+                                _loadableTonnage.value = DecimalFormat("#,###").format(tonnage.roundToInt())
+                            }
+                            
+                            // استفاده از مقادیر محاسبه‌شده در سمت سرور
+                            data.trucks18Wheeler?.let { count ->
+                                _loadableTrucks18Wheeler.value = count.toString()
+                            }
+                            
+                            data.trucks10Wheeler?.let { count ->
+                                _loadableTrucks10Wheeler.value = count.toString()
+                            }
+                            
+                            Log.d("CargoViewModel", "Loadable tonnage updated via API: ${_loadableTonnage.value}")
+                        }
+                        return@launch
+                    }
+                    
+                    // در صورت خطا، از روش قبلی استفاده می‌کنیم
+                    val quotas = withContext(Dispatchers.IO) {
+                        repository.getShipQuotas(info.shipName)
+                    }
+                    val quota = quotas.find { it.number == info.loadingQuotaNumber.toString() }
+                    
+                    quota?.let {
+                        val loadableTonnageValue = calculateLoadableTonnage(it)
+                        // استفاده از Main.immediate برای بروزرسانی فوری UI
+                        withContext(Dispatchers.Main.immediate) {
+                            _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
+                            updateLoadableTrucksCount(loadableTonnageValue)
+                            Log.d("CargoViewModel", "Loadable tonnage updated via fallback: ${_loadableTonnage.value}")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("CargoViewModel", "Error updating loadable tonnage", e)
+                // در صورت خطا، از روش قبلی استفاده می‌کنیم
+                _initialInfo.value?.let { info ->
+                    try {
+                        val quotas = withContext(Dispatchers.IO) {
+                            repository.getShipQuotas(info.shipName)
+                        }
+                        val quota = quotas.find { it.number == info.loadingQuotaNumber.toString() }
+                        quota?.let {
+                            val loadableTonnageValue = calculateLoadableTonnage(it)
+                            withContext(Dispatchers.Main.immediate) {
+                                _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
+                                updateLoadableTrucksCount(loadableTonnageValue)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("CargoViewModel", "Error in fallback tonnage calculation", e)
+                    }
+                }
+            }
+        }
+    }
 
     private fun updateLoadableTrucksCount(loadableTonnage: Double) {
-        // محاسبه تعداد ماشین‌های 18 چرخ (22000 تا 26000 کیلوگرم)
-        // از میانگین 24000 کیلوگرم استفاده می‌کنیم
-        val trucks18Wheeler = if (loadableTonnage > 0) (loadableTonnage / 24000.0).toInt() else 0
+        // محاسبه تعداد ماشین‌های 18 چرخ
+        val trucks18Wheeler = if (loadableTonnage > 0) (loadableTonnage / 25000.0).toInt() else 0
         
-        // محاسبه تعداد ماشین‌های 10 چرخ (12000 تا 15000 کیلوگرم)
-        // از میانگین 13500 کیلوگرم استفاده می‌کنیم
-        val trucks10Wheeler = if (loadableTonnage > 0 && loadableTonnage < 50000) (loadableTonnage / 13500.0).toInt() else 0
+        // محاسبه تعداد ماشین‌های 10 چرخ
+        val trucks10Wheeler = if (loadableTonnage > 0 && loadableTonnage < 50000) (loadableTonnage / 15000.0).toInt() else 0
         
         _loadableTrucks18Wheeler.value = trucks18Wheeler.toString()
         _loadableTrucks10Wheeler.value = trucks10Wheeler.toString()
@@ -1090,7 +1354,6 @@ class ReportsViewModel(
     val companyAnalytics: StateFlow<List<ShippingCompanyAnalytics>> = _companyAnalytics.asStateFlow()
     private val _quotaAnalytics = MutableStateFlow<List<QuotaAnalytics>>(emptyList())
     val quotaAnalytics: StateFlow<List<QuotaAnalytics>> = _quotaAnalytics.asStateFlow()
-    private val analytics = LoadingAnalytics()
     private val _comprehensiveAnalytics = MutableStateFlow<ComprehensiveAnalytics?>(null)
     val comprehensiveAnalytics: StateFlow<ComprehensiveAnalytics?> = _comprehensiveAnalytics.asStateFlow()
     private val _analyticsLoadingState = MutableStateFlow<LoadingState>(LoadingState.Idle)
@@ -1191,30 +1454,8 @@ class ReportsViewModel(
         loadShips()
     }
 
-    fun updateAnalytics(loadingData: List<RealTimeLoadingData>) {
-        viewModelScope.launch {
-            _voucherAnalytics.value = analytics.analyzeVouchers(loadingData)
-            _warehouseAnalytics.value = analytics.analyzeWarehouses(loadingData)
-            _shipAnalytics.value = analytics.analyzeShips(loadingData)
-            _companyAnalytics.value = analytics.analyzeShippingCompanies(loadingData)
-            _quotaAnalytics.value = analytics.analyzeQuotas(loadingData)
-        }
-    }
-
     fun formatNumber(number: Number): String {
         return NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
-    }
-
-    fun formatPercentage(value: Float): String {
-        return "%.1f%%".format(value)
-    }
-
-    fun formatWeight(weightKg: Float): String {
-        return when {
-            weightKg >= 1_000_000 -> "%.1f هزار تن".format(weightKg / 1_000_000)
-            weightKg >= 1_000 -> "%.1f تن".format(weightKg / 1_000)
-            else -> "${weightKg.toInt()} کیلوگرم"
-        }
     }
 
     fun setCurrentShipName(shipName: String) {
@@ -1275,45 +1516,6 @@ class ReportsViewModel(
                 _loadingError.value = "خطا در دریافت اطلاعات: ${e.message}"
             }
         }
-    }
-    
-    /**
-     * تابع کمکی برای ایجاد رنگ کاملاً متمایز از رنگ اصلی
-     * این تابع رنگی را برمی‌گرداند که با رنگ اصلی به اندازه کافی متفاوت است
-     * اما همچنان در محدوده خوانایی و جذابیت بصری قرار دارد
-     */
-    private fun deriveColor(baseColor: Color, isDarkTheme: Boolean): Color {
-        val hsl = FloatArray(7)
-        androidx.core.graphics.ColorUtils.colorToHSL(baseColor.toArgb(), hsl)
-        
-        // تغییر قابل توجه در رنگ اصلی با چرخش 180 درجه‌ای رنگ (رنگ مکمل)
-        hsl[0] = (hsl[0] + 180) % 360
-        
-        // اشباع را در محدوده مناسب برای خوانایی تنظیم می‌کنیم
-        hsl[1] = if (isDarkTheme) {
-            0.7f  // برای تم تیره، اشباع بیشتر برای تمایز بهتر
-        } else {
-            0.5f  // برای تم روشن، اشباع متوسط
-        }
-        
-        // روشنایی را در محدوده مناسب برای خوانایی تنظیم می‌کنیم
-        hsl[2] = if (isDarkTheme) {
-            0.6f  // برای تم تیره، روشن‌تر
-        } else {
-            0.4f  // برای تم روشن، کمی تیره‌تر
-        }
-        
-        return Color(androidx.core.graphics.ColorUtils.HSLToColor(hsl))
-    }
-
-    fun calculateWeightDetails(loadingData: List<RealTimeLoadingData>): Map<String, Map<String, Float>> {
-        return loadingData.groupBy { it.shipName }
-            .mapValues { (_, shipData) ->
-                shipData.groupBy { it.loadingWarehouse }
-                    .mapValues { (_, warehouseData) ->
-                        warehouseData.sumOf { it.totalNetWeight.toDouble().toFloat() }
-                    }
-            }
     }
 
     fun loadShipDetails(shipName: String) {
@@ -2033,7 +2235,7 @@ class ReportsViewModel(
         }
         
         val jalaliDate = gregorianToJalali(calendar)
-        shareText.append("بارگیری ($shiftType) $jalaliDate - کل: $totalExitVouchers حواله\n\n")
+        shareText.append("بارگیری [$shiftType] $jalaliDate - کل: $totalExitVouchers حواله\n\n")
         
         // ایجاد یک لیست از تمام ترکیب‌های انبار-کشتی با حواله‌های خروجی آنها
         val combinedData = mutableListOf<Triple<String, String, Int>>()
@@ -2051,7 +2253,10 @@ class ReportsViewModel(
                 
                 // اضافه کردن به لیست ترکیبی فقط اگر حواله خروجی داشته باشد
                 if (exitVouchers > 0) {
-                    combinedData.add(Triple(warehouseName, shipName, exitVouchers))
+                    val capitalizedShipName = shipName.lowercase().replaceFirstChar { 
+                        if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() 
+                    }
+                    combinedData.add(Triple(warehouseName, capitalizedShipName, exitVouchers))
                 }
             }
         }
@@ -2061,7 +2266,7 @@ class ReportsViewModel(
         
         // افزودن اطلاعات مرتب شده به متن خروجی
         combinedData.forEach { (warehouseName, shipName, exitVouchers) ->
-            shareText.append("$warehouseName [$shipName]: $exitVouchers حواله\n")
+            shareText.append("* $warehouseName [$shipName]: $exitVouchers\n")
         }
         
         return shareText.toString()
@@ -2095,6 +2300,33 @@ class ReportsRepository(private val apiService: ApiService) {
         }
     }
 
+    // فقط اطلاعات اولیه را بدون لیست حواله‌ها دریافت می‌کند
+    suspend fun getInitialInfo(
+        quotaNumber: String,
+        shippingCompany: String,
+        warehouse: String,
+        cargoType: String
+    ): InitialInfo? {
+        try {
+            val response = RetrofitClient.apiService.getCargoInfo(
+                quotaNumber = quotaNumber,
+                shippingCompany = shippingCompany,
+                warehouse = warehouse,
+                cargoType = cargoType
+            )
+
+            if (response.isSuccessful) {
+                return response.body()?.initialInfo
+            } else {
+                Log.e("ReportsRepository", "Error fetching initial info: ${response.code()}")
+                return null
+            }
+        } catch (e: Exception) {
+            Log.e("ReportsRepository", "Exception in getInitialInfo: ${e.message}", e)
+            return null
+        }
+    }
+    
     suspend fun getShipsList(): ShipsData = withContext(Dispatchers.IO) {
         try {
             val response = apiService.getShipsList()
@@ -2466,138 +2698,6 @@ class ReportsRepository(private val apiService: ApiService) {
     }
 }
 
-class LoadingAnalytics {
-
-    // تحلیل کلی حواله‌ها
-    fun analyzeVouchers(loadingData: List<RealTimeLoadingData>): VoucherAnalytics {
-        val totalEntry = loadingData.sumOf { it.entryVouchers.toFloat() }
-        val totalExit = loadingData.sumOf { it.exitVouchers.toFloat() }
-        val totalVouchers = totalEntry + totalExit
-
-        val exitPercentage = if (totalVouchers > 0) {
-            (totalExit / totalVouchers) * 100
-        } else 0f
-
-        val averageWeight = if (totalExit > 0) {
-            loadingData.sumOf { it.totalNetWeight.toDouble().toFloat() } / totalExit
-        } else 0f
-
-        return VoucherAnalytics(
-            totalEntryVouchers = totalEntry.toInt(),
-            totalExitVouchers = totalExit.toInt(),
-            exitPercentage = exitPercentage,
-            averageExitWeight = averageWeight
-        )
-    }
-
-    // تحلیل عملکرد انبارها
-    fun analyzeWarehouses(loadingData: List<RealTimeLoadingData>): List<WarehouseAnalytics> {
-        val totalOperationWeight = loadingData.sumOf { it.totalNetWeight.toDouble().toFloat() }
-
-        return loadingData
-            .groupBy { it.loadingWarehouse }
-            .map { (warehouse, data) ->
-                val warehouseWeight = data.sumOf { it.totalNetWeight.toDouble().toFloat() }
-                val totalVouchers = data.sumOf { it.exitVouchers.toFloat() }
-
-                WarehouseAnalytics(
-                    warehouseName = warehouse,
-                    totalWeight = warehouseWeight,
-                    averageWeight = if (totalVouchers > 0) warehouseWeight / totalVouchers else 0f,
-                    operationPercentage = if (totalOperationWeight > 0) {
-                        (warehouseWeight / totalOperationWeight * 100)
-                    } else 0f,
-                    rank = 0 // رتبه‌بندی بعداً تنظیم می‌شود
-                )
-            }
-            .sortedByDescending { it.totalWeight }
-            .mapIndexed { index, analytics ->
-                analytics.copy(rank = index + 1)
-            }
-    }
-
-    // تحلیل عملکرد کشتی‌ها
-    fun analyzeShips(loadingData: List<RealTimeLoadingData>): List<ShipAnalytics> {
-        return loadingData
-            .groupBy { it.shipName }
-            .map { (ship, data) ->
-                val entryVouchers = data.sumOf { it.entryVouchers.toFloat() }
-                val exitVouchers = data.sumOf { it.exitVouchers.toFloat() }
-                val totalVouchers = entryVouchers + exitVouchers
-                val loadedWeight = data.sumOf { it.totalNetWeight.toDouble().toFloat() }
-                val warehouses = data.map { it.loadingWarehouse }.distinct()
-
-                ShipAnalytics(
-                    shipName = ship,
-                    totalEntryVouchers = entryVouchers.toInt(),
-                    totalExitVouchers = exitVouchers.toInt(),
-                    totalVouchers = totalVouchers.toInt(),
-                    totalNetWeight = loadedWeight,
-                    averageWeight = if (exitVouchers > 0) loadedWeight / exitVouchers else 0f,
-                    warehouses = warehouses,
-                    warehouseCount = warehouses.size,
-                    exitRatio = if (totalVouchers > 0) (exitVouchers / totalVouchers * 100) else 0f
-                )
-            }
-    }
-
-    // تحلیل عملکرد شرکت‌های باربری
-    fun analyzeShippingCompanies(loadingData: List<RealTimeLoadingData>): List<ShippingCompanyAnalytics> {
-        val totalOperationWeight = loadingData.sumOf { it.totalNetWeight.toDouble().toFloat() }
-
-        return loadingData
-            .groupBy { it.shippingCompany }
-            .map { (company, data) ->
-                val companyWeight = data.sumOf { it.totalNetWeight.toDouble().toFloat() }
-                val totalVouchers = data.sumOf { it.exitVouchers.toFloat() }
-
-                ShippingCompanyAnalytics(
-                    companyName = company,
-                    totalVouchers = totalVouchers.toInt(),
-                    totalWeight = companyWeight,
-                    operationPercentage = if (totalOperationWeight > 0) {
-                        (companyWeight / totalOperationWeight * 100)
-                    } else 0f
-                )
-            }
-            .sortedByDescending { it.totalWeight }
-    }
-
-    // تحلیل عملکرد کوتاژها
-    fun analyzeQuotas(loadingData: List<RealTimeLoadingData>): List<QuotaAnalytics> {
-        return loadingData
-            .groupBy { it.loadingQuotaNumber }
-            .map { (quotaNumber, data) ->
-                val entryVouchers = data.sumOf { it.entryVouchers.toFloat() }
-                val exitVouchers = data.sumOf { it.exitVouchers.toFloat() }
-                val totalVouchers = entryVouchers + exitVouchers
-                val totalWeight = data.sumOf { it.totalNetWeight.toDouble().toFloat() }
-                val cargoWeight = data.firstOrNull()?.cargoWeight?.toFloat() ?: 0f
-                val percentageCompleted = if (cargoWeight > 0) {
-                    (totalWeight / cargoWeight * 100).coerceIn(0f, 100f)
-                } else 0f
-
-                QuotaAnalytics(
-                    quotaNumber = quotaNumber,
-                    shippingCompany = data.first().shippingCompany,
-                    totalVouchers = totalVouchers.toInt(),
-                    entryVouchers = entryVouchers.toInt(),
-                    exitVouchers = exitVouchers.toInt(),
-                    totalWeight = totalWeight,
-                    averageWeight = if (exitVouchers > 0) totalWeight / exitVouchers else 0f,
-                    operationEfficiency = if (totalVouchers > 0) {
-                        (exitVouchers / totalVouchers * 100)
-                    } else 0f,
-                    weightPerHour = totalWeight / 24f,
-                    loadingRate = if (exitVouchers > 0) totalWeight / exitVouchers else 0f,
-                    completionRate = percentageCompleted,
-                    warehouseName = data.first().loadingWarehouse
-                )
-            }
-            .sortedByDescending { it.totalWeight }
-    }
-}
-
 data class VoucherAnalytics(
     val totalEntryVouchers: Int,
     val totalExitVouchers: Int,
@@ -2936,11 +3036,6 @@ data class RealTimeLoadingData(
     val cargoWeight: Int
 )
 
-data class TabInfo(
-    val title: String,
-    val icon: ImageVector
-)
-
 data class ShipsData(
     val activeShips: List<Ship>,
     val inactiveShips: List<Ship>
@@ -3245,14 +3340,6 @@ class ColorSelector(private val colors: List<Color>) {
      */
     fun reset() {
         colors.forEach { usedColors[it] = false }
-    }
-    
-    /**
-     * پاک کردن تمام رنگ‌های اختصاص داده شده
-     */
-    fun clearAssignments() {
-        assignedColors.clear()
-        reset()
     }
 }
 
@@ -3633,4 +3720,17 @@ data class CargoOwnerData(
     val total_vouchers: Int,
     val total_net_weight: Float,
     val owners: List<CargoOwnerDetailsData>
+)
+
+data class LoadableTonnageResponse(
+    val success: Boolean,
+    val loadableTonnage: Float?,
+    val remainingTonnage: Float?,
+    val totalTonnage: Float?,
+    val loadedTonnage: Float?,
+    val percentage: Float?,
+    val isPercentageRestricted: Boolean?,
+    val trucks18Wheeler: Int?,
+    val trucks10Wheeler: Int?,
+    val message: String?
 )
