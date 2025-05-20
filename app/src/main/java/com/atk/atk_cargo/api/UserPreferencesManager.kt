@@ -56,13 +56,6 @@ class UserPreferencesManager(private val context: Context) {
 
         context.getSharedPreferences("loading_alerts", Context.MODE_PRIVATE).edit().clear().apply()
         context.getSharedPreferences("LoadingCheckPrefs", Context.MODE_PRIVATE).edit().clear().apply()
-
-        try {
-            val serviceIntent = Intent(context, LoadingCheckService::class.java)
-            context.stopService(serviceIntent)
-        } catch (e: Exception) {
-            Log.e("UserPreferencesManager", "Error stopping service", e)
-        }
     }
 
     companion object {
