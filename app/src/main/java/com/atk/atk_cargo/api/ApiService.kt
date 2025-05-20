@@ -176,6 +176,12 @@ interface ApiService {
         @Query("receipt") receiptNumber: String
     ): Response<CargoInfoSearch>
 
+    @GET("app_api.php")
+    suspend fun getLoadableTonnage(
+        @Query("action") action: String = "getLoadableTonnage",
+        @Query("quotaNumber") quotaNumber: String
+    ): Response<LoadableTonnageResponse>
+
     @GET("users_api.php")
     suspend fun getAllUsers(
         @Query("action") action: String = "getAllUsers"

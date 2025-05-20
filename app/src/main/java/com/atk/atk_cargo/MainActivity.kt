@@ -16,6 +16,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
@@ -31,11 +32,11 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -68,7 +69,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Message
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Check
@@ -104,6 +104,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
@@ -130,6 +131,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
@@ -1427,17 +1429,54 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                             onManageUsersClick = { showUserManagement = true }
                                         )
                                     }
-                                    composable("initial_info") {
+                                    composable(
+                                        route = "initial_info",
+                                        // اضافه کردن انیمیشن برای انتقال بین صفحات
+                                        enterTransition = { 
+                                            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                        },
+                                        exitTransition = {
+                                            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                        }
+                                    ) {
+                                        Log.d("Navigation", "Composing InitialInfoScreen")
                                         InitialInfoScreen()
                                     }
-                                    composable("select_info") {
+                                    composable(
+                                        route = "select_info",
+                                        enterTransition = { 
+                                            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left) 
+                                        },
+                                        exitTransition = {
+                                            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                        }
+                                    ) {
+                                        Log.d("Navigation", "Composing SelectInfoScreen")
                                         val cargoViewModel: CargoViewModel = viewModel(factory = cargoViewModelFactory)
                                         SelectInfoScreenContent(navController = navController, viewModel = cargoViewModel)
                                     }
-                                    composable("cargo_counter") {
+                                    composable(
+                                        route = "cargo_counter",
+                                        enterTransition = { 
+                                            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left) 
+                                        },
+                                        exitTransition = {
+                                            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                        }
+                                    ) {
+                                        Log.d("Navigation", "Composing CargoCounterScreen")
                                         CargoCounterScreen(navController = navController)
                                     }
-                                    composable("manage_reports") {
+                                    composable(
+                                        route = "manage_reports",
+                                        enterTransition = { 
+                                            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left) 
+                                        },
+                                        exitTransition = {
+                                            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                        }
+                                    ) {
+                                        Log.d("Navigation", "Composing ManageReportsScreen")
                                         val reportsViewModel: ReportsViewModel = viewModel(
                                             factory = ReportsViewModel.Factory
                                         )
@@ -1482,20 +1521,54 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                             // Signature Section
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                tonalElevation = 2.dp
+                                color = MaterialTheme.colorScheme.surface,
+                                tonalElevation = 3.dp,
+                                shadowElevation = 4.dp
                             ) {
-                                Column(
+                                Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(vertical = 8.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                        .background(
+                                            brush = Brush.verticalGradient(
+                                                colors = listOf(
+                                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                                    MaterialTheme.colorScheme.surface
+                                                )
+                                            )
+                                        )
+                                        .padding(vertical = 10.dp)
                                 ) {
-                                    Text(
-                                        "امین تجار خوزستان (سایت نیاکوزرین)",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            "امین تجار خوزستان",
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontWeight = FontWeight.Medium
+                                            ),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(horizontal = 8.dp)
+                                                .size(4.dp)
+                                                .background(
+                                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                                    CircleShape
+                                                )
+                                        )
+                                        
+                                        Text(
+                                            "سایت نیاکوزرین",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1535,17 +1608,144 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
 
 @Composable
 fun SplashScreen() {
+    val backgroundScale = remember { Animatable(1.1f) }
+    val logoScale = remember { Animatable(0.8f) }
+    val logoAlpha = remember { Animatable(0f) }
+    val textAlpha = remember { Animatable(0f) }
+    val context = LocalContext.current
+    val appVersion = remember {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        } catch (e: Exception) {
+            "نسخه 3.0.7"
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        // انیمیشن پس‌زمینه
+        backgroundScale.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(
+                durationMillis = 1000,
+                easing = FastOutSlowInEasing
+            )
+        )
+
+        // انیمیشن لوگو
+        launch {
+            logoAlpha.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 800)
+            )
+            logoScale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+
+        // انیمیشن متن با تاخیر
+        delay(600)
+        textAlpha.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 800)
+        )
+    }
+
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surfaceVariant,
+                        MaterialTheme.colorScheme.surface
+                    ),
+                    radius = 1200f
+                )
+            ),
         contentAlignment = Alignment.Center
     ) {
-        val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_logo))
-        val progress by animateLottieCompositionAsState(composition)
-        LottieAnimation(
-            composition = composition,
-            progress = { progress },
-            modifier = Modifier.size(200.dp)
+        // دایره پشت لوگو
+        Box(
+            modifier = Modifier
+                .size(300.dp)
+                .scale(backgroundScale.value)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+                        )
+                    ),
+                    shape = CircleShape
+                )
         )
+
+        // ستون محتوای اصلی
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // لوگوی انیمیشنی
+            Box(
+                modifier = Modifier
+                    .size(250.dp)
+                    .scale(logoScale.value)
+                    .alpha(logoAlpha.value),
+                contentAlignment = Alignment.Center
+            ) {
+                val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_logo))
+                val progress by animateLottieCompositionAsState(
+                    composition = composition,
+                    iterations = 1
+                )
+                LottieAnimation(
+                    composition = composition,
+                    progress = { progress },
+                    modifier = Modifier.size(220.dp)
+                )
+            }
+
+            // عنوان برنامه
+            Text(
+                text = "سیستم مدیریت هوشمند بارگیری",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .alpha(textAlpha.value)
+                    .padding(16.dp)
+            )
+
+            // نام شرکت
+            Text(
+                text = "شرکت امین تجار خوزستان",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.alpha(textAlpha.value)
+            )
+        }
+
+        // نسخه برنامه در پایین صفحه
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 32.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Text(
+                text = "نسخه $appVersion",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.alpha(textAlpha.value)
+            )
+        }
     }
 }
 
@@ -1626,9 +1826,16 @@ fun HomeScreen(
                         menuItems = getMenuItemsForUserType(userType),
                         showAnimation = showGridAnimation,
                         onItemClick = { item ->
+                            Log.d("HomeScreen", "Menu item clicked: ${item.title}, Route: ${item.route}")
                             when (item.route) {
-                                "manage_users" -> onManageUsersClick()
-                                else -> selectedMenuItem = item
+                                "manage_users" -> {
+                                    // مدیریت کاربران در دیالوگ خاص نمایش داده می‌شود
+                                    onManageUsersClick()
+                                }
+                                else -> {
+                                    // سایر صفحات از طریق NavController هدایت می‌شوند
+                                    selectedMenuItem = item
+                                }
                             }
                         }
                     )
@@ -1673,55 +1880,183 @@ private fun ModernHeader(
     coroutineScope: CoroutineScope,
     mainActivity: MainActivity
 ) {
+    // اضافه کردن انیمیشن‌های ورود
+    var isInitialRender by remember { mutableStateOf(true) }
+    val headerScale = remember { Animatable(0.96f) }
+    val headerOpacity = remember { Animatable(0f) }
+    
+    // انیمیشن‌های شروع
+    LaunchedEffect(key1 = Unit) {
+        launch {
+            headerScale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+        launch {
+            headerOpacity.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 500)
+            )
+        }
+        delay(600)
+        isInitialRender = false
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 2.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-        tonalElevation = 8.dp
+            .padding(bottom = 2.dp)
+            .scale(headerScale.value)
+            .alpha(headerOpacity.value),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+        tonalElevation = 2.dp,
+        shadowElevation = 4.dp,
+        shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)
     ) {
-        Column(
+        // گرادیان ظریف پس‌زمینه برای عمق بیشتر
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(4.dp)
-        ) {
-            if (username.isNotEmpty()) {
-                ProfileMenu(
-                    username = username,
-                    userType = userType,
-                    onLogoutClick = {
-                        coroutineScope.launch {
-                            userPreferencesManager.clearUserCredentials()
-                            mainActivity.updateSessionValidity(false)
-                            onLogoutClick()
-                        }
-                    }
-                )
-            } else {
-                // نمایش دکمه ورود برای کاربران مهمان
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "کاربر مهمان",
-                        style = MaterialTheme.typography.titleMedium
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.03f),
+                            MaterialTheme.colorScheme.surface
+                        )
                     )
-                    Button(
-                        onClick = onLoginClick,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        )
+                )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                if (username.isNotEmpty()) {
+                    // نمایش منوی پروفایل برای کاربران وارد شده
+                    ProfileMenu(
+                        username = username,
+                        userType = userType,
+                        onLogoutClick = {
+                            coroutineScope.launch {
+                                userPreferencesManager.clearUserCredentials()
+                                mainActivity.updateSessionValidity(false)
+                                onLogoutClick()
+                            }
+                        }
+                    )
+                } else {
+                    // نمایش دکمه ورود برای کاربران مهمان با طراحی جدید
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
+                                    )
+                                )
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .padding(16.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = null
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("ورود")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // بخش اطلاعات کاربر مهمان
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                // آیکون کاربر با طراحی جدید
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            brush = Brush.radialGradient(
+                                                colors = listOf(
+                                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                                                )
+                                            )
+                                        )
+                                        .border(
+                                            width = 1.dp,
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                            shape = CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                                
+                                // اطلاعات متنی کاربر مهمان
+                                Column {
+                                    Text(
+                                        text = "کاربر مهمان",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    AnimatedVisibility(
+                                        visible = !isInitialRender,
+                                        enter = fadeIn() + expandVertically(),
+                                        exit = fadeOut() + shrinkVertically()
+                                    ) {
+                                        Text(
+                                            text = "برای دسترسی کامل وارد شوید",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            // دکمه ورود با طراحی جدید
+                            Button(
+                                onClick = onLoginClick,
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                                ),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                elevation = ButtonDefaults.buttonElevation(
+                                    defaultElevation = 2.dp,
+                                    pressedElevation = 4.dp
+                                )
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Login,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        "ورود",
+                                        style = MaterialTheme.typography.labelLarge
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -1740,10 +2075,18 @@ fun ProfileMenu(
     var currentUser by remember { mutableStateOf<User?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    
+    // انیمیشن‌های بهبود یافته
     val rotationState by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
         label = ""
     )
+    
+    // انیمیشن محتوا
+    val contentScale = remember { Animatable(0.96f) }
+    
+    // آیکون بج پیام‌ها
     var messages by remember { mutableStateOf<List<Message>>(emptyList()) }
     var unreadMessages by remember { mutableStateOf<List<Message>>(emptyList()) }
     val badgeScale = remember { Animatable(initialValue = 0f) }
@@ -1751,7 +2094,37 @@ fun ProfileMenu(
     val shouldShowMessages = remember(expanded, unreadMessages) {
         expanded && unreadMessages.isNotEmpty() && !hasShownMessages
     }
+    
+    // انیمیشن ضربان برای بج پیام‌ها
+    val badgePulse = remember { Animatable(1f) }
+    LaunchedEffect(unreadMessages.isNotEmpty()) {
+        if (unreadMessages.isNotEmpty() && !expanded) {
+            while (unreadMessages.isNotEmpty() && !expanded) {
+                badgePulse.animateTo(
+                    targetValue = 1.2f,
+                    animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing)
+                )
+                badgePulse.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing)
+                )
+                delay(1000)
+            }
+        }
+    }
 
+    // انیمیشن ظاهر شدن
+    LaunchedEffect(Unit) {
+        contentScale.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        )
+    }
+
+    // دریافت اطلاعات کاربر
     LaunchedEffect(showSettings) {
         if (showSettings && currentUser == null) {
             scope.launch {
@@ -1770,6 +2143,7 @@ fun ProfileMenu(
         }
     }
 
+    // دریافت پیام‌ها
     LaunchedEffect(Unit) {
         try {
             val response = RetrofitClient.apiService.getNewMessages(
@@ -1796,6 +2170,7 @@ fun ProfileMenu(
         }
     }
 
+    // علامت‌گذاری پیام‌ها به عنوان خوانده شده
     LaunchedEffect(shouldShowMessages) {
         if (shouldShowMessages && unreadMessages.isNotEmpty()) {
             unreadMessages.forEach { message ->
@@ -1814,85 +2189,268 @@ fun ProfileMenu(
         }
     }
 
+    // کارت پروفایل با افکت‌های جدید
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(vertical = 8.dp, horizontal = 4.dp)
+            .scale(contentScale.value)
             .clickable { expanded = !expanded }
             .animateContentSize(
                 animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    dampingRatio = Spring.DampingRatioLowBouncy,
                     stiffness = Spring.StiffnessLow
                 )
             ),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 4.dp
+        )
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            ProfileHeader(
-                username = username,
-                userType = userType,
-                unreadCount = if (!hasShownMessages) unreadMessages.size else 0,
-                badgeScale = badgeScale.value,
-                rotationState = rotationState,
-                expanded = expanded
-            )
-
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp)
-                ) {
-                    HorizontalDivider()
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    if (shouldShowMessages) {
-                        MessagesSection(
-                            messages = unreadMessages.take(3),
-                            username = username,
-                            onMessageClick = { /* No need for click handler since messages are auto-marked */ }
+        // گرادیان ملایم پس‌زمینه
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f),
+                            MaterialTheme.colorScheme.surface
                         )
-
-                        if (unreadMessages.size > 3) {
-                            TextButton(
-                                onClick = { /* Show all messages */ },
-                                modifier = Modifier.align(Alignment.End)
+                    )
+                )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                // هدر پروفایل با پیام‌های جدید
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // اطلاعات کاربر با آیکون
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // آیکون کاربر با نماد نوع کاربری
+                        Box {
+                            // دایره پشت آیکون با گرادیان
+                            val userTypeColor = when (userType) {
+                                "admin" -> MaterialTheme.colorScheme.primary
+                                "operator" -> MaterialTheme.colorScheme.secondary
+                                "verifier" -> MaterialTheme.colorScheme.tertiary
+                                else -> MaterialTheme.colorScheme.primary
+                            }
+                            
+                            Box(
+                                modifier = Modifier
+                                    .size(50.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(
+                                                userTypeColor.copy(alpha = 0.15f),
+                                                userTypeColor.copy(alpha = 0.05f)
+                                            )
+                                        )
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = userTypeColor.copy(alpha = 0.3f),
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Text("پیام‌ها")
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    imageVector = getIconForUserType(userType),
                                     contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(26.dp),
+                                    tint = userTypeColor
                                 )
+                            }
+
+                            // نشانگر پیام‌های جدید
+                            if (unreadCount > 0) {
+                                Badge(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .scale(badgeScale.value * badgePulse.value)
+                                        .offset(x = 4.dp, y = (-2).dp),
+                                    containerColor = MaterialTheme.colorScheme.error
+                                ) {
+                                    Text(
+                                        text = unreadCount.toString(),
+                                        color = MaterialTheme.colorScheme.onError,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    )
+                                }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider()
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    ActionButtons(
-                        onSettingsClick = {
-                            showSettings = true
-                            expanded = false
-                        },
-                        onLogoutClick = {
-                            expanded = false
-                            onLogoutClick()
+                        // اطلاعات نام کاربری
+                        Column {
+                            Text(
+                                text = username,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                // نوع کاربر
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(
+                                            when (userType) {
+                                                "admin" -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                                "operator" -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                                                "verifier" -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+                                                else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
+                                            }
+                                        )
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = getUserTypeDisplay(userType),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = when (userType) {
+                                            "admin" -> MaterialTheme.colorScheme.primary
+                                            "operator" -> MaterialTheme.colorScheme.secondary
+                                            "verifier" -> MaterialTheme.colorScheme.tertiary
+                                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                    )
+                                }
+                                
+                                // نشانگر پیام‌های جدید در متن
+                                if (unreadCount > 0) {
+                                    Text(
+                                        text = "• $unreadCount پیام جدید",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
                         }
-                    )
+                    }
+                    
+                    // آیکون باز/بسته کردن منو
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (expanded)
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                else
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ExpandMore,
+                            contentDescription = if (expanded) "بستن منو" else "باز کردن منو",
+                            modifier = Modifier
+                                .size(20.dp)
+                                .rotate(rotationState),
+                            tint = if (expanded)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // بخش گسترش‌یافته منو
+                AnimatedVisibility(
+                    visible = expanded,
+                    enter = expandVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        )
+                    ) + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
+                    ) {
+                        // خط جداکننده
+                        HorizontalDivider(
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // بخش پیام‌های جدید
+                        if (shouldShowMessages) {
+                            MessagesSection(
+                                messages = unreadMessages.take(3),
+                                username = username,
+                                onMessageClick = { /* No need for click handler since messages are auto-marked */ }
+                            )
+
+                            if (unreadMessages.size > 3) {
+                                TextButton(
+                                    onClick = { /* Show all messages */ },
+                                    modifier = Modifier.align(Alignment.End)
+                                ) {
+                                    Text(
+                                        "مشاهده همه پیام‌ها",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            // خط جداکننده
+                            HorizontalDivider(
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                            )
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+
+                        // دکمه‌های عملیات
+                        ActionButtons(
+                            onSettingsClick = {
+                                showSettings = true
+                                expanded = false
+                            },
+                            onLogoutClick = {
+                                expanded = false
+                                onLogoutClick()
+                            }
+                        )
+                    }
                 }
             }
         }
     }
 
+    // دیالوگ تنظیمات پروفایل
     if (showSettings && currentUser != null) {
         ProfileSettingsDialog(
             user = currentUser!!,
@@ -1905,90 +2463,32 @@ fun ProfileMenu(
     }
 }
 
-@Composable
-private fun ProfileHeader(
-    username: String,
-    userType: String,
-    unreadCount: Int,
-    badgeScale: Float,
-    rotationState: Float,
-    expanded: Boolean
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = getIconForUserType(userType),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-
-                if (unreadCount > 0) {
-                    Badge(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .scale(badgeScale)
-                            .offset(x = 4.dp, y = (-4).dp),
-                        containerColor = MaterialTheme.colorScheme.error
-                    ) {
-                        Text(
-                            text = unreadCount.toString(),
-                            color = MaterialTheme.colorScheme.onError,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(horizontal = 4.dp)
-                        )
-                    }
-                }
-            }
-
-            Column {
-                Text(
-                    text = username,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+// کمک‌کننده برای بدست آوردن تعداد پیام‌های نخوانده
+private val unreadCount: Int
+    @Composable
+    get() {
+        val username = LocalContext.current.let {
+            remember { UserPreferencesManager(it) }.username.collectAsState(initial = "").value
+        }
+        val messagesState = remember { mutableStateOf<List<Message>>(emptyList()) }
+        
+        LaunchedEffect(Unit) {
+            try {
+                val response = RetrofitClient.apiService.getNewMessages(
+                    userType = "",
+                    lastCheckTime = getLastCheckTime(),
+                    includeReadStatus = true
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = getUserTypeDisplay(userType),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (unreadCount > 0) {
-                        Text(
-                            text = "• $unreadCount پیام جدید",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
+                if (response.isSuccessful) {
+                    messagesState.value = response.body() ?: emptyList()
                 }
+            } catch (e: Exception) {
+                Log.e("unreadCount", "Error fetching messages", e)
             }
         }
-        Icon(
-            imageVector = Icons.Default.ExpandMore,
-            contentDescription = if (expanded) "بستن منو" else "باز کردن منو",
-            modifier = Modifier.rotate(rotationState)
-        )
+        
+        return messagesState.value.count { it.readBy?.contains(username) != true }
     }
-}
 
 @Composable
 private fun MessagesSection(
@@ -2502,41 +3002,110 @@ private fun getIconForUserType(userType: String): ImageVector {
 @Composable
 private fun WelcomeSection(username: String) {
     var textVisible by remember { mutableStateOf(false) }
+    val textScale = remember { Animatable(0.9f) }
 
     LaunchedEffect(Unit) {
         delay(500)
         textVisible = true
+        textScale.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        )
     }
 
-    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp) // کاهش padding عمودی
+            .clip(RoundedCornerShape(20.dp)) // کمی کوچکتر کردن گوشه‌ها
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                        MaterialTheme.colorScheme.surface
+                    )
+                )
+            )
     ) {
-        AnimatedVisibility(
-            visible = textVisible,
-            enter = fadeIn(animationSpec = tween(1000)) +
-                    slideInVertically(animationSpec = spring(dampingRatio = 0.8f)),
+        // دایره‌های تزئینی با اندازه کوچکتر
+        Box(
+            modifier = Modifier
+                .size(80.dp) // کاهش اندازه
+                .offset(x = (-25).dp, y = (-25).dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            Color.Transparent
+                        ),
+                        radius = 80f
+                    ),
+                    shape = CircleShape
+                )
+        )
+        
+        Box(
+            modifier = Modifier
+                .size(60.dp) // کاهش اندازه
+                .align(Alignment.BottomEnd)
+                .offset(x = 15.dp, y = 15.dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
+                            Color.Transparent
+                        ),
+                        radius = 60f
+                    ),
+                    shape = CircleShape
+                )
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp), // کاهش padding داخلی
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = if (username.isNotEmpty())
-                        "خوش آمدید، $username"
-                    else "به سیستم مدیریت هوشمند بارگیری خوش آمدید",
-                    style = MaterialTheme.typography.headlineMedium,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = if (username.isNotEmpty())
-                        "لطفاً گزینه مورد نظر خود را انتخاب کنید"
-                    else "برای دسترسی به امکانات سیستم لطفاً وارد شوید",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
+            AnimatedVisibility(
+                visible = textVisible,
+                enter = fadeIn(animationSpec = tween(1000)) +
+                        slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetY = { it / 2 }
+                        )
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.scale(textScale.value)
+                ) {
+                    Text(
+                        text = if (username.isNotEmpty())
+                            "خوش آمدید، $username"
+                        else "به سیستم مدیریت هوشمند بارگیری خوش آمدید",
+                        style = MaterialTheme.typography.titleLarge, // کاهش سایز فونت
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp)) // کاهش فاصله
+                    
+                    Text(
+                        text = if (username.isNotEmpty())
+                            "لطفاً گزینه مورد نظر خود را انتخاب کنید"
+                        else "برای دسترسی به امکانات سیستم لطفاً وارد شوید",
+                        style = MaterialTheme.typography.bodyMedium, // کاهش سایز فونت
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
@@ -2554,125 +3123,116 @@ private fun AnimatedMenuGrid(
         else -> 2
     }
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(columnCount),
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxWidth()
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
     ) {
-        items(
-            count = menuItems.size,
-            span = { index ->
-                when {
-                    // گزینه مدیریت کاربران همیشه عرض کامل
-                    menuItems[index].route == "manage_users" -> GridItemSpan(columnCount)
-                    // برای تک آیتم، عرض کامل
-                    menuItems.size == 1 -> GridItemSpan(columnCount)
-                    // برای حالت پیش‌فرض، یک ستون
-                    else -> GridItemSpan(1)
-                }
-            }
-        ) { index ->
-            val item = menuItems[index]
-            AnimatedVisibility(
-                visible = showAnimation,
-                enter = fadeIn(
-                    animationSpec = tween(
-                        durationMillis = 300,
-                        delayMillis = index * 100
-                    )
-                ) + expandVertically(
-                    animationSpec = spring(
-                        dampingRatio = 0.8f,
-                        stiffness = Spring.StiffnessLow
-                    )
-                )
-            ) {
-                    Card(
-                        modifier = Modifier
-                        .let {
-                            when {
-                                // مدیریت کاربران یا تک آیتم
-                                menuItems.size == 1 || item.route == "manage_users" -> {
-                                    it.fillMaxWidth()
-                                        .height(120.dp)
-                                }
-                                // سایر آیتم‌ها
-                                else -> {
-                                    it.aspectRatio(1f)
-                                }
-                            }
-                        }
-                        .animateContentSize()
-                        .clickable { onItemClick(item) },
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+        // نقطه‌های دکوراتیو در پس‌زمینه
+        if (showAnimation) {
+            val primaryColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.02f)
+            val secondaryColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.02f)
+            val tertiaryColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.02f)
+            
+            // دایره بزرگ بالا چپ
+            Box(
+                modifier = Modifier
+                    .size(180.dp)
+                    .offset(x = (-60).dp, y = (-40).dp)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(primaryColor, Color.Transparent),
+                            radius = 200f
                         ),
-                    shape = RoundedCornerShape(24.dp)
-                    ) {
-                    Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                                shape = RoundedCornerShape(24.dp)
-                            )
-                    ) {
-                        if (menuItems.size == 1 || item.route == "manage_users") {
-                            // لایه افقی برای آیتم‌های تکی و مدیریت کاربران
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 24.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Image(
-                                    painter = painterResource(id = item.iconResourceId),
-                                    contentDescription = item.title,
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .padding(8.dp)
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Text(
-                                    text = item.title,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        } else {
-                            // لایه عمودی برای سایر آیتم‌ها
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Image(
-                                    painter = painterResource(id = item.iconResourceId),
-                                    contentDescription = item.title,
-                                    modifier = Modifier
-                                        .size(64.dp)
-                                        .padding(8.dp)
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = item.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
+                        shape = CircleShape
+                    )
+            )
+            
+            // دایره متوسط پایین راست
+            Box(
+                modifier = Modifier
+                    .size(150.dp)
+                    .align(Alignment.BottomEnd)
+                    .offset(x = 40.dp, y = 60.dp)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(secondaryColor, Color.Transparent),
+                            radius = 180f
+                        ),
+                        shape = CircleShape
+                    )
+            )
+            
+            // دایره کوچک وسط
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .align(Alignment.Center)
+                    .offset(x = 70.dp, y = (-40).dp)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(tertiaryColor, Color.Transparent),
+                            radius = 100f
+                        ),
+                        shape = CircleShape
+                    )
+            )
+        }
+        
+        // تقسیم‌بندی آیتم‌های منو
+        val adminItems = menuItems.filter { it.route == "manage_users" }
+        val regularItems = menuItems.filter { it.route != "manage_users" }
+        
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp) // کاهش فاصله بین آیتم‌ها
+        ) {
+            // آیتم‌های مدیریتی همیشه در بالا به صورت جداگانه
+            adminItems.forEach { item ->
+                AnimatedMenuCard(
+                    item = item,
+                    isWideItem = true,
+                    index = 0,
+                    showAnimation = showAnimation,
+                    onItemClick = { menuItem ->
+                        Log.d("MenuClick", "Admin item clicked: ${menuItem.title}, route: ${menuItem.route}")
+                        onItemClick(menuItem)
+                    }
+                )
+            }
+            
+            // آیتم‌های عملیاتی در گرید
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columnCount),
+                horizontalArrangement = Arrangement.spacedBy(12.dp), // کاهش فاصله افقی
+                verticalArrangement = Arrangement.spacedBy(12.dp), // کاهش فاصله عمودی
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(
+                    count = regularItems.size,
+                    span = { index ->
+                        when {
+                            // تک آیتم با عرض کامل
+                            regularItems.size == 1 -> GridItemSpan(columnCount)
+                            else -> GridItemSpan(1)
                         }
                     }
+                ) { index ->
+                    val item = regularItems[index]
+                    val isWideItem = regularItems.size == 1
+                    
+                    AnimatedMenuCard(
+                        item = item,
+                        isWideItem = isWideItem,
+                        index = if (adminItems.isNotEmpty()) index + 1 else index,
+                        showAnimation = showAnimation,
+                        onItemClick = { menuItem ->
+                            Log.d("MenuClick", "Regular item clicked: ${menuItem.title}, route: ${menuItem.route}")
+                            onItemClick(menuItem)
+                        }
+                    )
                 }
             }
         }
@@ -2680,43 +3240,406 @@ private fun AnimatedMenuGrid(
 }
 
 @Composable
-private fun LoginPrompt(onLoginClick: () -> Unit) {
-    Column(
+private fun AnimatedMenuCard(
+    item: MenuItem,
+    isWideItem: Boolean,
+    index: Int,
+    showAnimation: Boolean,
+    onItemClick: (MenuItem) -> Unit
+) {
+    // آرایه رنگ‌ها با طیف‌های جذاب و مدرن
+    val colors = listOf(
+        // رنگ اصلی، رنگ سایه 
+        Pair(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer),
+        Pair(MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.secondaryContainer),
+        Pair(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiaryContainer)
+    )
+    
+    // رنگ منحصر به فرد برای هر آیتم
+    val colorPair = colors[index % colors.size]
+    val mainColor = colorPair.first
+    val secondaryColor = colorPair.second
+    
+    // تاخیر شناور برای انیمیشن ظهور پلکانی
+    val delayFactor = index * 100
+    
+    // متغیرهای حالت برای انیمیشن‌های تعاملی
+    var isHovered by remember { mutableStateOf(false) }
+    val scale = remember { Animatable(0.96f) }
+    val elevationState = remember { Animatable(0f) }
+    val rotationState = remember { Animatable(0f) }
+    
+    // انیمیشن‌های بازخورد تعاملی
+    val hoverScale by animateFloatAsState(
+        targetValue = if (isHovered) 1.04f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = ""
+    )
+    
+    // انیمیشن ظهور هر آیتم
+    AnimatedVisibility(
+        visible = showAnimation,
+        enter = fadeIn(
+            animationSpec = tween(
+                durationMillis = 300,
+                delayMillis = delayFactor,
+                easing = FastOutSlowInEasing
+            )
+        ) + slideInVertically(
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            initialOffsetY = { it / 3 }
+        )
+    ) {
+        // انیمیشن‌های اولیه
+        LaunchedEffect(Unit) {
+            launch {
+                scale.animateTo(
+                    targetValue = 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                )
+            }
+            launch {
+                elevationState.animateTo(
+                    targetValue = 2f,
+                    animationSpec = tween(durationMillis = 300)
+                )
+            }
+            launch {
+                rotationState.animateTo(
+                    targetValue = 360f,
+                    animationSpec = tween(
+                        durationMillis = 600,
+                        easing = FastOutSlowInEasing
+                    )
+                )
+            }
+        }
+        
+        // کارت اصلی
+        Card(
+            modifier = Modifier
+                .let {
+                    when {
+                        isWideItem -> it.fillMaxWidth().height(90.dp)
+                        else -> it.aspectRatio(1f).size(140.dp)
+                    }
+                }
+                .scale(scale.value * hoverScale)
+                // بهبود عملکرد کلیک
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = { 
+                            isHovered = true
+                            tryAwaitRelease()
+                            isHovered = false
+                        },
+                        onTap = {
+                            Log.d("CardClick", "Card tapped: ${item.title}, route: ${item.route}")
+                            onItemClick(item)
+                        }
+                    )
+                },
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = elevationState.value.dp,
+                pressedElevation = (elevationState.value + 4f).dp,
+                hoveredElevation = (elevationState.value + 6f).dp
+            ),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = if (isWideItem) {
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    mainColor.copy(alpha = 0.08f),
+                                    secondaryColor.copy(alpha = 0.03f)
+                                )
+                            )
+                        } else {
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    mainColor.copy(alpha = 0.08f),
+                                    secondaryColor.copy(alpha = 0.03f)
+                                )
+                            )
+                        }
+                    )
+            ) {
+                // محتوای کارت
+                if (isWideItem) {
+                    // لایه افقی برای کارت عریض
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.Start,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // آیکون با بک‌گراند و افکت چرخش
+                        Box(
+                            modifier = Modifier
+                                .size(54.dp)
+                                .clip(CircleShape)
+                                .background(mainColor.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = item.iconResourceId),
+                                contentDescription = item.title,
                                 modifier = Modifier
-                                    .fillMaxWidth()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+                                    .size(40.dp)
+                                    .rotate(rotationState.value)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.width(16.dp))
+                        
+                        // محتوای متنی
+                        Column(
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = item.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            
+                            Spacer(modifier = Modifier.height(2.dp))
+                            
+                            Text(
+                                text = getMenuDescription(item.route),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                } else {
+                    // لایه عمودی برای کارت مربعی
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        // آیکون
+                        Box(
+                            modifier = Modifier
+                                .size(65.dp)
+                                .clip(CircleShape)
+                                .background(mainColor.copy(alpha = 0.1f))
+                                .border(
+                                    width = 1.dp,
+                                    color = mainColor.copy(alpha = 0.2f),
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = item.iconResourceId),
+                                contentDescription = item.title,
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .rotate(rotationState.value)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(10.dp))
+                        
+                        // عنوان با فونت کوچکتر
+                        Text(
+                            text = item.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        
+                        // توضیحات با فونت کوچکتر
+                        Text(
+                            text = getMenuDescription(item.route),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun getMenuDescription(route: String): String {
+    return when (route) {
+        "select_info" -> "ثبت و مدیریت حواله‌ها"
+        "cargo_counter" -> "نظارت بر بارگیری"
+        "initial_info" -> "تعریف اطلاعات کشتی"
+        "manage_reports" -> "گزارش‌های مدیریتی"
+        "manage_users" -> "مدیریت کاربران سیستم"
+        else -> ""
+    }
+}
+
+@Composable
+private fun LoginPrompt(onLoginClick: () -> Unit) {
+    val scale = remember { Animatable(0.95f) }
+    val shadowElevation = remember { Animatable(0f) }
+    
+    LaunchedEffect(Unit) {
+        delay(300)
+        launch {
+            scale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+        shadowElevation.animateTo(
+            targetValue = 10f,
+            animationSpec = tween(durationMillis = 500)
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(32.dp)
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .scale(scale.value),
+            shape = RoundedCornerShape(28.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = shadowElevation.value.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
         ) {
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.05f)
+                            )
+                        )
+                    )
             ) {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                // دایره تزئینی پشت آیکون
+                Box(
+                    modifier = Modifier
+                        .size(140.dp)
+                        .offset(x = (-20).dp, y = (-20).dp)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                    Color.Transparent
+                                )
+                            ),
+                            shape = CircleShape
+                        )
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    "برای دسترسی به منوها وارد شوید",
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(
-                    onClick = onLoginClick,
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(vertical = 16.dp)
+                
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("ورود به سیستم")
+                    // آیکون قفل در دایره
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    Text(
+                        "برای دسترسی به منوها وارد شوید",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Text(
+                        "دسترسی به تمامی امکانات سیستم تنها با ورود به حساب کاربری امکان‌پذیر است",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
+                    
+                    Button(
+                        onClick = onLoginClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Login,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "ورود به سیستم",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -2740,6 +3663,71 @@ fun UserManagementDialog(
     val currentUsername by userPreferencesManager.username.collectAsState(initial = "")
     val currentUserType by userPreferencesManager.userType.collectAsState(initial = "")
     val isMainAdmin = currentUsername == "Prot0nX"
+    
+    // انیمیشن‌های ظاهر شدن
+    val dialogAppearance = remember { Animatable(0.9f) }
+    val contentAlpha = remember { Animatable(0f) }
+    val headerAppearance = remember { Animatable(0f) }
+    val searchBarOffset = remember { Animatable(-50f) }
+    val listOffset = remember { Animatable(50f) }
+
+    LaunchedEffect(Unit) {
+        // انیمیشن اصلی دیالوگ
+        launch {
+            dialogAppearance.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+        
+        // انیمیشن محتوا
+        launch {
+            delay(100)
+            contentAlpha.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 500)
+            )
+        }
+        
+        // انیمیشن هدر
+        launch {
+            delay(200)
+            headerAppearance.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+        
+        // انیمیشن جستجو
+        launch {
+            delay(300)
+            searchBarOffset.animateTo(
+                targetValue = 0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+        
+        // انیمیشن لیست
+        launch {
+            delay(400)
+            listOffset.animateTo(
+                targetValue = 0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+    }
 
     // تابع کمکی برای مرتب‌سازی کاربران
     fun sortUsersByType(users: List<User>): List<User> {
@@ -2761,12 +3749,15 @@ fun UserManagementDialog(
             users
         } else {
             sortUsersByType(
-                users.filter { it.username.contains(searchQuery, ignoreCase = true) }
+                users.filter { user ->
+                    user.username.contains(searchQuery, ignoreCase = true) ||
+                    (user.fullName?.contains(searchQuery, ignoreCase = true) ?: false)
+                }
             )
         }
     }
 
-    // Load users
+    // بارگیری کاربران
     LaunchedEffect(Unit) {
         try {
             val response = RetrofitClient.apiService.getAllUsers()
@@ -2778,13 +3769,16 @@ fun UserManagementDialog(
         }
     }
 
-    // Filter users based on search query
+    // فیلتر کاربران بر اساس جستجو
     LaunchedEffect(searchQuery, users) {
         filteredUsers = if (searchQuery.isEmpty()) {
             users
         } else {
             sortUsersByType(
-                users.filter { it.username.contains(searchQuery, ignoreCase = true) }
+                users.filter { user ->
+                    user.username.contains(searchQuery, ignoreCase = true) ||
+                    (user.fullName?.contains(searchQuery, ignoreCase = true) ?: false)
+                }
             )
         }
     }
@@ -2798,86 +3792,261 @@ fun UserManagementDialog(
         )
     ) {
         Surface(
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp,
+            shadowElevation = 8.dp,
             modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .fillMaxHeight(0.8f)
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.9f)
+                .scale(dialogAppearance.value)
+                .alpha(contentAlpha.value)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp)
+            Box(
+                modifier = Modifier.fillMaxSize()
             ) {
-                // Header with Add Button
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
-                    }
-                                Text(
-                        "مدیریت کاربران",
-                        style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold
+                // اضافه کردن افکت گرادیان پس‌زمینه
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surface,
+                                    MaterialTheme.colorScheme.surface,
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                                 )
-                    if (currentUserType == "admin") {
+                            )
+                        )
+                )
+                
+                // دایره‌های تزئینی
+                Box(
+                    modifier = Modifier
+                        .size(220.dp)
+                        .offset(x = (-100).dp, y = (-80).dp)
+                        .alpha(0.03f)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    Color.Transparent
+                                )
+                            ),
+                            shape = CircleShape
+                        )
+                )
+                
+                Box(
+                    modifier = Modifier
+                        .size(180.dp)
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 80.dp, y = 60.dp)
+                        .alpha(0.02f)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.tertiary,
+                                    Color.Transparent
+                                )
+                            ),
+                            shape = CircleShape
+                        )
+                )
+            
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp)
+                ) {
+                    // Header with Add Button
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .scale(headerAppearance.value),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // دکمه بستن با طراحی جدید
                         IconButton(
-                            onClick = { showAddDialog = true },
+                            onClick = onDismiss,
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                         ) {
-                                Icon(
-                                Icons.Default.Add,
-                                contentDescription = "Add User",
-                                tint = MaterialTheme.colorScheme.onPrimary
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "بستن",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    } else {
-                        Spacer(modifier = Modifier.size(40.dp))
+                        
+                        // عنوان با انیمیشن
+                        Text(
+                            "مدیریت کاربران",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        // دکمه افزودن کاربر جدید
+                        if (currentUserType == "admin") {
+                            IconButton(
+                                onClick = { showAddDialog = true },
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        brush = Brush.linearGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.primary,
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                            )
+                                        )
+                                    )
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = "افزودن کاربر",
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.size(40.dp))
+                        }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                // Search Box
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("جستجوی نام کاربری...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
+                    // Search Box with animation
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .offset(y = searchBarOffset.value.dp),
+                        placeholder = { Text("جستجوی نام کاربری یا نام...") },
+                        leadingIcon = { 
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = null,
+                                tint = if (searchQuery.isNotEmpty())
+                                    MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            ) 
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "پاک کردن",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+                            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                        )
+                    )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                // Users List
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                    // Users List with background and animation
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f)
+                            .offset(y = listOffset.value.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
+                        tonalElevation = 1.dp
                     ) {
-                        CircularProgressIndicator()
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        items(filteredUsers, key = { it.id }) { user ->
-                            UserListItem(
-                                user = user,
-                                onEditClick = { showEditDialog = user },
-                                onDeleteClick = { showDeleteConfirmation = user },
-                                isMainAdmin = isMainAdmin
-                            )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(12.dp)
+                        ) {
+                            if (isLoading) {
+                                // حالت در حال بارگذاری
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(48.dp),
+                                        strokeWidth = 4.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        "در حال بارگذاری اطلاعات کاربران...",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            } else if (filteredUsers.isEmpty()) {
+                                // حالت بدون نتیجه
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.PersonSearch,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(80.dp)
+                                            .alpha(0.4f),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = if (searchQuery.isEmpty()) 
+                                            "لیست کاربران خالی است"
+                                        else
+                                            "کاربری با این مشخصات یافت نشد",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    
+                                    if (searchQuery.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        OutlinedButton(
+                                            onClick = { searchQuery = "" },
+                                            shape = RoundedCornerShape(12.dp),
+                                            modifier = Modifier.padding(top = 8.dp)
+                                        ) {
+                                            Text("پاک کردن جستجو")
+                                        }
+                                    }
+                                }
+                            } else {
+                                // نمایش لیست کاربران
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    contentPadding = PaddingValues(vertical = 12.dp, horizontal = 4.dp)
+                                ) {
+                                    items(filteredUsers, key = { it.id }) { user ->
+                                        UserListItem(
+                                            user = user,
+                                            onEditClick = { showEditDialog = user },
+                                            onDeleteClick = { showDeleteConfirmation = user },
+                                            isMainAdmin = isMainAdmin
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -2885,6 +4054,7 @@ fun UserManagementDialog(
         }
     }
 
+    // دیالوگ افزودن کاربر
     if (showAddDialog) {
         AddUserDialog(
             onDismiss = { showAddDialog = false },
@@ -2905,6 +4075,7 @@ fun UserManagementDialog(
         )
     }
 
+    // دیالوگ ویرایش کاربر
     showEditDialog?.let { user ->
         EditUserDialog(
             user = user,
@@ -2930,6 +4101,7 @@ fun UserManagementDialog(
         )
     }
 
+    // دیالوگ تایید حذف کاربر
     showDeleteConfirmation?.let { user ->
         DeleteConfirmationDialog(
             user = user,
@@ -2939,7 +4111,7 @@ fun UserManagementDialog(
                         val request = DeleteUserRequest(userId = user.id)
                         val response = RetrofitClient.apiService.deleteUser(request)
                         if (response.success) {
-                            // به‌روزرسانی لیست با حفظ ترتیب
+                            // به‌روزرسانی لیست با حذف کاربر
                             updateUsersList(users.filter { it.id != user.id })
                             showDeleteConfirmation = null
                             Toast.makeText(context, "کاربر با موفقیت حذف شد", Toast.LENGTH_SHORT).show()
@@ -2956,6 +4128,7 @@ fun UserManagementDialog(
     }
 }
 
+// طراحی جدید آیتم لیست کاربران
 @Composable
 private fun UserListItem(
     user: User,
@@ -2970,75 +4143,154 @@ private fun UserListItem(
         else -> MaterialTheme.colorScheme.outline
     }
 
-                    Card(
+    var isHovered by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isHovered) 1.02f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = ""
+    )
+    val elevation by animateFloatAsState(
+        targetValue = if (isHovered) 4f else 1f,
+        animationSpec = tween(durationMillis = 200),
+        label = ""
+    )
+
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .animateContentSize(),
-        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(
+            .padding(vertical = 3.dp, horizontal = 4.dp)
+            .scale(scale)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = { 
+                        isHovered = true
+                        tryAwaitRelease()
+                        isHovered = false
+                    }
+                )
+            },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = elevation.dp
+        )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // User Info Section
-            Column(
+            // User Info Section with icon
+            Row(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // آیکون کاربر با دایره رنگی متناسب با نوع کاربری
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    userTypeColor.copy(alpha = 0.2f),
+                                    userTypeColor.copy(alpha = 0.05f)
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = user.username,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                    Icon(
+                        imageVector = getIconForUserType(user.userType),
+                        contentDescription = null,
+                        tint = userTypeColor,
+                        modifier = Modifier.size(26.dp)
                     )
                 }
-
-                // نمایش نام و نام خانوادگی
-                Text(
-                    text = user.fullName ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                
+                // اطلاعات کاربر
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(userTypeColor)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = user.username,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        
+                        if (user.username == "Prot0nX") {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(4.dp),
+                                modifier = Modifier.padding(start = 4.dp)
+                            ) {
+                                Text(
+                                    text = "مدیر اصلی",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+
+                    // نمایش نام و نام خانوادگی
                     Text(
-                        text = getUserTypeDisplay(user.userType),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = userTypeColor
+                        text = user.fullName ?: "—",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
+                    // نمایش نوع کاربری با بج شیک
+                    Surface(
+                        color = userTypeColor.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(userTypeColor)
+                            )
+                            Text(
+                                text = getUserTypeDisplay(user.userType),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = userTypeColor,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             }
 
             // Action Buttons - فقط برای مدیر اصلی فعال هستند
             if (isMainAdmin) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(start = 8.dp)
                 ) {
-                    IconButton(
-                        onClick = onEditClick,
+                    // دکمه ویرایش با افکت hover
+                    Box(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
@@ -3048,29 +4300,41 @@ private fun UserListItem(
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                                 shape = CircleShape
                             )
+                            .clickable(onClick = onEditClick),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Edit,
                             contentDescription = "ویرایش",
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(2.dp))
-
-                    IconButton(
-                        onClick = onDeleteClick,
-                        enabled = user.username != "Prot0nX",
+                    // دکمه حذف با افکت hover
+                    Box(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
+                            .background(
+                                if (user.username == "Prot0nX") 
+                                    MaterialTheme.colorScheme.error.copy(alpha = 0.05f)
+                                else 
+                                    MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                            )
                             .border(
                                 width = 1.dp,
-                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
+                                color = if (user.username == "Prot0nX")
+                                    MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                                else
+                                    MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
                                 shape = CircleShape
                             )
+                            .clickable(
+                                enabled = user.username != "Prot0nX",
+                                onClick = onDeleteClick
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Delete,
@@ -3078,14 +4342,14 @@ private fun UserListItem(
                             tint = if (user.username == "Prot0nX")
                                 MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
                             else MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
             } else {
                 // اگر کاربر فعلی مدیر اصلی نیست، دکمه‌ها را غیرفعال نشان می‌دهیم
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(start = 8.dp)
                 ) {
@@ -3093,15 +4357,14 @@ private fun UserListItem(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Edit,
                             contentDescription = "ویرایش",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                            modifier = Modifier
-                                .size(20.dp)
-                                .align(Alignment.Center)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
 
@@ -3109,15 +4372,14 @@ private fun UserListItem(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = "حذف",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                            modifier = Modifier
-                                .size(20.dp)
-                                .align(Alignment.Center)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -4075,27 +5337,15 @@ fun LoginDialog(
     val errorShakeController = remember { Animatable(0f) }
     var loginAttempted by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
-    val scale = remember { Animatable(0.8f) }
+    
+    // انیمیشن‌های ورود
+    val dialogScale = remember { Animatable(0.9f) }
+    val contentAlpha = remember { Animatable(0f) }
+    val logoScale = remember { Animatable(0.8f) }
+    val logoRotation = remember { Animatable(0f) }
+    val loginButtonWidth = remember { Animatable(0f) }
 
-    LaunchedEffect(Unit) {
-        showDialog = true
-        scale.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        )
-    }
-
-    val apiService = remember {
-        Retrofit.Builder()
-            .baseUrl(Constants.getBaseUrl())
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(ApiService::class.java)
-    }
-
+    // انیمیشن‌های لرزش خطا
     LaunchedEffect(errorMessage) {
         if (errorMessage != null && loginAttempted) {
             errorShakeController.animateTo(
@@ -4106,8 +5356,20 @@ fun LoginDialog(
                 )
             )
             errorShakeController.animateTo(
-                targetValue = 20f,
-                animationSpec = tween(durationMillis = 100)
+                targetValue = 15f,
+                animationSpec = tween(durationMillis = 80)
+            )
+            errorShakeController.animateTo(
+                targetValue = -12f,
+                animationSpec = tween(durationMillis = 80)
+            )
+            errorShakeController.animateTo(
+                targetValue = 8f,
+                animationSpec = tween(durationMillis = 80)
+            )
+            errorShakeController.animateTo(
+                targetValue = -4f,
+                animationSpec = tween(durationMillis = 80)
             )
             errorShakeController.animateTo(
                 targetValue = 0f,
@@ -4119,289 +5381,434 @@ fun LoginDialog(
         }
     }
 
+    // انیمیشن‌های شروع
+    LaunchedEffect(Unit) {
+        showDialog = true
+        launch {
+            dialogScale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+        
+        launch {
+            delay(150)
+            contentAlpha.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 600)
+            )
+        }
+        
+        launch {
+            delay(200)
+            logoScale.animateTo(
+                targetValue = 1.1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+            logoScale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+        
+        launch {
+            logoRotation.animateTo(
+                targetValue = 360f,
+                animationSpec = tween(
+                    durationMillis = 1200,
+                    easing = FastOutSlowInEasing
+                )
+            )
+        }
+        
+        launch {
+            delay(400)
+            loginButtonWidth.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            )
+        }
+    }
+
+    val apiService = remember {
+        Retrofit.Builder()
+            .baseUrl(Constants.getBaseUrl())
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiService::class.java)
+    }
+
     if (showDialog) {
         Dialog(
             onDismissRequest = onDismiss,
             properties = DialogProperties(
                 dismissOnBackPress = true,
-                dismissOnClickOutside = false,
+                dismissOnClickOutside = true,
                 usePlatformDefaultWidth = false
             )
         ) {
             Surface(
-                shape = RoundedCornerShape(32.dp),
+                shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp,
+                tonalElevation = 6.dp,
+                shadowElevation = 8.dp,
                 modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .scale(scale.value)
+                    .fillMaxWidth(0.92f)
+                    .fillMaxHeight(0.65f)
+                    .scale(dialogScale.value)
                     .offset(x = errorShakeController.value.dp)
-                    .padding(16.dp)
+                    .alpha(contentAlpha.value)
             ) {
                 Box(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxSize()
                 ) {
+                    // دایره‌های تزئینی با گرادیان ملایم
+                    Box(
+                        modifier = Modifier
+                            .size(200.dp)
+                            .offset(x = (-80).dp, y = (-60).dp)
+                            .alpha(0.04f)
+                            .background(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        Color.Transparent
+                                    )
+                                ),
+                                shape = CircleShape
+                            )
+                    )
+                    
+                    Box(
+                        modifier = Modifier
+                            .size(160.dp)
+                            .align(Alignment.BottomEnd)
+                            .offset(x = 60.dp, y = 40.dp)
+                            .alpha(0.03f)
+                            .background(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.tertiary,
+                                        Color.Transparent
+                                    )
+                                ),
+                                shape = CircleShape
+                            )
+                    )
+                
+                    // دکمه بستن در گوشه بالا راست با افکت محو
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(8.dp)
+                            .padding(16.dp)
+                            .size(36.dp)
+                            .alpha(0.7f)
                     ) {
                         Icon(
                             Icons.Default.Close,
-                            contentDescription = "Close",
+                            contentDescription = "بستن",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
+                    // محتوای اصلی دیالوگ
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .fillMaxSize()
+                            .padding(horizontal = 32.dp, vertical = 40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(80.dp)
-                                .background(
-                                    brush = Brush.radialGradient(
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                            MaterialTheme.colorScheme.surface
-                                        )
-                                    ),
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
+                        // بخش هدر با لوگو و عنوان
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        Text(
-                            text = "ورود به سیستم",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        AnimatedVisibility(
-                            visible = !isLoading,
-                            enter = fadeIn() + expandVertically(),
-                            exit = fadeOut() + shrinkVertically()
-                        ) {
-                            Text(
-                                text = "لطفا اطلاعات خود را وارد کنید",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(32.dp))
-
-                        OutlinedTextField(
-                            value = username,
-                            onValueChange = {
-                                username = it.trim()
-                                errorMessage = null
-                            },
-                            label = { Text("نام کاربری") },
-                            singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                            textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = if (username.isNotEmpty())
-                                        MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            keyboardOptions = KeyboardOptions(
-                                imeAction = ImeAction.Next
-                            ),
-                            isError = errorMessage != null && username.isEmpty(),
-                        shape = RoundedCornerShape(16.dp)
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = {
-                                password = it.filter { char -> char.isDigit() }
-                                errorMessage = null
-                            },
-                            label = { Text("رمز عبور") },
-                            singleLine = true,
-                            visualTransformation = if (showPassword)
-                                VisualTransformation.None
-                            else PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.NumberPassword,
-                                imeAction = ImeAction.Done
-                            ),
-                            modifier = Modifier.fillMaxWidth(),
-                            textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
-                            leadingIcon = {
-                                Icon(
-                                    if (showPassword) Icons.Default.Lock else Icons.Default.Lock,
-                                    contentDescription = null,
-                                    tint = if (password.isNotEmpty())
-                                        MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            trailingIcon = {
-                                IconButton(onClick = { showPassword = !showPassword }) {
-                                    Icon(
-                                        if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                        contentDescription = if (showPassword) "Hide password" else "Show password",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            },
-                            isError = errorMessage != null && password.isEmpty(),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-
-                        AnimatedVisibility(
-                            visible = errorMessage != null,
-                            enter = fadeIn() + expandVertically(),
-                            exit = fadeOut() + shrinkVertically()
-                        ) {
+                            // لوگو با افکت چرخش و مقیاس
                             Box(
-                            modifier = Modifier
-                                    .padding(vertical = 8.dp)
-                                .fillMaxWidth()
+                                modifier = Modifier
+                                    .size(90.dp)
+                                    .scale(logoScale.value)
                                     .background(
-                                        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
-                                        RoundedCornerShape(8.dp)
-                                    )
-                                    .padding(12.dp)
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.03f)
+                                            )
+                                        ),
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .size(45.dp)
+                                        .rotate(logoRotation.value)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            // عنوان با سبک تایپوگرافی مدرن
+                            Text(
+                                text = "ورود به سیستم",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            // توضیحات با انیمیشن نمایش/مخفی شدن
+                            AnimatedVisibility(
+                                visible = !isLoading,
+                                enter = fadeIn() + expandVertically(),
+                                exit = fadeOut() + shrinkVertically()
+                            ) {
+                                Text(
+                                    text = "لطفاً اطلاعات کاربری خود را وارد کنید",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
+                            }
+                        }
+
+                        // بخش فرم ورود
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // فیلد نام کاربری
+                            OutlinedTextField(
+                                value = username,
+                                onValueChange = {
+                                    username = it.trim()
+                                    errorMessage = null
+                                },
+                                label = { Text("نام کاربری") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
+                                leadingIcon = {
                                     Icon(
-                                        Icons.Default.Warning,
+                                        Icons.Default.Person,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(20.dp)
+                                        tint = if (username.isNotEmpty())
+                                            MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                     )
-                                    Text(
-                                        text = errorMessage ?: "",
-                                        color = MaterialTheme.colorScheme.error,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        modifier = Modifier.weight(1f)
+                                },
+                                keyboardOptions = KeyboardOptions(
+                                    imeAction = ImeAction.Next
+                                ),
+                                isError = errorMessage != null && username.isEmpty(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                )
+                            )
+
+                            // فیلد رمز عبور
+                            OutlinedTextField(
+                                value = password,
+                                onValueChange = {
+                                    password = it.filter { char -> char.isDigit() }
+                                    errorMessage = null
+                                },
+                                label = { Text("رمز عبور") },
+                                singleLine = true,
+                                visualTransformation = if (showPassword)
+                                    VisualTransformation.None
+                                else PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.NumberPassword,
+                                    imeAction = ImeAction.Done
+                                ),
+                                modifier = Modifier.fillMaxWidth(),
+                                textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Lock,
+                                        contentDescription = null,
+                                        tint = if (password.isNotEmpty())
+                                            MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                     )
+                                },
+                                trailingIcon = {
+                                    IconButton(onClick = { showPassword = !showPassword }) {
+                                        Icon(
+                                            if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                            contentDescription = if (showPassword) "پنهان کردن رمز" else "نمایش رمز",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        )
+                                    }
+                                },
+                                isError = errorMessage != null && password.isEmpty(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                )
+                            )
+
+                            // پیام خطا با انیمیشن نمایش/مخفی شدن
+                            AnimatedVisibility(
+                                visible = errorMessage != null,
+                                enter = fadeIn() + expandVertically(),
+                                exit = fadeOut() + shrinkVertically()
+                            ) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Warning,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                        Text(
+                                            text = errorMessage ?: "",
+                                            color = MaterialTheme.colorScheme.onErrorContainer,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Medium,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        // بخش دکمه‌ها
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // دکمه ورود با انیمیشن عرض
+                            Button(
+                                onClick = {
+                                    loginAttempted = true
+                                    if (username.isNotEmpty() && password.isNotEmpty()) {
+                                        isLoading = true
+                                        errorMessage = null
+                                        coroutineScope.launch {
+                                            try {
+                                                val hashedPassword = hashPassword(password)
+                                                val loginRequest = LoginRequest(username, hashedPassword, "")
+                                                val response = apiService.checkLogin(loginRequest)
 
-                        Button(
-                            onClick = {
-                                loginAttempted = true
-                                if (username.isNotEmpty() && password.isNotEmpty()) {
-                                    isLoading = true
-                                    errorMessage = null
-                                    coroutineScope.launch {
-                                        try {
-                                            val hashedPassword = hashPassword(password)
-                                            val loginRequest = LoginRequest(username, hashedPassword, "")
-                                            val response = apiService.checkLogin(loginRequest)
-
-                                            if (response.isSuccessful) {
-                                                val responseBody = response.body()
-                                                if (responseBody != null) {
-                                                    if (responseBody.success) {
-                                                        // Success animation
-                                                        onLoginChecked(
-                                                            true,
-                                                            responseBody.message,
-                                                            responseBody.userType ?: "",
-                                                            username
-                                                        )
-                                                        updateSessionValidity(true)
-                                                        (context as? MainActivity)?.startLoadingCheckService()
+                                                if (response.isSuccessful) {
+                                                    val responseBody = response.body()
+                                                    if (responseBody != null) {
+                                                        if (responseBody.success) {
+                                                            // موفقیت در ورود
+                                                            onLoginChecked(
+                                                                true,
+                                                                responseBody.message,
+                                                                responseBody.userType ?: "",
+                                                                username
+                                                            )
+                                                            updateSessionValidity(true)
+                                                            (context as? MainActivity)?.startLoadingCheckService()
+                                                        } else {
+                                                            errorMessage = responseBody.message
+                                                        }
                                                     } else {
-                                                        errorMessage = responseBody.message
+                                                        errorMessage = "پاسخ سرور خالی است"
                                                     }
                                                 } else {
-                                                    errorMessage = "پاسخ سرور خالی است"
+                                                    errorMessage = "خطا در ورود: لطفاً اطلاعات را بررسی کنید"
                                                 }
-                                            } else {
-                                                errorMessage = "خطا در ورود: لطفاً اطلاعات را بررسی کنید"
+                                            } catch (e: Exception) {
+                                                errorMessage = "خطا در ارتباط با سرور"
+                                            } finally {
+                                                isLoading = false
                                             }
-                                        } catch (e: Exception) {
-                                            errorMessage = "خطا در ارتباط با سرور"
-                                        } finally {
-                                            isLoading = false
                                         }
+                                    } else {
+                                        errorMessage = "لطفاً نام کاربری و رمز عبور را وارد کنید"
                                     }
-                                } else {
-                                    errorMessage = "لطفاً نام کاربری و رمز عبور را وارد کنید"
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    strokeWidth = 2.dp
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth(loginButtonWidth.value)
+                                    .height(54.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                ),
+                                elevation = ButtonDefaults.buttonElevation(
+                                    defaultElevation = 4.dp,
+                                    pressedElevation = 8.dp
                                 )
-                            } else {
-                                Row(
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.Login,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp)
+                            ) {
+                                if (isLoading) {
+                                    // نمایش لودینگ هنگام پردازش
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(22.dp),
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        strokeWidth = 2.dp
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        "ورود به سیستم",
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
+                                } else {
+                                    // نمایش متن دکمه در حالت عادی
+                                    Row(
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.Login,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            "ورود به سیستم",
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+                                    }
                                 }
                             }
-                        }
 
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        TextButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = !isLoading
-                        ) {
-                            Text(
-                                "انصراف",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            // دکمه انصراف
+                            TextButton(
+                                onClick = onDismiss,
+                                modifier = Modifier.padding(top = 4.dp),
+                                enabled = !isLoading
+                            ) {
+                                Text(
+                                    "انصراف",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                )
+                            }
                         }
                     }
                 }
