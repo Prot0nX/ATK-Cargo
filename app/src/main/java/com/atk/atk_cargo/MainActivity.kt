@@ -1,12 +1,8 @@
 package com.atk.atk_cargo
 
-import android.Manifest
 import android.annotation.SuppressLint
-import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
@@ -18,11 +14,17 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColor
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -148,8 +150,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -170,7 +170,6 @@ import com.atk.atk_cargo.api.ChangeLogInfo
 import com.atk.atk_cargo.api.Constants
 import com.atk.atk_cargo.api.CreateUserRequest
 import com.atk.atk_cargo.api.DeleteUserRequest
-import com.atk.atk_cargo.api.LoadingCheckService
 import com.atk.atk_cargo.api.LoginRequest
 import com.atk.atk_cargo.api.MenuItem
 import com.atk.atk_cargo.api.Message
@@ -186,7 +185,6 @@ import com.atk.atk_cargo.api.UpdateUserRequest
 import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.UserTypeInfo
-import com.atk.atk_cargo.security.LoadingCheckWorker
 import com.atk.atk_cargo.security.SecurityBlockScreen
 import com.atk.atk_cargo.security.SecurityErrorType
 import com.atk.atk_cargo.security.SignatureVerifier
@@ -225,11 +223,6 @@ class MainActivity : ComponentActivity() {
     private var securityErrorType by mutableStateOf<SecurityErrorType?>(null)
     val isSessionValid: StateFlow<Boolean> = _isSessionValid.asStateFlow()
 
-    companion object {
-        // متغیر استاتیک برای جلوگیری از اجرای چندباره سرویس
-        private var isServiceStarted = false
-    }
-
     @SuppressLint("CoroutineCreationDuringComposition")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -258,30 +251,6 @@ class MainActivity : ComponentActivity() {
                         // تاخیر طولانی‌تر قبل از شروع سرویس‌ها
                         delay(3000)
                         
-                        // شروع سرویس‌ها را به یک کوروتین جداگانه منتقل می‌کنیم
-                        lifecycleScope.launch(Dispatchers.IO) {
-                            try {
-                                withContext(Dispatchers.Main) {
-                                    try {
-                                        startBackgroundServices()
-                                    } catch (e: Exception) {
-                                        // خطا در فراخوانی startBackgroundServices
-                                    }
-                                }
-                                
-                                delay(2000)
-                                withContext(Dispatchers.Main) {
-                                    try {
-                                        startLoadingCheckService()
-                                    } catch (e: Exception) {
-                                        // خطا در فراخوانی startLoadingCheckService
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                // خطا در اجرای عملیات‌ها
-                            }
-                        }
-                        
                         // تاخیر بیشتر قبل از فعال کردن درخواست مجوزها
                         delay(5000)
                         canRequestPermissions = true
@@ -291,60 +260,57 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(canRequestPermissions) {
                         if (canRequestPermissions) {
                             try {
-                                // ابتدا مجوز نوتیفیکیشن را درخواست می‌کنیم
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    if (ContextCompat.checkSelfPermission(
-                                            this@MainActivity,
-                                            Manifest.permission.POST_NOTIFICATIONS
-                                        ) != PackageManager.PERMISSION_GRANTED
-                                    ) {
-                                        withContext(Dispatchers.Main) {
-                                            try {
-                                                ActivityCompat.requestPermissions(
-                                                    this@MainActivity,
-                                                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                                                    0
-                                                )
-                                            } catch (e: Exception) {
-                                                // خطا در درخواست مجوز نوتیفیکیشن
-                                            }
-                                        }
-                                        
-                                        // تاخیر قبل از درخواست مجوز بعدی
-                                        delay(3000)
-                                    }
-                                }
+                                // نیازی به درخواست مجوز نوتیفیکیشن نیست
+                                // مجوز حذف شده است
                                 
                                 // تاخیر اضافی برای اطمینان از پایداری برنامه
                                 delay(2000)
                                 
-                                // سپس مجوز بهینه‌سازی باتری را درخواست می‌کنیم
+                                // مدیریت بهینه مجوز بهینه‌سازی باتری برای نسخه‌های مختلف اندروید
                                 val packageName = packageName
                                 val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
                                 
                                 if (!pm.isIgnoringBatteryOptimizations(packageName)) {
                                     withContext(Dispatchers.Main) {
                                         try {
-                                            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                                                data = Uri.parse("package:$packageName")
-                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                            }
-                                            
-                                            try {
-                                                startActivity(intent)
-                                            } catch (e: Exception) {
-                                                try {
-                                                    val fallbackIntent = Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS).apply {
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                                // برای Android 6.0 (API 23) و بالاتر - درخواست مستقیم
+                                                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                                    data = android.net.Uri.parse("package:$packageName")
+                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                }
+                                                
+                                                // بررسی آیا این Intent قابل رسیدگی است
+                                                if (intent.resolveActivity(packageManager) != null) {
+                                                    startActivity(intent)
+                                                    showMessage("لطفاً اجازه دهید برنامه بدون محدودیت باتری اجرا شود")
+                                                } else {
+                                                    // اگر intent قابل رسیدگی نیست، به صفحه تنظیمات باتری هدایت می‌کنیم
+                                                    val batterySettingsIntent = Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS).apply {
                                                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                                     }
-                                                    startActivity(fallbackIntent)
+                                                    startActivity(batterySettingsIntent)
                                                     showMessage("لطفاً برنامه را از محدودیت‌های بهینه‌سازی باتری خارج کنید")
-                                                } catch (e2: Exception) {
-                                                    // خطا در هدایت به صفحه تنظیمات باتری
                                                 }
+                                            } else {
+                                                // برای نسخه‌های قدیمی‌تر از Android 6.0
+                                                val batterySettingsIntent = Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS).apply {
+                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                }
+                                                startActivity(batterySettingsIntent)
+                                                showMessage("لطفاً برنامه را از محدودیت‌های بهینه‌سازی باتری خارج کنید")
                                             }
                                         } catch (e: Exception) {
-                                            // خطای کلی در درخواست مجوز بهینه‌سازی باتری
+                                            // در صورت بروز خطا، به صفحه تنظیمات عمومی هدایت می‌کنیم
+                                            try {
+                                                val settingsIntent = Intent(Settings.ACTION_SETTINGS).apply {
+                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                }
+                                                startActivity(settingsIntent)
+                                                showMessage("لطفاً در تنظیمات، برنامه را از محدودیت‌های باتری خارج کنید")
+                                            } catch (e2: Exception) {
+                                                Log.e("BatteryOptimization", "خطا در باز کردن تنظیمات: ${e2.message}")
+                                            }
                                         }
                                     }
                                 }
@@ -397,70 +363,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startBackgroundServices() {
 
-        // بررسی می‌کنیم که آیا سرویس قبلاً شروع شده است یا خیر
-        if (isServiceStarted) {
-            return
-        }
-        
-        try {
-            // بررسی وضعیت سرویس قبل از شروع
-            val serviceRunning = isServiceRunning(LoadingCheckService::class.java)
-            
-            if (serviceRunning) {
-                isServiceStarted = true
-                return
-            }
-            
-            val serviceIntent = Intent(this, LoadingCheckService::class.java).apply {
-                // اضافه کردن یک فلگ برای جلوگیری از راه‌اندازی چندباره
-                putExtra("restart_count", System.currentTimeMillis())
-            }
-            
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(serviceIntent)
-                } else {
-                    startService(serviceIntent)
-                }
-                isServiceStarted = true
-            } catch (e: Exception) {
-                // خطا در راه‌اندازی سرویس‌های پس‌زمینه
-                isServiceStarted = false
-                
-                // تلاش برای راه‌اندازی سرویس با روش جایگزین
-                try {
-                    val alternativeIntent = Intent(this, LoadingCheckService::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        putExtra("restart_count", System.currentTimeMillis())
-                    }
-                    startService(alternativeIntent)
-                    isServiceStarted = true
-                } catch (e2: Exception) {
-                    // خطا در راه‌اندازی سرویس با روش جایگزین
-                }
-            }
-        } catch (e: Exception) {
-            // خطای کلی در فرآیند راه‌اندازی سرویس‌ها
-            isServiceStarted = false
-        }
-    }
-    
-    // تابع کمکی برای بررسی وضعیت اجرای سرویس
-    private fun isServiceRunning(serviceClass: Class<*>): Boolean {
-        try {
-            val manager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-            for (service in manager.getRunningServices(Integer.MAX_VALUE)) {
-                if (serviceClass.name == service.service.className) {
-                    return true
-                }
-            }
-        } catch (e: Exception) {
-            // خطا در بررسی وضعیت سرویس
-        }
-        return false
-    }
 
     private fun performSecurityCheck() {
         lifecycleScope.launch {
@@ -588,72 +491,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun startLoadingCheckService() {
-        Log.d("MainActivity", "شروع راه‌اندازی سرویس بررسی بارگیری")
-        
-        // استفاده از یک متغیر استاتیک برای جلوگیری از اجرای چندباره سرویس
-        if (isServiceStarted) {
-            return
-        }
-        
-        try {
-            // ابتدا سرویس را بدون بررسی نوع کاربر شروع می‌کنیم
-            try {
-                val serviceIntent = Intent(this, LoadingCheckService::class.java).apply {
-                    // اضافه کردن یک فلگ برای جلوگیری از راه‌اندازی چندباره
-                    putExtra("restart_count", System.currentTimeMillis())
-                }
-                
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        startForegroundService(serviceIntent)
-                    } else {
-                        startService(serviceIntent)
-                    }
-                    isServiceStarted = true
-                } catch (e: Exception) {
-                    Log.e("MainActivity", "خطا در شروع سرویس", e)
-                    // در صورت خطا، متغیر isServiceStarted را false نگه می‌داریم
-                    isServiceStarted = false
-                    
-                    // تلاش برای راه‌اندازی سرویس با روش جایگزین
-                    try {
-                        val alternativeIntent = Intent(this, LoadingCheckService::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            putExtra("restart_count", System.currentTimeMillis())
-                        }
-                        startService(alternativeIntent)
-                        isServiceStarted = true
-                    } catch (e2: Exception) {
-                        Log.e("MainActivity", "خطا در راه‌اندازی سرویس با روش جایگزین", e2)
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("MainActivity", "خطا در ساخت Intent برای سرویس", e)
-            }
-            
-            // سپس کارگر دوره‌ای را شروع می‌کنیم
-            try {
-                LoadingCheckWorker.startPeriodicWorker(this)
-            } catch (e: Exception) {
-                Log.e("MainActivity", "خطا در شروع کارگر دوره‌ای", e)
-            }
-            
-            // در نهایت، نوع کاربر را بررسی می‌کنیم (اما سرویس قبلاً شروع شده است)
-            lifecycleScope.launch {
-                try {
-                    userPreferencesManager.userType.first()
-                } catch (e: Exception) {
-                    Log.e("MainActivity", "خطا در دریافت نوع کاربر", e)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("MainActivity", "خطای کلی در راه‌اندازی سرویس", e)
-            // در صورت خطای کلی، متغیر isServiceStarted را false نگه می‌داریم
-            isServiceStarted = false
-        }
-    }
-
     private fun checkUserSession() {
         lifecycleScope.launch {
             try {
@@ -664,7 +501,6 @@ class MainActivity : ComponentActivity() {
                     when {
                         response.isSuccessful && response.body()?.success == true -> {
                             _isSessionValid.value = true
-                            startLoadingCheckService()
                         }
                         else -> {
                             _isSessionValid.value = false
@@ -1593,7 +1429,6 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                         }
                     }
                 },
-                context = LocalContext.current,
                 updateSessionValidity = mainActivity::updateSessionValidity
             )
         }
@@ -3003,6 +2838,33 @@ private fun getIconForUserType(userType: String): ImageVector {
 private fun WelcomeSection(username: String) {
     var textVisible by remember { mutableStateOf(false) }
     val textScale = remember { Animatable(0.9f) }
+    
+    val hintText = if (username.isNotEmpty())
+        "لطفاً گزینه مورد نظر خود را انتخاب کنید"
+    else 
+        "برای دسترسی به امکانات سیستم لطفاً وارد شوید"
+    
+    // انیمیشن رنگ برای نام کاربر
+    val usernameColorAnimation = rememberInfiniteTransition()
+    val usernameColor by usernameColorAnimation.animateColor(
+        initialValue = MaterialTheme.colorScheme.primary,
+        targetValue = MaterialTheme.colorScheme.tertiary,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+    
+    // انیمیشن مقیاس برای نام کاربر
+    val usernameScaleAnimation = rememberInfiniteTransition()
+    val usernameScale by usernameScaleAnimation.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
 
     LaunchedEffect(Unit) {
         delay(500)
@@ -3019,8 +2881,8 @@ private fun WelcomeSection(username: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp) // کاهش padding عمودی
-            .clip(RoundedCornerShape(20.dp)) // کمی کوچکتر کردن گوشه‌ها
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(20.dp))
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
@@ -3033,7 +2895,7 @@ private fun WelcomeSection(username: String) {
         // دایره‌های تزئینی با اندازه کوچکتر
         Box(
             modifier = Modifier
-                .size(80.dp) // کاهش اندازه
+                .size(80.dp)
                 .offset(x = (-25).dp, y = (-25).dp)
                 .background(
                     brush = Brush.radialGradient(
@@ -3049,7 +2911,7 @@ private fun WelcomeSection(username: String) {
         
         Box(
             modifier = Modifier
-                .size(60.dp) // کاهش اندازه
+                .size(60.dp)
                 .align(Alignment.BottomEnd)
                 .offset(x = 15.dp, y = 15.dp)
                 .background(
@@ -3067,7 +2929,7 @@ private fun WelcomeSection(username: String) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp), // کاهش padding داخلی
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AnimatedVisibility(
@@ -3083,25 +2945,52 @@ private fun WelcomeSection(username: String) {
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.scale(textScale.value)
+                    modifier = Modifier
+                        .scale(textScale.value)
                 ) {
-                    Text(
-                        text = if (username.isNotEmpty())
-                            "خوش آمدید، $username"
-                        else "به سیستم مدیریت هوشمند بارگیری خوش آمدید",
-                        style = MaterialTheme.typography.titleLarge, // کاهش سایز فونت
-                        textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    // متن خوش‌آمدگویی با انیمیشن فقط برای نام کاربر
+                    if (username.isNotEmpty()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            // بخش ثابت متن خوش‌آمدگویی
+                            Text(
+                                text = "خوش آمدید، ",
+                                style = MaterialTheme.typography.titleLarge,
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            
+                            // فقط نام کاربر با انیمیشن (بدون حالت تایپ کردن)
+                            Text(
+                                text = username,
+                                style = MaterialTheme.typography.titleLarge,
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = usernameColor,
+                                modifier = Modifier.scale(usernameScale)
+                            )
+                        }
+                    } else {
+                        // حالت بدون نام کاربر
+                        Text(
+                            text = "به سیستم مدیریت هوشمند بارگیری خوش آمدید",
+                            style = MaterialTheme.typography.titleLarge,
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                     
-                    Spacer(modifier = Modifier.height(4.dp)) // کاهش فاصله
+                    Spacer(modifier = Modifier.height(4.dp))
                     
+                    // متن راهنما بدون انیمیشن
                     Text(
-                        text = if (username.isNotEmpty())
-                            "لطفاً گزینه مورد نظر خود را انتخاب کنید"
-                        else "برای دسترسی به امکانات سیستم لطفاً وارد شوید",
-                        style = MaterialTheme.typography.bodyMedium, // کاهش سایز فونت
+                        text = hintText,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
@@ -3212,7 +3101,7 @@ private fun AnimatedMenuGrid(
             ) {
                 items(
                     count = regularItems.size,
-                    span = { index ->
+                    span = { _ ->
                         when {
                             // تک آیتم با عرض کامل
                             regularItems.size == 1 -> GridItemSpan(columnCount)
@@ -3243,7 +3132,7 @@ private fun AnimatedMenuGrid(
 private fun AnimatedMenuCard(
     item: MenuItem,
     isWideItem: Boolean,
-    index: Int,
+    index: Int, // پارامتر استفاده شده است، نمی‌توان به _ تغییر داد
     showAnimation: Boolean,
     onItemClick: (MenuItem) -> Unit
 ) {
@@ -5325,7 +5214,6 @@ fun getUserTypeDisplay(userType: String): String {
 fun LoginDialog(
     onDismiss: () -> Unit,
     onLoginChecked: (Boolean, String, String, String) -> Unit,
-    context: Context,
     updateSessionValidity: (Boolean) -> Unit
 ) {
     var username by remember { mutableStateOf("") }
@@ -5737,7 +5625,7 @@ fun LoginDialog(
                                                                 username
                                                             )
                                                             updateSessionValidity(true)
-                                                            (context as? MainActivity)?.startLoadingCheckService()
+                                                            
                                                         } else {
                                                             errorMessage = responseBody.message
                                                         }
