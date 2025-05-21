@@ -18,6 +18,7 @@ import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import androidx.core.content.edit
 
 class SignatureVerifier(private val context: Context) {
     companion object {
@@ -198,7 +199,7 @@ class SignatureVerifier(private val context: Context) {
     }
 
     private fun o(am: Boolean) {
-        sharedPreferences.edit().putBoolean(D, am).apply()
+        sharedPreferences.edit { putBoolean(D, am) }
     }
 
     private suspend fun checkLicenseValidity(): Pair<Boolean, SecurityErrorType?> = withContext(Dispatchers.IO) {
