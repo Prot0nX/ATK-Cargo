@@ -1736,26 +1736,6 @@ class ReportsViewModel(
         }
     }
 
-    fun sendMessage(
-        title: String,
-        body: String,
-        recipients: List<String>,
-        senderId: Int,
-        senderType: String
-    ) {
-        viewModelScope.launch {
-            _messageSendingStatus.value = MessageSendingStatus.Sending
-            try {
-                val result = repository.sendMessage(title, body, recipients, senderId, senderType)
-                _messageSendingStatus.value =
-                    if (result) MessageSendingStatus.Success else MessageSendingStatus.Error("Failed to send message")
-            } catch (e: Exception) {
-                _messageSendingStatus.value =
-                    MessageSendingStatus.Error(e.message ?: "Unknown error occurred")
-            }
-        }
-    }
-
     fun exportData(format: String, data: FilteredSummary) {
         viewModelScope.launch {
             try {
@@ -2646,42 +2626,6 @@ class ReportsRepository(private val apiService: ApiService) {
             } catch (e: Exception) {
                 null
             }
-        }
-    }
-
-    suspend fun sendMessage(
-        title: String,
-        body: String,
-        recipients: List<String>,
-        senderId: Int,
-        senderType: String
-    ): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val messageRequest = MessageRequest(
-                title = title,
-                body = body,
-                recipients = recipients,
-                senderId = senderId,
-                senderType = senderType
-            )
-            val response = apiService.sendMessage(messageRequest)
-
-            if (response.isSuccessful) {
-                val responseBody = response.body()
-                val result = responseBody?.success ?: false
-                if (!result) {
-                    Log.w(
-                        "ReportsRepository",
-                        "Server returned success: false. Message: ${responseBody?.message}"
-                    )
-                }
-                result
-            } else {
-                val errorBody = response.errorBody()?.string()
-                throw Exception("Server error: ${response.code()}, Error body: $errorBody")
-            }
-        } catch (e: Exception) {
-            throw Exception("Error sending message: ${e.message}")
         }
     }
 
