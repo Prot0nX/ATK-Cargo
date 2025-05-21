@@ -196,7 +196,6 @@ import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.ShipInfo
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.WarningStatus
-import com.atk.atk_cargo.api.recognizeText
 import com.atk.atk_cargo.ui.theme.Green800
 import com.atk.atk_cargo.ui.theme.Theme2
 import com.google.mlkit.vision.common.InputImage
@@ -209,10 +208,12 @@ import com.patrykandpatrick.vico.core.extension.sumOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.text.NumberFormat
 import java.util.Locale
+import kotlin.coroutines.resume
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -322,6 +323,22 @@ class RegisterCargoActivity : ComponentActivity() {
     private fun showErrorMessage(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
+}
+
+// تشخیص متن از تصویر با استفاده از ML Kit
+private suspend fun recognizeTextFromImage(image: InputImage): String = suspendCancellableCoroutine { continuation ->
+    val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    
+    recognizer.process(image)
+        .addOnSuccessListener { visionText ->
+            // بازگرداندن متن استخراج شده
+            continuation.resume(visionText.text)
+        }
+        .addOnFailureListener { e ->
+            // در صورت خطا، رشته خالی برگردان
+            continuation.resume("")
+            e.printStackTrace()
+        }
 }
 
 @SuppressLint("UnusedBoxWithConstraintsScope", "DefaultLocale")
@@ -1018,7 +1035,7 @@ fun NetWeightDialog(
 ) {
     var netWeight by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
-    var showCamera by remember { mutableStateOf(false) }
+    var showCamera by remember { mutableStateOf(true) } // تغییر به true برای باز شدن خودکار دوربین
     val focusManager = LocalFocusManager.current
     var recognizedWeight by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
@@ -1350,7 +1367,7 @@ fun NetWeightDialog(
                                 } else {
                                     // Fallback to image processing if weight is invalid
                                     val preprocessedImage = preprocessImage(image)
-                                    val recognizedText = recognizeText(preprocessedImage)
+                                    val recognizedText = recognizeTextFromImage(preprocessedImage)
                                     recognizedWeight = extractNumber(recognizedText)
 
                                     if (recognizedWeight.isNotEmpty()) {
@@ -1362,7 +1379,7 @@ fun NetWeightDialog(
                             } else {
                                 // Fallback to original implementation if no weight detected
                                 val preprocessedImage = preprocessImage(image)
-                                val recognizedText = recognizeText(preprocessedImage)
+                                val recognizedText = recognizeTextFromImage(preprocessedImage)
                                 recognizedWeight = extractNumber(recognizedText)
 
                                 if (recognizedWeight.isNotEmpty()) {
@@ -1387,14 +1404,81 @@ fun NetWeightDialog(
 
 @SuppressLint("DefaultLocale")
 fun extractNumber(text: String): String {
-    val regex = Regex("""(\d{1,3}(?:,\d{3})*(?:\.\d+)?)""")
-    val matches = regex.findAll(text)
+    // مجموعه‌ای از الگوها با اولویت‌بندی برای تشخیص عدد تناژ
+    val patterns = listOf(
+        // الگوی 1: دنبال عبارت‌های مخصوص وزن خالص با فرمت‌های مختلف
+        Regex("""(?:وزن\s*خالص|خالص|NET\s*WEIGHT|NET)[:\s=]*(\d{1,3}(?:[,. ]\d{3})+)""", RegexOption.IGNORE_CASE),
+        
+        // الگوی 2: اعداد با فرمت خاص که معمولاً در قبض‌های باسکول استفاده می‌شود
+        Regex("""(\d{2}[,. ]\d{3}[,. ]\d{3})"""),
+        Regex("""(\d{2,3}[,. ]\d{3})"""),
+        
+        // الگوی 3: عبارت‌های دیگر مرتبط با وزن در قبض باسکول
+        Regex("""(?:وزن(?:\s+با)?(?:\s+بار)?:?\s*)(\d{1,3}(?:[,. ]\d{3})+)""", RegexOption.IGNORE_CASE),
+        
+        // الگوی 4: اعداد 5 یا 6 رقمی که معمولاً می‌توانند وزن باشند
+        Regex("""(\b\d{5,6}\b)""")
+    )
 
-    val numbers = matches.mapNotNull { matchResult ->
-        matchResult.value.replace(",", "").toDoubleOrNull()
-    }.toList()
-
-    return numbers.maxOrNull()?.let {
+    // پیش‌پردازش متن برای بهبود تشخیص
+    val normalizedText = text
+        .replace('\n', ' ')            // تبدیل خط جدید به فاصله
+        .replace(Regex("""[\u200C\u200F\u202A-\u202E]"""), "")  // حذف کاراکترهای کنترلی یونیکد
+    
+    // جستجو با الگوهای مختلف براساس اولویت
+    for (pattern in patterns) {
+        val matches = pattern.findAll(normalizedText)
+        val candidates = matches.mapNotNull { match -> 
+            try {
+                // پاکسازی عدد از کاراکترهای غیرعددی
+                val cleanNumber = match.groupValues[1].replace(Regex("""[^\d]"""), "")
+                if (cleanNumber.length >= 4) {
+                    cleanNumber.toDouble()
+                } else {
+                    null
+                }
+            } catch (e: Exception) { 
+                null 
+            }
+        }.filter { 
+            // فیلتر کردن اعداد در محدوده منطقی وزن (بین 5000 و 45000 کیلوگرم)
+            it in 5000.0..45000.0
+        }.toList()
+        
+        if (candidates.isNotEmpty()) {
+            // انتخاب محتمل‌ترین عدد براساس معیارهای وزن معمول
+            val mostLikely = when {
+                // اعداد نزدیک به میانگین وزن کامیون‌های معمول ارجحیت دارند
+                candidates.any { it in 20000.0..30000.0 } -> 
+                    candidates.filter { it in 20000.0..30000.0 }.average()
+                    
+                // در غیر این صورت بزرگترین عدد معتبر را انتخاب کن
+                else -> candidates.maxOrNull() ?: 0.0
+            }
+            
+            return String.format("%d", mostLikely.roundToInt())
+        }
+    }
+    
+    // روش نهایی: استخراج همه اعداد و فیلتر براساس محدوده منطقی
+    val allNumbersRegex = Regex("""(\d{1,3}(?:[,. ]\d{3})*|\d{4,6})""")
+    val allMatches = allNumbersRegex.findAll(normalizedText)
+    
+    val weightCandidates = allMatches.mapNotNull { matchResult ->
+        try {
+            val cleaned = matchResult.value.replace(Regex("""[^\d]"""), "")
+            if (cleaned.length >= 4) {
+                cleaned.toDouble()
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }.filter { it in 5000.0..45000.0 }.toList()
+    
+    // اگر اعدادی پیدا شدند، محتمل‌ترین را انتخاب کن
+    return weightCandidates.maxOrNull()?.let {
         String.format("%d", it.roundToInt())
     } ?: ""
 }
@@ -1404,21 +1488,152 @@ fun preprocessImage(imageProxy: ImageProxy): InputImage {
     val width = bitmap.width
     val height = bitmap.height
 
+    // ایجاد بیت‌مپ برای پردازش
     val outputBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(outputBitmap)
-    val paint = Paint()
-
-    val colorMatrix = ColorMatrix(floatArrayOf(
-        1.5f, 0f, 0f, 0f, -50f,
-        0f, 1.5f, 0f, 0f, -50f,
-        0f, 0f, 1.5f, 0f, -50f,
-        0f, 0f, 0f, 1f, 0f
+    
+    // مرحله 1: افزایش کنتراست و شارپنس برای بهبود خوانایی متن
+    val enhancementMatrix = ColorMatrix(floatArrayOf(
+        2.5f, 0f, 0f, 0f, -50f,    // افزایش کنتراست کانال قرمز
+        0f, 2.5f, 0f, 0f, -50f,    // افزایش کنتراست کانال سبز
+        0f, 0f, 2.5f, 0f, -50f,    // افزایش کنتراست کانال آبی
+        0f, 0f, 0f, 1.2f, 0f       // افزایش کنتراست آلفا
     ))
-
-    paint.colorFilter = ColorMatrixColorFilter(colorMatrix)
-    canvas.drawBitmap(bitmap, 0f, 0f, paint)
-
+    
+    val enhancementPaint = Paint().apply {
+        colorFilter = ColorMatrixColorFilter(enhancementMatrix)
+    }
+    
+    // اعمال فیلتر بهبود کنتراست
+    canvas.drawBitmap(bitmap, 0f, 0f, enhancementPaint)
+    
+    // مرحله 2: تبدیل به تصویر باینری با آستانه‌گذاری محلی
+    val pixels = IntArray(width * height)
+    outputBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+    
+    // استفاده از الگوریتم آستانه‌گذاری سازگار
+    adaptiveThresholding(pixels, width, height)
+    
+    // مرحله 3: حذف نویز با فیلتر میانه
+    medianFilter(pixels, width, height)
+    
+    // مرحله 4: تقویت لبه‌ها برای بهبود تشخیص اعداد
+    enhanceEdges(pixels, width, height)
+    
+    // اعمال پیکسل‌های پردازش شده روی تصویر خروجی
+    outputBitmap.setPixels(pixels, 0, width, 0, 0, width, height)
+    
     return InputImage.fromBitmap(outputBitmap, imageProxy.imageInfo.rotationDegrees)
+}
+
+// آستانه‌گذاری سازگار برای جداسازی متن از پس‌زمینه
+private fun adaptiveThresholding(pixels: IntArray, width: Int, height: Int) {
+    val windowSize = 15  // اندازه پنجره برای محاسبه آستانه محلی
+    val c = 10          // ثابت کاهش از میانگین محلی
+    
+    for (y in 0 until height) {
+        for (x in 0 until width) {
+            val pos = y * width + x
+            
+            // محاسبه میانگین در پنجره محلی
+            var sum = 0
+            var count = 0
+            
+            for (wy in maxOf(0, y - windowSize / 2) until minOf(height, y + windowSize / 2 + 1)) {
+                for (wx in maxOf(0, x - windowSize / 2) until minOf(width, x + windowSize / 2 + 1)) {
+                    val pixel = pixels[wy * width + wx]
+                    val gray = (pixel and 0xFF) + ((pixel shr 8) and 0xFF) + ((pixel shr 16) and 0xFF)
+                    sum += gray / 3
+                    count++
+                }
+            }
+            
+            val threshold = if (count > 0) sum / count - c else 128
+            
+            // اعمال آستانه محلی
+            val pixel = pixels[pos]
+            val gray = ((pixel and 0xFF) + ((pixel shr 8) and 0xFF) + ((pixel shr 16) and 0xFF)) / 3
+            
+            pixels[pos] = if (gray > threshold) 0xFFFFFFFF.toInt() else 0xFF000000.toInt()
+        }
+    }
+}
+
+// فیلتر میانه برای حذف نویز نمک و فلفل
+private fun medianFilter(pixels: IntArray, width: Int, height: Int) {
+    val output = pixels.copyOf()
+    val windowSize = 3
+    val window = IntArray(windowSize * windowSize)
+    
+    for (y in 1 until height - 1) {
+        for (x in 1 until width - 1) {
+            var idx = 0
+            
+            // جمع‌آوری مقادیر پیکسل‌های همسایه
+            for (wy in -1..1) {
+                for (wx in -1..1) {
+                    window[idx++] = pixels[(y + wy) * width + (x + wx)]
+                }
+            }
+            
+            // مرتب‌سازی و انتخاب مقدار میانه
+            window.sort()
+            output[y * width + x] = window[windowSize * windowSize / 2]
+        }
+    }
+    
+    // کپی نتایج به آرایه اصلی
+    for (i in pixels.indices) {
+        pixels[i] = output[i]
+    }
+}
+
+// تقویت لبه‌ها برای بهبود تشخیص متن و اعداد
+private fun enhanceEdges(pixels: IntArray, width: Int, height: Int) {
+    val output = pixels.copyOf()
+    val sobelX = arrayOf(
+        intArrayOf(-1, 0, 1),
+        intArrayOf(-2, 0, 2),
+        intArrayOf(-1, 0, 1)
+    )
+    
+    val sobelY = arrayOf(
+        intArrayOf(1, 2, 1),
+        intArrayOf(0, 0, 0),
+        intArrayOf(-1, -2, -1)
+    )
+    
+    for (y in 1 until height - 1) {
+        for (x in 1 until width - 1) {
+            var sumX = 0
+            var sumY = 0
+            
+            for (wy in -1..1) {
+                for (wx in -1..1) {
+                    val pixel = pixels[(y + wy) * width + (x + wx)]
+                    val gray = if (pixel == 0xFFFFFFFF.toInt()) 255 else 0
+                    
+                    sumX += gray * sobelX[wy + 1][wx + 1]
+                    sumY += gray * sobelY[wy + 1][wx + 1]
+                }
+            }
+            
+            val magnitude = minOf(255, Math.sqrt((sumX * sumX + sumY * sumY).toDouble()).toInt())
+            
+            // تقویت لبه‌ها اگر مقدار بیش از آستانه باشد
+            if (magnitude > 30) {
+                output[y * width + x] = 0xFF000000.toInt()  // لبه‌ها سیاه می‌شوند
+            }
+        }
+    }
+    
+    // ادغام لبه‌های تقویت شده با تصویر اصلی
+    for (i in pixels.indices) {
+        // اگر پیکسل در تصویر اصلی سیاه است یا در خروجی لبه تشخیص داده شده، آن را سیاه نگه دار
+        if (pixels[i] == 0xFF000000.toInt() || output[i] == 0xFF000000.toInt()) {
+            pixels[i] = 0xFF000000.toInt()
+        }
+    }
 }
 
 @Composable
@@ -2068,105 +2283,180 @@ class EnhancedNumberAnalyzer(
     }
 
     private fun extractNetWeights(text: String): List<String> {
-        val results = mutableListOf<String>()
+        // پیش‌پردازش متن برای بهبود تشخیص
+        val normalizedText = normalizeText(text)
         
-        // الگوهای پیشرفته برای تشخیص وزن خالص با دقت بیشتر
+        // مجموعه الگوهای بهینه شده با اولویت‌بندی
         val patterns = listOf(
-            // الگوی دقیق برای عبارت‌های وزن خالص کلیدی با پشتیبانی بهتر از فرمت‌های مختلف
-            Regex("(?:وزن\\s*خالص|خالص|NET\\s*WEIGHT|NET)[\\s:=]*([\\d۰-۹,.\\s]+)(?:\\s*(?:کیلو(?:گرم)?|KG|Kg|kg))?", RegexOption.IGNORE_CASE),
+            // کلاس 1: الگوهای دقیق وزن خالص با عبارات کلیدی (بالاترین اولویت)
+            Regex("(?:وزن\\s*خالص|NET\\s*WEIGHT)[\\s:=]*([\\d,.\\s]{5,12})(?:\\s*(?:کیلو(?:گرم)?|KG|kg))?", RegexOption.IGNORE_CASE),
             
-            // الگو برای ساختارهای خاص که در قبض‌های باسکول ایرانی رایج هستند
-            Regex("(?:وزن(?:\\s+با)?(?:\\s+بار)?:?[\\s:=]*)(\\d{1,3}(?:[,\\s]\\d{3})*)", RegexOption.IGNORE_CASE),
-            Regex("(?:وزن[^\\n:]*خالص:?[\\s:=]*)(\\d{1,3}(?:[,\\s]\\d{3})*)", RegexOption.IGNORE_CASE),
+            // کلاس 2: الگوهای مخصوص قبض باسکول ایرانی با فرمت استاندارد
+            Regex("(?:وزن[^\\n:]*خالص:?[\\s:=]*|خالص|NET)\\s*([\\d,.\\s]{5,12})(?:\\s*(?:کیلو|KG|kg))?", RegexOption.IGNORE_CASE),
+            Regex("(?:وزن(?:\\s+با)?(?:\\s+بار)?:?[\\s:=]*)([\\d,.\\s]{5,12})", RegexOption.IGNORE_CASE),
             
-            // الگوی پیشرفته برای اعداد فرمت شده با کاما یا فاصله در محدوده وزن مورد نظر
-            Regex("(\\d{1,2}[,\\s]\\d{3}[,\\s]\\d{3}|\\d{2,3}[,\\s]\\d{3})", RegexOption.IGNORE_CASE),
-            
-            // الگوهای متنوع برای اعداد فارسی
-            Regex("[۰-۹]{2,3}[,،٫]?[۰-۹]{3}(?:[,،٫]?[۰-۹]{3})?"),
-            
-            // اعداد ساده 5 یا 6 رقمی که احتمالاً وزن هستند
-            Regex("\\b(\\d{5,6})\\b")
+            // کلاس 3: الگوهای مخصوص فرمت‌های متداول وزن در قبض‌های باسکول
+            Regex("(\\d{2}[,. ]\\d{3}[,. ]\\d{3})", RegexOption.IGNORE_CASE),   // مثال: 25,000,000
+            Regex("(\\d{1,2}[,. ]\\d{3}[,. ]\\d{3})", RegexOption.IGNORE_CASE), // مثال: 5,000,000
+            Regex("(\\d{2,3}[,. ]\\d{3})", RegexOption.IGNORE_CASE),            // مثال: 25,000
+
+            // کلاس 4: اعداد ساده در محدوده منطقی وزن کامیون
+            Regex("\\b(\\d{5,6})\\b")                                           // مثال: 25000
         )
 
-        // بهبود تبدیل اعداد فارسی به انگلیسی با پشتیبانی از نویسه‌های بیشتر
-        val persianDigits = "۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩"
-        val englishDigits = "01234567890123456789"
-        var normalizedText = text.replace(Regex("[،٫]"), ",") // جایگزینی جداکننده‌های فارسی با کاما
+        // ساختار نگهداری کاندیداهای وزن با امتیاز اطمینان
+        val weightCandidates = mutableMapOf<String, Double>()
+        var foundHighConfidenceMatch = false
         
-        for (i in 0 until persianDigits.length) {
-            normalizedText = normalizedText.replace(persianDigits[i], englishDigits[i % 10])
-        }
-
-        // جستجوی الگوها در متن نرمال‌سازی شده با اولویت به الگوهای دقیق‌تر
-        val weightCandidates = mutableMapOf<String, Double>() // نگهداری عدد و امتیاز اطمینان
-        
-        // اول: جستجوی الگوهای کلیدی دقیق که بیشترین اطمینان را دارند
-        var foundExactMatch = false
-        for ((index, pattern) in patterns.withIndex()) {
-            val confidenceBase = 1.0 - (index * 0.1) // اولویت بالاتر به الگوهای ابتدایی
+        // بررسی الگوها به ترتیب اولویت
+        for ((priority, pattern) in patterns.withIndex()) {
+            // ضریب اولویت برای هر الگو
+            val priorityFactor = 1.0 - (priority * 0.15).coerceAtMost(0.9)
             val matches = pattern.findAll(normalizedText)
             
             for (match in matches) {
-                // استخراج فقط اعداد از متن یافت شده
-                var numberStr = match.value.replace(Regex("[^0-9.,]"), "")
-                // تبدیل فرمت‌های متنوع به فرمت استاندارد
-                numberStr = numberStr.replace(",", "").replace(" ", "")
+                // پردازش متن تطبیق داده شده
+                val matchedText = match.groupValues.getOrNull(1) ?: match.value
+                val cleanNumber = matchedText.replace(Regex("[^0-9]"), "")
                 
-                try {
-                    val number = numberStr.toDoubleOrNull()
-                    if (number != null) {
-                        val valueConfidence = when {
-                            number in 10000.0..30000.0 -> 1.0  // محدوده بسیار محتمل
-                            number in 5000.0..45000.0 -> 0.8   // محدوده محتمل
-                            number in 4000.0..50000.0 -> 0.5   // محدوده ممکن
-                            else -> 0.1 // خارج از محدوده معمول
+                if (cleanNumber.length >= 4) {
+                    try {
+                        val number = cleanNumber.toDouble()
+                        
+                        // فقط اعداد در محدوده منطقی وزن کامیون را در نظر بگیر
+                        if (number in 5000.0..45000.0) {
+                            // محاسبه امتیاز اطمینان براساس معیارهای مختلف
+                            val confidenceScore = calculateConfidenceScore(
+                                number = number,
+                                matchContext = match.value,
+                                matchedPattern = pattern.pattern,
+                                priority = priorityFactor
+                            )
+                            
+                            val roundedNumber = number.roundToInt().toString()
+                            weightCandidates[roundedNumber] = (weightCandidates[roundedNumber] ?: 0.0) + confidenceScore
+                            
+                            // اگر یک تطبیق با اطمینان بالا پیدا شد، می‌توانیم جستجو را متوقف کنیم
+                            if (confidenceScore > 2.0) {
+                                foundHighConfidenceMatch = true
+                            }
                         }
-                        
-                        val contextConfidence = when {
-                            match.value.contains(Regex("وزن\\s*خالص|خالص|NET\\s*WEIGHT", RegexOption.IGNORE_CASE)) -> 2.0
-                            match.value.contains("وزن") -> 1.5
-                            match.value.contains(Regex("KG|کیلو", RegexOption.IGNORE_CASE)) -> 1.3
-                            else -> 1.0
-                        }
-                        
-                        // محاسبه نمره نهایی
-                        val finalConfidence = confidenceBase * valueConfidence * contextConfidence
-                        val roundedNumber = number.roundToInt().toString()
-                        
-                        // ذخیره عدد و بهبود امتیاز اگر قبلاً دیده شده
-                        weightCandidates[roundedNumber] = (weightCandidates[roundedNumber] ?: 0.0) + finalConfidence
-                        
-                        // اگر یک عدد با اطمینان خیلی بالا پیدا شد (حاوی کلمات کلیدی)
-                        if (finalConfidence > 1.5) {
-                            foundExactMatch = true
-                        }
+                    } catch (e: Exception) {
+                        continue
                     }
-                } catch (e: Exception) {
-                    continue
                 }
             }
             
-            // اگر الگوهای اولیه دقیق یافتند، دیگر الگوهای کم دقت‌تر را بررسی نکن
-            if (foundExactMatch && weightCandidates.isNotEmpty()) {
+            // اگر نتایج با اطمینان بالا یافتیم، نیازی به بررسی الگوهای با اولویت کمتر نیست
+            if (foundHighConfidenceMatch && weightCandidates.isNotEmpty()) {
                 break
             }
         }
-
-        // اگر با الگوهای دقیق هیچ عددی پیدا نشد، از روش ساده‌تر استفاده کن
+        
+        // اگر هیچ عددی پیدا نشد، از روش فراگیرتر استفاده کن
         if (weightCandidates.isEmpty()) {
-            val simpleNumbers = extractSimpleNumbers(normalizedText)
-            for (number in simpleNumbers) {
-                weightCandidates[number] = 0.5 // امتیاز پایین برای اعداد ساده
-            }
+            val fallbackNumbers = extractAllPotentialWeights(normalizedText)
+            weightCandidates.putAll(fallbackNumbers)
         }
 
-        // مرتب‌سازی نتایج براساس امتیاز اطمینان و برگرداندن بهترین نتایج
+        // بسته‌بندی نتایج به ترتیب امتیاز اطمینان
         return weightCandidates.entries
             .sortedByDescending { it.value }
             .map { it.key }
             .distinct()
-            .take(5) // محدود کردن نتایج به 5 مورد برتر
+            .take(5)
+    }
+    
+    // تبدیل متن به فرمت استاندارد برای پردازش بهتر
+    private fun normalizeText(text: String): String {
+        // حذف کاراکترهای مشکل‌ساز و استانداردسازی فرمت
+        var normalizedText = text
+            .replace('\n', ' ')
+            .replace('\r', ' ')
+            .replace('\t', ' ')
+            .replace(Regex("\\s+"), " ")
+            .replace(Regex("[،٫]"), ",")
+            .replace(Regex("\\s*[:=]\\s*"), ":")
+        
+        // تبدیل اعداد فارسی به انگلیسی
+        val persianDigits = "۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩"
+        val englishDigits = "01234567890123456789"
+        
+        for (i in 0 until persianDigits.length) {
+            normalizedText = normalizedText.replace(persianDigits[i], englishDigits[i % 10])
+        }
+        
+        return normalizedText
+    }
+    
+    // محاسبه امتیاز اطمینان براساس معیارهای مختلف
+    private fun calculateConfidenceScore(
+        number: Double,
+        matchContext: String,
+        matchedPattern: String,
+        priority: Double
+    ): Double {
+        var score = priority
+        
+        // 1. امتیاز محدوده: اعداد در محدوده وزن معمول کامیون‌ها امتیاز بیشتری دارند
+        score *= when (number) {
+            in 20000.0..27000.0 -> 1.5   // محدوده ایده‌آل وزن کامیون
+            in 15000.0..30000.0 -> 1.2   // محدوده معمول
+            in 10000.0..35000.0 -> 1.0   // محدوده قابل قبول
+            else -> 0.8                  // محدوده کمتر محتمل
+        }
+        
+        // 2. امتیاز متن همراه: بر اساس وجود عبارات کلیدی در متن
+        if (matchContext.contains(Regex("وزن\\s*خالص|NET\\s*WEIGHT", RegexOption.IGNORE_CASE))) {
+            score *= 2.0
+        } else if (matchContext.contains(Regex("خالص|NET|وزن", RegexOption.IGNORE_CASE))) {
+            score *= 1.5
+        } else if (matchContext.contains(Regex("کیلو(?:گرم)?|KG|kg", RegexOption.IGNORE_CASE))) {
+            score *= 1.3
+        }
+        
+        // 3. امتیاز الگوی تطبیق: الگوهای دقیق‌تر امتیاز بیشتری دارند
+        if (matchedPattern.contains("وزن\\s*خالص|NET\\s*WEIGHT")) {
+            score *= 1.5
+        }
+        
+        // 4. امتیاز فرمت عدد: اعداد با فرمت استاندارد امتیاز بیشتری دارند
+        if (matchContext.matches(Regex(".*\\d{2,3}[,. ]\\d{3}[,. ]\\d{3}.*"))) {
+            score *= 1.3  // فرمت مانند 25,000,000
+        } else if (matchContext.matches(Regex(".*\\d{2,3}[,. ]\\d{3}.*"))) {
+            score *= 1.2  // فرمت مانند 25,000
+        }
+        
+        return score
+    }
+    
+    // استخراج همه اعداد ممکن از متن در صورت شکست روش‌های دقیق‌تر
+    private fun extractAllPotentialWeights(text: String): Map<String, Double> {
+        val results = mutableMapOf<String, Double>()
+        val allNumbersRegex = Regex("(\\d{1,3}(?:[,. ]\\d{3})*|\\d{4,6})")
+        val matches = allNumbersRegex.findAll(text)
+        
+        matches.forEach { match ->
+            try {
+                val cleanNumber = match.value.replace(Regex("[^0-9]"), "")
+                if (cleanNumber.length >= 4) {
+                    val number = cleanNumber.toDouble()
+                    if (number in 5000.0..45000.0) {
+                        val baseConfidence = when (number) {
+                            in 20000.0..27000.0 -> 0.7
+                            in 15000.0..30000.0 -> 0.5
+                            else -> 0.3
+                        }
+                        
+                        results[number.roundToInt().toString()] = baseConfidence
+                    }
+                }
+            } catch (e: Exception) {
+                // نادیده گرفتن خطاها
+            }
+        }
+        
+        return results
     }
 
     private fun extractSimpleNumbers(text: String): List<String> {
@@ -2935,27 +3225,27 @@ private fun HeaderInfo(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.End
                 ) {
-                    // نمایش ماشین‌های 10 چرخ در هر شرایطی، با رنگ قرمز و انیمیشن برای مقادیر صفر
+                    // محاسبه مقادیر برای هر دو نوع کامیون
                     val truck10Value = loadableTrucks10Wheeler.toIntOrNull() ?: 0
                     val truck18Value = loadableTrucks18Wheeler.toIntOrNull() ?: 0
                     
-                    // انیمیشن چشمک‌زن برای مقادیر صفر
+                    // انیمیشن چشمک‌زن برای هر دو نوع کامیون در صورت صفر بودن
                     val infiniteTransition = rememberInfiniteTransition(label = "blinkingAnimation")
                     val truck10Alpha by infiniteTransition.animateFloat(
-                        initialValue = if (truck10Value <= 0) 0.1f else 1f,
+                        initialValue = if (truck10Value <= 0) 0.3f else 1f,
                         targetValue = if (truck10Value <= 0) 1f else 1f,
                         animationSpec = infiniteRepeatable(
-                            animation = tween(800, easing = LinearEasing),
+                            animation = tween(600, easing = LinearEasing),
                             repeatMode = RepeatMode.Reverse
                         ),
                         label = "truck10Alpha"
                     )
                     
                     val truck18Alpha by infiniteTransition.animateFloat(
-                        initialValue = if (truck18Value <= 0) 0.1f else 1f,
+                        initialValue = if (truck18Value <= 0) 0.3f else 1f,
                         targetValue = if (truck18Value <= 0) 1f else 1f,
                         animationSpec = infiniteRepeatable(
-                            animation = tween(800, easing = LinearEasing),
+                            animation = tween(600, easing = LinearEasing),
                             repeatMode = RepeatMode.Reverse
                         ),
                         label = "truck18Alpha"
