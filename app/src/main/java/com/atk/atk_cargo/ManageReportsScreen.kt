@@ -36,7 +36,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.hoverable
@@ -59,7 +58,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -90,8 +88,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.automirrored.filled.Message
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -140,7 +136,6 @@ import androidx.compose.material.icons.filled.Stars
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.Title
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material.icons.filled.Update
@@ -215,8 +210,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -227,7 +220,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -431,6 +423,16 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 		onAnalyticsClick = {
 			showAnalyticsDialog = true
 		}
+	)
+
+
+	RealTimeLoadingBottomSheet(
+		isOpen = showRealTimeDialog,
+		onDismiss = { showRealTimeDialog = false },
+		loadingData = realTimeLoadingData,
+		shiftInfo = shiftInfo ?: ShiftInfo("", "", ""),
+		onRefresh = { viewModel.loadRealTimeData(isDarkTheme, defaultColor) },
+		viewModel = viewModel
 	)
 
 	AdvancedSearchDialog(
@@ -864,11 +866,7 @@ fun ShipSection(
 private fun TonnageInfo(ships: List<Ship>) {
 	val totalTonnage = ships.sumOf { it.totalTonnage.toDouble() }.toFloat()
 	val loadedTonnage = ships.sumOf { (it.totalTonnage - it.remainingTonnage).toDouble() }.toFloat()
-	val remainingTonnage = totalTonnage - loadedTonnage
-	val progress = calculateProgress(loadedTonnage, totalTonnage)
-	
-	// گرفتن پیشرفت بارگیری برای محاسبات داخلی (در صورت نیاز)
-	val loadingProgress = progress
+	totalTonnage - loadedTonnage
 
 	Surface(
 		shape = RoundedCornerShape(8.dp),
@@ -954,7 +952,7 @@ fun ShipCard(
 	val contentAlpha = if (isActive) 1f else 0.4f
 	val borderAlpha = if (isActive) 0.15f else 0.05f
 
-	val progress = calculateProgress(
+	calculateProgress(
 		ship.totalTonnage - ship.remainingTonnage,
 		ship.totalTonnage
 	)
@@ -965,9 +963,6 @@ fun ShipCard(
 		animationSpec = tween(durationMillis = 300),
 		label = "rotation"
 	)
-	
-	// پیشرفت بارگیری (برای محاسبات داخلی)
-	val loadingProgress = progress
 
 	Card(
 		modifier = modifier
@@ -1276,23 +1271,6 @@ private fun DetailInfoItem(
 			text = label,
 			style = MaterialTheme.typography.bodySmall,
 			color = color.copy(alpha = 0.7f)
-		)
-	}
-}
-
-@Composable
-private fun InfoColumn(label: String, value: String, color: Color) {
-	Column(horizontalAlignment = Alignment.Start) {
-		Text(
-			text = label,
-			style = MaterialTheme.typography.bodySmall,
-			color = color.copy(alpha = 0.7f)
-		)
-		Text(
-			text = value,
-			style = MaterialTheme.typography.titleMedium,
-			fontWeight = FontWeight.Bold,
-			color = color
 		)
 	}
 }
@@ -5207,7 +5185,7 @@ fun RealTimeLoadingBottomSheet(
 	val totalEntryVouchers = remember(loadingData) { loadingData.sumOf { it.entryVouchers } }
 	val totalExitVouchers = remember(loadingData) { loadingData.sumOf { it.exitVouchers } }
 	val totalNetWeight = remember(loadingData) { loadingData.sumOf { it.totalNetWeight.toDouble() }.toFloat() }
-	val averageWeight = remember(loadingData, totalExitVouchers) {
+	remember(loadingData, totalExitVouchers) {
 		if (totalExitVouchers > 0) totalNetWeight / totalExitVouchers else 0f
 	}
 
@@ -5354,7 +5332,6 @@ val filteredLoadingData = remember(loadingData, searchQuery) {
 							totalEntryVouchers = totalEntryVouchers,
 							totalExitVouchers = totalExitVouchers,
 							totalNetWeight = totalNetWeight,
-							averageWeight = averageWeight,
 							onWeightDetailsClick = { showWeightDetailsDialog = true }
 						)
 						Spacer(modifier = Modifier.height(8.dp))
@@ -6061,7 +6038,6 @@ fun StatisticItem(
 	totalEntryVouchers: Int,
 	totalExitVouchers: Int,
 	totalNetWeight: Float,
-	averageWeight: Float,
 	onWeightDetailsClick: () -> Unit
 ) {
 	var startAnimation by remember { mutableStateOf(false) }
@@ -6084,11 +6060,6 @@ fun StatisticItem(
 		targetValue = if (startAnimation) totalNetWeight else 0f,
 		animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing), 
 		label = "weight animation"
-	)
-	val animatedAverageWeight by animateFloatAsState(
-		targetValue = if (startAnimation) averageWeight else 0f,
-		animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing), 
-		label = "average animation"
 	)
 
 	LaunchedEffect(Unit) {
@@ -6327,6 +6298,7 @@ fun FloatingActionButton(
 						),
 						onDismiss = { expandedFab = false }
 					)
+
 					MiniFab(
 						item = FabItem(
 							icon = Icons.Default.Search,
@@ -6962,119 +6934,6 @@ private fun DetailRowCargo(
 			fontWeight = FontWeight.Medium,
 			color = MaterialTheme.colorScheme.onSurface
 		)
-	}
-}
-
-@Composable
-private fun ActionButtons(
-	isVisible: Boolean,
-	isEnabled: Boolean,
-	onSend: () -> Unit,
-	onCancel: () -> Unit
-) {
-	val offsetY by animateDpAsState(
-		targetValue = if (isVisible) 0.dp else 50.dp,
-		animationSpec = spring(
-			dampingRatio = Spring.DampingRatioMediumBouncy,
-			stiffness = Spring.StiffnessLow
-		),
-		label = ""
-	)
-
-	val alpha by animateFloatAsState(
-		targetValue = if (isVisible) 1f else 0f,
-		label = ""
-	)
-
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.offset(y = offsetY)
-			.alpha(alpha),
-		horizontalArrangement = Arrangement.spacedBy(16.dp)
-	) {
-		// دکمه لغو
-		OutlinedButton(
-			onClick = onCancel,
-			modifier = Modifier.weight(1f),
-			contentPadding = PaddingValues(16.dp),
-			shape = RoundedCornerShape(12.dp),
-			border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-		) {
-			Row(
-				horizontalArrangement = Arrangement.spacedBy(8.dp),
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				Icon(
-					imageVector = Icons.Default.Close,
-					contentDescription = null,
-					modifier = Modifier.size(20.dp)
-				)
-				Text("انصراف")
-			}
-		}
-	}
-}
-
-@Composable
-private fun FlowRow(
-	modifier: Modifier = Modifier,
-	horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
-	maxItemsInEachRow: Int = Int.MAX_VALUE,
-	content: @Composable () -> Unit
-) {
-	Layout(
-		content = content,
-		modifier = modifier
-	) { measurables, constraints ->
-		val horizontalSpacing = 8.dp.roundToPx()
-		val verticalSpacing = 8.dp.roundToPx()
-		val rows = mutableListOf<List<Placeable>>()
-		var rowPlaceables = mutableListOf<Placeable>()
-		var rowWidth = 0
-		var totalHeight = 0
-
-		measurables.forEach { measurable ->
-			val placeable = measurable.measure(constraints.copy(minWidth = 0))
-
-			if (rowPlaceables.size >= maxItemsInEachRow ||
-				rowWidth + placeable.width + (if (rowPlaceables.isEmpty()) 0 else horizontalSpacing) > constraints.maxWidth) {
-				rows.add(rowPlaceables)
-				totalHeight += rowPlaceables.maxOfOrNull { it.height } ?: 0
-				if (rows.size > 1) totalHeight += verticalSpacing
-				rowPlaceables = mutableListOf(placeable)
-				rowWidth = placeable.width
-			} else {
-				rowWidth += placeable.width + (if (rowPlaceables.isEmpty()) 0 else horizontalSpacing)
-				rowPlaceables.add(placeable)
-			}
-		}
-
-		if (rowPlaceables.isNotEmpty()) {
-			rows.add(rowPlaceables)
-			totalHeight += rowPlaceables.maxOfOrNull { it.height } ?: 0
-			if (rows.size > 1) totalHeight += verticalSpacing
-		}
-
-		layout(constraints.maxWidth, totalHeight) {
-			var yPosition = 0
-
-			rows.forEach { row ->
-				var xPosition = when (horizontalArrangement) {
-					Arrangement.Start -> 0
-					Arrangement.Center -> (constraints.maxWidth - (row.sumOf { it.width } + (row.size - 1) * horizontalSpacing)) / 2
-					Arrangement.End -> constraints.maxWidth - (row.sumOf { it.width } + (row.size - 1) * horizontalSpacing)
-					else -> 0
-				}
-
-				row.forEach { placeable ->
-					placeable.place(xPosition, yPosition)
-					xPosition += placeable.width + horizontalSpacing
-				}
-				yPosition += row.maxOfOrNull { it.height } ?: 0
-				if (row != rows.last()) yPosition += verticalSpacing
-			}
-		}
 	}
 }
 
