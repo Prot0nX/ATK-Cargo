@@ -152,22 +152,6 @@ interface ApiService {
     @GET("realTimeLoadingData.php")
     suspend fun getComprehensiveAnalysis(@Query("action") action: String = "getComprehensiveAnalysis"): Response<ResponseBody>
 
-    @POST("message_api.php")
-    suspend fun sendMessage(@Body messageRequest: MessageRequest): Response<SuccessResponse>
-
-    @POST("message_api.php")
-    suspend fun markMessageAsRead(
-        @Body request: MessageReadRequest
-    ): Response<SuccessResponse>
-
-    @GET("message_api.php")
-    suspend fun getNewMessages(
-        @Query("action") action: String = "getNewMessages",
-        @Query("userType") userType: String,
-        @Query("lastCheckTime") lastCheckTime: String,
-        @Query("includeReadStatus") includeReadStatus: Boolean = true
-    ): Response<List<Message>>
-
     @POST("check_session.php")
     suspend fun checkSession(@Body request: SessionCheckRequest): Response<SessionResponse>
 

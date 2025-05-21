@@ -22,9 +22,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.atk.atk_cargo.SnackbarMessage
 import com.atk.atk_cargo.api.RetrofitClient.apiService
 import com.google.gson.Gson
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+// ML Kit imports removed and replaced with Tesseract
 import com.itextpdf.text.BaseColor
 import com.itextpdf.text.Document
 import com.itextpdf.text.Element
@@ -1298,7 +1296,7 @@ class CargoViewModel(
         val trucks18Wheeler = if (loadableTonnage > 0) (loadableTonnage / 25000.0).toInt() else 0
         
         // محاسبه تعداد ماشین‌های 10 چرخ
-        val trucks10Wheeler = if (loadableTonnage > 0 && loadableTonnage < 50000) (loadableTonnage / 15000.0).toInt() else 0
+        val trucks10Wheeler = if (loadableTonnage > 0) (loadableTonnage / 15000.0).toInt() else 0
         
         _loadableTrucks18Wheeler.value = trucks18Wheeler.toString()
         _loadableTrucks10Wheeler.value = trucks10Wheeler.toString()
@@ -2728,22 +2726,6 @@ fun gregorianToJalali(gregorian: Calendar): String {
     return String.format("%04d/%02d/%02d", jy, jm, jd)
 }
 
-@OptIn(ExperimentalGetImage::class)
-suspend fun recognizeText(image: InputImage): String {
-    return withContext(Dispatchers.Default) {
-        suspendCoroutine { continuation ->
-            val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-            textRecognizer.process(image)
-                .addOnSuccessListener { result ->
-                    continuation.resume(result.text)
-                }
-                .addOnFailureListener { e ->
-                    continuation.resumeWithException(e)
-                }
-        }
-    }
-}
-
 data class QuotaExistenceMultipleResponse(
     val exists: Boolean,
     val matchingQuotas: List<MatchingQuota>,
@@ -2897,14 +2879,7 @@ data class MenuItem(
     val route: String
 )
 
-data class MessageRequest(
-    val action: String = "sendMessage",
-    val title: String,
-    val body: String,
-    val recipients: List<String>,
-    val senderId: Int,
-    val senderType: String
-)
+
 
 data class SuccessResponse(
     val success: Boolean,
@@ -2912,20 +2887,7 @@ data class SuccessResponse(
     val userId: Int? = null
 )
 
-data class Message(
-    val id: Int,
-    val title: String,
-    val body: String,
-    val dateTime: String,
-    val senderType: String,
-    val readBy: List<String>? = null
-)
 
-data class MessageReadRequest(
-    val messageId: Int,
-    val username: String,
-    val action: String = "markAsRead"
-)
 
 data class CargoInfoSearch(
     val cargoInfo: CargoInfo?

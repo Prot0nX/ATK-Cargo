@@ -172,8 +172,7 @@ import com.atk.atk_cargo.api.CreateUserRequest
 import com.atk.atk_cargo.api.DeleteUserRequest
 import com.atk.atk_cargo.api.LoginRequest
 import com.atk.atk_cargo.api.MenuItem
-import com.atk.atk_cargo.api.Message
-import com.atk.atk_cargo.api.MessageReadRequest
+
 import com.atk.atk_cargo.api.ReportsRepository
 import com.atk.atk_cargo.api.ReportsViewModel
 import com.atk.atk_cargo.api.RetrofitClient
@@ -1920,33 +1919,6 @@ fun ProfileMenu(
     
     // انیمیشن محتوا
     val contentScale = remember { Animatable(0.96f) }
-    
-    // آیکون بج پیام‌ها
-    var messages by remember { mutableStateOf<List<Message>>(emptyList()) }
-    var unreadMessages by remember { mutableStateOf<List<Message>>(emptyList()) }
-    val badgeScale = remember { Animatable(initialValue = 0f) }
-    var hasShownMessages by remember { mutableStateOf(false) }
-    val shouldShowMessages = remember(expanded, unreadMessages) {
-        expanded && unreadMessages.isNotEmpty() && !hasShownMessages
-    }
-    
-    // انیمیشن ضربان برای بج پیام‌ها
-    val badgePulse = remember { Animatable(1f) }
-    LaunchedEffect(unreadMessages.isNotEmpty()) {
-        if (unreadMessages.isNotEmpty() && !expanded) {
-            while (unreadMessages.isNotEmpty() && !expanded) {
-                badgePulse.animateTo(
-                    targetValue = 1.2f,
-                    animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing)
-                )
-                badgePulse.animateTo(
-                    targetValue = 1f,
-                    animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing)
-                )
-                delay(1000)
-            }
-        }
-    }
 
     // انیمیشن ظاهر شدن
     LaunchedEffect(Unit) {
@@ -1975,52 +1947,6 @@ fun ProfileMenu(
                     showSettings = false
                 }
             }
-        }
-    }
-
-    // دریافت پیام‌ها
-    LaunchedEffect(Unit) {
-        try {
-            val response = RetrofitClient.apiService.getNewMessages(
-                userType = userType,
-                lastCheckTime = getLastCheckTime(),
-                includeReadStatus = true
-            )
-            if (response.isSuccessful) {
-                messages = response.body() ?: emptyList()
-                unreadMessages = messages.filter { it.readBy?.contains(username) != true }
-
-                if (unreadMessages.isNotEmpty()) {
-                    badgeScale.animateTo(
-                        targetValue = 1f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            Log.d("ProfileMenu", "Error fetching messages", e)
-        }
-    }
-
-    // علامت‌گذاری پیام‌ها به عنوان خوانده شده
-    LaunchedEffect(shouldShowMessages) {
-        if (shouldShowMessages && unreadMessages.isNotEmpty()) {
-            unreadMessages.forEach { message ->
-                try {
-                    RetrofitClient.apiService.markMessageAsRead(
-                        MessageReadRequest(
-                            messageId = message.id,
-                            username = username
-                        )
-                    )
-                } catch (e: Exception) {
-                    Log.e("ProfileMenu", "Error marking message as read", e)
-                }
-            }
-            hasShownMessages = true
         }
     }
 
@@ -2109,24 +2035,6 @@ fun ProfileMenu(
                                     tint = userTypeColor
                                 )
                             }
-
-                            // نشانگر پیام‌های جدید
-                            if (unreadCount > 0) {
-                                Badge(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .scale(badgeScale.value * badgePulse.value)
-                                        .offset(x = 4.dp, y = (-2).dp),
-                                    containerColor = MaterialTheme.colorScheme.error
-                                ) {
-                                    Text(
-                                        text = unreadCount.toString(),
-                                        color = MaterialTheme.colorScheme.onError,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        modifier = Modifier.padding(horizontal = 4.dp)
-                                    )
-                                }
-                            }
                         }
 
                         // اطلاعات نام کاربری
@@ -2164,15 +2072,6 @@ fun ProfileMenu(
                                             "verifier" -> MaterialTheme.colorScheme.tertiary
                                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                                         }
-                                    )
-                                }
-                                
-                                // نشانگر پیام‌های جدید در متن
-                                if (unreadCount > 0) {
-                                    Text(
-                                        text = "• $unreadCount پیام جدید",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.error
                                     )
                                 }
                             }
@@ -2230,44 +2129,6 @@ fun ProfileMenu(
                         
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // بخش پیام‌های جدید
-                        if (shouldShowMessages) {
-                            MessagesSection(
-                                messages = unreadMessages.take(3),
-                                username = username,
-                                onMessageClick = { /* No need for click handler since messages are auto-marked */ }
-                            )
-
-                            if (unreadMessages.size > 3) {
-                                TextButton(
-                                    onClick = { /* Show all messages */ },
-                                    modifier = Modifier.align(Alignment.End)
-                                ) {
-                                    Text(
-                                        "مشاهده همه پیام‌ها",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
-                            // خط جداکننده
-                            HorizontalDivider(
-                                thickness = 1.dp,
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                            )
-                            
-                            Spacer(modifier = Modifier.height(16.dp))
-                        }
-
                         // دکمه‌های عملیات
                         ActionButtons(
                             onSettingsClick = {
@@ -2295,75 +2156,6 @@ fun ProfileMenu(
             },
             onLogout = onLogoutClick
         )
-    }
-}
-
-// کمک‌کننده برای بدست آوردن تعداد پیام‌های نخوانده
-private val unreadCount: Int
-    @Composable
-    get() {
-        val username = LocalContext.current.let {
-            remember { UserPreferencesManager(it) }.username.collectAsState(initial = "").value
-        }
-        val messagesState = remember { mutableStateOf<List<Message>>(emptyList()) }
-        
-        LaunchedEffect(Unit) {
-            try {
-                val response = RetrofitClient.apiService.getNewMessages(
-                    userType = "",
-                    lastCheckTime = getLastCheckTime(),
-                    includeReadStatus = true
-                )
-                if (response.isSuccessful) {
-                    messagesState.value = response.body() ?: emptyList()
-                }
-            } catch (e: Exception) {
-                Log.e("unreadCount", "Error fetching messages", e)
-            }
-        }
-        
-        return messagesState.value.count { it.readBy?.contains(username) != true }
-    }
-
-@Composable
-private fun MessagesSection(
-    messages: List<Message>,
-    username: String,
-    onMessageClick: () -> Unit
-) {
-    Column {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Message,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "پیام‌های جدید",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        messages.forEach { message ->
-            MessageItem(
-                message = message,
-                username = username,
-                onMessageClick = onMessageClick
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-        }
     }
 }
 
@@ -2738,89 +2530,6 @@ fun ProfileSettingsDialog(
                 }
             }
         )
-    }
-}
-
-@Composable
-fun MessageItem(
-    message: Message,
-    username: String,
-    onMessageClick: () -> Unit
-) {
-    val isUnread = message.readBy?.contains(username) != true
-    val backgroundColor = if (isUnread) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onMessageClick),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                                Text(
-                    text = message.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = if (isUnread) FontWeight.Bold else FontWeight.Normal
-                )
-                if (isUnread) {
-                    Badge(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    ) {
-                        Text("جدید")
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = message.body,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = formatMessageDate(message.dateTime),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            )
-        }
-    }
-}
-
-private fun getLastCheckTime(): String {
-    val dateTime = ZonedDateTime.now(ZoneId.of("Asia/Tehran"))
-        .minusHours(24)
-        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-    return dateTime
-}
-
-private fun formatMessageDate(dateTime: String): String {
-    return try {
-        val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-        val outputFormatter = DateTimeFormatter.ofPattern("HH:mm yyyy/MM/dd")
-
-        val parsedDateTime = LocalDateTime.parse(dateTime, inputFormatter)
-        parsedDateTime.format(outputFormatter)
-    } catch (e: Exception) {
-        Log.e("MessageFormat", "Error formatting date: ${e.message}")
-        dateTime
     }
 }
 
