@@ -30,6 +30,7 @@ val Amber900 = Color(0xFFFF6F00)
 val DeepOrange50 = Color(0xFFFBE9E7)
 val DeepOrange100 = Color(0xFFFFCCBC)
 val DeepOrange200 = Color(0xFFFFAB91)
+val DeepOrange300 = Color(0xFFFF8A65)
 val DeepOrange700 = Color(0xFFE64A19)
 val DeepOrange900 = Color(0xFFBF360C)
 

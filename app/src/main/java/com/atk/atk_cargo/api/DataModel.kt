@@ -1,13 +1,12 @@
 package com.atk.atk_cargo.api
 
+// ML Kit imports removed and replaced with Tesseract
 import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Intent
 import android.os.Environment
 import android.os.Parcelable
 import android.util.Log
-import androidx.annotation.OptIn
-import androidx.camera.core.ExperimentalGetImage
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -22,7 +21,6 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.atk.atk_cargo.SnackbarMessage
 import com.atk.atk_cargo.api.RetrofitClient.apiService
 import com.google.gson.Gson
-// ML Kit imports removed and replaced with Tesseract
 import com.itextpdf.text.BaseColor
 import com.itextpdf.text.Document
 import com.itextpdf.text.Element
@@ -61,9 +59,6 @@ import java.util.Date
 import java.util.LinkedList
 import java.util.Locale
 import java.util.Queue
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 import kotlin.math.roundToInt
 
 class CargoViewModelFactory(
@@ -808,7 +803,13 @@ class CargoViewModel(
                             
                             withContext(Dispatchers.Main.immediate) {
                                 data.loadableTonnage?.let { tonnage ->
-                                    _loadableTonnage.value = DecimalFormat("#,###").format(tonnage.roundToInt())
+                                    // نمایش مقدار تناژ قابل بارگیری حتی اگر منفی باشد
+                                    val formattedValue = if (tonnage < 0) {
+                                        "-" + DecimalFormat("#,###").format(Math.abs(tonnage.roundToInt()))
+                                    } else {
+                                        DecimalFormat("#,###").format(tonnage.roundToInt())
+                                    }
+                                    _loadableTonnage.value = formattedValue
                                 }
                                 
                                 // بروزرسانی تعداد کامیون‌ها از مقادیر محاسبه‌شده در سرور
@@ -1292,12 +1293,13 @@ class CargoViewModel(
     }
 
     private fun updateLoadableTrucksCount(loadableTonnage: Double) {
-        // محاسبه تعداد ماشین‌های 18 چرخ
+        // محاسبه تعداد ماشین‌های 18 چرخ (فقط برای مقادیر مثبت)
         val trucks18Wheeler = if (loadableTonnage > 0) (loadableTonnage / 25000.0).toInt() else 0
         
-        // محاسبه تعداد ماشین‌های 10 چرخ
+        // محاسبه تعداد ماشین‌های 10 چرخ (فقط برای مقادیر مثبت)
         val trucks10Wheeler = if (loadableTonnage > 0) (loadableTonnage / 15000.0).toInt() else 0
         
+        // مقادیر را در StateFlow ها قرار می‌دهیم
         _loadableTrucks18Wheeler.value = trucks18Wheeler.toString()
         _loadableTrucks10Wheeler.value = trucks10Wheeler.toString()
     }
