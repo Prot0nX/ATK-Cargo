@@ -34,7 +34,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.EaseInBack
 import androidx.compose.animation.core.EaseOutBack
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
@@ -56,8 +55,8 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -86,7 +85,6 @@ import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
-import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -98,25 +96,26 @@ import androidx.compose.material.Scaffold
 import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.Surface
-import androidx.compose.material.Switch
-import androidx.compose.material.SwitchDefaults
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AddChart
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Event
-import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
@@ -125,13 +124,18 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Numbers
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Scale
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -196,7 +200,6 @@ import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.ShipInfo
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.WarningStatus
-import com.atk.atk_cargo.ui.theme.Green800
 import com.atk.atk_cargo.ui.theme.Theme2
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
@@ -216,6 +219,11 @@ import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
+import androidx.compose.material3.MaterialTheme as MaterialTheme3
+import androidx.compose.material3.Surface as Surface3
+import androidx.compose.material3.Text as Text3
+import androidx.compose.material3.TextFieldDefaults as TextFieldDefaults3
 
 class RegisterCargoActivity : ComponentActivity() {
     private lateinit var viewModel: CargoViewModel
@@ -248,7 +256,7 @@ class RegisterCargoActivity : ComponentActivity() {
         viewModel = ViewModelProvider(this, viewModelFactory)[CargoViewModel::class.java]
 
         setContent {
-            Theme2 {
+            Theme2(darkTheme = isSystemInDarkTheme()) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
@@ -256,12 +264,6 @@ class RegisterCargoActivity : ComponentActivity() {
                     ) {
                         val cargoInfoList by viewModel.cargoInfoList.collectAsState()
                         val initialInfo by viewModel.initialInfo.collectAsState()
-                        val cargoWeight by viewModel.cargoWeight.collectAsState()
-                        val totalNetWeight by viewModel.totalNetWeight.collectAsState()
-                        val remainingWeight by viewModel.remainingWeight.collectAsState()
-                        val averageNetWeight by viewModel.averageNetWeight.collectAsState()
-                        val remainingServices by viewModel.remainingServices.collectAsState()
-                        val totalServices by viewModel.totalServices.collectAsState()
                         val resultMessage by viewModel.resultMessage.collectAsState()
                         val showAnimatedMessage by viewModel.showAnimatedMessage.collectAsState()
                         val messageType by viewModel.messageType.collectAsState()
@@ -571,46 +573,60 @@ fun RegisterCargoScreen(
                     )
                 }
 
-                // دکمه بروزرسانی با انیمیشن چرخش
+                // دکمه بروزرسانی مینیمال
                 var isRefreshing by remember { mutableStateOf(false) }
-                var rotationState by remember { mutableStateOf(0f) }
+                var rotationState by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
                 val rotation = animateFloatAsState(
                     targetValue = rotationState,
-                    animationSpec = tween(500, easing = FastOutSlowInEasing),
+                    animationSpec = tween(400, easing = FastOutSlowInEasing),
                     label = "rotation"
                 )
-                
-                Button(
-                    onClick = { 
-                        if (!isRefreshing) {
-                            isRefreshing = true
-                            rotationState += 360f
-                            viewModel.refreshCargoInfo()
-                            // بعد از 1.5 ثانیه امکان بروزرسانی مجدد فراهم می‌شود
-                            coroutineScope.launch {
-                                delay(1500)
-                                isRefreshing = false
-                            }
-                        }
-                    },
+
+                Surface3(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = MaterialTheme.colors.primary,
-                        contentColor = Color.White,
-                        disabledBackgroundColor = MaterialTheme.colors.primary.copy(alpha = 0.7f),
-                        disabledContentColor = Color.White.copy(alpha = 0.7f)
-                    ),
-                    enabled = !isRefreshing
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .clickable(enabled = !isRefreshing) {
+                            if (!isRefreshing) {
+                                isRefreshing = true
+                                rotationState += 360f
+                                viewModel.refreshCargoInfo()
+                                coroutineScope.launch {
+                                    delay(1500)
+                                    isRefreshing = false
+                                }
+                            }
+                        },
+                    tonalElevation = 0.5.dp,
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isRefreshing) 
+                        MaterialTheme3.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                    else 
+                        MaterialTheme3.colorScheme.primaryContainer
                 ) {
-                    Icon(
-                        Icons.Default.Refresh, 
-                        contentDescription = "بروزرسانی",
-                        modifier = Modifier.rotate(rotation.value)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (isRefreshing) "در حال بروزرسانی..." else "بروزرسانی اطلاعات")
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "بروزرسانی",
+                            modifier = Modifier
+                                .size(16.dp)
+                                .rotate(rotation.value),
+                            tint = MaterialTheme3.colorScheme.onPrimaryContainer
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text3(
+                            text = if (isRefreshing) "در حال بروزرسانی..." else "بروزرسانی",
+                            style = MaterialTheme3.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme3.colorScheme.onPrimaryContainer
+                        )
+                    }
                 }
 
                 ExpandableSection(
@@ -1431,7 +1447,7 @@ fun extractNumber(text: String): String {
         val candidates = matches.mapNotNull { match -> 
             try {
                 // پاکسازی عدد از کاراکترهای غیرعددی
-                val cleanNumber = match.groupValues[1].replace(Regex("""[^\d]"""), "")
+                val cleanNumber = match.groupValues[1].replace(Regex("""\D"""), "")
                 if (cleanNumber.length >= 4) {
                     cleanNumber.toDouble()
                 } else {
@@ -1466,7 +1482,7 @@ fun extractNumber(text: String): String {
     
     val weightCandidates = allMatches.mapNotNull { matchResult ->
         try {
-            val cleaned = matchResult.value.replace(Regex("""[^\d]"""), "")
+            val cleaned = matchResult.value.replace(Regex("""\D"""), "")
             if (cleaned.length >= 4) {
                 cleaned.toDouble()
             } else {
@@ -1618,7 +1634,7 @@ private fun enhanceEdges(pixels: IntArray, width: Int, height: Int) {
                 }
             }
             
-            val magnitude = minOf(255, Math.sqrt((sumX * sumX + sumY * sumY).toDouble()).toInt())
+            val magnitude = minOf(255, sqrt((sumX * sumX + sumY * sumY).toDouble()).toInt())
             
             // تقویت لبه‌ها اگر مقدار بیش از آستانه باشد
             if (magnitude > 30) {
@@ -2223,8 +2239,8 @@ class EnhancedNumberAnalyzer(
         threshold: Int
     ) {
         // مقادیر رنگ برای سیاه و سفید
-        val BLACK = -16777216 // 0xFF000000
-        val WHITE = -1        // 0xFFFFFFFF
+        val black = -16777216 // 0xFF000000
+        val white = -1        // 0xFFFFFFFF
         
         for (y in startY until startY + blockHeight) {
             for (x in startX until startX + blockWidth) {
@@ -2235,7 +2251,7 @@ class EnhancedNumberAnalyzer(
                         val gray = ((pixel shr 16 and 0xFF) + (pixel shr 8 and 0xFF) + (pixel and 0xFF)) / 3
                         
                         // آستانه‌گذاری با وزن بیشتر به سمت سفید کردن پیکسل‌ها
-                        pixels[idx] = if (gray > threshold - 5) WHITE else BLACK
+                        pixels[idx] = if (gray > threshold - 5) white else black
                     }
                 }
             }
@@ -2382,7 +2398,7 @@ class EnhancedNumberAnalyzer(
         val persianDigits = "۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩"
         val englishDigits = "01234567890123456789"
         
-        for (i in 0 until persianDigits.length) {
+        for (i in persianDigits.indices) {
             normalizedText = normalizedText.replace(persianDigits[i], englishDigits[i % 10])
         }
         
@@ -2459,24 +2475,6 @@ class EnhancedNumberAnalyzer(
         return results
     }
 
-    private fun extractSimpleNumbers(text: String): List<String> {
-        // جستجوی ساده برای اعداد 4 تا 6 رقمی
-        val regex = Regex("\\b(\\d{4,6})\\b")
-        val matches = regex.findAll(text)
-
-        return matches.mapNotNull { matchResult ->
-            try {
-                val number = matchResult.value.toDoubleOrNull()
-                if (number != null && number in 4000.0..50000.0) {
-                    number.roundToInt().toString()
-                } else {
-                    null
-                }
-            } catch (e: Exception) {
-                null
-            }
-        }.distinct().toList()
-    }
 }
 
 @Composable
@@ -2514,40 +2512,112 @@ fun ExpandableSection(
     onItemClick: (CargoInfo) -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(initiallyExpanded) }
+    
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        animationSpec = tween(300),
+        label = "rotation"
+    )
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { isExpanded = !isExpanded }
-                .padding(vertical = 12.dp, horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "$title (${items.size})",
-                style = MaterialTheme.typography.subtitle1,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colors.primary
-            )
-            Icon(
-                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = if (isExpanded) "بستن" else "باز کردن",
-                tint = MaterialTheme.colors.primary
-            )
-        }
-
-        AnimatedVisibility(visible = isExpanded) {
-            LazyColumn(
+    Surface3(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .animateContentSize(),
+        tonalElevation = 0.5.dp,
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // هدر مینیمال
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn()
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                items(items) { info ->
-                    ErrorHandlingCargoInfoRow(
-                        info = info,
-                        onRowClick = onItemClick
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // آیکون وضعیت
+                    Surface3(
+                        shape = CircleShape,
+                        color = when (title) {
+                            "ورود شده" -> MaterialTheme3.colorScheme.primaryContainer
+                            "خروج شده" -> MaterialTheme3.colorScheme.secondaryContainer
+                            else -> MaterialTheme3.colorScheme.surfaceVariant
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                imageVector = when (title) {
+                                    "ورود شده" -> Icons.Default.AddChart
+                                    "خروج شده" -> Icons.Default.LocalShipping
+                                    else -> Icons.Default.Receipt
+                                },
+                                contentDescription = null,
+                                tint = when (title) {
+                                    "ورود شده" -> MaterialTheme3.colorScheme.onPrimaryContainer
+                                    "خروج شده" -> MaterialTheme3.colorScheme.onSecondaryContainer
+                                    else -> MaterialTheme3.colorScheme.onSurfaceVariant
+                                },
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    
+                    // عنوان و تعداد
+                    Column {
+                        Text3(
+                            text = title,
+                            style = MaterialTheme3.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme3.colorScheme.onSurface
+                        )
+                        Text3(
+                            text = "${items.size} حواله",
+                            style = MaterialTheme3.typography.labelSmall,
+                            color = MaterialTheme3.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // آیکون گسترش
+                Icon(
+                    imageVector = Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "بستن" else "باز کردن",
+                    tint = MaterialTheme3.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .rotate(rotationAngle)
+                )
+            }
+
+            // محتوای قابل گسترش
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp)
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(items) { info ->
+                        ErrorHandlingCargoInfoRow(
+                            info = info,
+                            onRowClick = onItemClick
+                        )
+                    }
                 }
             }
         }
@@ -2663,6 +2733,7 @@ fun AnimatedCounter(
     }
 }
 
+@kotlin.OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FormSection(
     trackingNumber: String,
@@ -2701,7 +2772,7 @@ fun FormSection(
         } ?: false
     }
 
-    // منطق جدید برای فعال/غیرفعال کردن دکمه ثبت
+    // منطق فعال/غیرفعال کردن دکمه ثبت
     val isSubmitEnabled = remember(
         trackingNumber,
         numberOfPeople,
@@ -2722,122 +2793,332 @@ fun FormSection(
         }
     }
 
-    Column(
+    // انیمیشن برای نمایش پیام‌ها
+    val messageAlpha = remember { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(isDuplicate) {
+        if (isDuplicate) {
+            messageAlpha.snapTo(0f)
+            messageAlpha.animateTo(1f, animationSpec = tween(300))
+        }
+    }
+
+    Surface3(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        tonalElevation = 0.5.dp,
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
         ) {
-            OutlinedTextField(
-                value = trackingNumber,
-                onValueChange = onTrackingNumberChange,
-                label = { Text("شماره حواله") },
-                modifier = Modifier.weight(1f),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                isError = isDuplicate && !canEditWeights
-            )
-            OutlinedTextField(
-                value = numberOfPeople,
-                onValueChange = onNumberOfPeopleChange,
-                label = { Text("تعداد نفرات") },
-                modifier = Modifier.weight(1f),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                enabled = !isDuplicate
-            )
-        }
-
-        // نمایش پیام متناسب با وضعیت
-        if (isDuplicate) {
-            Text(
-                text = when {
-                    currentCargo?.status == "خروج" -> "این حواله قبلاً خروج شده و قابل تغییر نیست!"
-                    currentCargo?.confirm == "در انتظار تائید" -> "این حواله هنوز تائید نشده و قابل ویرایش نیست!"
-                    canEditWeights -> "امکان ثبت کسری/اضافه بار یا خروج حواله وجود دارد!"
-                    else -> "این حواله هنوز تائید نشده و قابل ویرایش نیست!"
-                },
-                color = when {
-                    currentCargo?.status == "خروج" -> MaterialTheme.colors.error
-                    currentCargo?.confirm == "در انتظار تائید" -> MaterialTheme.colors.error
-                    canEditWeights -> MaterialTheme.colors.primary
-                    else -> MaterialTheme.colors.error
-                },
-                style = MaterialTheme.typography.caption,
-                modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedTextField(
-                value = shortageWeight,
-                onValueChange = onShortageWeightChange,
-                label = { Text("کسری بار") },
-                modifier = Modifier.weight(1f),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                enabled = canEditWeights
-            )
-            OutlinedTextField(
-                value = excessWeight,
-                onValueChange = onExcessWeightChange,
-                label = { Text("اضافه بار") },
-                modifier = Modifier.weight(1f),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                enabled = canEditWeights
-            )
-        }
-
-        if (scaleReceiptNumber.isNotBlank()) {
-            Text(
-                text = "شماره قبض باسکول: $scaleReceiptNumber",
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button(
-                onClick = onSubmit,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    backgroundColor = Green800,
-                    contentColor = Color.White
-                ),
-                enabled = isSubmitEnabled
+            // عنوان فرم مینیمال
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Receipt, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = if (isDuplicate) "ثبت تغییرات حواله" else "ثبت حواله جدید"
+                Icon(
+                    imageVector = Icons.Default.Receipt,
+                    contentDescription = null,
+                    tint = MaterialTheme3.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text3(
+                    text = if (isDuplicate) "ویرایش حواله" else "ثبت حواله جدید",
+                    style = MaterialTheme3.typography.titleSmall,
+                    color = MaterialTheme3.colorScheme.primary
                 )
             }
 
-            Button(
-                onClick = onScanBarcode,
-                modifier = Modifier.weight(1f),
-                enabled = isCargoConfirmed && !isCargoExited,
-                colors = ButtonDefaults.buttonColors(
-                    backgroundColor = Color.Red,
-                    contentColor = Color.White
-                )
+            // بخش اول: شماره حواله و تعداد نفرات
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Default.QrCodeScanner, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("خروج حواله")
+                androidx.compose.material3.OutlinedTextField(
+                    value = trackingNumber,
+                    onValueChange = onTrackingNumberChange,
+                    label = { Text3("شماره حواله") },
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    isError = isDuplicate && !canEditWeights,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.ConfirmationNumber,
+                            contentDescription = null,
+                            tint = MaterialTheme3.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = TextFieldDefaults3.outlinedTextFieldColors(
+                        focusedBorderColor = MaterialTheme3.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme3.colorScheme.outline,
+                        focusedLabelColor = MaterialTheme3.colorScheme.primary,
+                        cursorColor = MaterialTheme3.colorScheme.primary
+                    )
+                )
+                
+                androidx.compose.material3.OutlinedTextField(
+                    value = numberOfPeople,
+                    onValueChange = onNumberOfPeopleChange,
+                    label = { Text3("تعداد نفرات") },
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    enabled = !isDuplicate,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = if (!isDuplicate) 
+                                MaterialTheme3.colorScheme.onSurfaceVariant
+                            else 
+                                MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = TextFieldDefaults3.outlinedTextFieldColors(
+                        focusedBorderColor = MaterialTheme3.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme3.colorScheme.outline,
+                        focusedLabelColor = MaterialTheme3.colorScheme.primary,
+                        cursorColor = MaterialTheme3.colorScheme.primary,
+                        disabledBorderColor = MaterialTheme3.colorScheme.outline.copy(alpha = 0.5f),
+                        disabledLabelColor = MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        disabledTextColor = MaterialTheme3.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                )
+            }
+
+            // نمایش پیام وضعیت با انیمیشن
+            AnimatedVisibility(
+                visible = isDuplicate,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                val (messageText, messageColor) = when {
+                    currentCargo?.status == "خروج" -> 
+                        Pair("این حواله قبلاً خروج شده و قابل تغییر نیست!", androidx.compose.material3.MaterialTheme.colorScheme.error)
+                    currentCargo?.confirm == "در انتظار تائید" -> 
+                        Pair("این حواله هنوز تائید نشده و قابل ویرایش نیست!", androidx.compose.material3.MaterialTheme.colorScheme.error)
+                    canEditWeights -> 
+                        Pair("امکان ثبت کسری/اضافه بار یا خروج حواله وجود دارد!", androidx.compose.material3.MaterialTheme.colorScheme.primary)
+                    else -> 
+                        Pair("این حواله هنوز تائید نشده و قابل ویرایش نیست!", androidx.compose.material3.MaterialTheme.colorScheme.error)
+                }
+                
+                androidx.compose.material3.Surface(
+                    color = messageColor.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                        .alpha(messageAlpha.value)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (messageColor == androidx.compose.material3.MaterialTheme.colorScheme.error) 
+                                Icons.Default.Info else Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = messageColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        androidx.compose.material3.Text(
+                            text = messageText,
+                            style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+                            color = messageColor
+                        )
+                    }
+                }
+            }
+
+            // بخش دوم: کسری بار و اضافه بار
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // کسری بار
+                androidx.compose.material3.OutlinedTextField(
+                    value = shortageWeight,
+                    onValueChange = onShortageWeightChange,
+                    label = { androidx.compose.material3.Text("کسری بار") },
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    enabled = canEditWeights,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.TrendingDown,
+                            contentDescription = null,
+                            tint = if (canEditWeights) 
+                                androidx.compose.material3.MaterialTheme.colorScheme.error
+                            else 
+                                androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = androidx.compose.material3.TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        unfocusedBorderColor = if (shortageWeight.isNotBlank() && shortageWeight != "0")
+                            androidx.compose.material3.MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                        else
+                            androidx.compose.material3.MaterialTheme.colorScheme.outline,
+                        focusedLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        cursorColor = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        disabledBorderColor = androidx.compose.material3.MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        disabledLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        disabledTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                )
+                
+                // اضافه بار
+                androidx.compose.material3.OutlinedTextField(
+                    value = excessWeight,
+                    onValueChange = onExcessWeightChange,
+                    label = { androidx.compose.material3.Text("اضافه بار") },
+                    modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    enabled = canEditWeights,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                            contentDescription = null,
+                            tint = if (canEditWeights) 
+                                androidx.compose.material3.MaterialTheme.colorScheme.tertiary
+                            else 
+                                androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = androidx.compose.material3.TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = androidx.compose.material3.MaterialTheme.colorScheme.tertiary,
+                        unfocusedBorderColor = if (excessWeight.isNotBlank() && excessWeight != "0")
+                            androidx.compose.material3.MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
+                        else
+                            androidx.compose.material3.MaterialTheme.colorScheme.outline,
+                        focusedLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.tertiary,
+                        cursorColor = androidx.compose.material3.MaterialTheme.colorScheme.tertiary,
+                        disabledBorderColor = androidx.compose.material3.MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        disabledLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        disabledTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                )
+            }
+
+            // نمایش شماره قبض باسکول
+            AnimatedVisibility(
+                visible = scaleReceiptNumber.isNotBlank(),
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                androidx.compose.material3.Surface(
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Receipt,
+                            contentDescription = null,
+                            tint = androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        androidx.compose.material3.Text(
+                            text = "قبض باسکول: $scaleReceiptNumber",
+                            style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // دکمه‌های ثبت و اسکن
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // دکمه ثبت
+                androidx.compose.material3.Button(
+                    onClick = onSubmit,
+                    modifier = Modifier.weight(1f),
+                    enabled = isSubmitEnabled,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                        contentColor = androidx.compose.material3.MaterialTheme.colorScheme.onPrimary,
+                        disabledContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant,
+                        disabledContentColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isDuplicate) Icons.Default.Save else Icons.Default.AddCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        androidx.compose.material3.Text(
+                            text = if (isDuplicate) "ثبت تغییرات" else "ثبت حواله",
+                            style = androidx.compose.material3.MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+                
+                // دکمه اسکن بارکد / خروج حواله
+                androidx.compose.material3.Button(
+                    onClick = onScanBarcode,
+                    modifier = Modifier.weight(1f),
+                    enabled = isCargoConfirmed && !isCargoExited,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        contentColor = androidx.compose.material3.MaterialTheme.colorScheme.onError,
+                        disabledContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant,
+                        disabledContentColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.QrCodeScanner, 
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        androidx.compose.material3.Text(
+                            text = "خروج حواله",
+                            style = androidx.compose.material3.MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
             }
         }
     }
@@ -3009,71 +3290,173 @@ fun SearchSection(
     onExitDateQueryChange: (String) -> Unit,
     onSearch: () -> Unit
 ) {
-    Column(
+    Surface3(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        tonalElevation = 0.5.dp,
+        shape = RoundedCornerShape(8.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                "جستجو براساس:",
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.87f)
-            )
-            Switch(
-                checked = searchMode == SearchMode.EXIT_DATE,
-                onCheckedChange = { onSearchModeChange(if (it) SearchMode.EXIT_DATE else SearchMode.TRACKING_NUMBER) },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colors.primary,
-                    checkedTrackColor = MaterialTheme.colors.primary.copy(alpha = 0.5f),
-                    uncheckedThumbColor = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
-                    uncheckedTrackColor = MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
-                )
-            )
-            Text(
-                if (searchMode == SearchMode.TRACKING_NUMBER) "شماره حواله" else "تاریخ خروج",
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.87f)
-            )
-        }
-
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(12.dp)
         ) {
-            OutlinedTextField(
-                value = if (searchMode == SearchMode.TRACKING_NUMBER) searchQuery else exitDateQuery,
-                onValueChange = if (searchMode == SearchMode.TRACKING_NUMBER) onSearchQueryChange else onExitDateQueryChange,
-                label = {
-                    Text(
-                        if (searchMode == SearchMode.TRACKING_NUMBER) "شماره حواله" else "تاریخ خروج",
-                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
-                    )
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 8.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = if (searchMode == SearchMode.TRACKING_NUMBER) KeyboardType.Number else KeyboardType.Text),
-                singleLine = true,
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    textColor = MaterialTheme.colors.onSurface,
-                    cursorColor = MaterialTheme.colors.primary,
-                    focusedBorderColor = MaterialTheme.colors.primary,
-                    unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f)
-                )
-            )
-            Button(
-                onClick = onSearch,
-                colors = ButtonDefaults.buttonColors(
-                    backgroundColor = MaterialTheme.colors.primary,
-                    contentColor = MaterialTheme.colors.onPrimary
-                )
+            // هدر جستجو
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("جستجو")
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme3.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+                
+                Text3(
+                    text = "جستجو",
+                    style = MaterialTheme3.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme3.colorScheme.onSurface
+                )
+                
+                Spacer(modifier = Modifier.weight(1f))
+                
+                // تغییر حالت جستجو
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text3(
+                        text = "شماره",
+                        style = MaterialTheme3.typography.labelSmall,
+                        color = if (searchMode == SearchMode.TRACKING_NUMBER) 
+                            MaterialTheme3.colorScheme.primary 
+                        else 
+                            MaterialTheme3.colorScheme.onSurfaceVariant
+                    )
+                    
+                    androidx.compose.material3.Switch(
+                        checked = searchMode == SearchMode.EXIT_DATE,
+                        onCheckedChange = { 
+                            onSearchModeChange(if (it) SearchMode.EXIT_DATE else SearchMode.TRACKING_NUMBER) 
+                        },
+                        modifier = Modifier.scale(0.8f),
+                        colors = androidx.compose.material3.SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme3.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme3.colorScheme.primaryContainer,
+                            uncheckedThumbColor = MaterialTheme3.colorScheme.outline,
+                            uncheckedTrackColor = MaterialTheme3.colorScheme.surfaceVariant
+                        )
+                    )
+                    
+                    Text3(
+                        text = "تاریخ",
+                        style = MaterialTheme3.typography.labelSmall,
+                        color = if (searchMode == SearchMode.EXIT_DATE) 
+                            MaterialTheme3.colorScheme.primary 
+                        else 
+                            MaterialTheme3.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // فیلد جستجو
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                androidx.compose.material3.OutlinedTextField(
+                    value = if (searchMode == SearchMode.TRACKING_NUMBER) searchQuery else exitDateQuery,
+                    onValueChange = if (searchMode == SearchMode.TRACKING_NUMBER) onSearchQueryChange else onExitDateQueryChange,
+                    modifier = Modifier.weight(1f),
+                    placeholder = {
+                        Text3(
+                            text = if (searchMode == SearchMode.TRACKING_NUMBER) "شماره حواله..." else "تاریخ خروج...",
+                            style = MaterialTheme3.typography.bodySmall,
+                            color = MaterialTheme3.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = if (searchMode == SearchMode.TRACKING_NUMBER) 
+                                Icons.Default.Numbers 
+                            else 
+                                Icons.Default.DateRange,
+                            contentDescription = null,
+                            tint = MaterialTheme3.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        val currentValue = if (searchMode == SearchMode.TRACKING_NUMBER) searchQuery else exitDateQuery
+                        if (currentValue.isNotEmpty()) {
+                            androidx.compose.material3.IconButton(
+                                onClick = { 
+                                    if (searchMode == SearchMode.TRACKING_NUMBER) {
+                                        onSearchQueryChange("")
+                                    } else {
+                                        onExitDateQueryChange("")
+                                    }
+                                },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "پاک کردن",
+                                    tint = MaterialTheme3.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = if (searchMode == SearchMode.TRACKING_NUMBER) 
+                            KeyboardType.Number 
+                        else 
+                            KeyboardType.Text
+                    ),
+                    singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme3.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme3.colorScheme.outline.copy(alpha = 0.3f),
+                        cursorColor = MaterialTheme3.colorScheme.primary
+                    ),
+                    textStyle = MaterialTheme3.typography.bodyMedium
+                )
+                
+                // دکمه جستجو مینیمال
+                Surface3(
+                    modifier = Modifier
+                        .clickable { onSearch() },
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme3.colorScheme.primary,
+                    tonalElevation = 1.dp
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "جستجو",
+                            tint = MaterialTheme3.colorScheme.onPrimary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text3(
+                            text = "جستجو",
+                            style = MaterialTheme3.typography.labelMedium,
+                            color = MaterialTheme3.colorScheme.onPrimary
+                        )
+                    }
+                }
             }
         }
     }
@@ -3105,54 +3488,58 @@ fun ShipInfoSection(
         }
     }
 
-    Card(
+    Surface3(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 8.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
             .animateContentSize(),
-        shape = RoundedCornerShape(8.dp),
-        backgroundColor = MaterialTheme.colors.surface
+        tonalElevation = 2.dp,
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            HeaderInfo(
+            // هدر مینیمال
+            MinimalHeader(
                 onToggle = onToggleVisibility,
                 loadedPercentage = loadedPercentage.toFloat(),
                 shipName = shipInfo.shipName,
                 quotaNumber = shipInfo.loadingQuotaNumber,
                 loadableTonnage = loadableTonnage,
                 loadableTrucks18Wheeler = loadableTrucks18Wheeler,
-                loadableTrucks10Wheeler = loadableTrucks10Wheeler
+                loadableTrucks10Wheeler = loadableTrucks10Wheeler,
+                isExpanded = isInfoVisible
             )
 
+            // محتوای قابل گسترش
             AnimatedVisibility(
                 visible = isInfoVisible,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    QuickStatsRow(shipInfo)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    DetailedInfoGrid(shipInfo)
-                }
+                ExpandedContent(
+                    shipInfo = shipInfo
+                )
             }
         }
     }
 }
 
 @Composable
-private fun HeaderInfo(
+private fun MinimalHeader(
     onToggle: () -> Unit,
     loadedPercentage: Float,
     shipName: String,
     quotaNumber: String,
     loadableTonnage: String,
     loadableTrucks18Wheeler: String,
-    loadableTrucks10Wheeler: String
+    loadableTrucks10Wheeler: String,
+    isExpanded: Boolean
 ) {
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        animationSpec = tween(300),
+        label = "rotation"
+    )
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -3161,245 +3548,328 @@ private fun HeaderInfo(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.DirectionsBoat,
-                contentDescription = null,
-                tint = MaterialTheme.colors.primary,
-                modifier = Modifier.size(24.dp)
-            )
+            // آیکون کشتی
+            Surface3(
+                shape = CircleShape,
+                color = MaterialTheme3.colorScheme.primaryContainer,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DirectionsBoat,
+                        contentDescription = null,
+                        tint = MaterialTheme3.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
+            // اطلاعات اصلی
             Column(modifier = Modifier.weight(1f)) {
-                Text(
+                Text3(
                     text = shipName,
-                    style = MaterialTheme.typography.h6,
+                    style = MaterialTheme3.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme3.colorScheme.onSurface
                 )
-                Text(
+                Text3(
                     text = "کوتاژ: $quotaNumber",
-                    style = MaterialTheme.typography.body2,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                    style = MaterialTheme3.typography.bodySmall,
+                    color = MaterialTheme3.colorScheme.onSurfaceVariant
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // نمایش اطلاعات تناژ و ماشین‌های قابل بارگیری
+            // اطلاعات تناژ و کامیون‌ها
             Column(
-                horizontalAlignment = Alignment.End
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.padding(end = 8.dp)
             ) {
+                // تناژ مجاز
                 val tonnageValue = loadableTonnage.replace(",", "").toDoubleOrNull() ?: 0.0
-                val (textColor, statusText) = if (tonnageValue < 0) {
-                    MaterialTheme.colors.error to "بیش از حد"
-                } else {
-                    MaterialTheme.colors.primary to "تناژ مجاز"
-                }
+                val tonnageColor = if (tonnageValue < 0) MaterialTheme3.colorScheme.error else MaterialTheme3.colorScheme.primary
                 
-                // نمایش تناژ قابل بارگیری
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.End
+                Column(
+                    horizontalAlignment = Alignment.End
                 ) {
-                    Text(
-                        text = statusText,
-                        style = MaterialTheme.typography.caption,
-                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(end = 4.dp)
+                    Text3(
+                        text = "تناژ مجاز",
+                        style = MaterialTheme3.typography.labelSmall,
+                        color = MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
-                    Text(
+                    Text3(
                         text = loadableTonnage,
-                        style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Bold),
-                        color = textColor
+                        style = MaterialTheme3.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = tonnageColor
                     )
                 }
                 
-                // نمایش تعداد ماشین‌های قابل بارگیری
+                // کامیون‌ها
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // محاسبه مقادیر برای هر دو نوع کامیون
-                    val truck10Value = loadableTrucks10Wheeler.toIntOrNull() ?: 0
-                    val truck18Value = loadableTrucks18Wheeler.toIntOrNull() ?: 0
-                    
-                    // انیمیشن چشمک‌زن برای هر دو نوع کامیون در صورت صفر بودن
-                    val infiniteTransition = rememberInfiniteTransition(label = "blinkingAnimation")
-                    val truck10Alpha by infiniteTransition.animateFloat(
-                        initialValue = if (truck10Value <= 0) 0.3f else 1f,
-                        targetValue = if (truck10Value <= 0) 1f else 1f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(600, easing = LinearEasing),
-                            repeatMode = RepeatMode.Reverse
-                        ),
-                        label = "truck10Alpha"
+                    CompactTruckInfo("18چ", loadableTrucks18Wheeler)
+                    Text3(
+                        text = "|",
+                        style = MaterialTheme3.typography.labelSmall,
+                        color = MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
-                    
-                    val truck18Alpha by infiniteTransition.animateFloat(
-                        initialValue = if (truck18Value <= 0) 0.3f else 1f,
-                        targetValue = if (truck18Value <= 0) 1f else 1f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(600, easing = LinearEasing),
-                            repeatMode = RepeatMode.Reverse
-                        ),
-                        label = "truck18Alpha"
-                    )
-                    
-                    // تنظیم رنگ‌ها بر اساس مقادیر
-                    val truck10Color = if (truck10Value <= 0) MaterialTheme.colors.error else MaterialTheme.colors.primary
-                    val truck18Color = if (truck18Value <= 0) MaterialTheme.colors.error else MaterialTheme.colors.primary
-                    
-                    // نمایش اطلاعات 10 چرخ
-                    Icon(
-                        imageVector = Icons.Default.LocalShipping,
-                        contentDescription = null,
-                        tint = truck10Color,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .alpha(truck10Alpha)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    Text(
-                        text = "$loadableTrucks10Wheeler = 10چرخ",
-                        style = MaterialTheme.typography.subtitle2,
-                        fontWeight = FontWeight.Bold,
-                        color = truck10Color,
-                        modifier = Modifier.alpha(truck10Alpha)
-                    )
-                    Spacer(modifier = Modifier.width(14.dp))
-                    
-                    // نمایش اطلاعات 18 چرخ
-                    Icon(
-                        imageVector = Icons.Default.LocalShipping,
-                        contentDescription = null,
-                        tint = truck18Color,
-                        modifier = Modifier
-                            .size(16.dp)
-                            .alpha(truck18Alpha)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    
-                    Text(
-                        text = "$loadableTrucks18Wheeler = 18چرخ",
-                        style = MaterialTheme.typography.subtitle2,
-                        fontWeight = FontWeight.Bold,
-                        color = truck18Color,
-                        modifier = Modifier.alpha(truck18Alpha)
-                    )
+                    CompactTruckInfo("10چ", loadableTrucks10Wheeler)
                 }
             }
+
+            // آیکون گسترش
+            Icon(
+                imageVector = Icons.Default.ExpandMore,
+                contentDescription = if (isExpanded) "بستن" else "باز کردن",
+                tint = MaterialTheme3.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(20.dp)
+                    .rotate(rotationAngle)
+            )
         }
 
+        // نوار پیشرفت مینیمال
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(4.dp)
-                .background(MaterialTheme.colors.primary.copy(alpha = 0.2f))
+                .height(2.dp)
+                .background(MaterialTheme3.colorScheme.surfaceVariant)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(loadedPercentage / 100f)
-                    .height(4.dp)
-                    .background(MaterialTheme.colors.primary)
+                    .height(2.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme3.colorScheme.primary,
+                                MaterialTheme3.colorScheme.secondary
+                            )
+                        )
+                    )
             )
         }
     }
 }
 
 @Composable
-private fun QuickStatsRow(shipInfo: ShipInfo) {
+private fun CompactTruckInfo(
+    type: String,
+    count: String
+) {
+    val countValue = count.toIntOrNull() ?: 0
+    val color = if (countValue <= 0) MaterialTheme3.colorScheme.error else MaterialTheme3.colorScheme.primary
+    
+    // انیمیشن چشمک زن برای مقادیر 0
+    val alpha by if (countValue <= 0) {
+        val infiniteTransition = rememberInfiniteTransition(label = "blinking")
+        infiniteTransition.animateFloat(
+            initialValue = 0.4f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(600, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "blinking_alpha"
+        )
+    } else {
+        remember { androidx.compose.runtime.mutableFloatStateOf(1f) }
+    }
+    
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = Modifier.alpha(alpha)
     ) {
-        StatItem(
-            icon = Icons.Default.Scale,
-            value = formatNumber(shipInfo.cargoWeight),
-            label = "تناژ کل",
-            color = MaterialTheme.colors.primary
+        Icon(
+            imageVector = Icons.Default.LocalShipping,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(12.dp)
         )
-        StatItem(
-            icon = Icons.Default.BarChart,
-            value = formatNumber(shipInfo.remainingWeight),
-            label = "باقیمانده",
-            color = MaterialTheme.colors.secondary
-        )
-        StatItem(
-            icon = Icons.Default.LocalShipping,
-            value = toEnglishNumbers(shipInfo.totalServices),
-            label = "حواله‌ها",
-            color = MaterialTheme.colors.primaryVariant
+        Text3(
+            text = "$type = $count",
+            style = MaterialTheme3.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = color
         )
     }
 }
 
 @Composable
-private fun StatItem(
+private fun ExpandedContent(
+    shipInfo: ShipInfo
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        // آمار سریع در دو ستون
+        QuickStatsGrid(shipInfo)
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // اطلاعات تفصیلی در دو ستون
+        DetailedInfoGrid(shipInfo)
+    }
+}
+
+@Composable
+private fun QuickStatsGrid(shipInfo: ShipInfo) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        StatCard(
+            icon = Icons.Default.Scale,
+            value = formatNumber(shipInfo.cargoWeight),
+            label = "تناژ کل",
+            color = MaterialTheme3.colorScheme.primary,
+            modifier = Modifier.weight(1f)
+        )
+        StatCard(
+            icon = Icons.Default.BarChart,
+            value = formatNumber(shipInfo.remainingWeight),
+            label = "باقیمانده",
+            color = MaterialTheme3.colorScheme.secondary,
+            modifier = Modifier.weight(1f)
+        )
+    }
+    
+    Spacer(modifier = Modifier.height(8.dp))
+    
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        StatCard(
+            icon = Icons.Default.LocalShipping,
+            value = toEnglishNumbers(shipInfo.totalServices),
+            label = "حواله‌ها",
+            color = MaterialTheme3.colorScheme.tertiary,
+            modifier = Modifier.weight(1f)
+        )
+        StatCard(
+            icon = Icons.Default.AddChart,
+            value = formatNumber(shipInfo.totalNetWeight),
+            label = "بارگیری شده",
+            color = MaterialTheme3.colorScheme.primary,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun StatCard(
     icon: ImageVector,
     value: String,
     label: String,
-    color: Color
+    color: Color,
+    modifier: Modifier = Modifier
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(8.dp)
+    Surface3(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = color.copy(alpha = 0.08f),
+        tonalElevation = 0.5.dp
     ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .background(color.copy(alpha = 0.1f), CircleShape),
-            contentAlignment = Alignment.Center
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(8.dp)
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = color,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(18.dp)
             )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text3(
+                    text = value,
+                    style = MaterialTheme3.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme3.colorScheme.onSurface
+                )
+                Text3(
+                    text = label,
+                    style = MaterialTheme3.typography.bodySmall,
+                    color = MaterialTheme3.colorScheme.onSurfaceVariant
+                )
+            }
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.subtitle2,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colors.onSurface
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.caption,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
-        )
     }
 }
 
+
+
 @Composable
 private fun DetailedInfoGrid(shipInfo: ShipInfo) {
-    Surface(
+    Surface3(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colors.surface,
-        elevation = 1.dp
+        color = MaterialTheme3.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+        tonalElevation = 0.5.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(12.dp)
         ) {
-            DetailInfoItem("انبار", shipInfo.loadingWarehouse, Icons.Default.Warehouse)
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
-            DetailInfoItem("نوع کالا", shipInfo.cargoType, Icons.Default.Category)
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
-            DetailInfoItem("شرکت باربری", shipInfo.shippingCompany, Icons.Default.Business)
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
-            DetailInfoItem("بارگیری شده", formatNumber(shipInfo.totalNetWeight), Icons.Default.AddChart)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme3.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text3(
+                    text = "اطلاعات تفصیلی",
+                    style = MaterialTheme3.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme3.colorScheme.onSurface
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // دو ستونه
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    DetailInfoItem("انبار", shipInfo.loadingWarehouse, Icons.Default.Warehouse)
+                    DetailInfoItem("نوع کالا", shipInfo.cargoType, Icons.Default.Category)
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    DetailInfoItem("شرکت باربری", shipInfo.shippingCompany, Icons.Default.Business)
+                    DetailInfoItem("کوتاژ", shipInfo.loadingQuotaNumber, Icons.Default.ConfirmationNumber)
+                }
+            }
         }
     }
 }
@@ -3410,31 +3880,34 @@ private fun DetailInfoItem(
     value: String,
     icon: ImageVector
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colors.primary.copy(alpha = 0.7f),
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.body2,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f),
-            modifier = Modifier.weight(1f)
-        )
-        Text(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme3.colorScheme.primary,
+                modifier = Modifier.size(16.dp)
+            )
+            Text3(
+                text = label,
+                style = MaterialTheme3.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme3.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.height(3.dp))
+        Text3(
             text = value,
-            style = MaterialTheme.typography.body1,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colors.onSurface
+            style = MaterialTheme3.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme3.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -3473,109 +3946,242 @@ fun CargoInfoRow(
             }
         } else ""
     }
-    val borderColor = if (info.status == "خروج") Color.Green else Color.Red
-    val iconTint = if (info.confirm == "تائید شده") Color.Green else Color.Red
 
-    Card(
+    Surface3(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp, horizontal = 4.dp)
-            .border(1.dp, borderColor, shape = RoundedCornerShape(8.dp))
             .clickable { onRowClick(info) },
-        shape = RoundedCornerShape(8.dp)
+        tonalElevation = 0.5.dp,
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme3.colorScheme.surface,
+        border = BorderStroke(
+            width = 1.dp,
+            color = when {
+                info.status == "خروج" -> MaterialTheme3.colorScheme.primary
+                info.confirm == "تائید شده" -> MaterialTheme3.colorScheme.secondary
+                else -> MaterialTheme3.colorScheme.error
+            }.copy(alpha = 0.3f)
+        )
     ) {
         Column(
             modifier = Modifier
-                .padding(8.dp)
+                .padding(10.dp)
                 .fillMaxWidth()
         ) {
+            // ردیف اول: شماره حواله، وضعیت تائید و تاریخ خروج
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                InfoBox(
-                    icon = Icons.Default.LocalShipping,
-                    label = "حواله",
-                    value = info.trackingNumber,
-                    Modifier.weight(1f)
-                )
-                InfoBox(
-                    icon = Icons.Default.Event,
-                    label = "تاریخ خروج",
-                    value = info.exitDate,
-                    Modifier.weight(1f)
-                )
-                Icon(
-                    imageVector = if (info.confirm == "تائید شده") Icons.Default.Check else Icons.Default.Close,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(16.dp)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // آیکون وضعیت
+                    Surface3(
+                        shape = CircleShape,
+                        color = when {
+                            info.status == "خروج" -> MaterialTheme3.colorScheme.primaryContainer
+                            info.confirm == "تائید شده" -> MaterialTheme3.colorScheme.secondaryContainer
+                            else -> MaterialTheme3.colorScheme.errorContainer
+                        },
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                imageVector = when {
+                                    info.status == "خروج" -> Icons.Default.LocalShipping
+                                    info.confirm == "تائید شده" -> Icons.Default.Check
+                                    else -> Icons.Default.Schedule
+                                },
+                                contentDescription = null,
+                                tint = when {
+                                    info.status == "خروج" -> MaterialTheme3.colorScheme.onPrimaryContainer
+                                    info.confirm == "تائید شده" -> MaterialTheme3.colorScheme.onSecondaryContainer
+                                    else -> MaterialTheme3.colorScheme.onErrorContainer
+                                },
+                                modifier = Modifier.size(10.dp)
+                            )
+                        }
+                    }
+                    
+                    // شماره حواله
+                    Text3(
+                        text = info.trackingNumber,
+                        style = MaterialTheme3.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme3.colorScheme.onSurface
+                    )
+                    
+                    // تعداد نفرات
+                    Surface3(
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme3.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme3.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(10.dp)
+                            )
+                            Text3(
+                                text = info.numberOfPeople,
+                                style = MaterialTheme3.typography.labelSmall,
+                                color = MaterialTheme3.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // تاریخ خروج
+                if (info.exitDate != null) {
+                    Text3(
+                        text = info.exitDate,
+                        style = MaterialTheme3.typography.labelSmall,
+                        color = MaterialTheme3.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
-            Spacer(modifier = Modifier.height(4.dp))
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // ردیف دوم: ساعت ورود، ساعت خروج و وزن خالص
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = "وزن خالص: $formattedNetWeight",
-                    style = MaterialTheme.typography.body2,
-                    fontWeight = FontWeight.Bold
-                )
-                Row {
-                    if (formattedShortageWeight.isNotBlank()) {
-                        Text(
-                            text = "کسری: $formattedShortageWeight",
-                            style = MaterialTheme.typography.body2,
-                            color = MaterialTheme.colors.secondary
+                // ساعت ورود و خروج
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // ساعت ورود
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AddChart,
+                            contentDescription = null,
+                            tint = MaterialTheme3.colorScheme.secondary,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Text3(
+                            text = info.entryTime,
+                            style = MaterialTheme3.typography.labelSmall,
+                            color = MaterialTheme3.colorScheme.onSurfaceVariant
                         )
                     }
-                    if (formattedExcessWeight.isNotBlank()) {
-                        if (formattedShortageWeight.isNotBlank()) {
-                            Spacer(modifier = Modifier.width(8.dp))
+                    
+                    // ساعت خروج
+                    if (info.exitTime != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocalShipping,
+                                contentDescription = null,
+                                tint = MaterialTheme3.colorScheme.primary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text3(
+                                text = info.exitTime,
+                                style = MaterialTheme3.typography.labelSmall,
+                                color = MaterialTheme3.colorScheme.onSurfaceVariant
+                            )
                         }
-                        Text(
-                            text = "اضافه: $formattedExcessWeight",
-                            style = MaterialTheme.typography.body2,
-                            color = MaterialTheme.colors.error
-                        )
+                    }
+                }
+
+                // وزن خالص
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Scale,
+                        contentDescription = null,
+                        tint = MaterialTheme3.colorScheme.primary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text3(
+                        text = formattedNetWeight,
+                        style = MaterialTheme3.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme3.colorScheme.onSurface
+                    )
+                }
+            }
+
+            // ردیف سوم: کسری و اضافه بار (در صورت وجود)
+            if (formattedShortageWeight.isNotBlank() || formattedExcessWeight.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (formattedShortageWeight.isNotBlank()) {
+                        Surface3(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme3.colorScheme.errorContainer.copy(alpha = 0.3f)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.TrendingDown,
+                                    contentDescription = null,
+                                    tint = MaterialTheme3.colorScheme.error,
+                                    modifier = Modifier.size(10.dp)
+                                )
+                                Text3(
+                                    text = formattedShortageWeight,
+                                    style = MaterialTheme3.typography.labelSmall,
+                                    color = MaterialTheme3.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                    if (formattedExcessWeight.isNotBlank()) {
+                        Surface3(
+                            shape = RoundedCornerShape(4.dp),
+                            color = MaterialTheme3.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                                    contentDescription = null,
+                                    tint = MaterialTheme3.colorScheme.tertiary,
+                                    modifier = Modifier.size(10.dp)
+                                )
+                                Text3(
+                                    text = formattedExcessWeight,
+                                    style = MaterialTheme3.typography.labelSmall,
+                                    color = MaterialTheme3.colorScheme.tertiary
+                                )
+                            }
+                        }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun InfoBox(
-    icon: ImageVector,
-    label: String,
-    value: String?,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colors.onSurface,
-            modifier = Modifier.size(16.dp)
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Column {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.caption,
-                color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-            )
-            Text(
-                text = value ?: "-",
-                style = MaterialTheme.typography.body2
-            )
         }
     }
 }
@@ -4322,165 +4928,6 @@ private fun MinimalFooter(onDelete: () -> Unit, onDismiss: () -> Unit) {
                 Text("حذف حواله")
             }
         }
-    }
-}
-
-@Composable
-private fun LoadingDialog(
-    progress: Float,
-    onDismiss: () -> Unit
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "loading_rotation")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "loading_rotation"
-    )
-
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(
-            durationMillis = 500,
-            easing = FastOutSlowInEasing
-        ),
-        label = "progress_animation"
-    )
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            dismissOnBackPress = false,
-            dismissOnClickOutside = false,
-            usePlatformDefaultWidth = false
-        )
-    ) {
-        Surface(
-            modifier = Modifier
-                .padding(24.dp)
-                .clip(RoundedCornerShape(16.dp)),
-            elevation = 8.dp,
-            color = MaterialTheme.colors.surface
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(280.dp)
-                    .padding(24.dp)
-            ) {
-                // Background Progress
-                CircularProgressIndicator(
-                    modifier = Modifier.size(200.dp),
-                    progress = 1f,
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f),
-                    strokeWidth = 12.dp
-                )
-
-                // Animated Progress
-                CircularProgressIndicator(
-                    modifier = Modifier.size(200.dp),
-                    progress = animatedProgress,
-                    color = MaterialTheme.colors.primary,
-                    strokeWidth = 12.dp
-                )
-
-                // Rotating Loading Indicator
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .size(180.dp)
-                        .rotate(rotation),
-                    color = MaterialTheme.colors.secondary.copy(alpha = 0.2f),
-                    strokeWidth = 3.dp
-                )
-
-                // Center Content
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    // Progress Percentage
-                    Text(
-                        text = "${(animatedProgress * 100).toInt()}%",
-                        style = MaterialTheme.typography.h4,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colors.primary
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Loading Status Chip
-                    Surface(
-                        color = MaterialTheme.colors.secondary.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.padding(horizontal = 4.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "در حال بارگذاری",
-                                style = MaterialTheme.typography.body1,
-                                color = MaterialTheme.colors.onSurface
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            LoadingDots()
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LoadingDots() {
-    val dotSize = 5.dp
-    val delayUnit = 200
-
-    @Composable
-    fun Dot(delay: Int) {
-        var visible by remember { mutableStateOf(true) }
-
-        LaunchedEffect(Unit) {
-            while (true) {
-                delay(delay.toLong())
-                visible = !visible
-                delay(1000)
-            }
-        }
-
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(
-                animationSpec = tween(200, easing = LinearEasing)
-            ),
-            exit = fadeOut(
-                animationSpec = tween(200, easing = LinearEasing)
-            )
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(dotSize)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colors.onSurface.copy(alpha = 0.6f))
-            )
-        }
-    }
-
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 2.dp)
-    ) {
-        Dot(0)
-        Dot(delayUnit)
-        Dot(delayUnit * 2)
     }
 }
 

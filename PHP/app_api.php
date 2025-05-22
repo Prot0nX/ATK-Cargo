@@ -830,16 +830,16 @@
 			if ($row = $result->fetch_assoc()) {
 				$loadedTonnage = floatval($row['loadedTonnage']);
 				$totalTonnage = floatval($row['totalTonnage']);
-				$remainingTonnage = max(0, $totalTonnage - $loadedTonnage);
+				$remainingTonnage = $totalTonnage - $loadedTonnage; // حذف max(0, ...) برای اجازه مقادیر منفی
 				$percentage = $row['percentage'] !== null ? floatval($row['percentage']) : null;
 				$isPercentageRestricted = (bool)$row['is_enabled'];
 				
 				// محاسبه تناژ قابل بارگیری
 				$loadableTonnage = calculateLoadableTonnage($remainingTonnage, $totalTonnage, $percentage, $isPercentageRestricted);
 				
-				// محاسبه تعداد کامیون‌های 18 چرخ و 10 چرخ
+				// محاسبه تعداد کامیون‌های 18 چرخ و 10 چرخ - با در نظر گرفتن مقادیر منفی
 				$trucks18Wheeler = $loadableTonnage > 0 ? floor($loadableTonnage / 25000) : 0;
-				$trucks10Wheeler = $loadableTonnage > 0 && $loadableTonnage < 50000 ? floor($loadableTonnage / 15000) : 0;
+				$trucks10Wheeler = $loadableTonnage > 0 ? floor($loadableTonnage / 15000) : 0;
 				
 				return [
 					'success' => true,
