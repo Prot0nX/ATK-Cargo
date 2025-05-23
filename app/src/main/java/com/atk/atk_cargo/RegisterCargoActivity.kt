@@ -6,7 +6,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
@@ -52,6 +51,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -112,6 +113,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.DirectionsBoat
@@ -126,6 +128,7 @@ import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Refresh
@@ -195,35 +198,43 @@ import com.atk.atk_cargo.api.CargoViewModel
 import com.atk.atk_cargo.api.CargoViewModelFactory
 import com.atk.atk_cargo.api.InitialInfo
 import com.atk.atk_cargo.api.MessageType
+import com.atk.atk_cargo.api.OpenRouterClient
 import com.atk.atk_cargo.api.ReportsRepository
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.ShipInfo
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.WarningStatus
+import com.atk.atk_cargo.ml.LocalOCRProcessor
 import com.atk.atk_cargo.ui.theme.Theme2
 import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import com.patrykandpatrick.vico.core.extension.sumOf
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.coroutines.resume
-import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import androidx.compose.material3.MaterialTheme as MaterialTheme3
 import androidx.compose.material3.Surface as Surface3
 import androidx.compose.material3.Text as Text3
 import androidx.compose.material3.TextFieldDefaults as TextFieldDefaults3
+
+enum class ScanMode {
+    LOCAL_AI_SCAN,  // مدل لوکال TensorFlow Lite
+    AI_SCAN,        // OpenRouter (قدیمی)
+    ML_KIT_SCAN     // ML Kit ساده
+}
 
 class RegisterCargoActivity : ComponentActivity() {
     private lateinit var viewModel: CargoViewModel
@@ -327,7 +338,6 @@ class RegisterCargoActivity : ComponentActivity() {
     }
 }
 
-// تشخیص متن از تصویر با استفاده از ML Kit
 private suspend fun recognizeTextFromImage(image: InputImage): String = suspendCancellableCoroutine { continuation ->
     val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     
@@ -352,7 +362,7 @@ fun RegisterCargoScreen(
     showAnimatedMessage: Boolean,
     messageType: MessageType,
     viewModel: CargoViewModel,
-    activity: RegisterCargoActivity
+    activity: RegisterCargoActivity,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -585,7 +595,7 @@ fun RegisterCargoScreen(
                 Surface3(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .padding(horizontal = 12.dp, vertical = 2.dp)
                         .clickable(enabled = !isRefreshing) {
                             if (!isRefreshing) {
                                 isRefreshing = true
@@ -619,7 +629,6 @@ fun RegisterCargoScreen(
                                 .rotate(rotation.value),
                             tint = MaterialTheme3.colorScheme.onPrimaryContainer
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
                         Text3(
                             text = if (isRefreshing) "در حال بروزرسانی..." else "بروزرسانی",
                             style = MaterialTheme3.typography.labelMedium,
@@ -718,8 +727,8 @@ fun RegisterCargoScreen(
 
     Box(
                     modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 24.dp)
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
         snackbarMessage?.let { message ->
             StatusSnackbar(
@@ -766,7 +775,7 @@ fun RegisterCargoScreen(
 fun QuotaWarningDialog(
     warning: WarningStatus,
     onDismiss: () -> Unit,
-    viewModel: CargoViewModel
+    viewModel: CargoViewModel,
 ) {
     val coroutineScope = rememberCoroutineScope()
 
@@ -969,7 +978,9 @@ fun QuotaWarningDialog(
                                             .size(4.dp)
                                             .clip(CircleShape)
                                             .background(
-                                                if (warning.percentage >= i * 25) Color.White.copy(alpha = 0.9f)
+                                                if (warning.percentage >= i * 25) Color.White.copy(
+                                                    alpha = 0.9f
+                                                )
                                                 else Color.Transparent
                                             )
                                     )
@@ -1047,11 +1058,12 @@ fun QuotaWarningDialog(
 fun NetWeightDialog(
     scaleReceiptNumber: String,
     onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var netWeight by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
     var showCamera by remember { mutableStateOf(true) } // تغییر به true برای باز شدن خودکار دوربین
+    var scanMode by remember { mutableStateOf(ScanMode.LOCAL_AI_SCAN) } // پیش‌فرض: اسکن سریع
     val focusManager = LocalFocusManager.current
     var recognizedWeight by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
@@ -1067,27 +1079,6 @@ fun NetWeightDialog(
             shrinkTowards = Alignment.Center,
             animationSpec = tween(300, easing = EaseInBack)
         ) + fadeOut(animationSpec = tween(300))
-    }
-
-    // انیمیشن برای دکمه دوربین
-    val cameraButtonScale = remember { androidx.compose.animation.core.Animatable(1f) }
-
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-        // انیمیشن پالس برای دکمه دوربین
-        launch {
-            while (true) {
-                cameraButtonScale.animateTo(
-                    targetValue = 1.1f,
-                    animationSpec = tween(500, easing = FastOutSlowInEasing)
-                )
-                cameraButtonScale.animateTo(
-                    targetValue = 1f,
-                    animationSpec = tween(500, easing = FastOutSlowInEasing)
-                )
-                delay(1500)
-            }
-        }
     }
 
     fun validateAndConfirm() {
@@ -1111,7 +1102,7 @@ fun NetWeightDialog(
         )
     ) {
         BoxWithConstraints {
-            val dialogWidth = maxWidth * 0.9f
+            val dialogWidth = maxWidth * 0.92f
             AnimatedVisibility(
                 visible = true,
                 enter = dialogEnterTransition,
@@ -1120,23 +1111,23 @@ fun NetWeightDialog(
                 Surface(
                     modifier = Modifier
                         .width(dialogWidth)
-                        .clip(RoundedCornerShape(24.dp))
+                        .clip(RoundedCornerShape(20.dp))
                         .align(Alignment.Center),
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(20.dp),
                     color = Color.White,
                     elevation = 8.dp
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(24.dp),
+                            .padding(20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // هدر با آیکون و عنوان
+                        // هدر مینیمال
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 16.dp)
+                                .padding(bottom = 12.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1145,7 +1136,7 @@ fun NetWeightDialog(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(48.dp)
+                                        .size(40.dp)
                                         .background(
                                             MaterialTheme.colors.primary.copy(alpha = 0.1f),
                                             CircleShape
@@ -1156,15 +1147,15 @@ fun NetWeightDialog(
                                         imageVector = Icons.Default.Scale,
                                         contentDescription = null,
                                         tint = MaterialTheme.colors.primary,
-                                        modifier = Modifier.size(28.dp)
+                                        modifier = Modifier.size(24.dp)
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
 
                                 Text(
                                     "ثبت وزن خالص",
-                                    style = MaterialTheme.typography.h5,
+                                    style = MaterialTheme.typography.h6,
                                     color = MaterialTheme.colors.primary,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -1180,43 +1171,45 @@ fun NetWeightDialog(
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "بستن",
-                                    tint = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                                    tint = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
 
-                        // نمایش شماره قبض باسکول در کارت
+                        // نمایش شماره قبض باسکول در کارت مینیمال
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            shape = RoundedCornerShape(12.dp),
+                                .padding(vertical = 6.dp),
+                            shape = RoundedCornerShape(10.dp),
                             color = MaterialTheme.colors.primary.copy(alpha = 0.05f),
                             border = BorderStroke(1.dp, MaterialTheme.colors.primary.copy(alpha = 0.2f))
                         ) {
                             Row(
-                                modifier = Modifier.padding(16.dp),
+                                modifier = Modifier.padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Receipt,
                                     contentDescription = null,
                                     tint = MaterialTheme.colors.primary,
-                                    modifier = Modifier.size(24.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
 
-                                Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
 
                                 Column {
                                     Text(
                                         "شماره قبض باسکول",
                                         style = MaterialTheme.typography.caption,
-                                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f)
+                                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                                        fontSize = 11.sp
                                     )
 
                                     Text(
                                         scaleReceiptNumber,
-                                        style = MaterialTheme.typography.subtitle1,
+                                        style = MaterialTheme.typography.subtitle2,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colors.onSurface
                                     )
@@ -1224,9 +1217,9 @@ fun NetWeightDialog(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                        // فیلد ورودی وزن خالص
+                        // فیلد ورودی وزن خالص مینیمال
                         OutlinedTextField(
                             value = netWeight,
                             onValueChange = {
@@ -1245,7 +1238,8 @@ fun NetWeightDialog(
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.Scale,
-                                    contentDescription = null
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -1260,7 +1254,7 @@ fun NetWeightDialog(
                             textStyle = LocalTextStyle.current.copy(
                                 textAlign = TextAlign.Center,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp
+                                fontSize = 16.sp
                             ),
                             singleLine = true,
                             colors = TextFieldDefaults.outlinedTextFieldColors(
@@ -1275,88 +1269,128 @@ fun NetWeightDialog(
                                 "وزن خالص باید بین 5000 تا 45000 کیلوگرم باشد",
                                 color = MaterialTheme.colors.error,
                                 style = MaterialTheme.typography.caption,
-                                textAlign = TextAlign.Justify,
+                                textAlign = TextAlign.Center,
+                                fontSize = 11.sp,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 4.dp)
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                        // دکمه‌های عملیات
-                        Row(
+                        // بخش انتخاب حالت اسکن مینیمال
+                        Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colors.surface,
+                            elevation = 2.dp
                         ) {
-                            // دکمه دوربین برای اسکن وزن
-                            Button(
-                                onClick = { showCamera = true },
-                                modifier = Modifier
-                                    .weight(0.4f)
-                                    .height(48.dp)
-                                    .scale(cameraButtonScale.value),
-                                colors = ButtonDefaults.buttonColors(
-                                    backgroundColor = MaterialTheme.colors.secondary
-                                ),
-                                shape = RoundedCornerShape(12.dp),
-                                elevation = ButtonDefaults.elevation(
-                                    defaultElevation = 4.dp,
-                                    pressedElevation = 8.dp
-                                )
+                            Column(
+                                modifier = Modifier.padding(12.dp)
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
+                                    modifier = Modifier.padding(bottom = 8.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Camera,
-                                        contentDescription = "اسکن وزن",
-                                        tint = Color.White
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colors.primary,
+                                        modifier = Modifier.size(18.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        "اسکن",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
+                                        "انتخاب حالت اسکن",
+                                        style = MaterialTheme.typography.subtitle2,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colors.onSurface
                                     )
                                 }
-                            }
 
-                            // دکمه تایید
-                            Button(
-                                onClick = {
-                                    focusManager.clearFocus()
-                                    validateAndConfirm()
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    backgroundColor = MaterialTheme.colors.primary
-                                ),
-                                modifier = Modifier
-                                    .weight(0.6f)
-                                    .height(48.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                elevation = ButtonDefaults.elevation(
-                                    defaultElevation = 4.dp,
-                                    pressedElevation = 8.dp
+                                // استفاده از کامپوننت ScanModeSelector جدید
+                                ScanModeSelector(
+                                    currentMode = scanMode,
+                                    onModeChanged = { selectedMode ->
+                                        scanMode = selectedMode
+                                    }
                                 )
-                            ) {
-                                Text(
-                                    "ثبت وزن خالص",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                // دکمه شروع اسکن
+                                Button(
+                                    onClick = { 
+                                        showCamera = true 
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(42.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        backgroundColor = MaterialTheme.colors.primary
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    elevation = ButtonDefaults.elevation(
+                                        defaultElevation = 3.dp,
+                                        pressedElevation = 6.dp
+                                    )
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Camera,
+                                            contentDescription = "شروع اسکن",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            "شروع اسکن قبض باسکول",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp
+                                        )
+                                    }
+                                }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                        // راهنمای کاربر
+                        // دکمه تایید مینیمال
+                        Button(
+                            onClick = {
+                                focusManager.clearFocus()
+                                validateAndConfirm()
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = MaterialTheme.colors.primary
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(42.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            elevation = ButtonDefaults.elevation(
+                                defaultElevation = 3.dp,
+                                pressedElevation = 6.dp
+                            )
+                        ) {
+                            Text(
+                                "ثبت وزن خالص",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        // راهنمای کاربر مینیمال
                         Text(
-                            "برای اسکن خودکار وزن از دکمه اسکن استفاده کنید",
+                            "برای اسکن خودکار وزن، یکی از حالت‌های اسکن را انتخاب کنید",
                             style = MaterialTheme.typography.caption,
                             color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
-                            textAlign = TextAlign.Justify,
+                            textAlign = TextAlign.Center,
+                            fontSize = 10.sp,
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
@@ -1365,11 +1399,13 @@ fun NetWeightDialog(
         }
     }
 
+    // باز شدن خودکار دوربین در حالت اسکن سریع
     if (showCamera) {
         Dialog(onDismissRequest = {
             showCamera = false
         }) {
-            CameraPreview(
+            EnhancedCameraPreview(
+                selectedScanMode = scanMode,
                 onImageCaptured = { image, detectedWeight ->
                     showCamera = false
                     coroutineScope.launch {
@@ -1542,7 +1578,6 @@ fun preprocessImage(imageProxy: ImageProxy): InputImage {
     return InputImage.fromBitmap(outputBitmap, imageProxy.imageInfo.rotationDegrees)
 }
 
-// آستانه‌گذاری سازگار برای جداسازی متن از پس‌زمینه
 private fun adaptiveThresholding(pixels: IntArray, width: Int, height: Int) {
     val windowSize = 15  // اندازه پنجره برای محاسبه آستانه محلی
     val c = 10          // ثابت کاهش از میانگین محلی
@@ -1575,7 +1610,6 @@ private fun adaptiveThresholding(pixels: IntArray, width: Int, height: Int) {
     }
 }
 
-// فیلتر میانه برای حذف نویز نمک و فلفل
 private fun medianFilter(pixels: IntArray, width: Int, height: Int) {
     val output = pixels.copyOf()
     val windowSize = 3
@@ -1604,7 +1638,6 @@ private fun medianFilter(pixels: IntArray, width: Int, height: Int) {
     }
 }
 
-// تقویت لبه‌ها برای بهبود تشخیص متن و اعداد
 private fun enhanceEdges(pixels: IntArray, width: Int, height: Int) {
     val output = pixels.copyOf()
     val sobelX = arrayOf(
@@ -1653,240 +1686,10 @@ private fun enhanceEdges(pixels: IntArray, width: Int, height: Int) {
 }
 
 @Composable
-fun CameraPreview(
-    onImageCaptured: (ImageProxy, String?) -> Unit,
-    onError: (ImageCaptureException) -> Unit
-) {
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val context = LocalContext.current
-    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
-    var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
-    var preview: Preview? by remember { mutableStateOf(null) }
-    var camera: Camera? by remember { mutableStateOf(null) }
-    val lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
-    val executor = ContextCompat.getMainExecutor(context)
-
-    // Weight detection state
-    var detectedNumber by remember { mutableStateOf<String?>(null) }
-    var detectedNumbers by remember { mutableStateOf<List<String>>(emptyList()) }
-    var isValidWeight by remember { mutableStateOf(false) }
-    var processingActive by remember { mutableStateOf(true) }
-
-    // Camera status
-    var hasTorch by remember { mutableStateOf(false) }
-    var isTorchOn by remember { mutableStateOf(false) }
-
-    // Scanner guide parameters
-    val guideColor = Color.Green.copy(alpha = 0.7f)
-    val guideThickness = 2.dp
-    val scanAreaSize = 0.7f // 70% of screen width
-
-    Box(modifier = Modifier
-        .fillMaxWidth()
-        .aspectRatio(1f)
-    ) {
-        AndroidView(
-            factory = { ctx ->
-                val previewView = PreviewView(ctx).apply {
-                    this.scaleType = PreviewView.ScaleType.FILL_CENTER
-                    layoutParams = ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                }
-
-                cameraProviderFuture.addListener({
-                    val cameraProvider = cameraProviderFuture.get()
-                    preview = Preview.Builder()
-                        .setTargetAspectRatio(AspectRatio.RATIO_4_3)
-                        .build()
-                        .also {
-                            it.setSurfaceProvider(previewView.surfaceProvider)
-                        }
-
-                    val cameraSelector = CameraSelector.Builder()
-                        .requireLensFacing(lensFacing)
-                        .build()
-
-                    imageCapture = ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                        .setTargetAspectRatio(AspectRatio.RATIO_4_3)
-                        .build()
-
-                    val imageAnalysis = ImageAnalysis.Builder()
-                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .setTargetAspectRatio(AspectRatio.RATIO_4_3)
-                        .build()
-                        .apply {
-                            setAnalyzer(executor, EnhancedNumberAnalyzer { extractedNumbers, bestEstimate ->
-                                if (processingActive) {
-                                    detectedNumbers = extractedNumbers
-
-                                    // Using smarter algorithm to select best number
-                                    if (bestEstimate.isNotEmpty()) {
-                                        detectedNumber = bestEstimate
-                                        val weight = bestEstimate.toDoubleOrNull()
-                                        isValidWeight = weight != null && weight in 5000.0..45000.0
-                                    }
-                                }
-                            })
-                        }
-
-                    try {
-                        cameraProvider.unbindAll()
-                        camera = cameraProvider.bindToLifecycle(
-                            lifecycleOwner,
-                            cameraSelector,
-                            preview,
-                            imageCapture,
-                            imageAnalysis
-                        )
-
-                        // Check flashlight support
-                        hasTorch = camera?.cameraInfo?.hasFlashUnit() ?: false
-                    } catch (exc: Exception) {
-                        exc.printStackTrace()
-                    }
-                }, executor)
-                previewView
-            },
-            modifier = Modifier.matchParentSize()
-        )
-
-        // Scanner guide overlay
-        ScannerGuideOverlay(
-            scanAreaSize = scanAreaSize,
-            guideColor = guideColor,
-            guideThickness = guideThickness.value
-        )
-
-        // Display detected weight
-        if (detectedNumber != null) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 16.dp)
-                    .background(
-                        color = if (isValidWeight)
-                            Color(0xFF4CAF50).copy(alpha = 0.7f)
-                        else
-                            Color(0xFFE57373).copy(alpha = 0.7f),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .padding(8.dp)
-            ) {
-                Text(
-                    text = "وزن تشخیص داده شده:",
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-
-                Text(
-                    text = "${NumberFormat.getNumberInstance(Locale("en", "US")).format(detectedNumber?.toDoubleOrNull() ?: 0)} کیلوگرم",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                if (!isValidWeight && detectedNumber?.isNotEmpty() == true) {
-                    Text(
-                        text = "وزن باید بین 5,000 تا 45,000 کیلوگرم باشد",
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Normal
-                    )
-                }
-            }
-        }
-
-        // Display guidance message
-        if (detectedNumber == null) {
-            Text(
-                text = "قبض باسکول را در کادر قرار دهید",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 16.dp)
-                    .background(
-                        color = Color.Black.copy(alpha = 0.6f),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .padding(8.dp)
-            )
-        }
-
-        // Capture button
-        IconButton(
-            onClick = {
-                processingActive = false
-                imageCapture?.takePicture(
-                    executor,
-                    object : ImageCapture.OnImageCapturedCallback() {
-                        override fun onCaptureSuccess(image: ImageProxy) {
-                            // Pass the current detected weight along with the image
-                            onImageCaptured(image, detectedNumber)
-                        }
-
-                        override fun onError(exception: ImageCaptureException) {
-                            onError(exception)
-                        }
-                    }
-                )
-            },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 16.dp)
-                .size(64.dp)
-                .background(Color.White.copy(alpha = 0.7f), CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Camera,
-                contentDescription = "گرفتن عکس",
-                tint = Color.Black,
-                modifier = Modifier.size(32.dp)
-            )
-        }
-
-        // Flashlight button
-        if (hasTorch) {
-            IconButton(
-                onClick = {
-                    isTorchOn = !isTorchOn
-                    camera?.cameraControl?.enableTorch(isTorchOn)
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 16.dp)
-                    .size(48.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-            ) {
-                Icon(
-                    imageVector = if (isTorchOn) Icons.Default.FlashOff else Icons.Default.FlashOn,
-                    contentDescription = "چراغ قوه",
-                    tint = if (isTorchOn) Color.Yellow else Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-    }
-
-    // Release resources when leaving the screen
-    DisposableEffect(lifecycleOwner) {
-        onDispose {
-            processingActive = false
-        }
-    }
-}
-
-@Composable
 fun ScannerGuideOverlay(
     scanAreaSize: Float = 0.7f,
     guideColor: Color = Color.Green.copy(alpha = 0.7f),
-    guideThickness: Float = 2f
+    guideThickness: Float = 2f,
 ) {
     Canvas(modifier = Modifier.fillMaxSize()) {
         val width = size.width
@@ -1976,511 +1779,166 @@ fun ScannerGuideOverlay(
 }
 
 class EnhancedNumberAnalyzer(
-    private val onNumbersDetected: (List<String>, String) -> Unit
+    private val context: Context,
+    private val onNumbersDetected: (List<String>, String) -> Unit,
+    private val onAnalysisStateChanged: ((Boolean) -> Unit)? = null,
+    private val scanMode: ScanMode = ScanMode.LOCAL_AI_SCAN // پیش‌فرض: مدل لوکال
 ) : ImageAnalysis.Analyzer {
+    
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-    private val previousNumbers = mutableListOf<DetectedNumber>()
-    private val maxHistorySize = 15
     private var lastDetectionTime = 0L
-    private val detectionCooldown = 100L // میلی‌ثانیه
-
-    private data class DetectedNumber(
-        val value: String,
-        val confidence: Float,
-        val timestamp: Long
-    )
+    private val detectionCooldown = 1500L // کاهش زمان انتظار برای سرعت بیشتر
+    private var isProcessingWithAI = false
+    private val openRouterTimeout = 5000L
+    
+    // پردازشگر لوکال OCR
+    private val localOCRProcessor by lazy { LocalOCRProcessor(context) }
 
     @OptIn(ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
         val currentTime = System.currentTimeMillis()
-        if (currentTime - lastDetectionTime < detectionCooldown) {
+        
+        if (isProcessingWithAI || currentTime - lastDetectionTime < detectionCooldown) {
             imageProxy.close()
             return
         }
+        
         lastDetectionTime = currentTime
-
-        val preprocessedImage = enhancedPreprocessImage(imageProxy)
-        textRecognizer.process(preprocessedImage)
-            .addOnSuccessListener { visionText ->
-                val text = visionText.text
-                val detectedNumbers = extractNetWeights(text)
-
-                // محاسبه اطمینان برای هر عدد تشخیص داده شده
-                val numbersWithConfidence = detectedNumbers.map { number ->
-                    val confidence = calculateConfidence(number, visionText)
-                    DetectedNumber(number, confidence, currentTime)
+        isProcessingWithAI = true
+        onAnalysisStateChanged?.invoke(true)
+        
+        val bitmap = imageProxy.toBitmap()
+        
+        when (scanMode) {
+            ScanMode.LOCAL_AI_SCAN -> {
+                // استفاده از مدل لوکال TensorFlow Lite
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val result = localOCRProcessor.processImage(bitmap)
+                        
+                        withContext(Dispatchers.Main) {
+                            isProcessingWithAI = false
+                            onAnalysisStateChanged?.invoke(false)
+                            
+                            if (!result.isNullOrBlank() && isValidWeight(result)) {
+                                onNumbersDetected(listOf(result), result)
+                            } else {
+                                // fallback به ML Kit در صورت عدم موفقیت
+                                fallbackToMLKit(imageProxy)
+                                return@withContext
+                            }
+                            imageProxy.close()
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            fallbackToMLKit(imageProxy)
+                        }
+                    }
                 }
+            }
+            ScanMode.AI_SCAN -> {
+                // استفاده از OpenRouter (کد قبلی)
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val aiResult = withContext(Dispatchers.IO) {
+                            kotlinx.coroutines.withTimeoutOrNull(openRouterTimeout) {
+                                OpenRouterClient.analyzeWeightFromImage(bitmap)
+                            }
+                        }
+                        
+                        withContext(Dispatchers.Main) {
+                            if (!aiResult.isNullOrBlank() && aiResult != "0" && isValidWeight(aiResult)) {
+                                val aiNumbers = listOf(aiResult)
+                                isProcessingWithAI = false
+                                onAnalysisStateChanged?.invoke(false)
+                                onNumbersDetected(aiNumbers, aiResult)
+                                imageProxy.close()
+                            } else {
+                                fallbackToMLKit(imageProxy)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            fallbackToMLKit(imageProxy)
+                        }
+                    }
+                }
+            }
+            ScanMode.ML_KIT_SCAN -> {
+                fallbackToMLKit(imageProxy)
+            }
+        }
+    }
 
-                // به‌روزرسانی تاریخچه با حفظ اعداد معتبر
-                updateHistory(numbersWithConfidence)
-
-                // انتخاب بهترین تخمین با استفاده از الگوریتم وزن‌دار
-                val bestEstimate = selectBestEstimate()
-
-                onNumbersDetected(detectedNumbers, bestEstimate)
+    @OptIn(ExperimentalGetImage::class)
+    private fun fallbackToMLKit(imageProxy: ImageProxy) {
+        val inputImage = InputImage.fromMediaImage(
+            imageProxy.image!!,
+            imageProxy.imageInfo.rotationDegrees
+        )
+        
+        textRecognizer.process(inputImage)
+            .addOnSuccessListener { visionText ->
+                val detectedText = visionText.text
+                val numbers = extractNetWeights(detectedText)
+                
+                isProcessingWithAI = false
+                onAnalysisStateChanged?.invoke(false)
+                
+                if (numbers.isNotEmpty()) {
+                    val bestNumber = numbers.first()
+                    onNumbersDetected(numbers, bestNumber)
+                } else {
+                    onNumbersDetected(emptyList(), "")
+                }
+            }
+            .addOnFailureListener { e ->
+                isProcessingWithAI = false
+                onAnalysisStateChanged?.invoke(false)
+                onNumbersDetected(emptyList(), "")
+                e.printStackTrace()
             }
             .addOnCompleteListener {
                 imageProxy.close()
             }
     }
-
-    private fun calculateConfidence(number: String, visionText: Text): Float {
-        var confidence = 0f
-        
-        // بررسی وضوح و کیفیت متن
-        for (block in visionText.textBlocks) {
-            for (line in block.lines) {
-                if (line.text.contains(number)) {
-                    // محاسبه امتیاز بر اساس وضوح متن
-                    confidence = maxOf(confidence, calculateTextQuality(line))
-                }
-            }
-        }
-
-        // اعتبارسنجی محدوده عدد
-        val numValue = number.toDoubleOrNull() ?: return 0f
-        confidence *= when (numValue) {
-            in 10000.0..30000.0 -> 1.2f  // محدوده معمول
-            in 5000.0..45000.0 -> 1.0f   // محدوده قابل قبول
-            else -> 0.5f                          // خارج از محدوده معمول
-        }
-
-        return confidence.coerceIn(0f, 1f)
+    
+    private fun isValidWeight(weight: String): Boolean {
+        val weightValue = weight.toDoubleOrNull()
+        return weightValue != null && weightValue in 5000.0..45000.0
     }
-
-    private fun calculateTextQuality(line: Text.Line): Float {
-        var quality = 0f
-        
-        // بررسی زاویه متن
-        quality += if (abs(line.angle) < 5) 0.3f else 0.1f
-        
-        // بررسی اندازه متن
-        val height = line.boundingBox?.height() ?: 0
-        quality += when {
-            height > 40 -> 0.4f  // متن بزرگ و واضح
-            height > 20 -> 0.3f  // متن متوسط
-            else -> 0.1f         // متن کوچک
-        }
-
-        // بررسی کنتراست محلی
-        quality += 0.3f // مقدار پایه برای کنتراست
-        
-        return quality
-    }
-
-    private fun updateHistory(newNumbers: List<DetectedNumber>) {
-        // حذف اعداد قدیمی
-        val currentTime = System.currentTimeMillis()
-        previousNumbers.removeAll { currentTime - it.timestamp > 2000 } // حذف اعداد قدیمی‌تر از 2 ثانیه
-
-        // اضافه کردن اعداد جدید
-        previousNumbers.addAll(newNumbers)
-
-        // محدود کردن اندازه تاریخچه
-        while (previousNumbers.size > maxHistorySize) {
-            previousNumbers.removeAt(0)
-        }
-    }
-
-    private fun selectBestEstimate(): String {
-        if (previousNumbers.isEmpty()) return ""
-
-        // گروه‌بندی اعداد و محاسبه امتیاز کل هر عدد با الگوریتم بهبود یافته
-        val scores = previousNumbers
-            .groupBy { it.value }
-            .mapValues { (number, detections) ->
-                // 1. امتیاز فراوانی - وزن اعداد پرتکرار بیشتر است
-                val frequencyScore = detections.size.toFloat() / previousNumbers.size
-                
-                // 2. امتیاز اطمینان - بیشترین اطمینان بین همه تشخیص‌ها
-                val confidenceScore = detections.maxOf { it.confidence }
-                
-                // 3. امتیاز زمانی - اعداد جدیدتر ارزش بیشتری دارند
-                val timeScore = detections.maxOf { 1.0f - (System.currentTimeMillis() - it.timestamp) / 2000.0f }
-                
-                // 4. امتیاز محدوده - اعداد در محدوده معقول امتیاز بیشتری می‌گیرند
-                val numberValue = number.toIntOrNull() ?: 0
-                val rangeScore = when {
-                    numberValue in 10000..30000 -> 1.0f  // محدوده بسیار محتمل
-                    numberValue in 5000..45000 -> 0.7f   // محدوده محتمل
-                    numberValue in 4000..50000 -> 0.3f   // محدوده ممکن
-                    else -> 0.0f                       // خارج از محدوده
-                }
-
-                // 5. امتیاز پایداری - اعدادی که در زمان‌های مختلف تشخیص داده شده‌اند
-                val timeSpan = if (detections.size > 1) {
-                    detections.maxOf { it.timestamp } - detections.minOf { it.timestamp }
-                } else 0L
-                val stabilityScore = (timeSpan / 500.0f).coerceIn(0.0f, 1.0f)
-                
-                // ترکیب امتیازها با وزن‌های بهینه
-                (frequencyScore * 0.3f +        // 30% وزن برای فراوانی
-                 confidenceScore * 0.3f +       // 30% وزن برای اطمینان الگوریتم تشخیص
-                 timeScore * 0.1f +             // 10% وزن برای تازگی
-                 rangeScore * 0.2f +            // 20% وزن برای محدوده معقول
-                 stabilityScore * 0.1f)         // 10% وزن برای پایداری
-            }
-
-        // انتخاب عدد با بالاترین امتیاز (یا خالی اگر هیچ عددی نباشد)
-        return scores.maxByOrNull { it.value }?.key ?: ""
-    }
-
-    private fun enhancedPreprocessImage(imageProxy: ImageProxy): InputImage {
-        val bitmap = imageProxy.toBitmap()
-        val width = bitmap.width
-        val height = bitmap.height
-
-        val outputBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(outputBitmap)
-
-        // بهبود ماتریکس رنگ با تنظیمات بهتر برای تشخیص متن روی قبض باسکول
-        val colorMatrix = ColorMatrix(floatArrayOf(
-            3.0f, 0f, 0f, 0f, -80f,  // افزایش کنتراست قرمز
-            0f, 3.0f, 0f, 0f, -80f,  // افزایش کنتراست سبز
-            0f, 0f, 3.0f, 0f, -80f,  // افزایش کنتراست آبی
-            0f, 0f, 0f, 1.5f, 0f     // افزایش شفافیت
-        ))
-
-        val paint = Paint().apply {
-            colorFilter = ColorMatrixColorFilter(colorMatrix)
-            // استفاده از فیلتر شارپنس با پارامتر بهینه‌تر
-            maskFilter = BlurMaskFilter(0.8f, BlurMaskFilter.Blur.NORMAL)
-        }
-
-        // اعمال فیلترهای پیشرفته
-        canvas.drawBitmap(bitmap, 0f, 0f, paint)
-        
-        // تبدیل به سیاه و سفید با آستانه تطبیقی
-        val pixels = IntArray(width * height)
-        outputBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-        
-        // بهبود اندازه بلوک برای تشخیص دقیق‌تر آستانه محلی
-        val blockSize = 12 // کاهش اندازه بلوک برای دقت بالاتر
-        
-        // استفاده از تکنیک نیک تصویر (Nick thresholding)
-        // این تکنیک برای تشخیص متون کم‌کنتراست بهتر عمل می‌کند
-        for (y in 0 until height step blockSize) {
-            for (x in 0 until width step blockSize) {
-                val actualBlockWidth = minOf(blockSize, width - x)
-                val actualBlockHeight = minOf(blockSize, height - y)
-                
-                // استفاده از آستانه‌گذاری پیشرفته Nick
-                val (mean, stdDev) = calculateNickParameters(
-                    pixels, x, y, 
-                    actualBlockWidth, 
-                    actualBlockHeight, 
-                    width
-                )
-                
-                // فرمول بهبود یافته برای آستانه Nick
-                val k = -0.2f  // پارامتر قابل تنظیم برای حساسیت آستانه
-                val nickThreshold = mean + k * stdDev
-                
-                applyThresholdWithDenoising(
-                    pixels, x, y, 
-                    actualBlockWidth, 
-                    actualBlockHeight, 
-                    width, nickThreshold.toInt()
-                )
-            }
-        }
-        
-        // فیلتر نویز پس از آستانه‌گذاری
-        applyMedianFilter(pixels, width, height)
-        
-        outputBitmap.setPixels(pixels, 0, width, 0, 0, width, height)
-
-        return InputImage.fromBitmap(outputBitmap, imageProxy.imageInfo.rotationDegrees)
-    }
-
-        private fun calculateNickParameters(
-            pixels: IntArray, 
-            startX: Int, 
-            startY: Int, 
-            blockWidth: Int, 
-            blockHeight: Int, 
-            stride: Int
-        ): Pair<Float, Float> {
-            var sum = 0
-            var sumSquared = 0
-            var count = 0
-            
-            for (y in startY until startY + blockHeight) {
-                for (x in startX until startX + blockWidth) {
-                    if (y < pixels.size / stride && x < stride) {
-                        val idx = y * stride + x
-                        if (idx < pixels.size) {
-                            val pixel = pixels[idx]
-                            val gray = ((pixel shr 16 and 0xFF) + (pixel shr 8 and 0xFF) + (pixel and 0xFF)) / 3
-                            sum += gray
-                            sumSquared += gray * gray
-                            count++
-                        }
-                    }
-                }
-            }
-            
-            if (count == 0) return Pair(128f, 0f)
-            
-            val mean = sum.toFloat() / count
-            val variance = (sumSquared.toFloat() / count) - (mean * mean)
-            val stdDev = kotlin.math.sqrt(kotlin.math.max(0f, variance))
-            
-            return Pair(mean, stdDev)
-        }
-
-    private fun applyThresholdWithDenoising(
-        pixels: IntArray, 
-        startX: Int, 
-        startY: Int, 
-        blockWidth: Int, 
-        blockHeight: Int, 
-        stride: Int, 
-        threshold: Int
-    ) {
-        // مقادیر رنگ برای سیاه و سفید
-        val black = -16777216 // 0xFF000000
-        val white = -1        // 0xFFFFFFFF
-        
-        for (y in startY until startY + blockHeight) {
-            for (x in startX until startX + blockWidth) {
-                if (y < pixels.size / stride && x < stride) {
-                    val idx = y * stride + x
-                    if (idx < pixels.size) {
-                        val pixel = pixels[idx]
-                        val gray = ((pixel shr 16 and 0xFF) + (pixel shr 8 and 0xFF) + (pixel and 0xFF)) / 3
-                        
-                        // آستانه‌گذاری با وزن بیشتر به سمت سفید کردن پیکسل‌ها
-                        pixels[idx] = if (gray > threshold - 5) white else black
-                    }
-                }
-            }
-        }
-    }
-
-    private fun applyMedianFilter(pixels: IntArray, width: Int, height: Int) {
-        // فیلتر میانه برای حذف نویز نقطه‌ای (salt and pepper noise)
-        val tempPixels = pixels.copyOf()
-        val windowSize = 3 // اندازه پنجره فیلتر میانه
-        val halfWindow = windowSize / 2
-        
-        for (y in halfWindow until height - halfWindow) {
-            for (x in halfWindow until width - halfWindow) {
-                val idx = y * width + x
-                
-                // اگر پیکسل مرکزی سیاه است و اکثر همسایه‌ها سفید هستند، به سفید تبدیل می‌شود و برعکس
-                val isBlack = tempPixels[idx] == -16777216
-                var blackCount = 0
-                var whiteCount = 0
-                
-                // بررسی همسایه‌ها
-                for (dy in -halfWindow..halfWindow) {
-                    for (dx in -halfWindow..halfWindow) {
-                        val neighborIdx = (y + dy) * width + (x + dx)
-                        if (neighborIdx >= 0 && neighborIdx < tempPixels.size) {
-                            if (tempPixels[neighborIdx] == -16777216) { // سیاه
-                                blackCount++
-                            } else { // سفید
-                                whiteCount++
-                            }
-                        }
-                    }
-                }
-                
-                // تصمیم‌گیری برای تغییر رنگ پیکسل
-                val totalPixels = windowSize * windowSize
-                if (isBlack && blackCount < totalPixels / 3) {
-                    pixels[idx] = -1 // تبدیل به سفید
-                } else if (!isBlack && whiteCount < totalPixels / 3) {
-                    pixels[idx] = -16777216 // تبدیل به سیاه
-                }
-            }
-        }
-    }
-
+    
     private fun extractNetWeights(text: String): List<String> {
-        // پیش‌پردازش متن برای بهبود تشخیص
-        val normalizedText = normalizeText(text)
+        val result = mutableListOf<String>()
         
-        // مجموعه الگوهای بهینه شده با اولویت‌بندی
         val patterns = listOf(
-            // کلاس 1: الگوهای دقیق وزن خالص با عبارات کلیدی (بالاترین اولویت)
-            Regex("(?:وزن\\s*خالص|NET\\s*WEIGHT)[\\s:=]*([\\d,.\\s]{5,12})(?:\\s*(?:کیلو(?:گرم)?|KG|kg))?", RegexOption.IGNORE_CASE),
-            
-            // کلاس 2: الگوهای مخصوص قبض باسکول ایرانی با فرمت استاندارد
-            Regex("(?:وزن[^\\n:]*خالص:?[\\s:=]*|خالص|NET)\\s*([\\d,.\\s]{5,12})(?:\\s*(?:کیلو|KG|kg))?", RegexOption.IGNORE_CASE),
-            Regex("(?:وزن(?:\\s+با)?(?:\\s+بار)?:?[\\s:=]*)([\\d,.\\s]{5,12})", RegexOption.IGNORE_CASE),
-            
-            // کلاس 3: الگوهای مخصوص فرمت‌های متداول وزن در قبض‌های باسکول
-            Regex("(\\d{2}[,. ]\\d{3}[,. ]\\d{3})", RegexOption.IGNORE_CASE),   // مثال: 25,000,000
-            Regex("(\\d{1,2}[,. ]\\d{3}[,. ]\\d{3})", RegexOption.IGNORE_CASE), // مثال: 5,000,000
-            Regex("(\\d{2,3}[,. ]\\d{3})", RegexOption.IGNORE_CASE),            // مثال: 25,000
-
-            // کلاس 4: اعداد ساده در محدوده منطقی وزن کامیون
-            Regex("\\b(\\d{5,6})\\b")                                           // مثال: 25000
+            Regex("(?:وزن\\s*خالص|خالص)[\\s:=]*(\\d{1,2}[,.]\\d{3})"),
+            Regex("(?:وزن\\s*خالص|خالص)[\\s:=]*(\\d{5,6})"),
+            Regex("\\b(\\d{5,6})\\b"),
+            Regex("\\b(\\d{1,2}[,.]\\d{3})\\b")
         )
-
-        // ساختار نگهداری کاندیداهای وزن با امتیاز اطمینان
-        val weightCandidates = mutableMapOf<String, Double>()
-        var foundHighConfidenceMatch = false
         
-        // بررسی الگوها به ترتیب اولویت
-        for ((priority, pattern) in patterns.withIndex()) {
-            // ضریب اولویت برای هر الگو
-            val priorityFactor = 1.0 - (priority * 0.15).coerceAtMost(0.9)
-            val matches = pattern.findAll(normalizedText)
-            
-            for (match in matches) {
-                // پردازش متن تطبیق داده شده
-                val matchedText = match.groupValues.getOrNull(1) ?: match.value
-                val cleanNumber = matchedText.replace(Regex("[^0-9]"), "")
-                
-                if (cleanNumber.length >= 4) {
-                    try {
-                        val number = cleanNumber.toDouble()
-                        
-                        // فقط اعداد در محدوده منطقی وزن کامیون را در نظر بگیر
-                        if (number in 5000.0..45000.0) {
-                            // محاسبه امتیاز اطمینان براساس معیارهای مختلف
-                            val confidenceScore = calculateConfidenceScore(
-                                number = number,
-                                matchContext = match.value,
-                                matchedPattern = pattern.pattern,
-                                priority = priorityFactor
-                            )
-                            
-                            val roundedNumber = number.roundToInt().toString()
-                            weightCandidates[roundedNumber] = (weightCandidates[roundedNumber] ?: 0.0) + confidenceScore
-                            
-                            // اگر یک تطبیق با اطمینان بالا پیدا شد، می‌توانیم جستجو را متوقف کنیم
-                            if (confidenceScore > 2.0) {
-                                foundHighConfidenceMatch = true
-                            }
-                        }
-                    } catch (e: Exception) {
-                        continue
-                    }
+        for (pattern in patterns) {
+            val matches = pattern.findAll(text)
+            matches.forEach { matchResult ->
+                val numberStr = matchResult.groupValues[1].replace(Regex("[,.]"), "")
+                val number = numberStr.toIntOrNull()
+                if (number != null && number in 5000..45000) {
+                    result.add(number.toString())
                 }
             }
             
-            // اگر نتایج با اطمینان بالا یافتیم، نیازی به بررسی الگوهای با اولویت کمتر نیست
-            if (foundHighConfidenceMatch && weightCandidates.isNotEmpty()) {
-                break
-            }
+            if (result.isNotEmpty()) break
         }
         
-        // اگر هیچ عددی پیدا نشد، از روش فراگیرتر استفاده کن
-        if (weightCandidates.isEmpty()) {
-            val fallbackNumbers = extractAllPotentialWeights(normalizedText)
-            weightCandidates.putAll(fallbackNumbers)
-        }
-
-        // بسته‌بندی نتایج به ترتیب امتیاز اطمینان
-        return weightCandidates.entries
-            .sortedByDescending { it.value }
-            .map { it.key }
-            .distinct()
-            .take(5)
+        return result
     }
-    
-    // تبدیل متن به فرمت استاندارد برای پردازش بهتر
-    private fun normalizeText(text: String): String {
-        // حذف کاراکترهای مشکل‌ساز و استانداردسازی فرمت
-        var normalizedText = text
-            .replace('\n', ' ')
-            .replace('\r', ' ')
-            .replace('\t', ' ')
-            .replace(Regex("\\s+"), " ")
-            .replace(Regex("[،٫]"), ",")
-            .replace(Regex("\\s*[:=]\\s*"), ":")
-        
-        // تبدیل اعداد فارسی به انگلیسی
-        val persianDigits = "۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩"
-        val englishDigits = "01234567890123456789"
-        
-        for (i in persianDigits.indices) {
-            normalizedText = normalizedText.replace(persianDigits[i], englishDigits[i % 10])
-        }
-        
-        return normalizedText
-    }
-    
-    // محاسبه امتیاز اطمینان براساس معیارهای مختلف
-    private fun calculateConfidenceScore(
-        number: Double,
-        matchContext: String,
-        matchedPattern: String,
-        priority: Double
-    ): Double {
-        var score = priority
-        
-        // 1. امتیاز محدوده: اعداد در محدوده وزن معمول کامیون‌ها امتیاز بیشتری دارند
-        score *= when (number) {
-            in 20000.0..27000.0 -> 1.5   // محدوده ایده‌آل وزن کامیون
-            in 15000.0..30000.0 -> 1.2   // محدوده معمول
-            in 10000.0..35000.0 -> 1.0   // محدوده قابل قبول
-            else -> 0.8                  // محدوده کمتر محتمل
-        }
-        
-        // 2. امتیاز متن همراه: بر اساس وجود عبارات کلیدی در متن
-        if (matchContext.contains(Regex("وزن\\s*خالص|NET\\s*WEIGHT", RegexOption.IGNORE_CASE))) {
-            score *= 2.0
-        } else if (matchContext.contains(Regex("خالص|NET|وزن", RegexOption.IGNORE_CASE))) {
-            score *= 1.5
-        } else if (matchContext.contains(Regex("کیلو(?:گرم)?|KG|kg", RegexOption.IGNORE_CASE))) {
-            score *= 1.3
-        }
-        
-        // 3. امتیاز الگوی تطبیق: الگوهای دقیق‌تر امتیاز بیشتری دارند
-        if (matchedPattern.contains("وزن\\s*خالص|NET\\s*WEIGHT")) {
-            score *= 1.5
-        }
-        
-        // 4. امتیاز فرمت عدد: اعداد با فرمت استاندارد امتیاز بیشتری دارند
-        if (matchContext.matches(Regex(".*\\d{2,3}[,. ]\\d{3}[,. ]\\d{3}.*"))) {
-            score *= 1.3  // فرمت مانند 25,000,000
-        } else if (matchContext.matches(Regex(".*\\d{2,3}[,. ]\\d{3}.*"))) {
-            score *= 1.2  // فرمت مانند 25,000
-        }
-        
-        return score
-    }
-    
-    // استخراج همه اعداد ممکن از متن در صورت شکست روش‌های دقیق‌تر
-    private fun extractAllPotentialWeights(text: String): Map<String, Double> {
-        val results = mutableMapOf<String, Double>()
-        val allNumbersRegex = Regex("(\\d{1,3}(?:[,. ]\\d{3})*|\\d{4,6})")
-        val matches = allNumbersRegex.findAll(text)
-        
-        matches.forEach { match ->
-            try {
-                val cleanNumber = match.value.replace(Regex("[^0-9]"), "")
-                if (cleanNumber.length >= 4) {
-                    val number = cleanNumber.toDouble()
-                    if (number in 5000.0..45000.0) {
-                        val baseConfidence = when (number) {
-                            in 20000.0..27000.0 -> 0.7
-                            in 15000.0..30000.0 -> 0.5
-                            else -> 0.3
-                        }
-                        
-                        results[number.roundToInt().toString()] = baseConfidence
-                    }
-                }
-            } catch (e: Exception) {
-                // نادیده گرفتن خطاها
-            }
-        }
-        
-        return results
-    }
-
 }
 
 @Composable
 fun ErrorHandlingCargoInfoRow(
     info: CargoInfo,
-    onRowClick: (CargoInfo) -> Unit
+    onRowClick: (CargoInfo) -> Unit,
 ) {
     var hasError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
@@ -2509,7 +1967,7 @@ fun ExpandableSection(
     title: String,
     items: List<CargoInfo>,
     initiallyExpanded: Boolean = false,
-    onItemClick: (CargoInfo) -> Unit
+    onItemClick: (CargoInfo) -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(initiallyExpanded) }
     
@@ -2629,7 +2087,7 @@ fun ExitStatusDialog(
     showDialog: Boolean,
     onDismiss: () -> Unit,
     exitVouchersCount: Int,
-    totalNetWeight: Float
+    totalNetWeight: Float,
 ) {
     if (showDialog) {
         Dialog(
@@ -2690,7 +2148,7 @@ fun ExitStatusDialog(
 fun AnimatedCounter(
     label: String,
     count: Int,
-    icon: ImageVector
+    icon: ImageVector,
 ) {
     var animatedCount by remember { mutableIntStateOf(0) }
 
@@ -2749,7 +2207,7 @@ fun FormSection(
     cargoInfoList: List<CargoInfo>,
     isCargoConfirmed: Boolean,
     isCargoExited: Boolean,
-    onSubmit: () -> Unit
+    onSubmit: () -> Unit,
 ) {
     val isDuplicate = remember(trackingNumber, cargoInfoList) {
         trackingNumber.isNotBlank() && cargoInfoList.any { it.trackingNumber == trackingNumber }
@@ -2848,7 +2306,7 @@ fun FormSection(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     isError = isDuplicate && !canEditWeights,
-                    leadingIcon = {
+                            leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.ConfirmationNumber,
                             contentDescription = null,
@@ -3129,7 +2587,7 @@ fun MessageDialog(
     message: String,
     type: MessageType,
     visible: Boolean,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     val composition by rememberLottieComposition(
         when (type) {
@@ -3288,7 +2746,7 @@ fun SearchSection(
     onSearchQueryChange: (String) -> Unit,
     exitDateQuery: String,
     onExitDateQueryChange: (String) -> Unit,
-    onSearch: () -> Unit
+    onSearch: () -> Unit,
 ) {
     Surface3(
         modifier = Modifier
@@ -3394,7 +2852,8 @@ fun SearchSection(
                         )
                     },
                     trailingIcon = {
-                        val currentValue = if (searchMode == SearchMode.TRACKING_NUMBER) searchQuery else exitDateQuery
+                        val currentValue =
+                            if (searchMode == SearchMode.TRACKING_NUMBER) searchQuery else exitDateQuery
                         if (currentValue.isNotEmpty()) {
                             androidx.compose.material3.IconButton(
                                 onClick = { 
@@ -3474,7 +2933,7 @@ fun ShipInfoSection(
     onToggleVisibility: () -> Unit,
     loadableTonnage: String,
     loadableTrucks18Wheeler: String,
-    loadableTrucks10Wheeler: String
+    loadableTrucks10Wheeler: String,
 ) {
     val loadedPercentage = remember(shipInfo.cargoWeight, shipInfo.totalNetWeight) {
         try {
@@ -3532,7 +2991,7 @@ private fun MinimalHeader(
     loadableTonnage: String,
     loadableTrucks18Wheeler: String,
     loadableTrucks10Wheeler: String,
-    isExpanded: Boolean
+    isExpanded: Boolean,
 ) {
     val rotationAngle by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
@@ -3603,12 +3062,12 @@ private fun MinimalHeader(
                 ) {
                     Text3(
                         text = "تناژ مجاز",
-                        style = MaterialTheme3.typography.labelSmall,
+                        style = MaterialTheme3.typography.labelMedium,
                         color = MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                     Text3(
                         text = loadableTonnage,
-                        style = MaterialTheme3.typography.labelLarge,
+                        style = MaterialTheme3.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = tonnageColor
                     )
@@ -3622,7 +3081,8 @@ private fun MinimalHeader(
                     CompactTruckInfo("18چ", loadableTrucks18Wheeler)
                     Text3(
                         text = "|",
-                        style = MaterialTheme3.typography.labelSmall,
+                        style = MaterialTheme3.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
                     CompactTruckInfo("10چ", loadableTrucks10Wheeler)
@@ -3667,7 +3127,7 @@ private fun MinimalHeader(
 @Composable
 private fun CompactTruckInfo(
     type: String,
-    count: String
+    count: String,
 ) {
     val countValue = count.toIntOrNull() ?: 0
     val color = if (countValue <= 0) MaterialTheme3.colorScheme.error else MaterialTheme3.colorScheme.primary
@@ -3701,7 +3161,7 @@ private fun CompactTruckInfo(
         )
         Text3(
             text = "$type = $count",
-            style = MaterialTheme3.typography.labelSmall,
+            style = MaterialTheme3.typography.labelLarge,
             fontWeight = FontWeight.Medium,
             color = color
         )
@@ -3710,7 +3170,7 @@ private fun CompactTruckInfo(
 
 @Composable
 private fun ExpandedContent(
-    shipInfo: ShipInfo
+    shipInfo: ShipInfo,
 ) {
     Column(
         modifier = Modifier
@@ -3778,7 +3238,7 @@ private fun StatCard(
     value: String,
     label: String,
     color: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Surface3(
         modifier = modifier,
@@ -3813,8 +3273,6 @@ private fun StatCard(
         }
     }
 }
-
-
 
 @Composable
 private fun DetailedInfoGrid(shipInfo: ShipInfo) {
@@ -3878,7 +3336,7 @@ private fun DetailedInfoGrid(shipInfo: ShipInfo) {
 private fun DetailInfoItem(
     label: String,
     value: String,
-    icon: ImageVector
+    icon: ImageVector,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth()
@@ -3916,7 +3374,7 @@ private fun DetailInfoItem(
 fun CargoInfoRow(
     info: CargoInfo,
     onRowClick: (CargoInfo) -> Unit,
-    onError: (String) -> Unit
+    onError: (String) -> Unit,
 ) {
     val formattedNetWeight = remember(info.netWeight) {
         try {
@@ -4212,7 +3670,7 @@ private fun AnimatedIcon(isError: Boolean) {
 fun DialogPassword(
     message: String,
     onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var isVisible by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
@@ -4317,7 +3775,7 @@ fun CargoInfoDetailsDialog(
     info: CargoInfo,
     viewModel: CargoViewModel,
     snackbarHostState: SnackbarHostState,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
@@ -4538,7 +3996,7 @@ private fun MinimalHeader(info: CargoInfo, onDismiss: () -> Unit) {
 @Composable
 private fun StatusChip(
     status: String,
-    isLightTheme: Boolean
+    isLightTheme: Boolean,
 ) {
     val (backgroundColor, textColor, icon) = when (status) {
         "خروج" -> Triple(
@@ -4631,7 +4089,7 @@ private fun ExpandableSection(
     title: String,
     icon: ImageVector,
     initiallyExpanded: Boolean = false,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(initiallyExpanded) }
     val rotationState by animateFloatAsState(
@@ -4705,7 +4163,7 @@ private fun CopyableInfoItem(
     label: String,
     value: String,
     context: Context = LocalContext.current,
-    scope: CoroutineScope = rememberCoroutineScope()
+    scope: CoroutineScope = rememberCoroutineScope(),
 ) {
     var isCopied by remember { mutableStateOf(false) }
 
@@ -4936,7 +4394,7 @@ private fun DeleteDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     password: String,
-    onPasswordChange: (String) -> Unit
+    onPasswordChange: (String) -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -5012,4 +4470,517 @@ private fun toEnglishNumbers(input: String): String {
     }
 
     return result
+}
+
+@Composable
+fun EnhancedCameraPreview(
+    selectedScanMode: ScanMode,
+    onImageCaptured: (ImageProxy, String?) -> Unit,
+    onError: (ImageCaptureException) -> Unit,
+) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
+    val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
+    var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
+    var preview: Preview? by remember { mutableStateOf(null) }
+    var camera: Camera? by remember { mutableStateOf(null) }
+    val lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
+    val executor = ContextCompat.getMainExecutor(context)
+
+    // Weight detection state
+    var detectedNumber by remember { mutableStateOf<String?>(null) }
+    var detectedNumbers by remember { mutableStateOf<List<String>>(emptyList()) }
+    var isValidWeight by remember { mutableStateOf(false) }
+    var processingActive by remember { mutableStateOf(true) }
+    
+    // AI Analysis state
+    var isAIAnalyzing by remember { mutableStateOf(false) }
+    var analysisSource by remember { mutableStateOf<String?>(null) }
+
+    // Camera status
+    var hasTorch by remember { mutableStateOf(false) }
+    var isTorchOn by remember { mutableStateOf(false) }
+
+    // Scanner guide parameters
+    val guideColor = Color.Green.copy(alpha = 0.7f)
+    val guideThickness = 2.dp
+    val scanAreaSize = 0.7f // 70% of screen width
+
+    Box(modifier = Modifier
+        .fillMaxWidth()
+        .aspectRatio(1f)
+    ) {
+        AndroidView(
+            factory = { ctx ->
+                val previewView = PreviewView(ctx).apply {
+                    this.scaleType = PreviewView.ScaleType.FILL_CENTER
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                }
+
+                cameraProviderFuture.addListener({
+                    val cameraProvider = cameraProviderFuture.get()
+                    preview = Preview.Builder()
+                        .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                        .build()
+                        .also {
+                            it.setSurfaceProvider(previewView.surfaceProvider)
+                        }
+
+                    val cameraSelector = CameraSelector.Builder()
+                        .requireLensFacing(lensFacing)
+                        .build()
+
+                    imageCapture = ImageCapture.Builder()
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                        .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                        .build()
+
+                    val imageAnalysis = ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                        .build()
+                        .apply {
+                            setAnalyzer(executor, EnhancedNumberAnalyzer(
+                                context = context,
+                                onNumbersDetected = { extractedNumbers, bestEstimate ->
+                                    if (processingActive) {
+                                        detectedNumbers = extractedNumbers
+
+                                        if (bestEstimate.isNotEmpty()) {
+                                            detectedNumber = bestEstimate
+                                            val weight = bestEstimate.toDoubleOrNull()
+                                            isValidWeight = weight != null && weight in 5000.0..45000.0
+                                            
+                                            // تنظیم منبع تحلیل بر اساس حالت انتخاب شده
+                                            analysisSource = when (selectedScanMode) {
+                                                ScanMode.AI_SCAN -> "AI"
+                                                ScanMode.ML_KIT_SCAN -> "ML_KIT"
+                                                ScanMode.LOCAL_AI_SCAN -> "LOCAL_AI"
+                                            }
+                                        } else {
+                                            // اگر نتیجه‌ای نیست، state ها را پاک کن
+                                            detectedNumber = null
+                                            analysisSource = null
+                                        }
+                                    }
+                                },
+                                onAnalysisStateChanged = { isAnalyzing ->
+                                    // Callback برای وضعیت تحلیل AI
+                                    isAIAnalyzing = isAnalyzing && selectedScanMode == ScanMode.AI_SCAN
+                                },
+                                scanMode = selectedScanMode // ارسال حالت اسکن انتخاب شده
+                            ))
+                        }
+
+                    try {
+                        cameraProvider.unbindAll()
+                        camera = cameraProvider.bindToLifecycle(
+                            lifecycleOwner,
+                            cameraSelector,
+                            preview,
+                            imageCapture,
+                            imageAnalysis
+                        )
+
+                        // Check flashlight support
+                        hasTorch = camera?.cameraInfo?.hasFlashUnit() ?: false
+                    } catch (exc: Exception) {
+                        exc.printStackTrace()
+                    }
+                }, executor)
+                previewView
+            },
+            modifier = Modifier.matchParentSize()
+        )
+
+        // Scanner guide overlay
+        ScannerGuideOverlay(
+            scanAreaSize = scanAreaSize,
+            guideColor = guideColor,
+            guideThickness = guideThickness.value
+        )
+
+        // Header با اطلاعات حالت اسکن
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.Black.copy(alpha = 0.8f),
+            elevation = 4.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // نمایش حالت اسکن فعال
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val (icon, title, color) = when (selectedScanMode) {
+                        ScanMode.AI_SCAN -> Triple("🤖", "اسکن هوشمند", Color(0xFF2196F3))
+                        ScanMode.ML_KIT_SCAN -> Triple("📱", "اسکن داخلی", Color(0xFF4CAF50))
+                        ScanMode.LOCAL_AI_SCAN -> Triple("🤖", "اسکن هوشمند", Color(0xFF2196F3))
+                    }
+                    
+                    Text(
+                        text = icon,
+                        fontSize = 20.sp
+                    )
+                    Text(
+                        text = title,
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    // نمایش وضعیت تحلیل
+                    if (isAIAnalyzing && selectedScanMode == ScanMode.AI_SCAN) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            color = color,
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
+
+                // راهنمای کاربر
+                Text(
+                    text = when (selectedScanMode) {
+                        ScanMode.AI_SCAN -> "قبض باسکول را در کادر قرار دهید - تحلیل هوشمند"
+                        ScanMode.ML_KIT_SCAN -> "قبض باسکول را در کادر قرار دهید - پردازش سریع"
+                        ScanMode.LOCAL_AI_SCAN -> "قبض باسکول را در کادر قرار دهید - تحلیل هوشمند"
+                    },
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+        }
+
+        // Display detected weight با انیمیشن نرم
+        AnimatedVisibility(
+            visible = detectedNumber != null,
+            enter = fadeIn(animationSpec = tween(400)) + slideInVertically(
+                initialOffsetY = { -it },
+                animationSpec = tween(400)
+            ),
+            exit = fadeOut(animationSpec = tween(300)) + slideOutVertically(
+                targetOffsetY = { -it },
+                animationSpec = tween(300)
+            )
+        ) {
+            detectedNumber?.let { number ->
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isValidWeight)
+                        Color(0xFF4CAF50).copy(alpha = 0.95f)
+                    else
+                        Color(0xFFE57373).copy(alpha = 0.95f),
+                    elevation = 8.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // نمایش منبع تحلیل
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color.White.copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    text = when (analysisSource) {
+                                        "AI" -> "🤖 AI"
+                                        "ML_KIT" -> "📱 ML"
+                                        "LOCAL_AI" -> "🤖 LOCAL_AI"
+                                        else -> "🔍"
+                                    },
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                )
+                            }
+                            
+                            Icon(
+                                imageVector = if (isValidWeight) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Text(
+                            text = "${NumberFormat.getNumberInstance(Locale("en", "US")).format(number.toDoubleOrNull() ?: 0)} کیلوگرم",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+
+                        if (!isValidWeight && number.isNotEmpty()) {
+                            Text(
+                                text = "وزن باید بین 5,000 تا 45,000 کیلوگرم باشد",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Normal,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // نمایش وضعیت تحلیل AI
+        AnimatedVisibility(
+            visible = isAIAnalyzing && selectedScanMode == ScanMode.AI_SCAN,
+            enter = fadeIn(animationSpec = tween(300)) + expandIn(
+                expandFrom = Alignment.Center,
+                animationSpec = tween(300)
+            ),
+            exit = fadeOut(animationSpec = tween(300)) + shrinkOut(
+                shrinkTowards = Alignment.Center,
+                animationSpec = tween(300)
+            )
+        ) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 100.dp)
+                    .padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color.Black.copy(alpha = 0.8f),
+                elevation = 4.dp
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        color = Color(0xFF2196F3),
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Text(
+                        text = "تحلیل هوشمند در حال انجام...",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+
+        // Capture button
+        var isCapturing by remember { mutableStateOf(false) }
+
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp)
+                .size(72.dp)
+                .clickable(enabled = !isCapturing) {
+                    processingActive = false
+                    isCapturing = true
+                    
+                    imageCapture?.takePicture(
+                        executor,
+                        object : ImageCapture.OnImageCapturedCallback() {
+                            override fun onCaptureSuccess(image: ImageProxy) {
+                                onImageCaptured(image, detectedNumber)
+                                isCapturing = false
+                            }
+
+                            override fun onError(exception: ImageCaptureException) {
+                                onError(exception)
+                                isCapturing = false
+                            }
+                        }
+                    )
+                },
+            shape = CircleShape,
+            color = Color.White.copy(alpha = 0.9f),
+            elevation = 8.dp
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (isCapturing) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        color = Color.Black,
+                        modifier = Modifier.size(36.dp),
+                        strokeWidth = 3.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Camera,
+                        contentDescription = "گرفتن عکس",
+                        tint = Color.Black,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+            }
+        }
+
+        // Flashlight button
+        if (hasTorch) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 24.dp, bottom = 24.dp)
+                    .size(56.dp)
+                    .clickable {
+                        isTorchOn = !isTorchOn
+                        camera?.cameraControl?.enableTorch(isTorchOn)
+                    },
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.6f),
+                elevation = 4.dp
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Icon(
+                        imageVector = if (isTorchOn) Icons.Default.FlashOff else Icons.Default.FlashOn,
+                        contentDescription = "چراغ قوه",
+                        tint = if (isTorchOn) Color.Yellow else Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        }
+    }
+
+    // Release resources when leaving the screen
+    DisposableEffect(lifecycleOwner) {
+        onDispose {
+            processingActive = false
+        }
+    }
+}
+
+/**
+ * کامپوننت انتخابگر حالت اسکن
+ */
+@Composable
+fun ScanModeSelector(
+    currentMode: ScanMode,
+    onModeChanged: (ScanMode) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ScanModeButton(
+            text = "اسکن سریع",
+            icon = Icons.Default.Psychology,
+            description = "سریع و دقیق",
+            isSelected = currentMode == ScanMode.LOCAL_AI_SCAN,
+            onClick = { onModeChanged(ScanMode.LOCAL_AI_SCAN) },
+            modifier = Modifier.weight(1f)
+        )
+        
+        ScanModeButton(
+            text = "اسکن ساده",
+            icon = Icons.Default.QrCodeScanner,
+            description = "پایه و سریع",
+            isSelected = currentMode == ScanMode.ML_KIT_SCAN,
+            onClick = { onModeChanged(ScanMode.ML_KIT_SCAN) },
+            modifier = Modifier.weight(1f)
+        )
+        
+        ScanModeButton(
+            text = "اسکن آنلاین",
+            icon = Icons.Default.Cloud,
+            description = "دقیق اما آهسته",
+            isSelected = currentMode == ScanMode.AI_SCAN,
+            onClick = { onModeChanged(ScanMode.AI_SCAN) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+/**
+ * دکمه انتخاب حالت اسکن
+ */
+@Composable
+fun ScanModeButton(
+    text: String,
+    icon: ImageVector,
+    description: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.height(64.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            backgroundColor = if (isSelected) 
+                MaterialTheme.colors.primary.copy(alpha = 0.1f) 
+            else 
+                Color.Transparent,
+            contentColor = if (isSelected) 
+                MaterialTheme.colors.primary 
+            else 
+                MaterialTheme.colors.onSurface
+        ),
+        border = BorderStroke(
+            width = if (isSelected) 2.dp else 1.dp,
+            color = if (isSelected) 
+                MaterialTheme.colors.primary 
+            else 
+                MaterialTheme.colors.onSurface.copy(alpha = 0.3f)
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = text,
+                fontSize = 10.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = description,
+                fontSize = 8.sp,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
 }
