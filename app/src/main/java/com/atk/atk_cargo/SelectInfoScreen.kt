@@ -7,7 +7,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -21,7 +20,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,7 +57,6 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -99,7 +96,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -344,6 +340,15 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
         refreshData()
     }
 
+    // LaunchedEffect برای باز کردن خودکار دیالوگ انتخاب کشتی
+    LaunchedEffect(selectedShipNames, activeShips) {
+        // اگر کشتی‌های فعال بارگذاری شده و هیچ کشتی انتخاب نشده باشد
+        if (activeShips.isNotEmpty() && selectedShipNames.isEmpty()) {
+            delay(500) // تاخیر کوتاه برای اطمینان از بارگذاری کامل UI
+            showShipSelectionDialog = true
+        }
+    }
+
     LaunchedEffect(Unit) {
         while (true) {
             delay(30000)
@@ -493,18 +498,22 @@ fun AnimatedHeader(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            // بخش سمت چپ - عنوان و اطلاعات
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
                     text = "بارگیری‌های فعال",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontSize = MaterialTheme.typography.headlineMedium.fontSize * 0.9f
-                    ),
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
+                
+                Spacer(modifier = Modifier.height(4.dp))
                 
                 Row(
                     verticalAlignment = Alignment.CenterVertically
@@ -513,10 +522,10 @@ fun AnimatedHeader(
                         imageVector = Icons.Default.DirectionsBoat,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                     
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     
                     Text(
                         text = "$shipCount کوتاژ فعال",
@@ -525,107 +534,94 @@ fun AnimatedHeader(
                     )
                     
                     if (selectedShipsCount > 0) {
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
                         
-                        Text(
-                            text = "$selectedShipsCount کشتی انتخاب شده",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        ) {
+                            Text(
+                                text = "$selectedShipsCount انتخاب شده",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
             }
             
+            // بخش سمت راست - دکمه‌ها
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Clickable badge with animation effect
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .clickable(onClick = onClickCount)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onTap = { onClickCount() }
-                            )
-                        }
+                // Badge تعداد کوتاژها (قابل کلیک)
+                Surface(
+                    onClick = onClickCount,
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(36.dp)
                 ) {
-                    val pulseState = remember { androidx.compose.runtime.mutableFloatStateOf(1f) }
-
-                    LaunchedEffect(Unit) {
-                        // Create a subtle pulse animation for the badge
-                        while (true) {
-                            animate(
-                                initialValue = 1f,
-                                targetValue = 1.1f,
-                                animationSpec = tween(
-                                    durationMillis = 800,
-                                    easing = FastOutSlowInEasing
-                                )
-                            ) { value, _ -> pulseState.floatValue = value }
-
-                            animate(
-                                initialValue = 1.1f,
-                                targetValue = 1f,
-                                animationSpec = tween(
-                                    durationMillis = 800,
-                                    easing = FastOutSlowInEasing
-                                )
-                            ) { value, _ -> pulseState.floatValue = value }
-
-                            delay(1500)
-                        }
-                    }
-
-                    Badge(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier
-                            .graphicsLayer {
-                                scaleX = pulseState.floatValue
-                                scaleY = pulseState.floatValue
-                            }
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         Text(
                             text = shipCount.toString(),
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontSize = MaterialTheme.typography.titleMedium.fontSize * 1.1f
-                            ),
+                            style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.width(8.dp))
                 
                 // دکمه انتخاب کشتی
                 Surface(
+                    onClick = onSelectShips,
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clickable { onSelectShips() }
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.size(36.dp)
                 ) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         Icon(
                             imageVector = Icons.Default.DirectionsBoat,
                             contentDescription = "انتخاب کشتی‌ها",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
                 
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                UpdateButton(
-                    isRefreshing = isRefreshing,
-                    onRefresh = onRefresh
-                )
+                // دکمه بروزرسانی
+                Surface(
+                    onClick = { if (!isRefreshing) onRefresh() },
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        if (isRefreshing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        } else {
+                            UpdateButton(
+                                isRefreshing = isRefreshing,
+                                onRefresh = onRefresh
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -3119,12 +3115,20 @@ private fun ShipSelectionDialog(
                                 onSelectShip(selectedShips.value)
                                 onDismiss()
                             },
+                            enabled = selectedShips.value.isNotEmpty(),
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = primaryColor
+                                containerColor = primaryColor,
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                         ) {
-                            Text(text = "تایید")
+                            Text(
+                                text = "تایید",
+                                color = if (selectedShips.value.isNotEmpty()) 
+                                    MaterialTheme.colorScheme.onPrimary 
+                                else 
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                         
                         // دکمه انصراف
