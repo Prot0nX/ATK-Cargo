@@ -207,6 +207,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -219,6 +220,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -513,9 +515,9 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
 				.fillMaxSize()
 				.padding(horizontal = 16.dp, vertical = 8.dp)
 		) {
-			SearchTextField(
-				value = searchTerm,
-				onValueChange = { searchTerm = it }
+			ModernSearchField(
+				searchQuery = searchTerm,
+				onSearchQueryChange = { searchTerm = it }
 			)
 
 			Spacer(modifier = Modifier.height(8.dp))
@@ -591,111 +593,125 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
 
 @SuppressLint("RememberReturnType")
 @Composable
-fun SearchTextField(
-	value: String,
-	onValueChange: (String) -> Unit,
-	modifier: Modifier = Modifier
+fun ModernSearchField(
+	searchQuery: String,
+	onSearchQueryChange: (String) -> Unit,
+	modifier: Modifier = Modifier,
+	placeholder: String = "جستجوی کشتی، انبار یا کوتاژ"
 ) {
 	var isFocused by remember { mutableStateOf(false) }
 	val focusRequester = remember { FocusRequester() }
-	val interactionSource = remember { MutableInteractionSource() }
-	val animatedColor by animateColorAsState(
-		targetValue = if (isFocused)
-			MaterialTheme.colorScheme.primary
-		else
-			MaterialTheme.colorScheme.outline,
-		label = "color"
-	)
-	val scale by animateFloatAsState(
-		targetValue = if (isFocused) 1f else 0.92f,
-		animationSpec = spring(
-			dampingRatio = Spring.DampingRatioMediumBouncy,
-			stiffness = Spring.StiffnessLow
-		),
-		label = "scale"
-	)
-
-	OutlinedTextField(
-		value = value,
-		onValueChange = { newValue ->
-			val filteredValue = newValue.filter { char ->
-				char.isLetterOrDigit() && char.code < 128
-			}.uppercase()
-			onValueChange(filteredValue)
+	
+	// انیمیشن‌های مختلف برای حالت‌های مختلف
+	val borderColor by animateColorAsState(
+		targetValue = when {
+			isFocused -> MaterialTheme.colorScheme.primary
+			searchQuery.isNotEmpty() -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+			else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
 		},
+		animationSpec = tween(200),
+		label = "border color"
+	)
+	
+	val backgroundColor by animateColorAsState(
+		targetValue = when {
+			isFocused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.04f)
+			searchQuery.isNotEmpty() -> MaterialTheme.colorScheme.primary.copy(alpha = 0.02f)
+			else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+		},
+		animationSpec = tween(200),
+		label = "background color"
+	)
+	
+	val iconTint by animateColorAsState(
+		targetValue = when {
+			isFocused -> MaterialTheme.colorScheme.primary
+			searchQuery.isNotEmpty() -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+			else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+		},
+		animationSpec = tween(200),
+		label = "icon tint"
+	)
+	
+	Surface(
 		modifier = modifier
-			.fillMaxWidth()
-			.focusRequester(focusRequester)
-			.onFocusChanged { isFocused = it.isFocused }
-			.scale(scale)
-			.heightIn(min = 56.dp),
-		shape = RoundedCornerShape(16.dp),
-		colors = OutlinedTextFieldDefaults.colors(
-			focusedBorderColor = MaterialTheme.colorScheme.primary,
-			unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-			focusedContainerColor = MaterialTheme.colorScheme.surface,
-			unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-		),
-		leadingIcon = {
+			.height(48.dp)
+			.animateContentSize(),
+		shape = RoundedCornerShape(24.dp),
+		color = backgroundColor,
+		border = BorderStroke(
+			width = if (isFocused) 1.5.dp else 1.dp,
+			color = borderColor
+		)
+	) {
+		Row(
+			modifier = Modifier
+				.fillMaxSize()
+				.padding(horizontal = 16.dp),
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			// آیکون جستجو
+			Icon(
+				imageVector = Icons.Default.Search,
+				contentDescription = null,
+				tint = iconTint,
+				modifier = Modifier.size(20.dp)
+			)
+			
+			Spacer(modifier = Modifier.width(12.dp))
+			
+			// فیلد متنی
 			Box(
-				modifier = Modifier
-					.padding(start = 8.dp)
-					.size(40.dp)
-					.clip(CircleShape)
-					.background(animatedColor.copy(alpha = if (isFocused) 0.1f else 0.05f)),
-				contentAlignment = Alignment.Center
+				modifier = Modifier.weight(1f),
+				contentAlignment = Alignment.CenterStart
 			) {
-				Icon(
-					imageVector = Icons.Default.Search,
-					contentDescription = "جستجو",
-					tint = animatedColor,
-					modifier = Modifier.size(24.dp)
+				BasicTextField(
+					value = searchQuery,
+					onValueChange = onSearchQueryChange,
+					modifier = Modifier
+						.fillMaxWidth()
+						.focusRequester(focusRequester)
+						.onFocusChanged { focusState ->
+							isFocused = focusState.isFocused
+						},
+					textStyle = MaterialTheme.typography.bodyMedium.copy(
+						color = MaterialTheme.colorScheme.onSurface,
+						textDirection = TextDirection.Rtl
+					),
+					singleLine = true,
+					cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+					decorationBox = { innerTextField ->
+						innerTextField()
+					}
 				)
-			}
-		},
-		trailingIcon = {
-			AnimatedVisibility(
-				visible = value.isNotEmpty(),
-				enter = fadeIn() + scaleIn(),
-				exit = fadeOut() + scaleOut()
-			) {
-				IconButton(
-					onClick = { onValueChange("") },
-					modifier = Modifier.padding(end = 8.dp)
-				) {
-					Icon(
-					imageVector = Icons.Default.Clear,
-						contentDescription = "پاک کردن",
-						tint = MaterialTheme.colorScheme.onSurfaceVariant
+				
+				// متن راهنما
+				if (searchQuery.isEmpty() && !isFocused) {
+					Text(
+						text = placeholder,
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+						textAlign = TextAlign.Start
 					)
 				}
 			}
-		},
-		placeholder = {
-			Text(
-				text = "نام کشتی را وارد کنید...",
-				style = MaterialTheme.typography.bodyLarge,
-				color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-			)
-		},
-		supportingText = if (value.isNotEmpty()) {
-			{
-				Text(
-					text = "نتایج جستجو برای: $value",
-					style = MaterialTheme.typography.bodySmall,
-					color = MaterialTheme.colorScheme.primary
-				)
+			
+			// دکمه پاک کردن
+			if (searchQuery.isNotEmpty()) {
+				IconButton(
+					onClick = { onSearchQueryChange("") },
+					modifier = Modifier.size(32.dp)
+				) {
+					Icon(
+						imageVector = Icons.Default.Clear,
+						contentDescription = "پاک کردن",
+						tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+						modifier = Modifier.size(18.dp)
+					)
+				}
 			}
-		} else null,
-		textStyle = MaterialTheme.typography.bodyLarge.copy(
-			textAlign = TextAlign.Right
-		),
-		singleLine = true,
-		interactionSource = interactionSource,
-		keyboardOptions = KeyboardOptions(
-			keyboardType = KeyboardType.Ascii
-		)
-	)
+		}
+	}
 }
 
 @Composable
@@ -1530,49 +1546,11 @@ fun WarehousesAndQuotasTab(
 			.fillMaxSize()
 			.padding(16.dp)
 	) {
-		OutlinedTextField(
-			value = searchQuery,
-			onValueChange = { newValue ->
-				searchQuery = filterInput(newValue)
-			},
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(bottom = 16.dp),
-			placeholder = {
-				Text(
-					when (selectedSection) {
-						0 -> "جستجوی نام انبار..."
-						1 -> "جستجوی شماره کوتاژ..."
-						else -> "جستجو..."
-					}
-				)
-			},
-			leadingIcon = {
-				Icon(
-					imageVector = Icons.Default.Search,
-					contentDescription = "جستجو"
-				)
-			},
-		trailingIcon = {
-			if (searchQuery.isNotEmpty()) {
-				IconButton(onClick = { searchQuery = "" }) {
-					Icon(
-						imageVector = Icons.Default.Clear,
-						contentDescription = "پاک کردن"
-					)
-				}
-			}
-		},
-			singleLine = true,
-			shape = RoundedCornerShape(12.dp),
-			keyboardOptions = KeyboardOptions(
-				keyboardType = when (selectedSection) {
-					0 -> KeyboardType.Text
-					1 -> KeyboardType.NumberPassword
-					else -> KeyboardType.Text
-				},
-				imeAction = ImeAction.Search
-			)
+		// فیلد جستجو - طراحی مینیمال و بهینه
+		ModernSearchField(
+			searchQuery = searchQuery,
+			onSearchQueryChange = { searchQuery = it },
+			modifier = Modifier.fillMaxWidth()
 		)
 
 		Row(
@@ -5189,19 +5167,19 @@ fun RealTimeLoadingBottomSheet(
 		if (totalExitVouchers > 0) totalNetWeight / totalExitVouchers else 0f
 	}
 
-// فیلتر کردن داده‌ها بر اساس جستجو
-val filteredLoadingData = remember(loadingData, searchQuery) {
-	if (searchQuery.isBlank()) {
-		loadingData
-	} else {
-		loadingData.filter { data ->
-			data.shipName.contains(searchQuery, ignoreCase = true) ||
-			data.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
-			data.loadingQuotaNumber.contains(searchQuery, ignoreCase = true) ||
-			data.shippingCompany.contains(searchQuery, ignoreCase = true)
+	// فیلتر کردن داده‌ها بر اساس جستجو
+	val filteredLoadingData = remember(loadingData, searchQuery) {
+		if (searchQuery.isBlank()) {
+			loadingData
+		} else {
+			loadingData.filter { data ->
+				data.shipName.contains(searchQuery, ignoreCase = true) ||
+				data.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
+				data.loadingQuotaNumber.contains(searchQuery, ignoreCase = true) ||
+				data.shippingCompany.contains(searchQuery, ignoreCase = true)
+			}
 		}
 	}
-}
 
 	LaunchedEffect(isOpen) {
 		if (isOpen) {
@@ -5258,72 +5236,12 @@ val filteredLoadingData = remember(loadingData, searchQuery) {
 					)
 						Spacer(modifier = Modifier.height(8.dp))
 
-					// فیلد جستجو
-					Surface(
-						modifier = Modifier.fillMaxWidth(),
-						shape = RoundedCornerShape(12.dp),
-						color = MaterialTheme.colorScheme.surface,
-						tonalElevation = 2.dp,
-						shadowElevation = 1.dp
-					) {
-						Row(
-							modifier = Modifier
-								.fillMaxWidth()
-								.padding(horizontal = 12.dp, vertical = 8.dp),
-							verticalAlignment = Alignment.CenterVertically
-						) {
-							Icon(
-								imageVector = Icons.Default.Search,
-								contentDescription = null,
-								tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-								modifier = Modifier.size(18.dp)
-							)
-							
-							Spacer(modifier = Modifier.width(8.dp))
-							
-							BasicTextField(
-								value = searchQuery,
-								onValueChange = { searchQuery = it },
-								modifier = Modifier
-									.weight(1f)
-									.padding(vertical = 2.dp),
-								textStyle = MaterialTheme.typography.bodyMedium.copy(
-									color = MaterialTheme.colorScheme.onSurface
-								),
-								singleLine = true,
-								decorationBox = { innerTextField ->
-									Box {
-										if (searchQuery.isEmpty()) {
-											Text(
-												"جستجوی کشتی، انبار یا کوتاژ",
-												style = MaterialTheme.typography.bodyMedium,
-												color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-											)
-										}
-										innerTextField()
-									}
-								}
-							)
-							
-							AnimatedVisibility(
-								visible = searchQuery.isNotEmpty(),
-								enter = fadeIn() + scaleIn(),
-								exit = fadeOut() + scaleOut()
-							) {
-								IconButton(
-									onClick = { searchQuery = "" },
-									modifier = Modifier.size(24.dp)
-								) {
-									Icon(
-										imageVector = Icons.Default.Clear,
-										contentDescription = "پاک کردن",
-										tint = MaterialTheme.colorScheme.onSurfaceVariant,
-										modifier = Modifier.size(16.dp)
-									)
-								}
-							}
-						}
-					}
+					// فیلد جستجو - طراحی مینیمال و بهینه
+					ModernSearchField(
+						searchQuery = searchQuery,
+						onSearchQueryChange = { searchQuery = it },
+						modifier = Modifier.fillMaxWidth()
+					)
 					
 					Spacer(modifier = Modifier.height(8.dp))
 
