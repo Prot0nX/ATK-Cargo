@@ -113,7 +113,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.DirectionsBoat
@@ -198,7 +197,6 @@ import com.atk.atk_cargo.api.CargoViewModel
 import com.atk.atk_cargo.api.CargoViewModelFactory
 import com.atk.atk_cargo.api.InitialInfo
 import com.atk.atk_cargo.api.MessageType
-import com.atk.atk_cargo.api.OpenRouterClient
 import com.atk.atk_cargo.api.ReportsRepository
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.ShipInfo
@@ -232,7 +230,6 @@ import androidx.compose.material3.TextFieldDefaults as TextFieldDefaults3
 
 enum class ScanMode {
     LOCAL_AI_SCAN,  // مدل لوکال TensorFlow Lite
-    AI_SCAN,        // OpenRouter (قدیمی)
     ML_KIT_SCAN     // ML Kit ساده
 }
 
@@ -425,7 +422,7 @@ fun RegisterCargoScreen(
                     SearchMode.EXIT_DATE -> cargoInfo.exitDate?.contains(
                         exitDateQuery,
                         ignoreCase = true
-                    ) ?: false
+                    ) == true
                 }
             }
         }
@@ -1054,6 +1051,7 @@ fun QuotaWarningDialog(
     }
 }
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun NetWeightDialog(
     scaleReceiptNumber: String,
@@ -1789,7 +1787,6 @@ class EnhancedNumberAnalyzer(
     private var lastDetectionTime = 0L
     private val detectionCooldown = 1500L // کاهش زمان انتظار برای سرعت بیشتر
     private var isProcessingWithAI = false
-    private val openRouterTimeout = 5000L
     
     // پردازشگر لوکال OCR
     private val localOCRProcessor by lazy { LocalOCRProcessor(context) }
@@ -1828,34 +1825,6 @@ class EnhancedNumberAnalyzer(
                                 return@withContext
                             }
                             imageProxy.close()
-                        }
-                    } catch (e: Exception) {
-                        withContext(Dispatchers.Main) {
-                            fallbackToMLKit(imageProxy)
-                        }
-                    }
-                }
-            }
-            ScanMode.AI_SCAN -> {
-                // استفاده از OpenRouter (کد قبلی)
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val aiResult = withContext(Dispatchers.IO) {
-                            kotlinx.coroutines.withTimeoutOrNull(openRouterTimeout) {
-                                OpenRouterClient.analyzeWeightFromImage(bitmap)
-                            }
-                        }
-                        
-                        withContext(Dispatchers.Main) {
-                            if (!aiResult.isNullOrBlank() && aiResult != "0" && isValidWeight(aiResult)) {
-                                val aiNumbers = listOf(aiResult)
-                                isProcessingWithAI = false
-                                onAnalysisStateChanged?.invoke(false)
-                                onNumbersDetected(aiNumbers, aiResult)
-                                imageProxy.close()
-                            } else {
-                                fallbackToMLKit(imageProxy)
-                            }
                         }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
@@ -2227,7 +2196,7 @@ fun FormSection(
                 it.status == "خروج" -> false
                 else -> false
             }
-        } ?: false
+        } == true
     }
 
     // منطق فعال/غیرفعال کردن دکمه ثبت
@@ -2371,7 +2340,7 @@ fun FormSection(
                     else -> 
                         Pair("این حواله هنوز تائید نشده و قابل ویرایش نیست!", androidx.compose.material3.MaterialTheme.colorScheme.error)
                 }
-                
+
                 androidx.compose.material3.Surface(
                     color = messageColor.copy(alpha = 0.08f),
                     shape = RoundedCornerShape(6.dp),
@@ -2385,7 +2354,7 @@ fun FormSection(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = if (messageColor == androidx.compose.material3.MaterialTheme.colorScheme.error) 
+                            imageVector = if (messageColor == androidx.compose.material3.MaterialTheme.colorScheme.error)
                                 Icons.Default.Info else Icons.Default.CheckCircle,
                             contentDescription = null,
                             tint = messageColor,
@@ -4557,7 +4526,6 @@ fun EnhancedCameraPreview(
                                             
                                             // تنظیم منبع تحلیل بر اساس حالت انتخاب شده
                                             analysisSource = when (selectedScanMode) {
-                                                ScanMode.AI_SCAN -> "AI"
                                                 ScanMode.ML_KIT_SCAN -> "ML_KIT"
                                                 ScanMode.LOCAL_AI_SCAN -> "LOCAL_AI"
                                             }
@@ -4570,7 +4538,7 @@ fun EnhancedCameraPreview(
                                 },
                                 onAnalysisStateChanged = { isAnalyzing ->
                                     // Callback برای وضعیت تحلیل AI
-                                    isAIAnalyzing = isAnalyzing && selectedScanMode == ScanMode.AI_SCAN
+                                    isAIAnalyzing = isAnalyzing && selectedScanMode == ScanMode.ML_KIT_SCAN
                                 },
                                 scanMode = selectedScanMode // ارسال حالت اسکن انتخاب شده
                             ))
@@ -4587,7 +4555,7 @@ fun EnhancedCameraPreview(
                         )
 
                         // Check flashlight support
-                        hasTorch = camera?.cameraInfo?.hasFlashUnit() ?: false
+                        hasTorch = camera?.cameraInfo?.hasFlashUnit() == true
                     } catch (exc: Exception) {
                         exc.printStackTrace()
                     }
@@ -4624,7 +4592,6 @@ fun EnhancedCameraPreview(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val (icon, title, color) = when (selectedScanMode) {
-                        ScanMode.AI_SCAN -> Triple("🤖", "اسکن هوشمند", Color(0xFF2196F3))
                         ScanMode.ML_KIT_SCAN -> Triple("📱", "اسکن داخلی", Color(0xFF4CAF50))
                         ScanMode.LOCAL_AI_SCAN -> Triple("🤖", "اسکن هوشمند", Color(0xFF2196F3))
                     }
@@ -4641,7 +4608,7 @@ fun EnhancedCameraPreview(
                     )
                     
                     // نمایش وضعیت تحلیل
-                    if (isAIAnalyzing && selectedScanMode == ScanMode.AI_SCAN) {
+                    if (isAIAnalyzing && selectedScanMode == ScanMode.ML_KIT_SCAN) {
                         androidx.compose.material3.CircularProgressIndicator(
                             color = color,
                             modifier = Modifier.size(16.dp),
@@ -4653,7 +4620,6 @@ fun EnhancedCameraPreview(
                 // راهنمای کاربر
                 Text(
                     text = when (selectedScanMode) {
-                        ScanMode.AI_SCAN -> "قبض باسکول را در کادر قرار دهید - تحلیل هوشمند"
                         ScanMode.ML_KIT_SCAN -> "قبض باسکول را در کادر قرار دهید - پردازش سریع"
                         ScanMode.LOCAL_AI_SCAN -> "قبض باسکول را در کادر قرار دهید - تحلیل هوشمند"
                     },
@@ -4704,7 +4670,6 @@ fun EnhancedCameraPreview(
                             ) {
                                 Text(
                                     text = when (analysisSource) {
-                                        "AI" -> "🤖 AI"
                                         "ML_KIT" -> "📱 ML"
                                         "LOCAL_AI" -> "🤖 LOCAL_AI"
                                         else -> "🔍"
@@ -4751,7 +4716,7 @@ fun EnhancedCameraPreview(
 
         // نمایش وضعیت تحلیل AI
         AnimatedVisibility(
-            visible = isAIAnalyzing && selectedScanMode == ScanMode.AI_SCAN,
+            visible = isAIAnalyzing && selectedScanMode == ScanMode.ML_KIT_SCAN,
             enter = fadeIn(animationSpec = tween(300)) + expandIn(
                 expandFrom = Alignment.Center,
                 animationSpec = tween(300)
@@ -4908,15 +4873,6 @@ fun ScanModeSelector(
             description = "پایه و سریع",
             isSelected = currentMode == ScanMode.ML_KIT_SCAN,
             onClick = { onModeChanged(ScanMode.ML_KIT_SCAN) },
-            modifier = Modifier.weight(1f)
-        )
-        
-        ScanModeButton(
-            text = "اسکن آنلاین",
-            icon = Icons.Default.Cloud,
-            description = "دقیق اما آهسته",
-            isSelected = currentMode == ScanMode.AI_SCAN,
-            onClick = { onModeChanged(ScanMode.AI_SCAN) },
             modifier = Modifier.weight(1f)
         )
     }
