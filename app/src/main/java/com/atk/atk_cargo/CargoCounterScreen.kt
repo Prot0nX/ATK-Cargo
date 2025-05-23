@@ -173,6 +173,13 @@ fun CargoCounterScreen(navController: NavController) {
     var snackbarMessage by remember { mutableStateOf<CargoSnackbarMessage?>(null) }
     var showShipSelectionDialog by remember { mutableStateOf(false) }
 
+    // نمایش خودکار دیالوگ انتخاب کشتی وقتی هیچ کشتی انتخاب نشده
+    LaunchedEffect(selectedShipNames, activeShips) {
+        if (selectedShipNames.isEmpty() && activeShips.isNotEmpty()) {
+            showShipSelectionDialog = true
+        }
+    }
+
     fun updateShipColors(ships: List<ActiveShipInfo>) {
         colorSelector.reset()
         shipColorMap.value = ships.associate { ship ->
@@ -2091,11 +2098,19 @@ private fun ShipSelectionDialog(
                                 onDismiss()
                             },
                             modifier = Modifier.weight(1f),
+                            enabled = selectedShips.value.isNotEmpty(), // غیرفعال کردن دکمه تا زمانی که کشتی انتخاب نشده
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = primaryColor
+                                containerColor = primaryColor,
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                         ) {
-                            Text(text = "تایید")
+                            Text(
+                                text = if (selectedShips.value.isEmpty()) "ابتدا کشتی انتخاب کنید" else "تایید",
+                                color = if (selectedShips.value.isEmpty()) 
+                                    MaterialTheme.colorScheme.onSurfaceVariant 
+                                else 
+                                    Color.White
+                            )
                         }
                         
                         // دکمه انصراف
