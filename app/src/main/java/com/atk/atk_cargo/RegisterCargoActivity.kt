@@ -3129,7 +3129,7 @@ private fun CompactTruckInfo(
             modifier = Modifier.size(12.dp)
         )
         Text3(
-            text = "$type = $count",
+            text = "$count = $type",
             style = MaterialTheme3.typography.labelLarge,
             fontWeight = FontWeight.Medium,
             color = color

@@ -1263,7 +1263,7 @@ private fun refreshData(
 suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): Result<String> {
     val client = HttpClient(CIO)
     return try {
-        val url = "https://atk-nk.site/Cargo/Test/confirm_cargo.php"
+        val url = "https://atk-nk.click/Cargo/Test/confirm_cargo.php"
         val requestBody = Json.encodeToString(mapOf(
             "trackingNumber" to info.trackingNumber,
             "loadingQuotaNumber" to info.loadingQuotaNumber,
