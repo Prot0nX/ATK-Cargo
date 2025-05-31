@@ -8,6 +8,13 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -205,6 +212,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import com.atk.atk_cargo.api.LoadingNotificationService
 
 class MainActivity : ComponentActivity() {
     private var updateInfo by mutableStateOf<UpdateInfo?>(null)
@@ -243,6 +251,9 @@ class MainActivity : ComponentActivity() {
                         // سپس بررسی بروزرسانی را انجام می‌دهیم
                         checkForUpdate()
                         delay(1500) // افزایش تاخیر
+                        
+                        // راه‌اندازی سرویس نوتیفیکیشن بارگیری لحظه‌ای
+                        startLoadingNotificationService()
                         
                         // نمایش محتوای اصلی
                         showMainContent = true
@@ -523,6 +534,50 @@ class MainActivity : ComponentActivity() {
 
     private fun showMessage(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+    }
+
+    private fun startLoadingNotificationService() {
+        // بررسی و درخواست مجوز نوتیفیکیشن
+        checkNotificationPermission()
+        
+        // بررسی سطح دسترسی کاربر قبل از راه‌اندازی سرویس
+        lifecycleScope.launch {
+            val userPreferencesManager = UserPreferencesManager(this@MainActivity)
+            val userType = userPreferencesManager.userType.first()
+            
+            if (userType == "admin") {
+                // شروع سرویس فقط برای کاربران admin
+                Log.d("MainActivity", "User is admin, starting loading notification service")
+                LoadingNotificationService.startLoadingNotification(this@MainActivity)
+            } else {
+                Log.d("MainActivity", "User is not admin, skipping notification service")
+                // اطمینان از توقف سرویس اگر قبلاً اجرا شده است
+                val intent = Intent(this@MainActivity, LoadingNotificationService::class.java)
+                intent.action = "STOP_SERVICE"
+                startService(intent)
+            }
+        }
+    }
+    
+    private fun checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            
+            if (!hasPermission) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    NOTIFICATION_PERMISSION_REQUEST_CODE
+                )
+            }
+        }
+    }
+    
+    companion object {
+        private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 100
     }
 }
 
