@@ -26,6 +26,7 @@
     <!-- مجوزهای مربوط به رابط کاربری و نوتیفیکیشن -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     
     <!-- مجوزهای مربوط به دسترسی فایل و نصب -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
@@ -90,6 +91,33 @@
             android:excludeFromRecents="true"
             android:launchMode="singleInstance"
             android:exported="false" />
+        
+        <!-- سرویس نوتیفیکیشن بارگیری لحظه‌ای -->
+        <service
+            android:name=".api.LoadingNotificationService"
+            android:enabled="true"
+            android:exported="false" />
+            
+        <!-- دریافت کننده رویداد بوت دستگاه -->
+        <receiver
+            android:name=".api.BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </receiver>
+        
+        <!-- دریافت کننده اکشن‌های نوتیفیکیشن -->
+        <receiver
+            android:name=".api.NotificationActionReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.atk.atk_cargo.action.MUTE_SHIP" />
+            </intent-filter>
+        </receiver>
         
         <!-- پروایدرها -->
         <provider
