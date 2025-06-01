@@ -221,7 +221,24 @@ class LoadingNotificationService : Service() {
         val shiftId = "${shiftInfo.type}_${shiftInfo.start}"
         
         val prefs = getSharedPreferences("ShiftNotificationsPrefs", MODE_PRIVATE)
-        prefs.edit { putString("current_shift_id", shiftId) }
+        val previousShiftId = prefs.getString("current_shift_id", "") ?: ""
+        
+        // اگر شیفت تغییر کرده باشد، پرچم غیرفعال‌سازی شیفت قبلی را پاک می‌کنیم
+        if (previousShiftId.isNotEmpty() && previousShiftId != shiftId) {
+            Log.d(TAG, "Shift changed from $previousShiftId to $shiftId, resetting disabled flags")
+            
+            // پرچم غیرفعال‌سازی برای شیفت قبلی را پاک می‌کنیم تا شیفت جدید فعال باشد
+            prefs.edit {
+                remove("disabled_$previousShiftId")
+                putString("current_shift_id", shiftId)
+            }
+            
+            // گزارش تغییر شیفت به لاگ
+            Log.d(TAG, "Notifications enabled for new shift: $shiftId")
+        } else {
+            // شیفت تغییر نکرده، فقط ذخیره می‌کنیم
+            prefs.edit { putString("current_shift_id", shiftId) }
+        }
         
         Log.d(TAG, "Saved current shift info: $shiftId")
     }
@@ -234,10 +251,19 @@ class LoadingNotificationService : Service() {
         val currentShiftId = prefs.getString("current_shift_id", "") ?: ""
         
         if (currentShiftId.isEmpty()) {
+            Log.d(TAG, "No current shift ID found, notifications are enabled")
             return false
         }
         
-        return prefs.getBoolean("disabled_$currentShiftId", false)
+        val isDisabled = prefs.getBoolean("disabled_$currentShiftId", false)
+        
+        if (isDisabled) {
+            Log.d(TAG, "Notifications are disabled for current shift: $currentShiftId")
+        } else {
+            Log.d(TAG, "Notifications are enabled for current shift: $currentShiftId")
+        }
+        
+        return isDisabled
     }
 
     /**

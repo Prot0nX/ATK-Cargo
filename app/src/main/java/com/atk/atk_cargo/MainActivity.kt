@@ -511,6 +511,9 @@ class MainActivity : ComponentActivity() {
                     when {
                         response.isSuccessful && response.body()?.success == true -> {
                             _isSessionValid.value = true
+                            
+                            // راه‌اندازی سرویس اعلان‌های بارگیری بعد از تأیید اعتبار جلسه
+                            startLoadingNotificationService()
                         }
                         else -> {
                             _isSessionValid.value = false
