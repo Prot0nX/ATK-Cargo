@@ -801,8 +801,11 @@
 	 * API برای دریافت تناژ قابل بارگیری برای یک کوتاژ خاص
 	 * این API برای استفاده مستقیم از سمت کلاینت برای دریافت سریع مقدار تناژ قابل بارگیری طراحی شده است
 	 */
-	function getLoadableTonnage(DatabaseManager $db, string $quotaNumber): array {
+	function getLoadableTonnage(DatabaseManager $db, string $quotaNumber, string $shippingCompany = '', string $warehouse = '', string $cargoType = ''): array {
 		$quotaNumber = sanitizeInput($quotaNumber);
+		$shippingCompany = sanitizeInput($shippingCompany);
+		$warehouse = sanitizeInput($warehouse);
+		$cargoType = sanitizeInput($cargoType);
 		
 		$query = "
 		SELECT 
@@ -814,6 +817,9 @@
 				SELECT COALESCE(SUM(netWeight), 0)
 				FROM CargoInfo 
 				WHERE CargoInfo.loadingQuotaNumber = i.loadingQuotaNumber
+				AND CargoInfo.shippingCompany = i.shippingCompany
+				AND CargoInfo.loadingWarehouse = i.loadingWarehouse
+				AND CargoInfo.cargoType = i.cargoType
 				AND CargoInfo.status = 'خروج'
 			) as loadedTonnage
 		FROM 
@@ -821,16 +827,43 @@
 		WHERE 
 			i.loadingQuotaNumber = ?";
 		
+		$params = [$quotaNumber];
+		$types = "s";
+		
+		// اگر پارامترهای اضافی ارسال شده باشند، آنها را به کوئری اضافه می‌کنیم
+		if (!empty($shippingCompany)) {
+			$query .= " AND i.shippingCompany = ?";
+			$params[] = $shippingCompany;
+			$types .= "s";
+		}
+		
+		if (!empty($warehouse)) {
+			$query .= " AND i.loadingWarehouse = ?";
+			$params[] = $warehouse;
+			$types .= "s";
+		}
+		
+		if (!empty($cargoType)) {
+			$query .= " AND i.cargoType = ?";
+			$params[] = $cargoType;
+			$types .= "s";
+		}
+		
 		try {
 			$stmt = $db->prepare($query);
-			$stmt->bind_param("s", $quotaNumber);
+			
+			// باند کردن پارامترها به صورت داینامیک
+			if (count($params) > 0) {
+				$stmt->bind_param($types, ...$params);
+			}
+			
 			$stmt->execute();
 			$result = $stmt->get_result();
 			
 			if ($row = $result->fetch_assoc()) {
 				$loadedTonnage = floatval($row['loadedTonnage']);
 				$totalTonnage = floatval($row['totalTonnage']);
-				$remainingTonnage = $totalTonnage - $loadedTonnage; // حذف max(0, ...) برای اجازه مقادیر منفی
+				$remainingTonnage = $totalTonnage - $loadedTonnage;
 				$percentage = $row['percentage'] !== null ? floatval($row['percentage']) : null;
 				$isPercentageRestricted = (bool)$row['is_enabled'];
 				
@@ -856,7 +889,7 @@
 			
 			return [
 				'success' => false,
-				'message' => 'کوتاژ مورد نظر یافت نشد'
+				'message' => 'کوتاژ مورد نظر با مشخصات وارد شده یافت نشد'
 			];
 		} catch (Exception $e) {
 			customLog("Error in getLoadableTonnage: " . $e->getMessage());
@@ -1181,7 +1214,12 @@
 				if (!isset($_GET['quotaNumber'])) {
 					throw new Exception('شماره کوتاژ مشخص نشده است');
 				}
-				$result = getLoadableTonnage($db, $_GET['quotaNumber']);
+				$quotaNumber = sanitizeInput($_GET['quotaNumber']);
+				$shippingCompany = isset($_GET['shippingCompany']) ? sanitizeInput($_GET['shippingCompany']) : '';
+				$warehouse = isset($_GET['warehouse']) ? sanitizeInput($_GET['warehouse']) : '';
+				$cargoType = isset($_GET['cargoType']) ? sanitizeInput($_GET['cargoType']) : '';
+				
+				$result = getLoadableTonnage($db, $quotaNumber, $shippingCompany, $warehouse, $cargoType);
 				sendJsonResponse($result);
 				break;
 			
