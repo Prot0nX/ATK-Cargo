@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import android.widget.Toast
 
 /**
  * BroadcastReceiver برای مدیریت اکشن‌های نوتیفیکیشن‌های بارگیری لحظه‌ای
@@ -85,6 +86,14 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 if (shiftInfo.isNotEmpty()) {
                     prefs.edit().putBoolean("disabled_$shiftInfo", true).apply()
                     Log.d(TAG, "Disabled notifications for shift: $shiftInfo")
+                    
+                    // نمایش پیام برای اطلاع‌رسانی به کاربر
+                    val shiftType = if (shiftInfo.contains("day")) "روز" else if (shiftInfo.contains("night")) "شب" else "فعلی"
+                    Toast.makeText(
+                        context, 
+                        "اعلان‌های بارگیری برای شیفت $shiftType غیرفعال شدند. در شیفت بعدی دوباره فعال خواهند شد.", 
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
                 
                 // پاک کردن نوتیفیکیشن‌های فعلی

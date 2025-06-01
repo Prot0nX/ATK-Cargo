@@ -32,8 +32,8 @@ class LoadingNotificationManager(private val context: Context) {
     companion object {
         const val CHANNEL_ID = "loading_notifications"
         private const val GROUP_KEY = "com.atk.atk_cargo.LOADING_NOTIFICATIONS"
-        private const val SUMMARY_ID = 0
         private const val MAIN_STATUS_ID = 1
+        private const val SUMMARY_ID = 0
         private const val SHIPS_PREFS_NAME = "ship_notifications_prefs"
         private const val KEY_MUTED_SHIPS = "muted_ships"
     }
@@ -105,18 +105,8 @@ class LoadingNotificationManager(private val context: Context) {
         var totalExitVouchers = 0
         var totalNetWeight = 0
         
-        // ساخت نوتیفیکیشن برای هر کشتی
-        shipGroups.forEach { (shipName, shipData) ->
-            // بررسی آیا این کشتی غیرفعال شده است
-            if (!mutedShips.contains(shipName)) {
-                showShipNotification(shipName, shipData)
-                activeShipCount++
-            } else if (isRefresh) {
-                // در صورت بروزرسانی دستی، کشتی‌های غیرفعال را هم با قابلیت فعال‌سازی مجدد نمایش می‌دهیم
-                showMutedShipNotification(shipName, shipData)
-            }
-            
-            // جمع‌آوری آمار کلی
+        // ابتدا جمع‌آوری آمار کلی
+        shipGroups.forEach { (_, shipData) ->
             shipData.forEach { data ->
                 // محاسبه مجموع حواله‌ها (ورودی + خروجی)
                 totalVouchers += (data.entryVouchers + data.exitVouchers)
@@ -126,13 +116,25 @@ class LoadingNotificationManager(private val context: Context) {
             }
         }
         
-        // نمایش نوتیفیکیشن آمار کلی
-        showMainStatusNotification(totalVouchers, totalInputVouchers, totalExitVouchers, totalNetWeight, isRefresh)
+        // ابتدا نمایش نوتیفیکیشن برای هر کشتی
+        shipGroups.forEach { (shipName, shipData) ->
+            // بررسی آیا این کشتی غیرفعال شده است
+            if (!mutedShips.contains(shipName)) {
+                showShipNotification(shipName, shipData)
+                activeShipCount++
+            } else if (isRefresh) {
+                // در صورت بروزرسانی دستی، کشتی‌های غیرفعال را هم با قابلیت فعال‌سازی مجدد نمایش می‌دهیم
+                showMutedShipNotification(shipName, shipData)
+            }
+        }
         
         // اگر کشتی‌های غیرفعال شده داریم، نوتیفیکیشن مدیریت آنها را نمایش دهیم
         if (mutedShips.isNotEmpty() && !isRefresh) {
             showMutedShipsManagementNotification(mutedShips.size)
         }
+        
+        // سپس نمایش نوتیفیکیشن آمار کلی (با اولویت بالاتر)
+        showMainStatusNotification(totalVouchers, totalInputVouchers, totalExitVouchers, totalNetWeight, isRefresh)
         
         // اگر نوتیفیکیشن آمار کلی یا کشتی‌های فعال نمایش داده شده‌اند،
         // نوتیفیکیشن وضعیت سرویس را حذف کنیم تا اسپم نباشد
@@ -165,10 +167,12 @@ class LoadingNotificationManager(private val context: Context) {
         
         // گرفتن نام انبار(ها) برای نمایش در حالت بسته
         val warehouses = shipData.map { it.loadingWarehouse }.distinct()
-        val warehouseText = if (warehouses.size == 1) {
-            warehouses.first()
+        
+        // متن عنوان برای حالت بسته با اضافه کردن نام انبار
+        val contentTitle = if (warehouses.size == 1) {
+            "کشتی $shipName (${warehouses.first()})"
         } else {
-            "${warehouses.size} انبار"
+            "کشتی $shipName (${warehouses.size} انبار)"
         }
         
         // ایجاد اینتنت برای باز شدن برنامه هنگام کلیک روی نوتیفیکیشن
@@ -200,9 +204,6 @@ class LoadingNotificationManager(private val context: Context) {
         // متن جزئیات برای حالت گسترده
         val expandedText = buildExpandedText(shipData)
         
-        // متن عنوان برای حالت بسته با اضافه کردن نام انبار
-        val contentTitle = "کشتی $shipName (${warehouseText})"
-        
         // متن خلاصه با نمایش حواله‌های ورودی و خروجی
         val contentText = "✅ ورود: $totalInputVouchers | ⬅️ خروج: $totalExitVouchers | ⚖️ تناژ: $totalNetWeight"
         
@@ -216,6 +217,9 @@ class LoadingNotificationManager(private val context: Context) {
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setGroup(GROUP_KEY)
+            // تنظیم کلید مرتب‌سازی بر اساس نام کشتی
+            .setSortKey("a_ship_$shipName")  // استفاده از a برای قرار گرفتن در ابتدای فهرست، قبل از اعلان آمار کلی
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .addAction(
                 R.drawable.ic_notification_mute,
                 "غیرفعال کردن اعلان",
@@ -236,16 +240,42 @@ class LoadingNotificationManager(private val context: Context) {
         // گروه‌بندی بر اساس انبار
         val warehouseGroups = shipData.groupBy { it.loadingWarehouse }
         
-        warehouseGroups.forEach { (warehouseName, warehouseData) ->
-            // آمار کلی انبار
-            val totalInputVouchers = warehouseData.sumOf { it.entryVouchers }
-            val totalExitVouchers = warehouseData.sumOf { it.exitVouchers }
-            val totalNetWeight = formatNumber(warehouseData.sumOf { it.totalNetWeight })
-            val totalVouchers = totalInputVouchers + totalExitVouchers
+        // اگر فقط یک انبار وجود دارد، به همان روش قبلی نمایش داده شود
+        if (warehouseGroups.size == 1) {
+            warehouseGroups.forEach { (warehouseName, warehouseData) ->
+                // آمار کلی انبار
+                val totalInputVouchers = warehouseData.sumOf { it.entryVouchers }
+                val totalExitVouchers = warehouseData.sumOf { it.exitVouchers }
+                val totalNetWeight = formatNumber(warehouseData.sumOf { it.totalNetWeight })
+                val totalVouchers = totalInputVouchers + totalExitVouchers
 
-            // نمایش اطلاعات کلی انبار در دو خط
-            stringBuilder.append("📦 $warehouseName:\n")
-            stringBuilder.append(" | حواله: $totalVouchers | ورود: $totalInputVouchers | خروج: $totalExitVouchers | تناژ: $totalNetWeight\n\n")
+                // نمایش اطلاعات کلی انبار: نام انبار در یک خط و اطلاعات در خط بعدی
+                stringBuilder.append("📦 $warehouseName\n")
+                stringBuilder.append("حواله: $totalVouchers | ورود: $totalInputVouchers | خروج: $totalExitVouchers | تناژ: $totalNetWeight\n\n")
+            }
+        } else {
+            // اگر بیش از یک انبار وجود دارد، با خط جداکننده نمایش داده شود
+            
+            val warehouseList = warehouseGroups.entries.toList()
+            for (i in warehouseList.indices) {
+                val (warehouseName, warehouseData) = warehouseList[i]
+                // آمار کلی انبار
+                val totalInputVouchers = warehouseData.sumOf { it.entryVouchers }
+                val totalExitVouchers = warehouseData.sumOf { it.exitVouchers }
+                val totalNetWeight = formatNumber(warehouseData.sumOf { it.totalNetWeight })
+                val totalVouchers = totalInputVouchers + totalExitVouchers
+
+                // نمایش اطلاعات کلی انبار: نام انبار در یک خط و اطلاعات در خط بعدی
+                stringBuilder.append("📦 $warehouseName\n")
+                stringBuilder.append("حواله: $totalVouchers | ورود: $totalInputVouchers | خروج: $totalExitVouchers | تناژ: $totalNetWeight")
+                
+                // اضافه کردن خط جداکننده بین انبارها (به جز آخرین انبار)
+                if (i < warehouseList.size - 1) {
+                    stringBuilder.append("\n" + "-".repeat(30) + "\n")
+                } else {
+                    stringBuilder.append("\n\n")
+                }
+            }
         }
         
         return stringBuilder.toString()
@@ -334,10 +364,16 @@ class LoadingNotificationManager(private val context: Context) {
             .setContentTitle("آمار کلی بارگیری")
             .setContentText(contentText)
             .setStyle(NotificationCompat.BigTextStyle().bigText(expandedTextBuilder.toString()))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            // استفاده از اولویت بسیار بالا برای اعلان آمار کلی
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setGroup(GROUP_KEY)
+            // تنظیمات اولویت و ترتیب نمایش
+            .setSortKey("z_total_stats")  // استفاده از z برای قرار گرفتن در انتهای فهرست
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            // تنظیم وزن اعلان برای اطمینان از نمایش در بالا
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(
                 R.drawable.ic_notification_mute,
                 "غیرفعال کردن",
@@ -447,6 +483,8 @@ class LoadingNotificationManager(private val context: Context) {
             .setContentText("$mutedShipsCount کشتی غیرفعال شده دارید")
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setGroup(GROUP_KEY)
+            // تنظیم کلید مرتب‌سازی برای اعلان مدیریت کشتی‌های غیرفعال شده
+            .setSortKey("c_muted_management")  // استفاده از c برای قرار گرفتن بعد از کشتی‌های غیرفعال اما قبل از اعلان آمار کلی
             .addAction(
                 R.drawable.ic_notification_icon,
                 "فعال‌سازی همه",
@@ -472,10 +510,12 @@ class LoadingNotificationManager(private val context: Context) {
         
         // گرفتن نام انبار(ها) برای نمایش در حالت بسته
         val warehouses = shipData.map { it.loadingWarehouse }.distinct()
-        val warehouseText = if (warehouses.size == 1) {
-            warehouses.first()
+        
+        // متن عنوان برای حالت بسته با اضافه کردن نام انبار
+        val contentTitle = if (warehouses.size == 1) {
+            "کشتی $shipName (${warehouses.first()}) - غیرفعال"
         } else {
-            "${warehouses.size} انبار"
+            "کشتی $shipName (${warehouses.size} انبار) - غیرفعال"
         }
         
         // ایجاد اینتنت برای فعال‌سازی مجدد نوتیفیکیشن این کشتی
@@ -491,8 +531,8 @@ class LoadingNotificationManager(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         
-        // متن عنوان برای حالت بسته با اضافه کردن نام انبار
-        val contentTitle = "کشتی $shipName (${warehouseText}) - غیرفعال"
+        // متن جزئیات برای حالت گسترده
+        val expandedText = buildExpandedText(shipData)
         
         // متن خلاصه با نمایش حواله‌های ورودی و خروجی
         val contentText = "✅ ورود: $totalInputVouchers | ⬅️ خروج: $totalExitVouchers | ⚖️ تناژ: $totalNetWeight"
@@ -502,8 +542,11 @@ class LoadingNotificationManager(private val context: Context) {
             .setSmallIcon(R.drawable.ic_notification_mute)
             .setContentTitle(contentTitle)
             .setContentText(contentText)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(expandedText))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setGroup(GROUP_KEY)
+            // تنظیم کلید مرتب‌سازی برای کشتی‌های غیرفعال شده
+            .setSortKey("b_muted_ship_$shipName")  // استفاده از b برای قرار گرفتن بعد از کشتی‌های فعال اما قبل از اعلان آمار کلی
             .addAction(
                 R.drawable.ic_notification_icon,
                 "فعال‌سازی مجدد",
