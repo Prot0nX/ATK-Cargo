@@ -795,7 +795,12 @@ class CargoViewModel(
                     // استفاده از API جدید برای دریافت فوری تناژ قابل بارگیری
                     try {
                         val response = withContext(Dispatchers.IO) {
-                            apiService.getLoadableTonnage(quotaNumber = info.loadingQuotaNumber.toString())
+                            apiService.getLoadableTonnage(
+                                quotaNumber = info.loadingQuotaNumber.toString(),
+                                shippingCompany = info.shippingCompany,
+                                warehouse = info.loadingWarehouse,
+                                cargoType = info.cargoType
+                            )
                         }
                         
                         if (response.isSuccessful && response.body()?.success == true) {
@@ -824,12 +829,11 @@ class CargoViewModel(
                                 Log.d("CargoViewModel", "Initial loadable tonnage updated via API: ${_loadableTonnage.value}")
                             }
                         } else {
-                            // در صورت خطا، از روش قدیمی استفاده می‌کنیم
-                            fallbackLoadableTonnageCalculation(info)
+                            // در صورت خطا، فقط لاگ می‌کنیم و از محاسبه محلی خودداری می‌کنیم
+                            Log.e("CargoViewModel", "Error in API call for initial loadable tonnage")
                         }
                     } catch (e: Exception) {
                         Log.e("CargoViewModel", "Error in API call for loadable tonnage", e)
-                        fallbackLoadableTonnageCalculation(info)
                     }
                 }
             } catch (e: Exception) {
@@ -867,26 +871,42 @@ class CargoViewModel(
                     _totalServices.value = result.initialInfo.totalVoucherCount.toString()
                 }
 
-                // محاسبه مستقیم و فوری تناژ قابل بارگیری با اولویت بالا
-                // این بخش اولین محاسبه برای نمایش سریع را انجام می‌دهد
-                val shipName = result.initialInfo.shipName
+                // بعد از دریافت اطلاعات اولیه، درخواست محاسبه تناژ قابل بارگیری را به سرور ارسال می‌کنیم
                 val quotaNumber = result.initialInfo.loadingQuotaNumber.toString()
+                val shippingCompany = result.initialInfo.shippingCompany
+                val warehouse = result.initialInfo.loadingWarehouse
+                val cargoType = result.initialInfo.cargoType
                 
-                // استفاده از CoroutineScope جدید با Dispatchers.Main.immediate برای اجرای با اولویت بالا
+                // استفاده از CoroutineScope جدید برای اجرای با اولویت بالا
                 CoroutineScope(Dispatchers.Default + SupervisorJob()).launch {
                     try {
-                        val quotas = withContext(Dispatchers.IO) { 
-                            repository.getShipQuotas(shipName)
+                        val response = withContext(Dispatchers.IO) {
+                            apiService.getLoadableTonnage(
+                                quotaNumber = quotaNumber,
+                                shippingCompany = shippingCompany,
+                                warehouse = warehouse,
+                                cargoType = cargoType
+                            )
                         }
                         
-                        val quota = quotas.find { it.number == quotaNumber }
-                        quota?.let {
-                            val loadableTonnageValue = calculateLoadableTonnage(it)
+                        if (response.isSuccessful && response.body()?.success == true) {
+                            val data = response.body()!!
                             withContext(Dispatchers.Main.immediate) {
-                                _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
-                                // محاسبه تعداد ماشین‌های قابل بارگیری
-                                updateLoadableTrucksCount(loadableTonnageValue)
+                                data.loadableTonnage?.let { tonnage ->
+                                    _loadableTonnage.value = DecimalFormat("#,###").format(tonnage.roundToInt())
+                                }
+                                
+                                // استفاده از مقادیر محاسبه‌شده در سمت سرور
+                                data.trucks18Wheeler?.let { count ->
+                                    _loadableTrucks18Wheeler.value = count.toString()
+                                }
+                                
+                                data.trucks10Wheeler?.let { count ->
+                                    _loadableTrucks10Wheeler.value = count.toString()
+                                }
                             }
+                        } else {
+                            Log.e("CargoViewModel", "Error in API call for loadable tonnage during initial load")
                         }
                     } catch (e: Exception) {
                         Log.e("CargoViewModel", "Error calculating loadable tonnage", e)
@@ -926,25 +946,9 @@ class CargoViewModel(
         }
     }
     
-    // متد کمکی برای محاسبه تناژ قابل بارگیری به روش قدیمی
-    private suspend fun fallbackLoadableTonnageCalculation(info: InitialInfo) {
-        try {
-            val quotas = withContext(Dispatchers.IO) {
-                repository.getShipQuotas(info.shipName)
-            }
-            
-            val quota = quotas.find { it.number == info.loadingQuotaNumber.toString() }
-            quota?.let {
-                val loadableTonnageValue = calculateLoadableTonnage(it)
-                withContext(Dispatchers.Main.immediate) {
-                    _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
-                    updateLoadableTrucksCount(loadableTonnageValue)
-                    Log.d("CargoViewModel", "Initial loadable tonnage updated via fallback: ${_loadableTonnage.value}")
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("CargoViewModel", "Error in fallback tonnage calculation", e)
-        }
+    // متد کمکی برای نمایش خطا در محاسبه تناژ قابل بارگیری
+    private suspend fun logTonnageCalculationError(info: InitialInfo, error: Exception) {
+        Log.e("CargoViewModel", "Error calculating loadable tonnage for quota ${info.loadingQuotaNumber}: ${error.message}", error)
     }
 
     private fun isTrackingNumberDuplicate(trackingNumber: String): Boolean {
@@ -1202,20 +1206,10 @@ class CargoViewModel(
         return gregorianToJalali(Calendar.getInstance())
     }
 
-    private fun calculateLoadableTonnage(quota: Quota): Double {
-        return if (quota.isPercentageRestricted == true && quota.percentage != null) {
-            val percentageAmount = quota.totalTonnage * (quota.percentage / 100)
-            val remainingTonnage = quota.remainingTonnage
-
-            // محاسبه تناژ قابل بارگیری
-            val loadableTonnage = remainingTonnage - percentageAmount
-
-            // برگرداندن مقدار (حتی اگر منفی باشد)
-            loadableTonnage
-
-        } else {
-            quota.remainingTonnage.toDouble()
-        }
+    // این متد در نسخه‌های قبلی برای محاسبه تناژ مجاز در سمت کلاینت استفاده می‌شد
+    // در نسخه فعلی، تمام محاسبات تناژ مجاز صرفاً در سمت سرور انجام می‌شود
+    private fun logDeprecatedTonnageCalculation() {
+        Log.d("CargoViewModel", "Local tonnage calculation is deprecated. Server-side calculation is used instead.")
     }
     
     // بروزرسانی فوری مقدار تناژ قابل بارگیری با اولویت بالا
@@ -1226,7 +1220,12 @@ class CargoViewModel(
                 _initialInfo.value?.let { info ->
                     // استفاده از API مستقیم برای دریافت سریع تناژ قابل بارگیری
                     val response = withContext(Dispatchers.IO) {
-                        apiService.getLoadableTonnage(quotaNumber = info.loadingQuotaNumber.toString())
+                        apiService.getLoadableTonnage(
+                            quotaNumber = info.loadingQuotaNumber.toString(),
+                            shippingCompany = info.shippingCompany,
+                            warehouse = info.loadingWarehouse,
+                            cargoType = info.cargoType
+                        )
                     }
                     
                     if (response.isSuccessful && response.body()?.success == true) {
@@ -1249,45 +1248,13 @@ class CargoViewModel(
                             
                             Log.d("CargoViewModel", "Loadable tonnage updated via API: ${_loadableTonnage.value}")
                         }
-                        return@launch
-                    }
-                    
-                    // در صورت خطا، از روش قبلی استفاده می‌کنیم
-                    val quotas = withContext(Dispatchers.IO) {
-                        repository.getShipQuotas(info.shipName)
-                    }
-                    val quota = quotas.find { it.number == info.loadingQuotaNumber.toString() }
-                    
-                    quota?.let {
-                        val loadableTonnageValue = calculateLoadableTonnage(it)
-                        // استفاده از Main.immediate برای بروزرسانی فوری UI
-                        withContext(Dispatchers.Main.immediate) {
-                            _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
-                            updateLoadableTrucksCount(loadableTonnageValue)
-                            Log.d("CargoViewModel", "Loadable tonnage updated via fallback: ${_loadableTonnage.value}")
-                        }
+                    } else {
+                        // در صورت خطا، فقط لاگ می‌کنیم و از محاسبه سمت کلاینت خودداری می‌کنیم
+                        Log.e("CargoViewModel", "Error in API call for loadable tonnage: ${response.errorBody()?.string()}")
                     }
                 }
             } catch (e: Exception) {
                 Log.e("CargoViewModel", "Error updating loadable tonnage", e)
-                // در صورت خطا، از روش قبلی استفاده می‌کنیم
-                _initialInfo.value?.let { info ->
-                    try {
-                        val quotas = withContext(Dispatchers.IO) {
-                            repository.getShipQuotas(info.shipName)
-                        }
-                        val quota = quotas.find { it.number == info.loadingQuotaNumber.toString() }
-                        quota?.let {
-                            val loadableTonnageValue = calculateLoadableTonnage(it)
-                            withContext(Dispatchers.Main.immediate) {
-                                _loadableTonnage.value = DecimalFormat("#,###").format(loadableTonnageValue.roundToInt())
-                                updateLoadableTrucksCount(loadableTonnageValue)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.e("CargoViewModel", "Error in fallback tonnage calculation", e)
-                    }
-                }
             }
         }
     }

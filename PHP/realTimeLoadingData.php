@@ -1443,6 +1443,9 @@ private function generateDailyStats(): void {
         $shiftInfo = $this->determineShiftInfo($currentTime);
         $realTimeData = $this->getRealTimeData($shiftInfo);
 
+        // ثبت لاگ برای اطلاع از تعداد رکوردهای نهایی پاسخ
+        $this->logger->log("تعداد رکوردهای نهایی ارسالی در پاسخ: " . count($realTimeData), "INFO");
+
         APIResponse::send([
             'shiftInfo' => $shiftInfo,
             'data' => $realTimeData
@@ -1526,6 +1529,10 @@ private function generateDailyStats(): void {
 
         $stmt->execute();
         $result = $stmt->get_result();
+        
+        // ثبت لاگ برای اطلاع از تعداد رکوردهای پردازش شده
+        $this->logger->log("تعداد رکوردهای پردازش شده در پاسخ به درخواست داده‌های لحظه‌ای: " . $result->num_rows, "INFO");
+        
         return $result->fetch_all(MYSQLI_ASSOC);
     }
 
@@ -1536,6 +1543,7 @@ private function generateDailyStats(): void {
                 i.shipName,
                 i.loadingWarehouse,
                 i.shippingCompany,
+                i.cargoType,
                 COUNT(DISTINCT CASE WHEN c.status = 'ورود' THEN c.id END) AS entryVouchers,
                 COUNT(DISTINCT CASE WHEN c.status = 'خروج' THEN c.id END) AS exitVouchers,
                 COUNT(DISTINCT c.id) AS totalVouchers,
@@ -1543,7 +1551,10 @@ private function generateDailyStats(): void {
             FROM 
                 InitialInfo i
             LEFT JOIN 
-                CargoInfo c ON i.loadingQuotaNumber = c.loadingQuotaNumber
+                CargoInfo c ON i.loadingQuotaNumber = c.loadingQuotaNumber 
+                    AND i.loadingWarehouse = c.loadingWarehouse
+                    AND i.shippingCompany = c.shippingCompany
+                    AND i.cargoType = c.cargoType
             WHERE 
         ";
 
@@ -1562,7 +1573,7 @@ private function generateDailyStats(): void {
 
         $groupBy = "
             GROUP BY 
-                i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany
+                i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType
         ";
 
         return $baseQuery . $conditions . $groupBy;

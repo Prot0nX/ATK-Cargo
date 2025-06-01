@@ -163,7 +163,10 @@ interface ApiService {
     @GET("app_api.php")
     suspend fun getLoadableTonnage(
         @Query("action") action: String = "getLoadableTonnage",
-        @Query("quotaNumber") quotaNumber: String
+        @Query("quotaNumber") quotaNumber: String,
+        @Query("shippingCompany") shippingCompany: String,
+        @Query("warehouse") warehouse: String,
+        @Query("cargoType") cargoType: String
     ): Response<LoadableTonnageResponse>
 
     @GET("users_api.php")
