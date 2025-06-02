@@ -605,7 +605,7 @@ fun AnimatedHeader(
                             )
                         } else {
                             UpdateButton(
-                                isRefreshing = isRefreshing,
+                                isRefreshing = true,
                                 onRefresh = onRefresh
                             )
                         }
@@ -833,12 +833,45 @@ private fun DialogHeader(
             }
         }
 
-        Text(
-            text = "$quotaCount کوتاژ مشابه یافت شد",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "$quotaCount کوتاژ مشابه یافت شد",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            if (quotaCount > 1) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "موارد متفاوت با رنگ مشخص شده‌اند",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -870,7 +903,7 @@ fun QuotaItem(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
             )
             differentFields.isNotEmpty() -> BorderStroke(
-                1.dp,
+                2.dp,
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
             )
             else -> null
@@ -953,9 +986,12 @@ private fun QuotaDetailItem(
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                alpha = if (isDisabled) 0.4f else 0.7f
-            ),
+            color = when {
+                isDisabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                isDifferent -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            },
+            fontWeight = if (isDifferent) FontWeight.Bold else FontWeight.Normal,
             modifier = Modifier.width(80.dp)
         )
 
@@ -971,11 +1007,16 @@ private fun QuotaDetailItem(
                     } else {
                         MaterialTheme.colorScheme.primaryContainer
                     },
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    ),
                     modifier = Modifier.wrapContentWidth()
                 ) {
                     Text(
                         text = value,
                         style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
                         color = if (isDisabled) {
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         } else {
@@ -1058,6 +1099,12 @@ private fun QuotaHeader(
                         color = MaterialTheme.colorScheme.error
                     )
                 }
+                hasDifferences -> {
+                    StatusBadge(
+                        text = "دارای تفاوت",
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
 
@@ -1134,30 +1181,74 @@ private fun GroupedShipList(
     onEnter: (ActiveShipInfo, String) -> Unit,
     shipColorMap: Map<String, Color>
 ) {
+    // لود داده‌های لحظه‌ای برای هر کشتی
+    val coroutineScope = rememberCoroutineScope()
+    var realTimeDataList by remember { mutableStateOf<List<RealTimeLoadingData>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    
+    LaunchedEffect(Unit) {
+        coroutineScope.launch {
+            try {
+                val response = RetrofitClient.apiService.getRealTimeLoadingData()
+                if (response.isSuccessful) {
+                    val responseData = response.body()
+                    if (responseData != null) {
+                        realTimeDataList = responseData.data
+                    }
+                }
+            } catch (e: Exception) {
+                // خطایی رخ داده، اما ادامه می‌دهیم با داده‌های ActiveShipInfo
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         groupedShips.forEach { (shipName, ships) ->
             item {
-                ShipGroup(
-                    shipName = shipName,
-                    ships = ships,
-                    onEnter = onEnter,
-                    color = shipColorMap[shipName] ?: MaterialTheme.colorScheme.primary
-                )
+                // یافتن داده‌های لحظه‌ای مربوط به این کشتی
+                val shipRealTimeData = realTimeDataList.filter { it.shipName == shipName }
+                
+                if (shipRealTimeData.isNotEmpty()) {
+                    // استفاده از داده‌های لحظه‌ای
+                    ShipGroupWithRealTimeData(
+                        shipName = shipName,
+                        realTimeData = shipRealTimeData,
+                        ships = ships, // برای ارسال به دیالوگ
+                        onEnter = onEnter,
+                        color = shipColorMap[shipName] ?: MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    // استفاده از داده‌های معمولی
+                    ShipGroup(
+                        shipName = shipName,
+                        ships = ships,
+                        onEnter = onEnter,
+                        color = shipColorMap[shipName] ?: MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ShipGroup(
+private fun ShipGroupWithRealTimeData(
     shipName: String,
-    ships: List<ActiveShipInfo>,
+    realTimeData: List<RealTimeLoadingData>,
+    ships: List<ActiveShipInfo>, 
     onEnter: (ActiveShipInfo, String) -> Unit,
     color: Color
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    
+    // محاسبه آمار از داده‌های لحظه‌ای
+    val totalVouchers = realTimeData.sumOf { it.entryVouchers + it.exitVouchers }
+    val completedVouchers = realTimeData.sumOf { it.exitVouchers }
+    val remainingVouchers = totalVouchers - completedVouchers
 
     Card(
         modifier = Modifier
@@ -1189,16 +1280,22 @@ private fun ShipGroup(
                         color = color
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "کل: ${ships.sumOf { it.entryVouchers + it.exitVouchers }} | خروج: ${ships.sumOf { it.exitVouchers }} | مانده: ${ships.sumOf { it.entryVouchers + it.exitVouchers } - ships.sumOf { it.exitVouchers }}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = color.copy(alpha = 0.7f)
-                    )
+                    
+                    // نمایش آمار با فرمت مشابه MinimalQuotasHeader
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "کل: $totalVouchers | خروج: $completedVouchers | مانده: $remainingVouchers",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = color.copy(alpha = 0.7f)
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Icon(
                     imageVector = Icons.Default.Info,
-                    contentDescription = "Scan QR Code",
+                    contentDescription = "اطلاعات بیشتر",
                     tint = color
                 )
             }
@@ -1949,7 +2046,6 @@ private fun FilterBar(
     }
 }
 
-// حفظ تابع VerticalDivider ضروری است
 @Composable
 private fun VerticalDivider(
     modifier: Modifier = Modifier,
@@ -3742,4 +3838,89 @@ private fun FilterChip(
             )
         }
     }
+}
+
+@Composable
+private fun ShipGroup(
+    shipName: String,
+    ships: List<ActiveShipInfo>,
+    onEnter: (ActiveShipInfo, String) -> Unit,
+    color: Color
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    
+    // محاسبه آمار
+    val totalVouchers = ships.sumOf { it.entryVouchers + it.exitVouchers }
+    val completedVouchers = ships.sumOf { it.exitVouchers }
+    val remainingVouchers = totalVouchers - completedVouchers
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showDialog = true },
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = color.copy(alpha = 0.1f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DirectionsBoat,
+                    contentDescription = null,
+                    tint = color
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = shipName,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = color
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    // نمایش آمار
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "کل: $totalVouchers | خروج: $completedVouchers | مانده: $remainingVouchers",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = color.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "اطلاعات بیشتر",
+                    tint = color
+                )
+            }
+        }
+    }
+
+    QuotaEntryDialog(
+        showDialog = showDialog,
+        onDismiss = { showDialog = false },
+        onConfirm = { enteredQuota ->
+            val matchingShip = ships.find { it.loadingQuotaNumber.endsWith(enteredQuota) }
+            if (matchingShip != null) {
+                onEnter(matchingShip, enteredQuota)
+                showDialog = false
+            }
+        },
+        onScanBarcode = {
+            onEnter(ships.first(), "")
+            showDialog = false
+        },
+        shipName = shipName,
+        ships = ships
+    )
 }
