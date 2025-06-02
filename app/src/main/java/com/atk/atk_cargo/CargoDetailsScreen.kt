@@ -104,6 +104,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -1263,10 +1264,13 @@ private fun refreshData(
 suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): Result<String> {
     val client = HttpClient(CIO)
     return try {
-        val url = "https://atk-nk.click/Cargo/confirm_cargo.php"
+        val url = "https://atk-nk.click/Cargo/Test/confirm.php"
         val requestBody = Json.encodeToString(mapOf(
             "trackingNumber" to info.trackingNumber,
             "loadingQuotaNumber" to info.loadingQuotaNumber,
+            "loadingWarehouse" to info.loadingWarehouse,
+            "shippingCompany" to info.shippingCompany,
+            "cargoType" to info.cargoType,
             "username" to username,
             "userType" to userType
         ))
@@ -1280,8 +1284,11 @@ suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): R
 
         if (response.status == HttpStatusCode.OK) {
             val responseBody = response.bodyAsText()
-            val jsonResponse = Json.decodeFromString<Map<String, String>>(responseBody)
-            Result.success(jsonResponse["message"] ?: "عملیات با موفقیت انجام شد")
+            val jsonResponseMap = Json { ignoreUnknownKeys = true }.decodeFromString<Map<String, JsonElement>>(responseBody)
+            
+            val message = jsonResponseMap["message"]?.toString()?.replace("\"", "") ?: "عملیات با موفقیت انجام شد"
+            
+            Result.success(message)
         } else {
             Result.failure(Exception("خطا در ارتباط با سرور: ${response.status}"))
         }
