@@ -2848,15 +2848,11 @@ data class MenuItem(
     val route: String
 )
 
-
-
 data class SuccessResponse(
     val success: Boolean,
     val message: String,
     val userId: Int? = null
 )
-
-
 
 data class CargoInfoSearch(
     val cargoInfo: CargoInfo?

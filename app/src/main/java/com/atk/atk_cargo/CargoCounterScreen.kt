@@ -205,19 +205,27 @@ fun CargoCounterScreen(navController: NavController) {
                 if (response.isSuccessful) {
                     val realTimeDataResponse = response.body()
                     if (realTimeDataResponse != null) {
-                        activeShips = activeShips.map { ship ->
-                            val updatedData = realTimeDataResponse.data.find { it.loadingQuotaNumber == ship.loadingQuotaNumber }
-                            if (updatedData != null) {
-                                ship.copy(
-                                    entryVouchers = updatedData.entryVouchers,
-                                    exitVouchers = updatedData.exitVouchers
-                                )
-                            } else {
-                                ship
-                            }
-                        }
                         currentShiftInfo = realTimeDataResponse.shiftInfo
                         showUpdateMessage("اطلاعات با موفقیت بروزرسانی شد", MessageType.SUCCESS)
+                        // بروزرسانی اطلاعات کشتی‌ها با استفاده از داده‌های دریافتی
+                        if (realTimeDataResponse.data.isNotEmpty()) {
+                            activeShips = activeShips.map { ship ->
+                                val updatedData = realTimeDataResponse.data.find { 
+                                    it.loadingQuotaNumber == ship.loadingQuotaNumber &&
+                                    it.shipName == ship.shipName &&
+                                    it.loadingWarehouse == ship.loadingWarehouse &&
+                                    it.shippingCompany == ship.shippingCompany
+                                }
+                                if (updatedData != null) {
+                                    ship.copy(
+                                        entryVouchers = updatedData.entryVouchers,
+                                        exitVouchers = updatedData.exitVouchers
+                                    )
+                                } else {
+                                    ship
+                                }
+                            }
+                        }
                     } else {
                         showUpdateMessage("داده‌های دریافتی خالی است", MessageType.WARNING)
                     }

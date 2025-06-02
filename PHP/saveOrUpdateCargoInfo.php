@@ -207,12 +207,12 @@ try {
                     status = 'خروج', 
                     username = ?, 
                     userType = ? 
-                WHERE trackingNumber = ? AND loadingQuotaNumber = ?");
+                WHERE trackingNumber = ? AND loadingQuotaNumber = ? AND shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND shippingCompany = ?");
                 
                 $exitTime = jdate("H:i");
                 $exitDate = jdate("Y/m/d");
                 
-                $update_stmt->bind_param("ssssssss", 
+                $update_stmt->bind_param("ssssssssssss", 
                     $params['netWeight'], 
                     $params['scaleReceiptNumber'], 
                     $exitTime, 
@@ -220,7 +220,11 @@ try {
                     $params['username'], 
                     $params['userType'], 
                     $params['trackingNumber'], 
-                    $params['loadingQuotaNumber']
+                    $params['loadingQuotaNumber'],
+                    $params['shipName'],
+                    $params['loadingWarehouse'],
+                    $params['cargoType'],
+                    $params['shippingCompany']
                 );
             } elseif (!empty($params['shortageWeight']) || !empty($params['excessWeight'])) {
                 // بروزرسانی کسری/اضافه بار
