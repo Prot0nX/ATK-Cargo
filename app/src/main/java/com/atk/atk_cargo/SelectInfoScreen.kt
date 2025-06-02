@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -118,6 +119,7 @@ import com.atk.atk_cargo.api.ColorSelector
 import com.atk.atk_cargo.api.InitialInfo
 import com.atk.atk_cargo.api.MatchingQuota
 import com.atk.atk_cargo.api.MessageType
+import com.atk.atk_cargo.api.RealTimeLoadingData
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.ShiftInfo
 import com.atk.atk_cargo.api.adjustColorForTheme
@@ -146,7 +148,7 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
 
     // دریافت کشتی‌های انتخاب شده از ViewModel
     val selectedShipNames by viewModel.selectedShipNames.collectAsState(initial = emptySet())
-    
+
     val filteredShips = activeShips.filter { selectedShipNames.contains(it.shipName) }
     val groupedShips = filteredShips.groupBy { it.shipName }
 
@@ -198,18 +200,6 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                 if (response.isSuccessful) {
                     val realTimeDataResponse = response.body()
                     if (realTimeDataResponse != null) {
-                        activeShips = activeShips.map { ship ->
-                            val updatedData = realTimeDataResponse.data.find { it.loadingQuotaNumber == ship.loadingQuotaNumber }
-                            if (updatedData != null) {
-                                ship.copy(
-                                    entryVouchers = updatedData.entryVouchers,
-                                    exitVouchers = updatedData.exitVouchers
-                                )
-                            } else {
-                                ship
-                            }
-                        }
-                        updateShipColors(activeShips)
                         currentShiftInfo = realTimeDataResponse.shiftInfo
                         showUpdateMessage("اطلاعات با موفقیت بروزرسانی شد", MessageType.SUCCESS)
                         viewModel.updateInfoValues()
@@ -390,9 +380,9 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                                 tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
                                 modifier = Modifier.size(80.dp)
                             )
-                            
+
                             Spacer(modifier = Modifier.height(16.dp))
-                            
+
                             Text(
                                 text = "لطفاً کشتی مورد نظر را انتخاب کنید",
                                 style = MaterialTheme.typography.titleMedium,
@@ -400,9 +390,9 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
-                            
+
                             Spacer(modifier = Modifier.height(8.dp))
-                            
+
                             Button(
                                 onClick = { showShipSelectionDialog = true },
                                 colors = ButtonDefaults.buttonColors(
@@ -414,9 +404,9 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                                     contentDescription = null,
                                     modifier = Modifier.size(16.dp)
                                 )
-                                
+
                                 Spacer(modifier = Modifier.width(8.dp))
-                                
+
                                 Text("انتخاب کشتی")
                             }
                         }
@@ -451,7 +441,6 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
             // New ActiveQuotasDialog integration
             if (showActiveQuotasDialog) {
                 ActiveQuotasDialog(
-                    activeShips = activeShips,
                     onDismiss = { showActiveQuotasDialog = false }
                 )
             }
@@ -512,9 +501,9 @@ fun AnimatedHeader(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -524,18 +513,18 @@ fun AnimatedHeader(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
                     )
-                    
+
                     Spacer(modifier = Modifier.width(6.dp))
-                    
+
                     Text(
                         text = "$shipCount کوتاژ فعال",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    
+
                     if (selectedShipsCount > 0) {
                         Spacer(modifier = Modifier.width(12.dp))
-                        
+
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
@@ -551,7 +540,7 @@ fun AnimatedHeader(
                     }
                 }
             }
-            
+
             // بخش سمت راست - دکمه‌ها
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -576,7 +565,7 @@ fun AnimatedHeader(
                         )
                     }
                 }
-                
+
                 // دکمه انتخاب کشتی
                 Surface(
                     onClick = onSelectShips,
@@ -596,7 +585,7 @@ fun AnimatedHeader(
                         )
                     }
                 }
-                
+
                 // دکمه بروزرسانی
                 Surface(
                     onClick = { if (!isRefreshing) onRefresh() },
@@ -1405,26 +1394,69 @@ private fun DialogContent(
 
 @Composable
 fun ActiveQuotasDialog(
-    activeShips: List<ActiveShipInfo>,
     onDismiss: () -> Unit
 ) {
-    // فیلتر کشتی‌ها برای نمایش فقط کشتی‌هایی که حداقل یک ورود یا خروج دارند
-    val filteredShips = activeShips.filter { it.entryVouchers + it.exitVouchers > 0 }
+    // استفاده از ViewModel برای دریافت داده‌ها
+    val coroutineScope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(true) }
+    var realTimeData by remember { mutableStateOf<List<RealTimeLoadingData>>(emptyList()) }
+    var shiftInfo by remember { mutableStateOf<ShiftInfo?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     
+    val convertedShips = remember(realTimeData) {
+        realTimeData.map { data ->
+            ActiveShipInfo(
+                shipName = data.shipName,
+                loadingWarehouse = data.loadingWarehouse,
+                cargoType = "",  // این فیلد در RealTimeLoadingData نیست
+                shippingCompany = data.shippingCompany,
+                loadingQuotaNumber = data.loadingQuotaNumber,
+                entryVouchers = data.entryVouchers,
+                exitVouchers = data.exitVouchers
+            )
+        }
+    }
+
+    // دریافت داده‌ها از API
+    LaunchedEffect(Unit) {
+        try {
+            isLoading = true
+            val response = RetrofitClient.apiService.getRealTimeLoadingData()
+            if (response.isSuccessful) {
+                val responseData = response.body()
+                if (responseData != null) {
+                    realTimeData = responseData.data
+                    shiftInfo = responseData.shiftInfo
+                } else {
+                    errorMessage = "داده‌های دریافتی خالی است"
+                }
+            } else {
+                errorMessage = "خطا در دریافت اطلاعات: ${response.code()}"
+            }
+        } catch (e: Exception) {
+            errorMessage = "خطا در ارتباط با سرور: ${e.message}"
+        } finally {
+            isLoading = false
+        }
+    }
+
+    // فیلتر کشتی‌ها برای نمایش فقط کشتی‌هایی که حداقل یک ورود یا خروج دارند
+    val filteredShips = convertedShips.filter { it.entryVouchers + it.exitVouchers > 0 }
+
     val groupedShips = filteredShips.groupBy { it.shipName }
     val totalQuotas = filteredShips.size
     val totalVouchers = filteredShips.sumOf { it.entryVouchers + it.exitVouchers }
     val completedVouchers = filteredShips.sumOf { it.exitVouchers }
-    
+
     // فیلتر وضعیت - پیش‌فرض "در حال انجام"
     var filterState by remember { mutableStateOf(FilterState.PENDING) }
-    
+
     // انتخاب حالت نمایش - پیش فرض نمایش لیستی
     var viewMode by remember { mutableStateOf(ViewMode.FLAT) }
-    
+
     // متغیر برای نگهداری کشتی باز شده
     var expandedShipName by remember { mutableStateOf<String?>(null) }
-    
+
     // انیمیشن ورود دیالوگ
     var dialogVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -1447,7 +1479,7 @@ fun ActiveQuotasDialog(
             ),
             label = "dialog_elevation"
         )
-        
+
         val dialogScale by animateFloatAsState(
             targetValue = if (dialogVisible) 1f else 0.9f,
             animationSpec = tween(
@@ -1456,7 +1488,7 @@ fun ActiveQuotasDialog(
             ),
             label = "dialog_scale"
         )
-        
+
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
@@ -1476,19 +1508,78 @@ fun ActiveQuotasDialog(
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
-                // سربرگ مینیمال‌تر با آمار
+                // سربرگ با دکمه‌ی بروزرسانی
                 MinimalQuotasHeader(
                     totalQuotas = totalQuotas,
                     totalVouchers = totalVouchers,
                     completedVouchers = completedVouchers,
                     onDismiss = onDismiss,
                     viewMode = viewMode,
-                    onViewModeChange = { viewMode = it }
+                    onViewModeChange = { viewMode = it },
+                    isLoading = isLoading,
+                    onRefresh = {
+                        coroutineScope.launch {
+                            try {
+                                isLoading = true
+                                val response = RetrofitClient.apiService.getRealTimeLoadingData()
+                                if (response.isSuccessful) {
+                                    val responseData = response.body()
+                                    if (responseData != null) {
+                                        realTimeData = responseData.data
+                                        shiftInfo = responseData.shiftInfo
+                                        errorMessage = null
+                                    } else {
+                                        errorMessage = "داده‌های دریافتی خالی است"
+                                    }
+                                } else {
+                                    errorMessage = "خطا در دریافت اطلاعات: ${response.code()}"
+                                }
+                            } catch (e: Exception) {
+                                errorMessage = "خطا در ارتباط با سرور: ${e.message}"
+                            } finally {
+                                isLoading = false
+                            }
+                        }
+                    }
                 )
-                
+
+                // نمایش خطا اگر وجود داشته باشد
+                AnimatedVisibility(
+                    visible = errorMessage != null,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    errorMessage?.let {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = it,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
-                // نوار فیلتر بدون جستجو
+
+                // نوار فیلتر
                 FilterBar(
                     filterState = filterState,
                     onFilterStateChange = { filterState = it }
@@ -1496,25 +1587,47 @@ fun ActiveQuotasDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // محتوای اصلی دیالوگ با حالت‌های مختلف نمایش
-                if (viewMode == ViewMode.GROUPED) {
-                    // حالت گروه‌بندی شده بر اساس کشتی
-                    GroupedShipsContent(
-                        groupedShips = groupedShips,
-                        searchQuery = "",
-                        filterState = filterState,
-                        expandedShipName = expandedShipName,
-                        onExpandShip = { shipName ->
-                            expandedShipName = if (expandedShipName == shipName) null else shipName
+                // نمایش لودینگ
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "در حال دریافت اطلاعات...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                    )
+                    }
                 } else {
-                    // حالت نمایش همه کوتاژها به صورت لیست
-                    FlatQuotasContent(
-                        activeShips = filteredShips,
-                        searchQuery = "",
-                        filterState = filterState
-                    )
+                    // محتوای اصلی دیالوگ با حالت‌های مختلف نمایش
+                    if (viewMode == ViewMode.GROUPED) {
+                        // حالت گروه‌بندی شده بر اساس کشتی
+                        GroupedShipsContent(
+                            groupedShips = groupedShips,
+                            searchQuery = "",
+                            filterState = filterState,
+                            expandedShipName = expandedShipName,
+                            onExpandShip = { shipName ->
+                                expandedShipName = if (expandedShipName == shipName) null else shipName
+                            }
+                        )
+                    } else {
+                        // حالت نمایش همه کوتاژها به صورت لیست
+                        FlatQuotasContent(
+                            activeShips = filteredShips,
+                            searchQuery = "",
+                            filterState = filterState
+                        )
+                    }
                 }
             }
         }
@@ -1538,7 +1651,9 @@ private fun MinimalQuotasHeader(
     completedVouchers: Int,
     onDismiss: () -> Unit,
     viewMode: ViewMode,
-    onViewModeChange: (ViewMode) -> Unit
+    onViewModeChange: (ViewMode) -> Unit,
+    isLoading: Boolean,
+    onRefresh: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -1555,9 +1670,9 @@ private fun MinimalQuotasHeader(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            
+
             Spacer(modifier = Modifier.width(8.dp))
-            
+
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
@@ -1607,7 +1722,7 @@ private fun MinimalQuotasHeader(
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                
+
                 // دکمه نمایش لیستی
                 IconButton(
                     onClick = { onViewModeChange(ViewMode.FLAT) },
@@ -1632,9 +1747,9 @@ private fun MinimalQuotasHeader(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(8.dp))
-            
+
             // دکمه بستن
             IconButton(
                 onClick = onDismiss,
@@ -1651,8 +1766,26 @@ private fun MinimalQuotasHeader(
                 )
             }
         }
+
+        // دکمه بروزرسانی
+        if (!isLoading) {
+            IconButton(
+                onClick = onRefresh,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    .size(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "بروزرسانی",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
     }
-    
+
     // کارت آمار با طراحی جدید و کوچکتر
     Card(
         modifier = Modifier
@@ -1671,13 +1804,13 @@ private fun MinimalQuotasHeader(
             val progressPercentage = if (totalVouchers > 0) {
                 (completedVouchers.toFloat() / totalVouchers) * 100f
             } else 0f
-            
+
             val progressColor = when {
                 progressPercentage >= 90f -> MaterialTheme.colorScheme.primary
                 progressPercentage >= 60f -> MaterialTheme.colorScheme.tertiary
                 else -> MaterialTheme.colorScheme.error
             }
-            
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1699,9 +1832,9 @@ private fun MinimalQuotasHeader(
                         )
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // آمار در یک ردیف
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1714,37 +1847,37 @@ private fun MinimalQuotasHeader(
                     label = "کل حواله‌ها",
                     color = MaterialTheme.colorScheme.primary
                 )
-                
+
                 VerticalDivider(
                     modifier = Modifier.height(24.dp),
                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                 )
-                
+
                 // کارت آمار حواله‌های خروجی
                 StatItem(
                     value = completedVouchers,
                     label = "خروجی",
                     color = MaterialTheme.colorScheme.tertiary
                 )
-                
+
                 VerticalDivider(
                     modifier = Modifier.height(24.dp),
                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                 )
-                
+
                 // کارت آمار حواله‌های باقیمانده
                 StatItem(
                     value = totalVouchers - completedVouchers,
                     label = "باقیمانده",
                     color = MaterialTheme.colorScheme.error
                 )
-                
+
                 if (progressPercentage > 0) {
                     VerticalDivider(
                         modifier = Modifier.height(24.dp),
                         color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                     )
-                    
+
                     Text(
                         text = "${progressPercentage.toInt()}%",
                         style = MaterialTheme.typography.bodyMedium,
@@ -1772,7 +1905,7 @@ private fun StatItem(
             fontWeight = FontWeight.Bold,
             color = color
         )
-        
+
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
@@ -1797,7 +1930,7 @@ private fun FilterBar(
             containerColor = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f)
         )
-        
+
         FilterChip(
             selected = filterState == FilterState.PENDING,
             onClick = { onFilterStateChange(FilterState.PENDING) },
@@ -1805,7 +1938,7 @@ private fun FilterBar(
             containerColor = MaterialTheme.colorScheme.error,
             modifier = Modifier.weight(1f)
         )
-        
+
         FilterChip(
             selected = filterState == FilterState.COMPLETED,
             onClick = { onFilterStateChange(FilterState.COMPLETED) },
@@ -1842,31 +1975,31 @@ private fun GroupedShipsContent(
     val filteredShips = groupedShips.entries.filter { (shipName, ships) ->
         // فیلتر کردن کشتی‌هایی که حداقل یک ورود یا خروج دارند
         val hasActivity = ships.any { it.entryVouchers + it.exitVouchers > 0 }
-        
+
         // فیلتر بر اساس متن جستجو
-        val matchesSearch = searchQuery.isEmpty() || 
-            shipName.contains(searchQuery, ignoreCase = true) ||
-            ships.any { 
-                it.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
-                it.loadingQuotaNumber.contains(searchQuery, ignoreCase = true)
-            }
-            
+        val matchesSearch = searchQuery.isEmpty() ||
+                shipName.contains(searchQuery, ignoreCase = true) ||
+                ships.any {
+                    it.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
+                            it.loadingQuotaNumber.contains(searchQuery, ignoreCase = true)
+                }
+
         // فیلتر بر اساس وضعیت تکمیل
         val matchesFilter = when (filterState) {
             FilterState.ALL -> true
-            FilterState.PENDING -> ships.any { ship -> 
+            FilterState.PENDING -> ships.any { ship ->
                 val totalVouchers = ship.entryVouchers + ship.exitVouchers
                 totalVouchers > 0 && ship.exitVouchers < totalVouchers
             }
-            FilterState.COMPLETED -> ships.all { ship -> 
+            FilterState.COMPLETED -> ships.all { ship ->
                 val totalVouchers = ship.entryVouchers + ship.exitVouchers
                 totalVouchers == 0 || ship.exitVouchers == totalVouchers
             }
         }
-        
+
         hasActivity && matchesSearch && matchesFilter
     }
-    
+
     if (filteredShips.isEmpty()) {
         // نمایش حالت خالی بودن نتایج
         EmptySearchResult(
@@ -1920,11 +2053,11 @@ private fun EmptySearchResult(
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
             modifier = Modifier.size(64.dp)
         )
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Text(
-            text = if (searchQuery.isNotEmpty()) 
+            text = if (searchQuery.isNotEmpty())
                 "نتیجه‌ای برای \"$searchQuery\" یافت نشد"
             else when(filterState) {
                 FilterState.PENDING -> "هیچ کوتاژ در حال انجامی یافت نشد"
@@ -1935,9 +2068,9 @@ private fun EmptySearchResult(
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         Text(
             text = "لطفاً جستجو یا فیلتر را تغییر دهید",
             style = MaterialTheme.typography.bodyMedium,
@@ -1961,27 +2094,27 @@ private fun ImprovedShipCard(
     val progressPercentage = if (totalVouchers > 0) {
         (completedVouchers.toFloat() / totalVouchers) * 100f
     } else 0f
-    
+
     // گروه‌بندی بر اساس انبار
     val warehouseGroups = ships.groupBy { it.loadingWarehouse }
-    
+
     // حفظ وضعیت باز/بسته بودن هر انبار
     var expandedWarehouse by remember { mutableStateOf<String?>(null) }
-    
+
     val cardColor = when {
         progressPercentage >= 100f -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
         progressPercentage >= 75f -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
         progressPercentage >= 50f -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f)
         else -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
     }
-    
+
     val borderColor = when {
         progressPercentage >= 100f -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
         progressPercentage >= 75f -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
         progressPercentage >= 50f -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
         else -> MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
     }
-    
+
     val onBackgroundColor = when {
         progressPercentage >= 100f -> MaterialTheme.colorScheme.onPrimaryContainer
         progressPercentage >= 75f -> MaterialTheme.colorScheme.onSecondaryContainer
@@ -2040,13 +2173,13 @@ private fun ImprovedShipCard(
                             val filteredShips = if (searchQuery.isEmpty()) {
                                 warehouseShips.filter { it.entryVouchers + it.exitVouchers > 0 }
                             } else {
-                                warehouseShips.filter { 
-                                    it.entryVouchers + it.exitVouchers > 0 && 
-                                    (it.loadingWarehouse.contains(searchQuery, ignoreCase = true) || 
-                                     it.loadingQuotaNumber.contains(searchQuery, ignoreCase = true))
+                                warehouseShips.filter {
+                                    it.entryVouchers + it.exitVouchers > 0 &&
+                                            (it.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
+                                                    it.loadingQuotaNumber.contains(searchQuery, ignoreCase = true))
                                 }
                             }
-                            
+
                             if (filteredShips.isNotEmpty()) {
                                 ImprovedWarehouseSection(
                                     warehouseName = warehouseName,
@@ -2103,7 +2236,7 @@ private fun ImprovedShipHeader(
                     tint = onBackgroundColor,
                     modifier = Modifier.size(32.dp)
                 )
-                
+
                 // نمایش درصد پیشرفت دور آیکون
                 if (totalVouchers > 0) {
                     CircularProgressIndicator(
@@ -2174,9 +2307,9 @@ private fun ImprovedShipHeader(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(12.dp)
                         )
-                        
+
                         Spacer(modifier = Modifier.width(4.dp))
-                        
+
                         Text(
                             text = "تکمیل شده",
                             style = MaterialTheme.typography.labelSmall,
@@ -2213,10 +2346,10 @@ private fun ImprovedShipHeader(
             trackColor = onBackgroundColor.copy(alpha = 0.1f),
             strokeCap = StrokeCap.Round
         )
-        
+
         if (expanded) {
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // نمایش درصد پیشرفت به صورت متنی
             Text(
                 text = "${progressPercentage.toInt()}% تکمیل شده",
@@ -2239,13 +2372,13 @@ private fun FlatQuotasContent(
     val filteredQuotas = activeShips.filter { ship ->
         // فقط کوتاژهایی که حواله دارند نمایش داده شوند
         val hasVouchers = ship.entryVouchers + ship.exitVouchers > 0
-        
+
         // فیلتر بر اساس متن جستجو
-        val matchesSearch = searchQuery.isEmpty() || 
-            ship.shipName.contains(searchQuery, ignoreCase = true) ||
-            ship.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
-            ship.loadingQuotaNumber.contains(searchQuery, ignoreCase = true)
-            
+        val matchesSearch = searchQuery.isEmpty() ||
+                ship.shipName.contains(searchQuery, ignoreCase = true) ||
+                ship.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
+                ship.loadingQuotaNumber.contains(searchQuery, ignoreCase = true)
+
         // فیلتر بر اساس وضعیت تکمیل
         val matchesFilter = when (filterState) {
             FilterState.ALL -> true
@@ -2258,10 +2391,10 @@ private fun FlatQuotasContent(
                 totalVouchers > 0 && ship.exitVouchers == totalVouchers
             }
         }
-        
+
         hasVouchers && matchesSearch && matchesFilter
     }
-    
+
     if (filteredQuotas.isEmpty()) {
         // نمایش حالت خالی بودن نتایج
         EmptySearchResult(
@@ -2281,7 +2414,7 @@ private fun FlatQuotasContent(
                     val remaining = total - ship.exitVouchers
                     remaining  // حواله‌های باقیمانده
                 }.thenBy { it.shipName }
-                  .thenBy { it.loadingWarehouse }
+                    .thenBy { it.loadingWarehouse }
             )) { quota ->
                 FlatQuotaCard(
                     quota = quota,
@@ -2300,19 +2433,19 @@ private fun FlatQuotaCard(
     val totalVouchers = quota.entryVouchers + quota.exitVouchers
     val remainingVouchers = totalVouchers - quota.exitVouchers
     val isCompleted = remainingVouchers == 0
-    
+
     val cardColor = when {
         isCompleted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
         remainingVouchers > 0 -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
         else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
     }
-    
+
     val borderColor = when {
         isCompleted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
         remainingVouchers > 0 -> MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
         else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
     }
-    
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -2359,9 +2492,9 @@ private fun FlatQuotaCard(
                             modifier = Modifier.size(20.dp)
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.width(12.dp))
-                    
+
                     Column {
                         // نام کشتی با هایلایت متن جستجو شده
                         if (searchQuery.isNotEmpty() && quota.shipName.contains(searchQuery, ignoreCase = true)) {
@@ -2395,7 +2528,7 @@ private fun FlatQuotaCard(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        
+
                         // شماره کوتاژ با هایلایت متن جستجو شده
                         Row(
                             verticalAlignment = Alignment.CenterVertically
@@ -2407,10 +2540,10 @@ private fun FlatQuotaCard(
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(12.dp)
                                 )
-                                
+
                                 Spacer(modifier = Modifier.width(4.dp))
                             }
-                            
+
                             if (searchQuery.isNotEmpty() && quota.loadingQuotaNumber.contains(searchQuery, ignoreCase = true)) {
                                 val parts = quota.loadingQuotaNumber.split(
                                     searchQuery,
@@ -2448,7 +2581,7 @@ private fun FlatQuotaCard(
                         }
                     }
                 }
-                
+
                 // آمار حواله‌ها
                 Column(
                     horizontalAlignment = Alignment.End
@@ -2485,9 +2618,9 @@ private fun FlatQuotaCard(
                             )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(4.dp))
-                    
+
                     // آمار حواله‌های خروج شده و کل
                     Text(
                         text = "${quota.exitVouchers}/$totalVouchers حواله",
@@ -2499,9 +2632,9 @@ private fun FlatQuotaCard(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // ردیف دوم: انبار و نوار پیشرفت
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2514,9 +2647,9 @@ private fun FlatQuotaCard(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     modifier = Modifier.size(16.dp)
                 )
-                
+
                 Spacer(modifier = Modifier.width(6.dp))
-                
+
                 // نام انبار با هایلایت متن جستجو شده
                 if (searchQuery.isNotEmpty() && quota.loadingWarehouse.contains(searchQuery, ignoreCase = true)) {
                     val parts = quota.loadingWarehouse.split(
@@ -2551,13 +2684,13 @@ private fun FlatQuotaCard(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.width(8.dp))
-                
+
                 // نوار پیشرفت با درصد
                 if (totalVouchers > 0) {
                     val progressPercentage = (quota.exitVouchers.toFloat() / totalVouchers) * 100f
-                    
+
                     Text(
                         text = "${progressPercentage.toInt()}%",
                         style = MaterialTheme.typography.labelSmall,
@@ -2572,9 +2705,9 @@ private fun FlatQuotaCard(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // نوار پیشرفت با حالت گرادیانت
             if (totalVouchers > 0) {
                 Box(
@@ -2783,7 +2916,7 @@ private fun ShipSelectionDialog(
     val groupedShips = ships.groupBy { it.shipName }
     val selectedShips = remember { mutableStateOf(selectedShipNames) }
     val searchQuery = remember { mutableStateOf("") }
-    
+
     // کشتی‌های از قبل انتخاب شده در ابتدای لیست قرار گیرند
     val initialSortedShipEntries = remember(groupedShips, searchQuery.value) {
         val filtered = if (searchQuery.value.isEmpty()) {
@@ -2793,12 +2926,12 @@ private fun ShipSelectionDialog(
                 shipName.contains(searchQuery.value, ignoreCase = true)
             }
         }
-        
+
         // ابتدا به ترتیب حروف انگلیسی مرتب می‌کنیم
-        val alphabeticallySorted = filtered.sortedBy { (shipName, _) -> 
-            shipName 
+        val alphabeticallySorted = filtered.sortedBy { (shipName, _) ->
+            shipName
         }
-        
+
         // کشتی‌هایی که از قبل انتخاب شده‌اند را به ابتدای لیست منتقل می‌کنیم
         alphabeticallySorted.sortedWith(
             compareByDescending { (shipName, _) ->
@@ -2806,7 +2939,7 @@ private fun ShipSelectionDialog(
             }
         )
     }
-    
+
     // انتخاب یک رنگ ثابت برای هر کشتی
     val shipColors = remember {
         initialSortedShipEntries.associate { (shipName, _) ->
@@ -2815,7 +2948,7 @@ private fun ShipSelectionDialog(
             shipName to cardColors[colorIndex]
         }
     }
-    
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -2854,7 +2987,7 @@ private fun ShipSelectionDialog(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                            
+
                             IconButton(
                                 onClick = onDismiss,
                                 modifier = Modifier
@@ -2871,14 +3004,14 @@ private fun ShipSelectionDialog(
                                 )
                             }
                         }
-                        
+
                         Text(
                             text = "کشتی‌های مورد نظر خود را برای نمایش انتخاب کنید:",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp)
                         )
-                        
+
                         // فیلد جستجو
                         OutlinedTextField(
                             value = searchQuery.value,
@@ -2906,7 +3039,7 @@ private fun ShipSelectionDialog(
                                     }
                                 }
                             } else null,
-                            placeholder = { 
+                            placeholder = {
                                 Text("جستجوی نام کشتی...")
                             },
                             singleLine = true,
@@ -2920,7 +3053,7 @@ private fun ShipSelectionDialog(
                                 unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                             )
                         )
-                        
+
                         // اطلاعات آماری کشتی‌ها
                         Row(
                             modifier = Modifier
@@ -2952,7 +3085,7 @@ private fun ShipSelectionDialog(
                                     )
                                 }
                             }
-                            
+
                             Surface(
                                 color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
                                 shape = RoundedCornerShape(8.dp)
@@ -2979,13 +3112,13 @@ private fun ShipSelectionDialog(
                         }
                     }
                 }
-                
+
                 // لیست کشتی‌ها
                 val primaryColor = MaterialTheme.colorScheme.primary
                 val surfaceColor = MaterialTheme.colorScheme.surface
                 val outlineVariantColor = MaterialTheme.colorScheme.outlineVariant
                 val onSurfaceColor = MaterialTheme.colorScheme.onSurface
-                
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -2997,7 +3130,7 @@ private fun ShipSelectionDialog(
                     items(initialSortedShipEntries.toList()) { (shipName, shipList) ->
                         val isSelected = selectedShips.value.contains(shipName)
                         val shipColor = shipColors[shipName] ?: primaryColor
-                        
+
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -3044,9 +3177,9 @@ private fun ShipSelectionDialog(
                                         modifier = Modifier.size(26.dp)
                                     )
                                 }
-                                
+
                                 Spacer(modifier = Modifier.width(16.dp))
-                                
+
                                 // اطلاعات کشتی
                                 Column(
                                     modifier = Modifier.weight(1f)
@@ -3057,9 +3190,9 @@ private fun ShipSelectionDialog(
                                         fontWeight = FontWeight.Bold,
                                         color = if (isSelected) shipColor else onSurfaceColor
                                     )
-                                    
+
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    
+
                                     // تعداد کوتاژ - فقط این اطلاعات نمایش داده می‌شود
                                     Surface(
                                         color = shipColor.copy(alpha = 0.1f),
@@ -3074,7 +3207,7 @@ private fun ShipSelectionDialog(
                                         )
                                     }
                                 }
-                                
+
                                 // چک‌باکس انتخاب
                                 Checkbox(
                                     checked = isSelected,
@@ -3094,10 +3227,10 @@ private fun ShipSelectionDialog(
                         }
                     }
                 }
-                
+
                 // دکمه‌های کنترلی
                 val outlineColor = MaterialTheme.colorScheme.outline
-                
+
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     color = surfaceColor,
@@ -3124,13 +3257,13 @@ private fun ShipSelectionDialog(
                         ) {
                             Text(
                                 text = "تایید",
-                                color = if (selectedShips.value.isNotEmpty()) 
-                                    MaterialTheme.colorScheme.onPrimary 
-                                else 
+                                color = if (selectedShips.value.isNotEmpty())
+                                    MaterialTheme.colorScheme.onPrimary
+                                else
                                     MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
+
                         // دکمه انصراف
                         OutlinedButton(
                             onClick = onDismiss,
@@ -3159,15 +3292,15 @@ private fun ImprovedWarehouseSection(
 ) {
     // حذف کشتی‌هایی که حواله ندارند
     val shipsWithVouchers = ships.filter { it.entryVouchers + it.exitVouchers > 0 }
-    
+
     // اگر هیچ کشتی‌ای حواله نداشته باشد، چیزی نمایش نمی‌دهیم
     if (shipsWithVouchers.isEmpty()) return
-    
+
     val totalVouchers = shipsWithVouchers.sumOf { it.entryVouchers + it.exitVouchers }
     val completedVouchers = shipsWithVouchers.sumOf { it.exitVouchers }
     val remainingVouchers = totalVouchers - completedVouchers
     val isCompleted = totalVouchers > 0 && remainingVouchers == 0
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -3299,7 +3432,7 @@ private fun ImprovedWarehouseSection(
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
-                        
+
                         Spacer(modifier = Modifier.width(8.dp))
                     }
 
@@ -3313,13 +3446,13 @@ private fun ImprovedWarehouseSection(
                             fontWeight = FontWeight.Bold,
                             color = if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        
+
                         Text(
                             text = "/$totalVouchers",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        
+
                         // آیکون باز/بسته کردن
                         Icon(
                             imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.Info,
@@ -3336,9 +3469,9 @@ private fun ImprovedWarehouseSection(
             // نوار پیشرفت انبار
             if (totalVouchers > 0) {
                 val progressPercentage = (completedVouchers.toFloat() / totalVouchers) * 100f
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 LinearProgressIndicator(
                     progress = { progressPercentage / 100f },
                     modifier = Modifier
@@ -3392,14 +3525,14 @@ private fun ImprovedQuotaItem(
     searchQuery: String
 ) {
     val totalVouchers = quota.entryVouchers + quota.exitVouchers
-    
+
     // اگر حواله نداشته باشد، نمایش نمی‌دهیم
     if (totalVouchers == 0) return
-    
+
     val remainingVouchers = totalVouchers - quota.exitVouchers
     val isCompleted = remainingVouchers == 0
     val quotaNumber = quota.loadingQuotaNumber
-    
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
@@ -3431,10 +3564,10 @@ private fun ImprovedQuotaItem(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp)
                     )
-                    
+
                     Spacer(modifier = Modifier.width(4.dp))
                 }
-                
+
                 // هایلایت متن جستجو شده در شماره کوتاژ
                 val shortQuotaNumber = extractLastDigits(quotaNumber)
                 if (searchQuery.isNotEmpty() && quotaNumber.contains(searchQuery, ignoreCase = true)) {
@@ -3479,7 +3612,7 @@ private fun ImprovedQuotaItem(
                     )
                 }
             }
-            
+
             // نوار پیشرفت با حالت گرادیانت
             Box(
                 modifier = Modifier
@@ -3518,9 +3651,9 @@ private fun ImprovedQuotaItem(
                         )
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(8.dp))
-            
+
             // نمایش آمار حواله‌ها
             Row(
                 verticalAlignment = Alignment.CenterVertically
@@ -3539,10 +3672,10 @@ private fun ImprovedQuotaItem(
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.width(4.dp))
                 }
-                
+
                 // آمار کلی حواله‌ها
                 Text(
                     text = "${quota.exitVouchers}/$totalVouchers",
@@ -3597,10 +3730,10 @@ private fun FilterChip(
                         .clip(CircleShape)
                         .background(containerColor)
                 )
-                
+
                 Spacer(modifier = Modifier.width(4.dp))
             }
-            
+
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
