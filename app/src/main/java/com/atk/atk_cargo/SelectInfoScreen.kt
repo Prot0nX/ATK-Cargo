@@ -744,23 +744,23 @@ fun QuotaSelectionDialog(
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.78f)
-                .padding(16.dp),
-            shape = RoundedCornerShape(24.dp),
+                .fillMaxWidth(0.92f)
+                .fillMaxHeight(0.75f)
+                .padding(12.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface,
             )
         ) {
             Column(
-                modifier = Modifier.padding(24.dp)
+                modifier = Modifier.padding(16.dp)
             ) {
                 // Header Section
                 DialogHeader(ship = ship, quotaCount = matchingQuotas.size, onDismiss = onDismiss)
 
                 // Quotas List
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
@@ -784,34 +784,43 @@ private fun DialogHeader(
     quotaCount: Int,
     onDismiss: () -> Unit
 ) {
-    Column {
+    Column(
+        modifier = Modifier.padding(bottom = 8.dp)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onDismiss) {
-                Icon(Icons.Default.Close, contentDescription = "بستن")
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "بستن",
+                    modifier = Modifier.size(18.dp)
+                )
             }
             Text(
                 text = "انتخاب کوتاژ",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.width(48.dp))
+            Spacer(modifier = Modifier.width(36.dp))
         }
 
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
+                .padding(vertical = 12.dp),
             color = MaterialTheme.colorScheme.primaryContainer,
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(12.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -819,7 +828,7 @@ private fun DialogHeader(
                     Icons.Default.DirectionsBoat,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(20.dp)
                 )
                 Text(
                     text = ship.shipName,
@@ -829,14 +838,14 @@ private fun DialogHeader(
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.size(24.dp))
+                Spacer(modifier = Modifier.size(20.dp))
             }
         }
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -847,26 +856,48 @@ private fun DialogHeader(
             
             if (quotaCount > 1) {
                 Spacer(modifier = Modifier.width(8.dp))
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                
+                // راهنمای رنگ‌ها به صورت خلاصه در یک خط
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+                        .padding(horizontal = 6.dp, vertical = 3.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Info,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(12.dp)
+                            modifier = Modifier.size(10.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(MaterialTheme.colorScheme.tertiary, CircleShape)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(MaterialTheme.colorScheme.secondary, CircleShape)
+                        )
+                        
                         Text(
-                            text = "موارد متفاوت با رنگ مشخص شده‌اند",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
+                            text = "موارد متفاوت",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 10.sp
                         )
                     }
                 }
@@ -888,13 +919,13 @@ fun QuotaItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = isActive) { onClick(quota) }
-            .alpha(if (isActive) 1f else 0.9f),
-        shape = RoundedCornerShape(12.dp),
+            .alpha(if (isActive) 1f else 0.7f),
+        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(
             containerColor = when {
                 !isActive -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                differentFields.isNotEmpty() -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                differentFields.isNotEmpty() -> MaterialTheme.colorScheme.surface
+                else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             }
         ),
         border = when {
@@ -903,16 +934,14 @@ fun QuotaItem(
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
             )
             differentFields.isNotEmpty() -> BorderStroke(
-                2.dp,
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                1.dp,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
             )
             else -> null
-        }
+        },
     ) {
         Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .alpha(if (isActive) 1f else 0.9f)
+            modifier = Modifier.padding(12.dp)
         ) {
             QuotaHeader(
                 quota = quota,
@@ -920,6 +949,31 @@ fun QuotaItem(
                 hasDifferences = differentFields.isNotEmpty()
             )
 
+            if (differentFields.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "${differentFields.size} فیلد متفاوت",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+            
             Spacer(modifier = Modifier.height(8.dp))
             QuotaDetails(quota, differentFields, isActive)
 
@@ -941,7 +995,7 @@ private fun InactiveIndicator() {
                 MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
                 RoundedCornerShape(4.dp)
             )
-            .padding(8.dp),
+            .padding(6.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -949,13 +1003,14 @@ private fun InactiveIndicator() {
             imageVector = Icons.Default.Info,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(12.dp)
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = "این کوتاژ در حال حاضر قابل انتخاب نیست",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+            color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+            fontSize = 10.sp
         )
     }
 }
@@ -966,10 +1021,26 @@ private fun QuotaDetailItem(
     label: String,
     value: String,
     isDifferent: Boolean,
-    isDisabled: Boolean
+    isDisabled: Boolean,
+    fieldType: String
 ) {
+    // انتخاب رنگ برای هر نوع فیلد متفاوت
+    val differenceColor = when (fieldType) {
+        "shippingCompany" -> MaterialTheme.colorScheme.primary
+        "warehouse" -> MaterialTheme.colorScheme.tertiary
+        "cargoType" -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.primary
+    }
+    
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+            .clip(RoundedCornerShape(if (isDifferent) 6.dp else 0.dp))
+            .background(
+                if (isDifferent) differenceColor.copy(alpha = 0.08f) else Color.Transparent
+            )
+            .padding(if (isDifferent) 6.dp else 0.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -977,22 +1048,23 @@ private fun QuotaDetailItem(
             contentDescription = null,
             tint = when {
                 isDisabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                isDifferent -> MaterialTheme.colorScheme.primary
+                isDifferent -> differenceColor
                 else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             },
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(14.dp)
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = label,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = when {
                 isDisabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                isDifferent -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                isDifferent -> differenceColor
                 else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             },
             fontWeight = if (isDifferent) FontWeight.Bold else FontWeight.Normal,
-            modifier = Modifier.width(80.dp)
+            modifier = Modifier.width(70.dp),
+            fontSize = 12.sp
         )
 
         Box(
@@ -1001,29 +1073,43 @@ private fun QuotaDetailItem(
         ) {
             if (isDifferent) {
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(4.dp),
                     color = if (isDisabled) {
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     } else {
-                        MaterialTheme.colorScheme.primaryContainer
+                        differenceColor.copy(alpha = 0.12f)
                     },
                     border = BorderStroke(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        width = 0.5.dp,
+                        color = differenceColor.copy(alpha = 0.5f)
                     ),
                     modifier = Modifier.wrapContentWidth()
                 ) {
-                    Text(
-                        text = value,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = if (isDisabled) {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                        } else {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        },
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        if (isDifferent) {
+                            Box(
+                                modifier = Modifier
+                                    .size(4.dp)
+                                    .background(differenceColor, CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                        
+                        Text(
+                            text = value,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isDisabled) {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                            } else {
+                                differenceColor
+                            },
+                            fontSize = 13.sp
+                        )
+                    }
                 }
             } else {
                 Text(
@@ -1033,7 +1119,8 @@ private fun QuotaDetailItem(
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     } else {
                         MaterialTheme.colorScheme.onSurfaceVariant
-                    }
+                    },
+                    fontSize = 13.sp
                 )
             }
         }
@@ -1079,17 +1166,30 @@ private fun QuotaHeader(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.weight(1f)
         ) {
-            Text(
-                text = quota.quotaNumber,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+            // شماره کوتاژ
+            Surface(
+                shape = RoundedCornerShape(6.dp),
                 color = when {
-                    !isActive -> MaterialTheme.colorScheme.error
-                    hasDifferences -> MaterialTheme.colorScheme.primary
-                    else -> MaterialTheme.colorScheme.onSurface
-                }
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+                    !isActive -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)
+                    hasDifferences -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                    else -> Color.Transparent
+                },
+                modifier = Modifier.wrapContentWidth()
+            ) {
+                Text(
+                    text = quota.quotaNumber,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = when {
+                        !isActive -> MaterialTheme.colorScheme.error
+                        hasDifferences -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurface
+                    },
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(6.dp))
 
             // نمایش برچسب وضعیت
             when {
@@ -1101,7 +1201,7 @@ private fun QuotaHeader(
                 }
                 hasDifferences -> {
                     StatusBadge(
-                        text = "دارای تفاوت",
+                        text = "متفاوت",
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -1109,16 +1209,28 @@ private fun QuotaHeader(
         }
 
         if (isActive) {
-            Icon(
-                Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "انتخاب",
-                tint = if (hasDifferences) {
-                    MaterialTheme.colorScheme.primary
+            Surface(
+                shape = CircleShape,
+                color = if (hasDifferences) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                 } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 },
-                modifier = Modifier.size(20.dp)
-            )
+                modifier = Modifier.size(28.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "انتخاب",
+                        tint = if (hasDifferences) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -1132,12 +1244,14 @@ private fun StatusBadge(
         color = color.copy(alpha = 0.1f),
         contentColor = color,
         shape = RoundedCornerShape(4.dp),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.5f))
+        border = BorderStroke(0.5.dp, color.copy(alpha = 0.5f))
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            fontSize = 9.sp
         )
     }
 }
@@ -1156,21 +1270,24 @@ private fun QuotaDetails(
             label = "شرکت باربری",
             value = quota.shippingCompany,
             isDifferent = "shippingCompany" in differentFields,
-            isDisabled = !isActive
+            isDisabled = !isActive,
+            fieldType = "shippingCompany"
         )
         QuotaDetailItem(
             icon = Icons.Default.Warehouse,
             label = "انبار",
             value = quota.warehouse,
             isDifferent = "warehouse" in differentFields,
-            isDisabled = !isActive
+            isDisabled = !isActive,
+            fieldType = "warehouse"
         )
         QuotaDetailItem(
             icon = Icons.Default.Category,
             label = "نوع کالا",
             value = quota.cargoType,
             isDifferent = "cargoType" in differentFields,
-            isDisabled = !isActive
+            isDisabled = !isActive,
+            fieldType = "cargoType"
         )
     }
 }
