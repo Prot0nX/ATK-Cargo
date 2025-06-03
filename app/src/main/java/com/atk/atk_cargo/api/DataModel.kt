@@ -59,6 +59,7 @@ import java.util.Date
 import java.util.LinkedList
 import java.util.Locale
 import java.util.Queue
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 class CargoViewModelFactory(
@@ -810,7 +811,7 @@ class CargoViewModel(
                                 data.loadableTonnage?.let { tonnage ->
                                     // نمایش مقدار تناژ قابل بارگیری حتی اگر منفی باشد
                                     val formattedValue = if (tonnage < 0) {
-                                        "-" + DecimalFormat("#,###").format(Math.abs(tonnage.roundToInt()))
+                                        "-" + DecimalFormat("#,###").format(abs(tonnage.roundToInt()))
                                     } else {
                                         DecimalFormat("#,###").format(tonnage.roundToInt())
                                     }
@@ -945,19 +946,12 @@ class CargoViewModel(
             }
         }
     }
-    
-    // متد کمکی برای نمایش خطا در محاسبه تناژ قابل بارگیری
-    private suspend fun logTonnageCalculationError(info: InitialInfo, error: Exception) {
-        Log.e("CargoViewModel", "Error calculating loadable tonnage for quota ${info.loadingQuotaNumber}: ${error.message}", error)
-    }
 
     private fun isTrackingNumberDuplicate(trackingNumber: String): Boolean {
-        // Check in cache
         if (_cachedTrackingNumbers.value.contains(trackingNumber)) {
             return true
         }
 
-        // Also check in the currently loaded cargo info list
         return _cargoInfoList.value.any { it.trackingNumber == trackingNumber }
     }
 
@@ -1206,12 +1200,6 @@ class CargoViewModel(
         return gregorianToJalali(Calendar.getInstance())
     }
 
-    // این متد در نسخه‌های قبلی برای محاسبه تناژ مجاز در سمت کلاینت استفاده می‌شد
-    // در نسخه فعلی، تمام محاسبات تناژ مجاز صرفاً در سمت سرور انجام می‌شود
-    private fun logDeprecatedTonnageCalculation() {
-        Log.d("CargoViewModel", "Local tonnage calculation is deprecated. Server-side calculation is used instead.")
-    }
-    
     // بروزرسانی فوری مقدار تناژ قابل بارگیری با اولویت بالا
     private fun updateLoadableTonnage() {
         // استفاده از CoroutineScope جدید با اولویت بالا
