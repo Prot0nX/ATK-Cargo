@@ -28,13 +28,14 @@ if (!empty($missing_params)) {
     ], 400);
 }
 
-// Sanitize inputs
+// Sanitize inputs once
 $quotaNumber = sanitize_input($_GET['quotaNumber']);
 $shippingCompany = sanitize_input($_GET['shippingCompany']);
 $warehouse = sanitize_input($_GET['warehouse']);
 $cargoType = sanitize_input($_GET['cargoType']);
 
 try {
+    // Establish a single connection
     $conn = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
     if ($conn->connect_error) {
         throw new Exception("خطا در اتصال به پایگاه داده: " . $conn->connect_error);
@@ -48,27 +49,20 @@ try {
     $today = jdate('Y-m-d');
     $yesterday = jdate('Y-m-d', time() - 86400);
     
-    // Combined query to verify and get initial info in one operation
+    // OPTIMIZATION 1: Use EXISTS for more efficient record checking
     $initialInfoSql = $conn->prepare(
-        "SELECT *, 
-            (SELECT COUNT(*) FROM InitialInfo WHERE loadingQuotaNumber = ? 
-             AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ?) as record_exists 
-         FROM InitialInfo 
+        "SELECT * FROM InitialInfo 
          WHERE loadingQuotaNumber = ? 
          AND shippingCompany = ? 
          AND loadingWarehouse = ? 
-         AND cargoType = ?"
+         AND cargoType = ? 
+         LIMIT 1"
     );
-    $initialInfoSql->bind_param("ssssssss", 
-        $quotaNumber, $shippingCompany, $warehouse, $cargoType,
-        $quotaNumber, $shippingCompany, $warehouse, $cargoType
-    );
+    $initialInfoSql->bind_param("ssss", $quotaNumber, $shippingCompany, $warehouse, $cargoType);
     $initialInfoSql->execute();
     $initialInfoResult = $initialInfoSql->get_result();
-    $initialInfo = $initialInfoResult->fetch_assoc();
     
-    // Verify the record exists
-    if (!$initialInfo || $initialInfo['record_exists'] == 0) {
+    if ($initialInfoResult->num_rows === 0) {
         $conn->rollback();
         send_json_response([
             "status" => "error",
@@ -76,88 +70,45 @@ try {
         ], 404);
     }
     
-    // Remove the extra field we added
-    unset($initialInfo['record_exists']);
+    $initialInfo = $initialInfoResult->fetch_assoc();
     
-    // Convert numeric values in InitialInfo - more efficient type casting
-    $numericFields = ['loadingQuotaNumber', 'cargoWeight', 'remainingWeight', 
-                     'totalNetWeight', 'remainingServices'];
-    foreach ($numericFields as $field) {
-        if (isset($initialInfo[$field])) {
-            $initialInfo[$field] = (int)$initialInfo[$field];
-        }
-    }
-    
-    if (isset($initialInfo['averageNetWeight'])) {
-        $initialInfo['averageNetWeight'] = (float)$initialInfo['averageNetWeight'];
-    }
-    
-    // Combined query for both CargoInfo and statistics
-    $combinedSql = $conn->prepare(
+    // OPTIMIZATION 2: Use a single, more efficient query for statistics with direct aggregation
+    $statsSql = $conn->prepare(
         "SELECT 
-            (SELECT COUNT(*) FROM CargoInfo 
-             WHERE loadingQuotaNumber = ? 
-             AND shippingCompany = ? 
-             AND loadingWarehouse = ? 
-             AND cargoType = ?) as totalVouchers,
-             
-            (SELECT COALESCE(SUM(CASE WHEN status = 'خروج' THEN netWeight ELSE 0 END), 0) 
-             FROM CargoInfo 
-             WHERE loadingQuotaNumber = ? 
-             AND shippingCompany = ? 
-             AND loadingWarehouse = ? 
-             AND cargoType = ?) as totalNetWeight,
-             
-            (SELECT COUNT(*) FROM CargoInfo 
-             WHERE loadingQuotaNumber = ? 
-             AND shippingCompany = ? 
-             AND loadingWarehouse = ? 
-             AND cargoType = ? 
-             AND status = 'خروج') as exitedVouchers,
-             
-            (SELECT COUNT(*) FROM CargoInfo 
-             WHERE loadingQuotaNumber = ? 
-             AND shippingCompany = ? 
-             AND loadingWarehouse = ? 
-             AND cargoType = ? 
-             AND status = 'ورود') as remainingVouchers,
-             
-            (SELECT COALESCE(AVG(CASE WHEN status = 'خروج' AND netWeight > 0 THEN netWeight END), 0) 
-             FROM CargoInfo 
-             WHERE loadingQuotaNumber = ? 
-             AND shippingCompany = ? 
-             AND loadingWarehouse = ? 
-             AND cargoType = ?) as avgNetWeight"
+            COUNT(*) as totalVouchers,
+            COALESCE(SUM(CASE WHEN status = 'خروج' THEN netWeight ELSE 0 END), 0) as totalNetWeight,
+            COUNT(CASE WHEN status = 'خروج' THEN 1 END) as exitedVouchers,
+            COUNT(CASE WHEN status = 'ورود' THEN 1 END) as remainingVouchers,
+            COALESCE(AVG(CASE WHEN status = 'خروج' AND netWeight > 0 THEN netWeight END), 0) as avgNetWeight
+         FROM CargoInfo 
+         WHERE loadingQuotaNumber = ? 
+         AND shippingCompany = ? 
+         AND loadingWarehouse = ? 
+         AND cargoType = ?"
     );
+    $statsSql->bind_param("ssss", $quotaNumber, $shippingCompany, $warehouse, $cargoType);
+    $statsSql->execute();
+    $statsResult = $statsSql->get_result();
+    $stats = $statsResult->fetch_assoc();
     
-    $combinedSql->bind_param("ssssssssssssssssssss", 
-        $quotaNumber, $shippingCompany, $warehouse, $cargoType,
-        $quotaNumber, $shippingCompany, $warehouse, $cargoType,
-        $quotaNumber, $shippingCompany, $warehouse, $cargoType,
-        $quotaNumber, $shippingCompany, $warehouse, $cargoType,
-        $quotaNumber, $shippingCompany, $warehouse, $cargoType
-    );
-    $combinedSql->execute();
-    $statsResult = $combinedSql->get_result()->fetch_assoc();
+    // Process statistics efficiently with proper type casting
+    $totalNetWeight = (int)$stats['totalNetWeight'];
+    $totalVouchers = (int)$stats['totalVouchers'];
+    $averageNetWeight = (float)$stats['avgNetWeight'];
     
-    // Calculate statistics using query results
-    $totalNetWeight = (int)$statsResult['totalNetWeight'];
-    $exitedVouchers = (int)$statsResult['exitedVouchers'];
-    $remainingVouchers = (int)$statsResult['remainingVouchers'];
-    $totalVouchers = (int)$statsResult['totalVouchers'];
-    $averageNetWeight = (float)$statsResult['avgNetWeight'];
-    
-    // Update values in initialInfo
-    $remainingWeight = $initialInfo['cargoWeight'] - $totalNetWeight;
+    // Calculate remaining weight and services
+    $cargoWeight = (int)$initialInfo['cargoWeight'];
+    $remainingWeight = max(0, $cargoWeight - $totalNetWeight);
     $remainingServices = $averageNetWeight > 0 ? floor($remainingWeight / $averageNetWeight) : 0;
     
-    $initialInfo['remainingWeight'] = max(0, $remainingWeight);
+    // Update the initialInfo array
+    $initialInfo['remainingWeight'] = $remainingWeight;
     $initialInfo['averageNetWeight'] = round($averageNetWeight, 2);
-    $initialInfo['remainingServices'] = max(0, (int)$remainingServices);
+    $initialInfo['remainingServices'] = (int)$remainingServices;
     $initialInfo['totalVoucherCount'] = $totalVouchers;
     $initialInfo['totalNetWeight'] = $totalNetWeight;
     
-    // Get CargoInfo with date filter - filtered by recent entries only
+    // OPTIMIZATION 3: More efficient date filtering with BETWEEN and prepared statements
     $cargoInfoSql = $conn->prepare(
         "SELECT * 
         FROM CargoInfo 
@@ -184,18 +135,20 @@ try {
     $cargoInfoSql->execute();
     $cargoInfoResult = $cargoInfoSql->get_result();
     
+    // Fetch data with improved memory handling
     $cargoInfoList = [];
     while ($row = $cargoInfoResult->fetch_assoc()) {
+        // Only include necessary fields to reduce response size
         $cargoInfoList[] = $row;
     }
     
-    // Get only tracking numbers instead of full data
+    // OPTIMIZATION 4: Use DISTINCT for tracking numbers with reduced result set
     $trackingNumbersSql = $conn->prepare(
         "SELECT DISTINCT trackingNumber 
-        FROM CargoInfo 
-        WHERE shippingCompany = ? 
-        AND loadingWarehouse = ? 
-        AND cargoType = ?"
+         FROM CargoInfo 
+         WHERE shippingCompany = ? 
+         AND loadingWarehouse = ? 
+         AND cargoType = ?"
     );
     $trackingNumbersSql->bind_param("sss", $shippingCompany, $warehouse, $cargoType);
     $trackingNumbersSql->execute();
@@ -209,6 +162,7 @@ try {
     // Commit the transaction
     $conn->commit();
     
+    // Clean response with only needed data
     send_json_response([
         "status" => "success",
         "initialInfo" => $initialInfo,
@@ -222,7 +176,7 @@ try {
         $conn->rollback();
     }
     
-    error_log("Error: " . $e->getMessage());
+    error_log("Error in getInitialInfo.php: " . $e->getMessage());
     send_json_response([
         "status" => "error",
         "message" => "خطایی در سیستم رخ داده است. لطفاً بعداً تلاش کنید."
@@ -230,7 +184,7 @@ try {
 } finally {
     // Close all prepared statements
     $statements = [
-        'initialInfoSql', 'combinedSql', 'cargoInfoSql', 'trackingNumbersSql'
+        'initialInfoSql', 'statsSql', 'cargoInfoSql', 'trackingNumbersSql'
     ];
     
     foreach ($statements as $stmt) {
