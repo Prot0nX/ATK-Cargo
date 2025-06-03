@@ -588,7 +588,7 @@ fun AnimatedHeader(
 
                 // دکمه بروزرسانی
                 Surface(
-                    onClick = { if (!isRefreshing) onRefresh() },
+                    onClick = { onRefresh() },
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.tertiaryContainer,
                     modifier = Modifier.size(36.dp)
@@ -604,9 +604,11 @@ fun AnimatedHeader(
                                 color = MaterialTheme.colorScheme.onTertiaryContainer
                             )
                         } else {
-                            UpdateButton(
-                                isRefreshing = true,
-                                onRefresh = onRefresh
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "بروزرسانی",
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
@@ -1303,9 +1305,13 @@ private fun GroupedShipList(
     var realTimeDataList by remember { mutableStateOf<List<RealTimeLoadingData>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     
-    LaunchedEffect(Unit) {
+    // برای به‌روزرسانی داده‌های لحظه‌ای
+    var updateCounter by remember { mutableIntStateOf(0) }
+    
+    LaunchedEffect(updateCounter) {
         coroutineScope.launch {
             try {
+                isLoading = true
                 val response = RetrofitClient.apiService.getRealTimeLoadingData()
                 if (response.isSuccessful) {
                     val responseData = response.body()
@@ -1318,6 +1324,14 @@ private fun GroupedShipList(
             } finally {
                 isLoading = false
             }
+        }
+    }
+    
+    // برای به‌روزرسانی خودکار داده‌ها
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(30000)
+            updateCounter++
         }
     }
 
