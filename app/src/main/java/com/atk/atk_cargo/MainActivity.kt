@@ -1,20 +1,15 @@
 package com.atk.atk_cargo
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -77,7 +72,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Check
@@ -157,6 +151,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -177,9 +173,9 @@ import com.atk.atk_cargo.api.ChangeLogInfo
 import com.atk.atk_cargo.api.Constants
 import com.atk.atk_cargo.api.CreateUserRequest
 import com.atk.atk_cargo.api.DeleteUserRequest
+import com.atk.atk_cargo.api.LoadingNotificationService
 import com.atk.atk_cargo.api.LoginRequest
 import com.atk.atk_cargo.api.MenuItem
-
 import com.atk.atk_cargo.api.ReportsRepository
 import com.atk.atk_cargo.api.ReportsViewModel
 import com.atk.atk_cargo.api.RetrofitClient
@@ -208,11 +204,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.net.URLDecoder
 import java.security.MessageDigest
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import com.atk.atk_cargo.api.LoadingNotificationService
 
 class MainActivity : ComponentActivity() {
     private var updateInfo by mutableStateOf<UpdateInfo?>(null)
@@ -612,7 +603,7 @@ fun UpdateDialog(
             Card(
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
-                    .fillMaxHeight(0.8f)
+                    .fillMaxHeight(0.75f)
                     .alpha(dialogAlpha),
                 shape = RoundedCornerShape(20.dp)
             ) {

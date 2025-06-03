@@ -1,0 +1,82 @@
+<?php
+header('Content-Type: application/json; charset=UTF-8');
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+require_once __DIR__ . '/config/config.php';
+
+function log_debug($message) {
+    error_log(date('[Y-m-d H:i:s] ') . $message . "\n", 3, "delete_cargo_debug.log");
+}
+
+function send_json_response($status, $message, $http_code = 200) {
+    http_response_code($http_code);
+    echo json_encode(["status" => $status, "message" => $message], JSON_UNESCAPED_UNICODE);
+    exit();
+}
+
+if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+    send_json_response("error", "روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید.", 405);
+}
+
+log_debug("Received POST request");
+
+$data = json_decode(file_get_contents("php://input"), true);
+if (json_last_error() !== JSON_ERROR_NONE) {
+    log_debug("JSON Error: " . json_last_error_msg());
+    send_json_response("error", "فرمت JSON نامعتبر است", 400);
+}
+
+log_debug("Received data: " . json_encode($data, JSON_UNESCAPED_UNICODE));
+
+$requiredFields = ['trackingNumber', 'shipName', 'loadingWarehouse', 'cargoType', 'shippingCompany', 'loadingQuotaNumber'];
+foreach ($requiredFields as $field) {
+    if (empty($data[$field])) {
+        log_debug("Missing required field: $field");
+        send_json_response("error", "فیلد ضروری وجود ندارد: $field", 400);
+    }
+}
+
+$sanitizedData = array_map(function($value) {
+    return htmlspecialchars(trim($value), ENT_QUOTES, 'UTF-8');
+}, $data);
+
+log_debug("Sanitized input: " . json_encode($sanitizedData, JSON_UNESCAPED_UNICODE));
+
+try {
+    $conn = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
+    if ($conn->connect_error) {
+        throw new Exception("خطا در اتصال به پایگاه داده: " . $conn->connect_error);
+    }
+    $conn->set_charset("utf8mb4");
+    log_debug("Database connection successful");
+
+    $stmt = $conn->prepare("DELETE FROM CargoInfo WHERE trackingNumber = ? AND shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND shippingCompany = ? AND loadingQuotaNumber = ?");
+    if (!$stmt) {
+        throw new Exception("خطا در آماده‌سازی دستور SQL: " . $conn->error);
+    }
+    log_debug("SQL statement prepared successfully");
+
+    $stmt->bind_param("ssssss", $sanitizedData['trackingNumber'], $sanitizedData['shipName'], $sanitizedData['loadingWarehouse'], $sanitizedData['cargoType'], $sanitizedData['shippingCompany'], $sanitizedData['loadingQuotaNumber']);
+    
+    if (!$stmt->execute()) {
+        throw new Exception("خطا در اجرای دستور SQL: " . $stmt->error);
+    }
+    
+    $affectedRows = $stmt->affected_rows;
+    log_debug("SQL statement executed successfully. Affected rows: $affectedRows");
+
+    if ($affectedRows === 0) {
+        log_debug("No rows affected. Cargo not found.");
+        send_json_response("error", "حواله یافت نشد یا قبلاً حذف شده است", 404);
+    } else {
+        log_debug("Cargo deleted successfully");
+        send_json_response("success", "حواله با موفقیت حذف شد");
+    }
+} catch (Exception $e) {
+    log_debug("Error: " . $e->getMessage());
+    send_json_response("error", "خطا در حذف حواله: " . $e->getMessage(), 500);
+} finally {
+    if (isset($stmt)) $stmt->close();
+    if (isset($conn)) $conn->close();
+}
+?>

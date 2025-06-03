@@ -1,0 +1,39 @@
+<?php
+function getFileSize($filePath): string {
+    if (!file_exists($filePath)) {
+        return '0';
+    }
+    
+    $bytes = filesize($filePath);
+    $mb = round($bytes / (1024 * 1024), 1);
+    return (string)$mb;
+}
+
+return [
+    'latest_version' => '3.0.7', 
+    'download_url' => 'https://atk-nk.site/Cargo/downloads/app-release.apk',
+    'change_log' => [
+        'newFeatures' => [   ],
+        'improvements' => [
+
+        ],
+        'fixes' => [
+            'اصلاح سیستم ثبت شماره قبض باسکول'
+        ],
+        'others' => [
+        ]
+    ],
+    'min_required_version' => '1.9',
+    'update_priority' => 'normal',
+    'update_message' => 'نسخه جدید با امکانات جدید در دسترس است',
+    'force_update' => false,
+    'update_size' => getFileSize(__DIR__ . '/downloads/app-release.apk'),
+    'release_date' => '1403/12/13', 
+    
+    'version_constraints' => [
+        'min_android_version' => 21,
+        'min_app_version' => '1.9',
+        'excluded_versions' => []
+    ]
+];
+?>
