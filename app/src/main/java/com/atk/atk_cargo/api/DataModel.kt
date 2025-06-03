@@ -2388,6 +2388,7 @@ class ReportsRepository(private val apiService: ApiService) {
                     "خطای سرور: ${response.code()}"
                 }
 
+                Log.e("Repository", "Server error: $errorMessage")
                 QuotaStatusResponse(
                     isActive = false,
                     status = false,
