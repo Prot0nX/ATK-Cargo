@@ -11,7 +11,6 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
@@ -45,7 +44,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -1309,13 +1307,6 @@ fun ShipDetails(
 		selectedShipQuotas.mapNotNull { quota -> calculateWarningStatus(quota) }
 	}
 
-	val tabs = listOf(
-		TabItem(
-			icon = Icons.Filled.Warehouse,
-			title = "انبار و کوتاژ"
-		)
-	)
-
 	LaunchedEffect(warnings) {
 		if (warnings.isNotEmpty()) {
 			showWarningDialog = true
@@ -1340,16 +1331,6 @@ fun ShipDetails(
 
 	Box(modifier = Modifier.fillMaxSize()) {
 		Column(modifier = Modifier.fillMaxSize()) {
-			ModernTabRows(
-				selectedTabIndex = selectedTabIndex,
-				onTabSelected = { index ->
-					selectedTabIndex = index
-					coroutineScope.launch {
-						pagerState.animateScrollToPage(index)
-					}
-				},
-				tabs = tabs
-			)
 
 			when (uiState) {
 				is ReportsViewModel.UiState.Loading -> {
@@ -1418,103 +1399,6 @@ fun ShipDetails(
 	}
 }
 
-@Composable
-private fun ModernTabRows(
-	selectedTabIndex: Int,
-	onTabSelected: (Int) -> Unit,
-	tabs: List<TabItem>
-) {
-	Surface(
-		modifier = Modifier.fillMaxWidth(),
-		color = MaterialTheme.colorScheme.primary
-	) {
-		Row(
-			modifier = Modifier
-				.padding(horizontal = 16.dp, vertical = 8.dp)
-				.fillMaxWidth(),
-			horizontalArrangement = Arrangement.spacedBy(8.dp)
-		) {
-			tabs.forEachIndexed { index, tab ->
-				ModernTabs(
-					selected = selectedTabIndex == index,
-					onClick = { onTabSelected(index) },
-					icon = tab.icon,
-					text = tab.title,
-					modifier = Modifier.weight(1f)
-				)
-			}
-		}
-	}
-}
-
-@Composable
-private fun ModernTabs(
-	selected: Boolean,
-	onClick: () -> Unit,
-	icon: ImageVector,
-	text: String,
-	modifier: Modifier = Modifier
-) {
-	val interactionSource = remember { MutableInteractionSource() }
-	val isPressed by interactionSource.collectIsPressedAsState()
-
-	val backgroundColor by animateColorAsState(
-		targetValue = when {
-			isPressed -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)
-			selected -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
-			else -> Color.Transparent
-		},
-		label = "Background color animation"
-	)
-
-	val contentColor by animateColorAsState(
-		targetValue = if (selected) {
-			MaterialTheme.colorScheme.onPrimary
-		} else {
-			MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
-		},
-		label = "Content color animation"
-	)
-
-	Surface(
-		onClick = onClick,
-		color = backgroundColor,
-		shape = RoundedCornerShape(12.dp),
-		interactionSource = interactionSource,
-		modifier = modifier
-			.height(40.dp)
-			.graphicsLayer {
-				scaleX = if (isPressed) 0.97f else 1f
-				scaleY = if (isPressed) 0.97f else 1f
-			}
-	) {
-		Row(
-			modifier = Modifier
-				.fillMaxSize()
-				.padding(horizontal = 12.dp),
-			horizontalArrangement = Arrangement.Center,
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			Icon(
-				imageVector = icon,
-				contentDescription = null,
-				tint = contentColor,
-				modifier = Modifier.size(18.dp)
-			)
-
-			Spacer(modifier = Modifier.width(6.dp))
-
-			Text(
-				text = text,
-				style = MaterialTheme.typography.bodyMedium.copy(
-					fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
-				),
-				color = contentColor
-			)
-		}
-	}
-}
-
 data class TabItem(
 	val icon: ImageVector,
 	val title: String
@@ -1534,50 +1418,298 @@ fun WarehousesAndQuotasTab(
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
-			.padding(16.dp)
+			.background(MaterialTheme.colorScheme.background)
 	) {
-		// فیلد جستجو - طراحی مینیمال و بهینه
-		ModernSearchField(
-			searchQuery = searchQuery,
-			onSearchQueryChange = { searchQuery = it },
-			modifier = Modifier.fillMaxWidth()
-		)
-
-		Row(
+		// هدر صفحه با اطلاعات کشتی
+		ShipHeaderCard(shipDetails = shipDetails)
+		
+		// محتوای اصلی با پدینگ مناسب
+		Column(
 			modifier = Modifier
-				.fillMaxWidth()
-				.padding(bottom = 8.dp)
+				.fillMaxSize()
+				.padding(horizontal = 16.dp)
 		) {
-			sections.forEachIndexed { index, title ->
-				SectionButton(
-					title = title,
-					isSelected = selectedSection == index,
-					onClick = {
-						selectedSection = index
-						searchQuery = ""
+			// فیلد جستجو - طراحی مینیمال و بهینه
+			Spacer(modifier = Modifier.height(8.dp))
+			ModernSearchField(
+				searchQuery = searchQuery,
+				onSearchQueryChange = { searchQuery = it },
+				modifier = Modifier.fillMaxWidth()
+			)
+			
+			Spacer(modifier = Modifier.height(8.dp))
+
+			// تب‌های دسته‌بندی
+			ModernSegmentedTabs(
+				selectedTabIndex = selectedSection,
+				onTabSelected = { index ->
+					selectedSection = index
+					searchQuery = ""
+				},
+				tabs = sections
+			)
+			
+			Spacer(modifier = Modifier.height(16.dp))
+
+			// محتوای انتخاب شده
+			when (selectedSection) {
+				0 -> WarehousesSection(
+					warehouses = shipDetails.warehouses.filter {
+						it.name.contains(searchQuery, ignoreCase = true)
 					},
-					modifier = Modifier.weight(1f)
+					onWarehouseSelected = onWarehouseSelected
+				)
+				1 -> QuotasList(
+					quotas = selectedShipQuotas,
+					searchQuery = searchQuery,
+					groupingMode = viewModel.warehouseQuotaGroupingMode,
+					onGroupingModeChange = viewModel::setWarehouseQuotaGroupingMode,
+					onEdit = viewModel::editQuota,
+					onToggleStatus = viewModel::toggleQuotaStatus,
+					onDelete = viewModel::deleteQuota,
+					viewModel = viewModel
 				)
 			}
 		}
+	}
+}
 
-		when (selectedSection) {
-			0 -> WarehousesSection(
-				warehouses = shipDetails.warehouses.filter {
-					it.name.contains(searchQuery, ignoreCase = true)
-				},
-				onWarehouseSelected = onWarehouseSelected
+@Composable
+private fun ShipHeaderCard(shipDetails: Ship) {
+	val loadedTonnage = shipDetails.totalTonnage - shipDetails.remainingTonnage
+	val progress = calculateProgress(loadedTonnage, shipDetails.totalTonnage)
+	
+	Surface(
+		modifier = Modifier
+			.fillMaxWidth(),
+		color = MaterialTheme.colorScheme.primary
+	) {
+		Column(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(horizontal = 16.dp, vertical = 8.dp),
+			verticalArrangement = Arrangement.spacedBy(12.dp)
+		) {
+			// هدر اصلی با نام کشتی
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				// نام کشتی و آیکون
+				Row(
+					horizontalArrangement = Arrangement.spacedBy(12.dp),
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					// آیکون کشتی
+					Surface(
+						shape = CircleShape,
+						color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f),
+						modifier = Modifier.size(48.dp)
+					) {
+						Box(contentAlignment = Alignment.Center) {
+							Icon(
+								imageVector = Icons.Default.DirectionsBoat,
+								contentDescription = null,
+								tint = MaterialTheme.colorScheme.onPrimary,
+								modifier = Modifier.size(24.dp)
+							)
+						}
+					}
+					
+					// نام کشتی و وضعیت
+					Column {
+						Text(
+							text = shipDetails.name,
+							style = MaterialTheme.typography.headlineSmall,
+							color = MaterialTheme.colorScheme.onPrimary,
+							fontWeight = FontWeight.Bold
+						)
+						
+						Text(
+							text = "کشتی ${if (shipDetails.isActive) "فعال" else "غیرفعال"}",
+							style = MaterialTheme.typography.bodyMedium,
+							color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+						)
+					}
+				}
+				
+				// آمار کشتی
+				Row(
+					horizontalArrangement = Arrangement.spacedBy(12.dp),
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					// تعداد کوتاژ
+					HeaderStatItem(
+						icon = Icons.Default.Description,
+						value = formatNumber(shipDetails.quotaCount),
+						label = "کوتاژ"
+					)
+					
+					// تعداد انبار
+					HeaderStatItem(
+						icon = Icons.Default.Warehouse,
+						value = formatNumber(shipDetails.warehouses.size),
+						label = "انبار"
+					)
+				}
+			}
+			
+			// نوار پیشرفت و آمار تناژ
+			Column(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(top = 8.dp),
+				verticalArrangement = Arrangement.spacedBy(8.dp)
+			) {
+				// آمار تناژ
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					// تناژ کل
+					Text(
+						text = "تناژ کل: ${formatNumber(shipDetails.totalTonnage.toInt())} تن",
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
+					)
+					
+					// تناژ باقی‌مانده
+					Text(
+						text = "مانده: ${formatNumber(shipDetails.remainingTonnage.toInt())} تن",
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
+					)
+				}
+				
+				// نوار پیشرفت
+				Box(
+					modifier = Modifier
+						.fillMaxWidth()
+						.height(8.dp)
+						.clip(RoundedCornerShape(4.dp))
+						.background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
+				) {
+					Box(
+						modifier = Modifier
+							.fillMaxWidth(progress)
+							.fillMaxHeight()
+							.background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f))
+					)
+				}
+				
+				// درصد پیشرفت
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					Text(
+						text = "${(progress * 100).roundToInt()}% تکمیل شده",
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+					)
+					
+					Text(
+						text = "${(100 - (progress * 100).roundToInt())}% باقی‌مانده",
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+					)
+				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun HeaderStatItem(
+	icon: ImageVector,
+	value: String,
+	label: String
+) {
+	Surface(
+		shape = RoundedCornerShape(8.dp),
+		color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f)
+	) {
+		Row(
+			modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+			horizontalArrangement = Arrangement.spacedBy(6.dp),
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			Icon(
+				imageVector = icon,
+				contentDescription = null,
+				tint = MaterialTheme.colorScheme.onPrimary,
+				modifier = Modifier.size(16.dp)
 			)
-			1 -> QuotasList(
-				quotas = selectedShipQuotas,
-				searchQuery = searchQuery,
-				groupingMode = viewModel.warehouseQuotaGroupingMode,
-				onGroupingModeChange = viewModel::setWarehouseQuotaGroupingMode,
-				onEdit = viewModel::editQuota,
-				onToggleStatus = viewModel::toggleQuotaStatus,
-				onDelete = viewModel::deleteQuota,
-				viewModel = viewModel
-			)
+			
+			Column(horizontalAlignment = Alignment.Start) {
+				Text(
+					text = value,
+					style = MaterialTheme.typography.titleSmall,
+					color = MaterialTheme.colorScheme.onPrimary,
+					fontWeight = FontWeight.Bold
+				)
+				
+				Text(
+					text = label,
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+				)
+			}
+		}
+	}
+}
+
+@Composable
+private fun ModernSegmentedTabs(
+	selectedTabIndex: Int,
+	onTabSelected: (Int) -> Unit,
+	tabs: List<String>
+) {
+	Surface(
+		modifier = Modifier.fillMaxWidth(),
+		shape = RoundedCornerShape(12.dp),
+		color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+		border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+	) {
+		Row(
+			modifier = Modifier.padding(4.dp),
+			horizontalArrangement = Arrangement.spacedBy(4.dp)
+		) {
+			tabs.forEachIndexed { index, title ->
+				val isSelected = selectedTabIndex == index
+				
+				Surface(
+					onClick = { onTabSelected(index) },
+					modifier = Modifier.weight(1f),
+					shape = RoundedCornerShape(8.dp),
+					color = if (isSelected) {
+						MaterialTheme.colorScheme.primary
+					} else {
+						Color.Transparent
+					}
+				) {
+					Box(
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(vertical = 12.dp),
+						contentAlignment = Alignment.Center
+					) {
+						Text(
+							text = title,
+							style = MaterialTheme.typography.titleMedium,
+							color = if (isSelected) {
+								MaterialTheme.colorScheme.onPrimary
+							} else {
+								MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+							},
+							fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+						)
+					}
+				}
+			}
 		}
 	}
 }
@@ -3199,49 +3331,7 @@ private fun calculateValues(
 	)
 }
 
-@Composable
-private fun SectionButton(
-	title: String,
-	isSelected: Boolean,
-	onClick: () -> Unit,
-	modifier: Modifier = Modifier
-) {
-	Surface(
-		onClick = onClick,
-		modifier = modifier.padding(horizontal = 4.dp),
-		shape = RoundedCornerShape(12.dp),
-		color = if (isSelected) {
-			MaterialTheme.colorScheme.primary
-		} else {
-			MaterialTheme.colorScheme.surface
-		},
-		border = BorderStroke(
-			1.dp,
-			if (isSelected) {
-				MaterialTheme.colorScheme.primary
-			} else {
-				MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-			}
-		)
-	) {
-		Box(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(vertical = 12.dp),
-			contentAlignment = Alignment.Center
-		) {
-			Text(
-				text = title,
-				style = MaterialTheme.typography.titleMedium,
-				color = if (isSelected) {
-					MaterialTheme.colorScheme.onPrimary
-				} else {
-					MaterialTheme.colorScheme.onSurface
-				}
-			)
-		}
-	}
-}
+
 
 @Composable
 private fun WarehousesSection(
@@ -3257,17 +3347,23 @@ private fun WarehousesSection(
 		MaterialTheme.colorScheme.inversePrimary
 	)
 
-	LazyColumn(
-		verticalArrangement = Arrangement.spacedBy(12.dp),
-		contentPadding = PaddingValues(4.dp)
+	Column(
+		modifier = Modifier.fillMaxWidth(),
+		verticalArrangement = Arrangement.spacedBy(16.dp)
 	) {
-		items(warehouses) { warehouse ->
-			val colorIndex = warehouses.indexOf(warehouse) % colors.size
-			WarehouseCard(
-				warehouse = warehouse,
-				color = colors[colorIndex],
-				onClick = { onWarehouseSelected(warehouse.name) }
-			)
+		// لیست انبارها
+		LazyColumn(
+			verticalArrangement = Arrangement.spacedBy(12.dp),
+			contentPadding = PaddingValues(vertical = 4.dp)
+		) {
+			items(warehouses) { warehouse ->
+				val colorIndex = warehouses.indexOf(warehouse) % colors.size
+				WarehouseCard(
+					warehouse = warehouse,
+					color = colors[colorIndex],
+					onClick = { onWarehouseSelected(warehouse.name) }
+				)
+			}
 		}
 	}
 }
@@ -3279,182 +3375,167 @@ private fun WarehouseCard(
 	onClick: () -> Unit
 ) {
 	val loadedTonnage = warehouse.totalTonnage - warehouse.remainingTonnage
-	val progress = calculateProgress(loadedTonnage, warehouse.totalTonnage)
-	var animatedProgress by remember { mutableFloatStateOf(0f) }
-
-	LaunchedEffect(progress) {
-		animate(
-			initialValue = animatedProgress,
-			targetValue = progress,
-			animationSpec = tween(1000, easing = FastOutSlowInEasing)
-		) { value, _ -> animatedProgress = value }
-	}
 
 	Card(
 		modifier = Modifier
 			.fillMaxWidth()
-			.clickable(onClick = onClick)
-			.animateContentSize(),
+			.clickable(onClick = onClick),
 		colors = CardDefaults.cardColors(
-			containerColor = color.copy(alpha = 0.1f)
+			containerColor = color.copy(alpha = 0.05f)
 		),
-		border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
+		border = BorderStroke(1.dp, color.copy(alpha = 0.15f)),
+		shape = RoundedCornerShape(12.dp)
 	) {
 		Column(
 			modifier = Modifier.padding(16.dp),
-			verticalArrangement = Arrangement.spacedBy(16.dp)
+			verticalArrangement = Arrangement.spacedBy(12.dp)
 		) {
-			// Header with Title and Badge
+			// هدر کارت
 			Row(
 				modifier = Modifier.fillMaxWidth(),
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
+				// نام انبار و آیکون
 				Row(
 					horizontalArrangement = Arrangement.spacedBy(12.dp),
 					verticalAlignment = Alignment.CenterVertically
 				) {
+					// آیکون انبار
+					Surface(
+						shape = CircleShape,
+						color = color.copy(alpha = 0.1f),
+						modifier = Modifier.size(40.dp)
+					) {
+						Box(contentAlignment = Alignment.Center) {
+							Icon(
+								imageVector = Icons.Default.Warehouse,
+								contentDescription = null,
+								tint = color,
+								modifier = Modifier.size(20.dp)
+							)
+						}
+					}
+					
+					// نام انبار و تعداد کوتاژ
 					Column {
 						Text(
 							text = warehouse.name,
 							style = MaterialTheme.typography.titleLarge,
-							color = color,
+							color = MaterialTheme.colorScheme.onSurface,
 							fontWeight = FontWeight.Bold
 						)
-						Text(
-							text = "${warehouse.quotaCount} کوتاژ",
-							style = MaterialTheme.typography.bodyMedium,
-							color = color.copy(alpha = 0.7f)
-						)
+						
+						Badge(
+							containerColor = color.copy(alpha = 0.1f),
+							contentColor = color
+						) {
+							Text(
+								text = "${warehouse.quotaCount} کوتاژ",
+								style = MaterialTheme.typography.bodySmall,
+								modifier = Modifier.padding(horizontal = 4.dp)
+							)
+						}
 					}
 				}
-
-				// Progress and Remaining Section
-				Column(
-					horizontalAlignment = Alignment.End
-				) {
-					Text(
-						text = formatWeightWithDetail(warehouse.remainingTonnage),
-						style = MaterialTheme.typography.bodyMedium,
-						color = color.copy(alpha = 0.7f)
-					)
-					Text(
-						text = "${(progress * 100).roundToInt()}%",
-						style = MaterialTheme.typography.titleLarge,
-						color = color,
-						fontWeight = FontWeight.Bold
-					)
-				}
 			}
-
-			// Progress Bar
-			Box(
-				modifier = Modifier
-					.fillMaxWidth()
-					.height(8.dp)
-					.background(color.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
-			) {
-				Box(
-					modifier = Modifier
-						.fillMaxWidth(animatedProgress)
-						.fillMaxHeight()
-						.background(color.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-				)
-			}
-
-			// Total and Loaded Weight Stats
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween
-			) {
-				// Total Weight (Right Side)
-				StatsBox(
-					icon = Icons.Default.Scale,
-					label = "تناژ کل",
-					value = formatWeightWithDetail(warehouse.totalTonnage),
-					color = color,
-					alignment = Alignment.Start
-				)
-
-				// Loaded Weight (Left Side)
-				StatsBox(
-					icon = Icons.Default.LocalShipping,
-					label = "بارگیری شده",
-					value = formatWeightWithDetail(loadedTonnage),
-					color = color,
-					alignment = Alignment.Start
-				)
-			}
+			
+			// جداکننده
+			HorizontalDivider(color = color.copy(alpha = 0.1f))
+			
+			// آمار تناژ
+			TonnageStatsRow(
+				totalTonnage = warehouse.totalTonnage,
+				loadedTonnage = loadedTonnage,
+				remainingTonnage = warehouse.remainingTonnage,
+				color = color
+			)
 		}
 	}
 }
 
 @Composable
-private fun StatsBox(
-	icon: ImageVector,
-	label: String,
-	value: String,
-	color: Color,
-	alignment: Alignment.Horizontal
+private fun TonnageStatsRow(
+	totalTonnage: Float,
+	loadedTonnage: Float,
+	remainingTonnage: Float,
+	color: Color
 ) {
-	val (mainValue, detail) = remember(value) {
-		value.split(" (").let { parts ->
-			if (parts.size > 1) {
-				Pair(parts[0], parts[1].removeSuffix(")"))
-			} else {
-				Pair(parts[0], null)
-			}
-		}
-	}
-
-	Column(
-		horizontalAlignment = alignment,
-		modifier = Modifier.width(IntrinsicSize.Max)
+	Row(
+		modifier = Modifier.fillMaxWidth(),
+		horizontalArrangement = Arrangement.SpaceEvenly,
+		verticalAlignment = Alignment.CenterVertically
 	) {
-		Row(
-			horizontalArrangement = Arrangement.spacedBy(8.dp),
-			verticalAlignment = Alignment.CenterVertically,
-			modifier = Modifier.padding(bottom = 4.dp)
-		) {
-			if (alignment == Alignment.End) {
-				Text(
-					text = label,
-					style = MaterialTheme.typography.bodyMedium,
-					color = color.copy(alpha = 0.7f)
-				)
-				Icon(
-					imageVector = icon,
-					contentDescription = null,
-					tint = color.copy(alpha = 0.7f),
-					modifier = Modifier.size(20.dp)
-				)
-			} else {
-				Icon(
-					imageVector = icon,
-					contentDescription = null,
-					tint = color.copy(alpha = 0.7f),
-					modifier = Modifier.size(20.dp)
-				)
-				Text(
-					text = label,
-					style = MaterialTheme.typography.bodyMedium,
-					color = color.copy(alpha = 0.7f)
-				)
-			}
-		}
+		// تناژ کل
+		TonnageStatItem(
+			icon = Icons.Default.Scale,
+			value = formatNumber(totalTonnage.toInt()),
+			label = "تناژ کل",
+			color = color
+		)
+		
+		// خط عمودی جداکننده
+		VerticalDivider(
+			modifier = Modifier.height(40.dp),
+			thickness = 1.dp,
+			color = color.copy(alpha = 0.1f)
+		)
+		
+		// تناژ بارگیری شده
+		TonnageStatItem(
+			icon = Icons.Default.Inventory,
+			value = formatNumber(loadedTonnage.toInt()),
+			label = "بارگیری شده",
+			color = color
+		)
+
+		// خط عمودی جداکننده
+		VerticalDivider(
+			modifier = Modifier.height(40.dp),
+			thickness = 1.dp,
+			color = color.copy(alpha = 0.1f)
+		)
+
+		// درصد پیشرفت
+		TonnageStatItem(
+			icon = Icons.Default.Store,
+			value = formatNumber(remainingTonnage.toInt()),
+			label = "مانده",
+			color = color
+		)
+	}
+}
+
+@Composable
+private fun TonnageStatItem(
+	icon: ImageVector,
+	value: String,
+	label: String,
+	color: Color
+) {
+	Column(
+		horizontalAlignment = Alignment.CenterHorizontally,
+		verticalArrangement = Arrangement.spacedBy(4.dp)
+	) {
+		Icon(
+			imageVector = icon,
+			contentDescription = null,
+			tint = color,
+			modifier = Modifier.size(18.dp)
+		)
+		
 		Text(
-			text = mainValue,
+			text = value,
 			style = MaterialTheme.typography.titleMedium,
-			color = color,
+			color = MaterialTheme.colorScheme.onSurface,
 			fontWeight = FontWeight.Bold
 		)
-		detail?.let {
-			Text(
-				text = it,
-				style = MaterialTheme.typography.bodySmall,
-				color = color.copy(alpha = 0.5f)
-			)
-		}
+		
+		Text(
+			text = label,
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+		)
 	}
 }
 
@@ -3476,18 +3557,18 @@ fun InfoCard(
 				.fillMaxSize()
 				.padding(12.dp),
 			verticalArrangement = Arrangement.SpaceBetween
-		) {
-			Row(
+	) {
+		Row(
 				modifier = Modifier.fillMaxWidth(),
 				horizontalArrangement = Arrangement.Start,
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				Icon(
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			Icon(
 					imageVector = icon,
-					contentDescription = null,
-					tint = color,
+				contentDescription = null,
+				tint = color,
 					modifier = Modifier.size(24.dp)
-				)
+			)
 				Text(
 					text = title,
 					style = MaterialTheme.typography.titleSmall,
@@ -3527,8 +3608,8 @@ fun ProgressBar(title: String, progress: Float, value: Int, color: Color, suffix
 	}
 
 	Column {
-		Row(
-			modifier = Modifier.fillMaxWidth(),
+	Row(
+		modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween
 		) {
 			Text(text = title, style = MaterialTheme.typography.bodyLarge)
@@ -7530,9 +7611,9 @@ private fun MiniFab(
 			shape = RoundedCornerShape(8.dp),
 			color = MaterialTheme.colorScheme.surfaceVariant,
 		) {
-			Text(
+						Text(
 				text = item.label,
-				style = MaterialTheme.typography.bodyMedium,
+							style = MaterialTheme.typography.bodyMedium,
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 				modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
 			)
@@ -7547,12 +7628,12 @@ private fun MiniFab(
 			shape = CircleShape,
 			color = MaterialTheme.colorScheme.secondaryContainer,
 			contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-			modifier = Modifier
+				modifier = Modifier
 				.size(48.dp)
 				.scale(scale)
 				.hoverable(interactionSource)
-		) {
-			Box(
+			) {
+				Box(
 				modifier = Modifier.fillMaxSize(),
 				contentAlignment = Alignment.Center
 			) {
@@ -7580,9 +7661,9 @@ fun AdvancedSearchDialog(
 			onDismissRequest = onDismiss,
 			properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = false)
 		) {
-			Card(
-				modifier = Modifier
-					.fillMaxWidth()
+	Card(
+		modifier = Modifier
+			.fillMaxWidth()
 					.padding(16.dp)
 					.animateContentSize(
 						animationSpec = spring(
@@ -7590,7 +7671,7 @@ fun AdvancedSearchDialog(
 							stiffness = Spring.StiffnessLow
 						)
 					),
-				colors = CardDefaults.cardColors(
+		colors = CardDefaults.cardColors(
 					containerColor = MaterialTheme.colorScheme.primaryContainer
 				),
 				shape = RoundedCornerShape(16.dp),
@@ -7598,16 +7679,16 @@ fun AdvancedSearchDialog(
 					width = 1.dp,
 					color = mainColor
 				)
-			) {
-				Column(
+	) {
+		Column(
 					modifier = Modifier.padding(16.dp)
-				) {
+		) {
 					// Header
-					Row(
-						modifier = Modifier.fillMaxWidth(),
-						horizontalArrangement = Arrangement.SpaceBetween,
-						verticalAlignment = Alignment.CenterVertically
-					) {
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically
+			) {
 						Row(
 							verticalAlignment = Alignment.CenterVertically,
 							horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -7618,21 +7699,21 @@ fun AdvancedSearchDialog(
 									.background(mainColor.copy(alpha = 0.2f), CircleShape),
 								contentAlignment = Alignment.Center
 							) {
-								Icon(
+							Icon(
 									imageVector = Icons.Default.Search,
-									contentDescription = null,
+								contentDescription = null,
 									tint = mainColor,
 									modifier = Modifier.size(28.dp)
-								)
-							}
-							Column {
-								Text(
+							)
+						}
+					Column {
+						Text(
 									text = "جستجوی پیشرفته",
-									style = MaterialTheme.typography.titleLarge,
+							style = MaterialTheme.typography.titleLarge,
 									fontWeight = FontWeight.Bold,
 									color = MaterialTheme.colorScheme.onPrimaryContainer
-								)
-								Text(
+						)
+							Text(
 									text = "جستجو بر اساس شماره قبض باسکول",
 									style = MaterialTheme.typography.bodyMedium,
 									color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -7723,14 +7804,14 @@ fun AdvancedSearchDialog(
 								containerColor = mainColor,
 								disabledContainerColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)
 							)
-						) {
-							Row(
+	) {
+		Row(
 								horizontalArrangement = Arrangement.Center,
-								verticalAlignment = Alignment.CenterVertically
-							) {
-								Icon(
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			Icon(
 									imageVector = Icons.Default.Search,
-									contentDescription = null,
+				contentDescription = null,
 									modifier = Modifier.size(18.dp)
 								)
 								Spacer(modifier = Modifier.width(8.dp))
@@ -7743,11 +7824,11 @@ fun AdvancedSearchDialog(
 							modifier = Modifier.weight(1f),
 							shape = RoundedCornerShape(12.dp),
 							border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f))
-						) {
-							Row(
+) {
+	Row(
 								horizontalArrangement = Arrangement.Center,
-								verticalAlignment = Alignment.CenterVertically
-							) {
+		verticalAlignment = Alignment.CenterVertically
+	) {
 								Icon(
 									imageVector = Icons.Default.Close,
 									contentDescription = null,
@@ -7789,8 +7870,8 @@ fun SearchResultDialog(
 				width = 1.dp,
 				color = mainColor
 			)
-		) {
-			Column(
+) {
+	Column(
 				modifier = Modifier
 					.fillMaxSize()
 					.padding(16.dp)
@@ -7810,22 +7891,22 @@ fun SearchResultDialog(
 								.size(48.dp)
 								.background(mainColor.copy(alpha = 0.2f), CircleShape),
 							contentAlignment = Alignment.Center
-						) {
-							Icon(
+	) {
+		Icon(
 								imageVector = Icons.Default.Receipt,
-								contentDescription = null,
+			contentDescription = null,
 								tint = mainColor,
 								modifier = Modifier.size(28.dp)
-							)
+		)
 						}
 						Column {
-							Text(
+		Text(
 								text = "نتیجه جستجو",
 								style = MaterialTheme.typography.titleLarge,
 								fontWeight = FontWeight.Bold,
 								color = MaterialTheme.colorScheme.onPrimaryContainer
 							)
-							Text(
+		Text(
 								text = "قبض باسکول: ${cargoInfo.scaleReceiptNumber}",
 								style = MaterialTheme.typography.bodyMedium,
 								color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -7843,9 +7924,9 @@ fun SearchResultDialog(
 							imageVector = Icons.Default.Close,
 							contentDescription = "بستن",
 							tint = MaterialTheme.colorScheme.onPrimaryContainer
-						)
-					}
-				}
+		)
+	}
+}
 
 				Spacer(modifier = Modifier.height(24.dp))
 
@@ -9974,7 +10055,7 @@ private fun ShipAndWeightSection(
 					color = color
 				)
 
-				Text(
+						Text(
 					text = quota.shipName,
 					style = MaterialTheme.typography.bodyLarge,
 					color = color,
@@ -10058,7 +10139,7 @@ private fun QuataInfoColumn(
 		}
 		Text(
 			text = value,
-			style = MaterialTheme.typography.bodyMedium,
+							style = MaterialTheme.typography.bodyMedium,
 			fontWeight = FontWeight.Medium,
 			color = color,
 			maxLines = 1,
@@ -10078,7 +10159,7 @@ private fun PredictionSection(
 		shape = RoundedCornerShape(12.dp),
 		border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
 	) {
-		Column(
+				Column(
 			modifier = Modifier.padding(12.dp),
 			verticalArrangement = Arrangement.spacedBy(8.dp)
 		) {
@@ -10114,14 +10195,14 @@ private fun InfoItem(
 	color: Color
 ) {
 	Column {
-		Text(
+					Text(
 			text = label,
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
 		)
 		Text(
 			text = value,
-			style = MaterialTheme.typography.bodyMedium,
+						style = MaterialTheme.typography.bodyMedium,
 			fontWeight = FontWeight.Medium,
 			color = color
 		)
@@ -10192,11 +10273,11 @@ private fun ModernCarrierCard(
 
 					// Company Details
 					Column {
-						Text(
+					Text(
 							text = carrier.shippingCompany,
 							style = MaterialTheme.typography.titleMedium,
-							fontWeight = FontWeight.Bold
-						)
+						fontWeight = FontWeight.Bold
+					)
 						Row(
 							horizontalArrangement = Arrangement.spacedBy(8.dp),
 							verticalAlignment = Alignment.CenterVertically
@@ -10268,8 +10349,8 @@ private fun StatusIndicator(score: Float, color: Color) {
 @Composable
 private fun QuickStats(carrier: CarrierPerformanceAnalysis, color: Color) {
 	Row(
-		modifier = Modifier
-			.fillMaxWidth()
+				modifier = Modifier
+					.fillMaxWidth()
 			.padding(top = 8.dp),
 		horizontalArrangement = Arrangement.SpaceBetween
 	) {
@@ -10411,10 +10492,10 @@ private fun DetailedStats(carrier: CarrierPerformanceAnalysis, color: Color) {
 					)
 				}
 
-				Row(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.SpaceBetween
-				) {
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.SpaceBetween
+			) {
 					WeightInfo(
 						label = "میانگین",
 						value = formatNumber(carrier.avg_net_weight.roundToInt()),
@@ -10509,7 +10590,7 @@ private fun WeightInfo(
 		Text(
 			text = value,
 			style = MaterialTheme.typography.bodyMedium,
-			color = color,
+					color = color,
 			fontWeight = FontWeight.Medium
 		)
 	}
@@ -10528,7 +10609,7 @@ private fun QuotaChip(
 		Text(
 			text = quotaNumber,
 			style = MaterialTheme.typography.bodySmall,
-			color = color,
+					color = color,
 			modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
 		)
 	}
