@@ -132,6 +132,9 @@ class CargoViewModel(
     
     private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY)
     val warehouseQuotaGroupingMode: StateFlow<WarehouseQuotaGroupingMode> = _warehouseQuotaGroupingMode.asStateFlow()
+    
+    private val _warehouseGroupingMode = MutableStateFlow(WarehouseGroupingMode.OVERALL)
+    val warehouseGroupingMode: StateFlow<WarehouseGroupingMode> = _warehouseGroupingMode.asStateFlow()
     private val _cachedTrackingNumbers = MutableStateFlow<Set<String>>(emptySet())
     val cachedTrackingNumbers: StateFlow<Set<String>> = _cachedTrackingNumbers.asStateFlow()
     
@@ -1326,6 +1329,9 @@ class ReportsViewModel(
 
     private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY)
     val warehouseQuotaGroupingMode: StateFlow<WarehouseQuotaGroupingMode> = _warehouseQuotaGroupingMode.asStateFlow()
+    
+    private val _warehouseGroupingMode = MutableStateFlow(WarehouseGroupingMode.OVERALL)
+    val warehouseGroupingMode: StateFlow<WarehouseGroupingMode> = _warehouseGroupingMode.asStateFlow()
 
     // تابع تغییر حالت گروه‌بندی
     fun setGroupingMode(mode: QuotaGroupingMode) {
@@ -2146,6 +2152,11 @@ class ReportsViewModel(
 
     fun setWarehouseQuotaGroupingMode(mode: WarehouseQuotaGroupingMode) {
         _warehouseQuotaGroupingMode.value = mode
+    }
+    
+    fun setWarehouseGroupingMode(mode: WarehouseGroupingMode) {
+        Log.d("ATK_DEBUG", "ReportsViewModel: setWarehouseGroupingMode - changing to $mode")
+        _warehouseGroupingMode.value = mode
     }
 
     fun shareRealTimeLoadingData(loadingData: List<RealTimeLoadingData>, shiftInfo: ShiftInfo?): String {
@@ -3556,6 +3567,11 @@ enum class QuotaGroupingMode {
 
 enum class WarehouseQuotaGroupingMode {
     BY_SHIPPING_COMPANY,
+    BY_CARGO_OWNER
+}
+
+enum class WarehouseGroupingMode {
+    OVERALL,
     BY_CARGO_OWNER
 }
 

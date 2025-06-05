@@ -2,6 +2,7 @@ package com.atk.atk_cargo
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColor
@@ -89,6 +90,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddTask
 import androidx.compose.material.icons.filled.Analytics
@@ -252,6 +254,7 @@ import com.atk.atk_cargo.api.ShipSection
 import com.atk.atk_cargo.api.VoucherDetail
 import com.atk.atk_cargo.api.Warehouse
 import com.atk.atk_cargo.api.WarehouseEfficiencyData
+import com.atk.atk_cargo.api.WarehouseGroupingMode
 import com.atk.atk_cargo.api.WarehouseQuotaGroupingMode
 import com.atk.atk_cargo.api.WarningStatus
 import com.atk.atk_cargo.api.adjustColorForTheme
@@ -1457,7 +1460,9 @@ fun WarehousesAndQuotasTab(
 					warehouses = shipDetails.warehouses.filter {
 						it.name.contains(searchQuery, ignoreCase = true)
 					},
-					onWarehouseSelected = onWarehouseSelected
+					onWarehouseSelected = onWarehouseSelected,
+					groupingMode = viewModel.warehouseGroupingMode,
+					onGroupingModeChange = viewModel::setWarehouseGroupingMode
 				)
 				1 -> QuotasList(
 					quotas = selectedShipQuotas,
@@ -1741,7 +1746,7 @@ fun QuotasList(
 				.filter { quota ->
 					quota.number.contains(searchQuery, ignoreCase = true) ||
 							quota.shippingCompany.contains(searchQuery, ignoreCase = true) ||
-							(quota.cargoOwner?.contains(searchQuery, ignoreCase = true) ?: false)
+							(quota.cargoOwner?.contains(searchQuery, ignoreCase = true) == true)
 				}
 				.groupBy {
 					when (currentGroupingMode) {
@@ -1797,13 +1802,18 @@ fun QuotaGroupExpansionPanel(
 	onPercentageChange: (QuotaPercentageData) -> Unit
 ) {
 	val loadedWeight = quotas.sumOf { it.loadedTonnage.toDouble() }
-	val activeQuotas = quotas.count { it.isActive }
-	val inactiveQuotas = quotas.size - activeQuotas
+	val totalWeight = quotas.sumOf { it.totalTonnage.toDouble() }
+	val remainingWeight = totalWeight - loadedWeight
 
 	Card(
 		modifier = Modifier
 			.fillMaxWidth()
 			.animateContentSize(),
+		colors = CardDefaults.cardColors(
+			containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+		),
+		shape = RoundedCornerShape(12.dp),
+		border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 	) {
 		Column(
 			modifier = Modifier
@@ -1828,14 +1838,17 @@ fun QuotaGroupExpansionPanel(
 							style = MaterialTheme.typography.titleMedium,
 							fontWeight = FontWeight.Bold
 						)
-						QuotaStats(loadedWeight, activeQuotas, inactiveQuotas)
+						QuotaStats(loadedWeight, remainingWeight)
 					}
 				}
 				ExpandIcon(isExpanded)
 			}
 
 			if (isExpanded) {
-				Spacer(modifier = Modifier.height(8.dp))
+				Spacer(modifier = Modifier.height(12.dp))
+				HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+				Spacer(modifier = Modifier.height(12.dp))
+
 				quotas.forEach { quota ->
 					QuotaCard(
 						quota = quota,
@@ -1875,31 +1888,28 @@ private fun GroupIcon(groupingMode: WarehouseQuotaGroupingMode) {
 }
 
 @Composable
-private fun QuotaStats(loadedWeight: Double, activeQuotas: Int, inactiveQuotas: Int) {
+private fun QuotaStats(loadedWeight: Double, remainingWeight: Double) {
 	Row(
 		horizontalArrangement = Arrangement.spacedBy(8.dp),
 		verticalAlignment = Alignment.CenterVertically
 	) {
 		StatChip(
-			icon = Icons.Default.Scale,
+			icon = Icons.Default.ArrowUpward,
 			value = formatNumber(loadedWeight.toInt()),
-			color = MaterialTheme.colorScheme.primary
+			color = MaterialTheme.colorScheme.primary,
+			label = "بارگیری"
 		)
 		StatChip(
-			icon = Icons.Default.CheckCircle,
-			value = "$activeQuotas",
-			color = MaterialTheme.colorScheme.secondary
-		)
-		StatChip(
-			icon = Icons.Default.Cancel,
-			value = "$inactiveQuotas",
-			color = MaterialTheme.colorScheme.error
+			icon = Icons.Default.ArrowDownward,
+			value = formatNumber(remainingWeight.toInt()),
+			color = MaterialTheme.colorScheme.tertiary,
+			label = "مانده"
 		)
 	}
 }
 
 @Composable
-private fun StatChip(icon: ImageVector, value: String, color: Color) {
+private fun StatChip(icon: ImageVector, value: String, color: Color, label: String? = null) {
 	Surface(
 		shape = RoundedCornerShape(16.dp),
 		color = color.copy(alpha = 0.1f)
@@ -1915,11 +1925,27 @@ private fun StatChip(icon: ImageVector, value: String, color: Color) {
 				tint = color,
 				modifier = Modifier.size(16.dp)
 			)
-			Text(
-				text = value,
-				style = MaterialTheme.typography.bodySmall,
-				color = color
-			)
+			if (label != null) {
+				Column {
+					Text(
+						text = label,
+						style = MaterialTheme.typography.labelSmall,
+						color = color.copy(alpha = 0.7f)
+					)
+					Text(
+						text = value,
+						style = MaterialTheme.typography.bodySmall,
+						color = color,
+						fontWeight = FontWeight.Bold
+					)
+				}
+			} else {
+				Text(
+					text = value,
+					style = MaterialTheme.typography.bodySmall,
+					color = color
+				)
+			}
 		}
 	}
 }
@@ -1938,40 +1964,77 @@ fun GroupingModeSelector(
 	currentMode: WarehouseQuotaGroupingMode,
 	onModeChange: (WarehouseQuotaGroupingMode) -> Unit
 ) {
-	Row(
+	Card(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = 16.dp),
-		verticalAlignment = Alignment.CenterVertically
+			.padding(horizontal = 8.dp),
+		colors = CardDefaults.cardColors(
+			containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+		),
+		shape = RoundedCornerShape(12.dp),
+		border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 	) {
-		Text(
-			text = "نوع دسته‌بندی:",
-			style = MaterialTheme.typography.bodyLarge,
-			modifier = Modifier.weight(1f)
-		)
-		Switch(
-			checked = currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER,
-			onCheckedChange = { isChecked ->
-				onModeChange(
-					if (isChecked) WarehouseQuotaGroupingMode.BY_CARGO_OWNER
-					else WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY
-				)
-			},
-			thumbContent = {
-				Icon(
-					imageVector = if (currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER)
-						Icons.Default.Person else Icons.Default.LocalShipping,
-					contentDescription = null,
-					modifier = Modifier.size(SwitchDefaults.IconSize)
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(horizontal = 16.dp, vertical = 12.dp),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.SpaceBetween
+		) {
+			Row(
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(8.dp)
+			) {
+				Surface(
+					shape = CircleShape,
+					color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+					modifier = Modifier.size(36.dp)
+				) {
+					Box(contentAlignment = Alignment.Center) {
+						Icon(
+							imageVector = Icons.Default.Filter,
+							contentDescription = null,
+							tint = MaterialTheme.colorScheme.primary,
+							modifier = Modifier.size(20.dp)
+						)
+					}
+				}
+				Text(
+					text = "نوع دسته‌بندی",
+					style = MaterialTheme.typography.titleMedium,
+					fontWeight = FontWeight.Medium
 				)
 			}
-		)
-		Spacer(modifier = Modifier.width(8.dp))
-		Text(
-			text = if (currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER)
-				"صاحب کالا" else "شرکت باربری",
-			style = MaterialTheme.typography.bodyMedium
-		)
+			
+			Row(
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(8.dp)
+			) {
+				Text(
+					text = if (currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER) "صاحب کالا" else "شرکت باربری",
+					style = MaterialTheme.typography.bodyMedium,
+					color = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+				
+				Switch(
+					checked = currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER,
+					onCheckedChange = { isChecked ->
+						onModeChange(
+							if (isChecked) WarehouseQuotaGroupingMode.BY_CARGO_OWNER
+							else WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY
+						)
+					},
+					thumbContent = {
+						Icon(
+							imageVector = if (currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER)
+								Icons.Default.Person else Icons.Default.LocalShipping,
+							contentDescription = null,
+							modifier = Modifier.size(SwitchDefaults.IconSize)
+						)
+					}
+				)
+			}
+		}
 	}
 }
 
@@ -2617,7 +2680,7 @@ private fun calculateWarningStatus(quota: Quota): WarningStatus? {
 			remainingTonnage = remainingTonnage,
 			percentageAmount = percentageAmount,
 			isActive = true,
-			isPercentageRestricted = quota.isPercentageRestricted
+			isPercentageRestricted = true
 		)
 	} else null
 }
@@ -3331,12 +3394,12 @@ private fun calculateValues(
 	)
 }
 
-
-
 @Composable
 private fun WarehousesSection(
 	warehouses: List<Warehouse>,
-	onWarehouseSelected: (String) -> Unit
+	onWarehouseSelected: (String) -> Unit,
+	groupingMode: StateFlow<WarehouseGroupingMode>,
+	onGroupingModeChange: (WarehouseGroupingMode) -> Unit
 ) {
 	val colors = listOf(
 		MaterialTheme.colorScheme.primary,
@@ -3346,25 +3409,227 @@ private fun WarehousesSection(
 		MaterialTheme.colorScheme.surfaceTint,
 		MaterialTheme.colorScheme.inversePrimary
 	)
+	
+	val currentGroupingMode by groupingMode.collectAsState()
+	
+	Log.d("ATK_DEBUG", "WarehousesSection: currentGroupingMode=$currentGroupingMode, warehouses count=${warehouses.size}")
+	
+	// گروه‌بندی انبارها بر اساس حالت انتخاب شده
+	val groupedWarehouses = try {
+		when (currentGroupingMode) {
+			WarehouseGroupingMode.OVERALL -> {
+				Log.d("ATK_DEBUG", "Grouping: OVERALL mode")
+				mapOf("کلی" to warehouses)
+			}
+			WarehouseGroupingMode.BY_CARGO_OWNER -> {
+				Log.d("ATK_DEBUG", "Grouping: BY_CARGO_OWNER mode")
+				// گروه‌بندی بر اساس صاحب کالا
+				val warehousesByCargoOwner = mutableMapOf<String, MutableList<Warehouse>>()
+				
+				// برای هر انبار، کوتاژهای آن را بررسی می‌کنیم
+				warehouses.forEach { warehouse ->
+					try {
+						// استخراج صاحبان کالا از کوتاژهای انبار
+						Log.d("ATK_DEBUG", "Processing warehouse: ${warehouse.name}, quotas: ${warehouse.quotas.size}")
+						val cargoOwners = warehouse.quotas.mapNotNull { it.cargoOwner }.distinct().filter { it.isNotBlank() }
+						Log.d("ATK_DEBUG", "Found cargo owners: $cargoOwners for warehouse: ${warehouse.name}")
+						
+						// اگر صاحب کالایی وجود نداشت، در گروه "نامشخص" قرار می‌دهیم
+						if (cargoOwners.isEmpty()) {
+							Log.d("ATK_DEBUG", "No cargo owners for warehouse: ${warehouse.name}, adding to 'نامشخص' group")
+							warehousesByCargoOwner.getOrPut("نامشخص") { mutableListOf() }.add(warehouse)
+						} else {
+							// برای هر صاحب کالا، انبار را در گروه مربوطه قرار می‌دهیم
+							cargoOwners.forEach { owner ->
+								Log.d("ATK_DEBUG", "Adding warehouse: ${warehouse.name} to owner: $owner group")
+								warehousesByCargoOwner.getOrPut(owner) { mutableListOf() }.add(warehouse)
+							}
+						}
+					} catch (e: Exception) {
+						Log.e("ATK_DEBUG", "Error processing warehouse ${warehouse.name}: ${e.message}", e)
+						// در صورت بروز خطا برای یک انبار، آن را در گروه "نامشخص" قرار می‌دهیم
+						warehousesByCargoOwner.getOrPut("نامشخص") { mutableListOf() }.add(warehouse)
+					}
+				}
+				
+				// اگر هیچ گروهی وجود نداشت، یک گروه پیش‌فرض ایجاد می‌کنیم
+				if (warehousesByCargoOwner.isEmpty()) {
+					Log.d("ATK_DEBUG", "No cargo owner groups found, creating default group")
+					warehousesByCargoOwner["کلی"] = warehouses.toMutableList()
+				}
+				
+				Log.d("ATK_DEBUG", "Final cargo owner groups: ${warehousesByCargoOwner.keys}, total groups: ${warehousesByCargoOwner.size}")
+				warehousesByCargoOwner
+			}
+		}
+	} catch (e: Exception) {
+		Log.e("ATK_DEBUG", "Error in grouping warehouses: ${e.message}", e)
+		// در صورت بروز هر گونه خطا، به حالت پیش‌فرض برمی‌گردیم
+		mapOf("کلی" to warehouses)
+	}
 
 	Column(
 		modifier = Modifier.fillMaxWidth(),
-		verticalArrangement = Arrangement.spacedBy(16.dp)
+		verticalArrangement = Arrangement.spacedBy(8.dp)
 	) {
+		// سلکتور حالت دسته‌بندی
+		WarehouseGroupingModeSelector(
+			currentMode = currentGroupingMode,
+			onModeChange = onGroupingModeChange
+		)
+		
 		// لیست انبارها
 		LazyColumn(
 			verticalArrangement = Arrangement.spacedBy(12.dp),
 			contentPadding = PaddingValues(vertical = 4.dp)
 		) {
-			items(warehouses) { warehouse ->
-				val colorIndex = warehouses.indexOf(warehouse) % colors.size
-				WarehouseCard(
-					warehouse = warehouse,
-					color = colors[colorIndex],
-					onClick = { onWarehouseSelected(warehouse.name) }
+			groupedWarehouses.forEach { (groupName, warehousesInGroup) ->
+				Log.d("ATK_DEBUG", "Rendering group: $groupName, warehouses: ${warehousesInGroup.size}")
+				
+				// نمایش عنوان گروه اگر در حالت دسته‌بندی بر اساس صاحب کالا باشیم
+				if (currentGroupingMode == WarehouseGroupingMode.BY_CARGO_OWNER) {
+					item {
+						Text(
+							text = groupName,
+							style = MaterialTheme.typography.titleMedium,
+							fontWeight = FontWeight.Bold,
+							modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 4.dp)
+						)
+					}
+				}
+				
+				// نمایش انبارهای گروه
+				items(warehousesInGroup) { warehouse ->
+					val colorIndex = warehousesInGroup.indexOf(warehouse) % colors.size
+					Log.d("ATK_DEBUG", "Rendering warehouse card for: ${warehouse.name}, in group: $groupName")
+					WarehouseCard(
+						warehouse = warehouse,
+						color = colors[colorIndex],
+						onClick = { onWarehouseSelected(warehouse.name) },
+						groupingMode = currentGroupingMode,
+						cargoOwner = if (currentGroupingMode == WarehouseGroupingMode.BY_CARGO_OWNER) groupName else null
+					)
+				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun WarehouseGroupingModeSelector(
+	currentMode: WarehouseGroupingMode,
+	onModeChange: (WarehouseGroupingMode) -> Unit
+) {
+	Log.d("ATK_DEBUG", "WarehouseGroupingModeSelector: current mode = $currentMode")
+	
+	Card(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = 8.dp),
+		colors = CardDefaults.cardColors(
+			containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+		),
+		shape = RoundedCornerShape(12.dp),
+		border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+	) {
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(12.dp),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.SpaceBetween
+		) {
+			Row(
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(8.dp)
+			) {
+				Surface(
+					shape = CircleShape,
+					color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+					modifier = Modifier.size(24.dp)
+				) {
+					Box(contentAlignment = Alignment.Center) {
+						Icon(
+							imageVector = Icons.Default.Filter,
+							contentDescription = null,
+							tint = MaterialTheme.colorScheme.primary,
+							modifier = Modifier.size(16.dp)
+						)
+					}
+				}
+				Text(
+					text = "نوع دسته‌بندی",
+					style = MaterialTheme.typography.titleMedium,
+					fontWeight = FontWeight.Medium
+				)
+			}
+			
+			Row(
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(8.dp)
+			) {
+				Text(
+					text = if (currentMode == WarehouseGroupingMode.BY_CARGO_OWNER) "صاحب کالا" else "کلی",
+					style = MaterialTheme.typography.bodyMedium,
+					color = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+				
+				Switch(
+					checked = currentMode == WarehouseGroupingMode.BY_CARGO_OWNER,
+					onCheckedChange = { isChecked ->
+						Log.d("ATK_DEBUG", "Mode switch changed to: ${if (isChecked) "BY_CARGO_OWNER" else "OVERALL"}")
+						onModeChange(
+							if (isChecked) WarehouseGroupingMode.BY_CARGO_OWNER
+							else WarehouseGroupingMode.OVERALL
+						)
+					},
+					thumbContent = {
+						Icon(
+							imageVector = if (currentMode == WarehouseGroupingMode.BY_CARGO_OWNER)
+								Icons.Default.Person else Icons.AutoMirrored.Filled.ViewList,
+							contentDescription = null,
+							modifier = Modifier.size(SwitchDefaults.IconSize)
+						)
+					}
 				)
 			}
 		}
+	}
+}
+
+// تابع محاسبه اطلاعات تناژی بر اساس صاحب کالا
+private fun calculateTonnageByCargoOwner(warehouse: Warehouse, cargoOwner: String?): Triple<Float, Float, Float> {
+	Log.d("ATK_DEBUG", "calculateTonnageByCargoOwner for warehouse: ${warehouse.name}, cargoOwner: $cargoOwner")
+	
+	// اگر حالت کلی باشد یا cargoOwner برابر با "کلی" باشد، از اطلاعات کلی انبار استفاده می‌کنیم
+	if (cargoOwner == null || cargoOwner == "کلی" || cargoOwner == "نامشخص") {
+		Log.d("ATK_DEBUG", "cargoOwner is null or 'کلی' or 'نامشخص', using warehouse overall tonnage: total=${warehouse.totalTonnage}, loaded=${warehouse.loadedTonnage}, remaining=${warehouse.remainingTonnage}")
+		return Triple(warehouse.totalTonnage, warehouse.loadedTonnage, warehouse.remainingTonnage)
+	}
+	
+	try {
+		// فیلتر کردن کوتاژهای مربوط به صاحب کالای مورد نظر
+		val ownerQuotas = warehouse.quotas.filter { it.cargoOwner == cargoOwner }
+		Log.d("ATK_DEBUG", "Filtered quotas for owner: $cargoOwner, found: ${ownerQuotas.size} quotas out of ${warehouse.quotas.size}")
+		
+		// اگر هیچ کوتاژی برای این صاحب کالا پیدا نشد، از اطلاعات کلی استفاده می‌کنیم
+		if (ownerQuotas.isEmpty()) {
+			Log.d("ATK_DEBUG", "No quotas found for owner: $cargoOwner, using warehouse overall tonnage")
+			return Triple(0f, 0f, 0f)
+		}
+		
+		// محاسبه مجموع تناژها
+		val totalTonnage = ownerQuotas.sumOf { it.totalTonnage.toDouble() }.toFloat()
+		val loadedTonnage = ownerQuotas.sumOf { it.loadedTonnage.toDouble() }.toFloat()
+		val remainingTonnage = ownerQuotas.sumOf { it.remainingTonnage.toDouble() }.toFloat()
+		
+		Log.d("ATK_DEBUG", "Calculated tonnage for owner: $cargoOwner - total: $totalTonnage, loaded: $loadedTonnage, remaining: $remainingTonnage")
+		
+		return Triple(totalTonnage, loadedTonnage, remainingTonnage)
+	} catch (e: Exception) {
+		Log.e("ATK_DEBUG", "Error in calculateTonnageByCargoOwner: ${e.message}", e)
+		// در صورت بروز هر گونه خطا، مقادیر صفر برمی‌گردانیم تا از کرش جلوگیری شود
+		return Triple(0f, 0f, 0f)
 	}
 }
 
@@ -3372,171 +3637,161 @@ private fun WarehousesSection(
 private fun WarehouseCard(
 	warehouse: Warehouse,
 	color: Color,
-	onClick: () -> Unit
+	onClick: () -> Unit,
+	groupingMode: WarehouseGroupingMode = WarehouseGroupingMode.OVERALL,
+	cargoOwner: String? = null
 ) {
-	val loadedTonnage = warehouse.totalTonnage - warehouse.remainingTonnage
+	Log.d("ATK_DEBUG", "WarehouseCard for: ${warehouse.name}, groupingMode: $groupingMode, cargoOwner: $cargoOwner")
+	
+	// محاسبه اطلاعات تناژی بر اساس حالت دسته‌بندی
+	var triple: Triple<Float, Float, Float> = Triple(0f, 0f, 0f)
+	try {
+		triple = if (groupingMode == WarehouseGroupingMode.BY_CARGO_OWNER && cargoOwner != null && cargoOwner != "نامشخص" && cargoOwner != "کلی") {
+			calculateTonnageByCargoOwner(warehouse, cargoOwner)
+		} else {
+			// حالت کلی
+			Log.d("ATK_DEBUG", "Using overall tonnage for warehouse: ${warehouse.name}")
+			Triple(warehouse.totalTonnage, warehouse.loadedTonnage, warehouse.remainingTonnage)
+		}
+	} catch (e: Exception) {
+		Log.e("ATK_DEBUG", "Error calculating tonnage: ${e.message}", e)
+	}
+	
+	val (totalTonnage, loadedTonnage, remainingTonnage) = triple
+	
+	Log.d("ATK_DEBUG", "Final tonnage values for warehouse card: ${warehouse.name} - total: $totalTonnage, loaded: $loadedTonnage, remaining: $remainingTonnage")
 
-	Card(
-		modifier = Modifier
-			.fillMaxWidth()
-			.clickable(onClick = onClick),
-		colors = CardDefaults.cardColors(
-			containerColor = color.copy(alpha = 0.05f)
-		),
-		border = BorderStroke(1.dp, color.copy(alpha = 0.15f)),
-		shape = RoundedCornerShape(12.dp)
-	) {
-		Column(
-			modifier = Modifier.padding(16.dp),
-			verticalArrangement = Arrangement.spacedBy(12.dp)
+		Card(
+			modifier = Modifier
+				.fillMaxWidth()
+				.clickable(onClick = onClick),
+			colors = CardDefaults.cardColors(
+				containerColor = MaterialTheme.colorScheme.surface
+			),
+			border = BorderStroke(1.dp, color.copy(alpha = 0.15f)),
+			shape = RoundedCornerShape(12.dp),
+			elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
 		) {
-			// هدر کارت
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically
+			Column(
+				modifier = Modifier.padding(12.dp),
+				verticalArrangement = Arrangement.spacedBy(8.dp)
 			) {
-				// نام انبار و آیکون
+				// هدر کارت - طراحی مینیمال‌تر
 				Row(
-					horizontalArrangement = Arrangement.spacedBy(12.dp),
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.SpaceBetween,
 					verticalAlignment = Alignment.CenterVertically
 				) {
-					// آیکون انبار
-					Surface(
-						shape = CircleShape,
-						color = color.copy(alpha = 0.1f),
-						modifier = Modifier.size(40.dp)
+					// نام انبار و آیکون
+					Row(
+						horizontalArrangement = Arrangement.spacedBy(8.dp),
+						verticalAlignment = Alignment.CenterVertically
 					) {
-						Box(contentAlignment = Alignment.Center) {
-							Icon(
-								imageVector = Icons.Default.Warehouse,
-								contentDescription = null,
-								tint = color,
-								modifier = Modifier.size(20.dp)
-							)
+						// آیکون انبار
+						Surface(
+							shape = CircleShape,
+							color = color.copy(alpha = 0.1f),
+							modifier = Modifier.size(32.dp)
+						) {
+							Box(contentAlignment = Alignment.Center) {
+								Icon(
+									imageVector = Icons.Default.Warehouse,
+									contentDescription = null,
+									tint = color,
+									modifier = Modifier.size(16.dp)
+								)
+							}
 						}
-					}
-					
-					// نام انبار و تعداد کوتاژ
-					Column {
+						
+						// نام انبار
 						Text(
 							text = warehouse.name,
-							style = MaterialTheme.typography.titleLarge,
+							style = MaterialTheme.typography.titleMedium,
 							color = MaterialTheme.colorScheme.onSurface,
-							fontWeight = FontWeight.Bold
+							fontWeight = FontWeight.Medium
 						)
-						
-						Badge(
-							containerColor = color.copy(alpha = 0.1f),
-							contentColor = color
-						) {
-							Text(
-								text = "${warehouse.quotaCount} کوتاژ",
-								style = MaterialTheme.typography.bodySmall,
-								modifier = Modifier.padding(horizontal = 4.dp)
-							)
+					}
+					
+					// تعداد کوتاژ
+					Badge(
+						containerColor = color.copy(alpha = 0.1f),
+						contentColor = color
+					) {
+						// اگر در حالت صاحب کالا هستیم، فقط کوتاژهای مربوط به آن صاحب کالا را نمایش دهیم
+						val quotaCount = if (groupingMode == WarehouseGroupingMode.BY_CARGO_OWNER && cargoOwner != null && cargoOwner != "نامشخص") {
+							val count = warehouse.quotas.count { it.cargoOwner == cargoOwner }
+							Log.d("ATK_DEBUG", "Filtered quota count for owner: $cargoOwner in warehouse: ${warehouse.name} = $count")
+							count
+						} else {
+							Log.d("ATK_DEBUG", "Using overall quota count for warehouse: ${warehouse.name} = ${warehouse.quotaCount}")
+							warehouse.quotaCount
 						}
+						
+						Text(
+							text = "$quotaCount کوتاژ",
+							style = MaterialTheme.typography.bodySmall,
+							modifier = Modifier.padding(horizontal = 4.dp)
+						)
+					}
+				}
+				
+				// نوار پیشرفت
+				val progress = if (totalTonnage > 0) loadedTonnage / totalTonnage else 0f
+				Log.d("ATK_DEBUG", "Progress bar calculation: loaded=$loadedTonnage / total=$totalTonnage = $progress")
+				
+				LinearProgressIndicator(
+					progress = { progress },
+					modifier = Modifier
+						.fillMaxWidth()
+						.height(4.dp),
+					color = color,
+					trackColor = color.copy(alpha = 0.1f)
+				)
+				
+				// آمار تناژ - طراحی مینیمال‌تر
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					// تناژ بارگیری شده
+					Row(
+						verticalAlignment = Alignment.CenterVertically,
+						horizontalArrangement = Arrangement.spacedBy(4.dp)
+					) {
+						Icon(
+							imageVector = Icons.Default.Inventory,
+							contentDescription = null,
+							tint = color,
+							modifier = Modifier.size(14.dp)
+						)
+						Text(
+							text = "${formatNumber(loadedTonnage.toInt())} تن بارگیری",
+							style = MaterialTheme.typography.bodySmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant
+						)
+					}
+					
+					// تناژ مانده
+					Row(
+						verticalAlignment = Alignment.CenterVertically,
+						horizontalArrangement = Arrangement.spacedBy(4.dp)
+					) {
+						Icon(
+							imageVector = Icons.Default.Store,
+							contentDescription = null,
+							tint = color,
+							modifier = Modifier.size(14.dp)
+						)
+						Text(
+							text = "${formatNumber(remainingTonnage.toInt())} تن مانده",
+							style = MaterialTheme.typography.bodySmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant
+						)
 					}
 				}
 			}
-			
-			// جداکننده
-			HorizontalDivider(color = color.copy(alpha = 0.1f))
-			
-			// آمار تناژ
-			TonnageStatsRow(
-				totalTonnage = warehouse.totalTonnage,
-				loadedTonnage = loadedTonnage,
-				remainingTonnage = warehouse.remainingTonnage,
-				color = color
-			)
 		}
-	}
-}
-
-@Composable
-private fun TonnageStatsRow(
-	totalTonnage: Float,
-	loadedTonnage: Float,
-	remainingTonnage: Float,
-	color: Color
-) {
-	Row(
-		modifier = Modifier.fillMaxWidth(),
-		horizontalArrangement = Arrangement.SpaceEvenly,
-		verticalAlignment = Alignment.CenterVertically
-	) {
-		// تناژ کل
-		TonnageStatItem(
-			icon = Icons.Default.Scale,
-			value = formatNumber(totalTonnage.toInt()),
-			label = "تناژ کل",
-			color = color
-		)
-		
-		// خط عمودی جداکننده
-		VerticalDivider(
-			modifier = Modifier.height(40.dp),
-			thickness = 1.dp,
-			color = color.copy(alpha = 0.1f)
-		)
-		
-		// تناژ بارگیری شده
-		TonnageStatItem(
-			icon = Icons.Default.Inventory,
-			value = formatNumber(loadedTonnage.toInt()),
-			label = "بارگیری شده",
-			color = color
-		)
-
-		// خط عمودی جداکننده
-		VerticalDivider(
-			modifier = Modifier.height(40.dp),
-			thickness = 1.dp,
-			color = color.copy(alpha = 0.1f)
-		)
-
-		// درصد پیشرفت
-		TonnageStatItem(
-			icon = Icons.Default.Store,
-			value = formatNumber(remainingTonnage.toInt()),
-			label = "مانده",
-			color = color
-		)
-	}
-}
-
-@Composable
-private fun TonnageStatItem(
-	icon: ImageVector,
-	value: String,
-	label: String,
-	color: Color
-) {
-	Column(
-		horizontalAlignment = Alignment.CenterHorizontally,
-		verticalArrangement = Arrangement.spacedBy(4.dp)
-	) {
-		Icon(
-			imageVector = icon,
-			contentDescription = null,
-			tint = color,
-			modifier = Modifier.size(18.dp)
-		)
-		
-		Text(
-			text = value,
-			style = MaterialTheme.typography.titleMedium,
-			color = MaterialTheme.colorScheme.onSurface,
-			fontWeight = FontWeight.Bold
-		)
-		
-		Text(
-			text = label,
-			style = MaterialTheme.typography.bodySmall,
-			color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-		)
-	}
 }
 
 @Composable
@@ -4789,8 +5044,8 @@ fun VoucherDetailsDialog(
 					voucher.trackingNumber.contains(searchQuery, ignoreCase = true) ||
 							voucher.scaleReceiptNumber.contains(searchQuery, ignoreCase = true) ||
 							voucher.exitDate.contains(searchQuery, ignoreCase = true) ||
-							voucher.username?.contains(searchQuery, ignoreCase = true) ?: false ||
-							voucher.confirmUsername?.contains(searchQuery, ignoreCase = true) ?: false
+                            voucher.username?.contains(searchQuery, ignoreCase = true) == true ||
+                            voucher.confirmUsername?.contains(searchQuery, ignoreCase = true) == true
 				}
 				
 				matchesSearch
@@ -5720,22 +5975,27 @@ fun QuotaCard(
 	var showDeleteDialog by remember { mutableStateOf(false) }
 	var showToggleDialog by remember { mutableStateOf(false) }
 	var showPercentageDialog by remember { mutableStateOf(false) }
+	
+	// رنگ‌های کارت بر اساس وضعیت فعال/غیرفعال
 	val cardColor = if (quota.isActive) {
-		MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+		MaterialTheme.colorScheme.surface
 	} else {
-		MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+		MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
 	}
 	val contentColor = if (quota.isActive) {
-		MaterialTheme.colorScheme.onSurfaceVariant
+		MaterialTheme.colorScheme.onSurface
 	} else {
-		MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+		MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
 	}
 	val accentColor = if (quota.isActive) {
 		MaterialTheme.colorScheme.primary
 	} else {
-		MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+		MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
 	}
-
+	
+	// محاسبه پیشرفت بارگیری
+	val progress = calculateProgress(quota.loadedTonnage, quota.totalTonnage)
+	
 	Card(
 		modifier = Modifier
 			.fillMaxWidth()
@@ -5745,40 +6005,45 @@ fun QuotaCard(
 		border = BorderStroke(
 			width = 1.dp,
 			color = if (quota.isActive) {
-				MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+				accentColor.copy(alpha = 0.2f)
 			} else {
 				MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
 			}
+		),
+		elevation = CardDefaults.cardElevation(
+			defaultElevation = if (quota.isActive) 1.dp else 0.dp
 		)
 	) {
-		Column(modifier = Modifier.padding(12.dp)) {
-			// Header
+		Column(modifier = Modifier.padding(10.dp)) {
+			// Header - طراحی مینیمال‌تر
 			Row(
 				modifier = Modifier.fillMaxWidth(),
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
+				// اطلاعات اصلی کوتاژ
 				Row(
 					verticalAlignment = Alignment.CenterVertically,
 					horizontalArrangement = Arrangement.spacedBy(8.dp)
 				) {
-					Box(
-						modifier = Modifier
-							.size(40.dp)
-							.background(
-								color = accentColor.copy(alpha = 0.1f),
-								shape = CircleShape
-							),
-						contentAlignment = Alignment.Center
+					// آیکون کوتاژ با طراحی مینیمال‌تر
+					Surface(
+						modifier = Modifier.size(32.dp),
+						shape = CircleShape,
+						color = accentColor.copy(alpha = 0.1f),
+						border = BorderStroke(1.dp, accentColor.copy(alpha = 0.2f))
 					) {
-						Icon(
-							imageVector = Icons.Default.Description,
-							contentDescription = null,
-							tint = accentColor,
-							modifier = Modifier.size(24.dp)
-						)
+						Box(contentAlignment = Alignment.Center) {
+							Icon(
+								imageVector = Icons.Default.Description,
+								contentDescription = null,
+								tint = accentColor,
+								modifier = Modifier.size(16.dp)
+							)
+						}
 					}
 
+					// اطلاعات کوتاژ
 					Column {
 						Text(
 							text = "کوتاژ ${quota.number}",
@@ -5788,91 +6053,116 @@ fun QuotaCard(
 							maxLines = 1,
 							overflow = TextOverflow.Ellipsis
 						)
+						
+						// نمایش نوع کالا و تناژ مانده در یک خط
 						Row(
-							horizontalArrangement = Arrangement.spacedBy(8.dp),
+							horizontalArrangement = Arrangement.spacedBy(4.dp),
 							verticalAlignment = Alignment.CenterVertically
 						) {
+							// نوع کالا
 							quota.cargoType?.let { type ->
 								Text(
 									text = type,
 									style = MaterialTheme.typography.bodySmall,
-									color = contentColor.copy(alpha = 0.7f)
+									color = contentColor.copy(alpha = 0.7f),
+									maxLines = 1,
+									overflow = TextOverflow.Ellipsis
+								)
+								Text(
+									text = " | ",
+									style = MaterialTheme.typography.bodySmall,
+									color = contentColor.copy(alpha = 0.5f)
 								)
 							}
+							
+							// نمایش تناژ مانده با آیکون
+							Icon(
+								imageVector = Icons.Default.Scale,
+								contentDescription = null,
+								tint = accentColor,
+								modifier = Modifier.size(12.dp)
+							)
+							Spacer(modifier = Modifier.width(2.dp))
 							Text(
-								text = "| ${formatWeightWithDetail(quota.remainingTonnage)}",
+								text = formatWeightWithDetail(quota.remainingTonnage),
 								style = MaterialTheme.typography.bodySmall,
-								color = contentColor.copy(alpha = 0.7f)
+								color = accentColor,
+								fontWeight = FontWeight.Medium
 							)
 						}
 					}
 				}
+				
+				// وضعیت و دکمه باز/بسته کردن
 				Row(
-					horizontalArrangement = Arrangement.spacedBy(8.dp),
+					horizontalArrangement = Arrangement.spacedBy(4.dp),
 					verticalAlignment = Alignment.CenterVertically
 				) {
-					Surface(
-						shape = RoundedCornerShape(12.dp),
-						color = if (quota.isActive) {
-							MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-						} else {
-							MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-						},
-						border = BorderStroke(
-							width = 1.dp,
-							color = if (quota.isActive) {
-								MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-							} else {
-								MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
-							}
-						)
-					) {
+					// نمایش وضعیت فعال/غیرفعال با آیکون به جای متن
+					Icon(
+						imageVector = if (quota.isActive) Icons.Default.CheckCircle else Icons.Default.Cancel,
+						contentDescription = if (quota.isActive) "فعال" else "غیرفعال",
+						tint = if (quota.isActive) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+						modifier = Modifier.size(16.dp)
+					)
+					
+					// نمایش درصد پیشرفت در حالت بسته
+					if (!isExpanded) {
 						Text(
-							text = if (quota.isActive) "فعال" else "غیرفعال",
-							style = MaterialTheme.typography.bodySmall,
-							color = if (quota.isActive) {
-								MaterialTheme.colorScheme.primary
-							} else {
-								MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
-							},
-							modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+							text = "${(progress * 100).toInt()}%",
+							style = MaterialTheme.typography.labelMedium,
+							color = accentColor,
+							fontWeight = FontWeight.Bold
 						)
 					}
-
+					
+					// آیکون باز/بسته کردن
 					Icon(
 						imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
 						contentDescription = if (isExpanded) "بستن" else "بازکردن",
-						tint = contentColor
+						tint = contentColor.copy(alpha = 0.7f)
 					)
 				}
 			}
+			
+			// نمایش نوار پیشرفت در حالت بسته
+			if (!isExpanded) {
+				Spacer(modifier = Modifier.height(8.dp))
+				LinearProgressIndicator(
+					progress = { progress },
+					modifier = Modifier
+						.fillMaxWidth()
+						.height(4.dp)
+						.clip(RoundedCornerShape(2.dp)),
+					color = accentColor,
+					trackColor = accentColor.copy(alpha = 0.1f)
+				)
+			}
 
-			// Expanded Content
+			// محتوای باز شده
 			AnimatedVisibility(
 				visible = isExpanded,
 				enter = expandVertically() + fadeIn(),
 				exit = shrinkVertically() + fadeOut()
 			) {
 				Column(
-					modifier = Modifier.padding(top = 16.dp),
-					verticalArrangement = Arrangement.spacedBy(16.dp)
+					modifier = Modifier.padding(top = 12.dp),
+					verticalArrangement = Arrangement.spacedBy(12.dp)
 				) {
-					// Progress Section
+					// بخش پیشرفت بارگیری
 					Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-						val progress = calculateProgress(quota.loadedTonnage, quota.totalTonnage)
-
 						Row(
 							modifier = Modifier.fillMaxWidth(),
 							horizontalArrangement = Arrangement.SpaceBetween
 						) {
 							Text(
 								text = "پیشرفت بارگیری",
-								style = MaterialTheme.typography.bodyMedium,
-								color = contentColor
+								style = MaterialTheme.typography.bodySmall,
+								color = contentColor.copy(alpha = 0.7f)
 							)
 							Text(
 								text = "${(progress * 100).toInt()}%",
-								style = MaterialTheme.typography.bodyMedium,
+								style = MaterialTheme.typography.bodySmall,
 								color = accentColor,
 								fontWeight = FontWeight.Bold
 							)
@@ -5882,26 +6172,40 @@ fun QuotaCard(
 							progress = { progress },
 							modifier = Modifier
 								.fillMaxWidth()
-								.height(8.dp)
-								.clip(RoundedCornerShape(4.dp)),
+								.height(6.dp)
+								.clip(RoundedCornerShape(3.dp)),
 							color = accentColor,
 							trackColor = accentColor.copy(alpha = 0.1f)
 						)
 					}
 
-					// Stats Section in one row
-					Row(
-						modifier = Modifier.fillMaxWidth(),
-						horizontalArrangement = Arrangement.SpaceBetween
+					// بخش آمار در یک ردیف
+					Surface(
+						color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+						shape = RoundedCornerShape(8.dp)
 					) {
-						StatItem("تناژ کل", "${formatNumber(quota.totalTonnage.toInt())} تن", accentColor)
-						StatItem("بارگیری شده", "${formatNumber(quota.loadedTonnage.toInt())} تن", accentColor)
-						StatItem("تعداد حواله", formatNumber(quota.voucherCount), accentColor)
+						Row(
+							modifier = Modifier
+								.fillMaxWidth()
+								.padding(8.dp),
+							horizontalArrangement = Arrangement.SpaceEvenly
+						) {
+							StatItem("تناژ کل", "${formatNumber(quota.totalTonnage.toInt())} تن", accentColor)
+							VerticalDivider(
+								modifier = Modifier.height(24.dp),
+								color = contentColor.copy(alpha = 0.1f)
+							)
+							StatItem("بارگیری شده", "${formatNumber(quota.loadedTonnage.toInt())} تن", accentColor)
+							VerticalDivider(
+								modifier = Modifier.height(24.dp),
+								color = contentColor.copy(alpha = 0.1f)
+							)
+							StatItem("تعداد حواله", formatNumber(quota.voucherCount), accentColor)
+						}
 					}
 
-					// Actions Section
+					// بخش دکمه‌های عملیات
 					HorizontalDivider(
-						modifier = Modifier.padding(vertical = 8.dp),
 						color = contentColor.copy(alpha = 0.1f)
 					)
 
@@ -5939,6 +6243,7 @@ fun QuotaCard(
 		}
 	}
 
+	// دیالوگ‌ها
 	if (showDeleteDialog) {
 		DeleteQuotaDialog(
 			quotaNumber = quota.number,
@@ -6000,27 +6305,27 @@ fun ActionButton(
 		horizontalAlignment = Alignment.CenterHorizontally,
 		modifier = Modifier.clickable(onClick = onClick)
 	) {
-		Box(
-			modifier = Modifier
-				.size(40.dp)
-				.background(
-					color = color.copy(alpha = 0.1f),
-					shape = CircleShape
-				),
-			contentAlignment = Alignment.Center
+		Surface(
+			modifier = Modifier.size(36.dp),
+			shape = CircleShape,
+			color = color.copy(alpha = 0.1f),
+			border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
 		) {
-			Icon(
-				imageVector = icon,
-				contentDescription = label,
-				tint = color,
-				modifier = Modifier.size(20.dp)
-			)
+			Box(contentAlignment = Alignment.Center) {
+				Icon(
+					imageVector = icon,
+					contentDescription = label,
+					tint = color,
+					modifier = Modifier.size(18.dp)
+				)
+			}
 		}
 		Spacer(modifier = Modifier.height(4.dp))
 		Text(
 			text = label,
-			style = MaterialTheme.typography.bodySmall,
-			color = color
+			style = MaterialTheme.typography.labelSmall,
+			color = color,
+			fontWeight = FontWeight.Medium
 		)
 	}
 }
