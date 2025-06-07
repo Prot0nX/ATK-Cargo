@@ -3560,7 +3560,8 @@ enum class QuotaGroupingMode {
 
 enum class WarehouseQuotaGroupingMode {
     BY_SHIPPING_COMPANY,
-    BY_CARGO_OWNER
+    BY_CARGO_OWNER,
+    BY_WAREHOUSE
 }
 
 
