@@ -34,6 +34,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.hoverable
@@ -170,8 +171,6 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -191,6 +190,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -1783,7 +1783,8 @@ fun QuotasList(
 				.groupBy {
 					when (currentGroupingMode) {
 						WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY -> it.shippingCompany
-						WarehouseQuotaGroupingMode.BY_CARGO_OWNER -> it.cargoOwner ?: "نامشخص"
+						WarehouseQuotaGroupingMode.BY_CARGO_OWNER -> it.cargoOwner
+						WarehouseQuotaGroupingMode.BY_WAREHOUSE -> "${it.warehouse} | ${it.cargoOwner}"
 					}
 				}
 				.mapValues { (_, groupQuotas) ->
@@ -1802,19 +1803,21 @@ fun QuotasList(
 		) {
 			groupedQuotas.forEach { (groupName, sortedQuotas) ->
 				item {
-					QuotaGroupExpansionPanel(
-						groupName = groupName,
-						quotas = sortedQuotas,
-						currentGroupingMode = currentGroupingMode,
-						isExpanded = expandedGroup == groupName,
-						onExpandToggle = {
-							expandedGroup = if (expandedGroup == groupName) null else groupName
-						},
-						onEdit = onEdit,
-						onToggleStatus = onToggleStatus,
-						onDelete = onDelete,
-						onPercentageChange = viewModel::updateQuotaPercentage
-					)
+					groupName?.let {
+						QuotaGroupExpansionPanel(
+							groupName = it,
+							quotas = sortedQuotas,
+							currentGroupingMode = currentGroupingMode,
+							isExpanded = expandedGroup == groupName,
+							onExpandToggle = {
+								expandedGroup = if (expandedGroup == groupName) null else groupName
+							},
+							onEdit = onEdit,
+							onToggleStatus = onToggleStatus,
+							onDelete = onDelete,
+							onPercentageChange = viewModel::updateQuotaPercentage
+						)
+					}
 				}
 			}
 		}
@@ -1874,12 +1877,12 @@ fun QuotaGroupExpansionPanel(
 						) {
 							Text(
 								text = groupName,
-								style = MaterialTheme.typography.titleMedium,
+								style = MaterialTheme.typography.titleSmall,
 								fontWeight = FontWeight.Bold
 							)
 							
-							// نمایش جمع کل فقط در حالت دسته‌بندی صاحب کالا
-							if (currentGroupingMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER) {
+							// نمایش جمع کل در حالت دسته‌بندی صاحب کالا و انبار
+							if (currentGroupingMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER || currentGroupingMode == WarehouseQuotaGroupingMode.BY_WAREHOUSE) {
 								Surface(
 									shape = RoundedCornerShape(16.dp),
 									color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
@@ -1896,7 +1899,7 @@ fun QuotaGroupExpansionPanel(
 											modifier = Modifier.size(12.dp)
 										)
 										Text(
-											text = "کل: ${formatNumber(totalWeight.toInt())}",
+											text = formatNumber(totalWeight.toInt()),
 											style = MaterialTheme.typography.bodySmall,
 											color = MaterialTheme.colorScheme.secondary,
 											fontWeight = FontWeight.Bold
@@ -1946,6 +1949,7 @@ private fun GroupIcon(groupingMode: WarehouseQuotaGroupingMode) {
 	val icon = when (groupingMode) {
 		WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY -> Icons.Default.LocalShipping
 		WarehouseQuotaGroupingMode.BY_CARGO_OWNER -> Icons.Default.Person
+		WarehouseQuotaGroupingMode.BY_WAREHOUSE -> Icons.Default.Warehouse
 	}
 
 	Surface(
@@ -2049,75 +2053,89 @@ fun GroupingModeSelector(
 	currentMode: WarehouseQuotaGroupingMode,
 	onModeChange: (WarehouseQuotaGroupingMode) -> Unit
 ) {
-	Surface(
+	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = 4.dp)
-			.clickable {
-				// تغییر حالت دسته‌بندی با کلیک روی کل کارت
-				onModeChange(
-					if (currentMode == WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY)
-						WarehouseQuotaGroupingMode.BY_CARGO_OWNER
-					else
-						WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY
-				)
-			},
-		color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-		shape = RoundedCornerShape(8.dp),
-		border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+			.padding(vertical = 8.dp, horizontal = 4.dp)
+			.clip(RoundedCornerShape(12.dp))
+			.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+			.border(
+				BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
+				RoundedCornerShape(12.dp)
+			),
+		horizontalArrangement = Arrangement.SpaceEvenly,
+		verticalAlignment = Alignment.CenterVertically
+	) {
+		GroupingModeButton(
+			text = "باربری",
+			icon = Icons.Default.LocalShipping,
+			isSelected = currentMode == WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY,
+			onClick = { onModeChange(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY) },
+			modifier = Modifier.weight(1f)
+		)
+		VerticalDivider(
+			modifier = Modifier.height(28.dp),
+			thickness = 1.dp,
+			color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+		)
+		GroupingModeButton(
+			text = "صاحب کالا",
+			icon = Icons.Default.Person,
+			isSelected = currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER,
+			onClick = { onModeChange(WarehouseQuotaGroupingMode.BY_CARGO_OWNER) },
+			modifier = Modifier.weight(1f)
+		)
+		VerticalDivider(
+			modifier = Modifier.height(28.dp),
+			thickness = 1.dp,
+			color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+		)
+		GroupingModeButton(
+			text = "انبار",
+			icon = Icons.Default.Warehouse,
+			isSelected = currentMode == WarehouseQuotaGroupingMode.BY_WAREHOUSE,
+			onClick = { onModeChange(WarehouseQuotaGroupingMode.BY_WAREHOUSE) },
+			modifier = Modifier.weight(1f)
+		)
+	}
+}
+
+@Composable
+private fun GroupingModeButton(
+	text: String,
+	icon: ImageVector,
+	isSelected: Boolean,
+	onClick: () -> Unit,
+	modifier: Modifier = Modifier
+) {
+	val interactionSource = remember { MutableInteractionSource() }
+	val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent
+	val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+
+	Box(
+		modifier = modifier
+			.clickable(onClick = onClick, interactionSource = interactionSource, indication = null) 
+			.background(backgroundColor) 
+			.padding(vertical = 8.dp, horizontal = 6.dp),
+		contentAlignment = Alignment.Center
 	) {
 		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(horizontal = 12.dp, vertical = 8.dp),
 			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.SpaceBetween
+			horizontalArrangement = Arrangement.Center,
 		) {
-			Row(
-				verticalAlignment = Alignment.CenterVertically,
-				horizontalArrangement = Arrangement.spacedBy(6.dp)
-			) {
-				Icon(
-					imageVector = Icons.Default.Filter,
-					contentDescription = null,
-					tint = MaterialTheme.colorScheme.primary,
-					modifier = Modifier.size(18.dp)
-				)
-				Text(
-					text = "دسته‌بندی",
-					style = MaterialTheme.typography.bodyMedium,
-					fontWeight = FontWeight.Medium
-				)
-			}
-
-			Row(
-				verticalAlignment = Alignment.CenterVertically,
-				horizontalArrangement = Arrangement.spacedBy(6.dp)
-			) {
-				Text(
-					text = if (currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER) "صاحب کالا" else "شرکت باربری",
-					style = MaterialTheme.typography.bodySmall,
-					color = MaterialTheme.colorScheme.onSurfaceVariant
-				)
-
-				Switch(
-					checked = currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER,
-					onCheckedChange = { isChecked ->
-						onModeChange(
-							if (isChecked) WarehouseQuotaGroupingMode.BY_CARGO_OWNER
-							else WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY
-						)
-					},
-					thumbContent = {
-						Icon(
-							imageVector = if (currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER)
-								Icons.Default.Person else Icons.Default.LocalShipping,
-							contentDescription = null,
-							modifier = Modifier.size(SwitchDefaults.IconSize.times(0.8f))
-						)
-					}
-				)
-			}
+			Icon(
+				imageVector = icon,
+				contentDescription = text,
+				tint = contentColor,
+				modifier = Modifier.size(18.dp)
+			)
+			Spacer(modifier = Modifier.width(6.dp))
+			Text(
+				text = text,
+				style = MaterialTheme.typography.labelMedium,
+				color = contentColor,
+				fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+			)
 		}
 	}
 }
@@ -2861,7 +2879,6 @@ fun QuotaPercentageDialog(
 									}
 								}
 							)
-							1 -> CalculationDetailsTab(calculatedValues)
 						}
 					}
 				}
@@ -3000,7 +3017,6 @@ private fun DialogTabs(
 		) {
 			val tabs = listOf(
 				TabItem(Icons.Default.AddTask, "تنظیم درصد"),
-				TabItem(Icons.Default.Info, "جزئیات محاسبات")
 			)
 
 			tabs.forEachIndexed { index, tab ->
@@ -3345,120 +3361,6 @@ fun AnimatedNumber(
 			style = style,
 			color = color.copy(alpha = 0.7f)
 		)
-	}
-}
-
-@Composable
-private fun CalculationDetailsTab(calculatedValues: CalculationResult) {
-	Column(
-		modifier = Modifier
-			.fillMaxWidth()
-	) {
-		DetailCard(
-			title = "تناژ درصد",
-			value = formatNumber(calculatedValues.percentageAmount.toInt()),
-			suffix = "تن",
-			icon = Icons.Default.Scale,
-			description = "مقدار تناژ محاسبه شده بر اساس درصد تعیین شده"
-		)
-
-		Spacer(modifier = Modifier.height(16.dp))
-
-		DetailCard(
-			title = "مانده درصد",
-			value = formatNumber(calculatedValues.remainingAfterPercentage.toInt()),
-			suffix = "تن",
-			icon = Icons.Default.Remove,
-			description = "مقدار باقیمانده از تناژ کل پس از کسر درصد"
-		)
-
-		Spacer(modifier = Modifier.height(16.dp))
-
-		DetailCard(
-			title = "مانده کل",
-			value = formatNumber(calculatedValues.totalRemainingAfterPercentage.toInt()),
-			suffix = "تن",
-			icon = Icons.Default.Info,
-			description = "مقدار نهایی باقیمانده پس از اعمال درصد"
-		)
-	}
-}
-
-@Composable
-private fun DetailCard(
-	title: String,
-	value: String,
-	suffix: String,
-	icon: ImageVector,
-	description: String
-) {
-	Surface(
-		modifier = Modifier
-			.fillMaxWidth()
-			.animateContentSize(),
-		shape = RoundedCornerShape(16.dp),
-		color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-		border = BorderStroke(
-			width = 1.dp,
-			color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
-		)
-	) {
-		Column(
-			modifier = Modifier.padding(16.dp)
-		) {
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				Row(
-					horizontalArrangement = Arrangement.spacedBy(12.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					Box(
-						modifier = Modifier
-							.size(40.dp)
-							.background(
-								color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-								shape = CircleShape
-							),
-						contentAlignment = Alignment.Center
-					) {
-						Icon(
-							imageVector = icon,
-							contentDescription = null,
-							tint = MaterialTheme.colorScheme.primary
-						)
-					}
-
-					Text(
-						text = title,
-						style = MaterialTheme.typography.titleMedium,
-						color = MaterialTheme.colorScheme.onSurface
-					)
-				}
-
-				Row(
-					horizontalArrangement = Arrangement.spacedBy(4.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					AnimatedNumber(
-						targetValue = value.replace(",", "").toInt(),
-						suffix = suffix,
-						style = MaterialTheme.typography.titleMedium,
-						color = MaterialTheme.colorScheme.primary
-					)
-				}
-			}
-
-			Spacer(modifier = Modifier.height(8.dp))
-
-			Text(
-				text = description,
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-			)
-		}
 	}
 }
 
@@ -5934,16 +5836,21 @@ fun QuotaCard(
 								)
 							}
 
-							// نمایش تناژ مانده با آیکون
+							// نمایش مانده کل درصد با آیکون
 							Icon(
 								imageVector = Icons.Default.Scale,
 								contentDescription = null,
 								tint = accentColor,
 								modifier = Modifier.size(12.dp)
 							)
-							Spacer(modifier = Modifier.width(2.dp))
+							// محاسبه مقدار مانده کل درصد
+							val calculatedValues = calculateValues(
+								totalTonnage = quota.totalTonnage,
+								percentage = quota.percentage ?: 0.0,
+								remainingTonnage = quota.remainingTonnage
+							)
 							Text(
-								text = formatWeightWithDetail(quota.remainingTonnage),
+								text = "${formatWeightWithDetail(calculatedValues.totalRemainingAfterPercentage.toFloat())} (%.1f%%)".format(quota.percentage ?: 0.0),
 								style = MaterialTheme.typography.bodySmall,
 								color = accentColor,
 								fontWeight = FontWeight.Medium
@@ -7663,8 +7570,14 @@ fun FloatingActionButton(
 	onAnalyticsClick: () -> Unit
 ) {
 	var expandedFab by remember { mutableStateOf(false) }
+	var isTransparent by remember { mutableStateOf(true) } // پیش‌فرض حالت شیشه‌ای
+	var longPressStartTime by remember { mutableLongStateOf(0L) }
 	val rotation by animateFloatAsState(
 		targetValue = if (expandedFab) 45f else 0f,
+		label = ""
+	)
+	val alpha by animateFloatAsState(
+		targetValue = if (isTransparent) 0.5f else 1.0f,
 		label = ""
 	)
 
@@ -7723,7 +7636,33 @@ fun FloatingActionButton(
 				shape = CircleShape,
 				color = MaterialTheme.colorScheme.primary,
 				contentColor = MaterialTheme.colorScheme.onPrimary,
-				modifier = Modifier.size(56.dp)
+				modifier = Modifier
+					.size(56.dp)
+					.alpha(alpha)
+					.pointerInput(Unit) {
+						awaitPointerEventScope {
+							while (true) {
+								val event = awaitPointerEvent()
+								val down = event.changes.firstOrNull()?.pressed ?: false
+								
+								if (down) {
+									longPressStartTime = System.currentTimeMillis()
+									// ادامه دادن به دریافت رویدادها تا زمانی که انگشت برداشته شود
+									do {
+										val nextEvent = awaitPointerEvent()
+										val stillDown = nextEvent.changes.firstOrNull()?.pressed ?: false
+										if (!stillDown) {
+											val pressDuration = System.currentTimeMillis() - longPressStartTime
+											if (pressDuration > 2000) { // 2 seconds long press
+												isTransparent = !isTransparent
+											}
+											break
+										}
+									} while (true)
+								}
+							}
+						}
+					}
 			) {
 				Box(
 					modifier = Modifier.fillMaxSize(),
@@ -11004,7 +10943,7 @@ fun formatWeightWithDetail(weightInKg: Float): String {
 		else -> "${weightInKg.toInt()} کیلو"
 	}
 
-	return "$simplifiedWeight ($exactValue)"
+	return simplifiedWeight
 }
 
 fun calculateProgress(value: Float, total: Float): Float {
