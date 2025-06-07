@@ -109,10 +109,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.animateLottieCompositionAsState
-import com.airbnb.lottie.compose.rememberLottieComposition
 import com.atk.atk_cargo.api.ActiveShipInfo
 import com.atk.atk_cargo.api.CargoViewModel
 import com.atk.atk_cargo.api.ColorSelector
@@ -3084,54 +3080,6 @@ data class SnackbarMessage(
     val message: String,
     val type: MessageType
 )
-
-@Composable
-fun UpdateButton(
-    isRefreshing: Boolean,
-    onRefresh: () -> Unit
-) {
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_success))
-    var isPlaying by remember { mutableStateOf(false) }
-    var playCount by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(isRefreshing, playCount) {
-        if (isRefreshing || playCount > 0) {
-            isPlaying = true
-        }
-    }
-
-    val progress by animateLottieCompositionAsState(
-        composition = composition,
-        isPlaying = isPlaying,
-        restartOnPlay = false,
-        iterations = 1
-    )
-
-    IconButton(
-        onClick = {
-            if (!isRefreshing) {
-                onRefresh()
-                playCount++
-            }
-        },
-        enabled = !isRefreshing
-    ) {
-        LottieAnimation(
-            composition = composition,
-            progress = { progress },
-            modifier = Modifier.size(48.dp)
-        )
-    }
-
-    LaunchedEffect(progress) {
-        if (progress == 1f) {
-            isPlaying = false
-            if (playCount > 0) {
-                playCount--
-            }
-        }
-    }
-}
 
 @Composable
 private fun ShipSelectionDialog(
