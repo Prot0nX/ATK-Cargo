@@ -158,8 +158,6 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -4198,6 +4196,7 @@ fun PersianDateItem(
 	}
 }
 
+@SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModernTimePickerDialog(
@@ -7563,6 +7562,7 @@ fun MiniCountdown(seconds: Int, totalSeconds: Int = 30) {
 	}
 }
 
+@SuppressLint("ReturnFromAwaitPointerEventScope")
 @Composable
 fun FloatingActionButton(
 	onRealTimeLoadingClick: () -> Unit,
@@ -7643,14 +7643,14 @@ fun FloatingActionButton(
 						awaitPointerEventScope {
 							while (true) {
 								val event = awaitPointerEvent()
-								val down = event.changes.firstOrNull()?.pressed ?: false
+								val down = event.changes.firstOrNull()?.pressed == true
 								
 								if (down) {
 									longPressStartTime = System.currentTimeMillis()
 									// ادامه دادن به دریافت رویدادها تا زمانی که انگشت برداشته شود
 									do {
 										val nextEvent = awaitPointerEvent()
-										val stillDown = nextEvent.changes.firstOrNull()?.pressed ?: false
+										val stillDown = nextEvent.changes.firstOrNull()?.pressed == true
 										if (!stillDown) {
 											val pressDuration = System.currentTimeMillis() - longPressStartTime
 											if (pressDuration > 2000) { // 2 seconds long press
@@ -9668,37 +9668,49 @@ fun QuotaAnalysis(
 		Card(
 			modifier = Modifier
 				.fillMaxWidth()
-				.padding(vertical = 4.dp),
+				.padding(vertical = 8.dp),
 			colors = CardDefaults.cardColors(
-				containerColor = MaterialTheme.colorScheme.surface
+				containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
 			),
+			shape = RoundedCornerShape(16.dp),
 		) {
-			Row(
+			Column(
 				modifier = Modifier
 					.fillMaxWidth()
-					.padding(4.dp),
-				horizontalArrangement = Arrangement.spacedBy(8.dp),
-				verticalAlignment = Alignment.CenterVertically
+					.padding(16.dp),
+				verticalArrangement = Arrangement.spacedBy(12.dp)
 			) {
-				// جستجو
+				// جستجوی مدرن
 				OutlinedTextField(
 					value = searchQuery,
 					onValueChange = { viewModel.updateSearchQuery(it) },
-					modifier = Modifier.weight(1f),
-					placeholder = { Text("جستجو...") },
+					modifier = Modifier
+						.fillMaxWidth()
+						.heightIn(min = 56.dp),
+					placeholder = { 
+						Text(
+							"جستجو ...",
+							style = MaterialTheme.typography.bodyMedium
+						) 
+					},
 					leadingIcon = {
 						Icon(
 							imageVector = Icons.Default.Search,
 							contentDescription = null,
-							tint = MaterialTheme.colorScheme.onSurfaceVariant
+							tint = MaterialTheme.colorScheme.primary,
+							modifier = Modifier.size(20.dp)
 						)
 					},
 					trailingIcon = {
 						if (searchQuery.isNotEmpty()) {
-							IconButton(onClick = { viewModel.updateSearchQuery("") }) {
+							IconButton(
+								onClick = { viewModel.updateSearchQuery("") },
+								modifier = Modifier.size(40.dp)
+							) {
 								Icon(
 									imageVector = Icons.Default.Clear,
-									contentDescription = "پاک کردن"
+									contentDescription = "پاک کردن",
+									tint = MaterialTheme.colorScheme.onSurfaceVariant
 								)
 							}
 						}
@@ -9706,48 +9718,111 @@ fun QuotaAnalysis(
 					singleLine = true,
 					shape = RoundedCornerShape(12.dp),
 					colors = OutlinedTextFieldDefaults.colors(
+						focusedContainerColor = MaterialTheme.colorScheme.surface,
+						unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+						focusedBorderColor = MaterialTheme.colorScheme.primary,
 						unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-					)
+					),
+					textStyle = MaterialTheme.typography.bodyMedium
 				)
-
-				// دکمه‌های تغییر حالت گروه‌بندی
-				Surface(
-					shape = RoundedCornerShape(12.dp),
-					color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-					modifier = Modifier.height(56.dp)
+				
+				// دکمه‌های گروه‌بندی مدرن
+				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(top = 4.dp),
+					horizontalArrangement = Arrangement.spacedBy(12.dp),
+					verticalAlignment = Alignment.CenterVertically
 				) {
-					Row(
-						modifier = Modifier.padding(4.dp),
-						horizontalArrangement = Arrangement.spacedBy(4.dp)
+					Text(
+						text = "دسته‌بندی براساس:",
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+						modifier = Modifier.padding(start = 4.dp)
+					)
+					
+					Surface(
+						shape = RoundedCornerShape(12.dp),
+						color = if (groupingMode == QuotaGroupingMode.BY_SHIP) 
+							MaterialTheme.colorScheme.primaryContainer 
+						else 
+							MaterialTheme.colorScheme.surface,
+						modifier = Modifier
+							.height(40.dp)
+							.clickable { viewModel.setGroupingMode(QuotaGroupingMode.BY_SHIP) }
+							.border(
+								width = 1.dp,
+								color = if (groupingMode == QuotaGroupingMode.BY_SHIP) 
+									MaterialTheme.colorScheme.primary 
+								else 
+									MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+								shape = RoundedCornerShape(12.dp)
+							)
 					) {
-						IconToggleButton(
-							checked = groupingMode == QuotaGroupingMode.BY_SHIP,
-							onCheckedChange = { viewModel.setGroupingMode(QuotaGroupingMode.BY_SHIP) },
-							colors = IconButtonDefaults.iconToggleButtonColors(
-								checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-								checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-								containerColor = Color.Transparent
-							),
-							modifier = Modifier.size(48.dp)
+						Row(
+							verticalAlignment = Alignment.CenterVertically,
+							horizontalArrangement = Arrangement.spacedBy(8.dp),
+							modifier = Modifier.padding(horizontal = 12.dp)
 						) {
 							Icon(
 								imageVector = Icons.Default.DirectionsBoat,
-								contentDescription = "براساس کشتی"
+								contentDescription = "براساس کشتی",
+								tint = if (groupingMode == QuotaGroupingMode.BY_SHIP) 
+									MaterialTheme.colorScheme.onPrimaryContainer 
+								else 
+									MaterialTheme.colorScheme.onSurface,
+								modifier = Modifier.size(18.dp)
+							)
+							Text(
+								text = "کشتی",
+								style = MaterialTheme.typography.bodyMedium,
+								color = if (groupingMode == QuotaGroupingMode.BY_SHIP) 
+									MaterialTheme.colorScheme.onPrimaryContainer 
+								else 
+									MaterialTheme.colorScheme.onSurface
 							)
 						}
-						IconToggleButton(
-							checked = groupingMode == QuotaGroupingMode.BY_CARRIER,
-							onCheckedChange = { viewModel.setGroupingMode(QuotaGroupingMode.BY_CARRIER) },
-							colors = IconButtonDefaults.iconToggleButtonColors(
-								checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-								checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-								containerColor = Color.Transparent
-							),
-							modifier = Modifier.size(48.dp)
+					}
+					
+					Surface(
+						shape = RoundedCornerShape(12.dp),
+						color = if (groupingMode == QuotaGroupingMode.BY_CARRIER) 
+							MaterialTheme.colorScheme.primaryContainer 
+						else 
+							MaterialTheme.colorScheme.surface,
+						modifier = Modifier
+							.height(40.dp)
+							.clickable { viewModel.setGroupingMode(QuotaGroupingMode.BY_CARRIER) }
+							.border(
+								width = 1.dp,
+								color = if (groupingMode == QuotaGroupingMode.BY_CARRIER) 
+									MaterialTheme.colorScheme.primary 
+								else 
+									MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+								shape = RoundedCornerShape(12.dp)
+							)
+					) {
+						Row(
+							verticalAlignment = Alignment.CenterVertically,
+							horizontalArrangement = Arrangement.spacedBy(8.dp),
+							modifier = Modifier.padding(horizontal = 12.dp)
 						) {
 							Icon(
 								imageVector = Icons.Default.LocalShipping,
-								contentDescription = "براساس باربری"
+								contentDescription = "براساس باربری",
+								tint = if (groupingMode == QuotaGroupingMode.BY_CARRIER) 
+									MaterialTheme.colorScheme.onPrimaryContainer 
+								else 
+									MaterialTheme.colorScheme.onSurface,
+								modifier = Modifier.size(18.dp)
+							)
+							Text(
+								text = "باربری",
+								style = MaterialTheme.typography.bodyMedium,
+								color = if (groupingMode == QuotaGroupingMode.BY_CARRIER) 
+									MaterialTheme.colorScheme.onPrimaryContainer 
+								else 
+									MaterialTheme.colorScheme.onSurface
 							)
 						}
 					}
@@ -10920,7 +10995,6 @@ private fun SectionTitle(
 
 @SuppressLint("DefaultLocale")
 fun formatWeightWithDetail(weightInKg: Float): String {
-	val exactValue = formatNumber(weightInKg.toInt())
 
 	val simplifiedWeight = when {
 		weightInKg >= 1_000_000 -> {
