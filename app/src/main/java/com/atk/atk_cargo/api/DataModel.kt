@@ -1286,8 +1286,6 @@ class ReportsViewModel(
     private val _shiftInfo = MutableStateFlow<ShiftInfo?>(null)
     val shiftInfo: StateFlow<ShiftInfo?> = _shiftInfo
     private val _currentShipName = MutableStateFlow<String?>(null)
-    private val _messageSendingStatus = MutableStateFlow<MessageSendingStatus>(MessageSendingStatus.Idle)
-    val messageSendingStatus: StateFlow<MessageSendingStatus> = _messageSendingStatus
     private val _shipColorMap = MutableStateFlow<Map<String, Color>>(emptyMap())
     val shipColorMap: StateFlow<Map<String, Color>> = _shipColorMap.asStateFlow()
     private val _quotaColorMap = MutableStateFlow<Map<String, Color>>(emptyMap())
@@ -1960,13 +1958,6 @@ class ReportsViewModel(
         return NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
     }
 
-    sealed class MessageSendingStatus {
-        data object Idle : MessageSendingStatus()
-        data object Sending : MessageSendingStatus()
-        data object Success : MessageSendingStatus()
-        data class Error(val message: String) : MessageSendingStatus()
-    }
-
     fun loadComprehensiveAnalytics() {
         viewModelScope.launch {
             try {
@@ -2529,7 +2520,6 @@ class ReportsRepository(private val apiService: ApiService) {
                 val responseBody = response.body()
 
                 if (responseBody != null) {
-                    // پردازش startDateTime و endDateTime
                     val (startDate, startTime) = startDateTime.split(" ", limit = 2).let {
                         if (it.size == 2) it[0] to it[1] else it[0] to ""
                     }
@@ -3308,8 +3298,6 @@ fun Float.toTon(): Int = (this / 1000).toInt()
 
 sealed class LoadingState {
     object Idle : LoadingState()
-    object Loading : LoadingState()
-    object Success : LoadingState()
     data class Error(val message: String) : LoadingState()
 }
 
@@ -3563,8 +3551,6 @@ enum class WarehouseQuotaGroupingMode {
     BY_CARGO_OWNER,
     BY_WAREHOUSE
 }
-
-
 
 data class CargoOwnerAnalysis(
     val shipName: String,
