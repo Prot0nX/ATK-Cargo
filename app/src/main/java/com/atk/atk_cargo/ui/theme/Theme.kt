@@ -74,21 +74,6 @@ fun getCompletionColor(percentage: Float, isDarkTheme: Boolean): Color {
     }
 }
 
-fun getCompletionStatus(percentage: Float): String {
-    return when {
-        percentage >= 95f -> "بسیار عالی"
-        percentage >= 85f -> "عالی"
-        percentage >= 75f -> "خیلی خوب"
-        percentage >= 65f -> "خوب"
-        percentage >= 55f -> "نسبتاً خوب"
-        percentage >= 45f -> "متوسط"
-        percentage >= 35f -> "ضعیف"
-        percentage >= 25f -> "خیلی ضعیف"
-        percentage >= 15f -> "بسیار ضعیف"
-        else -> "بسیار بد"
-    }
-}
-
 @Composable
 fun ATKCargoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
