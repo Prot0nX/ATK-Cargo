@@ -33,6 +33,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -408,7 +409,6 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 			showAnalyticsDialog = true
 		}
 	)
-
 
 	RealTimeLoadingBottomSheet(
 		isOpen = showRealTimeDialog,
@@ -4608,7 +4608,7 @@ fun VoucherDetailsButton(summary: FilteredSummary) {
 
 						// وزن کل
 						Text(
-							text = "${formatNumber(summary.totalNetWeight.toInt())} کیلوگرم",
+							text = formatNumber(summary.totalNetWeight.toInt()),
 							style = MaterialTheme.typography.bodySmall,
 							color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
 						)
@@ -7335,7 +7335,7 @@ fun StatisticItem(
 					label = "وزن کل",
 					icon = Icons.Default.Scale,
 					color = MaterialTheme.colorScheme.error,
-					suffix = "کیلو"
+					suffix = ""
 				)
 			}
 		}
@@ -9549,17 +9549,19 @@ fun QuotaAnalysis(
 				)
 			}
 		} else {
-			LazyColumn(
-				modifier = Modifier.fillMaxSize(),
-				verticalArrangement = Arrangement.spacedBy(8.dp)
-			) {
-				val grouped = when (groupingMode) {
-					QuotaGroupingMode.BY_SHIP -> activeQuotas.groupBy { it.shipName }
-					QuotaGroupingMode.BY_CARRIER -> activeQuotas.groupBy { it.shippingCompany }
+			// پیش‌پردازش گروه‌بندی خارج از LazyColumn برای بهینه‌سازی
+			val grouped = when (groupingMode) {
+				QuotaGroupingMode.BY_SHIP -> {
+					activeQuotas.groupBy { it.shipName }
 				}
+				QuotaGroupingMode.BY_CARRIER -> {
+					activeQuotas.groupBy { it.shippingCompany }
+				}
+			}
 
-				// مرتب‌سازی گروه‌ها براساس تعداد کوتاژ و تناژ کل
-				val sortedGroups = grouped.map { (groupName, quotas) ->
+			// مرتب‌سازی گروه‌ها براساس تعداد کوتاژ و تناژ کل
+			val sortedGroups = remember(activeQuotas, groupingMode) {
+				grouped.map { (groupName, quotas) ->
 					Triple(
 						groupName,
 						quotas,
@@ -9569,31 +9571,37 @@ fun QuotaAnalysis(
 					compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> { it.second.size }
 						.thenByDescending { it.third }
 				)
+			}
 
-				for ((groupName, quotas, _) in sortedGroups) {
-					item(key = "header_$groupName") {
-						// استفاده از طراحی مشابه QuotaGroupExpansionPanel
-						AnalyticsQuotaGroupExpansionPanel(
-							groupName = groupName,
-							quotas = quotas,
-							groupingMode = groupingMode,
-							isExpanded = expandedGroup == groupName,
-							onExpandClick = {
-								expandedGroup = if (expandedGroup == groupName) null else groupName
-							},
-							expandedQuotaNumber = expandedQuotaNumber,
-							onQuotaExpandChange = { quotaNumber, shouldExpand ->
-								expandedQuotaNumber = if (shouldExpand) quotaNumber else null
-							}
-						)
-					}
+			LazyColumn(
+				modifier = Modifier.fillMaxSize(),
+				verticalArrangement = Arrangement.spacedBy(8.dp),
+				// بهینه‌سازی اسکرول
+				flingBehavior = ScrollableDefaults.flingBehavior(),
+				userScrollEnabled = true
+			) {
+				items(
+					items = sortedGroups,
+					key = { (groupName, _, _) -> "group_$groupName" }
+				) { (groupName, quotas, _) ->
+					AnalyticsQuotaGroupExpansionPanel(
+						groupName = groupName,
+						quotas = quotas,
+						groupingMode = groupingMode,
+						isExpanded = expandedGroup == groupName,
+						onExpandClick = {
+							expandedGroup = if (expandedGroup == groupName) null else groupName
+						},
+						expandedQuotaNumber = expandedQuotaNumber,
+						onQuotaExpandChange = { quotaNumber, shouldExpand ->
+							expandedQuotaNumber = if (shouldExpand) quotaNumber else null
+						}
+					)
 				}
 			}
 		}
 	}
 }
-
-
 
 @Composable
 private fun AnalyticsGroupingModeButton(
@@ -9657,10 +9665,11 @@ private fun AnalyticsQuotaGroupExpansionPanel(
 	Card(
 		modifier = modifier
 			.fillMaxWidth()
+			// کاهش پیچیدگی انیمیشن برای بهینه‌سازی
 			.animateContentSize(
-				animationSpec = spring(
-					dampingRatio = Spring.DampingRatioMediumBouncy,
-					stiffness = Spring.StiffnessLow
+				animationSpec = tween(
+					durationMillis = 200,
+					easing = FastOutSlowInEasing
 				)
 			),
 		shape = RoundedCornerShape(12.dp),
@@ -9753,15 +9762,15 @@ private fun AnalyticsQuotaGroupExpansionPanel(
 				enter = expandVertically() + fadeIn(),
 				exit = shrinkVertically() + fadeOut()
 			) {
-				LazyColumn(
-					modifier = Modifier.heightIn(max = 400.dp),
-					verticalArrangement = Arrangement.spacedBy(8.dp),
-					contentPadding = PaddingValues(16.dp)
+				// استفاده از Column به جای LazyColumn برای جلوگیری از nested scrolling
+				Column(
+					modifier = Modifier
+						.heightIn(max = 400.dp)
+						.verticalScroll(rememberScrollState())
+						.padding(16.dp),
+					verticalArrangement = Arrangement.spacedBy(8.dp)
 				) {
-					items(
-						items = quotas,
-						key = { it.loadingQuotaNumber }
-					) { quota ->
+					quotas.forEach { quota ->
 						AnalyticsQuotaCard(
 							quota = quota,
 							isExpanded = expandedQuotaNumber == quota.loadingQuotaNumber,
@@ -9822,12 +9831,8 @@ private fun AnalyticsQuotaCard(
 	Card(
 		modifier = modifier
 			.fillMaxWidth()
-			.animateContentSize(
-				animationSpec = spring(
-					dampingRatio = Spring.DampingRatioMediumBouncy,
-					stiffness = Spring.StiffnessLow
-				)
-			),
+			// حذف animateContentSize برای بهینه‌سازی عملکرد
+			.wrapContentHeight(),
 		shape = RoundedCornerShape(8.dp),
 		colors = CardDefaults.cardColors(
 			containerColor = completionColor.copy(alpha = 0.05f)
@@ -9871,12 +9876,28 @@ private fun AnalyticsQuotaCard(
 
 						// اطلاعات کوتاژ
 						Column {
-							Text(
-								text = "${quota.loadingQuotaNumber} | ${quota.shippingCompany}",
-								style = MaterialTheme.typography.bodyMedium,
-								fontWeight = FontWeight.Bold,
-								color = MaterialTheme.colorScheme.onSurface
-							)
+							Row(
+								horizontalArrangement = Arrangement.spacedBy(4.dp),
+								verticalAlignment = Alignment.CenterVertically
+							) {
+								Text(
+									text = quota.loadingQuotaNumber,
+									style = MaterialTheme.typography.bodyMedium,
+									fontWeight = FontWeight.Bold,
+									color = MaterialTheme.colorScheme.onSurface
+								)
+								Text(
+									text = "|",
+									style = MaterialTheme.typography.bodyMedium,
+									color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+								)
+								Text(
+									text = quota.shippingCompany,
+									style = MaterialTheme.typography.bodyMedium,
+									fontWeight = FontWeight.Bold,
+									color = MaterialTheme.colorScheme.primary
+								)
+							}
 
 							Row(
 								horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -9981,13 +10002,14 @@ private fun AnalyticsQuotaDetailsCard(
 					Icon(
 						imageVector = Icons.Default.LocalShipping,
 						contentDescription = null,
-						tint = color,
+						tint = MaterialTheme.colorScheme.primary,
 						modifier = Modifier.size(16.dp)
 					)
 					Text(
 						text = quotaData.shippingCompany,
 						style = MaterialTheme.typography.bodyMedium,
-						fontWeight = FontWeight.Medium
+						fontWeight = FontWeight.Bold,
+						color = MaterialTheme.colorScheme.primary
 					)
 				}
 			}
