@@ -1535,6 +1535,22 @@ class ReportsViewModel(
         }
     }
 
+    fun loadFilteredShipQuotas(shipName: String, startDateTime: String, endDateTime: String) {
+        viewModelScope.launch {
+            _uiState.value = UiState.Loading
+            try {
+                Log.d("ReportsViewModel", "Starting filtered quotas request - Ship: $shipName, Start: $startDateTime, End: $endDateTime")
+                val quotas = repository.getFilteredQuotas(shipName, startDateTime, endDateTime)
+                Log.d("ReportsViewModel", "Successfully loaded ${quotas.size} filtered quotas")
+                _selectedShipQuotas.value = quotas
+                _uiState.value = UiState.Success
+            } catch (e: Exception) {
+                Log.e("ReportsViewModel", "Error loading filtered quotas: ${e.message}", e)
+                _uiState.value = UiState.Error("خطا در بارگیری کوتاژهای فیلتر شده: ${e.message}")
+            }
+        }
+    }
+
     fun getFilteredSummary(
         shipName: String,
         warehouseName: String,
@@ -2331,6 +2347,27 @@ class ReportsRepository(private val apiService: ApiService) {
             }
         } catch (e: Exception) {
             throw Exception("Error fetching ship quotas: ${e.message}")
+        }
+    }
+
+    suspend fun getFilteredQuotas(shipName: String, startDateTime: String, endDateTime: String): List<Quota> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.getFilteredQuotas(
+                shipName = shipName,
+                startDateTime = startDateTime,
+                endDateTime = endDateTime
+            )
+            if (response.isSuccessful) {
+                val quotas = response.body() ?: throw Exception("Body is null")
+                quotas
+            } else {
+                val errorBody = response.errorBody()?.string()
+                Log.e("ReportsRepository", "Server error ${response.code()}: $errorBody")
+                throw Exception("Server error: ${response.code()} - $errorBody")
+            }
+        } catch (e: Exception) {
+            Log.e("ReportsRepository", "Exception in getFilteredQuotas: ${e.message}", e)
+            throw Exception("Error fetching filtered quotas: ${e.message}")
         }
     }
 

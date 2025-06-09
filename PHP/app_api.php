@@ -991,6 +991,179 @@
 		}
 	}
 
+	function getFilteredQuotas(DatabaseManager $db, string $shipName, string $startDateTime, string $endDateTime): array {
+		$shipName = sanitizeInput($shipName);
+		$startDateTime = sanitizeInput($startDateTime);
+		$endDateTime = sanitizeInput($endDateTime);
+		
+		// ثبت درخواست
+		customLog("Fetching filtered quotas list for ship: $shipName, from: $startDateTime to: $endDateTime");
+		
+		// کوئری بهینه‌سازی شده با فیلتر زمانی بر اساس exitDate و exitTime
+		$query = "
+		SELECT 
+			i.loadingQuotaNumber as number,
+			i.shipName,
+			i.loadingWarehouse,
+			i.cargoType,
+			i.cargoWeight as totalTonnage,
+			i.isActive,
+			i.shippingCompany,
+			i.cargoOwner,
+			i.percentage,
+			i.is_enabled,
+			COALESCE(exit_data.loadedTonnage, 0) as loadedTonnage,
+			COALESCE(all_vouchers.voucherCount, 0) as voucherCount,
+			COALESCE(exit_data.exitVoucherCount, 0) as exitVoucherCount,
+			COALESCE(exit_data.lastExitDate, '') as lastExitDate
+		FROM 
+			InitialInfo i
+		LEFT JOIN (
+			SELECT 
+				c.loadingQuotaNumber,
+				c.shipName,
+				c.loadingWarehouse,
+				c.shippingCompany,
+				c.cargoType,
+				SUM(c.netWeight) as loadedTonnage,
+				COUNT(DISTINCT c.trackingNumber) as exitVoucherCount,
+				MAX(c.exitDate) as lastExitDate
+			FROM 
+				CargoInfo c
+			WHERE 
+				c.status = 'خروج'
+				AND c.shipName = ?
+				AND (
+					(c.exitDate > ? OR (c.exitDate = ? AND c.exitTime >= ?))
+					AND
+					(c.exitDate < ? OR (c.exitDate = ? AND c.exitTime <= ?))
+				)
+			GROUP BY 
+				c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
+		) exit_data ON 
+			exit_data.loadingQuotaNumber = i.loadingQuotaNumber
+			AND exit_data.shipName = i.shipName
+			AND exit_data.loadingWarehouse = i.loadingWarehouse
+			AND exit_data.shippingCompany = i.shippingCompany
+			AND exit_data.cargoType = i.cargoType
+
+		LEFT JOIN (
+			SELECT 
+				c.loadingQuotaNumber,
+				c.shipName,
+				c.loadingWarehouse,
+				c.shippingCompany,
+				c.cargoType,
+				COUNT(DISTINCT c.trackingNumber) as voucherCount
+			FROM 
+				CargoInfo c
+			WHERE 
+				c.status = 'خروج'
+				AND c.shipName = ?
+				AND (
+					(c.exitDate > ? OR (c.exitDate = ? AND c.exitTime >= ?))
+					AND
+					(c.exitDate < ? OR (c.exitDate = ? AND c.exitTime <= ?))
+				)
+			GROUP BY 
+				c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
+		) all_vouchers ON 
+			all_vouchers.loadingQuotaNumber = i.loadingQuotaNumber
+			AND all_vouchers.shipName = i.shipName
+			AND all_vouchers.loadingWarehouse = i.loadingWarehouse
+			AND all_vouchers.shippingCompany = i.shippingCompany
+			AND all_vouchers.cargoType = i.cargoType
+		WHERE 
+			i.shipName = ?
+		ORDER BY
+			i.isActive DESC, i.loadingQuotaNumber ASC
+		";
+
+		try {
+			// تجزیه تاریخ و زمان شروع و پایان
+			$startDate = substr($startDateTime, 0, 10);
+			$startTime = substr($startDateTime, 11, 8);
+			$endDate = substr($endDateTime, 0, 10);
+			$endTime = substr($endDateTime, 11, 8);
+			
+			$stmt = $db->prepare($query);
+			$stmt->bind_param("sssssssssssssss", 
+				$shipName, 
+				$startDate, $startDate, $startTime, 
+				$endDate, $endDate, $endTime,
+				$shipName, 
+				$startDate, $startDate, $startTime, 
+				$endDate, $endDate, $endTime,
+				$shipName
+			);
+			$stmt->execute();
+			$result = $stmt->get_result();
+			$quotas = [];
+			$totalQuotasCount = 0;
+			$activeQuotasCount = 0;
+			
+			while ($row = $result->fetch_assoc()) {
+				$totalQuotasCount++;
+				if ((bool)$row['isActive']) {
+					$activeQuotasCount++;
+				}
+				
+				// محاسبه تناژ و درصد پیشرفت
+				$loadedTonnage = floatval($row['loadedTonnage']);
+				$totalTonnage = floatval($row['totalTonnage']);
+				$remainingTonnage = max(0, $totalTonnage - $loadedTonnage);
+				$percentage = $row['percentage'] !== null ? floatval($row['percentage']) : null;
+				$isPercentageRestricted = (bool)$row['is_enabled'];
+				$percentageLoaded = ($totalTonnage > 0) ? ($loadedTonnage / $totalTonnage) * 100 : 0;
+				
+				// محاسبه تناژ قابل بارگیری با در نظر گرفتن محدودیت درصدی
+				$loadableTonnage = calculateLoadableTonnage($remainingTonnage, $totalTonnage, $percentage, $isPercentageRestricted);
+				
+				// محاسبه حواله‌های در انتظار
+				$exitVoucherCount = intval($row['exitVoucherCount']);
+				$pendingVouchers = 0; // فقط بر اساس خروج محاسبه می‌شود
+				
+				// محاسبه میانگین وزن حواله‌ها - فقط برای حواله‌های خروج
+				$avgVoucherWeight = ($exitVoucherCount > 0) ? ($loadedTonnage / $exitVoucherCount) : 0;
+				
+				// ثبت اطلاعات مهم کوتاژ
+				customLog("Filtered Quota: {$row['number']}, Warehouse: {$row['loadingWarehouse']}, Type: {$row['cargoType']}, Exit Vouchers: $exitVoucherCount, Loaded: $loadedTonnage");
+				
+				$quotas[] = [
+					'number' => $row['number'],
+					'shipName' => $row['shipName'] ?? '',
+					'warehouse' => $row['loadingWarehouse'] ?? '',
+					'cargoType' => $row['cargoType'] ?? '',
+					'totalTonnage' => $totalTonnage,
+					'remainingTonnage' => $remainingTonnage,
+					'loadedTonnage' => $loadedTonnage,
+					'percentageLoaded' => round($percentageLoaded, 2),
+					'voucherCount' => intval($row['voucherCount']),
+					'entryVoucherCount' => 0,
+					'exitVoucherCount' => $exitVoucherCount,
+					'pendingVoucherCount' => $pendingVouchers,
+					'isActive' => (bool)$row['isActive'],
+					'shippingCompany' => $row['shippingCompany'] ?? '',
+					'cargoOwner' => $row['cargoOwner'] ?? '',
+					'percentage' => $percentage,
+					'isPercentageRestricted' => $isPercentageRestricted,
+					'loadableTonnage' => $loadableTonnage,
+					'avgVoucherWeight' => round($avgVoucherWeight, 2),
+					'lastExitDate' => $row['lastExitDate'],
+					'quotaKey' => $row['number'] . '|' . $row['shipName'] . '|' . $row['loadingWarehouse'] . '|' . $row['shippingCompany'] . '|' . $row['cargoType']
+				];
+			}
+			
+			// ثبت اطلاعات آماری
+			customLog("Filtered quotas list generated for ship: $shipName. Total: $totalQuotasCount, Active: $activeQuotasCount, Period: $startDateTime to $endDateTime");
+			
+			return $quotas;
+		} catch (Exception $e) {
+			customLog("Error in getFilteredQuotas: " . $e->getMessage());
+			throw new Exception("خطا در دریافت لیست کوتاژهای فیلتر شده: " . $e->getMessage());
+		}
+	}
+
 	function getQuotasList(DatabaseManager $db, string $shipName): array {
 		$shipName = sanitizeInput($shipName);
 		
@@ -1012,7 +1185,6 @@
 			i.is_enabled,
 			COALESCE(exit_data.loadedTonnage, 0) as loadedTonnage,
 			COALESCE(all_vouchers.voucherCount, 0) as voucherCount,
-			COALESCE(entry_data.entryVoucherCount, 0) as entryVoucherCount,
 			COALESCE(exit_data.exitVoucherCount, 0) as exitVoucherCount,
 			COALESCE(exit_data.lastExitDate, '') as lastExitDate
 		FROM 
@@ -1040,27 +1212,7 @@
 			AND exit_data.loadingWarehouse = i.loadingWarehouse
 			AND exit_data.shippingCompany = i.shippingCompany
 			AND exit_data.cargoType = i.cargoType
-		LEFT JOIN (
-			SELECT 
-				c.loadingQuotaNumber,
-				c.shipName,
-				c.loadingWarehouse,
-				c.shippingCompany, 
-			c.cargoType,
-			COUNT(DISTINCT c.trackingNumber) as entryVoucherCount
-		FROM 
-			CargoInfo c
-		WHERE 
-			c.status = 'ورود'
-			AND c.shipName = ?
-		GROUP BY 
-			c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
-		) entry_data ON 
-			entry_data.loadingQuotaNumber = i.loadingQuotaNumber
-			AND entry_data.shipName = i.shipName
-			AND entry_data.loadingWarehouse = i.loadingWarehouse
-			AND entry_data.shippingCompany = i.shippingCompany
-			AND entry_data.cargoType = i.cargoType
+
 		LEFT JOIN (
 			SELECT 
 				c.loadingQuotaNumber,
@@ -1072,7 +1224,7 @@
 			FROM 
 				CargoInfo c
 			WHERE 
-				c.status IN ('ورود', 'خروج')
+				c.status = 'خروج'
 				AND c.shipName = ?
 			GROUP BY 
 				c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
@@ -1090,7 +1242,7 @@
 
 		try {
 			$stmt = $db->prepare($query);
-			$stmt->bind_param("ssss", $shipName, $shipName, $shipName, $shipName);
+			$stmt->bind_param("sss", $shipName, $shipName, $shipName);
 			$stmt->execute();
 			$result = $stmt->get_result();
 			$quotas = [];
@@ -1115,9 +1267,8 @@
 				$loadableTonnage = calculateLoadableTonnage($remainingTonnage, $totalTonnage, $percentage, $isPercentageRestricted);
 				
 				// محاسبه حواله‌های در انتظار
-				$entryVoucherCount = intval($row['entryVoucherCount']);
 				$exitVoucherCount = intval($row['exitVoucherCount']);
-				$pendingVouchers = max(0, $entryVoucherCount - $exitVoucherCount);
+				$pendingVouchers = 0; // فقط بر اساس خروج محاسبه می‌شود
 				
 				// محاسبه میانگین وزن حواله‌ها - فقط برای حواله‌های خروج
 				$avgVoucherWeight = ($exitVoucherCount > 0) ? ($loadedTonnage / $exitVoucherCount) : 0;
@@ -1135,7 +1286,7 @@
 					'loadedTonnage' => $loadedTonnage,
 					'percentageLoaded' => round($percentageLoaded, 2),
 					'voucherCount' => intval($row['voucherCount']),
-					'entryVoucherCount' => $entryVoucherCount,
+					'entryVoucherCount' => 0,
 					'exitVoucherCount' => $exitVoucherCount,
 					'pendingVoucherCount' => $pendingVouchers,
 					'isActive' => (bool)$row['isActive'],
@@ -1511,6 +1662,19 @@
 	sendJsonResponse($quotasList);
 	break;
 	
+	case 'getFilteredQuotas':
+	if (!isset($_GET['shipName']) || !isset($_GET['startDateTime']) || !isset($_GET['endDateTime'])) {
+		throw new Exception('پارامترهای ورودی ناقص هستند - نام کشتی، تاریخ شروع و پایان الزامی است');
+	}
+	
+	$shipName = sanitizeInput($_GET['shipName']);
+	$startDateTime = sanitizeInput($_GET['startDateTime']);
+	$endDateTime = sanitizeInput($_GET['endDateTime']);
+	
+	$filteredQuotas = getFilteredQuotas($db, $shipName, $startDateTime, $endDateTime);
+	sendJsonResponse($filteredQuotas);
+	break;
+	
 	case 'getFilteredSummary':
 	if (!isset($_GET['shipName']) || !isset($_GET['warehouseName']) || !isset($_GET['selectedQuota']) || !isset($_GET['startDateTime']) || !isset($_GET['endDateTime'])) {
 		throw new Exception('پارامترهای ورودی ناقص هستند');
@@ -1530,7 +1694,7 @@
 	if (!isset($_GET['quotaNumber']) || !isset($_GET['shipName'])) {
 		throw new Exception('شماره کوتاژ یا نام کشتی مشخص نشده است');
 	}
-	$result = checkQuotaExistence($db, $_GET['quotaNumber'], $_GET['shipName']);
+$result = checkQuotaExistenceCargo($db, $_GET['quotaNumber'], $_GET['shipName']);
 	sendJsonResponse($result);
 	break;
 	
@@ -1545,7 +1709,7 @@
             $selectedQuota = $_GET['selectedQuota'];
             $startDate = sanitizeInput($_GET['startDate']);
             $endDate = sanitizeInput($_GET['endDate']);
-            $filteredSummary = getFilteredSummary($db, $selectedQuota, $startDate, $endDate);
+            $filteredSummary = getFilteredSummary($db, $selectedQuota, $startDate, $endDate, $shippingCompany, $cargoType);
             echo $filteredSummary; 
             exit;
 			
@@ -1658,7 +1822,13 @@
 			break;
 			
 			case 'getRealTimeData':
-            $realTimeData = getRealTimeData($db);
+            // Get real-time data by combining ships list and active quotas
+            $shipsList = getShipsList($db);
+            $realTimeData = [
+                'ships' => $shipsList['data'],
+                'timestamp' => date('Y-m-d H:i:s'),
+                'status' => 'success'
+            ];
             sendJsonResponse($realTimeData);
             break;
 			

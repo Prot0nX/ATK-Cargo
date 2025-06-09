@@ -57,19 +57,27 @@ interface ApiService {
     suspend fun checkLogin(@Body loginRequest: LoginRequest): Response<LoginResponse>
 
     @GET("app_api.php")
-    suspend fun getShipsList(@Query("action") action: String = "getShipsList"): Response<ApiResponse2<ShipsData>>
+    suspend fun getShipsList(
+        @Query("action") action: String = "getShipsList",
+        @Query("startDateTime") startDateTime: String? = null,
+        @Query("endDateTime") endDateTime: String? = null
+    ): Response<ApiResponse2<ShipsData>>
 
     @GET("app_api.php")
     suspend fun getShipDetails(
         @Query("action") action: String = "getShipDetails",
-        @Query("shipName") shipName: String
+        @Query("shipName") shipName: String,
+        @Query("startDateTime") startDateTime: String? = null,
+        @Query("endDateTime") endDateTime: String? = null
     ): Response<Ship>
 
     @GET("app_api.php")
     suspend fun getWarehouseDetails(
         @Query("action") action: String = "getWarehouseDetails",
         @Query("shipName") shipName: String,
-        @Query("warehouseName") warehouseName: String
+        @Query("warehouseName") warehouseName: String,
+        @Query("startDateTime") startDateTime: String? = null,
+        @Query("endDateTime") endDateTime: String? = null
     ): Response<Warehouse>
 
     @GET("app_api.php")
@@ -82,6 +90,14 @@ interface ApiService {
     suspend fun getShipQuotas(
         @Query("action") action: String = "getQuotasList",
         @Query("shipName") shipName: String
+    ): Response<List<Quota>>
+
+    @GET("app_api.php")
+    suspend fun getFilteredQuotas(
+        @Query("action") action: String = "getFilteredQuotas",
+        @Query("shipName") shipName: String,
+        @Query("startDateTime") startDateTime: String,
+        @Query("endDateTime") endDateTime: String
     ): Response<List<Quota>>
 
     @GET("app_api.php")
