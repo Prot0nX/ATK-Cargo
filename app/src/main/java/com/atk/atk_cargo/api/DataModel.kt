@@ -1269,6 +1269,7 @@ class ReportsViewModel(
     private val _realTimeLoadingData = MutableStateFlow<List<RealTimeLoadingData>>(emptyList())
     val realTimeLoadingData: StateFlow<List<RealTimeLoadingData>> = _realTimeLoadingData
     private val _loadingError = MutableStateFlow<String?>(null)
+    val loadingError: StateFlow<String?> = _loadingError
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
     val uiState: StateFlow<UiState> = _uiState
     private val _ships = MutableStateFlow(ShipsData(emptyList(), emptyList()))
@@ -1537,18 +1538,21 @@ class ReportsViewModel(
 
     fun loadFilteredShipQuotas(shipName: String, startDateTime: String, endDateTime: String) {
         viewModelScope.launch {
-            _uiState.value = UiState.Loading
             try {
                 Log.d("ReportsViewModel", "Starting filtered quotas request - Ship: $shipName, Start: $startDateTime, End: $endDateTime")
                 val quotas = repository.getFilteredQuotas(shipName, startDateTime, endDateTime)
                 Log.d("ReportsViewModel", "Successfully loaded ${quotas.size} filtered quotas")
                 _selectedShipQuotas.value = quotas
-                _uiState.value = UiState.Success
             } catch (e: Exception) {
                 Log.e("ReportsViewModel", "Error loading filtered quotas: ${e.message}", e)
-                _uiState.value = UiState.Error("خطا در بارگیری کوتاژهای فیلتر شده: ${e.message}")
+                // در صورت خطا، پیام خطا را نمایش دهیم اما UI state را تغییر ندهیم
+                _loadingError.value = "خطا در بارگیری کوتاژهای فیلتر شده: ${e.message}"
             }
         }
+    }
+
+    fun clearLoadingError() {
+        _loadingError.value = null
     }
 
     fun getFilteredSummary(
