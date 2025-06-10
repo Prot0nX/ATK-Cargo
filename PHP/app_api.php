@@ -55,14 +55,14 @@
 	}
 	
 	function customLog(string $message): void {
-		$logDir = __DIR__ . '/logs';
-		if (!is_dir($logDir) && !mkdir($logDir, 0755, true) && !is_dir($logDir)) {
-			error_log("Failed to create log directory: " . error_get_last()['message']);
-			return;
-		}
-		$logFile = $logDir . '/custom.log';
-		$logMessage = date('[Y-m-d H:i:s] ') . $message . PHP_EOL;
-		file_put_contents($logFile, $logMessage, FILE_APPEND);
+		// $logDir = __DIR__ . '/logs';
+		// if (!is_dir($logDir) && !mkdir($logDir, 0755, true) && !is_dir($logDir)) {
+		// 	error_log("Failed to create log directory: " . error_get_last()['message']);
+		// 	return;
+		// }
+		// $logFile = $logDir . '/custom.log';
+		// $logMessage = date('[Y-m-d H:i:s] ') . $message . PHP_EOL;
+		// file_put_contents($logFile, $logMessage, FILE_APPEND);
 	}
 	
 	function sendJsonResponse($data, int $statusCode = 200): void {

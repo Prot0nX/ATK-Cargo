@@ -493,7 +493,6 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 		isOpen = showDateRangeDialog,
 		onDismiss = { showDateRangeDialog = false },
 		onDateRangeSelected = { startDate, endDate ->
-			// فیلتر کردن کوتاژها بر اساس بازه زمانی انتخاب شده
 			val shipName = currentShipName?.name
 			if (shipName != null) {
 				viewModel.loadFilteredShipQuotas(shipName, startDate, endDate)

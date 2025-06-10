@@ -1539,13 +1539,9 @@ class ReportsViewModel(
     fun loadFilteredShipQuotas(shipName: String, startDateTime: String, endDateTime: String) {
         viewModelScope.launch {
             try {
-                Log.d("ReportsViewModel", "Starting filtered quotas request - Ship: $shipName, Start: $startDateTime, End: $endDateTime")
                 val quotas = repository.getFilteredQuotas(shipName, startDateTime, endDateTime)
-                Log.d("ReportsViewModel", "Successfully loaded ${quotas.size} filtered quotas")
                 _selectedShipQuotas.value = quotas
             } catch (e: Exception) {
-                Log.e("ReportsViewModel", "Error loading filtered quotas: ${e.message}", e)
-                // در صورت خطا، پیام خطا را نمایش دهیم اما UI state را تغییر ندهیم
                 _loadingError.value = "خطا در بارگیری کوتاژهای فیلتر شده: ${e.message}"
             }
         }
