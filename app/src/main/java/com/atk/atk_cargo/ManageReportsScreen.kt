@@ -55,6 +55,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -87,12 +88,14 @@ import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddTask
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
@@ -323,6 +326,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 	val isDarkTheme = isSystemInDarkTheme()
 	val defaultColor = MaterialTheme.colorScheme.primary
 	val currentShipName by viewModel.selectedShip.collectAsState()
+	val loadingError by viewModel.loadingError.collectAsState()
 
 	ATKCargoTheme {
 		Scaffold { innerPadding ->
@@ -465,6 +469,20 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 			text = { Text(errorMessage!!) },
 			confirmButton = {
 				Button(onClick = { errorMessage = null }) {
+					Text("تایید")
+				}
+			}
+		)
+	}
+	
+	// نمایش خطاهای بارگیری
+	if (loadingError != null) {
+		AlertDialog(
+			onDismissRequest = { viewModel.clearLoadingError() },
+			title = { Text("خطا") },
+			text = { Text(loadingError!!) },
+			confirmButton = {
+				Button(onClick = { viewModel.clearLoadingError() }) {
 					Text("تایید")
 				}
 			}
@@ -7490,15 +7508,33 @@ fun FloatingActionButton(
 	onDateRangeClick: (() -> Unit)? = null
 ) {
 	var expandedFab by remember { mutableStateOf(false) }
-	var isTransparent by remember { mutableStateOf(true) } // پیش‌فرض حالت شیشه‌ای
+	var isTransparent by remember { mutableStateOf(true) } // پیش‌فرض حالت عادی
 	var longPressStartTime by remember { mutableLongStateOf(0L) }
+	var isPressed by remember { mutableStateOf(false) }
+	
+	// انیمیشن‌های بهبود یافته
 	val rotation by animateFloatAsState(
 		targetValue = if (expandedFab) 45f else 0f,
-		label = ""
+		animationSpec = spring(
+			dampingRatio = Spring.DampingRatioMediumBouncy,
+			stiffness = Spring.StiffnessMedium
+		),
+		label = "fab_rotation"
 	)
+	
 	val alpha by animateFloatAsState(
-		targetValue = if (isTransparent) 0.5f else 1.0f,
-		label = ""
+		targetValue = if (isTransparent) 0.6f else 1.0f,
+		animationSpec = tween(300),
+		label = "fab_alpha"
+	)
+	
+	val scale by animateFloatAsState(
+		targetValue = if (isPressed) 0.95f else 1.0f,
+		animationSpec = spring(
+			dampingRatio = Spring.DampingRatioMediumBouncy,
+			stiffness = Spring.StiffnessHigh
+		),
+		label = "fab_scale"
 	)
 
 	Box(
@@ -7507,70 +7543,106 @@ fun FloatingActionButton(
 			.windowInsetsPadding(WindowInsets.navigationBars),
 		contentAlignment = Alignment.BottomEnd
 	) {
+		// پس‌زمینه تیره هنگام باز بودن منو
+		AnimatedVisibility(
+			visible = expandedFab,
+			enter = fadeIn(animationSpec = tween(200)),
+			exit = fadeOut(animationSpec = tween(200))
+		) {
+			Box(
+				modifier = Modifier
+					.fillMaxSize()
+					.background(Color.Black.copy(alpha = 0.3f))
+					.clickable { expandedFab = false }
+			)
+		}
+		
 		Column(
 			horizontalAlignment = Alignment.End,
 			verticalArrangement = Arrangement.Bottom,
 			modifier = Modifier.padding(16.dp)
 		) {
+			// منوی آیتم‌ها با انیمیشن بهبود یافته
 			AnimatedVisibility(
 				visible = expandedFab,
-				enter = fadeIn() + slideInVertically { it },
-				exit = fadeOut() + slideOutVertically { it }
+				enter = fadeIn(animationSpec = tween(300, delayMillis = 100)) + 
+						slideInVertically(
+							animationSpec = spring(
+								dampingRatio = Spring.DampingRatioMediumBouncy,
+								stiffness = Spring.StiffnessMedium
+							),
+							initialOffsetY = { it / 2 }
+						),
+				exit = fadeOut(animationSpec = tween(200)) + 
+						slideOutVertically(
+							animationSpec = tween(200),
+							targetOffsetY = { it / 2 }
+						)
 			) {
 				Column(
-					verticalArrangement = Arrangement.spacedBy(12.dp),
+					verticalArrangement = Arrangement.spacedBy(16.dp),
 					horizontalAlignment = Alignment.End
 				) {
-					MiniFab(
-						item = FabItem(
-							icon = Icons.Default.Refresh,
-							label = "بارگیری لحظه‌ای",
-							onClick = onRealTimeLoadingClick
-						),
-						onDismiss = { expandedFab = false }
-					)
-
-					MiniFab(
-						item = FabItem(
-							icon = Icons.Default.Search,
-							label = "جستجوی پیشرفته",
-							onClick = onAdvancedSearchClick
-						),
-						onDismiss = { expandedFab = false }
-					)
-					MiniFab(
-						item = FabItem(
-							icon = Icons.Default.Analytics,
-							label = "آمار جامع",
-							onClick = onAnalyticsClick
-						),
-						onDismiss = { expandedFab = false }
-					)
+					// آیتم‌های منو با تاخیر انیمیشن
+					val items = buildList {
+						add(
+							FabItem(
+								icon = Icons.Default.Refresh,
+								label = "بارگیری لحظه‌ای",
+								onClick = onRealTimeLoadingClick
+							)
+						)
+						add(
+							FabItem(
+								icon = Icons.Default.Search,
+								label = "جستجوی پیشرفته",
+								onClick = onAdvancedSearchClick
+							)
+						)
+						add(
+							FabItem(
+								icon = Icons.Default.Analytics,
+								label = "آمار جامع",
+								onClick = onAnalyticsClick
+							)
+						)
+						// نمایش آیتم بازه زمانی فقط در تب کوتاژها
+						onDateRangeClick?.let { dateRangeClick ->
+							add(
+								FabItem(
+									icon = Icons.Default.DateRange,
+									label = "بازه زمانی",
+									onClick = dateRangeClick
+								)
+							)
+						}
+					}
 					
-					// نمایش آیتم بازه زمانی فقط در تب کوتاژها
-					onDateRangeClick?.let { dateRangeClick ->
+					items.forEachIndexed { index, item ->
 						MiniFab(
-							item = FabItem(
-								icon = Icons.Default.DateRange,
-								label = "بازه زمانی",
-								onClick = dateRangeClick
-							),
+							item = item,
+							index = index,
 							onDismiss = { expandedFab = false }
 						)
 					}
 				}
 			}
 
-			Spacer(modifier = Modifier.height(16.dp))
+			Spacer(modifier = Modifier.height(20.dp))
 
-			Surface(
-				onClick = { expandedFab = !expandedFab },
-				shape = CircleShape,
-				color = MaterialTheme.colorScheme.primary,
-				contentColor = MaterialTheme.colorScheme.onPrimary,
+			// دکمه اصلی FAB با طراحی بهبود یافته
+			Card(
 				modifier = Modifier
-					.size(56.dp)
+					.size(64.dp)
+					.scale(scale)
 					.alpha(alpha)
+					.clickable(
+						interactionSource = remember { MutableInteractionSource() },
+						indication = rememberRipple(
+							bounded = false,
+							radius = 32.dp
+						)
+					) { expandedFab = !expandedFab }
 					.pointerInput(Unit) {
 						awaitPointerEventScope {
 							while (true) {
@@ -7578,23 +7650,31 @@ fun FloatingActionButton(
 								val down = event.changes.firstOrNull()?.pressed == true
 								
 								if (down) {
+									isPressed = true
 									longPressStartTime = System.currentTimeMillis()
-									// ادامه دادن به دریافت رویدادها تا زمانی که انگشت برداشته شود
+									
 									do {
 										val nextEvent = awaitPointerEvent()
 										val stillDown = nextEvent.changes.firstOrNull()?.pressed == true
 										if (!stillDown) {
+											isPressed = false
 											val pressDuration = System.currentTimeMillis() - longPressStartTime
-											if (pressDuration > 2000) { // 2 seconds long press
+											if (pressDuration > 1500) { // 1.5 seconds long press
 												isTransparent = !isTransparent
 											}
 											break
 										}
 									} while (true)
+								} else {
+									isPressed = false
 								}
 							}
 						}
-					}
+					},
+				shape = CircleShape,
+				colors = CardDefaults.cardColors(
+					containerColor = MaterialTheme.colorScheme.primary
+				),
 			) {
 				Box(
 					modifier = Modifier.fillMaxSize(),
@@ -7603,8 +7683,9 @@ fun FloatingActionButton(
 					Icon(
 						imageVector = Icons.Default.Add,
 						contentDescription = "منو",
+						tint = MaterialTheme.colorScheme.onPrimary,
 						modifier = Modifier
-							.size(24.dp)
+							.size(28.dp)
 							.rotate(rotation)
 					)
 				}
@@ -7613,16 +7694,57 @@ fun FloatingActionButton(
 	}
 }
 
+@SuppressLint("ReturnFromAwaitPointerEventScope")
 @Composable
 private fun MiniFab(
 	item: FabItem,
+	index: Int,
 	onDismiss: () -> Unit
 ) {
+	var isPressed by remember { mutableStateOf(false) }
 	var isHovered by remember { mutableStateOf(false) }
 	val interactionSource = remember { MutableInteractionSource() }
+	
+	// انیمیشن‌های پیشرفته
 	val scale by animateFloatAsState(
-		targetValue = if (isHovered) 1.05f else 1f,
-		label = ""
+		targetValue = when {
+			isPressed -> 0.92f
+			isHovered -> 1.08f
+			else -> 1f
+		},
+		animationSpec = spring(
+			dampingRatio = Spring.DampingRatioMediumBouncy,
+			stiffness = Spring.StiffnessHigh
+		),
+		label = "minifab_scale"
+	)
+	
+	val labelAlpha by animateFloatAsState(
+		targetValue = if (isHovered) 1f else 0.85f,
+		animationSpec = tween(200),
+		label = "label_alpha"
+	)
+
+	// انیمیشن ورود با تاخیر
+	var visible by remember { mutableStateOf(false) }
+	LaunchedEffect(Unit) {
+		delay(index * 50L) // تاخیر بر اساس ایندکس
+		visible = true
+	}
+	
+	val slideOffset by animateFloatAsState(
+		targetValue = if (visible) 0f else 100f,
+		animationSpec = spring(
+			dampingRatio = Spring.DampingRatioMediumBouncy,
+			stiffness = Spring.StiffnessMedium
+		),
+		label = "slide_offset"
+	)
+	
+	val fadeAlpha by animateFloatAsState(
+		targetValue = if (visible) 1f else 0f,
+		animationSpec = tween(300),
+		label = "fade_alpha"
 	)
 
 	LaunchedEffect(interactionSource) {
@@ -7637,47 +7759,74 @@ private fun MiniFab(
 	Row(
 		verticalAlignment = Alignment.CenterVertically,
 		modifier = Modifier
+			.offset(x = slideOffset.dp)
+			.alpha(fadeAlpha)
 			.graphicsLayer {
 				clip = false
 			}
-			.alpha(if (isHovered) 1f else 0.9f)
 	) {
-		// Label
-		Surface(
-			modifier = Modifier.padding(end = 12.dp),
-			shape = RoundedCornerShape(8.dp),
-			color = MaterialTheme.colorScheme.surfaceVariant,
+		// برچسب بهبود یافته
+		Card(
+			modifier = Modifier
+				.padding(end = 16.dp)
+				.alpha(labelAlpha),
+			shape = RoundedCornerShape(12.dp),
+			colors = CardDefaults.cardColors(
+				containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+			),
 		) {
-						Text(
+			Text(
 				text = item.label,
-							style = MaterialTheme.typography.bodyMedium,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-				modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+				style = MaterialTheme.typography.bodyMedium.copy(
+					fontWeight = FontWeight.Medium
+				),
+				color = MaterialTheme.colorScheme.onSurface,
+				modifier = Modifier.padding(
+					horizontal = 16.dp, 
+					vertical = 8.dp
+				)
 			)
 		}
 
-		// Mini FAB
-		Surface(
-			onClick = {
-				item.onClick()
-				onDismiss()
-			},
-			shape = CircleShape,
-			color = MaterialTheme.colorScheme.secondaryContainer,
-			contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-				modifier = Modifier
-				.size(48.dp)
+		// دکمه کوچک بهبود یافته
+		Card(
+			modifier = Modifier
+				.size(56.dp)
 				.scale(scale)
 				.hoverable(interactionSource)
-			) {
-				Box(
+				.clickable(
+					interactionSource = interactionSource,
+					indication = rememberRipple(
+						bounded = false,
+						radius = 28.dp
+					)
+				) {
+					item.onClick()
+					onDismiss()
+				}
+				.pointerInput(Unit) {
+					awaitPointerEventScope {
+						while (true) {
+							val event = awaitPointerEvent()
+							val down = event.changes.firstOrNull()?.pressed == true
+							isPressed = down
+						}
+					}
+				},
+			shape = CircleShape,
+			colors = CardDefaults.cardColors(
+				containerColor = MaterialTheme.colorScheme.secondaryContainer
+			),
+		) {
+			Box(
 				modifier = Modifier.fillMaxSize(),
 				contentAlignment = Alignment.Center
 			) {
 				Icon(
 					imageVector = item.icon,
 					contentDescription = item.label,
-					modifier = Modifier.size(22.dp)
+					tint = MaterialTheme.colorScheme.onSecondaryContainer,
+					modifier = Modifier.size(24.dp)
 				)
 			}
 		}
@@ -10835,21 +10984,24 @@ private fun EmptyStateCard(
 }
 
 @SuppressLint("DefaultLocale")
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PersianDateRangePickerDialog(
 	isOpen: Boolean,
 	onDismiss: () -> Unit,
 	onDateRangeSelected: (startDate: String, endDate: String) -> Unit
 ) {
+	// State variables for selected dates - حفظ آخرین انتخاب
+	var startDateText by rememberSaveable { mutableStateOf("1404/01/01") }
+	var startTimeText by rememberSaveable { mutableStateOf("07:00") }
+	var endDateText by rememberSaveable { mutableStateOf("1404/01/02") }
+	var endTimeText by rememberSaveable { mutableStateOf("07:00") }
+	
 	if (isOpen) {
-		// State variables for selected dates
-		var startDateTimeText by remember { mutableStateOf("1404/01/01 07:00") }
-		var endDateTimeText by remember { mutableStateOf("1404/01/31 07:00") }
-		
 		// Dialog states
-		var showStartDateTimePicker by remember { mutableStateOf(false) }
-		var showEndDateTimePicker by remember { mutableStateOf(false) }
+		var showStartDatePicker by remember { mutableStateOf(false) }
+		var showStartTimePicker by remember { mutableStateOf(false) }
+		var showEndDatePicker by remember { mutableStateOf(false) }
+		var showEndTimePicker by remember { mutableStateOf(false) }
 		
 		Dialog(
 			onDismissRequest = onDismiss,
@@ -10857,15 +11009,15 @@ fun PersianDateRangePickerDialog(
 		) {
 			Surface(
 				modifier = Modifier
-					.fillMaxWidth(0.9f)
+					.fillMaxWidth(0.95f)
 					.wrapContentHeight(),
-				shape = RoundedCornerShape(20.dp),
+				shape = RoundedCornerShape(24.dp),
 				color = MaterialTheme.colorScheme.surface,
-				tonalElevation = 6.dp
+				tonalElevation = 8.dp
 			) {
 				Column(
 					modifier = Modifier
-						.padding(24.dp)
+						.padding(20.dp)
 						.fillMaxWidth()
 				) {
 					// عنوان دیالوگ
@@ -10877,98 +11029,198 @@ fun PersianDateRangePickerDialog(
 							Icons.Default.DateRange,
 							contentDescription = null,
 							tint = MaterialTheme.colorScheme.primary,
-							modifier = Modifier.size(28.dp)
+							modifier = Modifier.size(24.dp)
 						)
 						Spacer(modifier = Modifier.width(12.dp))
 						Text(
 							text = "انتخاب بازه زمانی",
-							style = MaterialTheme.typography.headlineSmall,
+							style = MaterialTheme.typography.titleLarge,
 							fontWeight = FontWeight.Bold,
 							color = MaterialTheme.colorScheme.onSurface
 						)
 					}
 					
-					Spacer(modifier = Modifier.height(24.dp))
+					Spacer(modifier = Modifier.height(20.dp))
 					
-					// فیلد از تاریخ و زمان
-					OutlinedTextField(
-						value = startDateTimeText,
-						onValueChange = { },
-						label = { Text("از تاریخ و زمان") },
-						enabled = false,
-						trailingIcon = {
-							Icon(
-								Icons.Default.DateRange,
-								contentDescription = "انتخاب تاریخ و زمان"
+					// کارت تاریخ شروع
+					Card(
+						modifier = Modifier.fillMaxWidth(),
+						colors = CardDefaults.cardColors(
+							containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+						),
+						shape = RoundedCornerShape(16.dp)
+					) {
+						Column(
+							modifier = Modifier.padding(16.dp)
+						) {
+							Text(
+								text = "از تاریخ",
+								style = MaterialTheme.typography.labelLarge,
+								fontWeight = FontWeight.SemiBold,
+								color = MaterialTheme.colorScheme.primary
 							)
-						},
-						modifier = Modifier
-							.fillMaxWidth()
-							.clickable(
-								indication = null,
-								interactionSource = remember { MutableInteractionSource() }
-							) { showStartDateTimePicker = true },
-						colors = OutlinedTextFieldDefaults.colors(
-							disabledTextColor = MaterialTheme.colorScheme.onSurface,
-							disabledBorderColor = MaterialTheme.colorScheme.primary,
-							disabledLabelColor = MaterialTheme.colorScheme.primary,
-							disabledTrailingIconColor = MaterialTheme.colorScheme.primary
-						)
-					)
+							
+							Spacer(modifier = Modifier.height(8.dp))
+							
+							Row(
+								modifier = Modifier.fillMaxWidth(),
+								horizontalArrangement = Arrangement.spacedBy(8.dp)
+							) {
+								// فیلد تاریخ
+								OutlinedTextField(
+									value = startDateText,
+									onValueChange = { },
+									label = { Text("تاریخ", style = MaterialTheme.typography.labelSmall) },
+									enabled = false,
+									trailingIcon = {
+										Icon(
+											Icons.Default.CalendarToday,
+											contentDescription = "انتخاب تاریخ",
+											modifier = Modifier.size(20.dp)
+										)
+									},
+									modifier = Modifier
+										.weight(0.6f)
+										.clickable(
+											indication = null,
+											interactionSource = remember { MutableInteractionSource() }
+										) { showStartDatePicker = true },
+									colors = OutlinedTextFieldDefaults.colors(
+										disabledTextColor = MaterialTheme.colorScheme.onSurface,
+										disabledBorderColor = MaterialTheme.colorScheme.primary,
+										disabledLabelColor = MaterialTheme.colorScheme.primary,
+										disabledTrailingIconColor = MaterialTheme.colorScheme.primary
+									)
+								)
+								
+								// فیلد زمان
+								OutlinedTextField(
+									value = startTimeText,
+									onValueChange = { },
+									label = { Text("زمان", style = MaterialTheme.typography.labelSmall) },
+									enabled = false,
+									trailingIcon = {
+										Icon(
+											Icons.Default.AccessTime,
+											contentDescription = "انتخاب زمان",
+											modifier = Modifier.size(20.dp)
+										)
+									},
+									modifier = Modifier
+										.weight(0.4f)
+										.clickable(
+											indication = null,
+											interactionSource = remember { MutableInteractionSource() }
+										) { showStartTimePicker = true },
+									colors = OutlinedTextFieldDefaults.colors(
+										disabledTextColor = MaterialTheme.colorScheme.onSurface,
+										disabledBorderColor = MaterialTheme.colorScheme.primary,
+										disabledLabelColor = MaterialTheme.colorScheme.primary,
+										disabledTrailingIconColor = MaterialTheme.colorScheme.primary
+									)
+								)
+							}
+						}
+					}
 					
 					Spacer(modifier = Modifier.height(16.dp))
 					
-					// فیلد تا تاریخ و زمان
-					OutlinedTextField(
-						value = endDateTimeText,
-						onValueChange = { },
-						label = { Text("تا تاریخ و زمان") },
-						enabled = false,
-						trailingIcon = {
-							Icon(
-								Icons.Default.DateRange,
-								contentDescription = "انتخاب تاریخ و زمان"
+					// کارت تاریخ پایان
+					Card(
+						modifier = Modifier.fillMaxWidth(),
+						colors = CardDefaults.cardColors(
+							containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+						),
+						shape = RoundedCornerShape(16.dp)
+					) {
+						Column(
+							modifier = Modifier.padding(16.dp)
+						) {
+							Text(
+								text = "تا تاریخ",
+								style = MaterialTheme.typography.labelLarge,
+								fontWeight = FontWeight.SemiBold,
+								color = MaterialTheme.colorScheme.secondary
 							)
-						},
-						modifier = Modifier
-							.fillMaxWidth()
-							.clickable(
-								indication = null,
-								interactionSource = remember { MutableInteractionSource() }
-							) { showEndDateTimePicker = true },
-						colors = OutlinedTextFieldDefaults.colors(
-							disabledTextColor = MaterialTheme.colorScheme.onSurface,
-							disabledBorderColor = MaterialTheme.colorScheme.secondary,
-							disabledLabelColor = MaterialTheme.colorScheme.secondary,
-							disabledTrailingIconColor = MaterialTheme.colorScheme.secondary
-						)
-					)
+							
+							Spacer(modifier = Modifier.height(8.dp))
+							
+							Row(
+								modifier = Modifier.fillMaxWidth(),
+								horizontalArrangement = Arrangement.spacedBy(8.dp)
+							) {
+								// فیلد تاریخ
+								OutlinedTextField(
+									value = endDateText,
+									onValueChange = { },
+									label = { Text("تاریخ", style = MaterialTheme.typography.labelSmall) },
+									enabled = false,
+									trailingIcon = {
+										Icon(
+											Icons.Default.CalendarToday,
+											contentDescription = "انتخاب تاریخ",
+											modifier = Modifier.size(20.dp)
+										)
+									},
+									modifier = Modifier
+										.weight(0.6f)
+										.clickable(
+											indication = null,
+											interactionSource = remember { MutableInteractionSource() }
+										) { showEndDatePicker = true },
+									colors = OutlinedTextFieldDefaults.colors(
+										disabledTextColor = MaterialTheme.colorScheme.onSurface,
+										disabledBorderColor = MaterialTheme.colorScheme.secondary,
+										disabledLabelColor = MaterialTheme.colorScheme.secondary,
+										disabledTrailingIconColor = MaterialTheme.colorScheme.secondary
+									)
+								)
+								
+								// فیلد زمان
+								OutlinedTextField(
+									value = endTimeText,
+									onValueChange = { },
+									label = { Text("زمان", style = MaterialTheme.typography.labelSmall) },
+									enabled = false,
+									trailingIcon = {
+										Icon(
+											Icons.Default.AccessTime,
+											contentDescription = "انتخاب زمان",
+											modifier = Modifier.size(20.dp)
+										)
+									},
+									modifier = Modifier
+										.weight(0.4f)
+										.clickable(
+											indication = null,
+											interactionSource = remember { MutableInteractionSource() }
+										) { showEndTimePicker = true },
+									colors = OutlinedTextFieldDefaults.colors(
+										disabledTextColor = MaterialTheme.colorScheme.onSurface,
+										disabledBorderColor = MaterialTheme.colorScheme.secondary,
+										disabledLabelColor = MaterialTheme.colorScheme.secondary,
+										disabledTrailingIconColor = MaterialTheme.colorScheme.secondary
+									)
+								)
+							}
+						}
+					}
 					
-					Spacer(modifier = Modifier.height(24.dp))
+					Spacer(modifier = Modifier.height(20.dp))
 					
 					// دکمه‌های عمل
 					Row(
 						modifier = Modifier.fillMaxWidth(),
-						horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
+						horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.Start)
 					) {
-						OutlinedButton(
-							onClick = onDismiss,
-							shape = RoundedCornerShape(12.dp)
-						) {
-							Icon(
-								Icons.Default.Close,
-								contentDescription = null,
-								modifier = Modifier.size(18.dp)
-							)
-							Spacer(modifier = Modifier.width(8.dp))
-							Text("لغو")
-						}
-						
 						Button(
 							onClick = {
-								onDateRangeSelected(startDateTimeText, endDateTimeText)
+								val startDateTime = "$startDateText $startTimeText"
+								val endDateTime = "$endDateText $endTimeText"
+								onDateRangeSelected(startDateTime, endDateTime)
 							},
-							shape = RoundedCornerShape(12.dp)
+							shape = RoundedCornerShape(12.dp),
+							modifier = Modifier.height(48.dp)
 						) {
 							Icon(
 								Icons.Default.Check,
@@ -10978,40 +11230,98 @@ fun PersianDateRangePickerDialog(
 							Spacer(modifier = Modifier.width(8.dp))
 							Text("تایید")
 						}
+
+						OutlinedButton(
+							onClick = onDismiss,
+							shape = RoundedCornerShape(12.dp),
+							modifier = Modifier.height(48.dp)
+						) {
+							Icon(
+								Icons.Default.Close,
+								contentDescription = null,
+								modifier = Modifier.size(18.dp)
+							)
+							Spacer(modifier = Modifier.width(8.dp))
+							Text("لغو")
+						}
 					}
 				}
 			}
 		}
 		
-		// دیالوگ انتخاب تاریخ و زمان شروع
-		if (showStartDateTimePicker) {
-			DateTimePickerDialog(
+		// دیالوگ انتخاب تاریخ شروع
+		if (showStartDatePicker) {
+			DatePickerDialog(
 				isOpen = true,
-				title = "انتخاب تاریخ و زمان شروع",
-				initialDateTime = startDateTimeText,
+				title = "انتخاب تاریخ شروع",
+				initialDate = startDateText,
 				containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
 				titleColor = MaterialTheme.colorScheme.primary,
-				onDismiss = { showStartDateTimePicker = false },
-				onDateTimeSelected = { dateTime ->
-					startDateTimeText = dateTime
-					showStartDateTimePicker = false
+				onDismiss = { showStartDatePicker = false },
+				onDateSelected = { date ->
+					startDateText = date
+					// انتخاب خودکار یک روز بعد برای تاریخ پایان
+					val dateParts = date.split("/")
+					val year = dateParts.getOrNull(0)?.toIntOrNull() ?: 1404
+					val month = dateParts.getOrNull(1)?.toIntOrNull() ?: 1
+					val day = dateParts.getOrNull(2)?.toIntOrNull() ?: 1
+					
+					// محاسبه یک روز بعد
+					val nextDay = if (day < 31) day + 1 else 1
+					val nextMonth = if (day == 31 && month < 12) month + 1 else if (day == 31 && month == 12) 1 else month
+					val nextYear = if (day == 31 && month == 12) year + 1 else year
+					
+					endDateText = "%04d/%02d/%02d".format(nextYear, nextMonth, nextDay)
+					showStartDatePicker = false
 				}
 			)
 		}
 		
-		// دیالوگ انتخاب تاریخ و زمان پایان
-		if (showEndDateTimePicker) {
-			DateTimePickerDialog(
+		// دیالوگ انتخاب زمان شروع
+		if (showStartTimePicker) {
+			TimePickerDialog(
 				isOpen = true,
-				title = "انتخاب تاریخ و زمان پایان",
-				initialDateTime = endDateTimeText,
+				title = "انتخاب زمان شروع",
+				initialTime = startTimeText,
+				containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+				titleColor = MaterialTheme.colorScheme.primary,
+				onDismiss = { showStartTimePicker = false },
+				onTimeSelected = { time ->
+					startTimeText = time
+					showStartTimePicker = false
+				}
+			)
+		}
+		
+		// دیالوگ انتخاب تاریخ پایان
+		if (showEndDatePicker) {
+			DatePickerDialog(
+				isOpen = true,
+				title = "انتخاب تاریخ پایان",
+				initialDate = endDateText,
 				containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
 				titleColor = MaterialTheme.colorScheme.secondary,
-				minDateTime = startDateTimeText,
-				onDismiss = { showEndDateTimePicker = false },
-				onDateTimeSelected = { dateTime ->
-					endDateTimeText = dateTime
-					showEndDateTimePicker = false
+				minDate = startDateText,
+				onDismiss = { showEndDatePicker = false },
+				onDateSelected = { date ->
+					endDateText = date
+					showEndDatePicker = false
+				}
+			)
+		}
+		
+		// دیالوگ انتخاب زمان پایان
+		if (showEndTimePicker) {
+			TimePickerDialog(
+				isOpen = true,
+				title = "انتخاب زمان پایان",
+				initialTime = endTimeText,
+				containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+				titleColor = MaterialTheme.colorScheme.secondary,
+				onDismiss = { showEndTimePicker = false },
+				onTimeSelected = { time ->
+					endTimeText = time
+					showEndTimePicker = false
 				}
 			)
 		}
@@ -11019,37 +11329,30 @@ fun PersianDateRangePickerDialog(
 }
 
 @SuppressLint("DefaultLocale")
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DateTimePickerDialog(
+fun DatePickerDialog(
 	isOpen: Boolean,
 	title: String,
-	initialDateTime: String,
+	initialDate: String,
 	containerColor: Color,
 	titleColor: Color,
-	minDateTime: String? = null,
+	minDate: String? = null,
 	onDismiss: () -> Unit,
-	onDateTimeSelected: (dateTime: String) -> Unit
+	onDateSelected: (date: String) -> Unit
 ) {
 	if (isOpen) {
-		// Parse initial date time
-		val parts = initialDateTime.split(" ")
-		val dateParts = parts[0].split("/")
-		val timeParts = if (parts.size > 1) parts[1].split(":") else listOf("08", "00")
+		// Parse initial date
+		val dateParts = initialDate.split("/")
 		
 		// State variables
 		var selectedYear by remember { mutableIntStateOf(dateParts.getOrNull(0)?.toIntOrNull() ?: 1404) }
 		var selectedMonth by remember { mutableIntStateOf(dateParts.getOrNull(1)?.toIntOrNull() ?: 1) }
 		var selectedDay by remember { mutableIntStateOf(dateParts.getOrNull(2)?.toIntOrNull() ?: 1) }
-		var selectedHour by remember { mutableIntStateOf(timeParts.getOrNull(0)?.toIntOrNull() ?: 8) }
-		var selectedMinute by remember { mutableIntStateOf(timeParts.getOrNull(1)?.toIntOrNull() ?: 0) }
 		
 		// Lists for scrollable selectors
 		val years = (1403..1410).toList()
 		val months = (1..12).toList()
 		val days = (1..31).toList()
-		val hours = (0..23).toList()
-		val minutes = (0..59).toList()
 		
 		Dialog(
 			onDismissRequest = onDismiss,
@@ -11057,28 +11360,40 @@ fun DateTimePickerDialog(
 		) {
 			Surface(
 				modifier = Modifier
-					.fillMaxWidth(0.95f)
+					.fillMaxWidth(0.9f)
 					.wrapContentHeight(),
-				shape = RoundedCornerShape(20.dp),
+				shape = RoundedCornerShape(24.dp),
 				color = MaterialTheme.colorScheme.surface,
-				tonalElevation = 6.dp
+				tonalElevation = 8.dp
 			) {
 				Column(
 					modifier = Modifier
-						.padding(24.dp)
+						.padding(20.dp)
 						.fillMaxWidth()
 				) {
 					// عنوان دیالوگ
-					Text(
-						text = title,
-						style = MaterialTheme.typography.titleLarge,
-						fontWeight = FontWeight.Bold,
-						color = titleColor
-					)
+					Row(
+						modifier = Modifier.fillMaxWidth(),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						Icon(
+							Icons.Default.CalendarToday,
+							contentDescription = null,
+							tint = titleColor,
+							modifier = Modifier.size(24.dp)
+						)
+						Spacer(modifier = Modifier.width(12.dp))
+						Text(
+							text = title,
+							style = MaterialTheme.typography.titleLarge,
+							fontWeight = FontWeight.Bold,
+							color = titleColor
+						)
+					}
 					
 					Spacer(modifier = Modifier.height(20.dp))
 					
-					// کارت انتخاب تاریخ و زمان
+					// کارت انتخاب تاریخ
 					Card(
 						modifier = Modifier.fillMaxWidth(),
 						colors = CardDefaults.cardColors(
@@ -11089,27 +11404,18 @@ fun DateTimePickerDialog(
 						Column(
 							modifier = Modifier.padding(16.dp)
 						) {
-							// انتخابگرهای تاریخ
-							Text(
-								text = "تاریخ",
-								style = MaterialTheme.typography.titleMedium,
-								fontWeight = FontWeight.SemiBold,
-								color = titleColor
-							)
-							
-							Spacer(modifier = Modifier.height(12.dp))
-							
 							Row(
 								modifier = Modifier.fillMaxWidth(),
 								horizontalArrangement = Arrangement.spacedBy(8.dp)
 							) {
-								// سال
+								// روز
 								ScrollableSelector(
-									label = "سال",
-									items = years,
-									selectedItem = selectedYear,
-									onItemSelected = { selectedYear = it },
-									modifier = Modifier.weight(1f)
+									label = "روز",
+									items = days,
+									selectedItem = selectedDay,
+									onItemSelected = { selectedDay = it },
+									modifier = Modifier.weight(1f),
+									formatItem = { "%02d".format(it) }
 								)
 								
 								// ماه
@@ -11121,33 +11427,185 @@ fun DateTimePickerDialog(
 									modifier = Modifier.weight(1f),
 									formatItem = { "%02d".format(it) }
 								)
-								
-								// روز
+
+								// سال
 								ScrollableSelector(
-									label = "روز",
-									items = days,
-									selectedItem = selectedDay,
-									onItemSelected = { selectedDay = it },
-									modifier = Modifier.weight(1f),
-									formatItem = { "%02d".format(it) }
+									label = "سال",
+									items = years,
+									selectedItem = selectedYear,
+									onItemSelected = { selectedYear = it },
+									modifier = Modifier.weight(1f)
 								)
 							}
-							
-							Spacer(modifier = Modifier.height(16.dp))
-							
-							// انتخابگرهای زمان
-							Text(
-								text = "زمان",
-								style = MaterialTheme.typography.titleMedium,
-								fontWeight = FontWeight.SemiBold,
-								color = titleColor
+						}
+					}
+					
+					Spacer(modifier = Modifier.height(20.dp))
+					
+					// بررسی validation
+					val currentDate = "%04d/%02d/%02d".format(selectedYear, selectedMonth, selectedDay)
+					
+					val isValidDate = minDate?.let { minD ->
+						val minDateParts = minD.split("/")
+						val minYear = minDateParts.getOrNull(0)?.toIntOrNull() ?: 1404
+						val minMonth = minDateParts.getOrNull(1)?.toIntOrNull() ?: 1
+						val minDay = minDateParts.getOrNull(2)?.toIntOrNull() ?: 1
+						
+						// محاسبه کل روزها برای مقایسه
+						val currentTotalDays = (selectedYear * 365) + (selectedMonth * 30) + selectedDay
+						val minTotalDays = (minYear * 365) + (minMonth * 30) + minDay
+						
+						currentTotalDays >= minTotalDays
+					} != false
+					
+					// نمایش پیام خطا در صورت نامعتبر بودن
+					if (!isValidDate) {
+						Card(
+							modifier = Modifier.fillMaxWidth(),
+							colors = CardDefaults.cardColors(
+								containerColor = MaterialTheme.colorScheme.errorContainer
+							),
+							shape = RoundedCornerShape(8.dp)
+						) {
+							Row(
+								modifier = Modifier.padding(12.dp),
+								verticalAlignment = Alignment.CenterVertically
+							) {
+								Icon(
+									Icons.Default.Warning,
+									contentDescription = null,
+									tint = MaterialTheme.colorScheme.error,
+									modifier = Modifier.size(20.dp)
+								)
+								Spacer(modifier = Modifier.width(8.dp))
+								Text(
+									text = "تاریخ پایان باید بیشتر یا مساوی تاریخ شروع باشد",
+									style = MaterialTheme.typography.bodySmall,
+									color = MaterialTheme.colorScheme.error
+								)
+							}
+						}
+						Spacer(modifier = Modifier.height(16.dp))
+					}
+					
+					// دکمه‌های عمل
+					Row(
+						modifier = Modifier.fillMaxWidth(),
+						horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.Start)
+					) {
+						Button(
+							onClick = {
+								onDateSelected(currentDate)
+							},
+							enabled = isValidDate,
+							shape = RoundedCornerShape(12.dp),
+							modifier = Modifier.height(48.dp)
+						) {
+							Icon(
+								Icons.Default.Check,
+								contentDescription = null,
+								modifier = Modifier.size(18.dp)
 							)
-							
-							Spacer(modifier = Modifier.height(12.dp))
-							
+							Spacer(modifier = Modifier.width(8.dp))
+							Text("تایید")
+						}
+
+						OutlinedButton(
+							onClick = onDismiss,
+							shape = RoundedCornerShape(12.dp),
+							modifier = Modifier.height(48.dp)
+						) {
+							Icon(
+								Icons.Default.Close,
+								contentDescription = null,
+								modifier = Modifier.size(18.dp)
+							)
+							Spacer(modifier = Modifier.width(8.dp))
+							Text("لغو")
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+@SuppressLint("DefaultLocale")
+@Composable
+fun TimePickerDialog(
+	isOpen: Boolean,
+	title: String,
+	initialTime: String,
+	containerColor: Color,
+	titleColor: Color,
+	onDismiss: () -> Unit,
+	onTimeSelected: (time: String) -> Unit
+) {
+	if (isOpen) {
+		// Parse initial time
+		val timeParts = initialTime.split(":")
+		
+		// State variables
+		var selectedHour by remember { mutableIntStateOf(timeParts.getOrNull(0)?.toIntOrNull() ?: 8) }
+		var selectedMinute by remember { mutableIntStateOf(timeParts.getOrNull(1)?.toIntOrNull() ?: 0) }
+		
+		// Lists for scrollable selectors
+		val hours = (0..23).toList()
+		val minutes = (0..59).toList()
+		
+		Dialog(
+			onDismissRequest = onDismiss,
+			properties = DialogProperties(usePlatformDefaultWidth = false)
+		) {
+			Surface(
+				modifier = Modifier
+					.fillMaxWidth(0.85f)
+					.wrapContentHeight(),
+				shape = RoundedCornerShape(24.dp),
+				color = MaterialTheme.colorScheme.surface,
+				tonalElevation = 8.dp
+			) {
+				Column(
+					modifier = Modifier
+						.padding(20.dp)
+						.fillMaxWidth()
+				) {
+					// عنوان دیالوگ
+					Row(
+						modifier = Modifier.fillMaxWidth(),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						Icon(
+							Icons.Default.AccessTime,
+							contentDescription = null,
+							tint = titleColor,
+							modifier = Modifier.size(24.dp)
+						)
+						Spacer(modifier = Modifier.width(12.dp))
+						Text(
+							text = title,
+							style = MaterialTheme.typography.titleLarge,
+							fontWeight = FontWeight.Bold,
+							color = titleColor
+						)
+					}
+					
+					Spacer(modifier = Modifier.height(20.dp))
+					
+					// کارت انتخاب زمان
+					Card(
+						modifier = Modifier.fillMaxWidth(),
+						colors = CardDefaults.cardColors(
+							containerColor = containerColor
+						),
+						shape = RoundedCornerShape(16.dp)
+					) {
+						Column(
+							modifier = Modifier.padding(16.dp)
+						) {
 							Row(
 								modifier = Modifier.fillMaxWidth(),
-								horizontalArrangement = Arrangement.spacedBy(8.dp)
+								horizontalArrangement = Arrangement.spacedBy(16.dp)
 							) {
 								// ساعت
 								ScrollableSelector(
@@ -11172,96 +11630,20 @@ fun DateTimePickerDialog(
 						}
 					}
 					
-					Spacer(modifier = Modifier.height(24.dp))
-					
-					// بررسی validation
-					val currentDateTime = "%04d/%02d/%02d %02d:%02d".format(
-						selectedYear, selectedMonth, selectedDay, selectedHour, selectedMinute
-					)
-					
-					val isValidDateTime = minDateTime?.let { minDT ->
-                        val minParts = minDT.split(" ")
-                        val minDateParts = minParts[0].split("/")
-                        val minTimeParts = if (minParts.size > 1) minParts[1].split(":") else listOf("00", "00")
-
-                        val minYear = minDateParts.getOrNull(0)?.toIntOrNull() ?: 1404
-                        val minMonth = minDateParts.getOrNull(1)?.toIntOrNull() ?: 1
-                        val minDay = minDateParts.getOrNull(2)?.toIntOrNull() ?: 1
-                        val minHour = minTimeParts.getOrNull(0)?.toIntOrNull() ?: 0
-                        val minMinute = minTimeParts.getOrNull(1)?.toIntOrNull() ?: 0
-
-                        // محاسبه کل دقایق برای مقایسه
-                        val currentTotalMinutes = (selectedYear * 365 * 24 * 60) +
-                                (selectedMonth * 30 * 24 * 60) +
-                                (selectedDay * 24 * 60) +
-                                (selectedHour * 60) +
-                                selectedMinute
-
-                        val minTotalMinutes = (minYear * 365 * 24 * 60) +
-                                (minMonth * 30 * 24 * 60) +
-                                (minDay * 24 * 60) +
-                                (minHour * 60) +
-                                minMinute
-
-                        currentTotalMinutes > minTotalMinutes
-                    } != false
-					
-					// نمایش پیام خطا در صورت نامعتبر بودن
-					if (!isValidDateTime) {
-						Spacer(modifier = Modifier.height(8.dp))
-						Card(
-							modifier = Modifier.fillMaxWidth(),
-							colors = CardDefaults.cardColors(
-								containerColor = MaterialTheme.colorScheme.errorContainer
-							),
-							shape = RoundedCornerShape(8.dp)
-						) {
-							Row(
-								modifier = Modifier.padding(12.dp),
-								verticalAlignment = Alignment.CenterVertically
-							) {
-								Icon(
-									Icons.Default.Warning,
-									contentDescription = null,
-									tint = MaterialTheme.colorScheme.error,
-									modifier = Modifier.size(20.dp)
-								)
-								Spacer(modifier = Modifier.width(8.dp))
-								Text(
-									text = "تاریخ و زمان پایان باید بیشتر از تاریخ شروع بیشتر باشد",
-									style = MaterialTheme.typography.bodySmall,
-									color = MaterialTheme.colorScheme.error
-								)
-							}
-						}
-					}
-					
-					Spacer(modifier = Modifier.height(16.dp))
+					Spacer(modifier = Modifier.height(20.dp))
 					
 					// دکمه‌های عمل
 					Row(
 						modifier = Modifier.fillMaxWidth(),
 						horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
 					) {
-						OutlinedButton(
-							onClick = onDismiss,
-							shape = RoundedCornerShape(12.dp)
-						) {
-							Icon(
-								Icons.Default.Close,
-								contentDescription = null,
-								modifier = Modifier.size(18.dp)
-							)
-							Spacer(modifier = Modifier.width(8.dp))
-							Text("لغو")
-						}
-						
 						Button(
 							onClick = {
-								onDateTimeSelected(currentDateTime)
+								val currentTime = "%02d:%02d".format(selectedHour, selectedMinute)
+								onTimeSelected(currentTime)
 							},
-							enabled = isValidDateTime,
-							shape = RoundedCornerShape(12.dp)
+							shape = RoundedCornerShape(12.dp),
+							modifier = Modifier.height(48.dp)
 						) {
 							Icon(
 								Icons.Default.Check,
@@ -11270,6 +11652,20 @@ fun DateTimePickerDialog(
 							)
 							Spacer(modifier = Modifier.width(8.dp))
 							Text("تایید")
+						}
+
+						OutlinedButton(
+							onClick = onDismiss,
+							shape = RoundedCornerShape(12.dp),
+							modifier = Modifier.height(48.dp)
+						) {
+							Icon(
+								Icons.Default.Close,
+								contentDescription = null,
+								modifier = Modifier.size(18.dp)
+							)
+							Spacer(modifier = Modifier.width(8.dp))
+							Text("لغو")
 						}
 					}
 				}
@@ -11309,56 +11705,75 @@ fun ScrollableSelector(
 			),
 			shape = RoundedCornerShape(12.dp)
 		) {
-			val listState = rememberLazyListState(
-				initialFirstVisibleItemIndex = maxOf(0, items.indexOf(selectedItem) - 1)
-			)
-			
-			LazyColumn(
-				state = listState,
-				modifier = Modifier
-					.fillMaxSize()
-					.padding(vertical = 8.dp),
-				verticalArrangement = Arrangement.spacedBy(4.dp),
-				horizontalAlignment = Alignment.CenterHorizontally
+			Box(
+				modifier = Modifier.fillMaxSize()
 			) {
-				items(items) { item ->
-					val isSelected = item == selectedItem
-					val animatedScale by animateFloatAsState(
-						targetValue = if (isSelected) 1.1f else 1f,
-						animationSpec = spring(
-							dampingRatio = Spring.DampingRatioMediumBouncy,
-							stiffness = Spring.StiffnessLow
-						),
-						label = "scale"
-					)
-					
-					Surface(
-						modifier = Modifier
-							.fillMaxWidth()
-							.padding(horizontal = 8.dp, vertical = 2.dp)
-							.scale(animatedScale)
-							.clickable { onItemSelected(item) },
-						color = if (isSelected) {
-							MaterialTheme.colorScheme.primary
-						} else {
-							Color.Transparent
-						},
-						shape = RoundedCornerShape(8.dp)
-					) {
-						Text(
-							text = formatItem(item),
-							style = MaterialTheme.typography.bodyLarge,
-							color = if (isSelected) {
-								MaterialTheme.colorScheme.onPrimary
-							} else {
-								MaterialTheme.colorScheme.onSurface
-							},
-							fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-							textAlign = TextAlign.Center,
+				val selectedIndex = items.indexOf(selectedItem)
+				val itemHeight = 40.dp // ارتفاع هر آیتم
+				val visibleItemsCount = 3 // تعداد آیتم‌های قابل مشاهده
+				val centerOffset = (visibleItemsCount / 2) // آفست برای قرار دادن در وسط
+				
+				val listState = rememberLazyListState(
+					// قرار دادن مقدار انتخابی در وسط اسکرول
+					initialFirstVisibleItemIndex = maxOf(0, selectedIndex - centerOffset)
+				)
+				
+				// اسکرول به مقدار انتخابی هنگام تغییر
+				LaunchedEffect(selectedItem) {
+					val newIndex = items.indexOf(selectedItem)
+					if (newIndex >= 0) {
+						listState.animateScrollToItem(maxOf(0, newIndex - centerOffset))
+					}
+				}
+				
+				LazyColumn(
+					state = listState,
+					modifier = Modifier
+						.fillMaxSize()
+						.padding(vertical = 8.dp),
+					verticalArrangement = Arrangement.spacedBy(4.dp),
+					horizontalAlignment = Alignment.CenterHorizontally
+				) {
+					items(items) { item ->
+						val isSelected = item == selectedItem
+						val animatedScale by animateFloatAsState(
+							targetValue = if (isSelected) 1.1f else 1f,
+							animationSpec = spring(
+								dampingRatio = Spring.DampingRatioMediumBouncy,
+								stiffness = Spring.StiffnessLow
+							),
+							label = "scale"
+						)
+						
+						Surface(
 							modifier = Modifier
 								.fillMaxWidth()
-								.padding(vertical = 8.dp)
-						)
+								.height(itemHeight)
+								.padding(horizontal = 8.dp, vertical = 2.dp)
+								.scale(animatedScale)
+								.clickable { onItemSelected(item) },
+							color = if (isSelected) {
+								MaterialTheme.colorScheme.primary
+							} else {
+								Color.Transparent
+							},
+							shape = RoundedCornerShape(8.dp)
+						) {
+							Text(
+								text = formatItem(item),
+								style = MaterialTheme.typography.bodyLarge,
+								color = if (isSelected) {
+									MaterialTheme.colorScheme.onPrimary
+								} else {
+									MaterialTheme.colorScheme.onSurface
+								},
+								fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+								textAlign = TextAlign.Center,
+								modifier = Modifier
+									.fillMaxWidth()
+									.padding(vertical = 8.dp)
+							)
+						}
 					}
 				}
 			}
