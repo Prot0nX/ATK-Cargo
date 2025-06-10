@@ -2019,8 +2019,8 @@ private fun GroupingModeButton(
 
 	Box(
 		modifier = modifier
-			.clickable(onClick = onClick, interactionSource = interactionSource, indication = null) 
-			.background(backgroundColor) 
+			.clickable(onClick = onClick, interactionSource = interactionSource, indication = null)
+			.background(backgroundColor)
 			.padding(vertical = 8.dp, horizontal = 6.dp),
 		contentAlignment = Alignment.Center
 	) {
@@ -4009,7 +4009,7 @@ fun DateTimePicker(
 						Box(
 								modifier = Modifier
 									.fillMaxWidth()
-								.height(120.dp),
+									.height(120.dp),
 							contentAlignment = Alignment.Center
 						) {
 							Text(
@@ -4078,7 +4078,7 @@ fun PersianDateItem(
 		Row(
 		modifier = Modifier
 			.fillMaxWidth()
-				.padding(vertical = 12.dp, horizontal = 16.dp),
+			.padding(vertical = 12.dp, horizontal = 16.dp),
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.spacedBy(12.dp)
 		) {
@@ -4264,8 +4264,8 @@ fun persianDateTimeFormat(dateTimeString: String): String {
 fun WarehouseMainCard(warehouseName: String, shipName: String) {
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+			.fillMaxWidth()
+			.padding(horizontal = 8.dp, vertical = 4.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -8382,7 +8382,7 @@ fun ComprehensiveAnalyticsDialog(
 		) {
 			Surface(
 				modifier = Modifier
-					.fillMaxWidth(0.95f)
+					.fillMaxWidth(0.92f)
 					.fillMaxHeight(0.9f),
 				shape = RoundedCornerShape(16.dp),
 				color = MaterialTheme.colorScheme.surface,
@@ -8400,7 +8400,7 @@ fun ComprehensiveAnalyticsDialog(
 					Column(
 						modifier = Modifier
 							.fillMaxSize()
-							.padding(horizontal = 16.dp)
+							.padding(12.dp)
 					) {
 						Spacer(modifier = Modifier.height(8.dp))
 
@@ -9652,7 +9652,7 @@ fun QuotaAnalysis(
 			onValueChange = { viewModel.updateSearchQuery(it) },
 			modifier = Modifier
 				.fillMaxWidth()
-				.padding(vertical = 8.dp, horizontal = 4.dp),
+				.padding(top = 8.dp),
 			placeholder = {
 				Text(
 					text = "جستجو ...",
@@ -9690,11 +9690,11 @@ fun QuotaAnalysis(
 			)
 		)
 
-		// انتخابگر نوع گروه‌بندی - مشابه GroupingModeSelector
+		// انتخابگر نوع گروه‌بندی
 		Row(
 			modifier = Modifier
 				.fillMaxWidth()
-				.padding(vertical = 8.dp, horizontal = 4.dp)
+				.padding(top = 8.dp, bottom = 12.dp)
 				.clip(RoundedCornerShape(12.dp))
 				.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
 				.border(
@@ -9705,10 +9705,10 @@ fun QuotaAnalysis(
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			AnalyticsGroupingModeButton(
-				text = "باربری",
-				icon = Icons.Default.LocalShipping,
-				isSelected = groupingMode == QuotaGroupingMode.BY_CARRIER,
-				onClick = { viewModel.setGroupingMode(QuotaGroupingMode.BY_CARRIER) },
+				text = "کشتی",
+				icon = Icons.Default.DirectionsBoat,
+				isSelected = groupingMode == QuotaGroupingMode.BY_SHIP,
+				onClick = { viewModel.setGroupingMode(QuotaGroupingMode.BY_SHIP) },
 				modifier = Modifier.weight(1f)
 			)
 			VerticalDivider(
@@ -9717,10 +9717,10 @@ fun QuotaAnalysis(
 				color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
 			)
 			AnalyticsGroupingModeButton(
-				text = "کشتی",
-				icon = Icons.Default.DirectionsBoat,
-				isSelected = groupingMode == QuotaGroupingMode.BY_SHIP,
-				onClick = { viewModel.setGroupingMode(QuotaGroupingMode.BY_SHIP) },
+				text = "باربری",
+				icon = Icons.Default.LocalShipping,
+				isSelected = groupingMode == QuotaGroupingMode.BY_CARRIER,
+				onClick = { viewModel.setGroupingMode(QuotaGroupingMode.BY_CARRIER) },
 				modifier = Modifier.weight(1f)
 			)
 		}
@@ -10020,7 +10020,6 @@ private fun AnalyticsQuotaCard(
 	Card(
 		modifier = modifier
 			.fillMaxWidth()
-			// حذف animateContentSize برای بهینه‌سازی عملکرد
 			.wrapContentHeight(),
 		shape = RoundedCornerShape(8.dp),
 		colors = CardDefaults.cardColors(
@@ -10071,13 +10070,14 @@ private fun AnalyticsQuotaCard(
 							) {
 								Text(
 									text = quota.loadingQuotaNumber,
-									style = MaterialTheme.typography.bodyMedium,
+									style = MaterialTheme.typography.bodyLarge,
 									fontWeight = FontWeight.Bold,
 									color = MaterialTheme.colorScheme.onSurface
 								)
 								Text(
 									text = "|",
 									style = MaterialTheme.typography.bodyMedium,
+									fontWeight = FontWeight.Bold,
 									color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
 								)
 								Text(
