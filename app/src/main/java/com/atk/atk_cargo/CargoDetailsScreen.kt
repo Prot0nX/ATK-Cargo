@@ -1,6 +1,5 @@
 package com.atk.atk_cargo
 
-//noinspection UsingMaterialAndMaterial3Libraries
 import android.annotation.SuppressLint
 import android.util.Log
 import android.widget.Toast
@@ -29,8 +28,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.TabRowDefaults.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -51,6 +48,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,7 +57,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -109,6 +106,8 @@ import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private val jsonInstance = Json { ignoreUnknownKeys = true }
 
 @Composable
 fun CargoDetailsScreen(
@@ -884,7 +883,7 @@ fun CargoListSection(
             }
 
             item(key = "unconfirmed_divider") {
-                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
             }
         }
 
@@ -923,7 +922,7 @@ fun CargoListSection(
             }
 
             item(key = "confirmed_divider") {
-                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
             }
         }
     }
@@ -1067,149 +1066,515 @@ fun CargoDetailsDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.95f)
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                .padding(12.dp),
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
         ) {
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                DialogHeader(info.trackingNumber)
-                Spacer(modifier = Modifier.height(16.dp))
-                CargoStatusTimeline(info)
-                Spacer(modifier = Modifier.height(16.dp))
-                WeightInfoSection(info)
-                Spacer(modifier = Modifier.height(16.dp))
-                AdditionalInfoSection(info)
-                Spacer(modifier = Modifier.height(24.dp))
-                DialogActions(onDismiss, onConfirm, showConfirmButton)
+                item {
+                    ModernDialogHeader(info.trackingNumber, info.confirm == "تائید شده")
+                }
+                
+                item {
+                    ModernCargoStatusSection(info)
+                }
+                
+                item {
+                    ModernWeightInfoSection(info)
+                }
+                
+                item {
+                    ModernCargoDetailsGrid(info)
+                }
+                
+                item {
+                    ModernDialogActions(onDismiss, onConfirm, showConfirmButton)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun DialogHeader(trackingNumber: String) {
-    Text(
-        text = "جزئیات حواله $trackingNumber",
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth()
-    )
-}
-
-@Composable
-fun CargoStatusTimeline(info: CargoInfo) {
-    val steps = listOf("ورود", "بارگیری", "خروج")
-    val currentStepIndex = steps.indexOf(info.status).coerceAtLeast(0)
-
+private fun ModernDialogHeader(trackingNumber: String, isConfirmed: Boolean) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        steps.forEachIndexed { index, step ->
-            TimelineStep(
-                step = step,
-                isCompleted = index <= currentStepIndex,
-                isLast = index == steps.lastIndex
-            )
-        }
-    }
-}
-
-@Composable
-fun TimelineStep(step: String, isCompleted: Boolean, isLast: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .background(
-                    if (isCompleted) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.surfaceVariant,
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
+        // آیکون
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+            modifier = Modifier.size(48.dp)
         ) {
-            if (isCompleted) {
+            Box(
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
-                    Icons.Default.CheckCircle,
+                    imageVector = Icons.Default.Inventory,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
-        if (!isLast) {
-            Spacer(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(16.dp)
-                    .background(
-                        if (isCompleted) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    )
-            )
-        }
-        Text(
-            text = step,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun WeightInfoSection(info: CargoInfo) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            // شماره حواله
             Text(
-                text = "اطلاعات وزن",
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
+                text = "حواله $trackingNumber",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                WeightInfoItem("وزن خالص", info.netWeight, MaterialTheme.colorScheme.primary)
-                WeightInfoItem("کسری", info.shortageWeight, MaterialTheme.colorScheme.error)
-                WeightInfoItem("اضافه", info.excessWeight, MaterialTheme.colorScheme.tertiary)
+            
+            // وضعیت تایید
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = if (isConfirmed) 
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                else 
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                border = BorderStroke(
+                    1.dp,
+                    if (isConfirmed) 
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                    else 
+                        MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+            )
+        ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isConfirmed) Icons.Default.CheckCircle else Icons.Default.Clear,
+                        contentDescription = null,
+                        tint = if (isConfirmed) 
+                            MaterialTheme.colorScheme.primary
+                        else 
+                            MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = if (isConfirmed) "تایید شده" else "در انتظار تایید",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isConfirmed) 
+                            MaterialTheme.colorScheme.primary
+                        else 
+                            MaterialTheme.colorScheme.error
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun WeightInfoItem(label: String, value: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = label, style = MaterialTheme.typography.bodySmall)
+private fun ModernCargoStatusSection(info: CargoInfo) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DirectionsBoat,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "وضعیت حواله",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            
+            ModernCargoStatusTimeline(info)
+        }
+    }
+}
+
+@Composable
+fun ModernCargoStatusTimeline(info: CargoInfo) {
+    val steps = listOf(
+        "ورود" to Icons.Default.Inventory,
+        "بارگیری" to Icons.Default.Scale,
+        "خروج" to Icons.Default.CheckCircle
+    )
+    val currentStepIndex = steps.indexOfFirst { it.first == info.status }.coerceAtLeast(0)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        steps.forEachIndexed { index, (step, icon) ->
+            ModernTimelineStep(
+                step = step,
+                icon = icon,
+                isCompleted = index <= currentStepIndex,
+                isCurrent = index == currentStepIndex,
+                isLast = index == steps.lastIndex,
+                modifier = Modifier.weight(1f)
+            )
+            
+            if (index < steps.lastIndex) {
+                Box(
+                    modifier = Modifier
+                        .height(2.dp)
+                        .width(40.dp)
+                        .background(
+                            if (index < currentStepIndex) 
+                                MaterialTheme.colorScheme.primary
+                            else 
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            RoundedCornerShape(1.dp)
+                        )
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ModernTimelineStep(
+    step: String, 
+    icon: ImageVector,
+    isCompleted: Boolean, 
+    isCurrent: Boolean,
+    isLast: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+    ) {
+        // دایره وضعیت
+        Surface(
+            modifier = Modifier.size(36.dp),
+            shape = CircleShape,
+            color = when {
+                isCompleted -> MaterialTheme.colorScheme.primary
+                isCurrent -> MaterialTheme.colorScheme.primaryContainer
+                else -> MaterialTheme.colorScheme.surfaceVariant
+            },
+            border = if (isCurrent && !isCompleted) {
+                BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+            } else null
+        ) {
+            Box(
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = when {
+                        isCompleted -> MaterialTheme.colorScheme.onPrimary
+                        isCurrent -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+        
+        // متن مرحله
         Text(
-            text = "$value کیلوگرم",
-            style = MaterialTheme.typography.titleSmall,
-            color = color,
-            fontWeight = FontWeight.Bold
+            text = step,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
+            color = when {
+                isCompleted -> MaterialTheme.colorScheme.primary
+                isCurrent -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            textAlign = TextAlign.Center
         )
     }
 }
 
 @Composable
-private fun AdditionalInfoSection(info: CargoInfo) {
-    Column {
-        InfoRow("نام کشتی", info.shipName)
-        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-        InfoRow("انبار بارگیری", info.loadingWarehouse)
-        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-        InfoRow("نوع کالا", info.cargoType)
-        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-        InfoRow("شرکت باربری", info.shippingCompany)
-        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-        InfoRow("شماره کوتاژ", info.loadingQuotaNumber)
-        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-        InfoRow("تعداد نفرات", info.numberOfPeople)
+private fun ModernWeightInfoSection(info: CargoInfo) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        ),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Scale,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "اطلاعات وزن",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ModernWeightInfoItem(
+                    label = "وزن خالص",
+                    value = info.netWeight,
+                    icon = Icons.Default.Scale,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
+                ModernWeightInfoItem(
+                    label = "کسری",
+                    value = info.shortageWeight,
+                    icon = Icons.AutoMirrored.Filled.TrendingDown,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.weight(1f)
+                )
+                ModernWeightInfoItem(
+                    label = "اضافه",
+                    value = info.excessWeight,
+                    icon = Icons.AutoMirrored.Filled.TrendingUp,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ModernWeightInfoItem(
+    label: String, 
+    value: String, 
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = color.copy(alpha = 0.1f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.3f))
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(20.dp)
+            )
+            
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
+            
+            Text(
+                text = "$value کیلوگرم",
+                style = MaterialTheme.typography.bodyMedium,
+                color = color,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModernCargoDetailsGrid(info: CargoInfo) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Category,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "جزئیات حواله",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ModernInfoCard(
+                        icon = Icons.Default.DirectionsBoat,
+                        label = "نام کشتی",
+                        value = info.shipName,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ModernInfoCard(
+                        icon = Icons.Default.Warehouse,
+                        label = "انبار بارگیری",
+                        value = info.loadingWarehouse,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ModernInfoCard(
+                        icon = Icons.Default.Category,
+                        label = "نوع کالا",
+                        value = info.cargoType,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ModernInfoCard(
+                        icon = Icons.Default.Business,
+                        label = "شرکت باربری",
+                        value = info.shippingCompany,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ModernInfoCard(
+                        icon = Icons.Default.ConfirmationNumber,
+                        label = "شماره کوتاژ",
+                        value = info.loadingQuotaNumber,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ModernInfoCard(
+                        icon = Icons.Default.Group,
+                        label = "تعداد نفرات",
+                        value = info.numberOfPeople,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModernInfoCard(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.background,
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+            
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
@@ -1227,17 +1592,64 @@ private fun InfoRow(label: String, value: String) {
 }
 
 @Composable
-fun DialogActions(onDismiss: () -> Unit, onConfirm: () -> Unit, showConfirmButton: Boolean) {
+fun ModernDialogActions(onDismiss: () -> Unit, onConfirm: () -> Unit, showConfirmButton: Boolean) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = if (showConfirmButton) Arrangement.spacedBy(12.dp) else Arrangement.Center
     ) {
-        TextButton(onClick = onDismiss) {
-            Text("بستن")
-        }
+        // دکمه تایید
         if (showConfirmButton) {
-            Button(onClick = onConfirm) {
-                Text("تایید حواله")
+            Button(
+                onClick = onConfirm,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "تایید حواله",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+
+        // دکمه بستن
+        Button(
+            onClick = onDismiss,
+            modifier = Modifier.weight(if (showConfirmButton) 1f else 0.6f),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Clear,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "بستن",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }
@@ -1265,7 +1677,7 @@ suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): R
     val client = HttpClient(CIO)
     return try {
         val url = "https://atk-nk.click/Cargo/Beta/confirm_cargo.php"
-        val requestBody = Json.encodeToString(mapOf(
+        val requestBody = jsonInstance.encodeToString(mapOf(
             "trackingNumber" to info.trackingNumber,
             "loadingQuotaNumber" to info.loadingQuotaNumber,
             "loadingWarehouse" to info.loadingWarehouse,
@@ -1284,7 +1696,7 @@ suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): R
 
         if (response.status == HttpStatusCode.OK) {
             val responseBody = response.bodyAsText()
-            val jsonResponseMap = Json { ignoreUnknownKeys = true }.decodeFromString<Map<String, JsonElement>>(responseBody)
+            val jsonResponseMap = jsonInstance.decodeFromString<Map<String, JsonElement>>(responseBody)
             
             val message = jsonResponseMap["message"]?.toString()?.replace("\"", "") ?: "عملیات با موفقیت انجام شد"
             
