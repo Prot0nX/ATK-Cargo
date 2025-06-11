@@ -133,6 +133,9 @@ class CargoViewModel(
     private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY)
     val warehouseQuotaGroupingMode: StateFlow<WarehouseQuotaGroupingMode> = _warehouseQuotaGroupingMode.asStateFlow()
     
+    // متغیرهای مربوط به بازه زمانی انتخاب شده
+    private val _selectedDateRange = MutableStateFlow<Pair<String, String>?>(null)
+    val selectedDateRange: StateFlow<Pair<String, String>?> = _selectedDateRange.asStateFlow()
     
     private val _cachedTrackingNumbers = MutableStateFlow<Set<String>>(emptySet())
     val cachedTrackingNumbers: StateFlow<Set<String>> = _cachedTrackingNumbers.asStateFlow()
@@ -1328,6 +1331,9 @@ class ReportsViewModel(
     private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY)
     val warehouseQuotaGroupingMode: StateFlow<WarehouseQuotaGroupingMode> = _warehouseQuotaGroupingMode.asStateFlow()
     
+    // متغیرهای مربوط به بازه زمانی انتخاب شده
+    private val _selectedDateRange = MutableStateFlow<Pair<String, String>?>(null)
+    val selectedDateRange: StateFlow<Pair<String, String>?> = _selectedDateRange.asStateFlow()
     
 
     // تابع تغییر حالت گروه‌بندی
@@ -1541,6 +1547,8 @@ class ReportsViewModel(
             try {
                 val quotas = repository.getFilteredQuotas(shipName, startDateTime, endDateTime)
                 _selectedShipQuotas.value = quotas
+                // ذخیره بازه زمانی انتخاب شده
+                _selectedDateRange.value = Pair(startDateTime, endDateTime)
             } catch (e: Exception) {
                 _loadingError.value = "خطا در بارگیری کوتاژهای فیلتر شده: ${e.message}"
             }
@@ -1549,6 +1557,14 @@ class ReportsViewModel(
 
     fun clearLoadingError() {
         _loadingError.value = null
+    }
+
+    fun clearSelectedDateRange() {
+        _selectedDateRange.value = null
+        // بارگذاری مجدد داده‌ها بدون فیلتر زمانی
+        _selectedShip.value?.name?.let { shipName ->
+            loadShipQuotas(shipName)
+        }
     }
 
     fun getFilteredSummary(

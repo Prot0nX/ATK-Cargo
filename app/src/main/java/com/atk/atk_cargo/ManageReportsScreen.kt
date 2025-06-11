@@ -1461,10 +1461,16 @@ private fun ShipHeaderCard(shipDetails: Ship) {
 					// نام کشتی و وضعیت
 					Column {
 						Text(
-							text = shipDetails.name,
+							text = if (shipDetails.name.length > 11) {
+								shipDetails.name.take(11) + "..."
+							} else {
+								shipDetails.name
+							},
 							style = MaterialTheme.typography.headlineSmall,
 							color = MaterialTheme.colorScheme.onPrimary,
-							fontWeight = FontWeight.Bold
+							fontWeight = FontWeight.Bold,
+							maxLines = 1,
+							overflow = TextOverflow.Ellipsis
 						)
 
 						Text(
@@ -1674,6 +1680,61 @@ fun QuotasList(
 			currentMode = currentGroupingMode,
 			onModeChange = onGroupingModeChange
 		)
+
+		// نمایش بازه زمانی انتخاب شده
+		val selectedDateRange by viewModel.selectedDateRange.collectAsState()
+		selectedDateRange?.let { (startDate, endDate) ->
+			Card(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(horizontal = 4.dp, vertical = 2.dp),
+				colors = CardDefaults.cardColors(
+					containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+				),
+				shape = RoundedCornerShape(8.dp)
+			) {
+				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(horizontal = 8.dp, vertical = 4.dp),
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					Row(
+					modifier = Modifier.weight(1f),
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.Center
+				) {
+						Icon(
+							imageVector = Icons.Default.DateRange,
+							contentDescription = null,
+							modifier = Modifier.size(14.dp),
+							tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+						)
+						Spacer(modifier = Modifier.width(4.dp))
+						Text(
+							text = "از: ${startDate.replace(" ", " - ")} | تا: ${endDate.replace(" ", " - ")}",
+							style = MaterialTheme.typography.labelSmall,
+							color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
+							textAlign = TextAlign.Center,
+							maxLines = 1,
+							overflow = TextOverflow.Ellipsis
+						)
+					}
+					IconButton(
+						onClick = { viewModel.clearSelectedDateRange() },
+						modifier = Modifier.size(20.dp)
+					) {
+						Icon(
+							imageVector = Icons.Default.Clear,
+							contentDescription = "حذف فیلتر",
+							modifier = Modifier.size(12.dp),
+							tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f)
+						)
+					}
+				}
+			}
+		}
 
 		Spacer(modifier = Modifier.height(8.dp))
 
@@ -11606,22 +11667,22 @@ fun TimePickerDialog(
 								modifier = Modifier.fillMaxWidth(),
 								horizontalArrangement = Arrangement.spacedBy(16.dp)
 							) {
-								// ساعت
-								ScrollableSelector(
-									label = "ساعت",
-									items = hours,
-									selectedItem = selectedHour,
-									onItemSelected = { selectedHour = it },
-									modifier = Modifier.weight(1f),
-									formatItem = { "%02d".format(it) }
-								)
-								
 								// دقیقه
 								ScrollableSelector(
 									label = "دقیقه",
 									items = minutes,
 									selectedItem = selectedMinute,
 									onItemSelected = { selectedMinute = it },
+									modifier = Modifier.weight(1f),
+									formatItem = { "%02d".format(it) }
+								)
+
+								// ساعت
+								ScrollableSelector(
+									label = "ساعت",
+									items = hours,
+									selectedItem = selectedHour,
+									onItemSelected = { selectedHour = it },
 									modifier = Modifier.weight(1f),
 									formatItem = { "%02d".format(it) }
 								)
@@ -11634,7 +11695,7 @@ fun TimePickerDialog(
 					// دکمه‌های عمل
 					Row(
 						modifier = Modifier.fillMaxWidth(),
-						horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
+						horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.Start)
 					) {
 						Button(
 							onClick = {
