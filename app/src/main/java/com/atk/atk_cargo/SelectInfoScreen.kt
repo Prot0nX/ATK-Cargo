@@ -675,7 +675,7 @@ fun StatusSnackbar(
             Surface(
                 modifier = Modifier
                     .padding(bottom = 34.dp)
-                    .width(290.dp)
+                    .width(280.dp)
                     .wrapContentHeight()
                     .offset(x = translateX)
                     .alpha(alpha)
