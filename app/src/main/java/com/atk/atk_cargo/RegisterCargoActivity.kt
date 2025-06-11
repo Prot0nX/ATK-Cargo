@@ -54,12 +54,14 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -81,6 +83,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AddChart
@@ -93,6 +97,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.ExpandMore
@@ -102,7 +107,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -159,6 +164,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -3666,6 +3672,7 @@ fun CargoInfoDetailsDialog(
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
+    !isSystemInDarkTheme()
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -3673,75 +3680,87 @@ fun CargoInfoDetailsDialog(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .fillMaxHeight(0.9f)
-                .clip(RoundedCornerShape(16.dp)),
+                .fillMaxWidth(0.92f)
+                .fillMaxHeight(0.92f)
+                .clip(RoundedCornerShape(24.dp)),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Minimal Header
-                MinimalHeader(info, onDismiss)
-
-                // Scrollable Content with Expandable Sections
-                LazyColumn(
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Background gradient for the entire dialog
+                Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
-
-                    item {
-                        ExpandableSection(
-                            title = "اطلاعات اصلی",
-                            icon = Icons.Default.Info,
-                            initiallyExpanded = true
-                        ) {
-                            MainInfoContent(info)
-                        }
-                    }
-
-                    item {
-                        ExpandableSection(
-                            title = "اطلاعات وزن",
-                            icon = Icons.Default.Scale
-                        ) {
-                            WeightInfoContent(info)
-                        }
-                    }
-
-                    item {
-                        ExpandableSection(
-                            title = "زمان‌ها",
-                            icon = Icons.Default.Schedule
-                        ) {
-                            TimeInfoContent(info)
-                        }
-                    }
-
-                    item {
-                        ExpandableSection(
-                            title = "اطلاعات تکمیلی",
-                            icon = Icons.Default.MoreVert,
-                            initiallyExpanded = true
-                        ) {
-                            AdditionalInfoContent(info)
-                        }
-                    }
-
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
-                }
-
-                // Minimal Footer
-                MinimalFooter(
-                    onDelete = { showDeleteConfirmation = true },
-                    onDismiss = onDismiss
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surface,
+                                    MaterialTheme.colorScheme.surface,
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                )
+                            )
+                        )
                 )
+                
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Modern Header
+                    ModernHeader(info, onDismiss)
+
+                    // Scrollable Content with Expandable Sections
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(vertical = 16.dp)
+                    ) {
+                        // اطلاعات اصلی
+                        item {
+                            ModernExpandableSection(
+                                title = "اطلاعات اصلی",
+                                icon = Icons.Default.Info,
+                                initiallyExpanded = true,
+                                accentColor = MaterialTheme.colorScheme.primary
+                            ) {
+                                ModernMainInfoContent(info)
+                            }
+                        }
+
+                        // اطلاعات وزن
+                        item {
+                            ModernExpandableSection(
+                                title = "اطلاعات وزن",
+                                icon = Icons.Default.Scale,
+                                accentColor = MaterialTheme.colorScheme.tertiary
+                            ) {
+                                ModernWeightInfoContent(info)
+                            }
+                        }
+
+                        // اطلاعات زمان و تاریخ
+                        item {
+                            ModernExpandableSection(
+                                title = "اطلاعات زمان و تاریخ",
+                                icon = Icons.Default.Schedule,
+                                accentColor = MaterialTheme.colorScheme.secondary
+                            ) {
+                                ModernTimeInfoContent(info)
+                            }
+                        }
+                    }
+
+                    // Modern Footer with shadow
+                    ModernFooter(
+                        onDelete = { showDeleteConfirmation = true },
+                        onDismiss = onDismiss
+                    )
+                }
             }
         }
     }
 
     if (showDeleteConfirmation) {
-        DeleteDialog(
+        ModernDeleteDialog(
             onConfirm = {
                 coroutineScope.launch {
                     val request = CargoInfoRequest(
@@ -3765,112 +3784,149 @@ fun CargoInfoDetailsDialog(
 }
 
 @Composable
-private fun MinimalHeader(info: CargoInfo, onDismiss: () -> Unit) {
-    val isLightTheme = MaterialTheme.colorScheme.background == Color.White
+private fun ModernHeader(info: CargoInfo, onDismiss: () -> Unit) {
+    val isLightTheme = !isSystemInDarkTheme()
+    val headerGradient = if (isLightTheme) {
+        Brush.horizontalGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.primary,
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+            )
+        )
+    } else {
+        Brush.horizontalGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                MaterialTheme.colorScheme.surface
+            )
+        )
+    }
 
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = when {
-            isLightTheme -> MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
-            else -> MaterialTheme.colorScheme.surface
-        },
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(headerGradient)
+            .padding(top = 28.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
     ) {
-        Box(
+        // Close Button
+        IconButton(
+            onClick = onDismiss,
             modifier = Modifier
-                .fillMaxWidth()
+                .align(Alignment.TopEnd)
+                .size(40.dp)
                 .background(
-                    brush = Brush.verticalGradient(
-                        colors = when {
-                            isLightTheme -> listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.95f)
-                            )
-
-                            else -> listOf(
-                                MaterialTheme.colorScheme.surface,
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                            )
-                        }
-                    )
+                    color = if (isLightTheme) {
+                        Color.White.copy(alpha = 0.2f)
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                    },
+                    shape = CircleShape
                 )
-                .padding(horizontal = 16.dp, vertical = 20.dp)
         ) {
-            // Close Button
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .background(
-                        color = when {
-                            isLightTheme -> Color.White.copy(alpha = 0.2f)
-                            else -> Color.White.copy(alpha = 0.1f)
-                        },
-                        shape = CircleShape
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "بستن",
-                    tint = when {
-                        isLightTheme -> Color.White
-                        else -> MaterialTheme.colorScheme.onSurface
-                    }
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "بستن",
+                tint = if (isLightTheme) {
+                    Color.White
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                modifier = Modifier.size(20.dp)
+            )
+        }
 
-            Column(modifier = Modifier.padding(end = 56.dp)) {
-                // Title Section
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Column(modifier = Modifier.padding(end = 48.dp)) {
+            // Title with Icon
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Icon Container with animated gradient border
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(
+                            brush = Brush.sweepGradient(
+                                colors = listOf(
+                                    if (isLightTheme) Color.White.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    if (isLightTheme) Color.White.copy(alpha = 0.4f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                )
+                            ),
+                            shape = CircleShape
+                        )
+                        .padding(2.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = when {
-                            isLightTheme -> Color.White.copy(alpha = 0.2f)
-                            else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                        }
+                        color = if (isLightTheme) {
+                            Color.White.copy(alpha = 0.2f)
+                        } else {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        },
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ConfirmationNumber,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .size(24.dp),
-                            tint = when {
-                                isLightTheme -> Color.White
-                                else -> MaterialTheme.colorScheme.primary
-                            }
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.ConfirmationNumber,
+                                contentDescription = null,
+                                modifier = Modifier.size(30.dp),
+                                tint = if (isLightTheme) {
+                                    Color.White
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                }
+                            )
+                        }
                     }
+                }
 
+                Column {
                     Text(
-                        text = "حواله #${info.trackingNumber}",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
+                        text = "حواله شماره",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (isLightTheme) {
+                            Color.White.copy(alpha = 0.8f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        }
+                    )
+                    
+                    Text(
+                        text = info.trackingNumber,
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
                         ),
-                        color = when {
-                            isLightTheme -> Color.White
-                            else -> MaterialTheme.colorScheme.onSurface
+                        color = if (isLightTheme) {
+                            Color.White
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
                         }
                     )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-                // Status Section
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    StatusChip(
-                        status = info.status,
-                        isLightTheme = isLightTheme
-                    )
+            // Status Chips with improved layout
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // وضعیت ورود/خروج
+                ModernStatusChip(
+                    status = info.status,
+                    isLightTheme = isLightTheme
+                )
 
-                    if (info.confirm == "تائید شده") {
-                        ConfirmationChip(isLightTheme = isLightTheme)
-                    }
+                // وضعیت تایید
+                if (info.confirm == "تائید شده") {
+                    ModernConfirmationChip(isLightTheme = isLightTheme)
+                } else {
+                    ModernPendingChip(isLightTheme = isLightTheme)
                 }
             }
         }
@@ -3964,6 +4020,432 @@ private fun ConfirmationChip(isLightTheme: Boolean) {
                 ),
                 color = if (isLightTheme) Color.White else Color.Black
             )
+        }
+    }
+}
+
+@Composable
+private fun ModernStatusChip(status: String, isLightTheme: Boolean) {
+    val (backgroundColor, contentColor, icon, label) = when (status) {
+        "ورود" -> {
+            val green = Color(0xFF4CAF50)
+            val bgColor = if (isLightTheme) green.copy(alpha = 0.15f) else green.copy(alpha = 0.1f)
+            val textColor = if (isLightTheme) green else green.copy(alpha = 0.9f)
+            Quadruple(bgColor, textColor, Icons.AutoMirrored.Filled.Login, "ورود")
+        }
+        else -> {
+            val red = Color(0xFFF44336)
+            val bgColor = if (isLightTheme) red.copy(alpha = 0.15f) else red.copy(alpha = 0.1f)
+            val textColor = if (isLightTheme) red else red.copy(alpha = 0.9f)
+            Quadruple(bgColor, textColor, Icons.AutoMirrored.Filled.Logout, "خروج")
+        }
+    }
+
+    Surface(
+        color = backgroundColor,
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.height(32.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = contentColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModernConfirmationChip(isLightTheme: Boolean) {
+    val blue = Color(0xFF2196F3)
+    val backgroundColor = if (isLightTheme) blue.copy(alpha = 0.15f) else blue.copy(alpha = 0.1f)
+    val contentColor = if (isLightTheme) blue else blue.copy(alpha = 0.9f)
+
+    Surface(
+        color = backgroundColor,
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.height(32.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = "تائید شده",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = contentColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModernPendingChip(isLightTheme: Boolean) {
+    val orange = Color(0xFFFF9800)
+    val backgroundColor = if (isLightTheme) orange.copy(alpha = 0.15f) else orange.copy(alpha = 0.1f)
+    val contentColor = if (isLightTheme) orange else orange.copy(alpha = 0.9f)
+
+    Surface(
+        color = backgroundColor,
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.height(32.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Pending,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = "در انتظار",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = contentColor
+            )
+        }
+    }
+}
+
+data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
+@Composable
+private fun ModernExpandableSection(
+    title: String,
+    icon: ImageVector,
+    initiallyExpanded: Boolean = false,
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    content: @Composable () -> Unit
+) {
+    var isExpanded by remember { mutableStateOf(initiallyExpanded) }
+    val rotationState by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        label = "rotation"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(
+                width = 1.dp,
+                color = accentColor.copy(alpha = 0.15f),
+                shape = RoundedCornerShape(16.dp)
+            )
+    ) {
+        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { isExpanded = !isExpanded }
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Icon with background
+                Surface(
+                    shape = CircleShape,
+                    color = accentColor.copy(alpha = 0.1f),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            // Animated rotation for the expand/collapse icon
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = if (isExpanded) "بستن" else "باز کردن",
+                tint = accentColor.copy(alpha = 0.7f),
+                modifier = Modifier.graphicsLayer { rotationZ = rotationState }
+            )
+        }
+
+        // Content
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
+            exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp, bottom = 20.dp, top = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    thickness = 1.dp,
+                    color = accentColor.copy(alpha = 0.1f)
+                )
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModernMainInfoContent(info: CargoInfo) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ModernInfoItem(label = "نام کشتی", value = info.shipName)
+        ModernInfoItem(label = "انبار بارگیری", value = info.loadingWarehouse)
+        ModernInfoItem(label = "نوع کالا", value = info.cargoType)
+        ModernInfoItem(label = "شرکت حمل و نقل", value = info.shippingCompany)
+        ModernInfoItem(label = "شماره حواله بارگیری", value = info.loadingQuotaNumber)
+    }
+}
+
+@Composable
+private fun ModernWeightInfoContent(info: CargoInfo) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ModernWeightItem(label = "وزن خالص", value = info.netWeight, isHighlighted = true)
+    }
+}
+
+@Composable
+private fun ModernTimeInfoContent(info: CargoInfo) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ModernInfoItem(label = "زمان ورود", value = info.entryTime ?: "--")
+        ModernInfoItem(label = "زمان خروج", value = info.exitTime ?: "--")
+        ModernInfoItem(label = "تاریخ خروج", value = info.exitDate ?: "--")
+    }
+}
+
+@Composable
+private fun ModernInfoItem(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+        
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun ModernWeightItem(label: String, value: String, isHighlighted: Boolean = false) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+        
+        Text(
+            text = "$value کیلوگرم",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Medium,
+                fontSize = if (isHighlighted) 16.sp else 14.sp
+            ),
+            color = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun ModernFooter(onDelete: () -> Unit, onDismiss: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Delete Button
+            Button(
+                onClick = onDelete,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = null)
+                    Text(text = "حذف حواله")
+                }
+            }
+            
+            // Close Button
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = null)
+                    Text(text = "بستن")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModernDeleteDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    password: String,
+    onPasswordChange: (String) -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            shadowElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Icon
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(48.dp)
+                )
+                
+                // Title
+                Text(
+                    text = "حذف حواله",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                
+                // Message
+                Text(
+                    text = "آیا از حذف این حواله اطمینان دارید؟ این عملیات غیرقابل بازگشت است.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Password Field
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = onPasswordChange,
+                    label = { Text("رمز عبور") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Cancel Button
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("انصراف")
+                    }
+                    
+                    // Confirm Button
+                    Button(
+                        onClick = onConfirm,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = password.isNotEmpty()
+                    ) {
+                        Text("تایید حذف")
+                    }
+                }
+            }
         }
     }
 }
