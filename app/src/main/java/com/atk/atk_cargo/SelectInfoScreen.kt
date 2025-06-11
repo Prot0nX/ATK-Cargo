@@ -1087,14 +1087,12 @@ private fun QuotaDetailItem(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        if (isDifferent) {
-                            Box(
-                                modifier = Modifier
-                                    .size(4.dp)
-                                    .background(differenceColor, CircleShape)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                        }
+                        Box(
+                            modifier = Modifier
+                                .size(4.dp)
+                                .background(differenceColor, CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
                         
                         Text(
                             text = value,

@@ -276,12 +276,13 @@
 			loadingWarehouse 
 		FROM InitialInfo 
 		WHERE loadingQuotaNumber LIKE ? 
+		AND shipName = ? 
 		ORDER BY loadingQuotaNumber";
 		
 		try {
 			$stmt = $db->prepare($query);
 			$likeQuotaNumber = '%' . $quotaNumber;
-			$stmt->bind_param("s", $likeQuotaNumber);
+			$stmt->bind_param("ss", $likeQuotaNumber, $shipName);
 			$stmt->execute();
 			$result = $stmt->get_result();
 			
