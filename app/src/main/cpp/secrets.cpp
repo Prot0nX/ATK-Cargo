@@ -4,7 +4,7 @@
 extern "C" {
 JNIEXPORT jstring JNICALL
 Java_com_atk_atk_1cargo_api_Secrets_getBaseUrl(JNIEnv* env, jobject /* this */) {
-    const char* baseUrl = "https://atk-nk.click/Cargo/Beta/";
+    const char* baseUrl = "https://atk-nk.click/Cargo/";
     return env->NewStringUTF(baseUrl);
 }
 }
