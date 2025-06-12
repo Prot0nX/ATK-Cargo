@@ -114,6 +114,14 @@ class CargoViewModel(
     val messageType: StateFlow<MessageType> = _messageType.asStateFlow()
     private val _showNetWeightDialog = MutableStateFlow(false)
     val showNetWeightDialog: StateFlow<Boolean> = _showNetWeightDialog.asStateFlow()
+    
+    // متغیرهای مربوط به دیالوگ تأیید حواله تکراری
+    private val _showDuplicateConfirmationDialog = MutableStateFlow(false)
+    val showDuplicateConfirmationDialog: StateFlow<Boolean> = _showDuplicateConfirmationDialog.asStateFlow()
+    private val _duplicateWarningMessage = MutableStateFlow("")
+    val duplicateWarningMessage: StateFlow<String> = _duplicateWarningMessage.asStateFlow()
+    private val _pendingCargoInfo = MutableStateFlow<CargoInfo?>(null)
+    val pendingCargoInfo: StateFlow<CargoInfo?> = _pendingCargoInfo.asStateFlow()
     private val _filteredCargoInfoList = MutableStateFlow<List<CargoInfo>>(emptyList())
     val filteredCargoInfoList: StateFlow<List<CargoInfo>> = _filteredCargoInfoList.asStateFlow()
     private val _isQuotaActive = MutableStateFlow<Boolean?>(null)
@@ -136,6 +144,14 @@ class CargoViewModel(
     // متغیرهای مربوط به بازه زمانی انتخاب شده
     private val _selectedDateRange = MutableStateFlow<Pair<String, String>?>(null)
     val selectedDateRange: StateFlow<Pair<String, String>?> = _selectedDateRange.asStateFlow()
+    
+    // متغیرهای مربوط به مرتب‌سازی کوتاژها
+    private val _quotaSortingMode = MutableStateFlow(QuotaSortingMode.REMAINING_TONNAGE_ASC)
+    val quotaSortingMode: StateFlow<QuotaSortingMode> = _quotaSortingMode.asStateFlow()
+    
+    // متغیرهای مربوط به مرتب‌سازی گروه‌ها
+    private val _groupSortingMode = MutableStateFlow(GroupSortingMode.REMAINING_TONNAGE_ASC)
+    val groupSortingMode: StateFlow<GroupSortingMode> = _groupSortingMode.asStateFlow()
     
     private val _cachedTrackingNumbers = MutableStateFlow<Set<String>>(emptySet())
     val cachedTrackingNumbers: StateFlow<Set<String>> = _cachedTrackingNumbers.asStateFlow()
@@ -575,6 +591,8 @@ class CargoViewModel(
                     }
                 }
             } else {
+                // ذخیره CargoInfo برای استفاده در دیالوگ تأیید
+                _pendingCargoInfo.value = cargoInfo
                 handleErrorHttpResponse(response)
             }
         } catch (e: Exception) {
@@ -590,12 +608,30 @@ class CargoViewModel(
         try {
             val parsedError = parseErrorResponse(errorBody)
             if (parsedError != null) {
-                handleErrorResponse(parsedError)
+                // بررسی اینکه آیا این یک هشدار 24 ساعته است
+                if (parsedError.warning == true && errorCode == 409) {
+                    handle24HourWarning(parsedError)
+                } else {
+                    handleErrorResponse(parsedError)
+                }
             } else {
                 showErrorMessage("خطا در ارسال اطلاعات بار: کد خطا $errorCode")
             }
         } catch (e: Exception) {
             showErrorMessage("خطا در پردازش پاسخ سرور: ${e.message}")
+        }
+    }
+    
+    private fun handle24HourWarning(responseBody: SaveOrUpdateResponse) {
+        if (responseBody.requires_confirmation == true) {
+            // نمایش دیالوگ تأیید برای حواله تکراری
+            _duplicateWarningMessage.value = responseBody.message
+            _showDuplicateConfirmationDialog.value = true
+        } else {
+            // نمایش پیام هشدار معمولی
+            _resultMessage.value = responseBody.message
+            _showAnimatedMessage.value = true
+            _messageType.value = MessageType.WARNING
         }
     }
 
@@ -688,6 +724,52 @@ class CargoViewModel(
         } catch (e: Exception) {
             null
         }
+    }
+    
+    // توابع مدیریت دیالوگ تأیید حواله تکراری
+    fun dismissDuplicateConfirmationDialog() {
+        _showDuplicateConfirmationDialog.value = false
+        _duplicateWarningMessage.value = ""
+        _pendingCargoInfo.value = null
+    }
+    
+    fun confirmDuplicateCargoRegistration() {
+        val cargoInfo = _pendingCargoInfo.value
+        if (cargoInfo != null) {
+            // ارسال مجدد با تأیید کاربر
+            val updatedCargoInfo = cargoInfo.copy(duplicateConfirmation = "proceed")
+            viewModelScope.launch {
+                try {
+                    val response = apiService.saveOrUpdateCargoInfo(updatedCargoInfo)
+                    if (response.isSuccessful) {
+                        val responseBody = response.body()
+                        if (responseBody?.error == true) {
+                            handleErrorResponse(responseBody)
+                        } else {
+                            handleSuccessResponse(
+                                responseBody, 
+                                cargoInfo.trackingNumber, 
+                                cargoInfo.netWeight, 
+                                cargoInfo.scaleReceiptNumber, 
+                                cargoInfo.shortageWeight, 
+                                cargoInfo.excessWeight
+                            )
+                        }
+                    } else {
+                        handleErrorHttpResponse(response)
+                    }
+                } catch (e: Exception) {
+                    Log.e("CargoViewModel", "خطا در ارسال مجدد حواله: ${e.message}", e)
+                    showErrorMessage("خطا در ارتباط با سرور: ${e.message}")
+                }
+            }
+        }
+        dismissDuplicateConfirmationDialog()
+    }
+    
+    fun cancelDuplicateCargoRegistration() {
+        dismissDuplicateConfirmationDialog()
+        showMessage("ثبت حواله لغو شد.", MessageType.ERROR)
     }
 
     private suspend fun checkQuotaStatus(initialInfo: InitialInfo) {
@@ -1334,6 +1416,14 @@ class ReportsViewModel(
     // متغیرهای مربوط به بازه زمانی انتخاب شده
     private val _selectedDateRange = MutableStateFlow<Pair<String, String>?>(null)
     val selectedDateRange: StateFlow<Pair<String, String>?> = _selectedDateRange.asStateFlow()
+    
+    // متغیرهای مربوط به مرتب‌سازی کوتاژها
+    private val _quotaSortingMode = MutableStateFlow(QuotaSortingMode.REMAINING_TONNAGE_ASC)
+    val quotaSortingMode: StateFlow<QuotaSortingMode> = _quotaSortingMode.asStateFlow()
+    
+    // متغیرهای مربوط به مرتب‌سازی گروه‌ها
+    private val _groupSortingMode = MutableStateFlow(GroupSortingMode.REMAINING_TONNAGE_ASC)
+    val groupSortingMode: StateFlow<GroupSortingMode> = _groupSortingMode.asStateFlow()
     
 
     // تابع تغییر حالت گروه‌بندی
@@ -2174,6 +2264,14 @@ class ReportsViewModel(
     fun setWarehouseQuotaGroupingMode(mode: WarehouseQuotaGroupingMode) {
         _warehouseQuotaGroupingMode.value = mode
     }
+    
+    fun setQuotaSortingMode(mode: QuotaSortingMode) {
+        _quotaSortingMode.value = mode
+    }
+    
+    fun setGroupSortingMode(mode: GroupSortingMode) {
+        _groupSortingMode.value = mode
+    }
 
     fun shareRealTimeLoadingData(loadingData: List<RealTimeLoadingData>, shiftInfo: ShiftInfo?): String {
         // محاسبه کل حواله‌های خروجی
@@ -2841,7 +2939,8 @@ data class CargoInfo(
     val shippingCompany: String,
     val loadingQuotaNumber: String,
     var confirm: String,
-    val confirmation: String? = null
+    val confirmation: String? = null,
+    val duplicateConfirmation: String? = null
 )
 
 data class SaveOrUpdateResponse(
@@ -2852,7 +2951,18 @@ data class SaveOrUpdateResponse(
     val shipName: String?,
     val loadingQuotaNumber: String?,
     val exitDate: String?,
-    val exitTime: String?
+    val exitTime: String?,
+    val warning: Boolean? = null,
+    val existing_cargo: ExistingCargo? = null,
+    val requires_confirmation: Boolean? = null
+)
+
+data class ExistingCargo(
+    val loadingQuotaNumber: String,
+    val loadingWarehouse: String,
+    val exitTime: String?,
+    val exitDate: String?,
+    val status: String
 )
 
 data class CargoInfoRequest(
@@ -3603,6 +3713,17 @@ enum class WarehouseQuotaGroupingMode {
     BY_SHIPPING_COMPANY,
     BY_CARGO_OWNER,
     BY_WAREHOUSE
+}
+
+enum class QuotaSortingMode {
+    REMAINING_TONNAGE_ASC,
+    REMAINING_TONNAGE_DESC
+}
+
+enum class GroupSortingMode {
+    ALPHABETICAL,
+    REMAINING_TONNAGE_ASC,
+    REMAINING_TONNAGE_DESC
 }
 
 data class CargoOwnerAnalysis(
