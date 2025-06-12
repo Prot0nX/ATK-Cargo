@@ -24,9 +24,9 @@ class SignatureVerifier(private val context: Context) {
     companion object {
         private const val C = "0b0838afbe74afd97e781c9533015294ce86b70627017cccb807ca2af208ba21"
         private const val D = "e1f2g3h4i5j6k7l8m9n0o1p2q3r4s5t6"
-        private const val E = "aHR0cHM6Ly9hdGstbmsuY2xpY2svQ2FyZ28vQmV0YS9jaGVja19zaWduYXR1cmUucGhw"
-        private const val LICENSE_ENDPOINT = "https://atk-nk.click/Cargo/Beta/validate_license.php"
-        private const val LICENSE_INFO_ENDPOINT = "https://atk-nk.click/Cargo/Beta/get_license_info.php"
+        private const val E = "aHR0cHM6Ly9hdGstbmsuY2xpY2svQ2FyZ28vY2hlY2tfc2lnbmF0dXJlLnBocA=="
+        private const val LICENSE_ENDPOINT = "https://atk-nk.click/Cargo/validate_license.php"
+        private const val LICENSE_INFO_ENDPOINT = "https://atk-nk.click/Cargo/get_license_info.php"
         private const val KEY_LICENSE = "13F71ADCB4585F1BE632FFB919F06691"
         private const val TIMEOUT_MILLIS = 30000
         private const val MAX_RETRIES = 3
