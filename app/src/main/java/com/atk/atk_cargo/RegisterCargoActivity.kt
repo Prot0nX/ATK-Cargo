@@ -391,6 +391,10 @@ fun RegisterCargoScreen(
     val loadableTonnage by viewModel.loadableTonnage.collectAsState()
     val loadableTrucks18Wheeler by viewModel.loadableTrucks18Wheeler.collectAsState()
     val loadableTrucks10Wheeler by viewModel.loadableTrucks10Wheeler.collectAsState()
+    
+    // متغیرهای مربوط به دیالوگ تأیید حواله تکراری
+    val showDuplicateConfirmationDialog by viewModel.showDuplicateConfirmationDialog.collectAsState()
+    val duplicateWarningMessage by viewModel.duplicateWarningMessage.collectAsState()
 
     fun clearInputFields() {
         trackingNumber = ""
@@ -632,6 +636,7 @@ fun RegisterCargoScreen(
                     title = "ورود شده",
                     items = nonExitedCargos.sortedByDescending { it.entryTime },
                     initiallyExpanded = true,
+                    searchQuery = searchQuery,
                     onItemClick = { selectedInfo ->
                         selectedCargoInfo.value = selectedInfo
                         showDetailDialog.value = true
@@ -642,6 +647,7 @@ fun RegisterCargoScreen(
                     title = "خروج شده",
                     items = exitedCargos.sortedByDescending { "${it.exitDate} ${it.exitTime}" },
                     initiallyExpanded = false,
+                    searchQuery = searchQuery,
                     onItemClick = { selectedInfo ->
                         selectedCargoInfo.value = selectedInfo
                         showDetailDialog.value = true
@@ -663,7 +669,8 @@ fun RegisterCargoScreen(
                     CargoInfoDetailsDialog(
                         info = info,
                         viewModel = viewModel,
-                        snackbarHostState = snackbarHostState
+                        snackbarHostState = snackbarHostState,
+                        searchQuery = searchQuery
                     ) {
                         showDetailDialog.value = false
                     }
@@ -757,6 +764,22 @@ fun RegisterCargoScreen(
                 showQuotaWarning = null
             },
             viewModel = viewModel
+        )
+    }
+
+    // دیالوگ تأیید بارنامه تکراری
+    if (showDuplicateConfirmationDialog) {
+        DuplicateConfirmationDialog(
+            message = duplicateWarningMessage,
+            onConfirm = {
+                viewModel.confirmDuplicateCargoRegistration()
+            },
+            onCancel = {
+                viewModel.cancelDuplicateCargoRegistration()
+            },
+            onDismiss = {
+                viewModel.dismissDuplicateConfirmationDialog()
+            }
         )
     }
 }
@@ -1927,9 +1950,22 @@ fun ExpandableSection(
     title: String,
     items: List<CargoInfo>,
     initiallyExpanded: Boolean = false,
+    searchQuery: String = "",
     onItemClick: (CargoInfo) -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(initiallyExpanded) }
+    
+    // Auto-expand if search query matches any item in this section
+    LaunchedEffect(searchQuery, items) {
+        if (searchQuery.isNotEmpty()) {
+            val hasMatchingItem = items.any { 
+                it.trackingNumber.contains(searchQuery, ignoreCase = true)
+            }
+            if (hasMatchingItem) {
+                isExpanded = true
+            }
+        }
+    }
     
     val rotationAngle by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
@@ -3015,7 +3051,7 @@ private fun QuickStatsGrid(shipInfo: ShipInfo) {
         StatCard(
             icon = Icons.Default.BarChart,
             value = formatNumber(shipInfo.remainingWeight),
-            label = "باقیمانده",
+            label = "باقیمانده کل",
             color = MaterialTheme3.colorScheme.secondary,
             modifier = Modifier.weight(1f)
         )
@@ -3448,7 +3484,7 @@ fun CargoInfoRow(
                         Text3(
                             text = formattedNetWeight,
                             style = MaterialTheme3.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme3.colorScheme.onSurface
                         )
                     }
@@ -3667,12 +3703,23 @@ fun CargoInfoDetailsDialog(
     info: CargoInfo,
     viewModel: CargoViewModel,
     snackbarHostState: SnackbarHostState,
+    searchQuery: String = "",
     onDismiss: () -> Unit,
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
     !isSystemInDarkTheme()
+    
+    // State for controlling which section is expanded
+    var expandedSection by remember { mutableStateOf("اطلاعات اصلی") }
+    
+    // Check if search query matches this cargo and auto-expand appropriate section
+    LaunchedEffect(searchQuery) {
+        if (searchQuery.isNotEmpty() && info.trackingNumber.contains(searchQuery, ignoreCase = true)) {
+            expandedSection = "اطلاعات اصلی"
+        }
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -3719,7 +3766,10 @@ fun CargoInfoDetailsDialog(
                             ModernExpandableSection(
                                 title = "اطلاعات اصلی",
                                 icon = Icons.Default.Info,
-                                initiallyExpanded = true,
+                                isExpanded = expandedSection == "اطلاعات اصلی",
+                                onExpandedChange = { expanded ->
+                                    expandedSection = if (expanded) "اطلاعات اصلی" else ""
+                                },
                                 accentColor = MaterialTheme.colorScheme.primary
                             ) {
                                 ModernMainInfoContent(info)
@@ -3731,6 +3781,10 @@ fun CargoInfoDetailsDialog(
                             ModernExpandableSection(
                                 title = "اطلاعات وزن",
                                 icon = Icons.Default.Scale,
+                                isExpanded = expandedSection == "اطلاعات وزن",
+                                onExpandedChange = { expanded ->
+                                    expandedSection = if (expanded) "اطلاعات وزن" else ""
+                                },
                                 accentColor = MaterialTheme.colorScheme.tertiary
                             ) {
                                 ModernWeightInfoContent(info)
@@ -3742,6 +3796,10 @@ fun CargoInfoDetailsDialog(
                             ModernExpandableSection(
                                 title = "اطلاعات زمان و تاریخ",
                                 icon = Icons.Default.Schedule,
+                                isExpanded = expandedSection == "اطلاعات زمان و تاریخ",
+                                onExpandedChange = { expanded ->
+                                    expandedSection = if (expanded) "اطلاعات زمان و تاریخ" else ""
+                                },
                                 accentColor = MaterialTheme.colorScheme.secondary
                             ) {
                                 ModernTimeInfoContent(info)
@@ -4142,11 +4200,14 @@ private fun ModernExpandableSection(
     icon: ImageVector,
     initiallyExpanded: Boolean = false,
     accentColor: Color = MaterialTheme.colorScheme.primary,
+    isExpanded: Boolean? = null,
+    onExpandedChange: ((Boolean) -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    var isExpanded by remember { mutableStateOf(initiallyExpanded) }
+    var internalExpanded by remember { mutableStateOf(initiallyExpanded) }
+    val currentExpanded = isExpanded ?: internalExpanded
     val rotationState by animateFloatAsState(
-        targetValue = if (isExpanded) 180f else 0f,
+        targetValue = if (currentExpanded) 180f else 0f,
         label = "rotation"
     )
 
@@ -4165,7 +4226,13 @@ private fun ModernExpandableSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { isExpanded = !isExpanded }
+                .clickable { 
+                    if (onExpandedChange != null) {
+                        onExpandedChange(!currentExpanded)
+                    } else {
+                        internalExpanded = !internalExpanded
+                    }
+                }
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -4202,7 +4269,7 @@ private fun ModernExpandableSection(
             // Animated rotation for the expand/collapse icon
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = if (isExpanded) "بستن" else "باز کردن",
+                contentDescription = if (currentExpanded) "بستن" else "باز کردن",
                 tint = accentColor.copy(alpha = 0.7f),
                 modifier = Modifier.graphicsLayer { rotationZ = rotationState }
             )
@@ -4210,7 +4277,7 @@ private fun ModernExpandableSection(
 
         // Content
         AnimatedVisibility(
-            visible = isExpanded,
+            visible = currentExpanded,
             enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
             exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
         ) {
@@ -4410,7 +4477,7 @@ private fun ModernDeleteDialog(
                     onValueChange = onPasswordChange,
                     label = { Text("رمز عبور") },
                     visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -4422,15 +4489,6 @@ private fun ModernDeleteDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Cancel Button
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("انصراف")
-                    }
-                    
                     // Confirm Button
                     Button(
                         onClick = onConfirm,
@@ -4443,6 +4501,15 @@ private fun ModernDeleteDialog(
                         enabled = password.isNotEmpty()
                     ) {
                         Text("تایید حذف")
+                    }
+
+                    // Cancel Button
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("انصراف")
                     }
                 }
             }
@@ -5323,6 +5390,170 @@ fun ScanModeButton(
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center
             )
+        }
+    }
+}
+
+@Composable
+fun DuplicateConfirmationDialog(
+    message: String,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val composition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.lottie_warning)
+    )
+    val lottieAnimatable = rememberLottieAnimatable()
+
+    LaunchedEffect(composition) {
+        lottieAnimatable.animate(
+            composition = composition,
+            iterations = LottieConstants.IterateForever,
+        )
+    }
+
+    val dialogEnterTransition = remember {
+        expandIn(
+            expandFrom = Alignment.Center,
+            animationSpec = tween(300, easing = EaseOutBack)
+        ) + fadeIn(animationSpec = tween(300))
+    }
+
+    val dialogExitTransition = remember {
+        shrinkOut(
+            shrinkTowards = Alignment.Center,
+            animationSpec = tween(300, easing = EaseInBack)
+        ) + fadeOut(animationSpec = tween(300))
+    }
+
+    val warningColor = MaterialTheme.colorScheme.tertiary
+    val backgroundColor = MaterialTheme.colorScheme.surface
+    val cardBackgroundColor = MaterialTheme.colorScheme.surfaceVariant
+    val borderColor = MaterialTheme.colorScheme.outline
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .wrapContentHeight()
+                .clip(RoundedCornerShape(24.dp)),
+            shape = RoundedCornerShape(24.dp),
+            color = backgroundColor,
+            tonalElevation = 8.dp
+        ) {
+            AnimatedVisibility(
+                visible = true,
+                enter = dialogEnterTransition,
+                exit = dialogExitTransition
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Header with colored circle background
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .background(warningColor.copy(alpha = 0.1f), CircleShape)
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        LottieAnimation(
+                            composition = composition,
+                            progress = { lottieAnimatable.progress },
+                            modifier = Modifier.size(80.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Title
+                    Text(
+                        text = "حواله تکراری",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Message with card background
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = cardBackgroundColor,
+                        border = BorderStroke(1.dp, borderColor)
+                    ) {
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Justify
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Buttons Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Confirm Button
+                        Button(
+                            onClick = onConfirm,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 4.dp,
+                                pressedElevation = 8.dp
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                        ) {
+                            Text(
+                                "ثبت حواله",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        
+                        // Cancel Button
+                        OutlinedButton(
+                            onClick = onCancel,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.Transparent,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                        ) {
+                            Text(
+                                "انصراف",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

@@ -3,6 +3,9 @@ header('Content-Type: application/json; charset=utf-8');
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 
+// تنظیم منطقه زمانی ایران
+date_default_timezone_set('Asia/Tehran');
+
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/jdf.php';
 
@@ -14,8 +17,6 @@ ini_set('output_buffering', 4096); // بافر خروجی برای پاسخ سر
 
 /**
  * پاک‌سازی و تأیید داده‌های ورودی
- * @param mixed $input داده ورودی
- * @return string داده پاک‌سازی شده
  */
 function sanitize_input($input) {
     if (is_array($input)) {
@@ -26,8 +27,6 @@ function sanitize_input($input) {
 
 /**
  * ارسال پاسخ JSON با کد وضعیت مناسب
- * @param array $data داده‌های پاسخ
- * @param int $status_code کد وضعیت HTTP
  */
 function send_json_response($data, $status_code = 200) {
     http_response_code($status_code);
@@ -37,9 +36,6 @@ function send_json_response($data, $status_code = 200) {
 
 /**
  * اعتبارسنجی داده‌های خروج
- * @param string $netWeight وزن خالص
- * @param string $scaleReceiptNumber شماره قبض باسکول
- * @throws Exception در صورت نامعتبر بودن داده‌ها
  */
 function validateExitData($netWeight, $scaleReceiptNumber) {
     if (empty($netWeight) || !is_numeric($netWeight) || $netWeight <= 0) {
@@ -61,9 +57,6 @@ function validateExitData($netWeight, $scaleReceiptNumber) {
 
 /**
  * اعتبارسنجی داده‌های ورودی
- * @param array $params پارامترهای درخواست
- * @param array $required_fields فیلدهای اجباری
- * @return array خطاها
  */
 function validate_request_data($params, $required_fields) {
     $errors = [];
@@ -89,7 +82,7 @@ unset($json_input);
 
 // تعریف فیلدهای اجباری و اختیاری
 $required_fields = ['shipName', 'loadingWarehouse', 'cargoType', 'shippingCompany', 'loadingQuotaNumber', 'trackingNumber', 'username', 'userType'];
-$optional_fields = ['entryTime', 'netWeight', 'scaleReceiptNumber', 'shortageWeight', 'excessWeight', 'exitTime', 'exitDate', 'status', 'confirmation', 'numberOfPeople'];
+$optional_fields = ['entryTime', 'netWeight', 'scaleReceiptNumber', 'shortageWeight', 'excessWeight', 'exitTime', 'exitDate', 'status', 'confirmation', 'numberOfPeople', 'duplicateConfirmation'];
 
 // بهینه‌سازی: استفاده از آرایه $params با پردازش مستقیم
 $params = [];
@@ -128,6 +121,71 @@ try {
         'loadingQuotaNumber' => $params['loadingQuotaNumber'],
         'trackingNumber' => $params['trackingNumber']
     ];
+    
+    // بررسی وجود حواله با همین شماره در کل کشتی از ابتدای روز قبل تا الان
+    $yesterdayStart = date('Y-m-d 00:00:00', strtotime('-1 day'));
+    $now = date('Y-m-d H:i:s');
+    
+
+    
+    $check24h_query = "SELECT loadingQuotaNumber, loadingWarehouse, shippingCompany, exitTime, exitDate, status, entryTime, updated_at FROM CargoInfo WHERE 
+                      shipName = ? AND 
+                      trackingNumber = ? AND 
+                      updated_at BETWEEN ? AND ?
+                      ORDER BY id DESC LIMIT 1";
+    
+
+    
+    $check24h_stmt = $conn->prepare($check24h_query);
+    if (!$check24h_stmt) {
+        throw new Exception("خطا در آماده‌سازی دستور بررسی 24 ساعته: " . $conn->error);
+    }
+    
+    $check24h_stmt->bind_param("ssss", 
+        $critical_params['shipName'], 
+        $critical_params['trackingNumber'],
+        $yesterdayStart,
+        $now
+    );
+    
+    if (!$check24h_stmt->execute()) {
+        throw new Exception("خطا در اجرای دستور بررسی 24 ساعته: " . $check24h_stmt->error);
+    }
+    
+    $check24h_result = $check24h_stmt->get_result();
+    $existing24hCargo = $check24h_result->fetch_assoc();
+    $check24h_stmt->close();
+    
+    // اگر حواله در 24 ساعت گذشته ثبت شده باشد، هشدار ارسال کن
+    if ($existing24hCargo && $existing24hCargo['loadingQuotaNumber'] != $critical_params['loadingQuotaNumber']) {
+        // بررسی تأیید کاربر برای ثبت حواله تکراری
+        if ($params['duplicateConfirmation'] != "proceed") {
+            $warningMessage = "شماره حواله ({$params['trackingNumber']}) در 24 ساعت گذشته برای کشتی [ {$params['shipName']} ] قبلاً ثبت شده است:\n\n";
+            $warningMessage .= "شماره کوتاژ ثبت شده: {$existing24hCargo['loadingQuotaNumber']}\n";
+            $warningMessage .= "انبار ثبت شده: {$existing24hCargo['loadingWarehouse']}\n";
+            if (!empty($existing24hCargo['shippingCompany'])) {
+                $warningMessage .= "شرکت باربری: {$existing24hCargo['shippingCompany']}\n";
+            }
+            if (!empty($existing24hCargo['entryTime'])) {
+                $warningMessage .= "ساعت ورود: {$existing24hCargo['entryTime']}\n";
+            }
+            if (!empty($existing24hCargo['exitTime'])) {
+                $warningMessage .= "ساعت خروج: {$existing24hCargo['exitTime']}\n";
+            }
+            if (!empty($existing24hCargo['exitDate'])) {
+                $warningMessage .= "تاریخ خروج: {$existing24hCargo['exitDate']}\n";
+            }
+            $warningMessage .= "وضعیت فعلی حواله: {$existing24hCargo['status']}";
+            
+            send_json_response([
+                "warning" => true,
+                "message" => $warningMessage,
+                "existing_cargo" => $existing24hCargo,
+                "requires_confirmation" => true
+            ], 409);
+        }
+        // اگر کاربر تأیید کرده باشد، ادامه پردازش
+    }
     
     // بررسی وجود حواله با شماره و کوتاژ مشخص - استفاده از کوئری بهینه‌تر با انتخاب فیلدهای مورد نیاز
     $query = "SELECT id, status, confirm, exitDate, exitTime FROM CargoInfo WHERE 
