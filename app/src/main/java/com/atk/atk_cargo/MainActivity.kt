@@ -2,7 +2,6 @@ package com.atk.atk_cargo
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -153,6 +152,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -221,7 +221,7 @@ class MainActivity : ComponentActivity() {
     private var securityErrorType by mutableStateOf<SecurityErrorType?>(null)
     val isSessionValid: StateFlow<Boolean> = _isSessionValid.asStateFlow()
 
-    @SuppressLint("CoroutineCreationDuringComposition")
+    @SuppressLint("CoroutineCreationDuringComposition", "BatteryLife")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -269,39 +269,30 @@ class MainActivity : ComponentActivity() {
                                 
                                 // مدیریت بهینه مجوز بهینه‌سازی باتری برای نسخه‌های مختلف اندروید
                                 val packageName = packageName
-                                val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                                val pm = getSystemService(POWER_SERVICE) as PowerManager
                                 
                                 if (!pm.isIgnoringBatteryOptimizations(packageName)) {
                                     withContext(Dispatchers.Main) {
                                         try {
-                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                                // برای Android 6.0 (API 23) و بالاتر - درخواست مستقیم
-                                                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                                                    data = android.net.Uri.parse("package:$packageName")
-                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                }
-                                                
-                                                // بررسی آیا این Intent قابل رسیدگی است
-                                                if (intent.resolveActivity(packageManager) != null) {
-                                                    startActivity(intent)
-                                                    showMessage("لطفاً اجازه دهید برنامه بدون محدودیت باتری اجرا شود")
-                                                } else {
-                                                    // اگر intent قابل رسیدگی نیست، به صفحه تنظیمات باتری هدایت می‌کنیم
-                                                    val batterySettingsIntent = Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS).apply {
-                                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                    }
-                                                    startActivity(batterySettingsIntent)
-                                                    showMessage("لطفاً برنامه را از محدودیت‌های بهینه‌سازی باتری خارج کنید")
-                                                }
+                                            // برای Android 6.0 (API 23) و بالاتر - درخواست مستقیم
+                                            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                                data = "package:$packageName".toUri()
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            }
+
+                                            // بررسی آیا این Intent قابل رسیدگی است
+                                            if (intent.resolveActivity(packageManager) != null) {
+                                                startActivity(intent)
+                                                showMessage("لطفاً اجازه دهید برنامه بدون محدودیت باتری اجرا شود")
                                             } else {
-                                                // برای نسخه‌های قدیمی‌تر از Android 6.0
+                                                // اگر intent قابل رسیدگی نیست، به صفحه تنظیمات باتری هدایت می‌کنیم
                                                 val batterySettingsIntent = Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS).apply {
                                                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                                 }
                                                 startActivity(batterySettingsIntent)
                                                 showMessage("لطفاً برنامه را از محدودیت‌های بهینه‌سازی باتری خارج کنید")
                                             }
-                                        } catch (e: Exception) {
+                                        } catch (_: Exception) {
                                             // در صورت بروز خطا، به صفحه تنظیمات عمومی هدایت می‌کنیم
                                             try {
                                                 val settingsIntent = Intent(Settings.ACTION_SETTINGS).apply {
@@ -315,7 +306,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 }
-                            } catch (e: Exception) {
+                            } catch (_: Exception) {
                                 // خطای کلی در فرآیند درخواست مجوزها
                             }
                         }
@@ -338,7 +329,7 @@ class MainActivity : ComponentActivity() {
 
             observeApplicationStates()
             
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // خطای کلی در راه‌اندازی برنامه
         }
     }
@@ -373,7 +364,7 @@ class MainActivity : ComponentActivity() {
                 val (isValid, error) = signatureVerifier.i()
                 isSecurityCheckPassed = isValid
                 securityErrorType = error
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 isSecurityCheckPassed = false
                 securityErrorType = SecurityErrorType.TAMPERED
             } finally {
@@ -515,7 +506,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     _isSessionValid.value = false
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _isSessionValid.value = false
                 showMessage("خطا در بررسی جلسه کاربر. لطفاً دوباره تلاش کنید.")
             }
@@ -1499,7 +1490,7 @@ fun SplashScreen() {
     val appVersion = remember {
         try {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             "نسخه 3.0.7"
         }
     }
@@ -1987,7 +1978,7 @@ fun ProfileMenu(
                 try {
                     val response = RetrofitClient.apiService.getAllUsers()
                     currentUser = response.find { it.username == username }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     Toast.makeText(
                         context,
                         "خطا در دریافت اطلاعات کاربر",
@@ -3398,7 +3389,7 @@ fun UserManagementDialog(
             sortUsersByType(
                 users.filter { user ->
                     user.username.contains(searchQuery, ignoreCase = true) ||
-                    (user.fullName?.contains(searchQuery, ignoreCase = true) ?: false)
+                    (user.fullName?.contains(searchQuery, ignoreCase = true) == true)
                 }
             )
         }
@@ -3424,7 +3415,7 @@ fun UserManagementDialog(
             sortUsersByType(
                 users.filter { user ->
                     user.username.contains(searchQuery, ignoreCase = true) ||
-                    (user.fullName?.contains(searchQuery, ignoreCase = true) ?: false)
+                    (user.fullName?.contains(searchQuery, ignoreCase = true) == true)
                 }
             )
         }
@@ -5393,7 +5384,7 @@ fun LoginDialog(
                                                 } else {
                                                     errorMessage = "خطا در ورود: لطفاً اطلاعات را بررسی کنید"
                                                 }
-                                            } catch (e: Exception) {
+                                            } catch (_: Exception) {
                                                 errorMessage = "خطا در ارتباط با سرور"
                                             } finally {
                                                 isLoading = false
