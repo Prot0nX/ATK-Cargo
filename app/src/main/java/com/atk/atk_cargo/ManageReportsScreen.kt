@@ -2,7 +2,6 @@ package com.atk.atk_cargo
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.util.Log
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -228,12 +227,14 @@ import com.atk.atk_cargo.api.CarrierPerformanceAnalysis
 import com.atk.atk_cargo.api.ColorSelector
 import com.atk.atk_cargo.api.FabItem
 import com.atk.atk_cargo.api.FilteredSummary
+import com.atk.atk_cargo.api.GroupSortingMode
 import com.atk.atk_cargo.api.Quota
 import com.atk.atk_cargo.api.QuotaCompletionData
 import com.atk.atk_cargo.api.QuotaDetails
 import com.atk.atk_cargo.api.QuotaEditData
 import com.atk.atk_cargo.api.QuotaGroupingMode
 import com.atk.atk_cargo.api.QuotaPercentageData
+import com.atk.atk_cargo.api.QuotaSortingMode
 import com.atk.atk_cargo.api.RealTimeLoadingData
 import com.atk.atk_cargo.api.ReportsViewModel
 import com.atk.atk_cargo.api.ShiftInfo
@@ -1673,6 +1674,8 @@ fun QuotasList(
 	viewModel: ReportsViewModel
 ) {
 	val currentGroupingMode by groupingMode.collectAsState()
+	val currentSortingMode by viewModel.quotaSortingMode.collectAsState()
+	val currentGroupSortingMode by viewModel.groupSortingMode.collectAsState()
 	var expandedGroup by remember { mutableStateOf<String?>(null) }
 
 	Column(modifier = Modifier.fillMaxSize()) {
@@ -1680,6 +1683,24 @@ fun QuotasList(
 			currentMode = currentGroupingMode,
 			onModeChange = onGroupingModeChange
 		)
+		
+		// دکمه‌های مرتب‌سازی کوتاژها و گروه‌ها
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			horizontalArrangement = Arrangement.spacedBy(8.dp)
+		) {
+			QuotaSortingSelector(
+				currentMode = currentSortingMode,
+				onModeChange = viewModel::setQuotaSortingMode,
+				modifier = Modifier.weight(1f)
+			)
+			
+			GroupSortingSelector(
+				currentMode = currentGroupSortingMode,
+				onModeChange = viewModel::setGroupSortingMode,
+				modifier = Modifier.weight(1f)
+			)
+		}
 
 		// نمایش بازه زمانی انتخاب شده
 		val selectedDateRange by viewModel.selectedDateRange.collectAsState()
@@ -1736,10 +1757,11 @@ fun QuotasList(
 			}
 		}
 
-		Spacer(modifier = Modifier.height(8.dp))
+		Spacer(modifier = Modifier.height(4.dp))
 
-		val groupedQuotas = remember(quotas, currentGroupingMode, searchQuery) {
-			quotas
+		val groupedQuotas = remember(quotas, currentGroupingMode, currentSortingMode, currentGroupSortingMode, searchQuery) {
+			// ابتدا کوتاژها را فیلتر و گروه‌بندی می‌کنیم
+			val groupedMap = quotas
 				.filter { quota ->
 					quota.number.contains(searchQuery, ignoreCase = true) ||
 							quota.shippingCompany.contains(searchQuery, ignoreCase = true) ||
@@ -1753,12 +1775,49 @@ fun QuotasList(
 					}
 				}
 				.mapValues { (_, groupQuotas) ->
-					groupQuotas.sortedWith(
+					// مرتب‌سازی کوتاژها در هر گروه بر اساس totalRemainingAfterPercentage
+					val sortedQuotas = when (currentSortingMode) {
+						QuotaSortingMode.REMAINING_TONNAGE_ASC -> groupQuotas.sortedBy { quota ->
+							val percentageAmount = quota.totalTonnage * ((quota.percentage ?: 0.0) / 100)
+							quota.remainingTonnage - percentageAmount
+						}
+						QuotaSortingMode.REMAINING_TONNAGE_DESC -> groupQuotas.sortedByDescending { quota ->
+							val percentageAmount = quota.totalTonnage * ((quota.percentage ?: 0.0) / 100)
+							quota.remainingTonnage - percentageAmount
+						}
+					}
+					// ابتدا بر اساس وضعیت فعال بودن مرتب می‌کنیم، سپس بر اساس حالت انتخابی
+					sortedQuotas.sortedWith(
 						compareByDescending<Quota> { it.isActive }
-							.thenBy { it.remainingTonnage }
+							.thenBy { quota ->
+								val percentageAmount = quota.totalTonnage * ((quota.percentage ?: 0.0) / 100)
+								val totalRemainingAfterPercentage = quota.remainingTonnage - percentageAmount
+								when (currentSortingMode) {
+									QuotaSortingMode.REMAINING_TONNAGE_ASC -> totalRemainingAfterPercentage
+									QuotaSortingMode.REMAINING_TONNAGE_DESC -> -totalRemainingAfterPercentage
+								}
+							}
 					)
 				}
-				.toSortedMap(compareBy { it })
+			
+			// مرتب‌سازی گروه‌ها بر اساس حالت انتخابی
+			when (currentGroupSortingMode) {
+				// مرتب‌سازی بر اساس نام گروه (پیش‌فرض)
+				GroupSortingMode.ALPHABETICAL -> {
+					groupedMap.toSortedMap(compareBy { it })
+				}
+				// مرتب‌سازی بر اساس مجموع تناژ مانده گروه‌ها
+				GroupSortingMode.REMAINING_TONNAGE_ASC -> {
+					groupedMap.toSortedMap(compareBy { groupName -> 
+						groupedMap[groupName]?.sumOf { it.remainingTonnage.toDouble() } ?: 0.0 
+					})
+				}
+				GroupSortingMode.REMAINING_TONNAGE_DESC -> {
+					groupedMap.toSortedMap(compareByDescending { groupName -> 
+						groupedMap[groupName]?.sumOf { it.remainingTonnage.toDouble() } ?: 0.0 
+					})
+				}
+			}
 		}
 
 		LazyColumn(
@@ -2100,6 +2159,130 @@ private fun GroupingModeButton(
 				style = MaterialTheme.typography.labelMedium,
 				color = contentColor,
 				fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+			)
+		}
+	}
+}
+
+@Composable
+fun QuotaSortingSelector(
+	currentMode: QuotaSortingMode,
+	onModeChange: (QuotaSortingMode) -> Unit,
+	modifier: Modifier = Modifier
+) {
+	Column(
+		modifier = modifier.fillMaxWidth()
+	) {
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(vertical = 4.dp, horizontal = 4.dp)
+				.clip(RoundedCornerShape(8.dp))
+				.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
+				.border(
+					BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
+					RoundedCornerShape(8.dp)
+				),
+			horizontalArrangement = Arrangement.SpaceEvenly,
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			SortingModeButton(
+				text = "مانده کوتاژ",
+				icon = if (currentMode == QuotaSortingMode.REMAINING_TONNAGE_ASC) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+				isAscending = currentMode == QuotaSortingMode.REMAINING_TONNAGE_ASC,
+				isSelected = true,
+				onClick = {
+					val newMode = if (currentMode == QuotaSortingMode.REMAINING_TONNAGE_ASC) {
+						QuotaSortingMode.REMAINING_TONNAGE_DESC
+					} else {
+						QuotaSortingMode.REMAINING_TONNAGE_ASC
+					}
+					onModeChange(newMode)
+				},
+				modifier = Modifier.fillMaxWidth()
+			)
+		}
+	}
+}
+
+@Composable
+fun GroupSortingSelector(
+	currentMode: GroupSortingMode,
+	onModeChange: (GroupSortingMode) -> Unit,
+	modifier: Modifier = Modifier
+) {
+	Column(
+		modifier = modifier.fillMaxWidth()
+	) {
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(vertical = 4.dp, horizontal = 4.dp)
+				.clip(RoundedCornerShape(8.dp))
+				.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
+				.border(
+					BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
+					RoundedCornerShape(8.dp)
+				),
+			horizontalArrangement = Arrangement.SpaceEvenly,
+			verticalAlignment = Alignment.CenterVertically
+		) {
+
+			SortingModeButton(
+				text = "مانده گروه",
+				icon = if (currentMode == GroupSortingMode.REMAINING_TONNAGE_ASC) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+				isAscending = currentMode == GroupSortingMode.REMAINING_TONNAGE_ASC,
+				isSelected = currentMode == GroupSortingMode.REMAINING_TONNAGE_ASC || currentMode == GroupSortingMode.REMAINING_TONNAGE_DESC,
+				onClick = {
+					val newMode = if (currentMode == GroupSortingMode.REMAINING_TONNAGE_ASC) {
+						GroupSortingMode.REMAINING_TONNAGE_DESC
+					} else {
+						GroupSortingMode.REMAINING_TONNAGE_ASC
+					}
+					onModeChange(newMode)
+				},
+				modifier = Modifier.weight(1f)
+			)
+		}
+	}
+}
+
+@Composable
+private fun SortingModeButton(
+	text: String,
+	icon: ImageVector,
+	isAscending: Boolean,
+	isSelected: Boolean,
+	onClick: () -> Unit,
+	modifier: Modifier = Modifier
+) {
+	val interactionSource = remember { MutableInteractionSource() }
+	val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent
+	val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+
+	Box(
+		modifier = modifier
+			.clickable(onClick = onClick, interactionSource = interactionSource, indication = null)
+			.background(backgroundColor)
+			.padding(vertical = 6.dp, horizontal = 4.dp),
+		contentAlignment = Alignment.Center
+	) {
+		Row(
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.Center,
+		) {
+			Icon(
+				imageVector = icon,
+				contentDescription = if (isAscending) "صعودی" else "نزولی",
+				tint = contentColor,
+				modifier = Modifier.size(14.dp)
+			)
+			Spacer(modifier = Modifier.width(4.dp))
+			Text(
+				text = text,
+				style = MaterialTheme.typography.labelSmall,
+				color = contentColor,
+				fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
 			)
 		}
 	}
@@ -3344,7 +3527,8 @@ private fun calculateValues(
 @Composable
 private fun WarehousesSection(
 	warehouses: List<Warehouse>,
-	onWarehouseSelected: (String) -> Unit
+	onWarehouseSelected: (String) -> Unit,
+	modifier: Modifier = Modifier
 ) {
 	val colors = listOf(
 		MaterialTheme.colorScheme.primary,
@@ -3355,10 +3539,8 @@ private fun WarehousesSection(
 		MaterialTheme.colorScheme.inversePrimary
 	)
 
-	Log.d("ATK_DEBUG", "WarehousesSection: warehouses count=${warehouses.size}")
-
 	Column(
-		modifier = Modifier.fillMaxWidth(),
+		modifier = modifier.fillMaxWidth(),
 		verticalArrangement = Arrangement.spacedBy(8.dp)
 	) {
 		// لیست انبارها
@@ -3368,7 +3550,6 @@ private fun WarehousesSection(
 		) {
 			items(warehouses) { warehouse ->
 				val colorIndex = warehouses.indexOf(warehouse) % colors.size
-				Log.d("ATK_DEBUG", "Rendering warehouse card for: ${warehouse.name}")
 				WarehouseCard(
 					warehouse = warehouse,
 					color = colors[colorIndex],
@@ -4965,10 +5146,11 @@ fun VoucherSearchAndFilter(
 	searchQuery: String,
 	onSearchChange: (String) -> Unit,
 	sortType: VoucherSortType,
-	onSortTypeChange: (VoucherSortType) -> Unit
+	onSortTypeChange: (VoucherSortType) -> Unit,
+	modifier: Modifier = Modifier
 ) {
 	Column(
-		modifier = Modifier.fillMaxWidth(),
+		modifier = modifier.fillMaxWidth(),
 		verticalArrangement = Arrangement.spacedBy(8.dp)
 	) {
 		// جستجو - طراحی مینیمال
@@ -7077,7 +7259,6 @@ fun RealTimeLoadingCard(
 	color: Color
 ) {
 	var expandedInfo by remember { mutableStateOf(false) }
-	val totalVouchers = data.entryVouchers + data.exitVouchers
 	val rotationState by animateFloatAsState(
 		targetValue = if (expandedInfo) 180f else 0f,
 		label = "expand icon rotation"
@@ -7205,7 +7386,7 @@ fun RealTimeLoadingCard(
 					// Detail grid
 					Row(
 						modifier = Modifier.fillMaxWidth(),
-						horizontalArrangement = Arrangement.SpaceEvenly
+						horizontalArrangement = Arrangement.spacedBy(4.dp)
 					) {
 						// باربری
 						CompactInfo(
@@ -7213,14 +7394,14 @@ fun RealTimeLoadingCard(
 							label = "باربری",
 							value = data.shippingCompany,
 							color = color,
-							modifier = Modifier.weight(1f)
+							modifier = Modifier.weight(1.3f)
 						)
 
 						// وزن خالص
 						CompactInfo(
 							icon = Icons.Default.Scale,
 							label = "وزن خالص",
-							value = "${formatNumber(data.totalNetWeight)} کیلو",
+							value = formatNumber(data.totalNetWeight),
 							color = color,
 							modifier = Modifier.weight(1f)
 						)
@@ -7231,16 +7412,7 @@ fun RealTimeLoadingCard(
 							label = "ورود/خروج",
 							value = "${data.entryVouchers}/${data.exitVouchers}",
 							color = color,
-							modifier = Modifier.weight(1.2f)
-						)
-
-						// تعداد کل
-						CompactInfo(
-							icon = Icons.Default.Inventory,
-							label = "تعداد کل",
-							value = formatNumber(totalVouchers),
-							color = color,
-							modifier = Modifier.weight(0.8f)
+							modifier = Modifier.weight(1f)
 						)
 					}
 				}
