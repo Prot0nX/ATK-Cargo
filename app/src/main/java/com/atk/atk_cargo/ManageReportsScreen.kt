@@ -475,7 +475,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 			}
 		)
 	}
-	
+
 	// نمایش خطاهای بارگیری
 	if (loadingError != null) {
 		AlertDialog(
@@ -489,7 +489,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 			}
 		)
 	}
-	
+
 	PersianDateRangePickerDialog(
 		isOpen = showDateRangeDialog,
 		onDismiss = { showDateRangeDialog = false },
@@ -1683,7 +1683,7 @@ fun QuotasList(
 			currentMode = currentGroupingMode,
 			onModeChange = onGroupingModeChange
 		)
-		
+
 		// دکمه‌های مرتب‌سازی کوتاژها و گروه‌ها
 		Row(
 			modifier = Modifier.fillMaxWidth(),
@@ -1694,7 +1694,7 @@ fun QuotasList(
 				onModeChange = viewModel::setQuotaSortingMode,
 				modifier = Modifier.weight(1f)
 			)
-			
+
 			GroupSortingSelector(
 				currentMode = currentGroupSortingMode,
 				onModeChange = viewModel::setGroupSortingMode,
@@ -1722,10 +1722,10 @@ fun QuotasList(
 					verticalAlignment = Alignment.CenterVertically
 				) {
 					Row(
-					modifier = Modifier.weight(1f),
-					verticalAlignment = Alignment.CenterVertically,
-					horizontalArrangement = Arrangement.Center
-				) {
+						modifier = Modifier.weight(1f),
+						verticalAlignment = Alignment.CenterVertically,
+						horizontalArrangement = Arrangement.Center
+					) {
 						Icon(
 							imageVector = Icons.Default.DateRange,
 							contentDescription = null,
@@ -1799,7 +1799,7 @@ fun QuotasList(
 							}
 					)
 				}
-			
+
 			// مرتب‌سازی گروه‌ها بر اساس حالت انتخابی
 			when (currentGroupSortingMode) {
 				// مرتب‌سازی بر اساس نام گروه (پیش‌فرض)
@@ -1808,13 +1808,13 @@ fun QuotasList(
 				}
 				// مرتب‌سازی بر اساس مجموع تناژ مانده گروه‌ها
 				GroupSortingMode.REMAINING_TONNAGE_ASC -> {
-					groupedMap.toSortedMap(compareBy { groupName -> 
-						groupedMap[groupName]?.sumOf { it.remainingTonnage.toDouble() } ?: 0.0 
+					groupedMap.toSortedMap(compareBy { groupName ->
+						groupedMap[groupName]?.sumOf { it.remainingTonnage.toDouble() } ?: 0.0
 					})
 				}
 				GroupSortingMode.REMAINING_TONNAGE_DESC -> {
-					groupedMap.toSortedMap(compareByDescending { groupName -> 
-						groupedMap[groupName]?.sumOf { it.remainingTonnage.toDouble() } ?: 0.0 
+					groupedMap.toSortedMap(compareByDescending { groupName ->
+						groupedMap[groupName]?.sumOf { it.remainingTonnage.toDouble() } ?: 0.0
 					})
 				}
 			}
@@ -1904,7 +1904,7 @@ fun QuotaGroupExpansionPanel(
 								style = MaterialTheme.typography.titleSmall,
 								fontWeight = FontWeight.Bold
 							)
-							
+
 							// نمایش جمع کل در حالت دسته‌بندی صاحب کالا و انبار
 							if (currentGroupingMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER || currentGroupingMode == WarehouseQuotaGroupingMode.BY_WAREHOUSE) {
 								Surface(
@@ -1936,7 +1936,7 @@ fun QuotaGroupExpansionPanel(
 						Spacer(modifier = Modifier.height(4.dp))
 
 						QuotaStats(
-							loadedWeight = loadedWeight, 
+							loadedWeight = loadedWeight,
 							remainingWeight = remainingWeight
 						)
 					}
@@ -1994,7 +1994,7 @@ private fun GroupIcon(groupingMode: WarehouseQuotaGroupingMode) {
 
 @Composable
 private fun QuotaStats(
-	loadedWeight: Double, 
+	loadedWeight: Double,
 	remainingWeight: Double
 ) {
 	Row(
@@ -3570,7 +3570,7 @@ private fun WarehouseCard(
 	val totalTonnage = warehouse.totalTonnage
 	val loadedTonnage = warehouse.loadedTonnage
 	val remainingTonnage = warehouse.remainingTonnage
-	
+
 	Card(
 		modifier = Modifier
 			.fillMaxWidth()
@@ -3714,18 +3714,18 @@ fun InfoCard(
 				.fillMaxSize()
 				.padding(12.dp),
 			verticalArrangement = Arrangement.SpaceBetween
-	) {
-		Row(
+		) {
+			Row(
 				modifier = Modifier.fillMaxWidth(),
 				horizontalArrangement = Arrangement.Start,
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			Icon(
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Icon(
 					imageVector = icon,
-				contentDescription = null,
-				tint = color,
+					contentDescription = null,
+					tint = color,
 					modifier = Modifier.size(24.dp)
-			)
+				)
 				Text(
 					text = title,
 					style = MaterialTheme.typography.titleSmall,
@@ -3765,8 +3765,8 @@ fun ProgressBar(title: String, progress: Float, value: Int, color: Color, suffix
 	}
 
 	Column {
-	Row(
-		modifier = Modifier.fillMaxWidth(),
+		Row(
+			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween
 		) {
 			Text(text = title, style = MaterialTheme.typography.bodyLarge)
@@ -3913,56 +3913,56 @@ fun WarehouseContent(
 
 					Spacer(modifier = Modifier.height(16.dp))
 
-						Card(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = 8.dp, vertical = 4.dp),
-		shape = RoundedCornerShape(12.dp)
-	) {
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(12.dp),
-			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			// عنوان با آیکون
-			Row(
-				verticalAlignment = Alignment.CenterVertically,
-				horizontalArrangement = Arrangement.spacedBy(8.dp)
-			) {
-				Surface(
-					shape = CircleShape,
-					color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-					modifier = Modifier.size(32.dp)
-				) {
-					Box(contentAlignment = Alignment.Center) {
-						Icon(
-							imageVector = Icons.Default.Filter,
-							contentDescription = null,
-							tint = MaterialTheme.colorScheme.primary,
-							modifier = Modifier.size(16.dp)
-						)
-					}
-				}
-
-			Text(
-					text = "فیلتر و جستجو",
-				style = MaterialTheme.typography.titleMedium,
-					fontWeight = FontWeight.Bold,
-					color = MaterialTheme.colorScheme.onSurface
-			)
-			}
-
-			// دکمه خروجی
-						ExportOptions(
-							onExport = { format ->
-								filteredSummary?.let {
-									onExport(format)
+					Card(
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(horizontal = 8.dp, vertical = 4.dp),
+						shape = RoundedCornerShape(12.dp)
+					) {
+						Row(
+							modifier = Modifier
+								.fillMaxWidth()
+								.padding(12.dp),
+							horizontalArrangement = Arrangement.SpaceBetween,
+							verticalAlignment = Alignment.CenterVertically
+						) {
+							// عنوان با آیکون
+							Row(
+								verticalAlignment = Alignment.CenterVertically,
+								horizontalArrangement = Arrangement.spacedBy(8.dp)
+							) {
+								Surface(
+									shape = CircleShape,
+									color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+									modifier = Modifier.size(32.dp)
+								) {
+									Box(contentAlignment = Alignment.Center) {
+										Icon(
+											imageVector = Icons.Default.Filter,
+											contentDescription = null,
+											tint = MaterialTheme.colorScheme.primary,
+											modifier = Modifier.size(16.dp)
+										)
+									}
 								}
+
+								Text(
+									text = "فیلتر و جستجو",
+									style = MaterialTheme.typography.titleMedium,
+									fontWeight = FontWeight.Bold,
+									color = MaterialTheme.colorScheme.onSurface
+								)
 							}
-						)
-		}
+
+							// دکمه خروجی
+							ExportOptions(
+								onExport = { format ->
+									filteredSummary?.let {
+										onExport(format)
+									}
+								}
+							)
+						}
 					}
 
 					Spacer(modifier = Modifier.height(8.dp))
@@ -4015,7 +4015,7 @@ fun WarehouseContent(
 @Composable
 fun ExportOptions(onExport: (String) -> Unit) {
 	Surface(
-			onClick = { onExport("pdf") },
+		onClick = { onExport("pdf") },
 		shape = RoundedCornerShape(20.dp),
 		color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
 		border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f))
@@ -4023,8 +4023,8 @@ fun ExportOptions(onExport: (String) -> Unit) {
 		Row(
 			modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
 			horizontalArrangement = Arrangement.spacedBy(8.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
+			verticalAlignment = Alignment.CenterVertically
+		) {
 			Icon(
 				imageVector = Icons.Default.PictureAsPdf,
 				contentDescription = "خروجی PDF",
@@ -4032,7 +4032,7 @@ fun ExportOptions(onExport: (String) -> Unit) {
 				modifier = Modifier.size(18.dp)
 			)
 
-					Text(
+			Text(
 				text = "خروجی PDF",
 				style = MaterialTheme.typography.bodyMedium.copy(
 					fontWeight = FontWeight.Medium
@@ -4248,9 +4248,9 @@ fun DateTimePicker(
 					// لیست تاریخ‌ها
 					if (availableDates.isEmpty()) {
 						Box(
-								modifier = Modifier
-									.fillMaxWidth()
-									.height(120.dp),
+							modifier = Modifier
+								.fillMaxWidth()
+								.height(120.dp),
 							contentAlignment = Alignment.Center
 						) {
 							Text(
@@ -4317,9 +4317,9 @@ fun PersianDateItem(
 		interactionSource = interactionSource
 	) {
 		Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(vertical = 12.dp, horizontal = 16.dp),
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(vertical = 12.dp, horizontal = 16.dp),
 			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.spacedBy(12.dp)
 		) {
@@ -4365,14 +4365,14 @@ fun ModernTimePickerDialog(
 				horizontalAlignment = Alignment.CenterHorizontally
 			) {
 				// هدر دیالوگ
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				Text(
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					Text(
 						text = "انتخاب زمان",
-					style = MaterialTheme.typography.titleLarge,
+						style = MaterialTheme.typography.titleLarge,
 						fontWeight = FontWeight.Bold
 					)
 
@@ -4419,7 +4419,7 @@ fun ModernTimePickerDialog(
 						text = ":",
 						style = MaterialTheme.typography.displayMedium,
 						color = MaterialTheme.colorScheme.primary,
-					fontWeight = FontWeight.Bold,
+						fontWeight = FontWeight.Bold,
 						modifier = Modifier.padding(horizontal = 8.dp)
 					)
 					Text(
@@ -4464,7 +4464,7 @@ fun ModernTimePickerDialog(
 						onClick = onConfirm,
 						modifier = Modifier.weight(1f),
 						shape = RoundedCornerShape(12.dp),
-					color = MaterialTheme.colorScheme.primary
+						color = MaterialTheme.colorScheme.primary
 					) {
 						Text(
 							text = "تایید",
@@ -4503,325 +4503,325 @@ fun persianDateTimeFormat(dateTimeString: String): String {
 
 @Composable
 fun WarehouseMainCard(warehouseName: String, shipName: String) {
-    Card(
-        modifier = Modifier
+	Card(
+		modifier = Modifier
 			.fillMaxWidth()
 			.padding(horizontal = 8.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Header - کامپکت و مینیمال
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // عنوان و نشانگر
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Warehouse,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
+		shape = RoundedCornerShape(20.dp),
+		colors = CardDefaults.cardColors(
+			containerColor = MaterialTheme.colorScheme.surface
+		),
+		elevation = CardDefaults.cardElevation(
+			defaultElevation = 2.dp
+		)
+	) {
+		Column(
+			modifier = Modifier.padding(16.dp),
+			verticalArrangement = Arrangement.spacedBy(16.dp)
+		) {
+			// Header - کامپکت و مینیمال
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.SpaceBetween
+			) {
+				// عنوان و نشانگر
+				Row(
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(8.dp)
+				) {
+					Surface(
+						shape = CircleShape,
+						color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+						modifier = Modifier.size(32.dp)
+					) {
+						Box(contentAlignment = Alignment.Center) {
+							Icon(
+								imageVector = Icons.Default.Warehouse,
+								contentDescription = null,
+								tint = MaterialTheme.colorScheme.primary,
+								modifier = Modifier.size(18.dp)
+							)
+						}
+					}
 
-                    Text(
-                        text = "اطلاعات کشتی و انبار",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+					Text(
+						text = "اطلاعات کشتی و انبار",
+						style = MaterialTheme.typography.titleMedium,
+						fontWeight = FontWeight.Bold
+					)
+				}
 
-                // نشانگر تعداد آیتم‌ها
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-                ) {
-                    Text(
-                        text = "2 مورد",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
+				// نشانگر تعداد آیتم‌ها
+				Surface(
+					shape = RoundedCornerShape(12.dp),
+					color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+				) {
+					Text(
+						text = "2 مورد",
+						style = MaterialTheme.typography.labelMedium,
+						color = MaterialTheme.colorScheme.onPrimaryContainer,
+						modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+					)
+				}
+			}
 
-            // کارت‌های اطلاعاتی مینیمال با طراحی افقی
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // کارت کشتی - طراحی افقی و مینیمال
-                MinimalInfoCard(
-                    icon = Icons.Default.DirectionsBoat,
-                    title = "کشتی",
-                    value = shipName,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f)
-                )
+			// کارت‌های اطلاعاتی مینیمال با طراحی افقی
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.spacedBy(12.dp)
+			) {
+				// کارت کشتی - طراحی افقی و مینیمال
+				MinimalInfoCard(
+					icon = Icons.Default.DirectionsBoat,
+					title = "کشتی",
+					value = shipName,
+					color = MaterialTheme.colorScheme.primary,
+					modifier = Modifier.weight(1f)
+				)
 
-                // کارت انبار - طراحی افقی و مینیمال
-                MinimalInfoCard(
-                    icon = Icons.Default.Store,
-                    title = "انبار",
-                    value = warehouseName,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-    }
+				// کارت انبار - طراحی افقی و مینیمال
+				MinimalInfoCard(
+					icon = Icons.Default.Store,
+					title = "انبار",
+					value = warehouseName,
+					color = MaterialTheme.colorScheme.secondary,
+					modifier = Modifier.weight(1f)
+				)
+			}
+		}
+	}
 }
 
 @Composable
 fun MinimalInfoCard(
-    icon: ImageVector,
-    title: String,
-    value: String,
-    color: Color,
-    modifier: Modifier = Modifier
+	icon: ImageVector,
+	title: String,
+	value: String,
+	color: Color,
+	modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = color.copy(alpha = 0.05f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // آیکون
-            Surface(
-                shape = CircleShape,
-                color = color.copy(alpha = 0.1f),
-                modifier = Modifier.size(36.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = color,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
+	Surface(
+		modifier = modifier,
+		shape = RoundedCornerShape(16.dp),
+		color = color.copy(alpha = 0.05f),
+		border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
+	) {
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(12.dp),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(12.dp)
+		) {
+			// آیکون
+			Surface(
+				shape = CircleShape,
+				color = color.copy(alpha = 0.1f),
+				modifier = Modifier.size(36.dp)
+			) {
+				Box(contentAlignment = Alignment.Center) {
+					Icon(
+						imageVector = icon,
+						contentDescription = null,
+						tint = color,
+						modifier = Modifier.size(18.dp)
+					)
+				}
+			}
 
-            // محتوا
-            Column(
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = color
-                )
+			// محتوا
+			Column(
+				verticalArrangement = Arrangement.spacedBy(2.dp)
+			) {
+				Text(
+					text = title,
+					style = MaterialTheme.typography.labelMedium,
+					color = color
+				)
 
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
+				Text(
+					text = value,
+					style = MaterialTheme.typography.titleMedium,
+					fontWeight = FontWeight.SemiBold,
+					maxLines = 1,
+					overflow = TextOverflow.Ellipsis
+				)
+			}
+		}
+	}
 }
 
 @Composable
 fun QuotaSelector(
-    quotas: List<Quota>,
-    selectedQuota: String?,
-    onQuotaSelected: (Quota) -> Unit
+	quotas: List<Quota>,
+	selectedQuota: String?,
+	onQuotaSelected: (Quota) -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // هدر با عنوان و تعداد کوتاژ
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // عنوان بخش
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Description,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
+	Card(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = 8.dp, vertical = 4.dp),
+		shape = RoundedCornerShape(16.dp),
+		colors = CardDefaults.cardColors(
+			containerColor = MaterialTheme.colorScheme.surface
+		),
+		elevation = CardDefaults.cardElevation(
+			defaultElevation = 1.dp
+		)
+	) {
+		Column(
+			modifier = Modifier.padding(16.dp),
+			verticalArrangement = Arrangement.spacedBy(12.dp)
+		) {
+			// هدر با عنوان و تعداد کوتاژ
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				// عنوان بخش
+				Row(
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(8.dp)
+				) {
+					Icon(
+						imageVector = Icons.Default.Description,
+						contentDescription = null,
+						tint = MaterialTheme.colorScheme.primary,
+						modifier = Modifier.size(18.dp)
+					)
 
-                    Text(
-                        text = "انتخاب شماره کوتاژ",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+					Text(
+						text = "انتخاب شماره کوتاژ",
+						style = MaterialTheme.typography.titleSmall,
+						fontWeight = FontWeight.Medium
+					)
+				}
 
-                // نمایش تعداد کوتاژها
-                Text(
-                    text = "${quotas.size} کوتاژ",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+				// نمایش تعداد کوتاژها
+				Text(
+					text = "${quotas.size} کوتاژ",
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+			}
 
-            // لیست کوتاژها با اسکرول افقی
-            if (quotas.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "کوتاژی یافت نشد",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
-            } else {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(vertical = 4.dp)
-                ) {
-                    items(quotas) { quota ->
-                        MinimalQuotaChip(
-                            quota = quota,
-                            isSelected = selectedQuota == quota.number,
-                            onSelect = { onQuotaSelected(quota) }
-                        )
-                    }
-                }
-            }
-        }
-    }
+			// لیست کوتاژها با اسکرول افقی
+			if (quotas.isEmpty()) {
+				Box(
+					modifier = Modifier
+						.fillMaxWidth()
+						.height(60.dp),
+					contentAlignment = Alignment.Center
+				) {
+					Text(
+						text = "کوتاژی یافت نشد",
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+					)
+				}
+			} else {
+				LazyRow(
+					horizontalArrangement = Arrangement.spacedBy(8.dp),
+					contentPadding = PaddingValues(vertical = 4.dp)
+				) {
+					items(quotas) { quota ->
+						MinimalQuotaChip(
+							quota = quota,
+							isSelected = selectedQuota == quota.number,
+							onSelect = { onQuotaSelected(quota) }
+						)
+					}
+				}
+			}
+		}
+	}
 }
 
 @Composable
 fun MinimalQuotaChip(
-    quota: Quota,
-    isSelected: Boolean,
-    onSelect: () -> Unit
+	quota: Quota,
+	isSelected: Boolean,
+	onSelect: () -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+	val interactionSource = remember { MutableInteractionSource() }
+	val isPressed by interactionSource.collectIsPressedAsState()
 
-    val backgroundColor by animateColorAsState(
-        targetValue = when {
-            isSelected -> MaterialTheme.colorScheme.primary
-            isPressed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.07f)
-            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        },
-        label = "background color"
-    )
+	val backgroundColor by animateColorAsState(
+		targetValue = when {
+			isSelected -> MaterialTheme.colorScheme.primary
+			isPressed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.07f)
+			else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+		},
+		label = "background color"
+	)
 
-    val contentColor by animateColorAsState(
-        targetValue = if (isSelected) {
-            MaterialTheme.colorScheme.onPrimary
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        },
-        label = "content color"
-    )
+	val contentColor by animateColorAsState(
+		targetValue = if (isSelected) {
+			MaterialTheme.colorScheme.onPrimary
+		} else {
+			MaterialTheme.colorScheme.onSurface
+		},
+		label = "content color"
+	)
 
-    val elevation by animateDpAsState(
-        targetValue = if (isPressed || isSelected) 0.dp else 1.dp,
-        label = "elevation animation"
-    )
+	val elevation by animateDpAsState(
+		targetValue = if (isPressed || isSelected) 0.dp else 1.dp,
+		label = "elevation animation"
+	)
 
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "scale animation"
-    )
+	val scale by animateFloatAsState(
+		targetValue = if (isPressed) 0.95f else 1f,
+		animationSpec = spring(
+			dampingRatio = Spring.DampingRatioMediumBouncy,
+			stiffness = Spring.StiffnessLow
+		),
+		label = "scale animation"
+	)
 
-    Surface(
-        onClick = onSelect,
-        modifier = Modifier
-            .height(36.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            },
-        shape = RoundedCornerShape(18.dp),
-        color = backgroundColor,
-        tonalElevation = elevation,
-        interactionSource = interactionSource
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            // نمایش نشانگر فعال/غیرفعال بودن کوتاژ
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(
-                        color = if (quota.isActive) {
-                            if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.tertiary
-                        } else {
-                            if (isSelected) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
-                        },
-                        shape = CircleShape
-                    )
-            )
+	Surface(
+		onClick = onSelect,
+		modifier = Modifier
+			.height(36.dp)
+			.graphicsLayer {
+				scaleX = scale
+				scaleY = scale
+			},
+		shape = RoundedCornerShape(18.dp),
+		color = backgroundColor,
+		tonalElevation = elevation,
+		interactionSource = interactionSource
+	) {
+		Row(
+			modifier = Modifier.padding(horizontal = 12.dp),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(6.dp)
+		) {
+			// نمایش نشانگر فعال/غیرفعال بودن کوتاژ
+			Box(
+				modifier = Modifier
+					.size(8.dp)
+					.background(
+						color = if (quota.isActive) {
+							if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.tertiary
+						} else {
+							if (isSelected) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+						},
+						shape = CircleShape
+					)
+			)
 
-            // شماره کوتاژ
-            Text(
-                text = quota.number,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                ),
-                color = contentColor
-            )
-        }
-    }
+			// شماره کوتاژ
+			Text(
+				text = quota.number,
+				style = MaterialTheme.typography.bodyMedium.copy(
+					fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+				),
+				color = contentColor
+			)
+		}
+	}
 }
 
 @Composable
@@ -4831,11 +4831,11 @@ fun VoucherDetailsButton(summary: FilteredSummary) {
 	Card(
 		onClick = { showVoucherDetailsDialog = true },
 		modifier = Modifier
-		    .fillMaxWidth()
-		    .padding(horizontal = 8.dp, vertical = 4.dp),
+			.fillMaxWidth()
+			.padding(horizontal = 8.dp, vertical = 4.dp),
 		shape = RoundedCornerShape(16.dp),
 		colors = CardDefaults.cardColors(
-		    containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
+			containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
 		),
 	) {
 		Row(
@@ -4845,9 +4845,9 @@ fun VoucherDetailsButton(summary: FilteredSummary) {
 		) {
 			// اطلاعات اصلی
 			Row(
-			    horizontalArrangement = Arrangement.spacedBy(12.dp),
-			    verticalAlignment = Alignment.CenterVertically,
-			    modifier = Modifier.weight(1f)
+				horizontalArrangement = Arrangement.spacedBy(12.dp),
+				verticalAlignment = Alignment.CenterVertically,
+				modifier = Modifier.weight(1f)
 			) {
 				// آیکون
 				Surface(
@@ -4904,9 +4904,9 @@ fun VoucherDetailsButton(summary: FilteredSummary) {
 
 			// آیکون نمایش جزئیات و انیمیشن
 			Surface(
-			    shape = CircleShape,
-			    color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-			    modifier = Modifier.size(32.dp)
+				shape = CircleShape,
+				color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+				modifier = Modifier.size(32.dp)
 			) {
 				Box(contentAlignment = Alignment.Center) {
 					Icon(
@@ -4947,8 +4947,8 @@ fun VoucherDetailsDialog(
 					voucher.trackingNumber.contains(searchQuery, ignoreCase = true) ||
 							voucher.scaleReceiptNumber.contains(searchQuery, ignoreCase = true) ||
 							voucher.exitDate.contains(searchQuery, ignoreCase = true) ||
-                            voucher.username?.contains(searchQuery, ignoreCase = true) == true ||
-                            voucher.confirmUsername?.contains(searchQuery, ignoreCase = true) == true
+							voucher.username?.contains(searchQuery, ignoreCase = true) == true ||
+							voucher.confirmUsername?.contains(searchQuery, ignoreCase = true) == true
 				}
 
 				matchesSearch
@@ -5299,8 +5299,8 @@ fun SearchTextField(
 @Composable
 fun EmptyVoucherList() {
 	Box(
-			modifier = Modifier
-				.fillMaxWidth()
+		modifier = Modifier
+			.fillMaxWidth()
 			.aspectRatio(1f),
 		contentAlignment = Alignment.Center
 	) {
@@ -5317,7 +5317,7 @@ fun EmptyVoucherList() {
 
 			Spacer(modifier = Modifier.height(16.dp))
 
-				Text(
+			Text(
 				text = "حواله‌ای یافت نشد",
 				style = MaterialTheme.typography.titleLarge,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -5325,7 +5325,7 @@ fun EmptyVoucherList() {
 
 			Spacer(modifier = Modifier.height(8.dp))
 
-				Text(
+			Text(
 				text = "لطفا فیلترها را تغییر دهید یا جستجوی دیگری انجام دهید",
 				style = MaterialTheme.typography.bodyMedium,
 				color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
@@ -6135,13 +6135,13 @@ fun QuotaCard(
 							horizontalArrangement = Arrangement.SpaceEvenly
 						) {
 							StatItem("تناژ کل",
-                                formatNumber(quota.totalTonnage.toInt()), accentColor)
+								formatNumber(quota.totalTonnage.toInt()), accentColor)
 							VerticalDivider(
 								modifier = Modifier.height(24.dp),
 								color = contentColor.copy(alpha = 0.1f)
 							)
 							StatItem("بارگیری شده",
-                                formatNumber(quota.loadedTonnage.toInt()), accentColor)
+								formatNumber(quota.loadedTonnage.toInt()), accentColor)
 							VerticalDivider(
 								modifier = Modifier.height(24.dp),
 								color = contentColor.copy(alpha = 0.1f)
@@ -6730,9 +6730,9 @@ fun RealTimeLoadingBottomSheet(
 		} else {
 			loadingData.filter { data ->
 				data.shipName.contains(searchQuery, ignoreCase = true) ||
-				data.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
-				data.loadingQuotaNumber.contains(searchQuery, ignoreCase = true) ||
-				data.shippingCompany.contains(searchQuery, ignoreCase = true)
+						data.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
+						data.loadingQuotaNumber.contains(searchQuery, ignoreCase = true) ||
+						data.shippingCompany.contains(searchQuery, ignoreCase = true)
 			}
 		}
 	}
@@ -6770,36 +6770,36 @@ fun RealTimeLoadingBottomSheet(
 						.padding(horizontal = 16.dp, vertical = 8.dp)
 				) {
 					Column(modifier = Modifier.weight(1f)) {
-											DialogHeader(
-						remainingSeconds = remainingSeconds,
-						lastUpdateTime = lastUpdateTime,
-						shiftInfo = shiftInfo,
-						onShareClick = {
-							// تهیه متن اشتراک‌گذاری
-							val shareText = viewModel.shareRealTimeLoadingData(filteredLoadingData, shiftInfo)
+						DialogHeader(
+							remainingSeconds = remainingSeconds,
+							lastUpdateTime = lastUpdateTime,
+							shiftInfo = shiftInfo,
+							onShareClick = {
+								// تهیه متن اشتراک‌گذاری
+								val shareText = viewModel.shareRealTimeLoadingData(filteredLoadingData, shiftInfo)
 
-							// ایجاد Intent اشتراک‌گذاری
-							val sendIntent = Intent().apply {
-								action = Intent.ACTION_SEND
-								putExtra(Intent.EXTRA_TEXT, shareText)
-								type = "text/plain"
+								// ایجاد Intent اشتراک‌گذاری
+								val sendIntent = Intent().apply {
+									action = Intent.ACTION_SEND
+									putExtra(Intent.EXTRA_TEXT, shareText)
+									type = "text/plain"
+								}
+
+								// نمایش دیالوگ انتخاب برنامه برای اشتراک‌گذاری
+								val shareIntent = Intent.createChooser(sendIntent, "اشتراک‌گذاری")
+								context.startActivity(shareIntent)
 							}
-
-							// نمایش دیالوگ انتخاب برنامه برای اشتراک‌گذاری
-							val shareIntent = Intent.createChooser(sendIntent, "اشتراک‌گذاری")
-							context.startActivity(shareIntent)
-						}
-					)
+						)
 						Spacer(modifier = Modifier.height(8.dp))
 
-					// فیلد جستجو - طراحی مینیمال و بهینه
-					ModernSearchField(
-						searchQuery = searchQuery,
-						onSearchQueryChange = { searchQuery = it },
-						modifier = Modifier.fillMaxWidth()
-					)
+						// فیلد جستجو - طراحی مینیمال و بهینه
+						ModernSearchField(
+							searchQuery = searchQuery,
+							onSearchQueryChange = { searchQuery = it },
+							modifier = Modifier.fillMaxWidth()
+						)
 
-					Spacer(modifier = Modifier.height(8.dp))
+						Spacer(modifier = Modifier.height(8.dp))
 
 						StatisticItem(
 							totalVouchers = totalEntryVouchers + totalExitVouchers,
@@ -6811,7 +6811,7 @@ fun RealTimeLoadingBottomSheet(
 						Spacer(modifier = Modifier.height(8.dp))
 
 						AnimatedContent(
-						targetState = filteredLoadingData,
+							targetState = filteredLoadingData,
 							transitionSpec = {
 								fadeIn(animationSpec = tween(durationMillis = 300)) togetherWith
 										fadeOut(animationSpec = tween(durationMillis = 300))
@@ -6835,57 +6835,57 @@ fun RealTimeLoadingBottomSheet(
 										exitVouchers = shipData.sumOf { it.exitVouchers },
 										color = shipColor,
 										content = {
-										// گروه‌بندی کوتاژها بر اساس انبار
-										val warehouseGroups = shipData.groupBy { it.loadingWarehouse }
+											// گروه‌بندی کوتاژها بر اساس انبار
+											val warehouseGroups = shipData.groupBy { it.loadingWarehouse }
 
-										Column(
-											modifier = Modifier
-												.fillMaxWidth()
-												.padding(top = 8.dp)
-										) {
-											warehouseGroups.forEach { (warehouse, quotas) ->
-												// نمایش نام انبار
-												Row(
-													modifier = Modifier
-														.fillMaxWidth()
-														.padding(vertical = 4.dp),
-													verticalAlignment = Alignment.CenterVertically
-												) {
-													Icon(
-														imageVector = Icons.Default.Warehouse,
-														contentDescription = null,
-														tint = shipColor,
-														modifier = Modifier.size(16.dp)
-													)
-													Spacer(modifier = Modifier.width(4.dp))
-													Text(
-														text = "انبار: $warehouse",
-														style = MaterialTheme.typography.titleSmall,
-														fontWeight = FontWeight.Bold,
-														color = shipColor
-													)
-												}
+											Column(
+												modifier = Modifier
+													.fillMaxWidth()
+													.padding(top = 8.dp)
+											) {
+												warehouseGroups.forEach { (warehouse, quotas) ->
+													// نمایش نام انبار
+													Row(
+														modifier = Modifier
+															.fillMaxWidth()
+															.padding(vertical = 4.dp),
+														verticalAlignment = Alignment.CenterVertically
+													) {
+														Icon(
+															imageVector = Icons.Default.Warehouse,
+															contentDescription = null,
+															tint = shipColor,
+															modifier = Modifier.size(16.dp)
+														)
+														Spacer(modifier = Modifier.width(4.dp))
+														Text(
+															text = "انبار: $warehouse",
+															style = MaterialTheme.typography.titleSmall,
+															fontWeight = FontWeight.Bold,
+															color = shipColor
+														)
+													}
 
-												// نمایش کوتاژهای این انبار
-												quotas.sortedWith(
-													compareBy<RealTimeLoadingData> { it.shippingCompany }
-														.thenByDescending { it.entryVouchers }
-												).forEach { quota ->
-													RealTimeLoadingCard(
-														data = quota,
-														color = shipColor
-													)
-													Spacer(modifier = Modifier.height(8.dp))
-												}
+													// نمایش کوتاژهای این انبار
+													quotas.sortedWith(
+														compareBy<RealTimeLoadingData> { it.shippingCompany }
+															.thenByDescending { it.entryVouchers }
+													).forEach { quota ->
+														RealTimeLoadingCard(
+															data = quota,
+															color = shipColor
+														)
+														Spacer(modifier = Modifier.height(8.dp))
+													}
 
-												if (warehouse != warehouseGroups.keys.last()) {
-													HorizontalDivider(
-														modifier = Modifier.padding(vertical = 8.dp),
-														color = shipColor.copy(alpha = 0.1f)
-													)
+													if (warehouse != warehouseGroups.keys.last()) {
+														HorizontalDivider(
+															modifier = Modifier.padding(vertical = 8.dp),
+															color = shipColor.copy(alpha = 0.1f)
+														)
+													}
 												}
 											}
-										}
 										}
 									)
 								}
@@ -7743,7 +7743,7 @@ fun FloatingActionButton(
 	var isTransparent by remember { mutableStateOf(true) } // پیش‌فرض حالت عادی
 	var longPressStartTime by remember { mutableLongStateOf(0L) }
 	var isPressed by remember { mutableStateOf(false) }
-	
+
 	// انیمیشن‌های بهبود یافته
 	val rotation by animateFloatAsState(
 		targetValue = if (expandedFab) 45f else 0f,
@@ -7753,13 +7753,13 @@ fun FloatingActionButton(
 		),
 		label = "fab_rotation"
 	)
-	
+
 	val alpha by animateFloatAsState(
 		targetValue = if (isTransparent) 0.6f else 1.0f,
 		animationSpec = tween(300),
 		label = "fab_alpha"
 	)
-	
+
 	val scale by animateFloatAsState(
 		targetValue = if (isPressed) 0.95f else 1.0f,
 		animationSpec = spring(
@@ -7788,7 +7788,7 @@ fun FloatingActionButton(
 					.clickable { expandedFab = false }
 			)
 		}
-		
+
 		Column(
 			horizontalAlignment = Alignment.End,
 			verticalArrangement = Arrangement.Bottom,
@@ -7797,7 +7797,7 @@ fun FloatingActionButton(
 			// منوی آیتم‌ها با انیمیشن بهبود یافته
 			AnimatedVisibility(
 				visible = expandedFab,
-				enter = fadeIn(animationSpec = tween(300, delayMillis = 100)) + 
+				enter = fadeIn(animationSpec = tween(300, delayMillis = 100)) +
 						slideInVertically(
 							animationSpec = spring(
 								dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -7805,7 +7805,7 @@ fun FloatingActionButton(
 							),
 							initialOffsetY = { it / 2 }
 						),
-				exit = fadeOut(animationSpec = tween(200)) + 
+				exit = fadeOut(animationSpec = tween(200)) +
 						slideOutVertically(
 							animationSpec = tween(200),
 							targetOffsetY = { it / 2 }
@@ -7849,7 +7849,7 @@ fun FloatingActionButton(
 							)
 						}
 					}
-					
+
 					items.forEachIndexed { index, item ->
 						MiniFab(
 							item = item,
@@ -7880,11 +7880,11 @@ fun FloatingActionButton(
 							while (true) {
 								val event = awaitPointerEvent()
 								val down = event.changes.firstOrNull()?.pressed == true
-								
+
 								if (down) {
 									isPressed = true
 									longPressStartTime = System.currentTimeMillis()
-									
+
 									do {
 										val nextEvent = awaitPointerEvent()
 										val stillDown = nextEvent.changes.firstOrNull()?.pressed == true
@@ -7936,7 +7936,7 @@ private fun MiniFab(
 	var isPressed by remember { mutableStateOf(false) }
 	var isHovered by remember { mutableStateOf(false) }
 	val interactionSource = remember { MutableInteractionSource() }
-	
+
 	// انیمیشن‌های پیشرفته
 	val scale by animateFloatAsState(
 		targetValue = when {
@@ -7950,7 +7950,7 @@ private fun MiniFab(
 		),
 		label = "minifab_scale"
 	)
-	
+
 	val labelAlpha by animateFloatAsState(
 		targetValue = if (isHovered) 1f else 0.85f,
 		animationSpec = tween(200),
@@ -7963,7 +7963,7 @@ private fun MiniFab(
 		delay(index * 50L) // تاخیر بر اساس ایندکس
 		visible = true
 	}
-	
+
 	val slideOffset by animateFloatAsState(
 		targetValue = if (visible) 0f else 100f,
 		animationSpec = spring(
@@ -7972,7 +7972,7 @@ private fun MiniFab(
 		),
 		label = "slide_offset"
 	)
-	
+
 	val fadeAlpha by animateFloatAsState(
 		targetValue = if (visible) 1f else 0f,
 		animationSpec = tween(300),
@@ -8014,7 +8014,7 @@ private fun MiniFab(
 				),
 				color = MaterialTheme.colorScheme.onSurface,
 				modifier = Modifier.padding(
-					horizontal = 16.dp, 
+					horizontal = 16.dp,
 					vertical = 8.dp
 				)
 			)
@@ -8079,9 +8079,9 @@ fun AdvancedSearchDialog(
 			onDismissRequest = onDismiss,
 			properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = false)
 		) {
-	Card(
-		modifier = Modifier
-			.fillMaxWidth()
+			Card(
+				modifier = Modifier
+					.fillMaxWidth()
 					.padding(16.dp)
 					.animateContentSize(
 						animationSpec = spring(
@@ -8089,7 +8089,7 @@ fun AdvancedSearchDialog(
 							stiffness = Spring.StiffnessLow
 						)
 					),
-		colors = CardDefaults.cardColors(
+				colors = CardDefaults.cardColors(
 					containerColor = MaterialTheme.colorScheme.primaryContainer
 				),
 				shape = RoundedCornerShape(16.dp),
@@ -8097,16 +8097,16 @@ fun AdvancedSearchDialog(
 					width = 1.dp,
 					color = mainColor
 				)
-	) {
-		Column(
-					modifier = Modifier.padding(16.dp)
-		) {
-					// Header
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically
 			) {
+				Column(
+					modifier = Modifier.padding(16.dp)
+				) {
+					// Header
+					Row(
+						modifier = Modifier.fillMaxWidth(),
+						horizontalArrangement = Arrangement.SpaceBetween,
+						verticalAlignment = Alignment.CenterVertically
+					) {
 						Row(
 							verticalAlignment = Alignment.CenterVertically,
 							horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -8117,21 +8117,21 @@ fun AdvancedSearchDialog(
 									.background(mainColor.copy(alpha = 0.2f), CircleShape),
 								contentAlignment = Alignment.Center
 							) {
-							Icon(
+								Icon(
 									imageVector = Icons.Default.Search,
-								contentDescription = null,
+									contentDescription = null,
 									tint = mainColor,
 									modifier = Modifier.size(28.dp)
-							)
-						}
-					Column {
-						Text(
+								)
+							}
+							Column {
+								Text(
 									text = "جستجوی پیشرفته",
-							style = MaterialTheme.typography.titleLarge,
+									style = MaterialTheme.typography.titleLarge,
 									fontWeight = FontWeight.Bold,
 									color = MaterialTheme.colorScheme.onPrimaryContainer
-						)
-							Text(
+								)
+								Text(
 									text = "جستجو بر اساس شماره قبض باسکول",
 									style = MaterialTheme.typography.bodyMedium,
 									color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -8222,14 +8222,14 @@ fun AdvancedSearchDialog(
 								containerColor = mainColor,
 								disabledContainerColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)
 							)
-	) {
-		Row(
+						) {
+							Row(
 								horizontalArrangement = Arrangement.Center,
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			Icon(
+								verticalAlignment = Alignment.CenterVertically
+							) {
+								Icon(
 									imageVector = Icons.Default.Search,
-				contentDescription = null,
+									contentDescription = null,
 									modifier = Modifier.size(18.dp)
 								)
 								Spacer(modifier = Modifier.width(8.dp))
@@ -8242,11 +8242,11 @@ fun AdvancedSearchDialog(
 							modifier = Modifier.weight(1f),
 							shape = RoundedCornerShape(12.dp),
 							border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f))
-) {
-	Row(
+						) {
+							Row(
 								horizontalArrangement = Arrangement.Center,
-		verticalAlignment = Alignment.CenterVertically
-	) {
+								verticalAlignment = Alignment.CenterVertically
+							) {
 								Icon(
 									imageVector = Icons.Default.Close,
 									contentDescription = null,
@@ -8288,8 +8288,8 @@ fun SearchResultDialog(
 				width = 1.dp,
 				color = mainColor
 			)
-) {
-	Column(
+		) {
+			Column(
 				modifier = Modifier
 					.fillMaxSize()
 					.padding(16.dp)
@@ -8309,22 +8309,22 @@ fun SearchResultDialog(
 								.size(48.dp)
 								.background(mainColor.copy(alpha = 0.2f), CircleShape),
 							contentAlignment = Alignment.Center
-	) {
-		Icon(
+						) {
+							Icon(
 								imageVector = Icons.Default.Receipt,
-			contentDescription = null,
+								contentDescription = null,
 								tint = mainColor,
 								modifier = Modifier.size(28.dp)
-		)
+							)
 						}
 						Column {
-		Text(
+							Text(
 								text = "نتیجه جستجو",
 								style = MaterialTheme.typography.titleLarge,
 								fontWeight = FontWeight.Bold,
 								color = MaterialTheme.colorScheme.onPrimaryContainer
 							)
-		Text(
+							Text(
 								text = "قبض باسکول: ${cargoInfo.scaleReceiptNumber}",
 								style = MaterialTheme.typography.bodyMedium,
 								color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -8342,9 +8342,9 @@ fun SearchResultDialog(
 							imageVector = Icons.Default.Close,
 							contentDescription = "بستن",
 							tint = MaterialTheme.colorScheme.onPrimaryContainer
-		)
-	}
-}
+						)
+					}
+				}
 
 				Spacer(modifier = Modifier.height(24.dp))
 
@@ -8749,7 +8749,7 @@ fun CargoOwnerAnalysis(
 		} else {
 			cargoOwnerData.filter { ship ->
 				ship.shipName.contains(searchQuery, ignoreCase = true) ||
-				ship.owners.any { owner -> owner.cargoOwner.contains(searchQuery, ignoreCase = true) }
+						ship.owners.any { owner -> owner.cargoOwner.contains(searchQuery, ignoreCase = true) }
 			}.sortedByDescending { it.total_net_weight }
 		}
 	}
@@ -9797,11 +9797,11 @@ private fun ModernSearchField(
 		value = searchQuery,
 		onValueChange = onSearchQueryChange,
 		modifier = modifier,
-		placeholder = { 
+		placeholder = {
 			Text(
 				text = placeholder,
 				style = MaterialTheme.typography.bodyMedium
-			) 
+			)
 		},
 		leadingIcon = {
 			Icon(
@@ -10038,8 +10038,8 @@ private fun AnalyticsGroupingModeButton(
 
 	Box(
 		modifier = modifier
-			.clickable(onClick = onClick, interactionSource = interactionSource, indication = null) 
-			.background(backgroundColor) 
+			.clickable(onClick = onClick, interactionSource = interactionSource, indication = null)
+			.background(backgroundColor)
 			.padding(vertical = 8.dp, horizontal = 6.dp),
 		contentAlignment = Alignment.Center
 	) {
@@ -10534,11 +10534,11 @@ private fun ModernCarrierCard(
 
 					// Company Details
 					Column {
-					Text(
+						Text(
 							text = carrier.shippingCompany,
 							style = MaterialTheme.typography.titleMedium,
-						fontWeight = FontWeight.Bold
-					)
+							fontWeight = FontWeight.Bold
+						)
 						Row(
 							horizontalArrangement = Arrangement.spacedBy(8.dp),
 							verticalAlignment = Alignment.CenterVertically
@@ -10610,8 +10610,8 @@ private fun StatusIndicator(score: Float, color: Color) {
 @Composable
 private fun QuickStats(carrier: CarrierPerformanceAnalysis, color: Color) {
 	Row(
-				modifier = Modifier
-					.fillMaxWidth()
+		modifier = Modifier
+			.fillMaxWidth()
 			.padding(top = 8.dp),
 		horizontalArrangement = Arrangement.SpaceBetween
 	) {
@@ -10753,10 +10753,10 @@ private fun DetailedStats(carrier: CarrierPerformanceAnalysis, color: Color) {
 					)
 				}
 
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween
-			) {
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.SpaceBetween
+				) {
 					WeightInfo(
 						label = "میانگین",
 						value = formatNumber(carrier.avg_net_weight.roundToInt()),
@@ -10851,7 +10851,7 @@ private fun WeightInfo(
 		Text(
 			text = value,
 			style = MaterialTheme.typography.bodyMedium,
-					color = color,
+			color = color,
 			fontWeight = FontWeight.Medium
 		)
 	}
@@ -10870,7 +10870,7 @@ private fun QuotaChip(
 		Text(
 			text = quotaNumber,
 			style = MaterialTheme.typography.bodySmall,
-					color = color,
+			color = color,
 			modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
 		)
 	}
@@ -11227,14 +11227,14 @@ fun PersianDateRangePickerDialog(
 	var startTimeText by rememberSaveable { mutableStateOf("07:00") }
 	var endDateText by rememberSaveable { mutableStateOf("1404/01/02") }
 	var endTimeText by rememberSaveable { mutableStateOf("07:00") }
-	
+
 	if (isOpen) {
 		// Dialog states
 		var showStartDatePicker by remember { mutableStateOf(false) }
 		var showStartTimePicker by remember { mutableStateOf(false) }
 		var showEndDatePicker by remember { mutableStateOf(false) }
 		var showEndTimePicker by remember { mutableStateOf(false) }
-		
+
 		Dialog(
 			onDismissRequest = onDismiss,
 			properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -11271,9 +11271,9 @@ fun PersianDateRangePickerDialog(
 							color = MaterialTheme.colorScheme.onSurface
 						)
 					}
-					
+
 					Spacer(modifier = Modifier.height(20.dp))
-					
+
 					// کارت تاریخ شروع
 					Card(
 						modifier = Modifier.fillMaxWidth(),
@@ -11291,9 +11291,9 @@ fun PersianDateRangePickerDialog(
 								fontWeight = FontWeight.SemiBold,
 								color = MaterialTheme.colorScheme.primary
 							)
-							
+
 							Spacer(modifier = Modifier.height(8.dp))
-							
+
 							Row(
 								modifier = Modifier.fillMaxWidth(),
 								horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -11324,7 +11324,7 @@ fun PersianDateRangePickerDialog(
 										disabledTrailingIconColor = MaterialTheme.colorScheme.primary
 									)
 								)
-								
+
 								// فیلد زمان
 								OutlinedTextField(
 									value = startTimeText,
@@ -11354,9 +11354,9 @@ fun PersianDateRangePickerDialog(
 							}
 						}
 					}
-					
+
 					Spacer(modifier = Modifier.height(16.dp))
-					
+
 					// کارت تاریخ پایان
 					Card(
 						modifier = Modifier.fillMaxWidth(),
@@ -11374,9 +11374,9 @@ fun PersianDateRangePickerDialog(
 								fontWeight = FontWeight.SemiBold,
 								color = MaterialTheme.colorScheme.secondary
 							)
-							
+
 							Spacer(modifier = Modifier.height(8.dp))
-							
+
 							Row(
 								modifier = Modifier.fillMaxWidth(),
 								horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -11407,7 +11407,7 @@ fun PersianDateRangePickerDialog(
 										disabledTrailingIconColor = MaterialTheme.colorScheme.secondary
 									)
 								)
-								
+
 								// فیلد زمان
 								OutlinedTextField(
 									value = endTimeText,
@@ -11437,9 +11437,9 @@ fun PersianDateRangePickerDialog(
 							}
 						}
 					}
-					
+
 					Spacer(modifier = Modifier.height(20.dp))
-					
+
 					// دکمه‌های عمل
 					Row(
 						modifier = Modifier.fillMaxWidth(),
@@ -11480,7 +11480,7 @@ fun PersianDateRangePickerDialog(
 				}
 			}
 		}
-		
+
 		// دیالوگ انتخاب تاریخ شروع
 		if (showStartDatePicker) {
 			DatePickerDialog(
@@ -11497,18 +11497,18 @@ fun PersianDateRangePickerDialog(
 					val year = dateParts.getOrNull(0)?.toIntOrNull() ?: 1404
 					val month = dateParts.getOrNull(1)?.toIntOrNull() ?: 1
 					val day = dateParts.getOrNull(2)?.toIntOrNull() ?: 1
-					
+
 					// محاسبه یک روز بعد
 					val nextDay = if (day < 31) day + 1 else 1
 					val nextMonth = if (day == 31 && month < 12) month + 1 else if (day == 31 && month == 12) 1 else month
 					val nextYear = if (day == 31 && month == 12) year + 1 else year
-					
+
 					endDateText = "%04d/%02d/%02d".format(nextYear, nextMonth, nextDay)
 					showStartDatePicker = false
 				}
 			)
 		}
-		
+
 		// دیالوگ انتخاب زمان شروع
 		if (showStartTimePicker) {
 			TimePickerDialog(
@@ -11524,7 +11524,7 @@ fun PersianDateRangePickerDialog(
 				}
 			)
 		}
-		
+
 		// دیالوگ انتخاب تاریخ پایان
 		if (showEndDatePicker) {
 			DatePickerDialog(
@@ -11541,7 +11541,7 @@ fun PersianDateRangePickerDialog(
 				}
 			)
 		}
-		
+
 		// دیالوگ انتخاب زمان پایان
 		if (showEndTimePicker) {
 			TimePickerDialog(
@@ -11575,17 +11575,17 @@ fun DatePickerDialog(
 	if (isOpen) {
 		// Parse initial date
 		val dateParts = initialDate.split("/")
-		
+
 		// State variables
 		var selectedYear by remember { mutableIntStateOf(dateParts.getOrNull(0)?.toIntOrNull() ?: 1404) }
 		var selectedMonth by remember { mutableIntStateOf(dateParts.getOrNull(1)?.toIntOrNull() ?: 1) }
 		var selectedDay by remember { mutableIntStateOf(dateParts.getOrNull(2)?.toIntOrNull() ?: 1) }
-		
+
 		// Lists for scrollable selectors
 		val years = (1403..1410).toList()
 		val months = (1..12).toList()
 		val days = (1..31).toList()
-		
+
 		Dialog(
 			onDismissRequest = onDismiss,
 			properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -11622,9 +11622,9 @@ fun DatePickerDialog(
 							color = titleColor
 						)
 					}
-					
+
 					Spacer(modifier = Modifier.height(20.dp))
-					
+
 					// کارت انتخاب تاریخ
 					Card(
 						modifier = Modifier.fillMaxWidth(),
@@ -11649,7 +11649,7 @@ fun DatePickerDialog(
 									modifier = Modifier.weight(1f),
 									formatItem = { "%02d".format(it) }
 								)
-								
+
 								// ماه
 								ScrollableSelector(
 									label = "ماه",
@@ -11671,25 +11671,25 @@ fun DatePickerDialog(
 							}
 						}
 					}
-					
+
 					Spacer(modifier = Modifier.height(20.dp))
-					
+
 					// بررسی validation
 					val currentDate = "%04d/%02d/%02d".format(selectedYear, selectedMonth, selectedDay)
-					
+
 					val isValidDate = minDate?.let { minD ->
 						val minDateParts = minD.split("/")
 						val minYear = minDateParts.getOrNull(0)?.toIntOrNull() ?: 1404
 						val minMonth = minDateParts.getOrNull(1)?.toIntOrNull() ?: 1
 						val minDay = minDateParts.getOrNull(2)?.toIntOrNull() ?: 1
-						
+
 						// محاسبه کل روزها برای مقایسه
 						val currentTotalDays = (selectedYear * 365) + (selectedMonth * 30) + selectedDay
 						val minTotalDays = (minYear * 365) + (minMonth * 30) + minDay
-						
+
 						currentTotalDays >= minTotalDays
 					} != false
-					
+
 					// نمایش پیام خطا در صورت نامعتبر بودن
 					if (!isValidDate) {
 						Card(
@@ -11719,7 +11719,7 @@ fun DatePickerDialog(
 						}
 						Spacer(modifier = Modifier.height(16.dp))
 					}
-					
+
 					// دکمه‌های عمل
 					Row(
 						modifier = Modifier.fillMaxWidth(),
@@ -11776,15 +11776,15 @@ fun TimePickerDialog(
 	if (isOpen) {
 		// Parse initial time
 		val timeParts = initialTime.split(":")
-		
+
 		// State variables
 		var selectedHour by remember { mutableIntStateOf(timeParts.getOrNull(0)?.toIntOrNull() ?: 8) }
 		var selectedMinute by remember { mutableIntStateOf(timeParts.getOrNull(1)?.toIntOrNull() ?: 0) }
-		
+
 		// Lists for scrollable selectors
 		val hours = (0..23).toList()
 		val minutes = (0..59).toList()
-		
+
 		Dialog(
 			onDismissRequest = onDismiss,
 			properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -11821,9 +11821,9 @@ fun TimePickerDialog(
 							color = titleColor
 						)
 					}
-					
+
 					Spacer(modifier = Modifier.height(20.dp))
-					
+
 					// کارت انتخاب زمان
 					Card(
 						modifier = Modifier.fillMaxWidth(),
@@ -11861,9 +11861,9 @@ fun TimePickerDialog(
 							}
 						}
 					}
-					
+
 					Spacer(modifier = Modifier.height(20.dp))
-					
+
 					// دکمه‌های عمل
 					Row(
 						modifier = Modifier.fillMaxWidth(),
@@ -11925,9 +11925,9 @@ fun ScrollableSelector(
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 			fontWeight = FontWeight.Medium
 		)
-		
+
 		Spacer(modifier = Modifier.height(8.dp))
-		
+
 		Card(
 			modifier = Modifier
 				.fillMaxWidth()
@@ -11944,12 +11944,12 @@ fun ScrollableSelector(
 				val itemHeight = 40.dp // ارتفاع هر آیتم
 				val visibleItemsCount = 3 // تعداد آیتم‌های قابل مشاهده
 				val centerOffset = (visibleItemsCount / 2) // آفست برای قرار دادن در وسط
-				
+
 				val listState = rememberLazyListState(
 					// قرار دادن مقدار انتخابی در وسط اسکرول
 					initialFirstVisibleItemIndex = maxOf(0, selectedIndex - centerOffset)
 				)
-				
+
 				// اسکرول به مقدار انتخابی هنگام تغییر
 				LaunchedEffect(selectedItem) {
 					val newIndex = items.indexOf(selectedItem)
@@ -11957,7 +11957,7 @@ fun ScrollableSelector(
 						listState.animateScrollToItem(maxOf(0, newIndex - centerOffset))
 					}
 				}
-				
+
 				LazyColumn(
 					state = listState,
 					modifier = Modifier
@@ -11976,7 +11976,7 @@ fun ScrollableSelector(
 							),
 							label = "scale"
 						)
-						
+
 						Surface(
 							modifier = Modifier
 								.fillMaxWidth()

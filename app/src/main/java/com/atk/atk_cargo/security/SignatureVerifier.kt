@@ -1,12 +1,9 @@
 package com.atk.atk_cargo.security
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.Signature
-import android.os.Build.VERSION
-import android.os.Build.VERSION_CODES
 import android.util.Base64
 import androidx.core.content.edit
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +19,7 @@ import javax.crypto.spec.SecretKeySpec
 
 class SignatureVerifier(private val context: Context) {
     companion object {
-        private const val C = "0b0838afbe74afd97e781c9533015294ce86b70627017cccb807ca2af208ba21"
+        private const val C = "6a6e02dce2d2286ec2211cc9f20fc0dfe8c9e2ef5663e1584e7aa3bfc5e09471"
         private const val D = "e1f2g3h4i5j6k7l8m9n0o1p2q3r4s5t6"
         private const val E = "aHR0cHM6Ly9hdGstbmsuY2xpY2svQ2FyZ28vY2hlY2tfc2lnbmF0dXJlLnBocA=="
         private const val LICENSE_ENDPOINT = "https://atk-nk.click/Cargo/validate_license.php"
@@ -39,7 +36,7 @@ class SignatureVerifier(private val context: Context) {
     private val g: String by lazy {
         try {
             String(Base64.decode(E, Base64.NO_WRAP), Charsets.UTF_8)
-        } catch (h: Exception) {
+        } catch (_: Exception) {
             ""
         }
     }
@@ -75,8 +72,7 @@ class SignatureVerifier(private val context: Context) {
     }
 
     suspend fun i(): Pair<Boolean, SecurityErrorType?> {
-        var retryCount = 0
-        while (retryCount < MAX_RETRIES) {
+        repeat(MAX_RETRIES) { retryCount ->
             try {
                 val signatureValid = k()
                 if (!signatureValid) {
@@ -93,12 +89,11 @@ class SignatureVerifier(private val context: Context) {
                 val (licenseValid, licenseError) = checkLicenseValidity()
                 o(licenseValid)
                 return Pair(licenseValid, if (!licenseValid) licenseError else null)
-            } catch (e: Exception) {
-                retryCount++
-                if (retryCount >= MAX_RETRIES) {
+            } catch (_: Exception) {
+                if (retryCount == MAX_RETRIES - 1) {
                     return Pair(false, SecurityErrorType.NETWORK_ERROR)
                 }
-                kotlinx.coroutines.delay((1000L * (1 shl retryCount)).coerceAtMost(5000L))
+                kotlinx.coroutines.delay((1000L * (1 shl (retryCount + 1))).coerceAtMost(5000L))
             }
         }
         return Pair(false, SecurityErrorType.UNKNOWN_ERROR)
@@ -118,7 +113,7 @@ class SignatureVerifier(private val context: Context) {
             } else {
                 false
             }
-        } catch (w: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
@@ -158,34 +153,20 @@ class SignatureVerifier(private val context: Context) {
             } else {
                 false
             }
-        } catch (ag: Exception) {
+        } catch (_: Exception) {
             false
         }
     }
 
-    @SuppressLint("PackageManagerGetSignatures")
     private fun q(): PackageInfo {
-        return if (VERSION.SDK_INT >= VERSION_CODES.P) {
-            context.packageManager.getPackageInfo(
-                context.packageName,
-                PackageManager.GET_SIGNING_CERTIFICATES
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            context.packageManager.getPackageInfo(
-                context.packageName,
-                PackageManager.GET_SIGNATURES
-            )
-        }
+        return context.packageManager.getPackageInfo(
+            context.packageName,
+            PackageManager.GET_SIGNING_CERTIFICATES
+        )
     }
 
     private fun s(ah: PackageInfo): Array<Signature> {
-        return if (VERSION.SDK_INT >= VERSION_CODES.P) {
-            ah.signingInfo.apkContentsSigners
-        } else {
-            @Suppress("DEPRECATION")
-            ah.signatures
-        }
+        return ah.signingInfo?.apkContentsSigners ?: emptyArray()
     }
 
     private fun v(ai: Signature): String {
@@ -193,7 +174,7 @@ class SignatureVerifier(private val context: Context) {
             val aj = MessageDigest.getInstance("SHA-256")
             val ak = aj.digest(ai.toByteArray())
             ak.joinToString("") { "%02x".format(it) }
-        } catch (al: Exception) {
+        } catch (_: Exception) {
             ""
         }
     }
@@ -249,7 +230,7 @@ class SignatureVerifier(private val context: Context) {
             } else {
                 Pair(false, SecurityErrorType.LICENSE_INACTIVE)
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Pair(false, SecurityErrorType.LICENSE_NOT_FOUND)
         }
     }

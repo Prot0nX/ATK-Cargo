@@ -147,7 +147,116 @@
 }
 
 # =======================================================================
-# 11. سرکوب هشدارها (اولویت پایین)
+# 11. تنظیمات Compose (اولویت بالا)
+# =======================================================================
+-keep class androidx.compose.** { *; }
+-keep class androidx.compose.runtime.** { *; }
+-keep class androidx.compose.ui.** { *; }
+-keep class androidx.compose.material3.** { *; }
+-keep class androidx.compose.foundation.** { *; }
+-keepclassmembers class androidx.compose.** {
+    <fields>;
+    <methods>;
+}
+
+# =======================================================================
+# 12. تنظیمات Navigation Compose (اولویت متوسط)
+# =======================================================================
+-keep class androidx.navigation.** { *; }
+-keepclassmembers class * {
+    @androidx.navigation.** <methods>;
+}
+
+# =======================================================================
+# 13. تنظیمات Camera & ML Kit (اولویت متوسط)
+# =======================================================================
+-keep class androidx.camera.** { *; }
+-keep class com.google.mlkit.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
+
+# =======================================================================
+# 14. تنظیمات TensorFlow Lite (اولویت متوسط)
+# =======================================================================
+-keep class org.tensorflow.lite.** { *; }
+-keep class org.tensorflow.lite.gpu.** { *; }
+-keep class org.tensorflow.lite.support.** { *; }
+-dontwarn org.tensorflow.lite.**
+
+# =======================================================================
+# 15. تنظیمات MediaPipe (اولویت متوسط)
+# =======================================================================
+-keep class com.google.mediapipe.** { *; }
+-dontwarn com.google.mediapipe.**
+
+# =======================================================================
+# 16. تنظیمات Serialization (اولویت متوسط)
+# =======================================================================
+-keep class kotlinx.serialization.** { *; }
+-keepclassmembers class * {
+    @kotlinx.serialization.** <fields>;
+}
+-keepclassmembers @kotlinx.serialization.Serializable class * {
+    <fields>;
+    <methods>;
+}
+
+# =======================================================================
+# 17. تنظیمات Ktor (اولویت متوسط)
+# =======================================================================
+-keep class io.ktor.** { *; }
+-keepclassmembers class io.ktor.** {
+    <fields>;
+    <methods>;
+}
+-dontwarn io.ktor.**
+
+# =======================================================================
+# 18. تنظیمات Coil (اولویت پایین)
+# =======================================================================
+-keep class coil.** { *; }
+-keep class io.coil.** { *; }
+-dontwarn coil.**
+-dontwarn io.coil.**
+
+# =======================================================================
+# 19. تنظیمات Lottie (اولویت پایین)
+# =======================================================================
+-keep class com.airbnb.lottie.** { *; }
+-dontwarn com.airbnb.lottie.**
+
+# =======================================================================
+# 20. تنظیمات Apache POI (اولویت پایین)
+# =======================================================================
+-keep class org.apache.poi.** { *; }
+-dontwarn org.apache.poi.**
+-dontwarn org.apache.xmlbeans.**
+-dontwarn org.apache.commons.**
+
+# =======================================================================
+# 21. تنظیمات iText PDF (اولویت پایین)
+# =======================================================================
+-keep class com.itextpdf.** { *; }
+-dontwarn com.itextpdf.**
+
+# =======================================================================
+# 22. تنظیمات Charts (Vico) (اولویت پایین)
+# =======================================================================
+-keep class com.patrykandpatrick.vico.** { *; }
+-dontwarn com.patrykandpatrick.vico.**
+
+# =======================================================================
+# 23. تنظیمات Work Manager (اولویت متوسط)
+# =======================================================================
+-keep class androidx.work.** { *; }
+-keep class * extends androidx.work.Worker
+-keep class * extends androidx.work.ListenableWorker
+-keepclassmembers class * extends androidx.work.Worker {
+    public <init>(android.content.Context,androidx.work.WorkerParameters);
+}
+
+# =======================================================================
+# 24. سرکوب هشدارها (اولویت پایین)
 # =======================================================================
 -dontwarn org.bouncycastle.**
 -dontwarn org.conscrypt.**
@@ -157,14 +266,11 @@
 -dontwarn edu.umd.cs.findbugs.**
 -dontwarn org.apache.batik.**
 -dontwarn org.osgi.framework.**
-
-# قوانین اضافی برای کلاس‌های گمشده (تولید شده توسط R8)
--dontwarn javax.lang.model.SourceVersion
--dontwarn javax.lang.model.element.Element
--dontwarn javax.lang.model.element.ElementKind
--dontwarn javax.lang.model.element.Modifier
--dontwarn javax.lang.model.type.TypeMirror
--dontwarn javax.lang.model.type.TypeVisitor
--dontwarn javax.lang.model.util.SimpleTypeVisitor8
--dontwarn org.tensorflow.lite.gpu.GpuDelegateFactory$Options$GpuBackend
--dontwarn org.tensorflow.lite.gpu.GpuDelegateFactory$Options
+-dontwarn javax.lang.model.**
+-dontwarn org.tensorflow.lite.gpu.GpuDelegateFactory$Options**
+-dontwarn com.sun.jna.**
+-dontwarn java.awt.**
+-dontwarn javax.swing.**
+-dontwarn sun.misc.**
+-dontwarn org.apache.log4j.**
+-dontwarn org.apache.commons.logging.**

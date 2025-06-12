@@ -152,15 +152,15 @@ fun InitialInfoScreen() {
     fun trimShipName() {
         shipName = shipName.trim()
     }
-    
+
     fun trimLoadingWarehouse() {
         loadingWarehouse = loadingWarehouse.trim()
     }
-    
+
     fun trimShippingCompany() {
         shippingCompany = shippingCompany.trim()
     }
-    
+
     fun trimCargoOwner() {
         cargoOwner = cargoOwner.trim()
     }
@@ -217,27 +217,27 @@ fun InitialInfoScreen() {
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }
-                                
+
                                 Column {
-                            Text(
-                                text = steps[currentStep],
+                                    Text(
+                                        text = steps[currentStep],
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold
                                         ),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
                                         text = when (currentStep) {
                                             0 -> "مشخصات پایه‌ای کشتی و انبار"
                                             1 -> "جزئیات محموله و شرکت باربری"
                                             else -> "بررسی نهایی اطلاعات و ثبت"
                                         },
                                         style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
-                            
+
                             Box(
                                 modifier = Modifier
                                     .size(36.dp)
@@ -256,7 +256,7 @@ fun InitialInfoScreen() {
                                 )
                             }
                         }
-                        
+
                         // Step indicators
                         Row(
                             modifier = Modifier
@@ -326,7 +326,7 @@ fun InitialInfoScreen() {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
+                                    ) {
                                         Box(
                                             modifier = Modifier
                                                 .size(48.dp)
@@ -343,7 +343,7 @@ fun InitialInfoScreen() {
                                                 modifier = Modifier.size(28.dp)
                                             )
                                         }
-                                        
+
                                         Column {
                                             Text(
                                                 text = "مشخصات کشتی و محل بارگیری",
@@ -359,11 +359,11 @@ fun InitialInfoScreen() {
                                             )
                                         }
                                     }
-                                    
+
                                     HorizontalDivider(
                                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                     )
-                                    
+
                                     Text(
                                         text = "اطلاعات کشتی",
                                         style = MaterialTheme.typography.titleSmall,
@@ -407,7 +407,7 @@ fun InitialInfoScreen() {
                                                     imageVector = Icons.Default.Check,
                                                     contentDescription = null,
                                                     tint = MaterialTheme.colorScheme.primary
-                                            )
+                                                )
                                             }
                                         },
                                         supportingText = {
@@ -444,7 +444,7 @@ fun InitialInfoScreen() {
                                             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                                         )
                                     )
-                                    
+
                                     Text(
                                         text = "محل بارگیری",
                                         style = MaterialTheme.typography.titleSmall,
@@ -470,11 +470,11 @@ fun InitialInfoScreen() {
                                                     ),
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Warehouse,
-                                                contentDescription = null,
+                                                Icon(
+                                                    imageVector = Icons.Default.Warehouse,
+                                                    contentDescription = null,
                                                     tint = if (isValidWarehouseName(loadingWarehouse))
-                                                    MaterialTheme.colorScheme.primary
+                                                        MaterialTheme.colorScheme.primary
                                                     else MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.size(20.dp)
                                                 )
@@ -486,7 +486,7 @@ fun InitialInfoScreen() {
                                                     imageVector = Icons.Default.Check,
                                                     contentDescription = null,
                                                     tint = MaterialTheme.colorScheme.primary
-                                            )
+                                                )
                                             }
                                         },
                                         supportingText = {
@@ -525,7 +525,7 @@ fun InitialInfoScreen() {
                                     )
 
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    
+
                                     // Enhanced continue button
                                     Button(
                                         onClick = { currentStep++ },
@@ -596,7 +596,7 @@ fun InitialInfoScreen() {
                                                 modifier = Modifier.size(20.dp)
                                             )
                                         }
-                                        
+
                                         Column {
                                             Text(
                                                 text = "اطلاعات محموله و باربری",
@@ -612,11 +612,11 @@ fun InitialInfoScreen() {
                                             )
                                         }
                                     }
-                                    
+
                                     HorizontalDivider(
                                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                     )
-                                    
+
                                     Text(
                                         text = "نوع محموله",
                                         style = MaterialTheme.typography.titleSmall,
@@ -689,7 +689,7 @@ fun InitialInfoScreen() {
                                             }
                                         }
                                     }
-                                    
+
                                     Text(
                                         text = "اطلاعات شرکت باربری",
                                         style = MaterialTheme.typography.titleSmall,
@@ -757,7 +757,7 @@ fun InitialInfoScreen() {
                                                 }
                                             }
                                     )
-                                    
+
                                     Text(
                                         text = "اطلاعات محموله",
                                         style = MaterialTheme.typography.titleSmall,
@@ -959,7 +959,7 @@ fun InitialInfoScreen() {
                                     )
 
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    
+
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -973,7 +973,7 @@ fun InitialInfoScreen() {
                                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
                                         ) {
                                             Icon(
-                                                Icons.AutoMirrored.Filled.ArrowBack, 
+                                                Icons.AutoMirrored.Filled.ArrowBack,
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.primary
                                             )
@@ -1055,7 +1055,7 @@ fun InitialInfoScreen() {
                                                 modifier = Modifier.size(20.dp)
                                             )
                                         }
-                                        
+
                                         Column {
                                             Text(
                                                 text = "بررسی و تأیید نهایی",
@@ -1071,11 +1071,11 @@ fun InitialInfoScreen() {
                                             )
                                         }
                                     }
-                                    
+
                                     HorizontalDivider(
                                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                     )
-                                    
+
                                     // Summary Card with enhanced design
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
@@ -1120,7 +1120,7 @@ fun InitialInfoScreen() {
                                                             modifier = Modifier.size(14.dp)
                                                         )
                                                     }
-                                                    
+
                                                     Column {
                                                         Text(
                                                             text = "خلاصه اطلاعات",
@@ -1144,7 +1144,7 @@ fun InitialInfoScreen() {
                                                     Pair("نام انبار", loadingWarehouse)
                                                 )
                                             )
-                                            
+
                                             EnhancedInfoGroup(
                                                 title = "مشخصات محموله",
                                                 icon = Icons.Default.Category,
@@ -1153,7 +1153,7 @@ fun InitialInfoScreen() {
                                                     Pair("تناژ پروانه", "${formatNumber(cargoWeight)} کیلوگرم")
                                                 )
                                             )
-                                            
+
                                             EnhancedInfoGroup(
                                                 title = "اطلاعات شرکت",
                                                 icon = Icons.Default.LocalShipping,
@@ -1189,7 +1189,7 @@ fun InitialInfoScreen() {
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
-                                                "ویرایش", 
+                                                "ویرایش",
                                                 style = MaterialTheme.typography.titleMedium
                                             )
                                         }
@@ -1542,7 +1542,7 @@ fun ConfirmationDialog(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "ویرایش", 
+                            "ویرایش",
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
@@ -1568,7 +1568,7 @@ fun ConfirmationDialog(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "تایید", 
+                            "تایید",
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
@@ -1919,12 +1919,12 @@ private fun EnhancedInfoGroup(
                 fontWeight = FontWeight.Bold
             )
         }
-        
+
         HorizontalDivider(
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
             modifier = Modifier.padding(vertical = 1.dp)
         )
-        
+
         items.forEach { (label, value) ->
             EnhancedInfoRow(label, value)
         }
@@ -2065,7 +2065,7 @@ fun ModernAlertDialog(
                         .height(56.dp)
                 ) {
                     Text(
-                        "تایید", 
+                        "تایید",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         )
