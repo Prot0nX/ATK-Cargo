@@ -337,13 +337,19 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 				modifier = Modifier.padding(innerPadding)
 			) {
 				composable("shipsList") {
-					ShipsList(
-						viewModel = viewModel,
-						onShipSelected = { shipName ->
-							navController.navigate("shipDetails/$shipName")
-						}
-					)
+				// ریست کردن currentSelectedSection و حذف فیلتر بازه زمانی هنگام بازگشت به لیست کشتی‌ها
+				LaunchedEffect(Unit) {
+					currentSelectedSection = 0
+					viewModel.clearSelectedDateRange()
 				}
+				
+				ShipsList(
+					viewModel = viewModel,
+					onShipSelected = { shipName ->
+						navController.navigate("shipDetails/$shipName")
+					}
+				)
+			}
 				composable("shipDetails/{shipName}") { backStackEntry ->
 					val shipName = backStackEntry.arguments?.getString("shipName") ?: return@composable
 					ShipDetails(
@@ -592,16 +598,6 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
 				}
 			}
 		}
-
-		FloatingActionButton(
-			onRealTimeLoadingClick = {
-				showRealTimeDialog = true
-			},
-			onAdvancedSearchClick = {
-			},
-			onAnalyticsClick = {
-			}
-		)
 	}
 
 	RealTimeLoadingBottomSheet(
@@ -7410,7 +7406,7 @@ fun RealTimeLoadingCard(
 						CompactInfo(
 							icon = Icons.AutoMirrored.Filled.Login,
 							label = "ورود/خروج",
-							value = "${data.entryVouchers}/${data.exitVouchers}",
+							value = "${data.exitVouchers}/${data.entryVouchers}",
 							color = color,
 							modifier = Modifier.weight(1f)
 						)
