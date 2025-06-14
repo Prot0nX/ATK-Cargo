@@ -5,12 +5,22 @@
 # =======================================================================
 # 1. تنظیمات پایه و بهینه‌سازی (اولویت بالا - تنظیمات اصلی)
 # =======================================================================
--optimizationpasses 7                  # تعداد دفعات بهینه‌سازی
+-optimizationpasses 10                 # تعداد دفعات بهینه‌سازی (افزایش یافته)
 -dontusemixedcaseclassnames            # نام کلاس‌ها را با حروف مختلط نسازد
 -dontskipnonpubliclibraryclasses       # کلاس‌های غیرعمومی کتابخانه‌ها را نادیده نگیرد
 -dontpreverify                         # تأیید قبلی را انجام ندهد (سرعت بیشتر)
 -verbose                               # گزارش‌های مفصل
 -optimizations !code/simplification/arithmetic,!field/*,!class/merging/*  # بهینه‌سازی‌های خاص
+
+# تنظیمات اضافی برای کاهش حجم APK
+-repackageclasses 'obfuscated'         # بسته‌بندی مجدد کلاس‌ها
+-flattenpackagehierarchy 'obfuscated'  # مسطح‌سازی سلسله مراتب بسته‌ها
+-allowaccessmodification               # اجازه تغییر سطح دسترسی
+-mergeinterfacesaggressively           # ادغام تهاجمی رابط‌ها
+-overloadaggressively                  # بارگذاری مجدد تهاجمی
+-renamesourcefileattribute SourceFile # تغییر نام فایل منبع
+-adaptresourcefilenames **.properties  # تطبیق نام فایل‌های منابع
+-adaptresourcefilecontents **.properties,META-INF/MANIFEST.MF  # تطبیق محتوای فایل‌های منابع
 
 # =======================================================================
 # 2. تنظیمات حفظ ویژگی‌ها (اولویت بالا - برای عملکرد صحیح)
@@ -130,20 +140,27 @@
 # 9. تنظیمات پیشرفته جهت جلوگیری از مهندسی معکوس (اولویت پایین)
 # =======================================================================
 -renamesourcefileattribute SourceFile  # تغییر نام فایل منبع
--repackageclasses 'o'                  # بسته‌بندی مجدد کلاس‌ها
+-repackageclasses 'obfuscated'         # بسته‌بندی مجدد کلاس‌ها با نام بهتر
 -allowaccessmodification               # اجازه تغییر سطح دسترسی
 -overloadaggressively                  # بازنویسی انبوه
--flattenpackagehierarchy               # مسطح‌سازی سلسله مراتب بسته‌ها
+-flattenpackagehierarchy 'obfuscated'  # مسطح‌سازی سلسله مراتب بسته‌ها
 
 # =======================================================================
-# 10. حذف لاگ‌ها (اولویت پایین)
+# 10. حذف لاگ‌ها و بهینه‌سازی کد (اولویت پایین)
 # =======================================================================
 -assumenosideeffects class android.util.Log {
-    public static *** d(...);
-    public static *** v(...);
-    public static *** i(...);
-    public static *** w(...);
-    public static *** e(...);
+    public static boolean isLoggable(java.lang.String, int);
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+    public static int w(...);
+    public static int e(...);
+    public static int wtf(...);
+}
+
+# حذف printStackTrace در release
+-assumenosideeffects class java.lang.Throwable {
+    public void printStackTrace();
 }
 
 # =======================================================================
