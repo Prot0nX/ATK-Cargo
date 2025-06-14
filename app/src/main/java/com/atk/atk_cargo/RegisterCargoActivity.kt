@@ -169,7 +169,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -2288,7 +2287,7 @@ fun FormSection(
                     tint = MaterialTheme3.colorScheme.primary,
                     modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(2.dp))
                 Text3(
                     text = if (isDuplicate) "ویرایش حواله" else "ثبت حواله جدید",
                     style = MaterialTheme3.typography.titleSmall,
@@ -4910,7 +4909,7 @@ fun EnhancedCameraPreview(
     onImageCaptured: (ImageProxy, String?) -> Unit,
     onError: (ImageCaptureException) -> Unit,
 ) {
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val context = LocalContext.current
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
@@ -4924,7 +4923,7 @@ fun EnhancedCameraPreview(
     var detectedNumbers by remember { mutableStateOf<List<String>>(emptyList()) }
     var isValidWeight by remember { mutableStateOf(false) }
     var processingActive by remember { mutableStateOf(true) }
-    
+
     // AI Analysis state
     var isAIAnalyzing by remember { mutableStateOf(false) }
     var analysisSource by remember { mutableStateOf<String?>(null) }
@@ -4968,7 +4967,7 @@ fun EnhancedCameraPreview(
                         .build()
 
                     imageCapture = ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY) 
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                         .setTargetResolution(android.util.Size(1440, 1080)) // Using 4:3 ratio with explicit resolution
                         .build()
 
@@ -4987,7 +4986,7 @@ fun EnhancedCameraPreview(
                                             detectedNumber = bestEstimate
                                             val weight = bestEstimate.toDoubleOrNull()
                                             isValidWeight = weight != null && weight in 5000.0..45000.0
-                                            
+
                                             // تنظیم منبع تحلیل بر اساس حالت انتخاب شده
                                             analysisSource = when (selectedScanMode) {
                                                 ScanMode.ML_KIT_SCAN -> "ML_KIT"
@@ -5058,7 +5057,7 @@ fun EnhancedCameraPreview(
                         ScanMode.ML_KIT_SCAN -> Triple("📱", "اسکن داخلی", Color(0xFF4CAF50))
                         ScanMode.LOCAL_AI_SCAN -> Triple("🤖", "اسکن هوشمند", Color(0xFF2196F3))
                     }
-                    
+
                     Text(
                         text = icon,
                         fontSize = 20.sp
@@ -5069,7 +5068,7 @@ fun EnhancedCameraPreview(
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    
+
                     // نمایش وضعیت تحلیل
                     if (isAIAnalyzing && selectedScanMode == ScanMode.ML_KIT_SCAN) {
                         androidx.compose.material3.CircularProgressIndicator(
@@ -5142,7 +5141,7 @@ fun EnhancedCameraPreview(
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                                 )
                             }
-                            
+
                             Icon(
                                 imageVector = if (isValidWeight) Icons.Default.CheckCircle else Icons.Default.Warning,
                                 contentDescription = null,
@@ -5150,9 +5149,9 @@ fun EnhancedCameraPreview(
                                 modifier = Modifier.size(20.dp)
                             )
                         }
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         Text(
                             text = "${NumberFormat.getNumberInstance(Locale("en", "US")).format(number.toDoubleOrNull() ?: 0)} کیلوگرم",
                             color = Color.White,
@@ -5227,7 +5226,7 @@ fun EnhancedCameraPreview(
                 .clickable(enabled = !isCapturing) {
                     processingActive = false
                     isCapturing = true
-                    
+
                     imageCapture?.takePicture(
                         executor,
                         object : ImageCapture.OnImageCapturedCallback() {
