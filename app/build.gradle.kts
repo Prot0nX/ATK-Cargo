@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.atk.atk_cargo"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.atk.atk_cargo"
@@ -20,17 +20,20 @@ android {
             useSupportLibrary = true
         }
 
-        externalNativeBuild {
-            cmake {
-                cppFlags += "-std=c++11"
-            }
-        }
-
-        proguardFiles("proguard-rules.pro")
-
+        // بهینه‌سازی تنظیمات NDK
         ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+            //noinspection ChromeOsAbiSupport
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
+        
+        // تنظیمات بهینه‌سازی اضافی برای کاهش حجم
+        resourceConfigurations += setOf("en", "fa")
+
+        // تنظیمات ProGuard
+        proguardFiles(
+            getDefaultProguardFile("proguard-android-optimize.txt"),
+            "proguard-rules.pro"
+        )
     }
 
     externalNativeBuild {
@@ -41,43 +44,165 @@ android {
     }
 
     buildTypes {
+        debug {
+            isDebuggable = true
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
+        
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            isDebuggable = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            matchingFallbacks += listOf()
+            
+            // بهینه‌سازی APK
             multiDexEnabled = true
+            
+            // تنظیمات بهینه‌سازی کد
+            packaging {
+                resources {
+                    excludes += setOf(
+                        "**/kotlin/**",
+                        "META-INF/**.version",
+                        "META-INF/**.kotlin_module",
+                        "META-INF/DEPENDENCIES",
+                        "META-INF/LICENSE*",
+                        "META-INF/NOTICE*",
+                        "META-INF/ASL2.0",
+                        "META-INF/*.SF",
+                        "META-INF/*.DSA",
+                        "META-INF/*.RSA",
+                        "META-INF/services/**",
+                        "**/*.proto",
+                        "**/*.properties",
+                        "DebugProbesKt.bin",
+                        "kotlin-tooling-metadata.json",
+                        "**/*.txt",
+                        "**/*.md",
+                        "**/*.html",
+                        "**/*.css",
+                        "**/*.js",
+                        "**/*.map",
+                        "**/*.bin",
+                        "**/*.dat",
+                        "**/*.cfg",
+                        "**/*.ini",
+                        "**/*.log",
+                        "**/*.tmp",
+                        "**/*.bak",
+                        "**/*.orig",
+                        "**/*.rej",
+                        "**/*.patch",
+                        "**/*.diff",
+                        "**/*.swp",
+                        "**/*.swo",
+                        "**/*.DS_Store",
+                        "**/*.gitignore",
+                        "**/*.gitkeep",
+                        "**/*.gradle",
+                        "**/*.pro",
+                        "**/*.iml",
+                        "**/*.idea/**",
+                        "**/.git/**",
+                        "**/.svn/**",
+                        "**/.hg/**",
+                        "**/.bzr/**",
+                        "**/CVS/**",
+                        "**/Thumbs.db",
+                        "**/*.pyc",
+                        "**/*.pyo",
+                        "**/*.class",
+                        "**/*.jar",
+                        "**/*.war",
+                        "**/*.ear",
+                        "**/*.zip",
+                        "**/*.tar",
+                        "**/*.gz",
+                        "**/*.bz2",
+                        "**/*.7z",
+                        "**/*.rar",
+                        "**/*.iso",
+                        "**/*.dmg",
+                        "**/*.exe",
+                        "**/*.msi",
+                        "**/*.deb",
+                        "**/*.rpm",
+                        "**/*.pkg",
+                        "**/*.apk",
+                        "**/*.ipa",
+                        "**/*.aab"
+                    )
+                }
+                jniLibs {
+                    useLegacyPackaging = false
+                    pickFirsts += setOf(
+                        "**/libc++_shared.so",
+                        "**/libjsc.so"
+                    )
+                }
+            }
         }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
+    
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "11"
+        freeCompilerArgs += listOf(
+            "-opt-in=kotlin.RequiresOptIn",
+            "-Xjvm-default=all",
+            "-Xopt-in=androidx.compose.material3.ExperimentalMaterial3Api"
+        )
     }
+    
     buildFeatures {
         compose = true
         viewBinding = true
+        buildConfig = true
+        
+        // غیرفعال کردن ویژگی‌های غیرضروری برای کاهش حجم
+        aidl = false
+        renderScript = false
+        resValues = false
+        shaders = false
+        dataBinding = false
+        mlModelBinding = false
+        prefab = false
     }
+    
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        kotlinCompilerExtensionVersion = "1.5.15"
     }
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            excludes += "META-INF/DEPENDENCIES"
-            excludes += "META-INF/LICENSE"
-            excludes += "META-INF/LICENSE.txt"
-            excludes += "META-INF/license.txt"
-            excludes += "META-INF/NOTICE"
-            excludes += "META-INF/NOTICE.txt"
-            excludes += "META-INF/notice.txt"
-            excludes += "META-INF/ASL2.0"
+            excludes += setOf(
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE*",
+                "META-INF/license*",
+                "META-INF/NOTICE*",
+                "META-INF/notice*",
+                "META-INF/ASL2.0",
+                "META-INF/*.kotlin_module",
+                "META-INF/*.version",
+                "**/attach_hotspot_windows.dll",
+                "META-INF/services/javax.annotation.processing.Processor"
+            )
+        }
+        
+        // بهینه‌سازی JNI libraries
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
     ndkVersion = "26.1.10909125"
@@ -85,171 +210,115 @@ android {
 }
 
 dependencies {
-    // AndroidX Core
-    implementation("androidx.core:core-ktx:1.13.1")
+    // ==================== Core Library Desugaring ====================
+    coreLibraryDesugaring(libs.desugar.jdk.libs.v215)
+    
+    // ==================== Compose BOM (باید اول باشد) ====================
+    implementation(platform(libs.compose.bom))
 
-    // AndroidX AppCompat
-    implementation("androidx.appcompat:appcompat:1.7.0")
+    // ==================== AndroidX Core Libraries ====================
+    implementation(libs.androidx.core.ktx.v1160)
+    implementation(libs.androidx.appcompat.v171)
+    implementation(libs.androidx.activity.compose.v1101)
+    implementation(libs.androidx.constraintlayout)
 
-    // Material 3
-    implementation("androidx.compose.material3:material3:1.2.1")
+    // ==================== Lifecycle Components ====================
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
-    // Compose UI
-    implementation("androidx.compose.ui:ui:1.6.8")
+    // ==================== Compose UI ====================
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.foundation)
 
-    // AndroidX Material
-    implementation("androidx.compose.material:material:1.6.8")
+    // ==================== Material Design ====================
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.material)
+    implementation(libs.androidx.material.icons.extended)
+    implementation(libs.material)
 
-    // UI Tooling Preview
-    implementation("androidx.compose.ui:ui-tooling-preview:1.6.8")
+    // ==================== Navigation ====================
+    implementation(libs.androidx.navigation.compose.v290)
+    implementation(libs.androidx.navigation.fragment.ktx.v290)
+    implementation(libs.androidx.navigation.ui.ktx.v290)
 
-    // Lifecycle Runtime
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+    // ==================== Camera & ML Kit ====================
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.play.services.mlkit.barcode.scanning)
+    implementation(libs.text.recognition)
 
-    // Activity Compose
-    implementation("androidx.activity:activity-compose:1.9.1")
+    // ==================== Data Storage ====================
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.datastore.core)
 
-    // Coroutines for Android
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    // ==================== Networking ====================
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
 
-    // Retrofit2
-    implementation("com.squareup.retrofit2:retrofit:2.11.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    // ==================== Ktor Client ====================
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.content.negotiation)
 
-    // OkHttp Logging Interceptor
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    // ==================== Coroutines & Serialization ====================
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
 
-    // ConstraintLayout
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    // ==================== Work Manager ====================
+    implementation(libs.androidx.work.runtime.ktx)
 
-    // LiveData KTX
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.4")
+    // ==================== Image Loading ====================
+    implementation(libs.coil.compose.v260)
 
-    // ViewModel KTX
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4")
+    // ==================== Barcode Scanning ====================
+    implementation(libs.zxing.android.embedded)
 
-    // Navigation Fragment KTX
-    implementation("androidx.navigation:navigation-fragment-ktx:2.7.7")
+    // ==================== Animation & UI Effects ====================
+    implementation(libs.lottie.compose)
+    implementation(libs.konfetti.compose)
 
-    // Navigation UI KTX
-    implementation("androidx.navigation:navigation-ui-ktx:2.7.7")
+    // ==================== Charts & Visualization ====================
+    implementation(libs.core)
 
-    // Activity
-    implementation("androidx.activity:activity:1.9.1")
+    // ==================== Document Processing ====================
+    implementation(libs.itextpdf)
+    implementation(libs.poi)
+    implementation(libs.poi.ooxml)
+    implementation(libs.jxl)
 
-    // Material 3 for Android
-    implementation("androidx.compose.material3:material3-android:1.2.1")
+    // ==================== Internationalization ====================
+    implementation(libs.icu4j)
 
-    // Compose BOM
-    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
+    // ==================== JSON Processing ====================
+    implementation(libs.json)
 
-    // Compose Graphics
-    implementation("androidx.compose.ui:ui-graphics:1.6.8")
+    // ==================== TensorFlow Lite & AI ====================
+    //noinspection Aligned16KB
+    implementation(libs.tensorflow.lite)
+    //noinspection Aligned16KB
+    implementation(libs.tensorflow.lite.gpu)
+    implementation(libs.tensorflow.lite.support)
+    //noinspection Aligned16KB
+    implementation(libs.tensorflow.lite.task.vision)
+    //noinspection Aligned16KB
+    implementation(libs.tensorflow.lite.task.text)
 
-    // Compose Material
-    implementation("androidx.compose.material:material:1.3.1")
+    // ==================== MediaPipe ====================
+    implementation(libs.tasks.vision.v01021)
 
-    // DataStore Core
-    implementation("androidx.datastore:datastore-core-android:1.1.1")
+    // ==================== Testing ====================
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.espresso.core)
+    androidTestImplementation(libs.androidx.ui.test.junit4)
 
-    // DataStore Preferences
-    implementation("androidx.datastore:datastore-preferences-core-jvm:1.1.1")
-
-    // Material
-    implementation("com.google.android.material:material:1.4.0")
-
-    // Camera View
-    implementation("androidx.camera:camera-view:1.3.4")
-
-    // ML Kit Barcode Scanning
-    implementation("com.google.android.gms:play-services-mlkit-barcode-scanning:18.3.1")
-
-    // Camera Lifecycle
-    implementation("androidx.camera:camera-lifecycle:1.3.4")
-
-    // Testing
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.6.8")
-
-    // Debugging Tools
-    debugImplementation("androidx.compose.ui:ui-tooling:1.6.8")
-    debugImplementation("androidx.compose.ui:ui-test-manifest:1.6.8")
-
-    // Navigation Compose
-    implementation("androidx.navigation:navigation-compose:2.7.7")
-
-    // Foundation
-    implementation("androidx.compose.foundation:foundation:1.6.8")
-
-    // Coil Compose
-    implementation("io.coil-kt:coil-compose:2.6.0")
-
-    // JSON
-    implementation("org.json:json:20240303")
-
-    // Ktor
-    implementation("io.ktor:ktor-client-core:2.3.12")
-    implementation("io.ktor:ktor-client-cio:2.3.12")
-    implementation("io.ktor:ktor-client-serialization:2.3.12")
-    implementation("io.ktor:ktor-client-content-negotiation:2.3.12")
-
-    // Serialization JSON
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
-
-    // Material Icons Extended
-    implementation("androidx.compose.material:material-icons-extended:1.6.8")
-
-    // JXL
-    implementation("net.sourceforge.jexcelapi:jxl:2.6.12")
-
-    // ZXing Barcode
-    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
-
-    // OkHttp
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
-    // Work Runtime KTX
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
-
-    // Lottie Compose
-    implementation("com.airbnb.android:lottie-compose:6.4.1")
-
-    // iTextPDF
-    implementation("com.itextpdf:itextpdf:5.5.13.2")
-
-    // Apache POI
-    implementation("org.apache.poi:poi:5.3.0")
-    implementation("org.apache.poi:poi-ooxml:5.3.0")
-
-    // ICU4J
-    implementation("com.ibm.icu:icu4j:70.1")
-
-    // Text Recognition
-    implementation("com.google.mlkit:text-recognition:16.0.1")
-
-    // Konfetti Compose
-    implementation("nl.dionsegijn:konfetti-compose:2.0.2")
-
-    // Camera 2
-    implementation("androidx.camera:camera-camera2:1.3.4")
-    implementation("androidx.camera:camera-lifecycle:1.3.4")
-    implementation("androidx.camera:camera-view:1.3.4")
-
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-    implementation("androidx.datastore:datastore-core:1.0.0")
-    implementation("com.patrykandpatrick.vico:core:1.7.3")
-
-    // TensorFlow Lite برای پردازش لوکال
-    implementation("org.tensorflow:tensorflow-lite:2.14.0")
-    implementation("org.tensorflow:tensorflow-lite-gpu:2.14.0")
-    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
-
-    // TensorFlow Lite Task Vision برای OCR
-    implementation("org.tensorflow:tensorflow-lite-task-vision:0.4.4")
-    implementation("org.tensorflow:tensorflow-lite-task-text:0.4.4")
-
-    // MediaPipe برای پردازش تصویر پیشرفته
-    implementation("com.google.mediapipe:tasks-vision:0.10.8")
+    // ==================== Debug Tools ====================
+    debugImplementation(libs.androidx.ui.tooling)
+    debugImplementation(libs.androidx.ui.test.manifest)
 }
