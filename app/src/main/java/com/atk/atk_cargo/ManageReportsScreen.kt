@@ -138,7 +138,6 @@ import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -160,7 +159,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Shapes
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -168,10 +166,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerState
-import androidx.compose.material3.Typography
 import androidx.compose.material3.VerticalDivider
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -204,6 +199,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -218,7 +214,6 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.atk.atk_cargo.api.AppColors
 import com.atk.atk_cargo.api.CalculationResult
 import com.atk.atk_cargo.api.CargoInfo
 import com.atk.atk_cargo.api.CargoOwnerData
@@ -249,6 +244,7 @@ import com.atk.atk_cargo.api.WarningStatus
 import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.api.toTon
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.atk.atk_cargo.ui.theme.getCompletionColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
@@ -259,55 +255,6 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
-
-@Composable
-fun ATKCargoTheme(
-	darkTheme: Boolean = isSystemInDarkTheme(),
-	content: @Composable () -> Unit
-) {
-	val colors = if (darkTheme) {
-		darkColorScheme(
-			primary = AppColors.DarkPrimary,
-			onPrimary = AppColors.DarkOnPrimary,
-			primaryContainer = AppColors.DarkPrimaryContainer,
-			onPrimaryContainer = AppColors.DarkOnPrimaryContainer,
-			secondary = AppColors.DarkSecondary,
-			onSecondary = AppColors.DarkOnSecondary,
-			secondaryContainer = AppColors.DarkSecondaryContainer,
-			onSecondaryContainer = AppColors.DarkOnSecondaryContainer,
-			background = AppColors.DarkBackground,
-			onBackground = AppColors.DarkOnBackground,
-			surface = AppColors.DarkSurface,
-			onSurface = AppColors.DarkOnSurface,
-			error = AppColors.DarkError,
-			onError = AppColors.DarkOnError
-		)
-	} else {
-		lightColorScheme(
-			primary = AppColors.LightPrimary,
-			onPrimary = AppColors.LightOnPrimary,
-			primaryContainer = AppColors.LightPrimaryContainer,
-			onPrimaryContainer = AppColors.LightOnPrimaryContainer,
-			secondary = AppColors.LightSecondary,
-			onSecondary = AppColors.LightOnSecondary,
-			secondaryContainer = AppColors.LightSecondaryContainer,
-			onSecondaryContainer = AppColors.LightOnSecondaryContainer,
-			background = AppColors.LightBackground,
-			onBackground = AppColors.LightOnBackground,
-			surface = AppColors.LightSurface,
-			onSurface = AppColors.LightOnSurface,
-			error = AppColors.LightError,
-			onError = AppColors.LightOnError
-		)
-	}
-
-	MaterialTheme(
-		colorScheme = colors,
-		typography = Typography(),
-		shapes = Shapes(),
-		content = content
-	)
-}
 
 @Composable
 fun ManageReportsScreen(viewModel: ReportsViewModel) {
@@ -329,7 +276,8 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 	val currentShipName by viewModel.selectedShip.collectAsState()
 	val loadingError by viewModel.loadingError.collectAsState()
 
-	ATKCargoTheme {
+	ATKCargoTheme(darkTheme = isSystemInDarkTheme()) {
+		CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
 		Scaffold { innerPadding ->
 			NavHost(
 				navController = navController,
@@ -342,7 +290,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 					currentSelectedSection = 0
 					viewModel.clearSelectedDateRange()
 				}
-				
+
 				ShipsList(
 					viewModel = viewModel,
 					onShipSelected = { shipName ->
@@ -382,6 +330,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 			}
 		}
 	}
+		}
 
 	if (showQuotasDialog && selectedShipForQuotas != null) {
 		QuotasDialog(
@@ -660,7 +609,7 @@ fun ShipSection(
 					.clip(RoundedCornerShape(8.dp))
 					.clickable(
 						interactionSource = remember { MutableInteractionSource() },
-						indication = rememberRipple(bounded = true, color = mainColor),
+						indication = null,
 						onClick = onExpandChange
 					)
 					.padding(vertical = 8.dp, horizontal = 4.dp),
@@ -809,7 +758,7 @@ private fun TonnageInfo(ships: List<Ship>) {
 					icon = Icons.Default.Inventory,
 					label = "بارگیری",
 					value = formatNumber(loadedTonnage.toInt()),
-					color = MaterialTheme.colorScheme.secondary
+					color = MaterialTheme.colorScheme.onPrimary
 				)
 			}
 		}
@@ -888,7 +837,7 @@ fun ShipCard(
 			.clip(RoundedCornerShape(10.dp))
 			.clickable(
 				interactionSource = remember { MutableInteractionSource() },
-				indication = rememberRipple(bounded = true),
+				indication = null,
 				onClick = onExpandToggle
 			),
 		colors = CardDefaults.cardColors(
@@ -3315,7 +3264,7 @@ private fun EnhancedIconButton(
 			.clickable(
 				enabled = enabled,
 				interactionSource = interactionSource,
-				indication = rememberRipple(bounded = false),
+				indication = null,
 				onClick = onClick
 			),
 		contentAlignment = Alignment.Center
@@ -5823,8 +5772,7 @@ fun QuotasDialog(
 	ModalBottomSheet(
 		onDismissRequest = onDismiss,
 		sheetState = sheetState,
-		containerColor = MaterialTheme.colorScheme.surface,
-		windowInsets = WindowInsets(0)
+		containerColor = MaterialTheme.colorScheme.surface
 	) {
 		Box(modifier = Modifier.fillMaxSize()) {
 			Column(
@@ -6517,7 +6465,7 @@ fun EditQuotaDialog(
 						trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
 						modifier = Modifier
 							.fillMaxWidth()
-							.menuAnchor()
+							.menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
 					)
 					ExposedDropdownMenu(
 						expanded = expanded,
@@ -6756,8 +6704,7 @@ fun RealTimeLoadingBottomSheet(
 	if (isOpen) {
 		ModalBottomSheet(
 			onDismissRequest = onDismiss,
-			sheetState = rememberModalBottomSheetState(),
-			windowInsets = WindowInsets(0)
+			sheetState = rememberModalBottomSheetState()
 		) {
 			Box(modifier = Modifier.fillMaxSize()) {
 				Column(
@@ -7866,10 +7813,7 @@ fun FloatingActionButton(
 					.alpha(alpha)
 					.clickable(
 						interactionSource = remember { MutableInteractionSource() },
-						indication = rememberRipple(
-							bounded = false,
-							radius = 32.dp
-						)
+						indication = null
 					) { expandedFab = !expandedFab }
 					.pointerInput(Unit) {
 						awaitPointerEventScope {
@@ -8024,10 +7968,7 @@ private fun MiniFab(
 				.hoverable(interactionSource)
 				.clickable(
 					interactionSource = interactionSource,
-					indication = rememberRipple(
-						bounded = false,
-						radius = 28.dp
-					)
+					indication = null
 				) {
 					item.onClick()
 					onDismiss()

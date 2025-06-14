@@ -3375,86 +3375,54 @@ fun adjustColorForTheme(color: Color, isDarkTheme: Boolean): Color {
     return Color(ColorUtils.HSLToColor(hsl))
 }
 
-object AppColors {
-    // Light Theme Colors
-    val LightPrimary = Color(0xFF6200EE)
-    val LightOnPrimary = Color.White
-    val LightPrimaryContainer = Color(0xFFE8DEF8)
-    val LightOnPrimaryContainer = Color(0xFF21005D)
-    val LightSecondary = Color(0xFF089C8F)
-    val LightOnSecondary = Color.Black
-    val LightSecondaryContainer = Color(0xFF56E7E1)
-    val LightOnSecondaryContainer = Color(0xFF00504D)
-    val LightBackground = Color(0xFFF3F3F3)
-    val LightOnBackground = Color(0xFF1C1B1F)
-    val LightSurface = Color.White
-    val LightOnSurface = Color(0xFF1C1B1F)
-    val LightError = Color(0xFFE9153B)
-    val LightOnError = Color.White
-
-    // Dark Theme Colors
-    val DarkPrimary = Color(0xFFBB86FC)
-    val DarkOnPrimary = Color.Black
-    val DarkPrimaryContainer = Color(0xFF4F378B)
-    val DarkOnPrimaryContainer = Color(0xFFE8DEF8)
-    val DarkSecondary = Color(0xFF03DAC6)
-    val DarkOnSecondary = Color.Black
-    val DarkSecondaryContainer = Color(0xFF00504D)
-    val DarkOnSecondaryContainer = Color(0xFFCEFAF8)
-    val DarkBackground = Color(0xFF121212)
-    val DarkOnBackground = Color(0xFFE3E3E3)
-    val DarkSurface = Color(0xFF1E1E1E)
-    val DarkOnSurface = Color(0xFFE3E3E3)
-    val DarkError = Color(0xFFCF6679)
-    val DarkOnError = Color.Black
-}
-
 val cardColors = listOf(
-    Color(0xFFD50000), // Red
-    Color(0xFF4CAF50), // Green
-    Color(0xFF2196F3), // Blue
-    Color(0xFFE91E63), // Pink
-    Color(0xFF00BCD4), // Cyan
-    Color(0xFF9C27B0), // Purple
-    Color(0xFF009688), // Teal
-    Color(0xFF795548), // Brown
-    Color(0xFF673AB7), // Deep Purple
-    Color(0xFF009688), // Dark Teal
-    Color(0xFFF4511E), // Deep Orange
-    Color(0xFF512DA8), // Deep Purple
-    Color(0xFF1976D2), // Deep Blue
-    Color(0xFFD32F2F), // Dark Red
-    Color(0xFF388E3C), // Dark Green
-    Color(0xFF0097A7), // Dark Cyan
-    Color(0xFFC2185B), // Dark Pink
-    Color(0xFF7B1FA2), // Dark Purple
-    Color(0xFF303F9F), // Deep Indigo
-    Color(0xFF689F38), // Olive Green
-    Color(0xFF00695C), // Very Dark Teal
-    Color(0xFF827717), // Dark Yellow
-    Color(0xFF6A1B9A),  // Deep Purple
+    // رنگ‌های بهینه شده برای تم روشن و تیره
+    Color(0xFFEF5350), // Red 400 - ملایم‌تر از قرمز تند
+    Color(0xFF66BB6A), // Green 400 - سبز متعادل
+    Color(0xFF42A5F5), // Blue 400 - آبی ملایم
+    Color(0xFFEC407A), // Pink 400 - صورتی متعادل
+    Color(0xFF26C6DA), // Cyan 400 - فیروزه‌ای ملایم
+    Color(0xFFAB47BC), // Purple 400 - بنفش متعادل
+    Color(0xFF26A69A), // Teal 400 - سبز دریایی ملایم
+    Color(0xFF8D6E63), // Brown 400 - قهوه‌ای ملایم
+    Color(0xFF7E57C2), // Deep Purple 400 - بنفش عمیق ملایم
+    Color(0xFF29B6F6), // Light Blue 400 - آبی روشن
+    Color(0xFFFF7043), // Deep Orange 400 - نارنجی ملایم
+    Color(0xFF9CCC65), // Light Green 400 - سبز روشن
+    Color(0xFF5C6BC0), // Indigo 400 - نیلی ملایم
+    Color(0xFFFFCA28), // Amber 400 - زرد کهربایی
+    Color(0xFF78909C), // Blue Grey 400 - خاکستری آبی
+    Color(0xFFA1887F), // Brown 300 - قهوه‌ای روشن
+    Color(0xFFE57373), // Red 300 - قرمز روشن
+    Color(0xFF81C784), // Green 300 - سبز روشن
+    Color(0xFF64B5F6), // Blue 300 - آبی روشن
+    Color(0xFFF06292), // Pink 300 - صورتی روشن
+    Color(0xFF4DD0E1), // Cyan 300 - فیروزه‌ای روشن
+    Color(0xFFBA68C8), // Purple 300 - بنفش روشن
+    Color(0xFF4DB6AC), // Teal 300 - سبز دریایی روشن
+    Color(0xFFA5A5A5), // Grey 400 - خاکستری متعادل
     
-    // رنگ های جدید اضافه شده
-    Color(0xFF00897B), // Teal 600
-    Color(0xFF8BC34A), // Light Green
-    Color(0xFFFF5722), // Deep Orange
-    Color(0xFF5D4037), // Brown 700
-    Color(0xFF00796B), // Teal 700
-    Color(0xFF3F51B5), // Indigo
-    Color(0xFFFF8F00), // Amber 800
-    Color(0xFF558B2F), // Light Green 800
-    Color(0xFF283593), // Indigo 800
-    Color(0xFF1565C0), // Blue 800
-    Color(0xFF6200EA), // Deep Purple A700
-    Color(0xFF2962FF), // Blue A700
-    Color(0xFF00B8D4), // Cyan A700
-    Color(0xFF00C853), // Green A700
-    Color(0xFF4A148C), // Purple 900
-    Color(0xFFFF6F00), // Amber 900
-    Color(0xFF33691E), // Light Green 900
-    Color(0xFFFFA000), // Orange 700
-    Color(0xFF039BE5), // Light Blue 600
-    Color(0xFFBF360C)  // Deep Orange 900
+    // رنگ‌های تکمیلی بهینه شده
+    Color(0xFF90CAF9), // Blue 200 - آبی خیلی ملایم
+    Color(0xFFA5D6A7), // Green 200 - سبز خیلی ملایم
+    Color(0xFFFFAB91), // Deep Orange 200 - نارنجی ملایم
+    Color(0xFFCE93D8), // Purple 200 - بنفش ملایم
+    Color(0xFF80DEEA), // Cyan 200 - فیروزه‌ای ملایم
+    Color(0xFFFFF59D), // Yellow 200 - زرد ملایم
+    Color(0xFFBCAAA4), // Brown 200 - قهوه‌ای ملایم
+    Color(0xFFB39DDB), // Deep Purple 200 - بنفش عمیق ملایم
+    Color(0xFF81D4FA), // Light Blue 200 - آبی روشن ملایم
+    Color(0xFFC5E1A5), // Light Green 200 - سبز روشن ملایم
+    Color(0xFF9FA8DA), // Indigo 200 - نیلی ملایم
+    Color(0xFFFFE082), // Amber 200 - کهربایی ملایم
+    Color(0xFFB0BEC5), // Blue Grey 200 - خاکستری آبی ملایم
+    Color(0xFFD7CCC8), // Brown 100 - قهوه‌ای خیلی ملایم
+    Color(0xFFFFCDD2), // Red 100 - قرمز خیلی ملایم
+    Color(0xFFC8E6C9), // Green 100 - سبز خیلی ملایم
+    Color(0xFFBBDEFB), // Blue 100 - آبی خیلی ملایم
+    Color(0xFFF8BBD9), // Pink 100 - صورتی خیلی ملایم
+    Color(0xFFB2EBF2), // Cyan 100 - فیروزه‌ای خیلی ملایم
+    Color(0xFFE1BEE7)  // Purple 100 - بنفش خیلی ملایم
 )
 
 fun Float.toTon(): Int = (this / 1000).toInt()
