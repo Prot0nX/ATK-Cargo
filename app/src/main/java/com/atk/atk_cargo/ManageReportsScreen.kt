@@ -2223,7 +2223,7 @@ private fun SortingModeButton(
 			Spacer(modifier = Modifier.width(4.dp))
 			Text(
 				text = text,
-				style = MaterialTheme.typography.labelSmall,
+				style = MaterialTheme.typography.labelMedium,
 				color = contentColor,
 				fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
 			)
