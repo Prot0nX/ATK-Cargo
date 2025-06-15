@@ -498,7 +498,7 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
 				.padding(horizontal = 16.dp, vertical = 8.dp)
 		) {
 			// فیلد جستجو
-			ModernSearchField(
+			SearchField(
 				searchQuery = searchTerm,
 				onSearchQueryChange = { searchTerm = it }
 			)
@@ -681,7 +681,7 @@ fun ShipsTabContent(
 			contentPadding = PaddingValues(vertical = 4.dp)
 		) {
 			items(ships) { ship ->
-				ModernShipCard(
+				ShipCard(
 					ship = ship,
 					isActive = isActive,
 					onClick = { onShipSelected(ship.name) }
@@ -722,7 +722,7 @@ fun EmptyShipsState(
 }
 
 @Composable
-fun ModernShipCard(
+fun ShipCard(
 	ship: Ship,
 	isActive: Boolean,
 	onClick: () -> Unit,
@@ -1050,7 +1050,6 @@ fun CompactInfoItem(
 	}
 }
 
-// تابع مرتب‌سازی کشتی‌ها
 fun sortShips(ships: List<Ship>, sortingMode: ShipSortingMode): List<Ship> {
 	return when (sortingMode) {
 		ShipSortingMode.REMAINING_TONNAGE_ASC -> ships.sortedBy { it.remainingTonnage }
@@ -1896,7 +1895,7 @@ fun WarehousesAndQuotasTab(
 		) {
 			// فیلد جستجو - طراحی مینیمال و بهینه
 			Spacer(modifier = Modifier.height(8.dp))
-			ModernSearchField(
+			SearchField(
 				searchQuery = searchQuery,
 				onSearchQueryChange = { searchQuery = it },
 				modifier = Modifier.fillMaxWidth()
@@ -1905,7 +1904,7 @@ fun WarehousesAndQuotasTab(
 			Spacer(modifier = Modifier.height(8.dp))
 
 			// تب‌های دسته‌بندی
-			ModernSegmentedTabs(
+			SegmentedTabs(
 				selectedTabIndex = selectedSection,
 				onTabSelected = { index ->
 					selectedSection = index
@@ -2135,7 +2134,7 @@ private fun HeaderStatItem(
 }
 
 @Composable
-private fun ModernSegmentedTabs(
+private fun SegmentedTabs(
 	selectedTabIndex: Int,
 	onTabSelected: (Int) -> Unit,
 	tabs: List<String>
@@ -4808,7 +4807,7 @@ fun DateTimePicker(
 	// دیالوگ انتخاب زمان
 	if (showTimePicker) {
 		val timePickerState = rememberTimePickerState()
-		ModernTimePickerDialog(
+		TimePickerDialog(
 			onCancel = { showTimePicker = false },
 			onConfirm = {
 				tempTime = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)
@@ -4867,7 +4866,7 @@ fun PersianDateItem(
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ModernTimePickerDialog(
+fun TimePickerDialog(
 	onCancel: () -> Unit,
 	onConfirm: () -> Unit,
 	timePickerState: TimePickerState
@@ -5007,14 +5006,12 @@ fun ModernTimePickerDialog(
 	}
 }
 
-// تبدیل تاریخ میلادی به قالب شمسی بهتر
 fun persianDateFormat(dateString: String): String {
 	// این تابع می‌تواند با کد واقعی تبدیل تاریخ جایگزین شود
 	// در اینجا فقط قالب نمایش تاریخ را بهبود می‌دهیم
 	return dateString
 }
 
-// تبدیل تاریخ و زمان به قالب شمسی بهتر
 fun persianDateTimeFormat(dateTimeString: String): String {
 	// این تابع می‌تواند با کد واقعی تبدیل تاریخ و زمان جایگزین شود
 	val parts = dateTimeString.split(" ")
@@ -5096,7 +5093,7 @@ fun WarehouseMainCard(warehouseName: String, shipName: String) {
 				horizontalArrangement = Arrangement.spacedBy(12.dp)
 			) {
 				// کارت کشتی - طراحی افقی و مینیمال
-				MinimalInfoCard(
+				InfoCard(
 					icon = Icons.Default.DirectionsBoat,
 					title = "کشتی",
 					value = shipName,
@@ -5105,7 +5102,7 @@ fun WarehouseMainCard(warehouseName: String, shipName: String) {
 				)
 
 				// کارت انبار - طراحی افقی و مینیمال
-				MinimalInfoCard(
+				InfoCard(
 					icon = Icons.Default.Store,
 					title = "انبار",
 					value = warehouseName,
@@ -5118,7 +5115,7 @@ fun WarehouseMainCard(warehouseName: String, shipName: String) {
 }
 
 @Composable
-fun MinimalInfoCard(
+fun InfoCard(
 	icon: ImageVector,
 	title: String,
 	value: String,
@@ -5251,7 +5248,7 @@ fun QuotaSelector(
 					contentPadding = PaddingValues(vertical = 4.dp)
 				) {
 					items(quotas) { quota ->
-						MinimalQuotaChip(
+						QuotaChip(
 							quota = quota,
 							isSelected = selectedQuota == quota.number,
 							onSelect = { onQuotaSelected(quota) }
@@ -5264,7 +5261,7 @@ fun QuotaSelector(
 }
 
 @Composable
-fun MinimalQuotaChip(
+fun QuotaChip(
 	quota: Quota,
 	isSelected: Boolean,
 	onSelect: () -> Unit
@@ -5656,7 +5653,7 @@ fun VoucherDetailsDialog(
 						contentPadding = PaddingValues(bottom = 16.dp, top = 4.dp)
 					) {
 						items(filteredVoucherDetails) { voucher ->
-							ModernVoucherItem(voucher)
+							VoucherItem(voucher)
 						}
 					}
 				}
@@ -5701,7 +5698,7 @@ fun VoucherSearchAndFilter(
 					modifier = Modifier.fillMaxWidth()
 				) {
 					listOf(VoucherSortType.DATE_DESC, VoucherSortType.DATE_ASC).forEach { sortOption ->
-						MinimalSortChip(
+						SortChip(
 							type = sortOption,
 							isSelected = sortType == sortOption,
 							onClick = { onSortTypeChange(sortOption) },
@@ -5716,7 +5713,7 @@ fun VoucherSearchAndFilter(
 					modifier = Modifier.fillMaxWidth()
 				) {
 					listOf(VoucherSortType.WEIGHT_DESC, VoucherSortType.WEIGHT_ASC).forEach { sortOption ->
-						MinimalSortChip(
+						SortChip(
 							type = sortOption,
 							isSelected = sortType == sortOption,
 							onClick = { onSortTypeChange(sortOption) },
@@ -5860,7 +5857,7 @@ fun EmptyVoucherList() {
 }
 
 @Composable
-fun ModernVoucherItem(voucher: VoucherDetail) {
+fun VoucherItem(voucher: VoucherDetail) {
 	var expanded by remember { mutableStateOf(false) }
 	val rotationState by animateFloatAsState(
 		targetValue = if (expanded) 180f else 0f,
@@ -5991,7 +5988,7 @@ fun ModernVoucherItem(voucher: VoucherDetail) {
 					)
 
 					// اطلاعات بیشتر با طراحی جدید
-					MinimalVoucherDetails(voucher)
+					VoucherDetails(voucher)
 				}
 			}
 		}
@@ -6015,7 +6012,7 @@ fun StatusIndicator(isConfirmed: Boolean) {
 }
 
 @Composable
-fun MinimalVoucherDetails(voucher: VoucherDetail) {
+fun VoucherDetails(voucher: VoucherDetail) {
 	Column(
 		verticalArrangement = Arrangement.spacedBy(16.dp),
 		modifier = Modifier.padding(vertical = 4.dp, horizontal = 4.dp)
@@ -6182,7 +6179,7 @@ enum class VoucherSortType(val persianName: String) {
 }
 
 @Composable
-fun MinimalSortChip(
+fun SortChip(
 	type: VoucherSortType,
 	isSelected: Boolean,
 	onClick: () -> Unit,
@@ -7315,7 +7312,7 @@ fun RealTimeLoadingBottomSheet(
 						Spacer(modifier = Modifier.height(8.dp))
 
 						// فیلد جستجو - طراحی مینیمال و بهینه
-						ModernSearchField(
+						SearchField(
 							searchQuery = searchQuery,
 							onSearchQueryChange = { searchQuery = it },
 							modifier = Modifier.fillMaxWidth()
@@ -8080,7 +8077,7 @@ fun StatisticItem(
 				horizontalArrangement = Arrangement.spacedBy(8.dp)
 			) {
 				// کل قبض‌ها
-				CompactStatCounter(
+				StatCounter(
 					value = animatedTotalVouchers,
 					label = "کل",
 					icon = Icons.Default.Description,
@@ -8095,7 +8092,7 @@ fun StatisticItem(
 				)
 
 				// ورودی
-				CompactStatCounter(
+				StatCounter(
 					value = animatedEntryVouchers,
 					label = "ورودی",
 					icon = Icons.Default.ArrowDownward,
@@ -8110,7 +8107,7 @@ fun StatisticItem(
 				)
 
 				// خروجی
-				CompactStatCounter(
+				StatCounter(
 					value = animatedExitVouchers,
 					label = "خروجی",
 					icon = Icons.Default.ArrowUpward,
@@ -8129,7 +8126,7 @@ fun StatisticItem(
 			) {
 
 				// وزن کل
-				CompactStatCounter(
+				StatCounter(
 					value = animatedTotalWeight.toInt(),
 					label = "وزن کل",
 					icon = Icons.Default.Scale,
@@ -8142,7 +8139,7 @@ fun StatisticItem(
 }
 
 @Composable
-private fun CompactStatCounter(
+private fun StatCounter(
 	value: Int,
 	label: String,
 	icon: ImageVector,
@@ -9153,7 +9150,7 @@ fun ComprehensiveAnalyticsDialog(
 						Spacer(modifier = Modifier.height(8.dp))
 
 						// نوار تب‌ها
-						ModernAnalyticsTabRow(
+						AnalyticsTabRow(
 							selectedTab = selectedTab,
 							onTabSelected = { selectedTab = it }
 						)
@@ -9276,7 +9273,7 @@ fun CargoOwnerAnalysis(
 			.padding(horizontal = 4.dp)
 	) {
 		// فیلد جستجو - طراحی مینیمال
-		ModernSearchField(
+		SearchField(
 			searchQuery = searchQuery,
 			onSearchQueryChange = { searchQuery = it },
 			modifier = Modifier.fillMaxWidth(),
@@ -9295,7 +9292,7 @@ fun CargoOwnerAnalysis(
 				items = filteredShips,
 				key = { it.shipName }
 			) { shipData ->
-				ModernShipCard(
+				ShipCard(
 					shipData = shipData,
 					isExpanded = expandedShipId == shipData.shipName,
 					onExpandChange = { shouldExpand ->
@@ -9308,7 +9305,7 @@ fun CargoOwnerAnalysis(
 }
 
 @Composable
-private fun ModernShipCard(
+private fun ShipCard(
 	shipData: CargoOwnerData,
 	isExpanded: Boolean,
 	onExpandChange: (Boolean) -> Unit,
@@ -9444,7 +9441,7 @@ private fun ModernShipCard(
 
 					// لیست صاحبان کالا
 					shipData.owners.sortedByDescending { it.net_weight }.forEach { ownerData ->
-						ModernCargoOwnerDetailsCard(ownerData = ownerData, color = animateColor)
+						CargoOwnerDetailsCard(ownerData = ownerData, color = animateColor)
 					}
 				}
 			}
@@ -9453,7 +9450,7 @@ private fun ModernShipCard(
 }
 
 @Composable
-private fun ModernCargoOwnerDetailsCard(
+private fun CargoOwnerDetailsCard(
 	ownerData: CargoOwnerDetailsData,
 	color: Color,
 	modifier: Modifier = Modifier
@@ -9621,7 +9618,7 @@ private fun AnalyticsHeaderCard(
 }
 
 @Composable
-private fun ModernAnalyticsTabRow(
+private fun AnalyticsTabRow(
 	selectedTab: AnalyticsTabType,
 	onTabSelected: (AnalyticsTabType) -> Unit,
 	modifier: Modifier = Modifier
@@ -9715,7 +9712,7 @@ fun PeakHoursAnalysis(
 			items = shiftData,
 			key = { it.shift }
 		) { shift ->
-			ModernShiftCard(
+			ShiftCard(
 				shift = shift,
 				isDay = shift.shift == "روز",
 				isExpanded = expandedShiftId == shift.shift,
@@ -9728,7 +9725,7 @@ fun PeakHoursAnalysis(
 }
 
 @Composable
-private fun ModernShiftCard(
+private fun ShiftCard(
 	shift: ShiftPerformanceData,
 	isDay: Boolean,
 	isExpanded: Boolean,
@@ -10303,7 +10300,7 @@ private fun ChipText(
 }
 
 @Composable
-private fun ModernSearchField(
+private fun SearchField(
 	searchQuery: String,
 	onSearchQueryChange: (String) -> Unit,
 	modifier: Modifier = Modifier.fillMaxWidth(),
@@ -11000,13 +10997,13 @@ fun CarrierAnalysis(
 			items = carrierPerformanceData.sortedByDescending { it.quality_score },
 			key = { it.shippingCompany }
 		) { carrier ->
-			ModernCarrierCard(carrier = carrier)
+			CarrierCard(carrier = carrier)
 		}
 	}
 }
 
 @Composable
-private fun ModernCarrierCard(
+private fun CarrierCard(
 	carrier: CarrierPerformanceAnalysis,
 	modifier: Modifier = Modifier
 ) {
