@@ -153,6 +153,10 @@ class CargoViewModel(
     private val _groupSortingMode = MutableStateFlow(GroupSortingMode.REMAINING_TONNAGE_ASC)
     val groupSortingMode: StateFlow<GroupSortingMode> = _groupSortingMode.asStateFlow()
     
+    // متغیرهای مربوط به مرتب‌سازی کشتی‌ها
+    private val _shipSortingMode = MutableStateFlow(ShipSortingMode.REMAINING_TONNAGE_ASC)
+    val shipSortingMode: StateFlow<ShipSortingMode> = _shipSortingMode.asStateFlow()
+    
     private val _cachedTrackingNumbers = MutableStateFlow<Set<String>>(emptySet())
     val cachedTrackingNumbers: StateFlow<Set<String>> = _cachedTrackingNumbers.asStateFlow()
     
@@ -1425,6 +1429,10 @@ class ReportsViewModel(
     private val _groupSortingMode = MutableStateFlow(GroupSortingMode.REMAINING_TONNAGE_ASC)
     val groupSortingMode: StateFlow<GroupSortingMode> = _groupSortingMode.asStateFlow()
     
+    // متغیرهای مربوط به مرتب‌سازی کشتی‌ها
+    private val _shipSortingMode = MutableStateFlow(ShipSortingMode.REMAINING_TONNAGE_ASC)
+    val shipSortingMode: StateFlow<ShipSortingMode> = _shipSortingMode.asStateFlow()
+    
 
     // تابع تغییر حالت گروه‌بندی
     fun setGroupingMode(mode: QuotaGroupingMode) {
@@ -2271,6 +2279,10 @@ class ReportsViewModel(
     
     fun setGroupSortingMode(mode: GroupSortingMode) {
         _groupSortingMode.value = mode
+    }
+    
+    fun setShipSortingMode(mode: ShipSortingMode) {
+        _shipSortingMode.value = mode
     }
 
     fun shareRealTimeLoadingData(loadingData: List<RealTimeLoadingData>, shiftInfo: ShiftInfo?): String {
@@ -3692,6 +3704,15 @@ enum class GroupSortingMode {
     ALPHABETICAL,
     REMAINING_TONNAGE_ASC,
     REMAINING_TONNAGE_DESC
+}
+
+enum class ShipSortingMode {
+    REMAINING_TONNAGE_ASC,
+    REMAINING_TONNAGE_DESC,
+    LOADED_TONNAGE_ASC,
+    LOADED_TONNAGE_DESC,
+    NAME_ASC,
+    NAME_DESC
 }
 
 data class CargoOwnerAnalysis(
