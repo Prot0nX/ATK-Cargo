@@ -154,6 +154,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -199,7 +200,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -235,7 +235,7 @@ import com.atk.atk_cargo.api.ReportsViewModel
 import com.atk.atk_cargo.api.ShiftInfo
 import com.atk.atk_cargo.api.ShiftPerformanceData
 import com.atk.atk_cargo.api.Ship
-import com.atk.atk_cargo.api.ShipSection
+import com.atk.atk_cargo.api.ShipSortingMode
 import com.atk.atk_cargo.api.VoucherDetail
 import com.atk.atk_cargo.api.Warehouse
 import com.atk.atk_cargo.api.WarehouseEfficiencyData
@@ -462,24 +462,28 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
 	val shipsData by viewModel.ships.collectAsState()
 	var searchTerm by remember { mutableStateOf("") }
-	var expandedSection by rememberSaveable { mutableStateOf(ShipSection.ACTIVE) }
+	var selectedTabIndex by remember { mutableIntStateOf(0) }
 	val realTimeLoadingData by viewModel.realTimeLoadingData.collectAsState()
 	var showRealTimeDialog by remember { mutableStateOf(false) }
 	val shiftInfo by viewModel.shiftInfo.collectAsState()
 	val isDarkTheme = isSystemInDarkTheme()
 	val defaultColor = MaterialTheme.colorScheme.primary
-	val filteredActiveShips by remember(shipsData.activeShips, searchTerm) {
+	val currentShipSortingMode by viewModel.shipSortingMode.collectAsState()
+	
+	val filteredActiveShips by remember(shipsData.activeShips, searchTerm, currentShipSortingMode) {
 		derivedStateOf {
-			shipsData.activeShips.filter {
+			val filtered = shipsData.activeShips.filter {
 				it.name.contains(searchTerm, ignoreCase = true)
 			}
+			sortShips(filtered, currentShipSortingMode)
 		}
 	}
-	val filteredInactiveShips by remember(shipsData.inactiveShips, searchTerm) {
+	val filteredInactiveShips by remember(shipsData.inactiveShips, searchTerm, currentShipSortingMode) {
 		derivedStateOf {
-			shipsData.inactiveShips.filter {
+			val filtered = shipsData.inactiveShips.filter {
 				it.name.contains(searchTerm, ignoreCase = true)
 			}
+			sortShips(filtered, currentShipSortingMode)
 		}
 	}
 
@@ -493,6 +497,7 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
 				.fillMaxSize()
 				.padding(horizontal = 16.dp, vertical = 8.dp)
 		) {
+			// فیلد جستجو
 			ModernSearchField(
 				searchQuery = searchTerm,
 				onSearchQueryChange = { searchTerm = it }
@@ -500,49 +505,46 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
 
 			Spacer(modifier = Modifier.height(8.dp))
 
+			// تب‌های دسته‌بندی کشتی‌ها
+			ShipsTabSelector(
+				selectedTabIndex = selectedTabIndex,
+				onTabSelected = { selectedTabIndex = it },
+				activeShipsCount = filteredActiveShips.size,
+				inactiveShipsCount = filteredInactiveShips.size
+			)
+
+			Spacer(modifier = Modifier.height(8.dp))
+
+			// انتخابگر مرتب‌سازی کشتی‌ها
+			ShipSortingSelector(
+				currentMode = currentShipSortingMode,
+				onModeChange = viewModel::setShipSortingMode
+			)
+
+			Spacer(modifier = Modifier.height(8.dp))
+
+			// محتوای تب انتخاب شده
 			Box(
 				modifier = Modifier
 					.weight(1f)
 					.fillMaxWidth()
 			) {
-				Column(
-					modifier = Modifier.fillMaxSize(),
-					verticalArrangement = Arrangement.Top
-				) {
-					ShipSection(
-						title = "کشتی‌های فعال",
+				when (selectedTabIndex) {
+					0 -> ShipsTabContent(
 						ships = filteredActiveShips,
-						isExpanded = expandedSection == ShipSection.ACTIVE,
-						onExpandChange = {
-							expandedSection = if (expandedSection == ShipSection.ACTIVE)
-								ShipSection.INACTIVE else ShipSection.ACTIVE
-						},
+						isActive = true,
 						onShipSelected = { shipName ->
 							viewModel.setCurrentShipName(shipName)
 							onShipSelected(shipName)
-						},
-						modifier = Modifier
-							.fillMaxWidth()
-							.weight(if (expandedSection == ShipSection.ACTIVE) 0.9f else 0.1f)
+						}
 					)
-
-					Spacer(modifier = Modifier.height(8.dp))
-
-					ShipSection(
-						title = "کشتی‌های غیرفعال",
+					1 -> ShipsTabContent(
 						ships = filteredInactiveShips,
-						isExpanded = expandedSection == ShipSection.INACTIVE,
-						onExpandChange = {
-							expandedSection = if (expandedSection == ShipSection.INACTIVE)
-								ShipSection.ACTIVE else ShipSection.INACTIVE
-						},
+						isActive = false,
 						onShipSelected = { shipName ->
 							viewModel.setCurrentShipName(shipName)
 							onShipSelected(shipName)
-						},
-						modifier = Modifier
-							.fillMaxWidth()
-							.weight(if (expandedSection == ShipSection.INACTIVE) 0.9f else 0.1f)
+						}
 					)
 				}
 			}
@@ -557,6 +559,583 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
 		onRefresh = { viewModel.loadRealTimeData(isDarkTheme, defaultColor) },
 		viewModel = viewModel
 	)
+}
+
+@Composable
+fun ShipsTabSelector(
+	selectedTabIndex: Int,
+	onTabSelected: (Int) -> Unit,
+	activeShipsCount: Int,
+	inactiveShipsCount: Int,
+	modifier: Modifier = Modifier
+) {
+	val tabs = listOf(
+		TabData("کشتی فعال", activeShipsCount, Icons.Default.DirectionsBoat),
+		TabData("کشتی غیرفعال", inactiveShipsCount, Icons.Default.Archive)
+	)
+
+	Card(
+		modifier = modifier.fillMaxWidth(),
+		shape = RoundedCornerShape(12.dp),
+		colors = CardDefaults.cardColors(
+			containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+		)
+	) {
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(4.dp),
+			horizontalArrangement = Arrangement.spacedBy(4.dp)
+		) {
+			tabs.forEachIndexed { index, tab ->
+				ShipTabItem(
+					tab = tab,
+					isSelected = selectedTabIndex == index,
+					onClick = { onTabSelected(index) },
+					modifier = Modifier.weight(1f)
+				)
+			}
+		}
+	}
+}
+
+data class TabData(
+	val title: String,
+	val count: Int,
+	val icon: ImageVector
+)
+
+@Composable
+fun ShipTabItem(
+	tab: TabData,
+	isSelected: Boolean,
+	onClick: () -> Unit,
+	modifier: Modifier = Modifier
+) {
+	val backgroundColor by animateColorAsState(
+		targetValue = if (isSelected) {
+			MaterialTheme.colorScheme.primary
+		} else {
+			Color.Transparent
+		},
+		animationSpec = tween(300),
+		label = "background"
+	)
+	
+	val contentColor by animateColorAsState(
+		targetValue = if (isSelected) {
+			MaterialTheme.colorScheme.onPrimary
+		} else {
+			MaterialTheme.colorScheme.onSurface
+		},
+		animationSpec = tween(300),
+		label = "content"
+	)
+
+	Surface(
+		modifier = modifier
+			.clip(RoundedCornerShape(8.dp))
+			.clickable { onClick() },
+		color = backgroundColor,
+		shape = RoundedCornerShape(8.dp)
+	) {
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(vertical = 12.dp, horizontal = 16.dp),
+			horizontalArrangement = Arrangement.Center,
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			Icon(
+				imageVector = tab.icon,
+				contentDescription = null,
+				tint = contentColor,
+				modifier = Modifier.size(18.dp)
+			)
+			
+			Spacer(modifier = Modifier.width(8.dp))
+			
+			Text(
+				text = "${tab.title} (${tab.count})",
+				style = MaterialTheme.typography.bodyMedium,
+				fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+				color = contentColor
+			)
+		}
+	}
+}
+
+@Composable
+fun ShipsTabContent(
+	ships: List<Ship>,
+	isActive: Boolean,
+	onShipSelected: (String) -> Unit,
+	modifier: Modifier = Modifier
+) {
+	if (ships.isEmpty()) {
+		EmptyShipsState(isActive = isActive)
+	} else {
+		LazyColumn(
+			modifier = modifier.fillMaxSize(),
+			verticalArrangement = Arrangement.spacedBy(8.dp),
+			contentPadding = PaddingValues(vertical = 4.dp)
+		) {
+			items(ships) { ship ->
+				ModernShipCard(
+					ship = ship,
+					isActive = isActive,
+					onClick = { onShipSelected(ship.name) }
+				)
+			}
+		}
+	}
+}
+
+@Composable
+fun EmptyShipsState(
+	isActive: Boolean,
+	modifier: Modifier = Modifier
+) {
+	Box(
+		modifier = modifier.fillMaxSize(),
+		contentAlignment = Alignment.Center
+	) {
+		Column(
+			horizontalAlignment = Alignment.CenterHorizontally,
+			verticalArrangement = Arrangement.spacedBy(16.dp)
+		) {
+			Icon(
+				imageVector = if (isActive) Icons.Default.DirectionsBoat else Icons.Default.Archive,
+				contentDescription = null,
+				tint = MaterialTheme.colorScheme.outline,
+				modifier = Modifier.size(48.dp)
+			)
+			
+			Text(
+				text = if (isActive) "کشتی فعالی یافت نشد" else "کشتی غیرفعالی یافت نشد",
+				style = MaterialTheme.typography.bodyLarge,
+				color = MaterialTheme.colorScheme.outline,
+				textAlign = TextAlign.Center
+			)
+		}
+	}
+}
+
+@Composable
+fun ModernShipCard(
+	ship: Ship,
+	isActive: Boolean,
+	onClick: () -> Unit,
+	modifier: Modifier = Modifier
+) {
+	var isExpanded by remember { mutableStateOf(false) }
+	val cardColor = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+	val contentAlpha = if (isActive) 1f else 0.7f
+
+	Card(
+		modifier = modifier
+			.fillMaxWidth()
+			.animateContentSize(
+				animationSpec = spring(
+					dampingRatio = Spring.DampingRatioMediumBouncy,
+					stiffness = Spring.StiffnessLow
+				)
+			),
+		shape = RoundedCornerShape(12.dp),
+		colors = CardDefaults.cardColors(
+			containerColor = cardColor.copy(alpha = 0.05f)
+		),
+		border = BorderStroke(1.dp, cardColor.copy(alpha = 0.1f))
+	) {
+		Column(
+			modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+		) {
+			// هدر کارت - حالت بسته
+			ShipCardHeader(
+				ship = ship,
+				cardColor = cardColor,
+				contentAlpha = contentAlpha,
+				isExpanded = isExpanded,
+				onExpandToggle = { isExpanded = !isExpanded }
+			)
+
+			// محتوای قابل گسترش
+			AnimatedVisibility(
+				visible = isExpanded,
+				enter = expandVertically() + fadeIn(),
+				exit = shrinkVertically() + fadeOut()
+			) {
+				ShipCardExpandedContent(
+					ship = ship,
+					cardColor = cardColor,
+					contentAlpha = contentAlpha,
+					onDetailsClick = onClick
+				)
+			}
+		}
+	}
+}
+
+@Composable
+fun ShipCardHeader(
+	ship: Ship,
+	cardColor: Color,
+	contentAlpha: Float,
+	isExpanded: Boolean,
+	onExpandToggle: () -> Unit,
+	modifier: Modifier = Modifier
+) {
+	val rotationState by animateFloatAsState(
+		targetValue = if (isExpanded) 180f else 0f,
+		animationSpec = tween(300),
+		label = "rotation"
+	)
+
+	Row(
+		modifier = modifier
+			.fillMaxWidth()
+			.clip(RoundedCornerShape(8.dp))
+			.clickable { onExpandToggle() }
+			.padding(vertical = 4.dp),
+		horizontalArrangement = Arrangement.SpaceBetween,
+		verticalAlignment = Alignment.CenterVertically
+	) {
+		// اطلاعات اصلی کشتی
+		Row(
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(12.dp)
+		) {
+			// آیکون کشتی
+			Surface(
+				shape = CircleShape,
+				color = cardColor.copy(alpha = 0.1f),
+				modifier = Modifier.size(40.dp)
+			) {
+				Box(contentAlignment = Alignment.Center) {
+					Icon(
+						imageVector = Icons.Default.DirectionsBoat,
+						contentDescription = null,
+						tint = cardColor.copy(alpha = contentAlpha),
+						modifier = Modifier.size(20.dp)
+					)
+				}
+			}
+
+			// نام کشتی و اطلاعات تناژ
+			Column {
+				Text(
+					text = ship.name,
+					style = MaterialTheme.typography.titleMedium,
+					fontWeight = FontWeight.Bold,
+					color = cardColor.copy(alpha = contentAlpha),
+					maxLines = 1,
+					overflow = TextOverflow.Ellipsis
+				)
+				
+				val loadedTonnage = ship.totalTonnage - ship.remainingTonnage
+				Row(
+					horizontalArrangement = Arrangement.spacedBy(8.dp)
+				) {
+					Text(
+						text = "${formatNumber(ship.remainingTonnage.toInt())} مانده",
+						style = MaterialTheme.typography.bodyMedium,
+						color = cardColor.copy(alpha = contentAlpha * 0.7f)
+					)
+					
+					Text(
+						text = "|",
+						style = MaterialTheme.typography.bodyMedium,
+						color = cardColor.copy(alpha = contentAlpha * 0.5f)
+					)
+					
+					Text(
+						text = "${formatNumber(loadedTonnage.toInt())} بارگیری",
+						style = MaterialTheme.typography.bodyMedium,
+						color = cardColor.copy(alpha = contentAlpha * 0.7f)
+					)
+				}
+			}
+		}
+
+		// آیکون گسترش
+		Icon(
+			imageVector = Icons.Default.KeyboardArrowDown,
+			contentDescription = if (isExpanded) "بستن" else "باز کردن",
+			modifier = Modifier
+				.size(24.dp)
+				.rotate(rotationState),
+			tint = cardColor.copy(alpha = contentAlpha)
+		)
+	}
+}
+
+@Composable
+fun ShipCardExpandedContent(
+	ship: Ship,
+	cardColor: Color,
+	contentAlpha: Float,
+	onDetailsClick: () -> Unit,
+	modifier: Modifier = Modifier
+) {
+	Column(
+		modifier = modifier.padding(top = 8.dp),
+		verticalArrangement = Arrangement.spacedBy(8.dp)
+	) {
+		// جداکننده
+		HorizontalDivider(
+			color = cardColor.copy(alpha = 0.1f),
+			thickness = 1.dp
+		)
+
+		// اطلاعات تناژ و انبار/کوتاژ در یک ردیف
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			horizontalArrangement = Arrangement.SpaceBetween,
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			// اطلاعات تناژ کل
+			TonnageItem(
+				label = "کل",
+				value = formatNumber(ship.totalTonnage.toInt()),
+				color = cardColor.copy(alpha = contentAlpha)
+			)
+			
+			// اطلاعات انبار و کوتاژ
+			Row(
+				horizontalArrangement = Arrangement.spacedBy(12.dp)
+			) {
+				CompactInfoItem(
+					icon = Icons.Default.Warehouse,
+					label = "انبار",
+					value = ship.warehouseCount.toString(),
+					color = cardColor.copy(alpha = contentAlpha)
+				)
+
+				CompactInfoItem(
+					icon = Icons.Default.Description,
+					label = "کوتاژ",
+					value = formatNumber(ship.quotaCount),
+					color = cardColor.copy(alpha = contentAlpha)
+				)
+			}
+		}
+
+		// دکمه مشاهده جزئیات
+		Button(
+			onClick = onDetailsClick,
+			modifier = Modifier
+				.fillMaxWidth()
+				.height(48.dp),
+			colors = ButtonDefaults.buttonColors(
+				containerColor = cardColor.copy(alpha = 0.1f),
+				contentColor = cardColor
+			),
+			shape = RoundedCornerShape(6.dp)
+		) {
+			Icon(
+				imageVector = Icons.Default.Warehouse,
+				contentDescription = null,
+				modifier = Modifier.size(20.dp)
+			)
+
+			Spacer(modifier = Modifier.width(6.dp))
+
+			Text(
+				text = "مشاهده انبارها و کوتاژها",
+				style = MaterialTheme.typography.bodyMedium,
+				fontWeight = FontWeight.Medium
+			)
+		}
+	}
+}
+
+@Composable
+fun InfoItem(
+	icon: ImageVector,
+	label: String,
+	value: String,
+	color: Color,
+	modifier: Modifier = Modifier
+) {
+	Column(
+		modifier = modifier,
+		horizontalAlignment = Alignment.CenterHorizontally,
+		verticalArrangement = Arrangement.spacedBy(4.dp)
+	) {
+		Icon(
+			imageVector = icon,
+			contentDescription = null,
+			tint = color,
+			modifier = Modifier.size(16.dp)
+		)
+
+		Text(
+			text = value,
+			style = MaterialTheme.typography.titleSmall,
+			fontWeight = FontWeight.Bold,
+			color = color
+		)
+
+		Text(
+			text = label,
+			style = MaterialTheme.typography.bodySmall,
+			color = color.copy(alpha = 0.7f)
+		)
+	}
+}
+
+@Composable
+fun TonnageItem(
+	label: String,
+	value: String,
+	color: Color,
+	modifier: Modifier = Modifier
+) {
+	Column(
+		modifier = modifier,
+		horizontalAlignment = Alignment.CenterHorizontally,
+		verticalArrangement = Arrangement.spacedBy(2.dp)
+	) {
+		Text(
+			text = value,
+			style = MaterialTheme.typography.bodyMedium,
+			fontWeight = FontWeight.Bold,
+			color = color
+		)
+
+		Text(
+			text = label,
+			style = MaterialTheme.typography.labelSmall,
+			color = color.copy(alpha = 0.7f)
+		)
+	}
+}
+
+@Composable
+fun CompactInfoItem(
+	icon: ImageVector,
+	label: String,
+	value: String,
+	color: Color,
+	modifier: Modifier = Modifier
+) {
+	Row(
+		modifier = modifier,
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(4.dp)
+	) {
+		Icon(
+			imageVector = icon,
+			contentDescription = null,
+			tint = color,
+			modifier = Modifier.size(14.dp)
+		)
+		
+		Column(
+			verticalArrangement = Arrangement.spacedBy(1.dp)
+		) {
+			Text(
+				text = value,
+				style = MaterialTheme.typography.bodySmall,
+				fontWeight = FontWeight.Bold,
+				color = color
+			)
+			
+			Text(
+				text = label,
+				style = MaterialTheme.typography.labelSmall,
+				color = color.copy(alpha = 0.7f)
+			)
+		}
+	}
+}
+
+// تابع مرتب‌سازی کشتی‌ها
+fun sortShips(ships: List<Ship>, sortingMode: ShipSortingMode): List<Ship> {
+	return when (sortingMode) {
+		ShipSortingMode.REMAINING_TONNAGE_ASC -> ships.sortedBy { it.remainingTonnage }
+		ShipSortingMode.REMAINING_TONNAGE_DESC -> ships.sortedByDescending { it.remainingTonnage }
+		ShipSortingMode.LOADED_TONNAGE_ASC -> ships.sortedBy { it.totalTonnage - it.remainingTonnage }
+		ShipSortingMode.LOADED_TONNAGE_DESC -> ships.sortedByDescending { it.totalTonnage - it.remainingTonnage }
+		ShipSortingMode.NAME_ASC -> ships.sortedBy { it.name }
+		ShipSortingMode.NAME_DESC -> ships.sortedByDescending { it.name }
+	}
+}
+
+@Composable
+fun ShipSortingSelector(
+	currentMode: ShipSortingMode,
+	onModeChange: (ShipSortingMode) -> Unit,
+	modifier: Modifier = Modifier
+) {
+	Column(
+		modifier = modifier.fillMaxWidth()
+	) {
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(vertical = 4.dp, horizontal = 4.dp)
+				.clip(RoundedCornerShape(8.dp))
+				.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
+				.border(
+					BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
+					RoundedCornerShape(8.dp)
+				),
+			horizontalArrangement = Arrangement.SpaceEvenly,
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			// تناژ مانده
+			SortingModeButton(
+				text = "تناژ مانده",
+				icon = if (currentMode == ShipSortingMode.REMAINING_TONNAGE_ASC) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+				isAscending = currentMode == ShipSortingMode.REMAINING_TONNAGE_ASC,
+				isSelected = currentMode == ShipSortingMode.REMAINING_TONNAGE_ASC || currentMode == ShipSortingMode.REMAINING_TONNAGE_DESC,
+				onClick = {
+					val newMode = if (currentMode == ShipSortingMode.REMAINING_TONNAGE_ASC) {
+						ShipSortingMode.REMAINING_TONNAGE_DESC
+					} else {
+						ShipSortingMode.REMAINING_TONNAGE_ASC
+					}
+					onModeChange(newMode)
+				},
+				modifier = Modifier.weight(1f)
+			)
+			
+			// تناژ بارگیری
+			SortingModeButton(
+				text = "تناژ بارگیری",
+				icon = if (currentMode == ShipSortingMode.LOADED_TONNAGE_ASC) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+				isAscending = currentMode == ShipSortingMode.LOADED_TONNAGE_ASC,
+				isSelected = currentMode == ShipSortingMode.LOADED_TONNAGE_ASC || currentMode == ShipSortingMode.LOADED_TONNAGE_DESC,
+				onClick = {
+					val newMode = if (currentMode == ShipSortingMode.LOADED_TONNAGE_ASC) {
+						ShipSortingMode.LOADED_TONNAGE_DESC
+					} else {
+						ShipSortingMode.LOADED_TONNAGE_ASC
+					}
+					onModeChange(newMode)
+				},
+				modifier = Modifier.weight(1f)
+			)
+			
+			// ترتیب اسم
+			SortingModeButton(
+				text = "ترتیب اسم",
+				icon = if (currentMode == ShipSortingMode.NAME_ASC) Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
+				isAscending = currentMode == ShipSortingMode.NAME_ASC,
+				isSelected = currentMode == ShipSortingMode.NAME_ASC || currentMode == ShipSortingMode.NAME_DESC,
+				onClick = {
+					val newMode = if (currentMode == ShipSortingMode.NAME_ASC) {
+						ShipSortingMode.NAME_DESC
+					} else {
+						ShipSortingMode.NAME_ASC
+					}
+					onModeChange(newMode)
+				},
+				modifier = Modifier.weight(1f)
+			)
+		}
+	}
 }
 
 @Composable
@@ -9727,7 +10306,7 @@ private fun ChipText(
 private fun ModernSearchField(
 	searchQuery: String,
 	onSearchQueryChange: (String) -> Unit,
-	modifier: Modifier = Modifier,
+	modifier: Modifier = Modifier.fillMaxWidth(),
 	placeholder: String = "جستجو..."
 ) {
 	OutlinedTextField(
