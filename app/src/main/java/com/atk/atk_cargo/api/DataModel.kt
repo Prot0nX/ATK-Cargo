@@ -2859,13 +2859,26 @@ data class MatchingQuota(
 data class LoginRequest(
     val username: String,
     val password: String,
-    val userType: String
+    val userType: String,
+    val deviceModel: String = "",
+    val deviceId: String = "",
+    val androidVersion: String = ""
 )
 
 data class LoginResponse(
     val success: Boolean,
     val message: String,
     val userType: String?
+)
+
+data class LogoutRequest(
+    val username: String,
+    val deviceId: String = ""
+)
+
+data class LogoutResponse(
+    val success: Boolean,
+    val message: String
 )
 
 data class ActiveShipInfo(

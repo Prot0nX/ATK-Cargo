@@ -1,8 +1,12 @@
 <?php
+// تنظیم منطقه زمانی تهران
+date_default_timezone_set('Asia/Tehran');
+
 header('Content-Type: application/json; charset=UTF-8');
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/SessionManager.php';
 
 // تنظیم هدرهای امنیتی
 header('X-Content-Type-Options: nosniff');
@@ -38,6 +42,9 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 $username = isset($data['username']) ? htmlspecialchars(trim($data['username']), ENT_QUOTES, 'UTF-8') : '';
 $password = isset($data['password']) ? $data['password'] : '';
 $userType = isset($data['userType']) ? htmlspecialchars(trim($data['userType']), ENT_QUOTES, 'UTF-8') : '';
+$deviceModel = isset($data['deviceModel']) ? htmlspecialchars(trim($data['deviceModel']), ENT_QUOTES, 'UTF-8') : '';
+$deviceId = isset($data['deviceId']) ? htmlspecialchars(trim($data['deviceId']), ENT_QUOTES, 'UTF-8') : '';
+$androidVersion = isset($data['androidVersion']) ? htmlspecialchars(trim($data['androidVersion']), ENT_QUOTES, 'UTF-8') : '';
 
 if (empty($username) || empty($password)) {
     send_json_response(false, "نام کاربری و رمز عبور الزامی است.", 400);
@@ -75,13 +82,37 @@ try {
                 $allowedAccess = ($user['userType'] === $userType);
         }
 
-        // برای جلوگیری از نشت اطلاعات، جزئیات کمتری لاگ می‌شود
-        error_log("Access check - Type: " . $user['userType'] . ", Allowed: " . ($allowedAccess ? 'Yes' : 'No'));
-
         if ($allowedAccess) {
-            // ایجاد تأخیر ثابت برای جلوگیری از حملات timing-based
-            usleep(rand(5000, 10000));
-            send_json_response(true, "ورود موفقیت‌آمیز", 200, $user['userType']);
+            try {
+                // استفاده از SessionManager برای مدیریت جلسات
+                $sessionManager = new SessionManager();
+                $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
+                
+                // ایجاد جلسه جدید
+                $sessionResult = $sessionManager->createSession(
+                    $username, 
+                    $deviceId, 
+                    $deviceModel, 
+                    $androidVersion, 
+                    $ipAddress
+                );
+                
+                if ($sessionResult['success']) {
+                    // ایجاد تأخیر ثابت برای جلوگیری از حملات timing-based
+                    usleep(rand(5000, 10000));
+                    send_json_response(true, "ورود موفقیت‌آمیز", 200, $user['userType']);
+                } else {
+                    send_json_response(false, $sessionResult['message'], 409);
+                }
+                
+            } catch (Exception $sessionError) {
+                if (strpos($sessionError->getMessage(), 'دستگاه دیگری') !== false) {
+                    send_json_response(false, "شما در حال حاضر در دستگاه دیگری وارد سیستم هستید. لطفاً ابتدا از آن دستگاه خارج شوید.", 409);
+                } else {
+                    error_log("خطا در مدیریت جلسه: " . $sessionError->getMessage());
+                    send_json_response(false, "خطا در ایجاد جلسه کاربری", 500);
+                }
+            }
         } else {
             send_json_response(false, "شما دسترسی لازم برای این بخش را ندارید.", 403);
         }

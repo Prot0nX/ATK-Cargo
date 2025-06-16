@@ -202,6 +202,9 @@ interface ApiService {
     suspend fun deleteUser(
         @Body request: DeleteUserRequest
     ): ApiResponse
+
+    @POST("check_logout.php")
+    suspend fun logout(@Body logoutRequest: LogoutRequest): Response<LogoutResponse>
 }
 
 data class ApiResponse(

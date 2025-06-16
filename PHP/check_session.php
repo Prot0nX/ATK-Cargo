@@ -1,8 +1,12 @@
 <?php
+// تنظیم منطقه زمانی تهران
+date_default_timezone_set('Asia/Tehran');
+
 header('Content-Type: application/json; charset=UTF-8');
 error_reporting(E_ALL);
 ini_set('display_errors', 0);
 require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/SessionManager.php';
 
 // تنظیم هدرهای امنیتی
 header('X-Content-Type-Options: nosniff');
@@ -40,14 +44,27 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->exec("SET NAMES utf8mb4");
 
+    // بررسی وجود کاربر
     $stmt = $pdo->prepare("SELECT userType FROM Users WHERE username = ?");
     $stmt->execute([$username]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($user) {
+    if (!$user) {
+        send_json_response(false, "کاربر در سیستم وجود ندارد", 404);
+    }
+
+    // استفاده از SessionManager برای بررسی وضعیت جلسه
+    $sessionManager = new SessionManager();
+    $deviceId = isset($data['deviceId']) ? trim($data['deviceId']) : null;
+    
+    if ($sessionManager->isSessionActive($username, $deviceId)) {
+        // به‌روزرسانی فعالیت جلسه
+        if ($deviceId) {
+            $sessionManager->updateSessionActivity($username, $deviceId);
+        }
         send_json_response(true, "جلسه کاربر معتبر است", 200, $user['userType']);
     } else {
-        send_json_response(false, "کاربر در سیستم وجود ندارد", 404);
+        send_json_response(false, "جلسه کاربر منقضی شده است. لطفاً مجدداً وارد شوید.", 401);
     }
 } catch (PDOException $e) {
     error_log("Database error: " . $e->getMessage());

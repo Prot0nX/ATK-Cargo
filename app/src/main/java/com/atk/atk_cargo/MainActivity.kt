@@ -182,6 +182,7 @@ import com.atk.atk_cargo.api.CreateUserRequest
 import com.atk.atk_cargo.api.DeleteUserRequest
 import com.atk.atk_cargo.api.LoadingNotificationService
 import com.atk.atk_cargo.api.LoginRequest
+import com.atk.atk_cargo.api.LogoutRequest
 import com.atk.atk_cargo.api.MenuItem
 import com.atk.atk_cargo.api.ReportsRepository
 import com.atk.atk_cargo.api.ReportsViewModel
@@ -211,6 +212,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.net.URLDecoder
 import java.security.MessageDigest
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     private var updateInfo by mutableStateOf<UpdateInfo?>(null)
@@ -1244,7 +1246,7 @@ private fun ErrorState(
     }
 }
 
-@SuppressLint("ContextCastToActivity")
+@SuppressLint("ContextCastToActivity", "HardwareIds")
 @Composable
 fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
     val navController = rememberNavController()
@@ -1305,10 +1307,34 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                             isSessionValid = isSessionValid,
                                             onLoginClick = { showLoginDialog = true },
                                             onLogoutClick = {
-                                                coroutineScope.launch {
-                                                    userPreferencesManager.clearUserCredentials()
-                                                }
-                                            },
+                                coroutineScope.launch {
+                                    try {
+                                        // دریافت اطلاعات دستگاه
+                                        val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+                                        
+                                        // ارسال درخواست خروج به سرور
+                                        val logoutRequest = LogoutRequest(
+                                            username = username,
+                                            deviceId = deviceId
+                                        )
+                                        
+                                        val response = RetrofitClient.apiService.logout(logoutRequest)
+                                        if (response.isSuccessful && response.body()?.success == true) {
+                                            // پاک کردن اطلاعات محلی
+                                            userPreferencesManager.clearUserCredentials()
+                                            Toast.makeText(mainActivity, "خروج با موفقیت انجام شد", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            // حتی در صورت خطا، اطلاعات محلی را پاک کن
+                                            userPreferencesManager.clearUserCredentials()
+                                            Toast.makeText(mainActivity, "خروج انجام شد", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } catch (_: Exception) {
+                                        // در صورت خطا، اطلاعات محلی را پاک کن
+                                        userPreferencesManager.clearUserCredentials()
+                                        Toast.makeText(mainActivity, "خروج انجام شد", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
                                             onManageUsersClick = { showUserManagement = true }
                                         )
                                     }
@@ -1499,7 +1525,6 @@ fun SplashScreen() {
         try {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName
         } catch (_: Exception) {
-            "نسخه 3.0.7"
         }
     }
 
@@ -1631,6 +1656,7 @@ fun SplashScreen() {
     }
 }
 
+@SuppressLint("HardwareIds")
 @Composable
 fun HomeScreen(
     navController: NavHostController,
@@ -1685,11 +1711,34 @@ fun HomeScreen(
                     onLoginClick = onLoginClick,
                     onLogoutClick = {
                         coroutineScope.launch {
-                            showGridAnimation = false
-                            delay(300)
-                            userPreferencesManager.clearUserCredentials()
-                            mainActivity.updateSessionValidity(false)
-                            onLogoutClick()
+                            try {
+                                showGridAnimation = false
+                                delay(300)
+                                
+                                // دریافت اطلاعات دستگاه
+                                val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+                                
+                                // ارسال درخواست خروج به سرور
+                                val logoutRequest = LogoutRequest(
+                                    username = username,
+                                    deviceId = deviceId
+                                )
+                                
+                                val response = RetrofitClient.apiService.logout(logoutRequest)
+                                if (response.isSuccessful && response.body()?.success == true) {
+                                    userPreferencesManager.clearUserCredentials()
+                                    mainActivity.updateSessionValidity(false)
+                                    onLogoutClick()
+                                } else {
+                                    userPreferencesManager.clearUserCredentials()
+                                    mainActivity.updateSessionValidity(false)
+                                    onLogoutClick()
+                                }
+                            } catch (_: Exception) {
+                                userPreferencesManager.clearUserCredentials()
+                                mainActivity.updateSessionValidity(false)
+                                onLogoutClick()
+                            }
                         }
                     },
                     userPreferencesManager = userPreferencesManager,
@@ -1752,6 +1801,7 @@ fun HomeScreen(
     }
 }
 
+@SuppressLint("HardwareIds")
 @Composable
 private fun ModernHeader(
     username: String,
@@ -1824,9 +1874,31 @@ private fun ModernHeader(
                         userType = userType,
                         onLogoutClick = {
                             coroutineScope.launch {
-                                userPreferencesManager.clearUserCredentials()
-                                mainActivity.updateSessionValidity(false)
-                                onLogoutClick()
+                                try {
+                                    // دریافت اطلاعات دستگاه
+                                    val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+                                    
+                                    // ارسال درخواست خروج به سرور
+                                    val logoutRequest = LogoutRequest(
+                                        username = username,
+                                        deviceId = deviceId
+                                    )
+                                    
+                                    val response = RetrofitClient.apiService.logout(logoutRequest)
+                                    if (response.isSuccessful && response.body()?.success == true) {
+                                        userPreferencesManager.clearUserCredentials()
+                                        mainActivity.updateSessionValidity(false)
+                                        onLogoutClick()
+                                    } else {
+                                        userPreferencesManager.clearUserCredentials()
+                                        mainActivity.updateSessionValidity(false)
+                                        onLogoutClick()
+                                    }
+                                } catch (_: Exception) {
+                                    userPreferencesManager.clearUserCredentials()
+                                    mainActivity.updateSessionValidity(false)
+                                    onLogoutClick()
+                                }
                             }
                         }
                     )
@@ -4966,6 +5038,7 @@ fun getUserTypeDisplay(userType: String): String {
     }
 }
 
+@SuppressLint("HardwareIds")
 @Composable
 fun LoginDialog(
     onDismiss: () -> Unit,
@@ -4980,7 +5053,7 @@ fun LoginDialog(
     val coroutineScope = rememberCoroutineScope()
     var loginAttempted by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
-    
+
     // انیمیشن‌های پیشرفته
     val dialogScale = remember { Animatable(0.7f) }
     val dialogRotation = remember { Animatable(-5f) }
@@ -5527,7 +5600,20 @@ fun LoginDialog(
                                     coroutineScope.launch {
                                         try {
                                             val hashedPassword = hashPassword(password)
-                                            val loginRequest = LoginRequest(username, hashedPassword, "")
+                                            
+                                            // جمع‌آوری اطلاعات دستگاه
+                                            val deviceModel = Build.MODEL ?: "Unknown"
+                                            val androidVersion = Build.VERSION.RELEASE ?: "Unknown"
+                                            val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+                                            
+                                            val loginRequest = LoginRequest(
+                                                username = username,
+                                                password = hashedPassword,
+                                                userType = "",
+                                                deviceModel = deviceModel,
+                                                deviceId = deviceId,
+                                                androidVersion = androidVersion
+                                            )
                                             val response = apiService.checkLogin(loginRequest)
                                             
                                             if (response.isSuccessful) {
