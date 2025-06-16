@@ -144,6 +144,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -167,6 +168,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerState
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
@@ -275,6 +277,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 	val defaultColor = MaterialTheme.colorScheme.primary
 	val currentShipName by viewModel.selectedShip.collectAsState()
 	val loadingError by viewModel.loadingError.collectAsState()
+	val canNavigateBack = navController.previousBackStackEntry != null
 
 	ATKCargoTheme(darkTheme = isSystemInDarkTheme()) {
 		CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -285,7 +288,6 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 				modifier = Modifier.padding(innerPadding)
 			) {
 				composable("shipsList") {
-				// ریست کردن currentSelectedSection و حذف فیلتر بازه زمانی هنگام بازگشت به لیست کشتی‌ها
 				LaunchedEffect(Unit) {
 					currentSelectedSection = 0
 					viewModel.clearSelectedDateRange()
@@ -294,7 +296,9 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 				ShipsList(
 					viewModel = viewModel,
 					onShipSelected = { shipName ->
-						navController.navigate("shipDetails/$shipName")
+						navController.navigate("shipDetails/$shipName") {
+							launchSingleTop = true
+						}
 					}
 				)
 			}
@@ -303,8 +307,12 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 					ShipDetails(
 						initialShipName = shipName,
 						viewModel = viewModel,
+						navController = navController,
+						canNavigateBack = canNavigateBack,
 						onWarehouseSelected = { warehouseName ->
-							navController.navigate("warehouseDetails/$shipName/$warehouseName")
+							navController.navigate("warehouseDetails/$shipName/$warehouseName") {
+								launchSingleTop = true
+							}
 						},
 						onSectionChanged = { section ->
 							currentSelectedSection = section
@@ -317,14 +325,18 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 					WarehouseDetails(
 						shipName = shipName,
 						warehouseName = warehouseName,
-						viewModel = viewModel
+						viewModel = viewModel,
+						navController = navController,
+						canNavigateBack = canNavigateBack
 					)
 				}
 				composable("quotaDetails/{quotaNumber}") { backStackEntry ->
 					val quotaNumber = backStackEntry.arguments?.getString("quotaNumber") ?: return@composable
 					QuotaDetails(
 						quotaNumber = quotaNumber,
-						viewModel = viewModel
+						viewModel = viewModel,
+						navController = navController,
+						canNavigateBack = canNavigateBack
 					)
 				}
 			}
@@ -1139,6 +1151,8 @@ fun ShipSortingSelector(
 fun ShipDetails(
 	initialShipName: String,
 	viewModel: ReportsViewModel,
+	navController: androidx.navigation.NavController,
+	canNavigateBack: Boolean,
 	onWarehouseSelected: (String) -> Unit,
 	onSectionChanged: (Int) -> Unit
 ) {
@@ -1177,6 +1191,34 @@ fun ShipDetails(
 
 	Box(modifier = Modifier.fillMaxSize()) {
 		Column(modifier = Modifier.fillMaxSize()) {
+			// TopAppBar با دکمه بازگشت
+			if (canNavigateBack) {
+				CenterAlignedTopAppBar(
+					title = {
+						Text(
+							text = "جزئیات کشتی: $initialShipName",
+							style = MaterialTheme.typography.titleMedium,
+							color = MaterialTheme.colorScheme.onSurface
+						)
+					},
+					navigationIcon = {
+						IconButton(
+							onClick = {
+								navController.popBackStack()
+							}
+						) {
+							Icon(
+								imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+								contentDescription = "بازگشت",
+								tint = MaterialTheme.colorScheme.onSurface
+							)
+						}
+					},
+					colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+						containerColor = MaterialTheme.colorScheme.surface
+					)
+				)
+			}
 
 			when (uiState) {
 				is ReportsViewModel.UiState.Loading -> {
@@ -1703,6 +1745,17 @@ fun QuotasList(
 		Spacer(modifier = Modifier.height(4.dp))
 
 		val groupedQuotas = remember(quotas, currentGroupingMode, currentSortingMode, currentGroupSortingMode, searchQuery) {
+			// تابع کمکی برای تبدیل وزن به کیلوگرم برای مرتب‌سازی دقیق
+			fun getWeightInKg(tonnage: Float): Float {
+				return tonnage * 1000f // تبدیل تن به کیلوگرم
+			}
+			
+			// تابع کمکی برای محاسبه مانده کوتاژ پس از کسر درصد
+			fun calculateRemainingAfterPercentage(quota: Quota): Float {
+				val percentageAmount = quota.totalTonnage * ((quota.percentage ?: 0.0) / 100)
+				return quota.remainingTonnage - percentageAmount.toFloat()
+			}
+			
 			// ابتدا کوتاژها را فیلتر و گروه‌بندی می‌کنیم
 			val groupedMap = quotas
 				.filter { quota ->
@@ -1718,46 +1771,43 @@ fun QuotasList(
 					}
 				}
 				.mapValues { (_, groupQuotas) ->
-					// مرتب‌سازی کوتاژها در هر گروه بر اساس totalRemainingAfterPercentage
-					val sortedQuotas = when (currentSortingMode) {
-						QuotaSortingMode.REMAINING_TONNAGE_ASC -> groupQuotas.sortedBy { quota ->
-							val percentageAmount = quota.totalTonnage * ((quota.percentage ?: 0.0) / 100)
-							quota.remainingTonnage - percentageAmount
-						}
-						QuotaSortingMode.REMAINING_TONNAGE_DESC -> groupQuotas.sortedByDescending { quota ->
-							val percentageAmount = quota.totalTonnage * ((quota.percentage ?: 0.0) / 100)
-							quota.remainingTonnage - percentageAmount
-						}
-					}
-					// ابتدا بر اساس وضعیت فعال بودن مرتب می‌کنیم، سپس بر اساس حالت انتخابی
-					sortedQuotas.sortedWith(
+					// مرتب‌سازی کوتاژها در هر گروه بر اساس مقدار دقیق وزن (کیلوگرم)
+					groupQuotas.sortedWith(
 						compareByDescending<Quota> { it.isActive }
 							.thenBy { quota ->
-								val percentageAmount = quota.totalTonnage * ((quota.percentage ?: 0.0) / 100)
-								val totalRemainingAfterPercentage = quota.remainingTonnage - percentageAmount
+								val remainingAfterPercentage = calculateRemainingAfterPercentage(quota)
+								val weightInKg = getWeightInKg(remainingAfterPercentage)
 								when (currentSortingMode) {
-									QuotaSortingMode.REMAINING_TONNAGE_ASC -> totalRemainingAfterPercentage
-									QuotaSortingMode.REMAINING_TONNAGE_DESC -> -totalRemainingAfterPercentage
+									QuotaSortingMode.REMAINING_TONNAGE_ASC -> weightInKg
+									QuotaSortingMode.REMAINING_TONNAGE_DESC -> -weightInKg
 								}
 							}
 					)
 				}
 
-			// مرتب‌سازی گروه‌ها بر اساس حالت انتخابی
+			// مرتب‌سازی گروه‌ها بر اساس حالت انتخابی با استفاده از مقدار دقیق وزن
 			when (currentGroupSortingMode) {
 				// مرتب‌سازی بر اساس نام گروه (پیش‌فرض)
 				GroupSortingMode.ALPHABETICAL -> {
 					groupedMap.toSortedMap(compareBy { it })
 				}
-				// مرتب‌سازی بر اساس مجموع تناژ مانده گروه‌ها
+				// مرتب‌سازی بر اساس مجموع تناژ مانده گروه‌ها با دقت بالا
 				GroupSortingMode.REMAINING_TONNAGE_ASC -> {
 					groupedMap.toSortedMap(compareBy { groupName ->
-						groupedMap[groupName]?.sumOf { it.remainingTonnage.toDouble() } ?: 0.0
+						val totalRemainingKg = groupedMap[groupName]?.sumOf { quota ->
+							val remainingAfterPercentage = calculateRemainingAfterPercentage(quota)
+							getWeightInKg(remainingAfterPercentage).toDouble()
+						} ?: 0.0
+						totalRemainingKg
 					})
 				}
 				GroupSortingMode.REMAINING_TONNAGE_DESC -> {
 					groupedMap.toSortedMap(compareByDescending { groupName ->
-						groupedMap[groupName]?.sumOf { it.remainingTonnage.toDouble() } ?: 0.0
+						val totalRemainingKg = groupedMap[groupName]?.sumOf { quota ->
+							val remainingAfterPercentage = calculateRemainingAfterPercentage(quota)
+							getWeightInKg(remainingAfterPercentage).toDouble()
+						} ?: 0.0
+						totalRemainingKg
 					})
 				}
 			}
@@ -3735,7 +3785,9 @@ fun ProgressBar(title: String, progress: Float, value: Int, color: Color, suffix
 fun WarehouseDetails(
 	shipName: String,
 	warehouseName: String,
-	viewModel: ReportsViewModel
+	viewModel: ReportsViewModel,
+	navController: androidx.navigation.NavController,
+	canNavigateBack: Boolean
 ) {
 	val warehouse by viewModel.selectedWarehouse.collectAsState()
 	val uiState by viewModel.uiState.collectAsState()
@@ -3751,6 +3803,35 @@ fun WarehouseDetails(
 	}
 
 	Scaffold(
+		topBar = {
+			if (canNavigateBack) {
+				CenterAlignedTopAppBar(
+					title = {
+						Text(
+							text = "جزئیات انبار: $warehouseName",
+							style = MaterialTheme.typography.titleMedium,
+							color = MaterialTheme.colorScheme.onSurface
+						)
+					},
+					navigationIcon = {
+						IconButton(
+							onClick = {
+								navController.popBackStack()
+							}
+						) {
+							Icon(
+								imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+								contentDescription = "بازگشت",
+								tint = MaterialTheme.colorScheme.onSurface
+							)
+						}
+					},
+					colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+						containerColor = MaterialTheme.colorScheme.surface
+					)
+				)
+			}
+		},
 		snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
 	) { paddingValues ->
 		Column(modifier = Modifier
@@ -5678,7 +5759,9 @@ fun SortChip(
 @Composable
 fun QuotaDetails(
 	quotaNumber: String,
-	viewModel: ReportsViewModel
+	viewModel: ReportsViewModel,
+	navController: androidx.navigation.NavController,
+	canNavigateBack: Boolean
 ) {
 	val quotaDetails by viewModel.selectedQuotaDetails.collectAsState()
 	val uiState by viewModel.uiState.collectAsState()
@@ -5690,9 +5773,42 @@ fun QuotaDetails(
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
-			.verticalScroll(rememberScrollState())
-			.padding(16.dp)
 	) {
+		// TopAppBar با دکمه بازگشت
+		if (canNavigateBack) {
+			CenterAlignedTopAppBar(
+				title = {
+					Text(
+						text = "جزئیات کوتاژ: $quotaNumber",
+						style = MaterialTheme.typography.titleMedium,
+						color = MaterialTheme.colorScheme.onSurface
+					)
+				},
+				navigationIcon = {
+					IconButton(
+						onClick = {
+							navController.popBackStack()
+						}
+					) {
+						Icon(
+							imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+							contentDescription = "بازگشت",
+							tint = MaterialTheme.colorScheme.onSurface
+						)
+					}
+				},
+				colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+					containerColor = MaterialTheme.colorScheme.surface
+				)
+			)
+		}
+		
+		Column(
+			modifier = Modifier
+				.fillMaxSize()
+				.verticalScroll(rememberScrollState())
+				.padding(16.dp)
+		) {
 		when (uiState) {
 			is ReportsViewModel.UiState.Loading -> {
 				CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -5718,6 +5834,7 @@ fun QuotaDetails(
 					Text("اطلاعات کوتاژ در دسترس نیست")
 				}
 			}
+		}
 		}
 	}
 }
