@@ -144,7 +144,7 @@ try {
             send_json_response(true, 'مدت زمان انقضای جلسه', [
                 'timeout_seconds' => $timeout,
                 'timeout_minutes' => round($timeout / 60, 2),
-                'timeout_hours' => round($timeout / 3600, 2)
+                'timeout_hours' => round($timeout / 86400, 2)
             ]);
             break;
             
