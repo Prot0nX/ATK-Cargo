@@ -1191,34 +1191,7 @@ fun ShipDetails(
 
 	Box(modifier = Modifier.fillMaxSize()) {
 		Column(modifier = Modifier.fillMaxSize()) {
-			// TopAppBar با دکمه بازگشت
-			if (canNavigateBack) {
-				CenterAlignedTopAppBar(
-					title = {
-						Text(
-							text = "جزئیات کشتی: $initialShipName",
-							style = MaterialTheme.typography.titleMedium,
-							color = MaterialTheme.colorScheme.onSurface
-						)
-					},
-					navigationIcon = {
-						IconButton(
-							onClick = {
-								navController.popBackStack()
-							}
-						) {
-							Icon(
-								imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-								contentDescription = "بازگشت",
-								tint = MaterialTheme.colorScheme.onSurface
-							)
-						}
-					},
-					colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-						containerColor = MaterialTheme.colorScheme.surface
-					)
-				)
-			}
+			// TopBar removed as requested
 
 			when (uiState) {
 				is ReportsViewModel.UiState.Loading -> {
@@ -3803,35 +3776,7 @@ fun WarehouseDetails(
 	}
 
 	Scaffold(
-		topBar = {
-			if (canNavigateBack) {
-				CenterAlignedTopAppBar(
-					title = {
-						Text(
-							text = "جزئیات انبار: $warehouseName",
-							style = MaterialTheme.typography.titleMedium,
-							color = MaterialTheme.colorScheme.onSurface
-						)
-					},
-					navigationIcon = {
-						IconButton(
-							onClick = {
-								navController.popBackStack()
-							}
-						) {
-							Icon(
-								imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-								contentDescription = "بازگشت",
-								tint = MaterialTheme.colorScheme.onSurface
-							)
-						}
-					},
-					colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-						containerColor = MaterialTheme.colorScheme.surface
-					)
-				)
-			}
-		},
+		// TopBar removed as requested
 		snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
 	) { paddingValues ->
 		Column(modifier = Modifier
@@ -5774,34 +5719,7 @@ fun QuotaDetails(
 		modifier = Modifier
 			.fillMaxSize()
 	) {
-		// TopAppBar با دکمه بازگشت
-		if (canNavigateBack) {
-			CenterAlignedTopAppBar(
-				title = {
-					Text(
-						text = "جزئیات کوتاژ: $quotaNumber",
-						style = MaterialTheme.typography.titleMedium,
-						color = MaterialTheme.colorScheme.onSurface
-					)
-				},
-				navigationIcon = {
-					IconButton(
-						onClick = {
-							navController.popBackStack()
-						}
-					) {
-						Icon(
-							imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-							contentDescription = "بازگشت",
-							tint = MaterialTheme.colorScheme.onSurface
-						)
-					}
-				},
-				colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-					containerColor = MaterialTheme.colorScheme.surface
-				)
-			)
-		}
+		// TopBar removed as requested
 		
 		Column(
 			modifier = Modifier
