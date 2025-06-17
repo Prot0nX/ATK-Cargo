@@ -88,13 +88,14 @@ try {
                 $sessionManager = new SessionManager();
                 $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
                 
-                // ایجاد جلسه جدید
+                // ایجاد جلسه جدید با ارسال نوع کاربر
                 $sessionResult = $sessionManager->createSession(
                     $username, 
                     $deviceId, 
                     $deviceModel, 
                     $androidVersion, 
-                    $ipAddress
+                    $ipAddress,
+                    $user['userType'] // ارسال نوع کاربر
                 );
                 
                 if ($sessionResult['success']) {

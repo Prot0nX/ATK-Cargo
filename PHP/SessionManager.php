@@ -10,7 +10,7 @@ require_once __DIR__ . '/config/config.php';
  */
 class SessionManager {
     private $pdo;
-    private $sessionTimeout = 3600; // 1 ساعت (بر حسب ثانیه)
+    private $sessionTimeout = 86400; // 24 ساعت
     
     public function __construct() {
         try {
@@ -32,8 +32,15 @@ class SessionManager {
     
     /**
      * ایجاد جلسه جدید برای کاربر
+     * @param string $username نام کاربری
+     * @param string $deviceId شناسه دستگاه
+     * @param string $deviceModel مدل دستگاه
+     * @param string $androidVersion نسخه اندروید
+     * @param string $ipAddress آدرس آی‌پی
+     * @param string $userType نوع کاربر (admin, operator, verifier)
+     * @return array نتیجه عملیات
      */
-    public function createSession($username, $deviceId, $deviceModel = null, $androidVersion = null, $ipAddress = null) {
+    public function createSession($username, $deviceId, $deviceModel, $androidVersion, $ipAddress, $userType = null) {
         try {
             // ابتدا جلسات منقضی شده را پاک می‌کنیم
             $this->cleanupExpiredSessions();
@@ -51,17 +58,28 @@ class SessionManager {
                 }
             }
             
-            // ایجاد جلسه جدید
+            // دریافت نوع کاربری از دیتابیس اگر ارسال نشده باشد
+            if ($userType === null) {
+                $stmt = $this->pdo->prepare("SELECT userType FROM Users WHERE username = ? LIMIT 1");
+                $stmt->execute([$username]);
+                $user = $stmt->fetch();
+                
+                if ($user) {
+                    $userType = $user['userType'];
+                }
+            }
+            
+            // ایجاد جلسه جدید با ثبت نوع کاربر
             $stmt = $this->pdo->prepare("
                 INSERT INTO user_sessions 
-                (username, device_id, device_model, android_version, login_time, is_active, ip_address) 
-                VALUES (?, ?, ?, ?, NOW(), 1, ?)
+                (username, device_id, device_model, android_version, login_time, is_active, ip_address, userType) 
+                VALUES (?, ?, ?, ?, NOW(), 1, ?, ?)
             ");
             
-            $result = $stmt->execute([$username, $deviceId, $deviceModel, $androidVersion, $ipAddress]);
+            $result = $stmt->execute([$username, $deviceId, $deviceModel, $androidVersion, $ipAddress, $userType]);
             
             if ($result) {
-                $this->logActivity($username, 'LOGIN', $deviceId, $ipAddress);
+                $this->logActivity($username, 'LOGIN', $deviceId, $ipAddress, $userType);
                 return [
                     'success' => true,
                     'message' => 'جلسه با موفقیت ایجاد شد',
@@ -253,7 +271,7 @@ class SessionManager {
     /**
      * ثبت فعالیت در لاگ
      */
-    private function logActivity($username, $action, $deviceId = null, $ipAddress = null) {
+    public function logActivity($username, $action, $deviceId = null, $ipAddress = null, $userType = null) {
         try {
             $logDir = __DIR__ . '/logs';
             if (!is_dir($logDir)) {
@@ -265,6 +283,10 @@ class SessionManager {
             $ip = $ipAddress ?: ($_SERVER['REMOTE_ADDR'] ?? 'نامشخص');
             
             $logEntry = "[$timestamp] $action | کاربر: $username";
+            
+            if ($userType) {
+                $logEntry .= " | نوع کاربر: $userType";
+            }
             
             if ($deviceId) {
                 $logEntry .= " | دستگاه: $deviceId";
