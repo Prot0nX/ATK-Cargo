@@ -1191,7 +1191,6 @@ fun ShipDetails(
 
 	Box(modifier = Modifier.fillMaxSize()) {
 		Column(modifier = Modifier.fillMaxSize()) {
-			// TopBar removed as requested
 
 			when (uiState) {
 				is ReportsViewModel.UiState.Loading -> {
@@ -3776,7 +3775,6 @@ fun WarehouseDetails(
 	}
 
 	Scaffold(
-		// TopBar removed as requested
 		snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
 	) { paddingValues ->
 		Column(modifier = Modifier
@@ -5719,8 +5717,6 @@ fun QuotaDetails(
 		modifier = Modifier
 			.fillMaxSize()
 	) {
-		// TopBar removed as requested
-		
 		Column(
 			modifier = Modifier
 				.fillMaxSize()
