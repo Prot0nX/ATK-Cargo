@@ -56,12 +56,18 @@ try {
     // استفاده از SessionManager برای بررسی وضعیت جلسه
     $sessionManager = new SessionManager();
     $deviceId = isset($data['deviceId']) ? trim($data['deviceId']) : null;
+    $sessionToken = isset($data['session_token']) ? trim($data['session_token']) : null;
+    
+    // اگر session_token ارسال شده، ابتدا آن را اعتبارسنجی کن
+    if ($sessionToken) {
+        $isValidToken = $sessionManager->validateSessionToken($username, $sessionToken, $deviceId);
+        if (!$isValidToken) {
+            send_json_response(false, "توکن جلسه نامعتبر است. لطفاً مجدداً وارد شوید.", 401);
+        }
+    }
     
     if ($sessionManager->isSessionActive($username, $deviceId)) {
-        // به‌روزرسانی فعالیت جلسه
-        if ($deviceId) {
-            $sessionManager->updateSessionActivity($username, $deviceId);
-        }
+        // جلسه معتبر است و last_activity خودکار به‌روزرسانی شده
         send_json_response(true, "جلسه کاربر معتبر است", 200, $user['userType']);
     } else {
         send_json_response(false, "جلسه کاربر منقضی شده است. لطفاً مجدداً وارد شوید.", 401);

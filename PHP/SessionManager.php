@@ -69,21 +69,25 @@ class SessionManager {
                 }
             }
             
-            // ایجاد جلسه جدید با ثبت نوع کاربر
+            // تولید توکن جلسه منحصر به فرد
+            $sessionToken = bin2hex(random_bytes(32));
+            
+            // ایجاد جلسه جدید با ثبت نوع کاربر و توکن جلسه
             $stmt = $this->pdo->prepare("
                 INSERT INTO user_sessions 
-                (username, device_id, device_model, android_version, login_time, is_active, ip_address, userType) 
-                VALUES (?, ?, ?, ?, NOW(), 1, ?, ?)
+                (username, device_id, device_model, android_version, login_time, last_activity, is_active, ip_address, userType, session_token) 
+                VALUES (?, ?, ?, ?, NOW(), NOW(), 1, ?, ?, ?)
             ");
             
-            $result = $stmt->execute([$username, $deviceId, $deviceModel, $androidVersion, $ipAddress, $userType]);
+            $result = $stmt->execute([$username, $deviceId, $deviceModel, $androidVersion, $ipAddress, $userType, $sessionToken]);
             
             if ($result) {
                 $this->logActivity($username, 'LOGIN', $deviceId, $ipAddress, $userType);
                 return [
                     'success' => true,
                     'message' => 'جلسه با موفقیت ایجاد شد',
-                    'session_id' => $this->pdo->lastInsertId()
+                    'session_id' => $this->pdo->lastInsertId(),
+                    'session_token' => $sessionToken
                 ];
             }
             
@@ -103,8 +107,8 @@ class SessionManager {
             $this->cleanupExpiredSessions();
             
             $query = "
-                SELECT id, device_id, login_time, 
-                       TIMESTAMPDIFF(SECOND, login_time, NOW()) as session_duration
+                SELECT id, device_id, login_time, last_activity, session_token,
+                       TIMESTAMPDIFF(SECOND, COALESCE(last_activity, login_time), NOW()) as session_duration
                 FROM user_sessions 
                 WHERE username = ? AND is_active = 1
             ";
@@ -121,11 +125,15 @@ class SessionManager {
             $session = $stmt->fetch();
             
             if ($session) {
-                // بررسی انقضای جلسه
+                // بررسی انقضای جلسه بر اساس آخرین فعالیت
                 if ($session['session_duration'] > $this->sessionTimeout) {
                     $this->deactivateSession($username, $session['device_id']);
                     return false;
                 }
+                
+                // به‌روزرسانی last_activity هنگام بررسی جلسه
+                $this->updateLastActivity($username, $session['device_id']);
+                
                 return true;
             }
             
@@ -179,11 +187,11 @@ class SessionManager {
     public function getActiveSession($username) {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT id, device_id, device_model, android_version, login_time, ip_address,
-                       TIMESTAMPDIFF(SECOND, login_time, NOW()) as session_duration
+                SELECT id, device_id, device_model, android_version, login_time, last_activity, ip_address, session_token,
+                       TIMESTAMPDIFF(SECOND, COALESCE(last_activity, login_time), NOW()) as session_duration
                 FROM user_sessions 
                 WHERE username = ? AND is_active = 1
-                ORDER BY login_time DESC 
+                ORDER BY COALESCE(last_activity, login_time) DESC 
                 LIMIT 1
             ");
             
@@ -200,10 +208,17 @@ class SessionManager {
      * به‌روزرسانی فعالیت جلسه (برای جلوگیری از انقضا)
      */
     public function updateSessionActivity($username, $deviceId) {
+        return $this->updateLastActivity($username, $deviceId);
+    }
+    
+    /**
+     * به‌روزرسانی آخرین فعالیت کاربر
+     */
+    public function updateLastActivity($username, $deviceId) {
         try {
             $stmt = $this->pdo->prepare("
                 UPDATE user_sessions 
-                SET updated_at = NOW() 
+                SET last_activity = NOW() 
                 WHERE username = ? AND device_id = ? AND is_active = 1
             ");
             
@@ -211,11 +226,11 @@ class SessionManager {
             
             return [
                 'success' => $result && $stmt->rowCount() > 0,
-                'message' => $result ? 'فعالیت جلسه به‌روزرسانی شد' : 'جلسه فعالی یافت نشد'
+                'message' => $result ? 'آخرین فعالیت به‌روزرسانی شد' : 'جلسه فعالی یافت نشد'
             ];
             
         } catch (Exception $e) {
-            error_log("خطا در به‌روزرسانی فعالیت جلسه: " . $e->getMessage());
+            error_log("خطا در به‌روزرسانی آخرین فعالیت: " . $e->getMessage());
             throw $e;
         }
     }
@@ -229,7 +244,7 @@ class SessionManager {
                 UPDATE user_sessions 
                 SET is_active = 0, logout_time = NOW() 
                 WHERE is_active = 1 
-                AND TIMESTAMPDIFF(SECOND, COALESCE(updated_at, login_time), NOW()) > ?
+                AND TIMESTAMPDIFF(SECOND, COALESCE(last_activity, login_time), NOW()) > ?
             ");
             
             $stmt->execute([$this->sessionTimeout]);
@@ -313,6 +328,82 @@ class SessionManager {
      */
     public function getSessionTimeout() {
         return $this->sessionTimeout;
+    }
+    
+    /**
+     * اعتبارسنجی توکن جلسه
+     */
+    public function validateSessionToken($username, $sessionToken, $deviceId = null) {
+        try {
+            $query = "
+                SELECT id, device_id, login_time, last_activity,
+                       TIMESTAMPDIFF(SECOND, COALESCE(last_activity, login_time), NOW()) as session_duration
+                FROM user_sessions 
+                WHERE username = ? AND session_token = ? AND is_active = 1
+            ";
+            
+            $params = [$username, $sessionToken];
+            
+            if ($deviceId) {
+                $query .= " AND device_id = ?";
+                $params[] = $deviceId;
+            }
+            
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute($params);
+            $session = $stmt->fetch();
+            
+            if (!$session) {
+                return false;
+            }
+            
+            // بررسی انقضای جلسه
+            if ($session['session_duration'] > $this->sessionTimeout) {
+                $this->deactivateSession($username, $session['device_id']);
+                return false;
+            }
+            
+            // به‌روزرسانی آخرین فعالیت
+            $this->updateLastActivity($username, $session['device_id']);
+            
+            return true;
+            
+        } catch (Exception $e) {
+            error_log("خطا در اعتبارسنجی توکن جلسه: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * دریافت توکن جلسه فعال کاربر
+     */
+    public function getSessionToken($username, $deviceId = null) {
+        try {
+            $query = "
+                SELECT session_token
+                FROM user_sessions 
+                WHERE username = ? AND is_active = 1
+            ";
+            
+            $params = [$username];
+            
+            if ($deviceId) {
+                $query .= " AND device_id = ?";
+                $params[] = $deviceId;
+            }
+            
+            $query .= " ORDER BY COALESCE(last_activity, login_time) DESC LIMIT 1";
+            
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute($params);
+            $result = $stmt->fetch();
+            
+            return $result ? $result['session_token'] : null;
+            
+        } catch (Exception $e) {
+            error_log("خطا در دریافت توکن جلسه: " . $e->getMessage());
+            return null;
+        }
     }
 }
 ?>

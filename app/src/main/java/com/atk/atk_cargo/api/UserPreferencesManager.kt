@@ -42,16 +42,61 @@ class UserPreferencesManager(private val context: Context) {
             preferences[USER_TYPE_KEY] ?: ""
         }
 
-    suspend fun saveUserCredentials(username: String, userType: String) {
+    val deviceId = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[DEVICE_ID_KEY] ?: ""
+        }
+
+    val sessionToken = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[SESSION_TOKEN_KEY] ?: ""
+        }
+
+    suspend fun saveUserCredentials(username: String, userType: String, deviceId: String = "", sessionToken: String = "") {
         dataStore.edit { preferences ->
             preferences[USERNAME_KEY] = username
             preferences[USER_TYPE_KEY] = userType
+            if (deviceId.isNotEmpty()) {
+                preferences[DEVICE_ID_KEY] = deviceId
+            }
+            if (sessionToken.isNotEmpty()) {
+                preferences[SESSION_TOKEN_KEY] = sessionToken
+            }
+        }
+    }
+
+    suspend fun saveSessionToken(sessionToken: String) {
+        dataStore.edit { preferences ->
+            preferences[SESSION_TOKEN_KEY] = sessionToken
+        }
+    }
+
+    suspend fun clearSessionToken() {
+        dataStore.edit { preferences ->
+            preferences.remove(SESSION_TOKEN_KEY)
         }
     }
 
     suspend fun clearUserCredentials() {
         dataStore.edit { preferences ->
-            preferences.clear()
+            preferences.remove(USERNAME_KEY)
+            preferences.remove(USER_TYPE_KEY)
+            preferences.remove(DEVICE_ID_KEY)
+            preferences.remove(SESSION_TOKEN_KEY)
         }
 
         context.getSharedPreferences("loading_alerts", Context.MODE_PRIVATE).edit().clear().apply()
@@ -61,5 +106,7 @@ class UserPreferencesManager(private val context: Context) {
     companion object {
         private val USERNAME_KEY = stringPreferencesKey("username")
         private val USER_TYPE_KEY = stringPreferencesKey("user_type")
+        private val DEVICE_ID_KEY = stringPreferencesKey("device_id")
+        private val SESSION_TOKEN_KEY = stringPreferencesKey("session_token")
     }
 }
