@@ -364,8 +364,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
-
     private fun performSecurityCheck() {
         lifecycleScope.launch {
             isSecurityCheckLoading = true
@@ -496,9 +494,18 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             try {
                 val username = userPreferencesManager.username.first()
+                val deviceId = userPreferencesManager.deviceId.first()
+                val sessionToken = userPreferencesManager.sessionToken.first()
+                
                 if (username.isNotEmpty()) {
                     val apiService = RetrofitClient.apiService
-                    val response = apiService.checkSession(SessionCheckRequest(username))
+                    val sessionRequest = if (deviceId.isNotEmpty()) {
+                        SessionCheckRequest(username, deviceId, sessionToken.takeIf { it.isNotEmpty() })
+                    } else {
+                        SessionCheckRequest(username, sessionToken = sessionToken.takeIf { it.isNotEmpty() })
+                    }
+                    
+                    val response = apiService.checkSession(sessionRequest)
                     when {
                         response.isSuccessful && response.body()?.success == true -> {
                             _isSessionValid.value = true
@@ -1313,9 +1320,11 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                         val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
                                         
                                         // ارسال درخواست خروج به سرور
+                                        val sessionToken = userPreferencesManager.sessionToken.first()
                                         val logoutRequest = LogoutRequest(
                                             username = username,
-                                            deviceId = deviceId
+                                            deviceId = deviceId,
+                                            sessionToken = sessionToken.takeIf { it.isNotEmpty() }
                                         )
                                         
                                         val response = RetrofitClient.apiService.logout(logoutRequest)
@@ -1493,7 +1502,10 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                     if (success) {
                         showLoginDialog = false
                         coroutineScope.launch {
-                            userPreferencesManager.saveUserCredentials(loggedInUsername, loggedInUserType)
+                            val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+                            // دریافت session_token از UserPreferencesManager
+                            val sessionToken = userPreferencesManager.sessionToken.first()
+                            userPreferencesManager.saveUserCredentials(loggedInUsername, loggedInUserType, deviceId, sessionToken)
                             mainActivity.updateSessionValidity(true)
                         }
                     } else {
@@ -1502,7 +1514,8 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                         }
                     }
                 },
-                updateSessionValidity = mainActivity::updateSessionValidity
+                updateSessionValidity = mainActivity::updateSessionValidity,
+                userPreferencesManager = userPreferencesManager
             )
         }
 
@@ -1719,9 +1732,11 @@ fun HomeScreen(
                                 val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
                                 
                                 // ارسال درخواست خروج به سرور
+                                val sessionToken = userPreferencesManager.sessionToken.first()
                                 val logoutRequest = LogoutRequest(
                                     username = username,
-                                    deviceId = deviceId
+                                    deviceId = deviceId,
+                                    sessionToken = sessionToken.takeIf { it.isNotEmpty() }
                                 )
                                 
                                 val response = RetrofitClient.apiService.logout(logoutRequest)
@@ -1879,9 +1894,11 @@ private fun ModernHeader(
                                     val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
                                     
                                     // ارسال درخواست خروج به سرور
+                                    val sessionToken = userPreferencesManager.sessionToken.first()
                                     val logoutRequest = LogoutRequest(
                                         username = username,
-                                        deviceId = deviceId
+                                        deviceId = deviceId,
+                                        sessionToken = sessionToken.takeIf { it.isNotEmpty() }
                                     )
                                     
                                     val response = RetrofitClient.apiService.logout(logoutRequest)
@@ -5043,7 +5060,8 @@ fun getUserTypeDisplay(userType: String): String {
 fun LoginDialog(
     onDismiss: () -> Unit,
     onLoginChecked: (Boolean, String, String, String) -> Unit,
-    updateSessionValidity: (Boolean) -> Unit
+    updateSessionValidity: (Boolean) -> Unit,
+    userPreferencesManager: UserPreferencesManager
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -5630,6 +5648,13 @@ fun LoginDialog(
                                                                 1f,
                                                                 tween(200)
                                                             )
+                                                        }
+                                                        
+                                                        // ذخیره session_token در صورت وجود
+                                                        responseBody.sessionToken?.let { sessionToken ->
+                                                            launch {
+                                                                userPreferencesManager.saveSessionToken(sessionToken)
+                                                            }
                                                         }
                                                         
                                                         onLoginChecked(

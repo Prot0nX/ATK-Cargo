@@ -2868,12 +2868,14 @@ data class LoginRequest(
 data class LoginResponse(
     val success: Boolean,
     val message: String,
-    val userType: String?
+    val userType: String?,
+    val sessionToken: String? = null
 )
 
 data class LogoutRequest(
     val username: String,
-    val deviceId: String = ""
+    val deviceId: String = "",
+    val sessionToken: String? = null
 )
 
 data class LogoutResponse(
@@ -3029,7 +3031,11 @@ data class CargoInfoSearch(
     val cargoInfo: CargoInfo?
 )
 
-data class SessionCheckRequest(val username: String)
+data class SessionCheckRequest(
+    val username: String,
+    val deviceId: String = "",
+    val sessionToken: String? = null
+)
 
 data class SessionResponse(val success: Boolean, val message: String, val userType: String?)
 

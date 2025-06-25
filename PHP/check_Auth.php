@@ -99,9 +99,21 @@ try {
                 );
                 
                 if ($sessionResult['success']) {
+                    // دریافت session_token از نتیجه ایجاد جلسه
+                    $sessionToken = $sessionManager->getSessionToken($username);
+                    
                     // ایجاد تأخیر ثابت برای جلوگیری از حملات timing-based
                     usleep(rand(5000, 10000));
-                    send_json_response(true, "ورود موفقیت‌آمیز", 200, $user['userType']);
+                    
+                    // ارسال پاسخ شامل session_token
+                    http_response_code(200);
+                    echo json_encode([
+                        "success" => true, 
+                        "message" => "ورود موفقیت‌آمیز", 
+                        "userType" => $user['userType'],
+                        "session_token" => $sessionToken
+                    ], JSON_UNESCAPED_UNICODE);
+                    exit();
                 } else {
                     send_json_response(false, $sessionResult['message'], 409);
                 }

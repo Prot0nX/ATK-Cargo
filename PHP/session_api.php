@@ -77,6 +77,15 @@ try {
             
             $username = trim($input['username']);
             $deviceId = isset($input['deviceId']) ? trim($input['deviceId']) : null;
+            $sessionToken = isset($input['session_token']) ? trim($input['session_token']) : null;
+            
+            // اگر session_token ارسال شده، از آن برای اعتبارسنجی استفاده کن
+            if ($sessionToken) {
+                $isValidToken = $sessionManager->validateSessionToken($username, $sessionToken, $deviceId);
+                if (!$isValidToken) {
+                    send_json_response(false, 'توکن جلسه نامعتبر است', ['is_active' => false], 401);
+                }
+            }
             
             $isActive = $sessionManager->isSessionActive($username, $deviceId);
             $sessionInfo = $sessionManager->getActiveSession($username);
