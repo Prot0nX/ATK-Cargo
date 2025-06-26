@@ -144,7 +144,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -168,7 +167,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerState
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
@@ -7710,7 +7708,7 @@ fun FloatingActionButton(
 	onDateRangeClick: (() -> Unit)? = null
 ) {
 	var expandedFab by remember { mutableStateOf(false) }
-	var isTransparent by remember { mutableStateOf(true) } // پیش‌فرض حالت عادی
+	var isTransparent by remember { mutableStateOf(true) }
 	var longPressStartTime by remember { mutableLongStateOf(0L) }
 	var isPressed by remember { mutableStateOf(false) }
 
@@ -7832,10 +7830,10 @@ fun FloatingActionButton(
 
 			Spacer(modifier = Modifier.height(20.dp))
 
-			// دکمه اصلی FAB با طراحی بهبود یافته
+			// دکمه اصلی FAB
 			Card(
 				modifier = Modifier
-					.size(64.dp)
+					.size(56.dp)
 					.scale(scale)
 					.alpha(alpha)
 					.clickable(
@@ -7990,7 +7988,7 @@ private fun MiniFab(
 		// دکمه کوچک بهبود یافته
 		Card(
 			modifier = Modifier
-				.size(56.dp)
+				.size(42.dp)
 				.scale(scale)
 				.hoverable(interactionSource)
 				.clickable(
