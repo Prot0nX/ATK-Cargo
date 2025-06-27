@@ -201,11 +201,13 @@ import com.atk.atk_cargo.security.SignatureVerifier
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import retrofit2.Retrofit
@@ -224,6 +226,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var reportsRepository: ReportsRepository
     private lateinit var cargoViewModelFactory: CargoViewModelFactory
     private val _isSessionValid = MutableStateFlow(false)
+    private var sessionCheckJob: Job? = null
     private lateinit var signatureVerifier: SignatureVerifier
     private var isSecurityCheckPassed by mutableStateOf(false)
     private var isSecurityCheckLoading by mutableStateOf(true)
@@ -456,6 +459,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        stopPeriodicSessionCheck()
         if (::updateManager.isInitialized) {
             updateManager.onCleared()
         }
@@ -516,7 +520,16 @@ class MainActivity : ComponentActivity() {
                         else -> {
                             _isSessionValid.value = false
                             userPreferencesManager.clearUserCredentials()
-                            showMessage("لطفاً دوباره وارد شوید!")
+                            
+                            // بررسی نوع خطای جلسه برای نمایش پیام مناسب
+                            val errorMessage = response.body()?.message ?: "خطای نامشخص"
+                            val displayMessage = when {
+                                errorMessage.contains("منقضی") -> "جلسه شما منقضی شده است. لطفاً دوباره وارد شوید."
+                                errorMessage.contains("نامعتبر") -> "جلسه شما نامعتبر است. لطفاً دوباره وارد شوید."
+                                errorMessage.contains("دستگاه دیگری") -> "شما در دستگاه دیگری وارد شده‌اید. جلسه فعلی قطع شد."
+                                else -> "لطفاً دوباره وارد شوید!"
+                            }
+                            showMessage(displayMessage)
                         }
                     }
                 } else {
@@ -537,7 +550,7 @@ class MainActivity : ComponentActivity() {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 
-    private fun startLoadingNotificationService() {
+    fun startLoadingNotificationService() {
         // بررسی و درخواست مجوز نوتیفیکیشن
         checkNotificationPermission()
         
@@ -558,6 +571,65 @@ class MainActivity : ComponentActivity() {
                 startService(intent)
             }
         }
+        
+        // شروع بررسی دوره‌ای جلسه کاربر
+        startPeriodicSessionCheck()
+    }
+    
+    private fun startPeriodicSessionCheck() {
+        // لغو بررسی قبلی اگر وجود دارد
+        sessionCheckJob?.cancel()
+        
+        sessionCheckJob = lifecycleScope.launch {
+            while (isActive && _isSessionValid.value) {
+                delay(60000) // بررسی هر 60 ثانیه
+                
+                try {
+                    val username = userPreferencesManager.username.first()
+                    val deviceId = userPreferencesManager.deviceId.first()
+                    val sessionToken = userPreferencesManager.sessionToken.first()
+                    
+                    if (username.isNotEmpty()) {
+                        val apiService = RetrofitClient.apiService
+                        val sessionRequest = SessionCheckRequest(
+                            username, 
+                            deviceId, 
+                            sessionToken.takeIf { it.isNotEmpty() }
+                        )
+                        
+                        val response = apiService.checkSession(sessionRequest)
+                        
+                        if (!response.isSuccessful || response.body()?.success != true) {
+                            // جلسه نامعتبر شده است
+                            _isSessionValid.value = false
+                            userPreferencesManager.clearUserCredentials()
+                            
+                            val errorMessage = response.body()?.message ?: "خطای نامشخص"
+                            val displayMessage = when {
+                                errorMessage.contains("دستگاه دیگری") -> 
+                                    "🔄 شما در دستگاه دیگری وارد شده‌اید. جلسه فعلی قطع شد."
+                                errorMessage.contains("منقضی") -> 
+                                    "⏰ جلسه شما منقضی شده است."
+                                else -> "❌ جلسه شما نامعتبر شده است."
+                            }
+                            
+                            withContext(Dispatchers.Main) {
+                                showMessage(displayMessage)
+                            }
+                            break // خروج از حلقه بررسی
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("SessionCheck", "خطا در بررسی دوره‌ای جلسه: ${e.message}")
+                    // در صورت خطا، بررسی را ادامه می‌دهیم
+                }
+            }
+        }
+    }
+    
+    fun stopPeriodicSessionCheck() {
+        sessionCheckJob?.cancel()
+        sessionCheckJob = null
     }
     
     private fun checkNotificationPermission() {
@@ -1329,16 +1401,29 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                         
                                         val response = RetrofitClient.apiService.logout(logoutRequest)
                                         if (response.isSuccessful && response.body()?.success == true) {
+                                            // توقف بررسی دوره‌ای جلسه
+                                            mainActivity.stopPeriodicSessionCheck()
                                             // پاک کردن اطلاعات محلی
                                             userPreferencesManager.clearUserCredentials()
                                             Toast.makeText(mainActivity, "خروج با موفقیت انجام شد", Toast.LENGTH_SHORT).show()
                                         } else {
+                                            // مدیریت خطاهای HTTP status codes
+                                            val errorMessage = when (response.code()) {
+                                                400 -> "❌ درخواست نامعتبر"
+                                                401 -> "🔐 جلسه منقضی شده است"
+                                                404 -> "⚠️ جلسه فعالی یافت نشد"
+                                                500 -> "🔧 خطای داخلی سرور"
+                                                else -> "خطا در خروج (کد: ${response.code()})"
+                                            }
+                                            
                                             // حتی در صورت خطا، اطلاعات محلی را پاک کن
+                                            mainActivity.stopPeriodicSessionCheck()
                                             userPreferencesManager.clearUserCredentials()
-                                            Toast.makeText(mainActivity, "خروج انجام شد", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
                                         }
                                     } catch (_: Exception) {
                                         // در صورت خطا، اطلاعات محلی را پاک کن
+                                        mainActivity.stopPeriodicSessionCheck()
                                         userPreferencesManager.clearUserCredentials()
                                         Toast.makeText(mainActivity, "خروج انجام شد", Toast.LENGTH_SHORT).show()
                                     }
@@ -1507,6 +1592,8 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                             val sessionToken = userPreferencesManager.sessionToken.first()
                             userPreferencesManager.saveUserCredentials(loggedInUsername, loggedInUserType, deviceId, sessionToken)
                             mainActivity.updateSessionValidity(true)
+                            // شروع بررسی دوره‌ای جلسه پس از ورود موفق
+                            mainActivity.startLoadingNotificationService()
                         }
                     } else {
                         coroutineScope.launch {
@@ -1741,15 +1828,30 @@ fun HomeScreen(
                                 
                                 val response = RetrofitClient.apiService.logout(logoutRequest)
                                 if (response.isSuccessful && response.body()?.success == true) {
+                                    mainActivity.stopPeriodicSessionCheck()
                                     userPreferencesManager.clearUserCredentials()
                                     mainActivity.updateSessionValidity(false)
                                     onLogoutClick()
                                 } else {
+                                    // مدیریت خطاهای HTTP status codes
+                                    val errorMessage = when (response.code()) {
+                                        400 -> "❌ درخواست نامعتبر"
+                                        401 -> "🔐 جلسه منقضی شده است"
+                                        404 -> "⚠️ جلسه فعالی یافت نشد"
+                                        500 -> "🔧 خطای داخلی سرور"
+                                        else -> "خطا در خروج (کد: ${response.code()})"
+                                    }
+                                    
+                                    // نمایش پیام خطا
+                                    Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
+                                    
+                                    mainActivity.stopPeriodicSessionCheck()
                                     userPreferencesManager.clearUserCredentials()
                                     mainActivity.updateSessionValidity(false)
                                     onLogoutClick()
                                 }
                             } catch (_: Exception) {
+                                mainActivity.stopPeriodicSessionCheck()
                                 userPreferencesManager.clearUserCredentials()
                                 mainActivity.updateSessionValidity(false)
                                 onLogoutClick()
@@ -1903,15 +2005,30 @@ private fun ModernHeader(
                                     
                                     val response = RetrofitClient.apiService.logout(logoutRequest)
                                     if (response.isSuccessful && response.body()?.success == true) {
+                                        mainActivity.stopPeriodicSessionCheck()
                                         userPreferencesManager.clearUserCredentials()
                                         mainActivity.updateSessionValidity(false)
                                         onLogoutClick()
                                     } else {
+                                        // مدیریت خطاهای HTTP status codes
+                                        val errorMessage = when (response.code()) {
+                                            400 -> "❌ درخواست نامعتبر"
+                                            401 -> "🔐 جلسه منقضی شده است"
+                                            404 -> "⚠️ جلسه فعالی یافت نشد"
+                                            500 -> "🔧 خطای داخلی سرور"
+                                            else -> "خطا در خروج (کد: ${response.code()})"
+                                        }
+                                        
+                                        // نمایش پیام خطا
+                                        Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
+                                        
+                                        mainActivity.stopPeriodicSessionCheck()
                                         userPreferencesManager.clearUserCredentials()
                                         mainActivity.updateSessionValidity(false)
                                         onLogoutClick()
                                     }
                                 } catch (_: Exception) {
+                                    mainActivity.stopPeriodicSessionCheck()
                                     userPreferencesManager.clearUserCredentials()
                                     mainActivity.updateSessionValidity(false)
                                     onLogoutClick()
@@ -5611,6 +5728,7 @@ fun LoginDialog(
                         Surface(
                             onClick = {
                                 loginAttempted = true
+
                                 if (username.isNotEmpty() && password.isNotEmpty()) {
                                     isLoading = true
                                     errorMessage = null
@@ -5618,12 +5736,12 @@ fun LoginDialog(
                                     coroutineScope.launch {
                                         try {
                                             val hashedPassword = hashPassword(password)
-                                            
+
                                             // جمع‌آوری اطلاعات دستگاه
                                             val deviceModel = Build.MODEL ?: "Unknown"
                                             val androidVersion = Build.VERSION.RELEASE ?: "Unknown"
                                             val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
-                                            
+
                                             val loginRequest = LoginRequest(
                                                 username = username,
                                                 password = hashedPassword,
@@ -5632,8 +5750,9 @@ fun LoginDialog(
                                                 deviceId = deviceId,
                                                 androidVersion = androidVersion
                                             )
-                                            val response = apiService.checkLogin(loginRequest)
                                             
+                                            val response = apiService.checkLogin(loginRequest)
+
                                             if (response.isSuccessful) {
                                                 val responseBody = response.body()
                                                 if (responseBody != null) {
@@ -5668,11 +5787,16 @@ fun LoginDialog(
                                                     } else {
                                         // بررسی نوع خطا برای نمایش پیام مناسب
                                         errorMessage = when {
-                                            responseBody.message.contains("دستگاه دیگری") -> {
-                                                "⚠️ شما در حال حاضر در دستگاه دیگری وارد سیستم هستید.\n\n" +
-                                                "برای ورود در این دستگاه:\n" +
-                                                "• ابتدا از دستگاه قبلی خارج شوید\n" +
-                                                "• یا از طریق داشبورد مدیریت، جلسه قبلی را قطع کنید"
+                                            responseBody.message.contains("دستگاه دیگری") || 
+                                            responseBody.message.contains("در حال حاضر در دستگاه") -> {
+                                                "🚫 ورود همزمان مجاز نیست\n\n" +
+                                                "شما در حال حاضر در دستگاه دیگری وارد سیستم هستید."
+                                            }
+                                            responseBody.message.contains("نام کاربری یا رمز عبور") -> {
+                                                "❌ نام کاربری یا رمز عبور اشتباه است"
+                                            }
+                                            responseBody.message.contains("دسترسی لازم") -> {
+                                                "⛔ شما دسترسی لازم برای این بخش را ندارید"
                                             }
                                             else -> responseBody.message
                                         }
@@ -5681,7 +5805,18 @@ fun LoginDialog(
                                                     errorMessage = "پاسخ سرور خالی است"
                                                 }
                                             } else {
-                                                errorMessage = "خطا در ورود: لطفاً اطلاعات را بررسی کنید"
+                                                // مدیریت خطاهای HTTP status codes
+                                                errorMessage = when (response.code()) {
+                                                    401 -> "❌ نام کاربری یا رمز عبور اشتباه است"
+                                                    403 -> "⛔ شما دسترسی لازم برای این بخش را ندارید"
+                                                    409 -> "🚫 ورود همزمان مجاز نیست\n\nشما در حال حاضر در دستگاه دیگری وارد سیستم هستید."
+                                                    500 -> "🔧 خطای داخلی سرور\n\nلطفاً چند دقیقه دیگر تلاش کنید."
+                                                    502, 503 -> "🌐 سرور در حال تعمیر است\n\nلطفاً بعداً تلاش کنید."
+                                                    504 -> "⏱️ زمان درخواست به پایان رسید\n\nلطفاً اتصال اینترنت خود را بررسی کنید."
+                                                    in 400..499 -> "⚠️ خطا در درخواست (کد: ${response.code()})\n\nلطفاً اطلاعات را بررسی کنید."
+                                                    in 500..599 -> "🔧 خطای سرور (کد: ${response.code()})\n\nلطفاً بعداً تلاش کنید."
+                                                    else -> "❓ خطای نامشخص (کد: ${response.code()})\n\nلطفاً با پشتیبانی تماس بگیرید."
+                                                }
                                             }
                                         } catch (_: Exception) {
                                             errorMessage = "خطا در ارتباط با سرور"

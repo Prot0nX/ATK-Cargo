@@ -110,6 +110,45 @@ class SessionManager {
     }
     
     /**
+     * دریافت جلسه فعال کاربر
+     * @param string $username نام کاربری
+     * @return array|null اطلاعات جلسه فعال یا null
+     */
+    public function getActiveSession($username) {
+        try {
+            $this->cleanupExpiredSessions();
+            
+            $stmt = $this->pdo->prepare("
+                SELECT id, username, device_id, device_model, android_version, 
+                       login_time, last_activity, session_token, userType,
+                       TIMESTAMPDIFF(SECOND, COALESCE(last_activity, login_time), NOW()) as session_duration
+                FROM user_sessions 
+                WHERE username = ? AND is_active = 1
+                ORDER BY COALESCE(last_activity, login_time) DESC
+                LIMIT 1
+            ");
+            
+            $stmt->execute([$username]);
+            $session = $stmt->fetch();
+            
+            if ($session) {
+                // بررسی انقضای جلسه
+                if ($session['session_duration'] > $this->sessionTimeout) {
+                    $this->deactivateSession($username, $session['device_id']);
+                    return null;
+                }
+                return $session;
+            }
+            
+            return null;
+            
+        } catch (Exception $e) {
+            error_log("خطا در دریافت جلسه فعال: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    /**
      * بررسی وضعیت فعال بودن جلسه کاربر
      */
     public function isSessionActive($username, $deviceId = null) {
@@ -160,6 +199,18 @@ class SessionManager {
      */
     public function deactivateSession($username, $deviceId = null) {
         try {
+            // ابتدا بررسی می‌کنیم که آیا کاربر وجود دارد یا نه
+            $userCheck = $this->pdo->prepare("SELECT username FROM Users WHERE username = ? LIMIT 1");
+            $userCheck->execute([$username]);
+            
+            if (!$userCheck->fetch()) {
+                return [
+                    'success' => false,
+                    'message' => 'کاربر در سیستم وجود ندارد',
+                    'http_code' => 404
+                ];
+            }
+            
             $query = "UPDATE user_sessions SET is_active = 0, logout_time = NOW() WHERE username = ? AND is_active = 1";
             $params = [$username];
             
@@ -176,13 +227,15 @@ class SessionManager {
                 return [
                     'success' => true,
                     'message' => 'خروج با موفقیت انجام شد',
-                    'affected_sessions' => $stmt->rowCount()
+                    'affected_sessions' => $stmt->rowCount(),
+                    'http_code' => 200
                 ];
             }
             
             return [
                 'success' => false,
-                'message' => 'جلسه فعالی برای غیرفعال کردن یافت نشد'
+                'message' => 'جلسه فعالی برای غیرفعال کردن یافت نشد',
+                'http_code' => 404
             ];
             
         } catch (Exception $e) {

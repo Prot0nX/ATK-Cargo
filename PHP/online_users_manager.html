@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت کاربران آنلاین - سیستم ATK Cargo</title>
+    
+    <!-- Vazirmatn Font -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="online_users_styles.css">
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'vazirmatn': ['Vazirmatn', 'Vazir', 'Tahoma', 'Arial', 'sans-serif'],
+                        'vazir': ['Vazir', 'Tahoma', 'Arial', 'sans-serif']
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'spin-slow': 'spin 3s linear infinite',
+                        'bounce-slow': 'bounce 2s infinite'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 font-vazirmatn transition-colors duration-300">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4 space-x-reverse">
+                    <div class="bg-blue-500 p-3 rounded-lg">
+                        <i class="fas fa-users text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">مدیریت کاربران آنلاین</h1>
+                        <p class="text-gray-600 dark:text-gray-400">سیستم ATK Cargo</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4 space-x-reverse">
+                    <!-- Live Status -->
+                    <div class="flex items-center space-x-2 space-x-reverse bg-green-100 dark:bg-green-900 px-3 py-2 rounded-lg">
+                        <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse-slow"></div>
+                        <span class="text-green-700 dark:text-green-300 text-sm font-medium">زنده</span>
+                    </div>
+                    
+                    <!-- Theme Toggle -->
+                    <button id="themeToggle" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-moon dark:hidden text-gray-600"></i>
+                        <i class="fas fa-sun hidden dark:inline text-yellow-400"></i>
+                    </button>
+                    
+                    <!-- Refresh Button -->
+                    <button id="refreshBtn" class="flex items-center space-x-2 space-x-reverse bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+                        <i class="fas fa-sync-alt" id="refreshIcon"></i>
+                        <span>بروزرسانی</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 dark:text-gray-400 text-sm">کاربران آنلاین</p>
+                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="onlineCount">0</p>
+                    </div>
+                    <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
+                        <i class="fas fa-user-check text-blue-600 dark:text-blue-400"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 dark:text-gray-400 text-sm">جلسات فعال</p>
+                        <p class="text-2xl font-bold text-green-600 dark:text-green-400" id="activeSessionsCount">0</p>
+                    </div>
+                    <div class="bg-green-100 dark:bg-green-900 p-3 rounded-lg">
+                        <i class="fas fa-desktop text-green-600 dark:text-green-400"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 dark:text-gray-400 text-sm">ورودی‌های امروز</p>
+                        <p class="text-2xl font-bold text-purple-600 dark:text-purple-400" id="todayLoginsCount">0</p>
+                    </div>
+                    <div class="bg-purple-100 dark:bg-purple-900 p-3 rounded-lg">
+                        <i class="fas fa-sign-in-alt text-purple-600 dark:text-purple-400"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 dark:text-gray-400 text-sm">آخرین بروزرسانی</p>
+                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300" id="lastUpdate">-</p>
+                    </div>
+                    <div class="bg-orange-100 dark:bg-orange-900 p-3 rounded-lg">
+                        <i class="fas fa-clock text-orange-600 dark:text-orange-400 animate-spin-slow" id="updateIcon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8 border border-gray-200 dark:border-gray-700">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center space-x-4 space-x-reverse">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">فیلتر زمانی:</h3>
+                    <div class="flex space-x-2 space-x-reverse">
+                        <button class="filter-btn active" data-filter="all">
+                            <i class="fas fa-globe"></i>
+                            همه جلسات
+                        </button>
+                        <button class="filter-btn" data-filter="today">
+                            <i class="fas fa-calendar-day"></i>
+                            امروز
+                        </button>
+                        <button class="filter-btn" data-filter="24h">
+                            <i class="fas fa-clock"></i>
+                            24 ساعت گذشته
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-2 space-x-reverse">
+                    <label class="flex items-center space-x-2 space-x-reverse">
+                        <input type="checkbox" id="autoRefresh" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="text-gray-700 dark:text-gray-300">بروزرسانی خودکار (30 ثانیه)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="usersGrid">
+            <!-- Users will be loaded here -->
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-12">
+            <div class="inline-flex items-center space-x-2 space-x-reverse">
+                <i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i>
+                <span class="text-gray-600 dark:text-gray-400">در حال بارگذاری...</span>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-12 hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-gray-200 dark:border-gray-700">
+                <i class="fas fa-users-slash text-gray-400 text-4xl mb-4"></i>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">هیچ کاربری آنلاین نیست</h3>
+                <p class="text-gray-600 dark:text-gray-400">در حال حاضر هیچ کاربری در سیستم فعال نیست.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- User Details Modal -->
+    <div id="userModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-50 dark:bg-gray-900 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">جزئیات کاربر</h3>
+                    <button id="closeModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div id="modalContent">
+                    <!-- Modal content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="online_users_script.js?v=1.7"></script>
+</body>
+</html>
