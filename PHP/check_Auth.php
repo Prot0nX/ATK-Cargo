@@ -88,6 +88,14 @@ try {
                 $sessionManager = new SessionManager();
                 $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
                 
+                // بررسی جلسه فعال موجود قبل از ایجاد جلسه جدید
+                $existingSession = $sessionManager->getActiveSession($username);
+                
+                if ($existingSession && $existingSession['device_id'] !== $deviceId) {
+                    // کاربر در دستگاه دیگری فعال است
+                    send_json_response(false, "شما در حال حاضر در دستگاه دیگری (" . $existingSession['device_model'] . ") وارد سیستم هستید. برای ورود در این دستگاه، ابتدا از دستگاه قبلی خارج شوید یا از طریق داشبورد مدیریت، جلسه قبلی را قطع کنید.", 409);
+                }
+                
                 // ایجاد جلسه جدید با ارسال نوع کاربر
                 $sessionResult = $sessionManager->createSession(
                     $username, 
@@ -119,12 +127,8 @@ try {
                 }
                 
             } catch (Exception $sessionError) {
-                if (strpos($sessionError->getMessage(), 'دستگاه دیگری') !== false) {
-                    send_json_response(false, "شما در حال حاضر در دستگاه دیگری وارد سیستم هستید. لطفاً ابتدا از آن دستگاه خارج شوید.", 409);
-                } else {
-                    error_log("خطا در مدیریت جلسه: " . $sessionError->getMessage());
-                    send_json_response(false, "خطا در ایجاد جلسه کاربری", 500);
-                }
+                error_log("خطا در مدیریت جلسه: " . $sessionError->getMessage());
+                send_json_response(false, "خطا در ایجاد جلسه کاربری", 500);
             }
         } else {
             send_json_response(false, "شما دسترسی لازم برای این بخش را ندارید.", 403);
