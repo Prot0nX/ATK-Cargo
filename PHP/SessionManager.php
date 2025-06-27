@@ -51,10 +51,18 @@ class SessionManager {
             if ($existingSession) {
                 // اگر همان دستگاه است، جلسه را به‌روزرسانی می‌کنیم
                 if ($existingSession['device_id'] === $deviceId) {
-                    return $this->updateSessionActivity($username, $deviceId);
+                    $updateResult = $this->updateSessionActivity($username, $deviceId);
+                    if ($updateResult['success']) {
+                        return [
+                            'success' => true,
+                            'message' => 'جلسه موجود به‌روزرسانی شد',
+                            'session_id' => $existingSession['id'],
+                            'session_token' => $existingSession['session_token']
+                        ];
+                    }
                 } else {
-                    // اگر دستگاه متفاوت است، خطا برمی‌گردانیم
-                    throw new Exception("کاربر در دستگاه دیگری فعال است");
+                    // اگر دستگاه متفاوت است، جلسه قبلی را غیرفعال کرده و جلسه جدید ایجاد می‌کنیم
+                    $this->forceLogoutFromDevice($username, $existingSession['device_id']);
                 }
             }
             
@@ -66,6 +74,8 @@ class SessionManager {
                 
                 if ($user) {
                     $userType = $user['userType'];
+                } else {
+                    throw new Exception("کاربر در سیستم یافت نشد");
                 }
             }
             
@@ -181,28 +191,7 @@ class SessionManager {
         }
     }
     
-    /**
-     * دریافت اطلاعات جلسه فعال کاربر
-     */
-    public function getActiveSession($username) {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT id, device_id, device_model, android_version, login_time, last_activity, ip_address, session_token,
-                       TIMESTAMPDIFF(SECOND, COALESCE(last_activity, login_time), NOW()) as session_duration
-                FROM user_sessions 
-                WHERE username = ? AND is_active = 1
-                ORDER BY COALESCE(last_activity, login_time) DESC 
-                LIMIT 1
-            ");
-            
-            $stmt->execute([$username]);
-            return $stmt->fetch();
-            
-        } catch (Exception $e) {
-            error_log("خطا در دریافت جلسه فعال: " . $e->getMessage());
-            return null;
-        }
-    }
+
     
     /**
      * به‌روزرسانی فعالیت جلسه (برای جلوگیری از انقضا)
@@ -266,12 +255,14 @@ class SessionManager {
             $this->cleanupExpiredSessions();
             
             $stmt = $this->pdo->prepare("
-                SELECT DISTINCT us.username, u.userType, us.device_model, us.login_time,
-                       TIMESTAMPDIFF(SECOND, us.login_time, NOW()) as online_duration
+                SELECT us.id, us.username, u.userType, us.device_model, us.device_id, 
+                       us.login_time, us.last_activity, us.ip_address,
+                       TIMESTAMPDIFF(SECOND, us.login_time, NOW()) as online_duration,
+                       TIMESTAMPDIFF(SECOND, COALESCE(us.last_activity, us.login_time), NOW()) as idle_time
                 FROM user_sessions us
                 JOIN Users u ON us.username = u.username
                 WHERE us.is_active = 1
-                ORDER BY us.login_time DESC
+                ORDER BY us.last_activity DESC, us.login_time DESC
             ");
             
             $stmt->execute();
@@ -279,6 +270,77 @@ class SessionManager {
             
         } catch (Exception $e) {
             error_log("خطا در دریافت کاربران آنلاین: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * خروج اجباری کاربر از دستگاه خاص
+     */
+    public function forceLogoutFromDevice($username, $deviceId) {
+        try {
+            $stmt = $this->pdo->prepare("
+                UPDATE user_sessions 
+                SET is_active = 0, logout_time = NOW() 
+                WHERE username = ? AND device_id = ? AND is_active = 1
+            ");
+            
+            $result = $stmt->execute([$username, $deviceId]);
+            
+            if ($result && $stmt->rowCount() > 0) {
+                $this->logActivity($username, 'FORCE_LOGOUT', $deviceId);
+                return [
+                    'success' => true,
+                    'message' => 'کاربر از دستگاه قبلی خارج شد'
+                ];
+            }
+            
+            return [
+                'success' => false,
+                'message' => 'جلسه فعالی برای خروج یافت نشد'
+            ];
+            
+        } catch (Exception $e) {
+            error_log("خطا در خروج اجباری: " . $e->getMessage());
+            throw $e;
+        }
+    }
+    
+    /**
+     * دریافت آمار جلسات
+     */
+    public function getSessionStats() {
+        try {
+            $this->cleanupExpiredSessions();
+            
+            $stmt = $this->pdo->prepare("
+                SELECT 
+                    COUNT(*) as total_active_sessions,
+                    COUNT(DISTINCT username) as unique_users_online,
+                    AVG(TIMESTAMPDIFF(SECOND, login_time, NOW())) as avg_session_duration
+                FROM user_sessions 
+                WHERE is_active = 1
+            ");
+            
+            $stmt->execute();
+            $stats = $stmt->fetch();
+            
+            // آمار امروز
+            $stmt = $this->pdo->prepare("
+                SELECT 
+                    COUNT(*) as today_logins,
+                    COUNT(DISTINCT username) as unique_users_today
+                FROM user_sessions 
+                WHERE DATE(login_time) = CURDATE()
+            ");
+            
+            $stmt->execute();
+            $todayStats = $stmt->fetch();
+            
+            return array_merge($stats, $todayStats);
+            
+        } catch (Exception $e) {
+            error_log("خطا در دریافت آمار جلسات: " . $e->getMessage());
             return [];
         }
     }

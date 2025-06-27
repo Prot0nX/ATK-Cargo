@@ -5666,8 +5666,17 @@ fun LoginDialog(
                                                         updateSessionValidity(true)
                                                         
                                                     } else {
-                                                        errorMessage = responseBody.message
-                                                    }
+                                        // بررسی نوع خطا برای نمایش پیام مناسب
+                                        errorMessage = when {
+                                            responseBody.message.contains("دستگاه دیگری") -> {
+                                                "⚠️ شما در حال حاضر در دستگاه دیگری وارد سیستم هستید.\n\n" +
+                                                "برای ورود در این دستگاه:\n" +
+                                                "• ابتدا از دستگاه قبلی خارج شوید\n" +
+                                                "• یا از طریق داشبورد مدیریت، جلسه قبلی را قطع کنید"
+                                            }
+                                            else -> responseBody.message
+                                        }
+                                    }
                                                 } else {
                                                     errorMessage = "پاسخ سرور خالی است"
                                                 }

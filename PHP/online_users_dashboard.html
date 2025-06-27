@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد کاربران آنلاین - ATK Cargo</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="online_users_dashboard.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container max-w-7xl mx-auto my-5 p-0">
+        <div class="header p-8 text-center">
+            <div class="header-content">
+                <h1 class="text-4xl md:text-5xl mb-4">
+                    <i class="fas fa-users"></i>
+                    داشبورد کاربران آنلاین
+                </h1>
+                <p class="text-lg mb-6">مدیریت و نظارت بر جلسات فعال کاربران سیستم ATK Cargo</p>
+                <div class="header-actions">
+                    <button class="theme-toggle-btn" onclick="toggleTheme()" title="تغییر تم">
+                        <i class="fas fa-moon" id="themeIcon"></i>
+                    </button>
+                    <button class="refresh-btn px-6 py-3" onclick="loadData()">
+                        <i class="fas fa-sync-alt"></i>
+                        بروزرسانی
+                    </button>
+                    <div class="auto-refresh-indicator px-4 py-2">
+                        <i class="fas fa-circle status-indicator"></i>
+                        بروزرسانی خودکار فعال
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-section p-8">
+            <div class="stats-grid" id="statsGrid">
+                <!-- آمار اینجا نمایش داده می‌شود -->
+            </div>
+        </div>
+
+        <div class="users-section p-8">
+            <div class="section-header mb-8">
+                <h2 class="section-title mb-4">
+                    <i class="fas fa-user-friends"></i>
+                    کاربران آنلاین
+                </h2>
+                <p class="section-subtitle">لیست کاربران فعال در سیستم</p>
+            </div>
+            
+            <div class="users-filter mb-8">
+                <button class="filter-btn active px-4 py-2" data-filter="all" onclick="filterUsers('all')">
+                    <i class="fas fa-users"></i>
+                    همه کاربران
+                </button>
+                <button class="filter-btn px-4 py-2" data-filter="admin" onclick="filterUsers('admin')">
+                    <i class="fas fa-user-shield"></i>
+                    مدیران
+                </button>
+                <button class="filter-btn px-4 py-2" data-filter="operator" onclick="filterUsers('operator')">
+                    <i class="fas fa-user-cog"></i>
+                    اپراتورها
+                </button>
+                <button class="filter-btn px-4 py-2" data-filter="verifier" onclick="filterUsers('verifier')">
+                    <i class="fas fa-user-check"></i>
+                    تأیید کنندگان
+                </button>
+            </div>
+            
+            <div class="users-grid" id="usersGrid">
+                <div class="loading">در حال بارگذاری...</div>
+            </div>
+        </div>
+
+        <div class="last-updated mt-8 p-4" id="lastUpdated"></div>
+    </div>
+    <script src="online_users_dashboard.js"></script>
+</body>
+</html>
