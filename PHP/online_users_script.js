@@ -109,7 +109,13 @@ class ApiManager {
             clearTimeout(timeoutId);
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                console.error('HTTP Error Response:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: errorText
+                });
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
             }
             
             const data = await response.json();
@@ -319,7 +325,7 @@ class UsersManager {
         const cards = elements.usersGrid.querySelectorAll('.user-card');
         cards.forEach((card, index) => {
             card.style.animationDelay = `${index * 50}ms`;
-            card.classList.add('animate-fade-in-up');
+            // انیمیشن حذف شده
         });
     }
     
@@ -338,7 +344,7 @@ class UsersManager {
                         <div class="relative">
                             <div class="w-12 h-12 bg-gradient-to-br from-${userTypeColor}-400 to-${userTypeColor}-600 
                                         rounded-full flex items-center justify-center text-white font-bold text-lg 
-                                        shadow-lg animate-scale-in">
+                                        shadow-lg">
                                 ${user.username.charAt(0).toUpperCase()}
                             </div>
                         </div>
@@ -346,8 +352,8 @@ class UsersManager {
                             <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">
                                 ${user.username}
                             </h3>
-                            <span class="user-type-${user.userType} inline-block">
-                                ${this.getUserTypeText(user.userType)}
+                            <span class="user-type ${user.userType} inline-block">
+                                <span>${this.getUserTypeText(user.userType)}</span>
                             </span>
                         </div>
                     </div>
@@ -379,18 +385,19 @@ class UsersManager {
                 </div>
             </div>
             
-            <div class="flex space-x-2 space-x-reverse pt-4 border-t border-gray-200 dark:border-gray-700">
-                <button class="action-btn action-btn-primary flex-1" 
+            <div class="flex space-x-3 space-x-reverse pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button class="action-btn btn-details flex-1" 
                         onclick="showUserDetails('${user.username}', '${user.device_id}')" 
                         title="مشاهده جزئیات">
                     <i class="fas fa-info-circle"></i>
                     <span>جزئیات</span>
                 </button>
                 
-                <button class="action-btn action-btn-danger" 
-                        onclick="forceLogout('${user.username}', '${user.device_id}')" 
+                <button class="action-btn btn-logout" 
+                        onclick="confirmForceLogout('${user.username}', '${user.device_id}')" 
                         title="خروج اجباری">
                     <i class="fas fa-sign-out-alt"></i>
+                    <span>خروج</span>
                 </button>
             </div>
         `;
@@ -428,7 +435,7 @@ class UsersManager {
     showLoading() {
         if (elements.loadingState) {
             elements.loadingState.classList.remove('hidden');
-            elements.loadingState.classList.add('animate-fade-in-up');
+            // انیمیشن حذف شده
         }
         
         if (elements.usersGrid) {
@@ -463,7 +470,7 @@ class UsersManager {
     showEmptyState() {
         if (elements.emptyState) {
             elements.emptyState.classList.remove('hidden');
-            elements.emptyState.classList.add('animate-scale-in');
+            // انیمیشن حذف شده
         }
         
         if (elements.usersGrid) {
@@ -507,7 +514,7 @@ class UsersManager {
         const icon = type === 'error' ? 'fa-exclamation-triangle' : 'fa-check-circle';
         
         toast.className = `fixed top-4 right-4 ${bgColor} text-white px-6 py-4 rounded-lg shadow-lg z-50 
-                          animate-slide-in-right max-w-md`;
+                          max-w-md`;
         
         toast.innerHTML = `
             <div class="flex items-center space-x-3 space-x-reverse">
@@ -530,9 +537,9 @@ class UsersManager {
         
         // انیمیشن آیکون بروزرسانی
         if (elements.updateIcon) {
-            elements.updateIcon.classList.add('animate-spin-slow');
+            // انیمیشن حذف شده
             setTimeout(() => {
-                elements.updateIcon.classList.remove('animate-spin-slow');
+                // انیمیشن حذف شده
             }, 1000);
         }
     }
@@ -560,6 +567,52 @@ class UsersManager {
             totalRequests: this.performanceMetrics.successCount + this.performanceMetrics.errorCount
         };
     }
+    
+    removeUserCard(username, deviceId) {
+        try {
+            // پیدا کردن تمام کارت‌های کاربر
+            const userCards = elements.usersGrid.querySelectorAll('.user-card');
+            
+            userCards.forEach(card => {
+                // بررسی محتوای کارت برای پیدا کردن کاربر مورد نظر
+                const usernameElement = card.querySelector('h3');
+                const logoutButton = card.querySelector('button[onclick*="confirmForceLogout"]');
+                
+                if (usernameElement && logoutButton) {
+                    const cardUsername = usernameElement.textContent.trim();
+                    const onclickAttr = logoutButton.getAttribute('onclick');
+                    
+                    // بررسی اینکه این کارت متعلق به کاربر مورد نظر است
+                    if (cardUsername === username && onclickAttr.includes(deviceId)) {
+                        // انیمیشن fade out
+                        card.style.transition = 'all 0.3s ease-out';
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.95)';
+                        
+                        // حذف کارت بعد از انیمیشن
+                        setTimeout(() => {
+                            if (card.parentNode) {
+                                card.remove();
+                            }
+                        }, 300);
+                        
+                        console.log(`کارت کاربر ${username} با device_id ${deviceId} حذف شد`);
+                    }
+                }
+            });
+            
+            // حذف کاربر از آرایه کاربران
+            this.users = this.users.filter(user => 
+                !(user.username === username && user.device_id === deviceId)
+            );
+            
+            // بروزرسانی فوری آمار
+            this.renderStats();
+            
+        } catch (error) {
+            console.error('خطا در حذف کارت کاربر:', error);
+        }
+    }
 }
 
 // کلاس مدیریت مودال با انیمیشن‌های پیشرفته
@@ -568,7 +621,7 @@ class ModalManager {
         if (elements.modalContent && elements.userModal) {
             elements.modalContent.innerHTML = content;
             elements.userModal.classList.remove('hidden');
-            elements.userModal.classList.add('animate-fade-in-up');
+            // انیمیشن حذف شده
             document.body.style.overflow = 'hidden';
             
             // فوکوس روی مودال برای دسترسی بهتر
@@ -579,7 +632,7 @@ class ModalManager {
     static hide() {
         if (elements.userModal) {
             elements.userModal.classList.add('hidden');
-            elements.userModal.classList.remove('animate-fade-in-up');
+            // انیمیشن حذف شده
             document.body.style.overflow = 'auto';
         }
     }
@@ -594,11 +647,11 @@ class ModalManager {
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">تأیید عملیات</h3>
                     <p class="text-gray-600 dark:text-gray-400 mb-6">${message}</p>
                     <div class="flex space-x-3 space-x-reverse">
-                        <button class="action-btn action-btn-danger flex-1" onclick="${onConfirm}">
+                        <button class="modal-btn modal-btn-danger flex-1" onclick="${onConfirm}">
                             <i class="fas fa-check"></i>
                             <span>تأیید</span>
                         </button>
-                        <button class="action-btn action-btn-secondary flex-1" onclick="${onCancel}">
+                        <button class="modal-btn modal-btn-secondary flex-1" onclick="${onCancel}">
                             <i class="fas fa-times"></i>
                             <span>انصراف</span>
                         </button>
@@ -807,14 +860,14 @@ window.showUserDetails = async function(username, deviceId) {
                     </div>
                     
                     <!-- دکمه‌های عملیات -->
-                    <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-                        <button class="action-btn action-btn-danger flex-1" 
+                    <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <button class="modal-btn modal-btn-danger flex-1" 
                                 onclick="confirmForceLogout('${user.username}', '${user.device_id}')">
                             <i class="fas fa-sign-out-alt"></i>
                             <span>خروج اجباری</span>
                         </button>
                         
-                        <button class="action-btn action-btn-secondary flex-1" 
+                        <button class="modal-btn modal-btn-secondary flex-1" 
                                 onclick="ModalManager.hide()">
                             <i class="fas fa-times"></i>
                             <span>بستن</span>
@@ -841,23 +894,36 @@ window.confirmForceLogout = function(username, deviceId) {
 
 window.forceLogout = async function(username, deviceId) {
     try {
+        console.log('Sending force logout request:', { username, device_id: deviceId });
+        
         const response = await ApiManager.postRequest('force_logout', {
             username: username,
             device_id: deviceId
         });
         
+        console.log('Force logout response:', response);
+        
         if (response.success) {
             usersManager.showSuccess('کاربر با موفقیت از سیستم خارج شد');
             ModalManager.hide();
             
-            // بروزرسانی فوری لیست کاربران
-            await usersManager.loadUsers(currentFilter);
-            await usersManager.loadStats();
+            // حذف فوری کارت کاربر از صفحه و بروزرسانی آمار
+            usersManager.removeUserCard(username, deviceId);
+            
+            // بروزرسانی کامل لیست کاربران بعد از تاخیر کوتاه
+            setTimeout(async () => {
+                await usersManager.loadUsers(currentFilter);
+            }, 1000);
         } else {
             throw new Error(response.message || response.error || 'خطا در خروج اجباری');
         }
     } catch (error) {
         console.error('خطا در خروج اجباری:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
         usersManager.showError('خطا در خروج اجباری کاربر: ' + error.message);
     }
 };

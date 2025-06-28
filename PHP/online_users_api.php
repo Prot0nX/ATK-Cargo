@@ -92,13 +92,23 @@ try {
                 throw new Exception('روش درخواست نامعتبر است');
             }
             
-            // لاگ کردن تمام داده‌های دریافتی برای دیباگ
-            error_log("POST data: " . print_r($_POST, true));
-            error_log("Raw input: " . file_get_contents('php://input'));
-            error_log("Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'not set'));
+            // دریافت داده‌های JSON
+            $input = file_get_contents('php://input');
+            $data = json_decode($input, true);
             
-            $username = $_POST['username'] ?? '';
-            $deviceId = $_POST['device_id'] ?? '';
+            // اگر JSON decode نشد، سعی کن از POST استفاده کنی
+            if ($data === null) {
+                $data = $_POST;
+            }
+            
+            // لاگ کردن تمام داده‌های دریافتی برای دیباگ
+            error_log("Raw input: " . $input);
+            error_log("Decoded data: " . print_r($data, true));
+            error_log("Content-Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'not set'));
+            error_log("JSON decode error: " . json_last_error_msg());
+            
+            $username = $data['username'] ?? '';
+            $deviceId = $data['device_id'] ?? '';
             
             // اضافه کردن لاگ برای دیباگ
             error_log("Force logout request - Username: $username, DeviceId: $deviceId");
