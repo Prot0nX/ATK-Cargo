@@ -79,6 +79,14 @@ class SessionManager {
                 }
             }
             
+            // غیرفعال کردن تمام جلسه‌های فعال قبلی کاربر
+            $stmt = $this->pdo->prepare("
+                UPDATE user_sessions 
+                SET is_active = 0, logout_time = NOW() 
+                WHERE username = ? AND is_active = 1
+            ");
+            $stmt->execute([$username]);
+            
             // تولید توکن جلسه منحصر به فرد
             $sessionToken = bin2hex(random_bytes(32));
             
@@ -307,30 +315,74 @@ class SessionManager {
      */
     public function forceLogoutFromDevice($username, $deviceId) {
         try {
-            $stmt = $this->pdo->prepare("
+            // شروع تراکنش برای جلوگیری از race condition
+            $this->pdo->beginTransaction();
+            
+            // ابتدا تمام جلسه‌های فعال این کاربر و دستگاه را پیدا کنیم
+            $checkStmt = $this->pdo->prepare("
+                SELECT id, is_active 
+                FROM user_sessions 
+                WHERE username = ? AND device_id = ? AND is_active = 1
+                FOR UPDATE
+            ");
+            $checkStmt->execute([$username, $deviceId]);
+            $activeSessions = $checkStmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (empty($activeSessions)) {
+                $this->pdo->rollback();
+                return [
+                    'success' => false,
+                    'message' => 'جلسه فعالی برای خروج یافت نشد'
+                ];
+            }
+            
+            // ابتدا تمام رکوردهای غیرفعال قدیمی این کاربر و دستگاه را حذف کنیم
+            $deleteOldStmt = $this->pdo->prepare("
+                DELETE FROM user_sessions 
+                WHERE username = ? AND device_id = ? AND is_active = 0
+            ");
+            $deleteOldStmt->execute([$username, $deviceId]);
+            
+            // سپس جلسه‌های فعال را به غیرفعال تبدیل کنیم
+            $updateStmt = $this->pdo->prepare("
                 UPDATE user_sessions 
-                SET is_active = 0, logout_time = NOW() 
+                SET is_active = 0, logout_time = NOW(), last_activity = NOW()
                 WHERE username = ? AND device_id = ? AND is_active = 1
             ");
             
-            $result = $stmt->execute([$username, $deviceId]);
+            $result = $updateStmt->execute([$username, $deviceId]);
             
-            if ($result && $stmt->rowCount() > 0) {
+            if ($result && $updateStmt->rowCount() > 0) {
+                $this->pdo->commit();
                 $this->logActivity($username, 'FORCE_LOGOUT', $deviceId);
+                
                 return [
                     'success' => true,
                     'message' => 'کاربر از دستگاه قبلی خارج شد'
                 ];
             }
             
+            $this->pdo->rollback();
             return [
                 'success' => false,
-                'message' => 'جلسه فعالی برای خروج یافت نشد'
+                'message' => 'خطا در خروج اجباری'
             ];
             
         } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollback();
+            }
+            
             error_log("خطا در خروج اجباری: " . $e->getMessage());
-            throw $e;
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'debug_info' => [
+                    'file' => __FILE__,
+                    'line' => __LINE__,
+                    'action' => 'force_logout'
+                ]
+            ];
         }
     }
     
