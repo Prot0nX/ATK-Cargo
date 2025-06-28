@@ -58,19 +58,12 @@ try {
     $deviceId = isset($data['deviceId']) ? trim($data['deviceId']) : null;
     $sessionToken = isset($data['session_token']) ? trim($data['session_token']) : null;
     
-    // اگر session_token ارسال شده، ابتدا آن را اعتبارسنجی کن
-    if ($sessionToken) {
-        $isValidToken = $sessionManager->validateSessionToken($username, $sessionToken, $deviceId);
-        if (!$isValidToken) {
-            send_json_response(false, "توکن جلسه نامعتبر است. لطفاً مجدداً وارد شوید.", 401);
-        }
-    }
-    
+    // بررسی ساده وضعیت جلسه - فقط بررسی می‌کند که آیا جلسه فعال است یا خیر
     if ($sessionManager->isSessionActive($username, $deviceId)) {
         // جلسه معتبر است و last_activity خودکار به‌روزرسانی شده
         send_json_response(true, "جلسه کاربر معتبر است", 200, $user['userType']);
     } else {
-        send_json_response(false, "جلسه کاربر منقضی شده است. لطفاً مجدداً وارد شوید.", 401);
+        send_json_response(false, "جلسه کاربر فعال نیست. لطفاً وارد شوید.", 401);
     }
 } catch (PDOException $e) {
     error_log("Database error: " . $e->getMessage());

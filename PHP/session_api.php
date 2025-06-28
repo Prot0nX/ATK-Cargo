@@ -91,11 +91,19 @@ try {
             $sessionInfo = $sessionManager->getActiveSession($username);
             
             if ($isActive && $sessionInfo) {
-                send_json_response(true, 'جلسه فعال است', [
+                // بررسی نوع کاربر برای ارسال پیام مناسب
+                $userType = $sessionInfo['userType'] ?? 'operator';
+                $sessionMessage = ($userType === 'admin') ? 
+                    'جلسه مدیر فعال است (بدون محدودیت زمانی)' : 
+                    'جلسه فعال است (حداکثر ۱۲ ساعت)';
+                
+                send_json_response(true, $sessionMessage, [
                     'is_active' => true,
+                    'userType' => $userType,
                     'login_time' => $sessionInfo['login_time'],
                     'device_model' => $sessionInfo['device_model'],
-                    'session_duration' => gmdate('H:i:s', $sessionInfo['session_duration'])
+                    'session_duration' => gmdate('H:i:s', $sessionInfo['session_duration']),
+                    'is_admin' => ($userType === 'admin')
                 ]);
             } else {
                 send_json_response(false, 'جلسه فعال نیست', [

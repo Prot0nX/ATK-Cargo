@@ -42,27 +42,27 @@ class SessionManager {
      */
     public function createSession($username, $deviceId, $deviceModel, $androidVersion, $ipAddress, $userType = null) {
         try {
-            // ابتدا جلسات منقضی شده را پاک می‌کنیم
-            $this->cleanupExpiredSessions();
+            // بررسی جلسه فعال موجود برای همین دستگاه
+            $stmt = $this->pdo->prepare("
+                SELECT id, session_token 
+                FROM user_sessions 
+                WHERE username = ? AND device_id = ? AND is_active = 1
+                LIMIT 1
+            ");
             
-            // بررسی جلسه فعال موجود
-            $existingSession = $this->getActiveSession($username);
+            $stmt->execute([$username, $deviceId]);
+            $existingSession = $stmt->fetch();
             
             if ($existingSession) {
                 // اگر همان دستگاه است، جلسه را به‌روزرسانی می‌کنیم
-                if ($existingSession['device_id'] === $deviceId) {
-                    $updateResult = $this->updateSessionActivity($username, $deviceId);
-                    if ($updateResult['success']) {
-                        return [
-                            'success' => true,
-                            'message' => 'جلسه موجود به‌روزرسانی شد',
-                            'session_id' => $existingSession['id'],
-                            'session_token' => $existingSession['session_token']
-                        ];
-                    }
-                } else {
-                    // اگر دستگاه متفاوت است، جلسه قبلی را غیرفعال کرده و جلسه جدید ایجاد می‌کنیم
-                    $this->forceLogoutFromDevice($username, $existingSession['device_id']);
+                $updateResult = $this->updateSessionActivity($username, $deviceId);
+                if ($updateResult['success']) {
+                    return [
+                        'success' => true,
+                        'message' => 'جلسه موجود به‌روزرسانی شد',
+                        'session_id' => $existingSession['id'],
+                        'session_token' => $existingSession['session_token']
+                    ];
                 }
             }
             
@@ -116,7 +116,7 @@ class SessionManager {
      */
     public function getActiveSession($username) {
         try {
-            $this->cleanupExpiredSessions();
+            // حذف فراخوانی cleanupExpiredSessions برای جلوگیری از انقضای خودکار جلسات
             
             $stmt = $this->pdo->prepare("
                 SELECT id, username, device_id, device_model, android_version, 
@@ -132,11 +132,7 @@ class SessionManager {
             $session = $stmt->fetch();
             
             if ($session) {
-                // بررسی انقضای جلسه
-                if ($session['session_duration'] > $this->sessionTimeout) {
-                    $this->deactivateSession($username, $session['device_id']);
-                    return null;
-                }
+                // حذف بررسی انقضای جلسه - جلسه‌ها فقط با خروج کاربر منقضی می‌شوند
                 return $session;
             }
             
@@ -153,11 +149,10 @@ class SessionManager {
      */
     public function isSessionActive($username, $deviceId = null) {
         try {
-            $this->cleanupExpiredSessions();
+            // حذف فراخوانی cleanupExpiredSessions برای جلوگیری از انقضای خودکار جلسات
             
             $query = "
-                SELECT id, device_id, login_time, last_activity, session_token,
-                       TIMESTAMPDIFF(SECOND, COALESCE(last_activity, login_time), NOW()) as session_duration
+                SELECT id, device_id, login_time, last_activity, session_token, userType
                 FROM user_sessions 
                 WHERE username = ? AND is_active = 1
             ";
@@ -174,15 +169,9 @@ class SessionManager {
             $session = $stmt->fetch();
             
             if ($session) {
-                // بررسی انقضای جلسه بر اساس آخرین فعالیت
-                if ($session['session_duration'] > $this->sessionTimeout) {
-                    $this->deactivateSession($username, $session['device_id']);
-                    return false;
-                }
-                
+                // جلسه برای همه کاربران همیشه فعال است مگر اینکه خودشان خارج شوند
                 // به‌روزرسانی last_activity هنگام بررسی جلسه
                 $this->updateLastActivity($username, $session['device_id']);
-                
                 return true;
             }
             
@@ -278,26 +267,12 @@ class SessionManager {
     }
     
     /**
-     * پاکسازی جلسات منقضی شده
+     * پاکسازی جلسات منقضی شده - غیرفعال شده برای جلوگیری از انقضای خودکار جلسات
      */
     public function cleanupExpiredSessions() {
-        try {
-            $stmt = $this->pdo->prepare("
-                UPDATE user_sessions 
-                SET is_active = 0, logout_time = NOW() 
-                WHERE is_active = 1 
-                AND TIMESTAMPDIFF(SECOND, COALESCE(last_activity, login_time), NOW()) > ?
-            ");
-            
-            $stmt->execute([$this->sessionTimeout]);
-            
-            if ($stmt->rowCount() > 0) {
-                error_log("تعداد " . $stmt->rowCount() . " جلسه منقضی شده پاک شد");
-            }
-            
-        } catch (Exception $e) {
-            error_log("خطا در پاکسازی جلسات منقضی: " . $e->getMessage());
-        }
+        // این تابع دیگر جلسات را منقضی نمی‌کند
+        // جلسات فقط با خروج کاربر منقضی می‌شوند
+        return 0;
     }
     
     /**
@@ -451,7 +426,7 @@ class SessionManager {
     public function validateSessionToken($username, $sessionToken, $deviceId = null) {
         try {
             $query = "
-                SELECT id, device_id, login_time, last_activity,
+                SELECT id, device_id, login_time, last_activity, userType,
                        TIMESTAMPDIFF(SECOND, COALESCE(last_activity, login_time), NOW()) as session_duration
                 FROM user_sessions 
                 WHERE username = ? AND session_token = ? AND is_active = 1
@@ -472,8 +447,16 @@ class SessionManager {
                 return false;
             }
             
-            // بررسی انقضای جلسه
-            if ($session['session_duration'] > $this->sessionTimeout) {
+            // برای کاربران admin، توکن همیشه معتبر است (بدون بررسی انقضا)
+            if ($session['userType'] === 'admin') {
+                // به‌روزرسانی آخرین فعالیت
+                $this->updateLastActivity($username, $session['device_id']);
+                return true;
+            }
+            
+            // برای سایر کاربران، بررسی انقضای جلسه (حداکثر 12 ساعت)
+            $maxSessionTime = 43200; // 12 ساعت
+            if ($session['session_duration'] > $maxSessionTime) {
                 $this->deactivateSession($username, $session['device_id']);
                 return false;
             }

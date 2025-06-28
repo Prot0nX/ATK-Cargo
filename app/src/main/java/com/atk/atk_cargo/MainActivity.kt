@@ -226,7 +226,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var reportsRepository: ReportsRepository
     private lateinit var cargoViewModelFactory: CargoViewModelFactory
     private val _isSessionValid = MutableStateFlow(false)
-    private var sessionCheckJob: Job? = null
+
     private lateinit var signatureVerifier: SignatureVerifier
     private var isSecurityCheckPassed by mutableStateOf(false)
     private var isSecurityCheckLoading by mutableStateOf(true)
@@ -459,7 +459,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        stopPeriodicSessionCheck()
         if (::updateManager.isInitialized) {
             updateManager.onCleared()
         }
@@ -503,11 +502,7 @@ class MainActivity : ComponentActivity() {
                 
                 if (username.isNotEmpty()) {
                     val apiService = RetrofitClient.apiService
-                    val sessionRequest = if (deviceId.isNotEmpty()) {
-                        SessionCheckRequest(username, deviceId, sessionToken.takeIf { it.isNotEmpty() })
-                    } else {
-                        SessionCheckRequest(username, sessionToken = sessionToken.takeIf { it.isNotEmpty() })
-                    }
+                    val sessionRequest = SessionCheckRequest(username, deviceId, sessionToken.takeIf { it.isNotEmpty() })
                     
                     val response = apiService.checkSession(sessionRequest)
                     when {
@@ -521,23 +516,16 @@ class MainActivity : ComponentActivity() {
                             _isSessionValid.value = false
                             userPreferencesManager.clearUserCredentials()
                             
-                            // بررسی نوع خطای جلسه برای نمایش پیام مناسب
-                            val errorMessage = response.body()?.message ?: "خطای نامشخص"
-                            val displayMessage = when {
-                                errorMessage.contains("منقضی") -> "جلسه شما منقضی شده است. لطفاً دوباره وارد شوید."
-                                errorMessage.contains("نامعتبر") -> "جلسه شما نامعتبر است. لطفاً دوباره وارد شوید."
-                                errorMessage.contains("دستگاه دیگری") -> "شما در دستگاه دیگری وارد شده‌اید. جلسه فعلی قطع شد."
-                                else -> "لطفاً دوباره وارد شوید!"
-                            }
-                            showMessage(displayMessage)
+                            // نمایش پیام ساده برای خروج از سیستم
+                            showMessage("لطفاً دوباره وارد شوید!")
                         }
                     }
                 } else {
                     _isSessionValid.value = false
                 }
             } catch (_: Exception) {
-                _isSessionValid.value = false
-                showMessage("خطا در بررسی جلسه کاربر. لطفاً دوباره تلاش کنید.")
+                // در صورت خطا، جلسه را معتبر فرض می‌کنیم تا کاربر بتواند به کار خود ادامه دهد
+                _isSessionValid.value = true
             }
         }
     }
@@ -572,65 +560,12 @@ class MainActivity : ComponentActivity() {
             }
         }
         
-        // شروع بررسی دوره‌ای جلسه کاربر
-        startPeriodicSessionCheck()
+
     }
     
-    private fun startPeriodicSessionCheck() {
-        // لغو بررسی قبلی اگر وجود دارد
-        sessionCheckJob?.cancel()
-        
-        sessionCheckJob = lifecycleScope.launch {
-            while (isActive && _isSessionValid.value) {
-                delay(60000) // بررسی هر 60 ثانیه
-                
-                try {
-                    val username = userPreferencesManager.username.first()
-                    val deviceId = userPreferencesManager.deviceId.first()
-                    val sessionToken = userPreferencesManager.sessionToken.first()
-                    
-                    if (username.isNotEmpty()) {
-                        val apiService = RetrofitClient.apiService
-                        val sessionRequest = SessionCheckRequest(
-                            username, 
-                            deviceId, 
-                            sessionToken.takeIf { it.isNotEmpty() }
-                        )
-                        
-                        val response = apiService.checkSession(sessionRequest)
-                        
-                        if (!response.isSuccessful || response.body()?.success != true) {
-                            // جلسه نامعتبر شده است
-                            _isSessionValid.value = false
-                            userPreferencesManager.clearUserCredentials()
-                            
-                            val errorMessage = response.body()?.message ?: "خطای نامشخص"
-                            val displayMessage = when {
-                                errorMessage.contains("دستگاه دیگری") -> 
-                                    "🔄 شما در دستگاه دیگری وارد شده‌اید. جلسه فعلی قطع شد."
-                                errorMessage.contains("منقضی") -> 
-                                    "⏰ جلسه شما منقضی شده است."
-                                else -> "❌ جلسه شما نامعتبر شده است."
-                            }
-                            
-                            withContext(Dispatchers.Main) {
-                                showMessage(displayMessage)
-                            }
-                            break // خروج از حلقه بررسی
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e("SessionCheck", "خطا در بررسی دوره‌ای جلسه: ${e.message}")
-                    // در صورت خطا، بررسی را ادامه می‌دهیم
-                }
-            }
-        }
-    }
+
     
-    fun stopPeriodicSessionCheck() {
-        sessionCheckJob?.cancel()
-        sessionCheckJob = null
-    }
+
     
     private fun checkNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -1402,7 +1337,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                         val response = RetrofitClient.apiService.logout(logoutRequest)
                                         if (response.isSuccessful && response.body()?.success == true) {
                                             // توقف بررسی دوره‌ای جلسه
-                                            mainActivity.stopPeriodicSessionCheck()
+
                                             // پاک کردن اطلاعات محلی
                                             userPreferencesManager.clearUserCredentials()
                                             Toast.makeText(mainActivity, "خروج با موفقیت انجام شد", Toast.LENGTH_SHORT).show()
@@ -1417,13 +1352,13 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                             }
                                             
                                             // حتی در صورت خطا، اطلاعات محلی را پاک کن
-                                            mainActivity.stopPeriodicSessionCheck()
+
                                             userPreferencesManager.clearUserCredentials()
                                             Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
                                         }
                                     } catch (_: Exception) {
                                         // در صورت خطا، اطلاعات محلی را پاک کن
-                                        mainActivity.stopPeriodicSessionCheck()
+
                                         userPreferencesManager.clearUserCredentials()
                                         Toast.makeText(mainActivity, "خروج انجام شد", Toast.LENGTH_SHORT).show()
                                     }
@@ -1828,7 +1763,7 @@ fun HomeScreen(
                                 
                                 val response = RetrofitClient.apiService.logout(logoutRequest)
                                 if (response.isSuccessful && response.body()?.success == true) {
-                                    mainActivity.stopPeriodicSessionCheck()
+
                                     userPreferencesManager.clearUserCredentials()
                                     mainActivity.updateSessionValidity(false)
                                     onLogoutClick()
@@ -1845,13 +1780,13 @@ fun HomeScreen(
                                     // نمایش پیام خطا
                                     Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
                                     
-                                    mainActivity.stopPeriodicSessionCheck()
+
                                     userPreferencesManager.clearUserCredentials()
                                     mainActivity.updateSessionValidity(false)
                                     onLogoutClick()
                                 }
                             } catch (_: Exception) {
-                                mainActivity.stopPeriodicSessionCheck()
+
                                 userPreferencesManager.clearUserCredentials()
                                 mainActivity.updateSessionValidity(false)
                                 onLogoutClick()
@@ -2005,7 +1940,7 @@ private fun ModernHeader(
                                     
                                     val response = RetrofitClient.apiService.logout(logoutRequest)
                                     if (response.isSuccessful && response.body()?.success == true) {
-                                        mainActivity.stopPeriodicSessionCheck()
+
                                         userPreferencesManager.clearUserCredentials()
                                         mainActivity.updateSessionValidity(false)
                                         onLogoutClick()
@@ -2022,13 +1957,13 @@ private fun ModernHeader(
                                         // نمایش پیام خطا
                                         Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
                                         
-                                        mainActivity.stopPeriodicSessionCheck()
+
                                         userPreferencesManager.clearUserCredentials()
                                         mainActivity.updateSessionValidity(false)
                                         onLogoutClick()
                                     }
                                 } catch (_: Exception) {
-                                    mainActivity.stopPeriodicSessionCheck()
+
                                     userPreferencesManager.clearUserCredentials()
                                     mainActivity.updateSessionValidity(false)
                                     onLogoutClick()
