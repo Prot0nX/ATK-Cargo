@@ -95,10 +95,11 @@ class UserPreferencesManager(private val context: Context) {
         dataStore.edit { preferences ->
             preferences.remove(USERNAME_KEY)
             preferences.remove(USER_TYPE_KEY)
-            preferences.remove(DEVICE_ID_KEY)
             preferences.remove(SESSION_TOKEN_KEY)
+            // deviceId را حفظ می‌کنیم تا کاربر مجبور نباشد دوباره آن را وارد کند
         }
 
+        // پاکسازی ترجیحات مربوط به بارگیری
         context.getSharedPreferences("loading_alerts", Context.MODE_PRIVATE).edit().clear().apply()
         context.getSharedPreferences("LoadingCheckPrefs", Context.MODE_PRIVATE).edit().clear().apply()
     }

@@ -88,12 +88,32 @@ try {
                 $sessionManager = new SessionManager();
                 $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
                 
-                // بررسی جلسه فعال موجود قبل از ایجاد جلسه جدید
-                $existingSession = $sessionManager->getActiveSession($username);
+                // بررسی وجود جلسه فعال در همین دستگاه
+                $stmt = $pdo->prepare("
+                    SELECT id, session_token 
+                    FROM user_sessions 
+                    WHERE username = ? AND device_id = ? AND is_active = 1
+                    LIMIT 1
+                ");
                 
-                if ($existingSession && $existingSession['device_id'] !== $deviceId) {
-                    // کاربر در دستگاه دیگری فعال است
-                    send_json_response(false, "شما در حال حاضر در دستگاه دیگری (" . $existingSession['device_model'] . ") وارد سیستم هستید. برای ورود در این دستگاه، ابتدا از دستگاه قبلی خارج شوید یا از طریق داشبورد مدیریت، جلسه قبلی را قطع کنید.", 409);
+                $stmt->execute([$username, $deviceId]);
+                $existingSession = $stmt->fetch();
+                
+                if ($existingSession) {
+                    // کاربر در همین دستگاه قبلاً وارد شده، جلسه قبلی را به‌روزرسانی کن
+                    $sessionManager->updateLastActivity($username, $deviceId);
+                    
+                    // دریافت session_token از جلسه موجود
+                    $sessionToken = $existingSession['session_token'];
+                    
+                    http_response_code(200);
+                    echo json_encode([
+                        'success' => true,
+                        'message' => 'شما قبلاً وارد شده‌اید. جلسه به‌روزرسانی شد.',
+                        'userType' => $user['userType'],
+                        'session_token' => $sessionToken
+                    ]);
+                    exit;
                 }
                 
                 // ایجاد جلسه جدید با ارسال نوع کاربر

@@ -30,45 +30,59 @@
                     animation: {
                         'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         'spin-slow': 'spin 3s linear infinite',
-                        'bounce-slow': 'bounce 2s infinite'
+                        'bounce-slow': 'bounce 2s infinite',
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-up': 'slideUp 0.6s ease-out',
+                        'scale-in': 'scaleIn 0.3s ease-out'
+                    },
+                    spacing: {
+                        '18': '4.5rem',
+                        '88': '22rem'
+                    },
+                    borderRadius: {
+                        '2xl': '1rem',
+                        '3xl': '1.5rem'
                     }
                 }
             }
         }
     </script>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 font-vazirmatn transition-colors duration-300">
+<body class="bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 font-vazirmatn transition-all duration-500 min-h-screen">
     <!-- Header -->
-    <header class="bg-white dark:bg-gray-800 shadow-lg border-b border-gray-200 dark:border-gray-700">
-        <div class="container mx-auto px-4 py-6">
-            <div class="flex items-center justify-between">
+    <header class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-xl border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-40">
+        <div class="container mx-auto px-4 lg:px-8 py-6">
+            <div class="flex items-center justify-between flex-wrap gap-4">
                 <div class="flex items-center space-x-4 space-x-reverse">
-                    <div class="bg-blue-500 p-3 rounded-lg">
-                        <i class="fas fa-users text-white text-xl"></i>
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                        <i class="fas fa-users text-white text-2xl"></i>
                     </div>
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">مدیریت کاربران آنلاین</h1>
-                        <p class="text-gray-600 dark:text-gray-400">سیستم ATK Cargo</p>
+                        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-1">مدیریت کاربران آنلاین</h1>
+                        <p class="text-gray-600 dark:text-gray-400 flex items-center space-x-2 space-x-reverse">
+                            <i class="fas fa-cube text-blue-500 text-sm"></i>
+                            <span>سیستم ATK Cargo</span>
+                        </p>
                     </div>
                 </div>
                 
-                <div class="flex items-center space-x-4 space-x-reverse">
+                <div class="flex items-center space-x-3 space-x-reverse flex-wrap gap-2">
                     <!-- Live Status -->
-                    <div class="flex items-center space-x-2 space-x-reverse bg-green-100 dark:bg-green-900 px-3 py-2 rounded-lg">
-                        <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse-slow"></div>
+                    <div class="flex items-center space-x-2 space-x-reverse bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/50 dark:to-emerald-900/50 px-4 py-2 rounded-full border border-green-200 dark:border-green-700 shadow-sm">
+                        <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse-slow shadow-lg"></div>
                         <span class="text-green-700 dark:text-green-300 text-sm font-medium">زنده</span>
                     </div>
                     
                     <!-- Theme Toggle -->
-                    <button id="themeToggle" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                        <i class="fas fa-moon dark:hidden text-gray-600"></i>
-                        <i class="fas fa-sun hidden dark:inline text-yellow-400"></i>
+                    <button id="themeToggle" class="p-3 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 hover:scale-105 shadow-sm">
+                        <i class="fas fa-moon dark:hidden text-gray-600 text-lg"></i>
+                        <i class="fas fa-sun hidden dark:inline text-yellow-400 text-lg"></i>
                     </button>
                     
                     <!-- Refresh Button -->
-                    <button id="refreshBtn" class="flex items-center space-x-2 space-x-reverse bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
-                        <i class="fas fa-sync-alt" id="refreshIcon"></i>
-                        <span>بروزرسانی</span>
+                    <button id="refreshBtn" class="flex items-center space-x-2 space-x-reverse bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-5 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl">
+                        <i class="fas fa-sync-alt text-lg" id="refreshIcon"></i>
+                        <span class="font-medium">بروزرسانی</span>
                     </button>
                 </div>
             </div>
@@ -76,118 +90,141 @@
     </header>
 
     <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8">
+    <main class="container mx-auto px-4 lg:px-8 py-8">
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <!-- جلسات فعال -->
+            <div class="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
                 <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-600 dark:text-gray-400 text-sm">کاربران آنلاین</p>
-                        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="onlineCount">0</p>
+                    <div class="flex-1">
+                        <p class="text-gray-600 dark:text-gray-400 text-sm font-medium mb-2">کاربران فعال</p>
+                        <p class="text-3xl font-bold text-green-600 dark:text-green-400 mb-1" id="activeSessionsCount">0</p>
+                        <div class="w-full bg-green-100 dark:bg-green-900/30 rounded-full h-1.5">
+                            <div class="bg-gradient-to-r from-green-500 to-emerald-600 h-1.5 rounded-full transition-all duration-500" style="width: 60%"></div>
+                        </div>
                     </div>
-                    <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
-                        <i class="fas fa-user-check text-blue-600 dark:text-blue-400"></i>
+                    <div class="bg-gradient-to-br from-green-100 to-emerald-200 dark:from-green-900/50 dark:to-emerald-800/50 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-users text-green-600 dark:text-green-400 text-xl"></i>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+            <!-- ورودی‌های امروز -->
+            <div class="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
                 <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-600 dark:text-gray-400 text-sm">جلسات فعال</p>
-                        <p class="text-2xl font-bold text-green-600 dark:text-green-400" id="activeSessionsCount">0</p>
+                    <div class="flex-1">
+                        <p class="text-gray-600 dark:text-gray-400 text-sm font-medium mb-2">ورودی‌های امروز</p>
+                        <p class="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-1" id="todayLoginsCount">0</p>
+                        <div class="w-full bg-purple-100 dark:bg-purple-900/30 rounded-full h-1.5">
+                            <div class="bg-gradient-to-r from-purple-500 to-violet-600 h-1.5 rounded-full transition-all duration-500" style="width: 85%"></div>
+                        </div>
                     </div>
-                    <div class="bg-green-100 dark:bg-green-900 p-3 rounded-lg">
-                        <i class="fas fa-desktop text-green-600 dark:text-green-400"></i>
+                    <div class="bg-gradient-to-br from-purple-100 to-violet-200 dark:from-purple-900/50 dark:to-violet-800/50 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-sign-in-alt text-purple-600 dark:text-purple-400 text-xl"></i>
                     </div>
                 </div>
             </div>
             
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+            <!-- آخرین بروزرسانی -->
+            <div class="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
                 <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-600 dark:text-gray-400 text-sm">ورودی‌های امروز</p>
-                        <p class="text-2xl font-bold text-purple-600 dark:text-purple-400" id="todayLoginsCount">0</p>
+                    <div class="flex-1">
+                        <p class="text-gray-600 dark:text-gray-400 text-sm font-medium mb-2">آخرین بروزرسانی</p>
+                        <p class="text-lg font-bold text-orange-600 dark:text-orange-400 mb-1" id="lastUpdate">-</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">به‌روزرسانی خودکار</p>
                     </div>
-                    <div class="bg-purple-100 dark:bg-purple-900 p-3 rounded-lg">
-                        <i class="fas fa-sign-in-alt text-purple-600 dark:text-purple-400"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-600 dark:text-gray-400 text-sm">آخرین بروزرسانی</p>
-                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300" id="lastUpdate">-</p>
-                    </div>
-                    <div class="bg-orange-100 dark:bg-orange-900 p-3 rounded-lg">
-                        <i class="fas fa-clock text-orange-600 dark:text-orange-400 animate-spin-slow" id="updateIcon"></i>
+                    <div class="bg-gradient-to-br from-orange-100 to-amber-200 dark:from-orange-900/50 dark:to-amber-800/50 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-clock text-orange-600 dark:text-orange-400 text-xl animate-spin-slow" id="updateIcon"></i>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Filters -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-8 border border-gray-200 dark:border-gray-700">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-                <div class="flex items-center space-x-4 space-x-reverse">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">فیلتر زمانی:</h3>
-                    <div class="flex space-x-2 space-x-reverse">
+        <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 mb-8 border border-gray-200/50 dark:border-gray-700/50">
+            <div class="flex flex-wrap items-center justify-between gap-6">
+                <div class="flex items-center space-x-6 space-x-reverse flex-wrap gap-4">
+                    <div class="flex items-center space-x-3 space-x-reverse">
+                        <i class="fas fa-filter text-blue-500 text-lg"></i>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">فیلتر زمانی</h3>
+                    </div>
+                    <div class="flex space-x-3 space-x-reverse flex-wrap gap-2">
                         <button class="filter-btn active" data-filter="all">
                             <i class="fas fa-globe"></i>
-                            همه جلسات
+                            <span>همه جلسات</span>
                         </button>
                         <button class="filter-btn" data-filter="today">
                             <i class="fas fa-calendar-day"></i>
-                            امروز
+                            <span>امروز</span>
                         </button>
                         <button class="filter-btn" data-filter="24h">
                             <i class="fas fa-clock"></i>
-                            24 ساعت گذشته
+                            <span>24 ساعت گذشته</span>
                         </button>
                     </div>
                 </div>
                 
-                <div class="flex items-center space-x-2 space-x-reverse">
-                    <label class="flex items-center space-x-2 space-x-reverse">
-                        <input type="checkbox" id="autoRefresh" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                        <span class="text-gray-700 dark:text-gray-300">بروزرسانی خودکار (30 ثانیه)</span>
+                <div class="flex items-center space-x-3 space-x-reverse">
+                    <label class="flex items-center space-x-3 space-x-reverse cursor-pointer group">
+                        <input type="checkbox" id="autoRefresh" class="w-5 h-5 rounded-lg border-2 border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-2 transition-all duration-200 group-hover:border-blue-400">
+                        <div class="flex items-center space-x-2 space-x-reverse">
+                            <i class="fas fa-sync-alt text-blue-500 text-sm"></i>
+                            <span class="text-gray-700 dark:text-gray-300 font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">بروزرسانی خودکار (60 ثانیه)</span>
+                        </div>
                     </label>
                 </div>
             </div>
         </div>
 
         <!-- Users Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="usersGrid">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6" id="usersGrid">
             <!-- Users will be loaded here -->
         </div>
 
         <!-- Loading State -->
-        <div id="loadingState" class="text-center py-12">
-            <div class="inline-flex items-center space-x-2 space-x-reverse">
-                <i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i>
-                <span class="text-gray-600 dark:text-gray-400">در حال بارگذاری...</span>
+        <div id="loadingState" class="text-center py-16">
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 border border-gray-200/50 dark:border-gray-700/50 inline-block">
+                <div class="flex flex-col items-center space-y-4">
+                    <div class="relative">
+                        <div class="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 rounded-full animate-spin"></div>
+                        <div class="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">در حال بارگذاری</h3>
+                        <p class="text-gray-600 dark:text-gray-400">لطفاً صبر کنید...</p>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Empty State -->
-        <div id="emptyState" class="text-center py-12 hidden">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-gray-200 dark:border-gray-700">
-                <i class="fas fa-users-slash text-gray-400 text-4xl mb-4"></i>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">هیچ کاربری آنلاین نیست</h3>
-                <p class="text-gray-600 dark:text-gray-400">در حال حاضر هیچ کاربری در سیستم فعال نیست.</p>
+        <div id="emptyState" class="text-center py-16 hidden">
+            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-12 border border-gray-200/50 dark:border-gray-700/50 max-w-md mx-auto">
+                <div class="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-users-slash text-gray-400 dark:text-gray-500 text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-3">هیچ کاربری آنلاین نیست</h3>
+                <p class="text-gray-600 dark:text-gray-400 leading-relaxed">در حال حاضر هیچ کاربری در سیستم فعال نیست. با تغییر فیلتر زمانی می‌توانید کاربران قبلی را مشاهده کنید.</p>
+                <button onclick="usersManager.loadUsers('all')" class="mt-6 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg">
+                    <i class="fas fa-refresh ml-2"></i>
+                    تلاش مجدد
+                </button>
             </div>
         </div>
     </main>
 
     <!-- User Details Modal -->
-    <div id="userModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-gray-50 dark:bg-gray-900 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">جزئیات کاربر</h3>
-                    <button id="closeModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+    <div id="userModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 animate-fade-in">
+        <div class="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border border-gray-200/50 dark:border-gray-700/50 animate-scale-in">
+            <div class="p-8">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center space-x-4 space-x-reverse">
+                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-2xl">
+                            <i class="fas fa-user text-white text-xl"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-gray-900 dark:text-white">جزئیات کاربر</h3>
+                    </div>
+                    <button id="closeModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300 hover:scale-105">
                         <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
@@ -200,6 +237,6 @@
     </div>
 
     <!-- Scripts -->
-    <script src="online_users_script.js?v=1.7"></script>
+    <script src="online_users_script.js?v=2.0"></script>
 </body>
 </html>
