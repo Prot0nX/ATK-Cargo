@@ -3,7 +3,7 @@
 date_default_timezone_set('Asia/Tehran');
 
 require_once __DIR__ . '/SessionManager.php';
-require_once __DIR__ . '/jdf.php';
+require_once __DIR__ . '/../jdf.php';
 
 // تنظیم هدرهای CORS و JSON
 header('Content-Type: application/json; charset=utf-8');

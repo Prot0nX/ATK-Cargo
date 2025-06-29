@@ -238,20 +238,20 @@
 	}
 	
 	function generateStatusMessage(bool $isActive, float $percentageLoaded, string $quotaNumber, string $cargoType): string {
-		if (!$isActive) {
-			return "کوتاژ $quotaNumber با نوع کالای $cargoType غیرفعال است";
-		}
-		
-		if ($percentageLoaded >= 100) {
-			return "ظرفیت بارگیری کوتاژ $quotaNumber با نوع کالای $cargoType تکمیل شده است";
-		}
-		
-		if ($percentageLoaded >= 95) {
-			return "هشدار: ظرفیت بارگیری کوتاژ $quotaNumber با نوع کالای $cargoType به " . round($percentageLoaded, 2) . "% رسیده است";
-		}
-		
-		return "کوتاژ $quotaNumber با نوع کالای $cargoType فعال است";
+	if (!$isActive) {
+		return "کوتاژ $quotaNumber با نوع کالای $cargoType غیرفعال است";
 	}
+	
+	if ($percentageLoaded >= 100) {
+		return "ظرفیت بارگیری کوتاژ $quotaNumber با نوع کالای $cargoType تکمیل شده است";
+	}
+	
+	if ($percentageLoaded >= 95) {
+		return "هشدار: ظرفیت بارگیری کوتاژ $quotaNumber با نوع کالای $cargoType به " . round($percentageLoaded, 2) . "% رسیده است";
+	}
+	
+	return "کوتاژ $quotaNumber با نوع کالای $cargoType فعال است";
+}
 	
 	function createStatusDetails(array $row, float $loadedWeight, float $remainingCapacity, float $percentageLoaded): array {
 		return [

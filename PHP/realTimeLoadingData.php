@@ -114,14 +114,16 @@ class AdvancedCargoAnalytics {
             $this->conn->query("SET time_zone = '+03:30'");
             // تنظیم حالت SQL_BIG_SELECTS برای کوئری‌های پیچیده
             $this->conn->query("SET SESSION SQL_BIG_SELECTS=1");
-            // افزایش حافظه موقت برای عملیات مرتب‌سازی
-            $this->conn->query("SET SESSION sort_buffer_size=1048576");
-            // افزایش زمان انقضای کوئری
-            $this->conn->query("SET SESSION wait_timeout=60");
-            // بهینه‌سازی کوئری
+            // افزایش مقدار group_concat_max_len برای گروه‌بندی‌های بزرگ
+            $this->conn->query("SET SESSION group_concat_max_len=1000000");
+            // تنظیم حالت بهینه‌سازی کوئری
             $this->conn->query("SET SESSION optimizer_search_depth=0");
+            // افزایش زمان اجرای کوئری برای کوئری‌های پیچیده
+            $this->conn->query("SET SESSION max_execution_time=30000");
+            // تنظیم حافظه موقت برای عملیات مرتب‌سازی
+            $this->conn->query("SET SESSION sort_buffer_size=1048576");
         } catch (Exception $e) {
-            $this->logger->log("خطا در تنظیم اتصال: " . $e->getMessage(), 'ERROR');
+            throw new Exception("Database connection setup failed: " . $e->getMessage());
         }
     }
 
@@ -260,8 +262,8 @@ class AdvancedCargoAnalytics {
                     SELECT
                         c.*,
                         CASE 
-                            WHEN (c.exitDate = ? AND c.exitTime >= '07:00:00' AND c.exitTime < '19:30:00') THEN 'روز'
-                            WHEN (c.exitDate = ? AND c.exitTime >= '19:30:00') OR 
+                            WHEN (c.exitDate = ? AND c.exitTime >= '07:00:00' AND c.exitTime < '19:00:00') THEN 'روز'
+                            WHEN (c.exitDate = ? AND c.exitTime >= '19:00:00') OR 
                                  (c.exitDate = ? AND c.exitTime < '07:00:00') THEN 'شب'
                         END as shift,
                         HOUR(c.exitTime) as exit_hour,
@@ -275,8 +277,8 @@ class AdvancedCargoAnalytics {
                     WHERE 
                         c.status = 'خروج'
                         AND (
-                            (c.exitDate = ? AND c.exitTime >= '07:00:00' AND c.exitTime < '19:30:00') OR
-                            (c.exitDate = ? AND c.exitTime >= '19:30:00') OR 
+                            (c.exitDate = ? AND c.exitTime >= '07:00:00' AND c.exitTime < '19:00:00') OR
+                            (c.exitDate = ? AND c.exitTime >= '19:00:00') OR 
                             (c.exitDate = ? AND c.exitTime < '07:00:00')
                         )
                 ),
@@ -1318,109 +1320,73 @@ class AdvancedCargoAnalytics {
 class CargoAPI {
     private mysqli $conn;
     private Logger $logger;
-    private array $cache = [];
 
     public function __construct(mysqli $conn) {
         $this->conn = $conn;
         $this->logger = new Logger();
-        
-        // تنظیمات بهینه‌سازی اتصال دیتابیس برای عملکرد بهتر
-        $this->setupConnection();
     }
 
-    private function setupConnection(): void {
-        try {
-            $this->conn->set_charset("utf8mb4");
-            $this->conn->query("SET time_zone = '+03:30'");
-            // تنظیم حالت SQL_BIG_SELECTS برای کوئری‌های پیچیده
-            $this->conn->query("SET SESSION SQL_BIG_SELECTS=1");
-            // افزایش حافظه موقت برای عملیات مرتب‌سازی
-            $this->conn->query("SET SESSION sort_buffer_size=1048576");
-            // افزایش زمان انقضای کوئری
-            $this->conn->query("SET SESSION wait_timeout=60");
-            // بهینه‌سازی کوئری
-            $this->conn->query("SET SESSION optimizer_search_depth=0");
-        } catch (Exception $e) {
-            $this->logger->log("خطا در تنظیم اتصال: " . $e->getMessage(), 'ERROR');
-        }
-    }
-
-    public function handleRequest(): void {
-        try {
-            if (defined('IS_CLI') || isset($_GET['action'])) {
-                $action = $_GET['action'] ?? '';
-                
-                // استفاده از تکنیک ارسال اطلاعات به صورت بافر برای کاهش تأخیر
-                ob_start();
-                
-                switch ($action) {
-                    case 'getRealTimeData':
-                        $this->handleRealTimeDataRequest();
-                        break;
-                    case 'getComprehensiveAnalysis':
-                        $this->handleComprehensiveAnalysisRequest();
-                        break;
-                    case 'generateDailyStats':
-                        $this->generateDailyStats();
-                        break;
-                    default:
-                        throw new APIException('عملیات درخواستی نامعتبر است');
-                }
-                
-                ob_end_flush();
-            } else {
-                throw new APIException('عملیات نامعتبر یا عدم تعیین عملیات');
+public function handleRequest(): void {
+    try {
+        if (defined('IS_CLI') || isset($_GET['action'])) {
+            switch ($_GET['action']) {
+                case 'getRealTimeData':
+                    $this->handleRealTimeDataRequest();
+                    break;
+                case 'getComprehensiveAnalysis':
+                    $this->handleComprehensiveAnalysisRequest();
+                    break;
+                case 'generateDailyStats':
+                    $this->generateDailyStats();
+                    break;
+                default:
+                    throw new APIException('عملیات درخواستی نامعتبر است');
             }
-        } catch (APIException $e) {
-            ob_end_clean();
-            APIResponse::send(['error' => $e->getMessage()], 400);
-        } catch (Exception $e) {
-            ob_end_clean();
-            $this->logger->log($e->getMessage(), 'ERROR');
-            APIResponse::send(['error' => 'خطای داخلی سرور'], 500);
+        } else {
+            throw new APIException('عملیات نامعتبر یا عدم تعیین عملیات');
         }
+    } catch (APIException $e) {
+        APIResponse::send(['error' => $e->getMessage()], 400);
+    } catch (Exception $e) {
+        $this->logger->log($e->getMessage(), 'ERROR');
+        APIResponse::send(['error' => 'خطای داخلی سرور'], 500);
     }
+}
 
-    private function generateDailyStats(): void {
-        $analytics = new AdvancedCargoAnalytics($this->conn);
-        $dailyStats = $analytics->getComprehensiveAnalysis();
-        
-        $jsonFilePath = __DIR__ . '/daily_stats.json';
-        
-        // فشرده‌سازی JSON برای کاهش حجم فایل
-        file_put_contents($jsonFilePath, json_encode($dailyStats, JSON_NUMERIC_CHECK));
-        
-        echo "آمار روزانه با موفقیت محاسبه و ذخیره شد.\n";
-        $this->logger->log("آمار روزانه در تاریخ " . date('Y-m-d H:i:s') . " به‌روزرسانی شد.", 'INFO');
-    }
+private function generateDailyStats(): void {
+    $analytics = new AdvancedCargoAnalytics($this->conn);
+    $dailyStats = $analytics->getComprehensiveAnalysis();
+    
+    $jsonFilePath = __DIR__ . '/daily_stats.json';
+    
+    // حذف محتوای فایل قبلی (در صورت وجود) و نوشتن اطلاعات جدید
+    file_put_contents($jsonFilePath, json_encode($dailyStats, JSON_PRETTY_PRINT));
+    
+    echo "آمار روزانه با موفقیت محاسبه و ذخیره شد.\n";
+    
+    // ثبت لاگ برای پیگیری‌های آینده
+    $this->logger->log("آمار روزانه در تاریخ " . date('Y-m-d H:i:s') . " به‌روزرسانی شد.", 'INFO');
+}
 
-    private function validateRequestMethod(): void {
-        if (!defined('IS_CLI') && $_SERVER['REQUEST_METHOD'] !== 'GET') {
-            throw new APIException('روش درخواست نامعتبر است.');
-        }
-    }
+	private function validateRequestMethod(): void {
+		if (!defined('IS_CLI') && $_SERVER['REQUEST_METHOD'] !== 'GET') {
+			throw new APIException('روش درخواست نامعتبر است.');
+		}
+	}
 
     private function handleKotazhRequest(): void {
         $kotazh = $this->validateKotazh($_GET['kotazh']);
-
-        // بررسی کش برای جلوگیری از کوئری‌های تکراری
-        $cacheKey = "kotazh_" . $kotazh;
-        if (isset($this->cache[$cacheKey])) {
-            APIResponse::send($this->cache[$cacheKey]);
-            return;
-        }
-
-        // کوئری ترکیبی برای دریافت همه اطلاعات با یک درخواست به دیتابیس
-        $combinedData = $this->getKotazhInfoAndCargo($kotazh);
+        $kotazhInfo = $this->getKotazhInfo($kotazh);
         
-        if (empty($combinedData['kotazhInfo'])) {
+        if (!$kotazhInfo) {
             APIResponse::send(['error' => 'کوتاژ مورد نظر یافت نشد.'], 404);
-            return;
         }
 
-        // ذخیره در کش
-        $this->cache[$cacheKey] = $combinedData;
-        APIResponse::send($combinedData);
+        $cargoInfo = $this->getCargoInfo($kotazh);
+        APIResponse::send([
+            'kotazhInfo' => $kotazhInfo,
+            'cargoInfo' => $cargoInfo
+        ]);
     }
 
     private function validateKotazh(string $kotazh): string {
@@ -1434,23 +1400,14 @@ class CargoAPI {
         return $kotazh;
     }
 
-    private function getKotazhInfoAndCargo(string $kotazh): array {
-        // کوئری ترکیبی با جوین و انتخاب هوشمند داده‌ها
+    private function getKotazhInfo(string $kotazh): ?array {
         $query = "
             SELECT 
-                i.shipName, i.loadingWarehouse, i.cargoType, 
-                i.shippingCompany, i.cargoWeight, i.loadingQuotaNumber,
-                c.id, c.trackingNumber, c.entryTime, c.netWeight, 
-                c.scaleReceiptNumber, c.shortageWeight, c.excessWeight, 
-                c.exitTime, c.exitDate, c.status
-            FROM 
-                InitialInfo i
-            LEFT JOIN 
-                CargoInfo c ON i.loadingQuotaNumber = c.loadingQuotaNumber
-            WHERE 
-                i.loadingQuotaNumber = ?
+                shipName, loadingWarehouse, cargoType, 
+                shippingCompany, cargoWeight, loadingQuotaNumber 
+            FROM InitialInfo 
+            WHERE loadingQuotaNumber = ?
         ";
-
         $stmt = $this->conn->prepare($query);
         if (!$stmt) {
             throw new Exception('آماده‌سازی پرس‌وجوی پایگاه داده ناموفق بود.');
@@ -1459,129 +1416,55 @@ class CargoAPI {
         $stmt->bind_param("s", $kotazh);
         $stmt->execute();
         $result = $stmt->get_result();
-        
-        $kotazhInfo = null;
-        $cargoInfo = [];
+        return $result->fetch_assoc();
+    }
 
-        while ($row = $result->fetch_assoc()) {
-            if ($kotazhInfo === null) {
-                $kotazhInfo = [
-                    'shipName' => $row['shipName'],
-                    'loadingWarehouse' => $row['loadingWarehouse'],
-                    'cargoType' => $row['cargoType'],
-                    'shippingCompany' => $row['shippingCompany'],
-                    'cargoWeight' => $row['cargoWeight'],
-                    'loadingQuotaNumber' => $row['loadingQuotaNumber']
-                ];
-            }
-            
-            if (!empty($row['id'])) {
-                $cargoInfo[] = [
-                    'trackingNumber' => $row['trackingNumber'],
-                    'entryTime' => $row['entryTime'],
-                    'netWeight' => $row['netWeight'],
-                    'scaleReceiptNumber' => $row['scaleReceiptNumber'],
-                    'shortageWeight' => $row['shortageWeight'],
-                    'excessWeight' => $row['excessWeight'],
-                    'exitTime' => $row['exitTime'],
-                    'exitDate' => $row['exitDate'],
-                    'status' => $row['status']
-                ];
-            }
+    private function getCargoInfo(string $kotazh): array {
+        $query = "
+            SELECT 
+                trackingNumber, entryTime, netWeight, scaleReceiptNumber,
+                shortageWeight, excessWeight, exitTime, exitDate, status 
+            FROM CargoInfo 
+            WHERE loadingQuotaNumber = ?
+        ";
+        $stmt = $this->conn->prepare($query);
+        if (!$stmt) {
+            throw new Exception('آماده‌سازی پرس‌وجوی پایگاه داده ناموفق بود.');
         }
 
-        return [
-            'kotazhInfo' => $kotazhInfo,
-            'cargoInfo' => $cargoInfo
-        ];
+        $stmt->bind_param("s", $kotazh);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        return $result->fetch_all(MYSQLI_ASSOC);
     }
 
     private function handleRealTimeDataRequest(): void {
-        // بررسی کش برای داده‌های لحظه‌ای با زمان کوتاه انقضا
-        $cacheKey = "realtime_data_" . date('YmdHi'); // کش با دقت دقیقه
-        if (isset($this->cache[$cacheKey])) {
-            APIResponse::send($this->cache[$cacheKey]);
-            return;
-        }
-
         $currentTime = date('H:i:s');
         $shiftInfo = $this->determineShiftInfo($currentTime);
-        
-        // ایجاد ایندکس موقت برای بهبود عملکرد کوئری‌های تحلیلی
-        $this->createTemporaryIndexes();
-        
         $realTimeData = $this->getRealTimeData($shiftInfo);
-        
-        // بستن ایندکس‌های موقت
-        $this->dropTemporaryIndexes();
 
+        // ثبت لاگ برای اطلاع از تعداد رکوردهای نهایی پاسخ
         $this->logger->log("تعداد رکوردهای نهایی ارسالی در پاسخ: " . count($realTimeData), "INFO");
 
-        $responseData = [
+        APIResponse::send([
             'shiftInfo' => $shiftInfo,
             'data' => $realTimeData
-        ];
-        
-        // ذخیره در کش
-        $this->cache[$cacheKey] = $responseData;
-        
-        APIResponse::send($responseData);
-    }
-
-    private function createTemporaryIndexes(): void {
-        try {
-            // ایجاد ایندکس‌های موقت برای بهبود سرعت کوئری‌ها
-            $queries = [
-                "CREATE INDEX IF NOT EXISTS temp_idx_cargoinfo_exit ON CargoInfo(exitDate, exitTime)",
-                "CREATE INDEX IF NOT EXISTS temp_idx_cargoinfo_status ON CargoInfo(status)",
-                "CREATE INDEX IF NOT EXISTS temp_idx_initialinfo_quota ON InitialInfo(loadingQuotaNumber)"
-            ];
-            
-            foreach ($queries as $query) {
-                $this->conn->query($query);
-            }
-        } catch (Exception $e) {
-            $this->logger->log("خطا در ایجاد ایندکس موقت: " . $e->getMessage(), 'WARNING');
-            // ادامه اجرا حتی در صورت خطا
-        }
-    }
-    
-    private function dropTemporaryIndexes(): void {
-        try {
-            // حذف ایندکس‌های موقت
-            $queries = [
-                "DROP INDEX IF EXISTS temp_idx_cargoinfo_exit",
-                "DROP INDEX IF EXISTS temp_idx_cargoinfo_status",
-                "DROP INDEX IF EXISTS temp_idx_initialinfo_quota"
-            ];
-            
-            foreach ($queries as $query) {
-                $this->conn->query($query);
-            }
-        } catch (Exception $e) {
-            $this->logger->log("خطا در حذف ایندکس موقت: " . $e->getMessage(), 'WARNING');
-        }
+        ]);
     }
 
     private function determineShiftInfo(string $currentTime): array {
-        // کش کردن نتیجه برای جلوگیری از محاسبه مجدد
-        $cacheKey = "shift_info_" . $currentTime;
-        if (isset($this->cache[$cacheKey])) {
-            return $this->cache[$cacheKey];
-        }
-        
         $currentJalaliDate = DateConverter::getCurrentJalaliDate();
         $shiftType = '';
         $shiftInfo = [];
 
-        if ($currentTime >= '07:30:00' && $currentTime < '19:15:00') {
+        if ($currentTime >= '07:30:00' && $currentTime < '19:00:00') {
             // شیفت روز
             $shiftType = 'روز';
             $shiftInfo = [
                 'startDate' => $currentJalaliDate,
                 'endDate' => $currentJalaliDate,
                 'startTime' => '07:30:00',
-                'endTime' => '19:15:00',
+                'endTime' => '18:30:00',
                 'type' => $shiftType
             ];
         } else {
@@ -1611,125 +1494,50 @@ class CargoAPI {
             $shiftInfo = [
                 'startDate' => $shiftStartDate,
                 'endDate' => $shiftEndDate,
-                'startTime' => '19:15:00',
+                'startTime' => '19:00:00',
                 'endTime' => '07:00:00',
                 'type' => $shiftType
             ];
         }
-        
-        $this->cache[$cacheKey] = $shiftInfo;
+
         return $shiftInfo;
     }
 
     private function getRealTimeData(array $shiftInfo): array {
-        // استفاده از جدول موقت برای بهبود کارایی
-        $this->createTempTables($shiftInfo);
-        
-        $query = $this->buildOptimizedRealTimeDataQuery();
+        $query = $this->buildRealTimeDataQuery($shiftInfo);
         $stmt = $this->conn->prepare($query);
-        
         if (!$stmt) {
-            throw new Exception('آماده‌سازی پرس‌وجوی پایگاه داده ناموفق بود: ' . $this->conn->error);
+            throw new Exception('آماده‌سازی پرس‌وجوی پایگاه داده ناموفق بود.');
         }
 
-        if (!$stmt->execute()) {
-            throw new Exception('اجرای پرس‌وجوی پایگاه داده ناموفق بود: ' . $stmt->error);
+        if ($shiftInfo['type'] === 'روز') {
+            $stmt->bind_param(
+                "sss", 
+                $shiftInfo['startDate'], 
+                $shiftInfo['startTime'], 
+                $shiftInfo['endTime']
+            );
+        } else {
+            $stmt->bind_param(
+                "ssss", 
+                $shiftInfo['startDate'], 
+                $shiftInfo['startTime'], 
+                $shiftInfo['endDate'], 
+                $shiftInfo['endTime']
+            );
         }
-        
+
+        $stmt->execute();
         $result = $stmt->get_result();
         
+        // ثبت لاگ برای اطلاع از تعداد رکوردهای پردازش شده
         $this->logger->log("تعداد رکوردهای پردازش شده در پاسخ به درخواست داده‌های لحظه‌ای: " . $result->num_rows, "INFO");
         
-        $data = $result->fetch_all(MYSQLI_ASSOC);
-        
-        // تبدیل مقادیر عددی به فرمت مناسب
-        foreach ($data as &$row) {
-            $row['entryVouchers'] = (int)$row['entryVouchers'];
-            $row['exitVouchers'] = (int)$row['exitVouchers'];
-            $row['totalVouchers'] = (int)$row['totalVouchers'];
-            $row['totalNetWeight'] = (float)$row['totalNetWeight'];
-        }
-        
-        // پاکسازی جداول موقت
-        $this->dropTempTables();
-        
-        return $data;
-    }
-    
-    private function createTempTables(array $shiftInfo): void {
-        try {
-            // حذف جداول موقت قبلی اگر وجود داشته باشند
-            $this->conn->query("DROP TEMPORARY TABLE IF EXISTS temp_filtered_cargo");
-            
-            // ایجاد جدول موقت با داده‌های فیلتر شده برای افزایش سرعت
-            $createTempTable = "
-                CREATE TEMPORARY TABLE temp_filtered_cargo AS
-                SELECT 
-                    loadingQuotaNumber,
-                    loadingWarehouse,
-                    shippingCompany,
-                    cargoType,
-                    id,
-                    status,
-                    netWeight
-                FROM 
-                    CargoInfo
-                WHERE 
-            ";
-            
-            if ($shiftInfo['type'] === 'روز') {
-                $createTempTable .= "
-                    (exitDate = ? AND exitTime BETWEEN ? AND ?)
-                    OR (status = 'ورود' AND exitDate IS NULL)
-                ";
-                
-                $stmt = $this->conn->prepare($createTempTable);
-                $stmt->bind_param(
-                    "sss", 
-                    $shiftInfo['startDate'], 
-                    $shiftInfo['startTime'], 
-                    $shiftInfo['endTime']
-                );
-            } else {
-                $createTempTable .= "
-                    (exitDate = ? AND exitTime >= ?)
-                    OR (exitDate = ? AND exitTime < ?)
-                    OR (status = 'ورود' AND exitDate IS NULL)
-                ";
-                
-                $stmt = $this->conn->prepare($createTempTable);
-                $stmt->bind_param(
-                    "ssss", 
-                    $shiftInfo['startDate'], 
-                    $shiftInfo['startTime'], 
-                    $shiftInfo['endDate'], 
-                    $shiftInfo['endTime']
-                );
-            }
-            
-            $stmt->execute();
-            
-            // ایجاد ایندکس روی جدول موقت برای افزایش سرعت جوین
-            $this->conn->query("CREATE INDEX idx_temp_cargo_quota ON temp_filtered_cargo(loadingQuotaNumber)");
-            $this->conn->query("CREATE INDEX idx_temp_cargo_status ON temp_filtered_cargo(status)");
-            
-        } catch (Exception $e) {
-            $this->logger->log("خطا در ایجاد جداول موقت: " . $e->getMessage(), 'ERROR');
-            throw $e;
-        }
-    }
-    
-    private function dropTempTables(): void {
-        try {
-            $this->conn->query("DROP TEMPORARY TABLE IF EXISTS temp_filtered_cargo");
-        } catch (Exception $e) {
-            $this->logger->log("خطا در حذف جداول موقت: " . $e->getMessage(), 'WARNING');
-        }
+        return $result->fetch_all(MYSQLI_ASSOC);
     }
 
-    private function buildOptimizedRealTimeDataQuery(): string {
-        // استفاده از جدول موقت برای کوئری بهینه‌تر
-        return "
+    private function buildRealTimeDataQuery(array $shiftInfo): string {
+        $baseQuery = "
             SELECT 
                 i.loadingQuotaNumber,
                 i.shipName,
@@ -1742,63 +1550,58 @@ class CargoAPI {
                 SUM(CASE WHEN c.status = 'خروج' THEN c.netWeight ELSE 0 END) AS totalNetWeight
             FROM 
                 InitialInfo i
-            JOIN 
-                temp_filtered_cargo c ON i.loadingQuotaNumber = c.loadingQuotaNumber
+            LEFT JOIN 
+                CargoInfo c ON i.loadingQuotaNumber = c.loadingQuotaNumber 
+                    AND i.loadingWarehouse = c.loadingWarehouse
+                    AND i.shippingCompany = c.shippingCompany
+                    AND i.cargoType = c.cargoType
+            WHERE 
+        ";
+
+        if ($shiftInfo['type'] === 'روز') {
+            $conditions = "
+                (c.exitDate = ? AND c.exitTime BETWEEN ? AND ?)
+                OR (c.status = 'ورود' AND c.exitDate IS NULL)
+            ";
+        } else {
+            $conditions = "
+                (c.exitDate = ? AND c.exitTime >= ?)
+                OR (c.exitDate = ? AND c.exitTime < ?)
+                OR (c.status = 'ورود' AND c.exitDate IS NULL)
+            ";
+        }
+
+        $groupBy = "
             GROUP BY 
                 i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType
-            HAVING
-                totalVouchers > 0
         ";
+
+        return $baseQuery . $conditions . $groupBy;
     }
 
+    // CargoAPI class
     private function handleComprehensiveAnalysisRequest(): void {
-        try {
-            // بررسی کش برای فایل آنالیز جامع
-            $jsonFilePath = __DIR__ . '/daily_stats.json';
-            $currentDate = date('Y-m-d');
-            
-            if (file_exists($jsonFilePath)) {
-                $fileDate = date('Y-m-d', filemtime($jsonFilePath));
-                $fileTime = filemtime($jsonFilePath);
-                $currentTime = time();
-                
-                // استفاده از فایل کش اگر کمتر از یک ساعت از ایجاد آن گذشته باشد
-                if ($fileDate === $currentDate && ($currentTime - $fileTime) < 3600) {
-                    $jsonContent = file_get_contents($jsonFilePath);
-                    $decodedContent = json_decode($jsonContent, true);
-                    
-                    if ($decodedContent !== null) {
-                        // بهینه‌سازی خروجی با فشرده‌سازی
-                        header('Content-Type: application/json; charset=UTF-8');
-                        header('Content-Encoding: gzip');
-                        echo gzencode(json_encode($decodedContent));
-                        exit;
-                    }
-                }
-            }
-            
-            // اگر فایل کش موجود نباشد یا منقضی شده باشد
-            $analytics = new AdvancedCargoAnalytics($this->conn);
-            $results = $analytics->getComprehensiveAnalysis();
-            
-            // بهینه‌سازی خروجی با فشرده‌سازی
-            header('Content-Type: application/json; charset=UTF-8');
-            header('Content-Encoding: gzip');
-            echo gzencode(json_encode($results));
-            exit;
-            
-        } catch (Exception $e) {
-            $this->logger->log("Error in comprehensive analysis: " . $e->getMessage(), 'ERROR');
-            
-            header('Content-Type: application/json; charset=UTF-8');
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'error' => $e->getMessage()
-            ]);
-            exit;
-        }
-    }
+		try {
+			$analytics = new AdvancedCargoAnalytics($this->conn);
+			$results = $analytics->getComprehensiveAnalysis();
+			
+			header('Content-Type: application/json; charset=UTF-8');
+			echo json_encode($results);
+			exit;
+		} catch (Exception $e) {
+			error_log("Error in comprehensive analysis: " . $e->getMessage());
+			error_log("Stack trace: " . $e->getTraceAsString());
+			
+			header('Content-Type: application/json; charset=UTF-8');
+			http_response_code(500);
+			echo json_encode([
+				'success' => false,
+				'error' => $e->getMessage(),
+				'trace' => $e->getTraceAsString()
+			]);
+			exit;
+		}
+	}
 }
 
 // مقداردهی اولیه و مدیریت درخواست API
