@@ -1,5 +1,6 @@
 <?php
 // تنظیمات اولیه و هدرهای امنیتی
+date_default_timezone_set('Asia/Tehran');
 ini_set('display_errors', 0);
 error_reporting(0);
 
@@ -23,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // اصلاح مسیر فایل config.php
-require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/../config/config.php';
 
 // بررسی متد درخواست
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -79,12 +80,6 @@ $postData = json_decode(file_get_contents('php://input'), true);
 if ($postData) {
     $_POST = $postData;
 }
-
-// تنظیمات اولیه و هدرهای امنیتی
-ini_set('display_errors', 0);
-error_reporting(0);
-
-require_once __DIR__ . '/config/config.php';
 
 // تابع تولید کلید لایسنس منحصر به فرد
 function generateLicenseKey() {
@@ -251,4 +246,4 @@ switch ($action) {
         echo json_encode(['success' => false, 'message' => 'عملیات نامعتبر']);
 }
 
-$conn->close(); 
+$conn->close();

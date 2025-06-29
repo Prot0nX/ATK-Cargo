@@ -4,7 +4,7 @@
 // استفاده از متغیرهای محیطی برای ذخیره اطلاعات حساس
 define('DB_NAME', getenv('DB_NAME') ?: 'myapp_db');
 define('DB_USER', getenv('DB_USER') ?: 'myapp_user');
-define('DB_PASSWORD', getenv('DB_PASSWORD') ?: 'SMe7sNrkpGI9Ew0N');
+define('DB_PASSWORD', getenv('DB_PASSWORD') ?: '5rvaC89xQPeqx1/p');
 define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
 
 // تابع برای ایجاد اتصال به پایگاه داده

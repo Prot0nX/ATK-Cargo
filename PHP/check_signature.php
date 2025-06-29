@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+date_default_timezone_set('Asia/Tehran');
+
 // تنظیم هدرهای امنیتی
 header('Content-Type: application/json; charset=UTF-8');
 header('X-Content-Type-Options: nosniff');

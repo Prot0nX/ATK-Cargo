@@ -1,5 +1,7 @@
 <?php
 ini_set('display_errors', 0);
+date_default_timezone_set('Asia/Tehran');
+
 error_reporting(0);
 
 header('Content-Type: application/json');
