@@ -309,10 +309,26 @@ class CargoViewModel(
         _messageType.value = type
     }
 
+    // کش برای نتایج API با زمان انقضا
+    private var lastQuotaStatusCheck: Long = 0
+    private var lastLoadableTonnageUpdate: Long = 0
+    private var cachedQuotaStatus: Boolean? = null
+    private var cachedLoadableTonnage: String? = null
+    private val quotaStatusCacheTimeout = 15_000L // 15 ثانیه
+    private val loadableTonnageCacheTimeout = 30_000L // 30 ثانیه
+    
+    /**
+     * پاک کردن کش APIها برای اطمینان از دریافت آخرین اطلاعات
+     * این تابع زمانی استفاده می‌شود که تغییری در وضعیت حواله‌ها رخ داده است
+     */
+    private fun clearApiCache() {
+        cachedQuotaStatus = null
+        cachedLoadableTonnage = null
+        lastQuotaStatusCheck = 0
+        lastLoadableTonnageUpdate = 0
+    }
+    
     fun refreshCargoInfo() {
-        // بروزرسانی فوری تناژ قابل بارگیری قبل از هر کار دیگر
-        updateLoadableTonnage()
-        
         viewModelScope.launch {
             _initialInfo.value?.let { info ->
                 try {
@@ -323,11 +339,12 @@ class CargoViewModel(
                         return@launch
                     }
                     
-                    // بررسی وضعیت کوتاژ و سپس بارگذاری اطلاعات
-                    checkQuotaStatus(info)
-                    
-                    // وقفه کوتاه برای دریافت بهترین داده‌ها
-                    delay(300)
+                    // بررسی وضعیت کوتاژ با کش (فقط در صورت نیاز)
+                    val currentTime = System.currentTimeMillis()
+                    if (currentTime - lastQuotaStatusCheck > quotaStatusCacheTimeout || cachedQuotaStatus == null) {
+                        checkQuotaStatus(info)
+                        lastQuotaStatusCheck = currentTime
+                    }
                     
                     // لاگ قبل از بروزرسانی
                     Log.d("CargoViewModel", "قبل از بروزرسانی - حواله‌های خروج: ${_cargoInfoList.value.count { it.status == "خروج" }}")
@@ -356,15 +373,14 @@ class CargoViewModel(
                                     "وضعیت حواله‌ها به‌روزرسانی شد",
                                     MessageType.SUCCESS
                                 )
+                                // فقط در صورت تغییر وضعیت، تناژ قابل بارگیری را بروزرسانی کن
+                                updateLoadableTonnageIfNeeded()
                             } else {
                                 showUpdateMessage(
                                     "اطلاعات در ساعت $currentTime به‌روزرسانی شد",
                                     MessageType.SUCCESS
                                 )
                             }
-                            
-                            // بروزرسانی نهایی تناژ قابل بارگیری بعد از تکمیل همه عملیات‌ها
-                            updateLoadableTonnage()
                         }
                     )
                 } catch (e: Exception) {
@@ -675,27 +691,11 @@ class CargoViewModel(
             updateLocalCargoListForExit(trackingNumber, netWeight, responseBody)
         }
 
-        // فوراً تناژ قابل بارگیری را بروزرسانی می‌کنیم
-        updateLoadableTonnage()
+        // پاک کردن کش برای اطمینان از دریافت آخرین اطلاعات
+        clearApiCache()
         
-        _initialInfo.value?.let { info ->
-            // بارگذاری مجدد اطلاعات با تأکید بر دریافت به‌روزترین داده‌ها
-            loadCargoInfoList(
-                quotaNumber = info.loadingQuotaNumber.toString(),
-                shippingCompany = info.shippingCompany,
-                warehouse = info.loadingWarehouse,
-                cargoType = info.cargoType,
-                onComplete = {
-                    // یک بروزرسانی اضافی بعد از بارگذاری مجدد
-                    viewModelScope.launch {
-                        delay(300) // تأخیر کوتاه
-                        refreshCargoInfo() // بروزرسانی مجدد بعد از دریافت اطلاعات
-                    }
-                }
-            )
-        } ?: run {
-            Log.e("CargoViewModel", "Unable to reload cargo info: Initial info is null")
-        }
+        // استفاده از refreshCargoInfo که شامل تمام بهینه‌سازی‌ها است
+        refreshCargoInfo()
     }
 
     private fun updateLocalCargoListForExit(trackingNumber: String, netWeight: String, responseBody: SaveOrUpdateResponse?) {
@@ -785,25 +785,25 @@ class CargoViewModel(
                     shippingCompany = initialInfo.shippingCompany
                 )
 
+            // کش کردن نتیجه
+            cachedQuotaStatus = status.isActive
+            _isQuotaActive.value = status.isActive
+
             if (status.isActive) {
                 // اگر کوتاژ فعال است، بررسی وضعیت درصد
                 checkAndHandleQuotaPercentage(initialInfo.loadingQuotaNumber.toString())
-            }
-
-            _isQuotaActive.value = status.isActive
-
-            if (!status.status) {
+            } else {
                 // پیام غیرفعال بودن بعد از هشدار درصدی نمایش داده می‌شود
                 delay(5000) // تاخیر بیشتر از هشدار درصدی
-                    showMessage(status.message, MessageType.WARNING)
-                return
+                showMessage(status.message, MessageType.WARNING)
             }
         } catch (e: Exception) {
             Log.e("CargoViewModel", "Error in checkQuotaStatus", e)
-                _resultMessage.value = "خطا در بررسی وضعیت کوتاژ: ${e.message ?: "خطای ناشناخته"}"
-                _messageType.value = MessageType.ERROR
-                _showAnimatedMessage.value = true
-                _isQuotaActive.value = false
+            _resultMessage.value = "خطا در بررسی وضعیت کوتاژ: ${e.message ?: "خطای ناشناخته"}"
+            _messageType.value = MessageType.ERROR
+            _showAnimatedMessage.value = true
+            _isQuotaActive.value = false
+            cachedQuotaStatus = false
         }
     }
 
@@ -1055,15 +1055,11 @@ class CargoViewModel(
             if (response.isSuccessful) {
                 val responseBody = response.body()
                 if (responseBody?.success == true) {
-                    _initialInfo.value?.let { info ->
-                        loadCargoInfoList(
-                            quotaNumber = info.loadingQuotaNumber.toString(),
-                            shippingCompany = info.shippingCompany,
-                            warehouse = info.loadingWarehouse,
-                            cargoType = info.cargoType,
-                            onComplete = {}
-                        )
-                    }
+                    // پاک کردن کش برای اطمینان از دریافت آخرین وضعیت
+                    clearApiCache()
+                    
+                    // استفاده از refreshCargoInfo که شامل بهینه‌سازی‌های کش است
+                    refreshCargoInfo()
                 } else {
                     addMessageToQueue(
                         "خطا در تغییر وضعیت کوتاژ: ${responseBody?.message}",
@@ -1156,8 +1152,8 @@ class CargoViewModel(
 
                 val response = apiService.saveOrUpdateCargoInfo(updatedCargoInfo)
                 if (response.isSuccessful) {
-                    // فوراً تناژ قابل بارگیری را بروزرسانی می‌کنیم
-                    updateLoadableTonnage()
+                    // پاک کردن کش برای اطمینان از دریافت آخرین اطلاعات
+                    clearApiCache()
                     
                     // یک تأخیر کوتاه برای اطمینان از ثبت کامل در سرور
                     delay(500)
@@ -1252,19 +1248,11 @@ class CargoViewModel(
                         _showAnimatedMessage.value = true
                         _messageType.value = MessageType.SUCCESS
                         
-                        // فوراً تناژ قابل بارگیری را بروزرسانی می‌کنیم
-                        updateLoadableTonnage()
+                        // پاک کردن کش برای اطمینان از دریافت آخرین اطلاعات
+                        clearApiCache()
                         
-                        // بارگذاری مجدد اطلاعات پس از حذف
-                        _initialInfo.value?.let { info ->
-                            loadCargoInfoList(
-                                quotaNumber = info.loadingQuotaNumber.toString(),
-                                shippingCompany = info.shippingCompany,
-                                warehouse = info.loadingWarehouse,
-                                cargoType = info.cargoType,
-                                onComplete = {}
-                            )
-                        }
+                        // استفاده از refreshCargoInfo که شامل تمام بهینه‌سازی‌ها است
+                        refreshCargoInfo()
                     } else {
                         _resultMessage.value = "خطا در حذف حواله: ${deleteResponse.errorBody()?.string()}"
                         _showAnimatedMessage.value = true
@@ -1291,8 +1279,16 @@ class CargoViewModel(
         return gregorianToJalali(Calendar.getInstance())
     }
 
-    // بروزرسانی فوری مقدار تناژ قابل بارگیری با اولویت بالا
-    private fun updateLoadableTonnage() {
+    // بروزرسانی هوشمند تناژ قابل بارگیری با کش و کنترل زمان
+    private fun updateLoadableTonnageIfNeeded(forceUpdate: Boolean = false) {
+        val currentTime = System.currentTimeMillis()
+        
+        // بررسی نیاز به بروزرسانی بر اساس کش
+        if (!forceUpdate && currentTime - lastLoadableTonnageUpdate < loadableTonnageCacheTimeout && cachedLoadableTonnage != null) {
+            Log.d("CargoViewModel", "Using cached loadable tonnage: $cachedLoadableTonnage")
+            return
+        }
+        
         // استفاده از CoroutineScope جدید با اولویت بالا
         CoroutineScope(Dispatchers.Default + SupervisorJob()).launch {
             try {
@@ -1313,7 +1309,10 @@ class CargoViewModel(
                         // استفاده از Main.immediate برای بروزرسانی فوری UI
                         withContext(Dispatchers.Main.immediate) {
                             data.loadableTonnage?.let { tonnage ->
-                                _loadableTonnage.value = DecimalFormat("#,###").format(tonnage.roundToInt())
+                                val formattedTonnage = DecimalFormat("#,###").format(tonnage.roundToInt())
+                                _loadableTonnage.value = formattedTonnage
+                                cachedLoadableTonnage = formattedTonnage
+                                lastLoadableTonnageUpdate = currentTime
                             }
                             
                             // استفاده از مقادیر محاسبه‌شده در سمت سرور
@@ -1337,6 +1336,11 @@ class CargoViewModel(
             }
         }
     }
+    
+    // تابع قدیمی برای سازگاری با کدهای موجود
+    private fun updateLoadableTonnage() {
+        updateLoadableTonnageIfNeeded(forceUpdate = true)
+    }
 
     private fun updateLoadableTrucksCount(loadableTonnage: Double) {
         // محاسبه تعداد ماشین‌های 18 چرخ (فقط برای مقادیر مثبت)
@@ -1348,6 +1352,10 @@ class CargoViewModel(
         // مقادیر را در StateFlow ها قرار می‌دهیم
         _loadableTrucks18Wheeler.value = trucks18Wheeler.toString()
         _loadableTrucks10Wheeler.value = trucks10Wheeler.toString()
+    }
+
+    fun setInitialInfo(initialInfo: InitialInfo) {
+        _initialInfo.value = initialInfo
     }
 }
 
