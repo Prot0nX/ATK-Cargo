@@ -14,44 +14,52 @@
 	date_default_timezone_set('Asia/Tehran');
 	
 	class DatabaseManager {
-		private mysqli $conn;
-		
-		public function __construct() {
-			$this->conn = $this->getDbConnection();
+	private mysqli $conn;
+	private array $preparedStatements = [];
+	
+	public function __construct() {
+		$this->conn = $this->getDbConnection();
+	}
+	
+	private function getDbConnection(): mysqli {
+		$conn = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
+		if ($conn->connect_error) {
+			throw new Exception("خطا در اتصال به پایگاه داده: " . $conn->connect_error);
 		}
-		
-		private function getDbConnection(): mysqli {
-			$conn = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
-			if ($conn->connect_error) {
-				throw new Exception("خطا در اتصال به پایگاه داده: " . $conn->connect_error);
-			}
-			$conn->set_charset("utf8mb4");
-			return $conn;
+		$conn->set_charset("utf8mb4");
+		return $conn;
+	}
+	
+	public function prepare(string $query): mysqli_stmt {
+		$stmt = $this->conn->prepare($query);
+		if (!$stmt) {
+			throw new Exception("خطا در آماده‌سازی دستور SQL: " . $this->conn->error);
 		}
-		
-		public function prepare(string $query): mysqli_stmt {
-			$stmt = $this->conn->prepare($query);
-			if (!$stmt) {
-				throw new Exception("خطا در آماده‌سازی دستور SQL: " . $this->conn->error);
-			}
-			return $stmt;
+		return $stmt;
+	}
+	
+	public function getPreparedStatement(string $key, string $query): mysqli_stmt {
+		if (!isset($this->preparedStatements[$key])) {
+			$this->preparedStatements[$key] = $this->prepare($query);
 		}
-		
-		public function close(): void {
-			$this->conn->close();
-		}
-		
-		public function beginTransaction(): void {
-			$this->conn->begin_transaction();
-		}
-		
-		public function commit(): void {
-			$this->conn->commit();
-		}
-		
-		public function rollback(): void {
-			$this->conn->rollback();
-		}
+		return $this->preparedStatements[$key];
+	}
+	
+	public function close(): void {
+		$this->conn->close();
+	}
+	
+	public function beginTransaction(): void {
+		$this->conn->begin_transaction();
+	}
+	
+	public function commit(): void {
+		$this->conn->commit();
+	}
+	
+	public function rollback(): void {
+		$this->conn->rollback();
+	}
 	}
 	
 	function customLog(string $message): void {
@@ -77,15 +85,18 @@
 	
 	function checkQuotaStatus(DatabaseManager $db, array $params): array {
 		try {
-			// ثبت درخواست ورودی
-			customLog("Starting checkQuotaStatus with params: " . json_encode($params));
-			
-			// اعتبارسنجی پارامترهای الزامی
+			// اعتبارسنجی سریع‌تر با استفاده از array_diff_key
 			$requiredParams = ['quotaNumber', 'shipName', 'cargoType', 'shippingCompany'];
+			$missingParams = array_diff($requiredParams, array_keys($params));
+			
+			if (!empty($missingParams)) {
+				throw new Exception("پارامترهای الزامی مفقود: " . implode(', ', $missingParams));
+			}
+			
+			// اعتبارسنجی خالی بودن در یک حلقه
 			foreach ($requiredParams as $param) {
-				if (!isset($params[$param]) || empty($params[$param])) {
-					customLog("Missing required parameter: $param");
-					throw new Exception("پارامتر $param الزامی است");
+				if (empty(trim($params[$param]))) {
+					throw new Exception("پارامتر $param نمی‌تواند خالی باشد");
 				}
 			}
 			
@@ -95,10 +106,7 @@
 			$cargoType = sanitizeInput($params['cargoType']);
 			$shippingCompany = sanitizeInput($params['shippingCompany']);
 			
-			// ثبت داده‌های پاکسازی شده
-			customLog("Sanitized inputs - QuotaNumber: $quotaNumber, Ship: $shipName, Cargo: $cargoType, Company: $shippingCompany");
-			
-			// کوئری بهینه‌شده برای دریافت اطلاعات کوتاژ
+			// جایگزینی LEFT JOIN با EXISTS برای بهتر شدن عملکرد
 			$query = "SELECT 
 				i.loadingQuotaNumber,
 				i.shipName,
@@ -106,105 +114,117 @@
 				i.shippingCompany,
 				i.cargoWeight as totalWeight,
 				i.isActive,
-				COALESCE((
-					SELECT SUM(netWeight)
+				(
+					SELECT COALESCE(SUM(c.netWeight), 0)
 					FROM CargoInfo c
-					WHERE c.loadingQuotaNumber = i.loadingQuotaNumber
+					WHERE c.status = 'خروج'
+					AND c.loadingQuotaNumber = i.loadingQuotaNumber
 					AND c.shipName = i.shipName
 					AND c.cargoType = i.cargoType
 					AND c.shippingCompany = i.shippingCompany
-					AND c.status = 'خروج'
-				), 0) as loadedWeight
+				) as loadedWeight,
+				CASE 
+					WHEN i.cargoWeight > 0 THEN 
+						((
+							SELECT COALESCE(SUM(c.netWeight), 0)
+							FROM CargoInfo c
+							WHERE c.status = 'خروج'
+							AND c.loadingQuotaNumber = i.loadingQuotaNumber
+							AND c.shipName = i.shipName
+							AND c.cargoType = i.cargoType
+							AND c.shippingCompany = i.shippingCompany
+						) / i.cargoWeight) * 100
+					ELSE 0 
+				END as percentageLoaded,
+				CASE 
+					WHEN i.isActive = 0 THEN CONCAT('کوتاژ ', i.loadingQuotaNumber, ' با نوع کالای ', i.cargoType, ' غیرفعال است')
+					WHEN i.cargoWeight > 0 AND ((
+						SELECT COALESCE(SUM(c.netWeight), 0)
+						FROM CargoInfo c
+						WHERE c.status = 'خروج'
+						AND c.loadingQuotaNumber = i.loadingQuotaNumber
+						AND c.shipName = i.shipName
+						AND c.cargoType = i.cargoType
+						AND c.shippingCompany = i.shippingCompany
+					) / i.cargoWeight) * 100 >= 100 THEN 
+						CONCAT('ظرفیت بارگیری کوتاژ ', i.loadingQuotaNumber, ' با نوع کالای ', i.cargoType, ' تکمیل شده است')
+					WHEN i.cargoWeight > 0 AND ((
+						SELECT COALESCE(SUM(c.netWeight), 0)
+						FROM CargoInfo c
+						WHERE c.status = 'خروج'
+						AND c.loadingQuotaNumber = i.loadingQuotaNumber
+						AND c.shipName = i.shipName
+						AND c.cargoType = i.cargoType
+						AND c.shippingCompany = i.shippingCompany
+					) / i.cargoWeight) * 100 >= 95 THEN 
+						CONCAT('هشدار: ظرفیت بارگیری کوتاژ ', i.loadingQuotaNumber, ' با نوع کالای ', i.cargoType, ' به ', 
+							   ROUND(((
+									SELECT COALESCE(SUM(c.netWeight), 0)
+									FROM CargoInfo c
+									WHERE c.status = 'خروج'
+									AND c.loadingQuotaNumber = i.loadingQuotaNumber
+									AND c.shipName = i.shipName
+									AND c.cargoType = i.cargoType
+									AND c.shippingCompany = i.shippingCompany
+								) / i.cargoWeight) * 100, 2), '% رسیده است')
+					ELSE CONCAT('کوتاژ ', i.loadingQuotaNumber, ' با نوع کالای ', i.cargoType, ' فعال است')
+				END as status_message
 			FROM InitialInfo i 
 			WHERE i.loadingQuotaNumber = ?
-			AND i.shipName = ?
-			AND i.cargoType = ?
-			AND i.shippingCompany = ?
 			LIMIT 1";
 			
-			// ثبت کوئری
-			customLog("Executing query: $query");
-			customLog("With parameters: [$quotaNumber, $shipName, $cargoType, $shippingCompany]");
-			
 			$stmt = $db->prepare($query);
-			$stmt->bind_param("ssss", $quotaNumber, $shipName, $cargoType, $shippingCompany);
+			$stmt->bind_param("s", $quotaNumber);
 			$stmt->execute();
 			$result = $stmt->get_result();
 			
 			if ($row = $result->fetch_assoc()) {
-				customLog("Found quota record: " . json_encode($row));
+				// حذف تبدیل‌های اضافی و استفاده مستقیم از مقادیر SQL
+				$isActiveStatus = (bool)$row['isActive'] && ((float)$row['loadedWeight'] < (float)$row['totalWeight']);
 				
-				// محاسبات مربوط به وزن و ظرفیت
-				$loadedWeight = floatval($row['loadedWeight']);
-				$totalWeight = floatval($row['totalWeight']);
-				$percentageLoaded = ($totalWeight > 0) ? ($loadedWeight / $totalWeight) * 100 : 0;
-				$remainingCapacity = $totalWeight - $loadedWeight;
-				$isActive = (bool)$row['isActive'];
-				
-				// ساخت پاسخ
-				$response = [
-					'isActive' => $isActive && ($loadedWeight < $totalWeight),
-					'status' => true,
-					'message' => generateStatusMessage($isActive, $percentageLoaded, $quotaNumber, $cargoType),
-					'details' => [
-						'quotaNumber' => $quotaNumber,
-						'shipName' => $row['shipName'],
-						'cargoType' => $row['cargoType'],
-						'shippingCompany' => $row['shippingCompany'],
-						'totalWeight' => $totalWeight,
-						'loadedWeight' => $loadedWeight,
-						'remainingCapacity' => $remainingCapacity,
-						'percentageLoaded' => round($percentageLoaded, 2)
-					]
-				];
-				
-				customLog("Returning response: " . json_encode($response));
-				return $response;
-			}
-			
-			// اگر کوتاژ دقیق یافت نشد، بررسی کوتاژهای مشابه
-			customLog("No exact match found, checking for similar quotas...");
-			
-			$queryCheck = "SELECT 
-				loadingQuotaNumber, 
-				shipName, 
-				cargoType, 
-				shippingCompany,
-				isActive
-			FROM InitialInfo 
-			WHERE loadingQuotaNumber = ?";
-			
-			$stmtCheck = $db->prepare($queryCheck);
-			$stmtCheck->bind_param("s", $quotaNumber);
-			$stmtCheck->execute();
-			$resultCheck = $stmtCheck->get_result();
-			
-			if ($resultCheck->num_rows > 0) {
-				$existingQuotas = [];
-				while ($row = $resultCheck->fetch_assoc()) {
-					$existingQuotas[] = $row;
-				}
-				
-				customLog("Found similar quotas: " . json_encode($existingQuotas));
-				
-				return [
-					'isActive' => false,
-					'status' => false,
-					'message' => "کوتاژ $quotaNumber با مشخصات متفاوتی ثبت شده است",
-					'details' => [
-						'existingQuotas' => $existingQuotas,
-						'requestedQuota' => [
-							'quotaNumber' => $quotaNumber,
-							'shipName' => $shipName,
-							'cargoType' => $cargoType,
-							'shippingCompany' => $shippingCompany
+				// بررسی تطبیق دقیق
+				if ($row['shipName'] === $shipName && $row['cargoType'] === $cargoType && $row['shippingCompany'] === $shippingCompany) {
+					return [
+						'isActive' => $isActiveStatus,
+						'status' => true,
+						'message' => $row['status_message'],
+						'details' => [
+							'quotaNumber' => $row['loadingQuotaNumber'],
+							'shipName' => $row['shipName'],
+							'cargoType' => $row['cargoType'],
+							'shippingCompany' => $row['shippingCompany'],
+							'totalWeight' => (float)$row['totalWeight'],
+							'loadedWeight' => (float)$row['loadedWeight'],
+							'remainingCapacity' => max(0, (float)$row['totalWeight'] - (float)$row['loadedWeight']),
+							'percentageLoaded' => round((float)$row['percentageLoaded'], 2)
 						]
-					]
-				];
+					];
+				} else {
+					// تطبیق جزئی - کوتاژ با مشخصات متفاوت وجود دارد
+					return [
+						'isActive' => false,
+						'status' => false,
+						'message' => "کوتاژ $quotaNumber با مشخصات متفاوتی ثبت شده است",
+						'details' => [
+							'existingQuotas' => [[
+								'loadingQuotaNumber' => $row['loadingQuotaNumber'],
+								'shipName' => $row['shipName'],
+								'cargoType' => $row['cargoType'],
+								'shippingCompany' => $row['shippingCompany'],
+								'isActive' => (bool)$row['isActive']
+							]],
+							'requestedQuota' => [
+								'quotaNumber' => $quotaNumber,
+								'shipName' => $shipName,
+								'cargoType' => $cargoType,
+								'shippingCompany' => $shippingCompany
+							]
+						]
+					];
+				}
 			}
 			
 			// هیچ کوتاژی یافت نشد
-			customLog("No quota found with number: $quotaNumber");
 			return [
 				'isActive' => false,
 				'status' => false,
@@ -213,7 +233,6 @@
 			];
 			
 		} catch (Exception $e) {
-			customLog("Error in checkQuotaStatus: " . $e->getMessage());
 			throw new Exception("خطا در بررسی وضعیت کوتاژ: " . $e->getMessage());
 		}
 	}
@@ -315,20 +334,24 @@
 	}
 	
 	function getShipsList(DatabaseManager $db): array {
-		// بهینه‌سازی کوئری برای محاسبه تناژهای کشتی‌ها با کاهش محاسبات تکراری
+		// بهینه‌سازی کوئری با محاسبه مستقیم در SQL و کاهش پردازش PHP
 		$query = "
 		SELECT
-		i.shipName,
-		COUNT(DISTINCT i.loadingWarehouse) as warehouseCount,
-		COUNT(DISTINCT CONCAT(i.loadingQuotaNumber, '-', i.loadingWarehouse, '-', i.shippingCompany, '-', i.cargoType)) as quotaCount,
-		COUNT(DISTINCT CONCAT(i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType)) as uniqueQuotaCombinations,
-		SUM(i.cargoWeight) as totalTonnage,
-		COALESCE(SUM(loaded.loadedWeight), 0) as loadedTonnage,
-		MAX(i.isActive) as isActive,
-		COUNT(DISTINCT i.shippingCompany) as shippingCompanyCount,
-		COUNT(DISTINCT i.cargoType) as cargoTypeCount
-		FROM
-			InitialInfo i
+			i.shipName,
+			COUNT(DISTINCT i.loadingWarehouse) as warehouseCount,
+			COUNT(DISTINCT CONCAT(i.loadingQuotaNumber, '-', i.loadingWarehouse, '-', i.shippingCompany, '-', i.cargoType)) as quotaCount,
+			COUNT(DISTINCT i.shippingCompany) as shippingCompanyCount,
+			COUNT(DISTINCT i.cargoType) as cargoTypeCount,
+			SUM(i.cargoWeight) as totalTonnage,
+			COALESCE(SUM(loaded.loadedWeight), 0) as loadedTonnage,
+			(SUM(i.cargoWeight) - COALESCE(SUM(loaded.loadedWeight), 0)) as remainingTonnage,
+			CASE 
+				WHEN SUM(i.cargoWeight) > 0 THEN 
+					ROUND((COALESCE(SUM(loaded.loadedWeight), 0) / SUM(i.cargoWeight)) * 100, 2)
+				ELSE 0 
+			END as percentageLoaded,
+			MAX(i.isActive) as isActive
+		FROM InitialInfo i
 		LEFT JOIN (
 			SELECT 
 				c.loadingQuotaNumber,
@@ -337,22 +360,17 @@
 				c.shippingCompany,
 				c.cargoType,
 				SUM(c.netWeight) as loadedWeight
-			FROM 
-				CargoInfo c
-			WHERE 
-				c.status = 'خروج'
-			GROUP BY 
-				c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
+			FROM CargoInfo c
+			WHERE c.status = 'خروج'
+			GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
 		) loaded ON 
 			loaded.loadingQuotaNumber = i.loadingQuotaNumber
 			AND loaded.shipName = i.shipName
 			AND loaded.loadingWarehouse = i.loadingWarehouse
 			AND loaded.shippingCompany = i.shippingCompany
 			AND loaded.cargoType = i.cargoType
-		GROUP BY
-			i.shipName
-		ORDER BY
-			isActive DESC, shipName ASC
+		GROUP BY i.shipName
+		ORDER BY isActive DESC, shipName ASC
 		";
 		
 		try {
@@ -360,62 +378,53 @@
 			$stmt->execute();
 			$result = $stmt->get_result();
 			
-			customLog("Query executed successfully. Processing results...");
-			
 			$activeShips = [];
 			$inactiveShips = [];
-			$totalShips = 0;
-			$totalActiveShips = 0;
-			$totalInactiveShips = 0;
+			$totalActiveTonnage = 0;
+			$totalRemainingTonnage = 0;
+			$totalLoadedTonnage = 0;
 			
+			// پردازش نتایج با حداقل محاسبات PHP
 			while ($row = $result->fetch_assoc()) {
-				$totalShips++;
-				
-				// محاسبه تناژ بارگیری شده و باقیمانده
-				$totalTonnage = floatval($row['totalTonnage']);
-				$loadedTonnage = floatval($row['loadedTonnage']);
-				$remainingTonnage = max(0, $totalTonnage - $loadedTonnage);
-				$percentageLoaded = ($totalTonnage > 0) ? ($loadedTonnage / $totalTonnage) * 100 : 0;
-				
 				$ship = [
 					'name' => $row['shipName'],
-					'warehouseCount' => intval($row['warehouseCount']),
-					'quotaCount' => intval($row['quotaCount']),
-					'uniqueQuotaCombinations' => intval($row['uniqueQuotaCombinations']),
-					'shippingCompanyCount' => intval($row['shippingCompanyCount']),
-					'cargoTypeCount' => intval($row['cargoTypeCount']),
-					'totalTonnage' => $totalTonnage,
-					'remainingTonnage' => $remainingTonnage,
-					'loadedTonnage' => $loadedTonnage,
-					'percentageLoaded' => round($percentageLoaded, 2),
+					'warehouseCount' => (int)$row['warehouseCount'],
+					'quotaCount' => (int)$row['quotaCount'],
+					'shippingCompanyCount' => (int)$row['shippingCompanyCount'],
+					'cargoTypeCount' => (int)$row['cargoTypeCount'],
+					'totalTonnage' => (float)$row['totalTonnage'],
+					'remainingTonnage' => max(0, (float)$row['remainingTonnage']),
+					'loadedTonnage' => (float)$row['loadedTonnage'],
+					'percentageLoaded' => (float)$row['percentageLoaded'],
 					'isActive' => (bool)$row['isActive']
 				];
 				
-				// ثبت جزئیات برای عیب‌یابی
-				customLog("Ship: {$ship['name']}, Total: {$ship['totalTonnage']}, Remaining: {$ship['remainingTonnage']}, Loaded: {$loadedTonnage}");
-				
 				if ($ship['isActive']) {
 					$activeShips[] = $ship;
-					$totalActiveShips++;
+					$totalActiveTonnage += $ship['totalTonnage'];
+					$totalRemainingTonnage += $ship['remainingTonnage'];
+					$totalLoadedTonnage += $ship['loadedTonnage'];
 				} else {
 					$inactiveShips[] = $ship;
-					$totalInactiveShips++;
 				}
 			}
 			
-			sendJsonResponse(['data' => [
-				'activeShips' => $activeShips,
-				'inactiveShips' => $inactiveShips,
-				'statistics' => [
-					'totalShips' => $totalShips,
-					'activeShipsCount' => $totalActiveShips,
-					'inactiveShipsCount' => $totalInactiveShips,
-					'totalActiveTonnage' => array_sum(array_column($activeShips, 'totalTonnage')),
-					'totalRemainingTonnage' => array_sum(array_column($activeShips, 'remainingTonnage')),
-					'totalLoadedTonnage' => array_sum(array_column($activeShips, 'loadedTonnage')),
-					'timestamp' => date('Y-m-d H:i:s')
+			// ارسال پاسخ بهینه‌شده
+			sendJsonResponse([
+				'data' => [
+					'activeShips' => $activeShips,
+					'inactiveShips' => $inactiveShips,
+					'statistics' => [
+						'totalShips' => count($activeShips) + count($inactiveShips),
+						'activeShipsCount' => count($activeShips),
+						'inactiveShipsCount' => count($inactiveShips),
+						'totalActiveTonnage' => $totalActiveTonnage,
+						'totalRemainingTonnage' => $totalRemainingTonnage,
+						'totalLoadedTonnage' => $totalLoadedTonnage,
+						'timestamp' => date('Y-m-d H:i:s')
+					]
 				]
-			]]);
+			]);
 		} catch (Exception $e) {
 			customLog("Error in getShipsList: " . $e->getMessage());
 			throw new Exception("خطا در دریافت لیست کشتی‌ها: " . $e->getMessage());
