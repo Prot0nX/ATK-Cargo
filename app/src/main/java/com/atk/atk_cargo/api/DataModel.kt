@@ -29,7 +29,8 @@ import com.itextpdf.text.PageSize
 import com.itextpdf.text.Paragraph
 import com.itextpdf.text.Phrase
 import com.itextpdf.text.Rectangle
-import com.itextpdf.text.pdf.BaseFont
+import com.itextpdf.text.pdf.BaseFont.IDENTITY_H
+import com.itextpdf.text.pdf.BaseFont.createFont
 import com.itextpdf.text.pdf.ColumnText
 import com.itextpdf.text.pdf.PdfPCell
 import com.itextpdf.text.pdf.PdfPTable
@@ -79,7 +80,6 @@ class CargoViewModel(
     private val repository: ReportsRepository,
     private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
-    private val quotasCache = mutableMapOf<String, List<Quota>>()
     private val _cargoInfoList = MutableStateFlow<List<CargoInfo>>(emptyList())
     val cargoInfoList: StateFlow<List<CargoInfo>> = _cargoInfoList.asStateFlow()
     private val _snackbarMessage = MutableStateFlow<SnackbarMessage?>(null)
@@ -89,7 +89,6 @@ class CargoViewModel(
     private val _loadedWeight = MutableStateFlow("")
     val loadedWeight: StateFlow<String> = _loadedWeight.asStateFlow()
     private val _cargoCount = MutableStateFlow(0)
-    val cargoCount: StateFlow<Int> = _cargoCount.asStateFlow()
     private val _clearInputFields = MutableStateFlow(false)
     val clearInputFields: StateFlow<Boolean> = _clearInputFields.asStateFlow()
     private val _initialInfo = MutableStateFlow<InitialInfo?>(null)
@@ -105,7 +104,6 @@ class CargoViewModel(
     private val _remainingServices = MutableStateFlow("")
     val remainingServices: StateFlow<String> = _remainingServices.asStateFlow()
     private val _totalServices = MutableStateFlow("")
-    val totalServices: StateFlow<String> = _totalServices.asStateFlow()
     private val _resultMessage = MutableStateFlow("")
     val resultMessage: StateFlow<String> = _resultMessage.asStateFlow()
     private val _showAnimatedMessage = MutableStateFlow(false)
@@ -121,7 +119,6 @@ class CargoViewModel(
     private val _duplicateWarningMessage = MutableStateFlow("")
     val duplicateWarningMessage: StateFlow<String> = _duplicateWarningMessage.asStateFlow()
     private val _pendingCargoInfo = MutableStateFlow<CargoInfo?>(null)
-    val pendingCargoInfo: StateFlow<CargoInfo?> = _pendingCargoInfo.asStateFlow()
     private val _filteredCargoInfoList = MutableStateFlow<List<CargoInfo>>(emptyList())
     val filteredCargoInfoList: StateFlow<List<CargoInfo>> = _filteredCargoInfoList.asStateFlow()
     private val _isQuotaActive = MutableStateFlow<Boolean?>(null)
@@ -137,29 +134,9 @@ class CargoViewModel(
     
     private val _loadableTrucks10Wheeler = MutableStateFlow("")
     val loadableTrucks10Wheeler: StateFlow<String> = _loadableTrucks10Wheeler.asStateFlow()
-    
-    private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY)
-    val warehouseQuotaGroupingMode: StateFlow<WarehouseQuotaGroupingMode> = _warehouseQuotaGroupingMode.asStateFlow()
-    
-    // متغیرهای مربوط به بازه زمانی انتخاب شده
-    private val _selectedDateRange = MutableStateFlow<Pair<String, String>?>(null)
-    val selectedDateRange: StateFlow<Pair<String, String>?> = _selectedDateRange.asStateFlow()
-    
-    // متغیرهای مربوط به مرتب‌سازی کوتاژها
-    private val _quotaSortingMode = MutableStateFlow(QuotaSortingMode.REMAINING_TONNAGE_ASC)
-    val quotaSortingMode: StateFlow<QuotaSortingMode> = _quotaSortingMode.asStateFlow()
-    
-    // متغیرهای مربوط به مرتب‌سازی گروه‌ها
-    private val _groupSortingMode = MutableStateFlow(GroupSortingMode.REMAINING_TONNAGE_ASC)
-    val groupSortingMode: StateFlow<GroupSortingMode> = _groupSortingMode.asStateFlow()
-    
-    // متغیرهای مربوط به مرتب‌سازی کشتی‌ها
-    private val _shipSortingMode = MutableStateFlow(ShipSortingMode.REMAINING_TONNAGE_ASC)
-    val shipSortingMode: StateFlow<ShipSortingMode> = _shipSortingMode.asStateFlow()
-    
+
     private val _cachedTrackingNumbers = MutableStateFlow<Set<String>>(emptySet())
-    val cachedTrackingNumbers: StateFlow<Set<String>> = _cachedTrackingNumbers.asStateFlow()
-    
+
     // وضعیت کشتی‌های انتخاب شده
     private val _selectedShipNames = MutableStateFlow<Set<String>>(emptySet())
     val selectedShipNames: StateFlow<Set<String>> = _selectedShipNames.asStateFlow()
@@ -205,8 +182,8 @@ class CargoViewModel(
         }
     }
 
-    private fun showUpdateMessage(message: String, type: MessageType) {
-        _snackbarMessage.value = SnackbarMessage(message, type)
+    private fun showUpdateMessage(message: String) {
+        _snackbarMessage.value = SnackbarMessage(message, MessageType.SUCCESS)
     }
 
     fun dismissSnackbar() {
@@ -370,16 +347,14 @@ class CargoViewModel(
                             // نمایش پیام مناسب
                             if (hasStatusChanges) {
                                 showUpdateMessage(
-                                    "وضعیت حواله‌ها به‌روزرسانی شد",
-                                    MessageType.SUCCESS
-                                )
+                    "وضعیت حواله‌ها به‌روزرسانی شد"
+                )
                                 // فقط در صورت تغییر وضعیت، تناژ قابل بارگیری را بروزرسانی کن
                                 updateLoadableTonnageIfNeeded()
                             } else {
                                 showUpdateMessage(
-                                    "اطلاعات در ساعت $currentTime به‌روزرسانی شد",
-                                    MessageType.SUCCESS
-                                )
+                    "اطلاعات در ساعت $currentTime به‌روزرسانی شد"
+                )
                             }
                         }
                     )
@@ -643,7 +618,7 @@ class CargoViewModel(
     }
     
     private fun handle24HourWarning(responseBody: SaveOrUpdateResponse) {
-        if (responseBody.requires_confirmation == true) {
+        if (responseBody.requiresConfirmation == true) {
             // نمایش دیالوگ تأیید برای حواله تکراری
             _duplicateWarningMessage.value = responseBody.message
             _showDuplicateConfirmationDialog.value = true
@@ -725,7 +700,7 @@ class CargoViewModel(
     private fun parseErrorResponse(errorBody: String?): SaveOrUpdateResponse? {
         return try {
             Gson().fromJson(errorBody, SaveOrUpdateResponse::class.java)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
@@ -1336,11 +1311,6 @@ class CargoViewModel(
             }
         }
     }
-    
-    // تابع قدیمی برای سازگاری با کدهای موجود
-    private fun updateLoadableTonnage() {
-        updateLoadableTonnageIfNeeded(forceUpdate = true)
-    }
 
     private fun updateLoadableTrucksCount(loadableTonnage: Double) {
         // محاسبه تعداد ماشین‌های 18 چرخ (فقط برای مقادیر مثبت)
@@ -1387,7 +1357,6 @@ class ReportsViewModel(
     private val _shipColorMap = MutableStateFlow<Map<String, Color>>(emptyMap())
     val shipColorMap: StateFlow<Map<String, Color>> = _shipColorMap.asStateFlow()
     private val _quotaColorMap = MutableStateFlow<Map<String, Color>>(emptyMap())
-    val quotaColorMap: StateFlow<Map<String, Color>> = _quotaColorMap.asStateFlow()
     private val colorSelector = ColorSelector(cardColors)
     private val _snackbarMessages = MutableSharedFlow<String>()
     val snackbarMessages = _snackbarMessages.asSharedFlow()
@@ -1397,16 +1366,6 @@ class ReportsViewModel(
         }
     }
     private val _exportResult = MutableStateFlow<String?>(null)
-    private val _voucherAnalytics = MutableStateFlow<VoucherAnalytics?>(null)
-    val voucherAnalytics: StateFlow<VoucherAnalytics?> = _voucherAnalytics.asStateFlow()
-    private val _warehouseAnalytics = MutableStateFlow<List<WarehouseAnalytics>>(emptyList())
-    val warehouseAnalytics: StateFlow<List<WarehouseAnalytics>> = _warehouseAnalytics.asStateFlow()
-    private val _shipAnalytics = MutableStateFlow<List<ShipAnalytics>>(emptyList())
-    val shipAnalytics: StateFlow<List<ShipAnalytics>> = _shipAnalytics.asStateFlow()
-    private val _companyAnalytics = MutableStateFlow<List<ShippingCompanyAnalytics>>(emptyList())
-    val companyAnalytics: StateFlow<List<ShippingCompanyAnalytics>> = _companyAnalytics.asStateFlow()
-    private val _quotaAnalytics = MutableStateFlow<List<QuotaAnalytics>>(emptyList())
-    val quotaAnalytics: StateFlow<List<QuotaAnalytics>> = _quotaAnalytics.asStateFlow()
     private val _comprehensiveAnalytics = MutableStateFlow<ComprehensiveAnalytics?>(null)
     val comprehensiveAnalytics: StateFlow<ComprehensiveAnalytics?> = _comprehensiveAnalytics.asStateFlow()
     private val _analyticsLoadingState = MutableStateFlow<LoadingState>(LoadingState.Idle)
@@ -1894,7 +1853,7 @@ class ReportsViewModel(
                 val writer = PdfWriter.getInstance(document, outputStream)
                 document.open()
 
-                val baseFont = BaseFont.createFont("assets/fonts/B NAZANIN.TTF", BaseFont.IDENTITY_H, BaseFont.EMBEDDED)
+                val baseFont = createFont("assets/fonts/B NAZANIN.TTF", IDENTITY_H, true)
                 val farsiFont = Font(baseFont, 10f, Font.NORMAL)
                 val farsiBoldFont = Font(baseFont, 12f, Font.BOLD)
                 val farsiHeaderFont = Font(baseFont, 18f, Font.BOLD)
@@ -2236,7 +2195,7 @@ class ReportsViewModel(
                                     CargoOwnerDetailsData(
                                         cargoOwner = owner.cargoOwner,
                                         voucher_count = owner.voucher_count,
-                                        net_weight = owner.net_weight, 
+                                        net_weight = owner.net_weight,
                                         quota_count = owner.quota_count
                                     )
                                 }
@@ -2280,15 +2239,15 @@ class ReportsViewModel(
     fun setWarehouseQuotaGroupingMode(mode: WarehouseQuotaGroupingMode) {
         _warehouseQuotaGroupingMode.value = mode
     }
-    
+
     fun setQuotaSortingMode(mode: QuotaSortingMode) {
         _quotaSortingMode.value = mode
     }
-    
+
     fun setGroupSortingMode(mode: GroupSortingMode) {
         _groupSortingMode.value = mode
     }
-    
+
     fun setShipSortingMode(mode: ShipSortingMode) {
         _shipSortingMode.value = mode
     }
@@ -2296,14 +2255,14 @@ class ReportsViewModel(
     fun shareRealTimeLoadingData(loadingData: List<RealTimeLoadingData>, shiftInfo: ShiftInfo?): String {
         // محاسبه کل حواله‌های خروجی
         val totalExitVouchers = loadingData.sumOf { it.exitVouchers.toFloat() }.toInt()
-        
+
         // ساخت متن قابل اشتراک‌گذاری
         val shareText = StringBuilder()
-        
+
         // عنوان گزارش با اطلاعات شیفت و تاریخ شمسی
         val shiftType = shiftInfo?.type ?: "نامشخص"
         val calendar = Calendar.getInstance()
-        
+
         // تنظیم تاریخ براساس قوانین شیفت شب
         if (shiftType == "شب") {
             val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
@@ -2313,42 +2272,42 @@ class ReportsViewModel(
                 calendar.add(Calendar.DAY_OF_MONTH, -1)
             }
         }
-        
+
         val jalaliDate = gregorianToJalali(calendar)
         shareText.append("بارگیری [$shiftType] $jalaliDate - کل: $totalExitVouchers حواله\n\n")
-        
+
         // ایجاد یک لیست از تمام ترکیب‌های انبار-کشتی با حواله‌های خروجی آنها
         val combinedData = mutableListOf<Triple<String, String, Int>>()
-        
+
         // گروه‌بندی داده‌ها بر اساس انبار
         val warehouseGroupedData = loadingData.groupBy { it.loadingWarehouse }
-        
+
         warehouseGroupedData.forEach { (warehouseName, data) ->
             // گروه‌بندی داده‌های هر انبار بر اساس کشتی
             val shipGroupedData = data.groupBy { it.shipName }
-            
+
             shipGroupedData.forEach { (shipName, shipData) ->
                 // محاسبه تعداد حواله‌های خروج شده برای این انبار و کشتی
                 val exitVouchers = shipData.sumOf { it.exitVouchers.toFloat() }.toInt()
-                
+
                 // اضافه کردن به لیست ترکیبی فقط اگر حواله خروجی داشته باشد
                 if (exitVouchers > 0) {
-                    val capitalizedShipName = shipName.lowercase().replaceFirstChar { 
-                        if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() 
+                    val capitalizedShipName = shipName.lowercase().replaceFirstChar {
+                        if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString()
                     }
                     combinedData.add(Triple(warehouseName, capitalizedShipName, exitVouchers))
                 }
             }
         }
-        
+
         // مرتب‌سازی لیست براساس نام کشتی
         combinedData.sortBy { it.second }
-        
+
         // افزودن اطلاعات مرتب شده به متن خروجی
         combinedData.forEach { (warehouseName, shipName, exitVouchers) ->
             shareText.append("* $warehouseName [$shipName]: $exitVouchers\n")
         }
-        
+
         return shareText.toString()
     }
 }
@@ -2406,7 +2365,7 @@ class ReportsRepository(private val apiService: ApiService) {
             return null
         }
     }
-    
+
     suspend fun getShipsList(): ShipsData = withContext(Dispatchers.IO) {
         try {
             val response = apiService.getShipsList()
@@ -2415,7 +2374,7 @@ class ReportsRepository(private val apiService: ApiService) {
             } else {
                 ShipsData(emptyList(), emptyList())
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             ShipsData(emptyList(), emptyList())
         }
     }
@@ -2538,7 +2497,7 @@ class ReportsRepository(private val apiService: ApiService) {
                 val errorMessage = try {
                     Gson().fromJson(errorBody, ErrorResponse::class.java)?.error
                         ?: "خطای سرور: ${response.code()}"
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     "خطای سرور: ${response.code()}"
                 }
 
@@ -2744,7 +2703,7 @@ class ReportsRepository(private val apiService: ApiService) {
                 } else {
                     null
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 null
             }
         }
@@ -2763,67 +2722,18 @@ class ReportsRepository(private val apiService: ApiService) {
     }
 }
 
-data class VoucherAnalytics(
-    val totalEntryVouchers: Int,
-    val totalExitVouchers: Int,
-    val exitPercentage: Float,
-    val averageExitWeight: Float
-)
-
-data class WarehouseAnalytics(
-    val warehouseName: String,
-    val totalWeight: Float,
-    val averageWeight: Float,
-    val operationPercentage: Float,
-    val rank: Int
-)
-
-data class ShipAnalytics(
-    val shipName: String,
-    val totalEntryVouchers: Int,
-    val totalExitVouchers: Int,
-    val totalVouchers: Int,
-    val totalNetWeight: Float,
-    val averageWeight: Float,
-    val warehouses: List<String>,
-    val warehouseCount: Int,
-    val exitRatio: Float
-)
-
-data class ShippingCompanyAnalytics(
-    val companyName: String,
-    val totalVouchers: Int,
-    val totalWeight: Float,
-    val operationPercentage: Float
-)
-
-data class QuotaAnalytics(
-    val quotaNumber: String,
-    val shippingCompany: String,
-    val warehouseName: String,
-    val totalVouchers: Int,
-    val entryVouchers: Int,
-    val exitVouchers: Int,
-    val totalWeight: Float,
-    val averageWeight: Float,
-    val loadingRate: Float,
-    val weightPerHour: Float,
-    val operationEfficiency: Float,
-    val completionRate: Float
-)
-
 @SuppressLint("DefaultLocale")
 fun gregorianToJalali(gregorian: Calendar): String {
     val gy = gregorian.get(Calendar.YEAR)
     val gm = gregorian.get(Calendar.MONTH) + 1
     val gd = gregorian.get(Calendar.DAY_OF_MONTH)
 
-    val g_d_m = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365)
-    val j_days_in_month = intArrayOf(31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29)
+    val gregorianDaysInMonth = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365)
+    val jalaliDaysInMonth = intArrayOf(31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29)
 
     val gy2 = if (gm > 2) gy + 1 else gy
     var days =
-        355666 + (365 * gy) + ((gy2 + 3) / 4) - ((gy2 + 99) / 100) + ((gy2 + 399) / 400) + gd + g_d_m[gm - 1]
+        355666 + (365 * gy) + ((gy2 + 3) / 4) - ((gy2 + 99) / 100) + ((gy2 + 399) / 400) + gd + gregorianDaysInMonth[gm - 1]
 
     var jy = -1595 + (33 * (days / 12053))
     days %= 12053
@@ -2837,11 +2747,11 @@ fun gregorianToJalali(gregorian: Calendar): String {
 
     var jm = 0
     for (i in 0..11) {
-        if (days < j_days_in_month[i]) {
+        if (days < jalaliDaysInMonth[i]) {
             jm = i + 1
             break
         }
-        days -= j_days_in_month[i]
+        days -= jalaliDaysInMonth[i]
     }
 
     val jd = days + 1
@@ -2988,8 +2898,8 @@ data class SaveOrUpdateResponse(
     val exitDate: String?,
     val exitTime: String?,
     val warning: Boolean? = null,
-    val existing_cargo: ExistingCargo? = null,
-    val requires_confirmation: Boolean? = null
+    val existingCargo: ExistingCargo? = null,
+    val requiresConfirmation: Boolean? = null
 )
 
 data class ExistingCargo(
@@ -3259,10 +3169,6 @@ data class UserTypeInfo(
     val color: Color
 )
 
-enum class ShipSection {
-    ACTIVE, INACTIVE
-}
-
 data class FabItem(
     val icon: ImageVector,
     val label: String,
@@ -3294,12 +3200,12 @@ class ColorSelector(private val colors: List<Color>) {
     // کلید مپ: رنگ، مقدار: آیا استفاده شده است؟
     private val usedColors = mutableMapOf<Color, Boolean>()
     private val random = java.util.Random(System.currentTimeMillis())
-    
+
     init {
         // در شروع، همه رنگ‌ها به عنوان استفاده نشده علامت‌گذاری می‌شوند
         colors.forEach { usedColors[it] = false }
     }
-    
+
     /**
      * تخصیص رنگ‌های متمایز به مجموعه‌ای از شناسه‌ها
      * @param identifiers مجموعه شناسه‌هایی که باید به آنها رنگ اختصاص داده شود
@@ -3310,13 +3216,13 @@ class ColorSelector(private val colors: List<Color>) {
         if (identifiers.size > colors.size) {
             return assignColorsWithGeneration(identifiers)
         }
-        
+
         // پاک کردن تمام رنگ‌های قبلی
         reset()
-        
+
         val result = mutableMapOf<String, Color>()
         val availableColors = colors.toMutableList()
-        
+
         // ابتدا شناسه‌هایی که قبلاً رنگی به آنها اختصاص داده شده را پردازش می‌کنیم
         // تا حد امکان همان رنگ‌های قبلی را حفظ کنیم
         identifiers.filter { assignedColors.containsKey(it) }.forEach { id ->
@@ -3327,7 +3233,7 @@ class ColorSelector(private val colors: List<Color>) {
                 usedColors[previousColor] = true
             }
         }
-        
+
         // برای شناسه‌های باقیمانده، رنگ‌های جدید اختصاص می‌دهیم
         identifiers.filter { !result.containsKey(it) }.forEach { id ->
             if (availableColors.isNotEmpty()) {
@@ -3340,16 +3246,16 @@ class ColorSelector(private val colors: List<Color>) {
                 usedColors[selectedColor] = true
             }
         }
-        
+
         return result
     }
-    
+
     /**
      * وقتی تعداد شناسه‌ها بیشتر از تعداد رنگ‌های موجود است، رنگ‌های جدید تولید می‌کنیم
      */
     private fun assignColorsWithGeneration(identifiers: Set<String>): Map<String, Color> {
         val result = mutableMapOf<String, Color>()
-        
+
         // برای هر شناسه، یک رنگ منحصر به فرد تولید می‌کنیم
         identifiers.forEachIndexed { index, id ->
             val color = if (index < colors.size) {
@@ -3360,18 +3266,18 @@ class ColorSelector(private val colors: List<Color>) {
                 val hue = (360f * index / identifiers.size) % 360f
                 val saturation = 0.7f + (random.nextFloat() * 0.3f) // 0.7-1.0
                 val lightness = 0.4f + (random.nextFloat() * 0.3f) // 0.4-0.7
-                
+
                 val hsl = floatArrayOf(hue, saturation, lightness)
                 Color(ColorUtils.HSLToColor(hsl))
             }
-            
+
             result[id] = color
             assignedColors[id] = color
         }
-        
+
         return result
     }
-    
+
     /**
      * گرفتن رنگ بعدی از رنگ‌های استفاده نشده
      * اگر تمام رنگ‌ها استفاده شده باشند، یک رنگ تصادفی برمی‌گرداند
@@ -3379,18 +3285,18 @@ class ColorSelector(private val colors: List<Color>) {
     fun getNextColor(): Color {
         // بررسی می‌کنیم آیا رنگ‌های استفاده نشده وجود دارند
         val unusedColors = usedColors.filter { !it.value }.keys.toList()
-        
+
         if (unusedColors.isNotEmpty()) {
             // انتخاب یک رنگ استفاده نشده
             val selectedColor = unusedColors[random.nextInt(unusedColors.size)]
             usedColors[selectedColor] = true
             return selectedColor
         }
-        
+
         // اگر تمام رنگ‌ها استفاده شده‌اند، یک رنگ را به صورت تصادفی انتخاب می‌کنیم
         return colors[random.nextInt(colors.size)]
     }
-    
+
     /**
      * بازنشانی وضعیت استفاده از رنگ‌ها
      */
@@ -3440,7 +3346,7 @@ val cardColors = listOf(
     Color(0xFFBA68C8), // Purple 300 - بنفش روشن
     Color(0xFF4DB6AC), // Teal 300 - سبز دریایی روشن
     Color(0xFFA5A5A5), // Grey 400 - خاکستری متعادل
-    
+
     // رنگ‌های تکمیلی بهینه شده
     Color(0xFF90CAF9), // Blue 200 - آبی خیلی ملایم
     Color(0xFFA5D6A7), // Green 200 - سبز خیلی ملایم
