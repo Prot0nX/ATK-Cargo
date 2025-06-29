@@ -1,8 +1,6 @@
 package com.atk.atk_cargo
 
 import android.annotation.SuppressLint
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -41,12 +39,10 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
-import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandIn
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
@@ -119,7 +115,6 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -137,7 +132,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -170,7 +164,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -287,13 +280,8 @@ class RegisterCargoActivity : ComponentActivity() {
 
                         LaunchedEffect(initialInfoExtra) {
                             initialInfoExtra.let { info ->
-                                viewModel.loadCargoInfoList(
-                                    quotaNumber = info.loadingQuotaNumber.toString(),
-                                    shippingCompany = info.shippingCompany,
-                                    warehouse = info.loadingWarehouse,
-                                    cargoType = info.cargoType,
-                                    onComplete = {}
-                                )
+                                viewModel.setInitialInfo(info)
+                                viewModel.refreshCargoInfo()
                             }
                         }
                     }
@@ -1451,7 +1439,7 @@ fun NetWeightDialog(
                                     isError = true
                                 }
                             }
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             isError = true
                         }
                     }
@@ -1500,7 +1488,7 @@ fun extractNumber(text: String): String {
                 } else {
                     null
                 }
-            } catch (e: Exception) { 
+            } catch (_: Exception) {
                 null 
             }
         }.filter { 
@@ -1535,7 +1523,7 @@ fun extractNumber(text: String): String {
             } else {
                 null
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }.filter { it in 5000.0..45000.0 }.toList()
@@ -1839,7 +1827,7 @@ class EnhancedNumberAnalyzer(
                             }
                             imageProxy.close()
                         }
-                    } catch (e: Exception) {
+                    } catch (_: Exception) {
                         withContext(Dispatchers.Main) {
                             fallbackToMLKit(imageProxy)
                         }
@@ -2770,7 +2758,7 @@ fun ShipInfoSection(
             if (totalWeight > 0) {
                 String.format(Locale.ENGLISH, "%.1f", (loadedWeight / totalWeight) * 100)
             } else "0.0"
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             "0.0"
         }
     }
@@ -3226,7 +3214,7 @@ fun CargoInfoRow(
     val formattedNetWeight = remember(info.netWeight) {
         try {
             DecimalFormat("#,###").format(info.netWeight.toDoubleOrNull() ?: 0)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             onError("Invalid netWeight: ${info.netWeight}")
             "0"
         }
@@ -3235,7 +3223,7 @@ fun CargoInfoRow(
         if (info.shortageWeight.isNotBlank()) {
             try {
                 DecimalFormat("#,###").format(info.shortageWeight.toDoubleOrNull() ?: 0)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 onError("Invalid shortageWeight: ${info.shortageWeight}")
                 ""
             }
@@ -3245,7 +3233,7 @@ fun CargoInfoRow(
         if (info.excessWeight.isNotBlank()) {
             try {
                 DecimalFormat("#,###").format(info.excessWeight.toDoubleOrNull() ?: 0)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 onError("Invalid excessWeight: ${info.excessWeight}")
                 ""
             }
@@ -3572,7 +3560,7 @@ fun CargoInfoRow(
 }
 
 @Composable
-private fun AnimatedIcon(isError: Boolean) {
+private fun AnimatedIcon() {
     val transition = rememberInfiniteTransition(label = "")
     val scale by transition.animateFloat(
         initialValue = 0.8f,
@@ -3584,9 +3572,9 @@ private fun AnimatedIcon(isError: Boolean) {
     )
 
     Icon(
-        imageVector = if (isError) Icons.Filled.Error else Icons.Filled.CheckCircle,
+        imageVector = Icons.Filled.CheckCircle,
         contentDescription = null,
-        tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+        tint = MaterialTheme.colorScheme.primary,
         modifier = Modifier
             .size(64.dp)
             .scale(scale)
@@ -3631,7 +3619,7 @@ fun DialogPassword(
                 modifier = Modifier.padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                AnimatedIcon(isError = false)
+                AnimatedIcon()
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "بروزرسانی اطلاعات حواله",
@@ -3991,97 +3979,6 @@ private fun ModernHeader(info: CargoInfo, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun StatusChip(
-    status: String,
-    isLightTheme: Boolean,
-) {
-    val (backgroundColor, textColor, icon) = when (status) {
-        "خروج" -> Triple(
-            if (isLightTheme) Color(0xFF00C853) else Color(0xFF00E676),
-            if (isLightTheme) Color.White else Color.Black,
-            Icons.Default.LocalShipping
-        )
-        "ورود" -> Triple(
-            if (isLightTheme) Color(0xFF2196F3) else Color(0xFF64B5F6),
-            if (isLightTheme) Color.White else Color.Black,
-            Icons.Default.AddChart
-        )
-        else -> Triple(
-            if (isLightTheme) Color.Gray else Color.LightGray,
-            if (isLightTheme) Color.White else Color.Black,
-            Icons.Default.Info
-        )
-    }
-
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = backgroundColor.copy(alpha = if (isLightTheme) 0.2f else 0.9f),
-        border = BorderStroke(
-            width = 1.dp,
-            color = backgroundColor.copy(alpha = if (isLightTheme) 0.5f else 0.3f)
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = textColor,
-                modifier = Modifier.size(14.dp)
-            )
-            Text(
-                text = status,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = textColor
-            )
-        }
-    }
-}
-
-@Composable
-private fun ConfirmationChip(isLightTheme: Boolean) {
-    val backgroundColor = if (isLightTheme) {
-        Color(0xFF00C853)
-    } else {
-        Color(0xFF00E676)
-    }
-
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = backgroundColor.copy(alpha = if (isLightTheme) 0.2f else 0.9f),
-        border = BorderStroke(
-            width = 1.dp,
-            color = backgroundColor.copy(alpha = if (isLightTheme) 0.5f else 0.3f)
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = null,
-                tint = if (isLightTheme) Color.White else Color.Black,
-                modifier = Modifier.size(14.dp)
-            )
-            Text(
-                text = "تائید شده",
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = if (isLightTheme) Color.White else Color.Black
-            )
-        }
-    }
-}
-
-@Composable
 private fun ModernStatusChip(status: String, isLightTheme: Boolean) {
     val (backgroundColor, contentColor, icon, label) = when (status) {
         "ورود" -> {
@@ -4311,7 +4208,7 @@ private fun ModernMainInfoContent(info: CargoInfo) {
 @Composable
 private fun ModernWeightInfoContent(info: CargoInfo) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ModernWeightItem(label = "وزن خالص", value = info.netWeight, isHighlighted = true)
+        ModernWeightItem(value = info.netWeight)
     }
 }
 
@@ -4346,14 +4243,14 @@ private fun ModernInfoItem(label: String, value: String) {
 }
 
 @Composable
-private fun ModernWeightItem(label: String, value: String, isHighlighted: Boolean = false) {
+private fun ModernWeightItem(value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = label,
+            text = "وزن خالص",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
@@ -4361,10 +4258,10 @@ private fun ModernWeightItem(label: String, value: String, isHighlighted: Boolea
         Text(
             text = "$value کیلوگرم",
             style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Medium,
-                fontSize = if (isHighlighted) 16.sp else 14.sp
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
             ),
-            color = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.primary
         )
     }
 }
@@ -4516,361 +4413,6 @@ private fun ModernDeleteDialog(
     }
 }
 
-@Composable
-private fun ExpandableSection(
-    title: String,
-    icon: ImageVector,
-    initiallyExpanded: Boolean = false,
-    content: @Composable () -> Unit,
-) {
-    var isExpanded by remember { mutableStateOf(initiallyExpanded) }
-    val rotationState by animateFloatAsState(
-        targetValue = if (isExpanded) 180f else 0f,
-        label = ""
-    )
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
-    ) {
-        Column {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { isExpanded = !isExpanded },
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.Default.ExpandMore,
-                        contentDescription = if (isExpanded) "بستن" else "باز کردن",
-                        modifier = Modifier.rotate(rotationState)
-                    )
-                }
-            }
-
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
-                        .padding(12.dp)
-                ) {
-                    content()
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CopyableInfoItem(
-    label: String,
-    value: String,
-    context: Context = LocalContext.current,
-    scope: CoroutineScope = rememberCoroutineScope(),
-) {
-    var isCopied by remember { mutableStateOf(false) }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-
-        Surface(
-            modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .clickable {
-                    val clipboard =
-                        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val clip = ClipData.newPlainText(label, value)
-                    clipboard.setPrimaryClip(clip)
-                    isCopied = true
-                    scope.launch {
-                        delay(2000)
-                        isCopied = false
-                    }
-                },
-            color = if (isCopied) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent
-        ) {
-            Row(
-                modifier = Modifier.padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Medium,
-                        color = if (isCopied) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                )
-
-                AnimatedVisibility(
-                    visible = isCopied,
-                    enter = fadeIn() + expandHorizontally(),
-                    exit = fadeOut() + shrinkHorizontally()
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "کپی شد",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MainInfoContent(info: CargoInfo) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        InfoItem("نام کشتی", info.shipName)
-        InfoItem("نوع کالا", info.cargoType)
-        CopyableInfoItem("شماره قبض باسکول", info.scaleReceiptNumber)
-    }
-}
-
-@Composable
-private fun WeightInfoContent(info: CargoInfo) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        WeightItem(
-            label = "وزن خالص",
-            value = formatNumber(info.netWeight),
-            valueColor = MaterialTheme.colorScheme.primary
-        )
-        if (info.shortageWeight.isNotBlank()) {
-            WeightItem(
-                label = "کسری بار",
-                value = formatNumber(info.shortageWeight),
-                valueColor = Color.Red
-            )
-        }
-        if (info.excessWeight.isNotBlank()) {
-            WeightItem(
-                label = "اضافه بار",
-                value = formatNumber(info.excessWeight),
-                valueColor = Color.Green
-            )
-        }
-    }
-}
-
-@Composable
-private fun TimeInfoContent(info: CargoInfo) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        InfoItem("زمان ورود", info.entryTime)
-        info.exitTime?.let { InfoItem("زمان خروج", it) }
-        info.exitDate?.let { InfoItem("تاریخ خروج", it) }
-    }
-}
-
-@Composable
-private fun AdditionalInfoContent(info: CargoInfo) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        InfoItem("تعداد نفرات", info.numberOfPeople)
-        InfoItem("انبار", info.loadingWarehouse)
-        InfoItem("شرکت باربری", info.shippingCompany)
-        CopyableInfoItem("شماره کوتاژ", info.loadingQuotaNumber)
-        StatusItem(
-            "وضعیت تائید",
-            if (info.confirm == "تائید شده") "تائید شده" else "در انتظار تائید",
-            if (info.confirm == "تائید شده") Color.Green else Color.Gray
-        )
-    }
-}
-
-@Composable
-private fun InfoItem(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Composable
-private fun WeightItem(label: String, value: String, valueColor: Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-        Text(
-            text = "$value کیلوگرم",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = valueColor
-        )
-    }
-}
-
-@Composable
-private fun StatusItem(label: String, value: String, color: Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-        Surface(
-            shape = RoundedCornerShape(4.dp),
-            color = color.copy(alpha = 0.1f),
-            border = BorderStroke(1.dp, color.copy(alpha = 0.5f))
-        ) {
-            Text(
-                text = value,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                style = MaterialTheme.typography.bodySmall,
-                color = color
-            )
-        }
-    }
-}
-
-@Composable
-private fun MinimalFooter(onDelete: () -> Unit, onDismiss: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("بستن")
-            }
-            Button(
-                onClick = onDelete,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text("حذف حواله")
-            }
-        }
-    }
-}
-
-@Composable
-private fun DeleteDialog(
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-    password: String,
-    onPasswordChange: (String) -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "تائید حذف حواله",
-                style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        text = {
-            Column {
-                Text("آیا از حذف این حواله اطمینان دارید؟")
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = onPasswordChange,
-                    label = { Text("رمز عبور") },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Done
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text("حذف")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("انصراف")
-            }
-        }
-    )
-}
-
 private fun formatNumber(value: String): String {
     return try {
         // حذف کاما و تبدیل به عدد
@@ -4878,7 +4420,7 @@ private fun formatNumber(value: String): String {
 
         // فرمت‌بندی با کاما و اعداد انگلیسی
         DecimalFormat("#,###.##", /**/DecimalFormatSymbols(Locale.ENGLISH)).format(number)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         toEnglishNumbers(value)
     }
 }
@@ -4920,7 +4462,6 @@ fun EnhancedCameraPreview(
 
     // Weight detection state
     var detectedNumber by remember { mutableStateOf<String?>(null) }
-    var detectedNumbers by remember { mutableStateOf<List<String>>(emptyList()) }
     var isValidWeight by remember { mutableStateOf(false) }
     var processingActive by remember { mutableStateOf(true) }
 
@@ -4959,7 +4500,7 @@ fun EnhancedCameraPreview(
                         .setTargetResolution(android.util.Size(1440, 1080)) // Using explicit resolution instead of aspect ratio
                         .build()
                         .also {
-                            it.setSurfaceProvider(previewView.surfaceProvider)
+                            it.surfaceProvider = previewView.surfaceProvider
                         }
 
                     val cameraSelector = CameraSelector.Builder()
@@ -4980,7 +4521,6 @@ fun EnhancedCameraPreview(
                                 context = context,
                                 onNumbersDetected = { extractedNumbers, bestEstimate ->
                                     if (processingActive) {
-                                        detectedNumbers = extractedNumbers
 
                                         if (bestEstimate.isNotEmpty()) {
                                             detectedNumber = bestEstimate
