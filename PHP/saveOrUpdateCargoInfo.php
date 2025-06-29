@@ -10,35 +10,40 @@ require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/jdf.php';
 
 // تنظیمات عملکرد PHP برای بهینه‌سازی بیشتر
-ini_set('memory_limit', '128M');
-ini_set('max_execution_time', 30);
-ini_set('zlib.output_compression', 'On'); // فعال‌سازی فشرده‌سازی خروجی
-ini_set('output_buffering', 4096); // بافر خروجی برای پاسخ سریع‌تر
+ini_set('memory_limit', '64M'); // کاهش حد حافظه
+ini_set('max_execution_time', 15); // کاهش زمان اجرا
+ini_set('zlib.output_compression', 'On');
+ini_set('output_buffering', 8192); // افزایش بافر خروجی
+ini_set('opcache.enable', 1); // فعال‌سازی OPcache
+ini_set('opcache.memory_consumption', 64); // تنظیم حافظه OPcache
 
 /**
- * پاک‌سازی و تأیید داده‌های ورودی
+ * پاک‌سازی بهینه داده‌های ورودی
  */
 function sanitize_input($input) {
     if (is_array($input)) {
         return array_map('sanitize_input', $input);
     }
-    return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+    // استفاده از filter_var برای عملکرد بهتر
+    return filter_var(trim($input), FILTER_SANITIZE_STRING, FILTER_FLAG_NO_ENCODE_QUOTES);
 }
 
 /**
- * ارسال پاسخ JSON با کد وضعیت مناسب
+ * ارسال پاسخ JSON بهینه
  */
 function send_json_response($data, $status_code = 200) {
     http_response_code($status_code);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR);
+    // استفاده از فلگ‌های بهینه برای JSON
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     exit();
 }
 
 /**
- * اعتبارسنجی داده‌های خروج
+ * اعتبارسنجی بهینه داده‌های خروج
  */
 function validateExitData($netWeight, $scaleReceiptNumber) {
-    if (empty($netWeight) || !is_numeric($netWeight) || $netWeight <= 0) {
+    // بررسی وزن با استفاده از filter_var
+    if (!filter_var($netWeight, FILTER_VALIDATE_FLOAT) || $netWeight <= 0) {
         throw new Exception("وزن خالص باید عددی مثبت و بزرگتر از صفر باشد.");
     }
     
@@ -46,23 +51,25 @@ function validateExitData($netWeight, $scaleReceiptNumber) {
         throw new Exception("شماره قبض باسکول نمی‌تواند خالی باشد.");
     }
     
-    if (strlen($scaleReceiptNumber) < 8 || strlen($scaleReceiptNumber) > 10) {
+    $len = strlen($scaleReceiptNumber);
+    if ($len < 8 || $len > 10) {
         throw new Exception("شماره قبض باسکول باید بین 8 تا 10 رقم باشد.");
     }
     
-    if (!preg_match('/^[0-9]+$/', $scaleReceiptNumber)) {
+    // استفاده از ctype_digit برای عملکرد بهتر
+    if (!ctype_digit($scaleReceiptNumber)) {
         throw new Exception("شماره قبض باسکول باید فقط شامل اعداد باشد.");
     }
 }
 
 /**
- * اعتبارسنجی داده‌های ورودی
+ * اعتبارسنجی بهینه داده‌های ورودی
  */
 function validate_request_data($params, $required_fields) {
     $errors = [];
     
     foreach ($required_fields as $field) {
-        if (empty($params[$field])) {
+        if (!isset($params[$field]) || trim($params[$field]) === '') {
             $errors[] = "پارامتر $field الزامی است.";
         }
     }
@@ -70,83 +77,79 @@ function validate_request_data($params, $required_fields) {
     return $errors;
 }
 
-// دریافت و تجزیه داده‌های JSON ورودی - استفاده از json_decode با پارامتر true برای بهینه‌سازی حافظه
+// دریافت و تجزیه بهینه داده‌های JSON ورودی
 $json_input = file_get_contents("php://input");
-$data = json_decode($json_input, true);
-if (json_last_error() !== JSON_ERROR_NONE) {
-    send_json_response(['error' => true, 'message' => 'داده JSON نامعتبر است: ' . json_last_error_msg()], 400);
+try {
+    $data = json_decode($json_input, true, 512, JSON_THROW_ON_ERROR);
+} catch (JsonException $e) {
+    send_json_response(['error' => true, 'message' => 'داده JSON نامعتبر است: ' . $e->getMessage()], 400);
 }
 
 // آزادسازی حافظه
 unset($json_input);
 
-// تعریف فیلدهای اجباری و اختیاری
-$required_fields = ['shipName', 'loadingWarehouse', 'cargoType', 'shippingCompany', 'loadingQuotaNumber', 'trackingNumber', 'username', 'userType'];
-$optional_fields = ['entryTime', 'netWeight', 'scaleReceiptNumber', 'shortageWeight', 'excessWeight', 'exitTime', 'exitDate', 'status', 'confirmation', 'numberOfPeople', 'duplicateConfirmation'];
+// تعریف فیلدهای اجباری و اختیاری - استفاده از const برای بهینه‌سازی
+const REQUIRED_FIELDS = ['shipName', 'loadingWarehouse', 'cargoType', 'shippingCompany', 'loadingQuotaNumber', 'trackingNumber', 'username', 'userType'];
+const OPTIONAL_FIELDS = ['entryTime', 'netWeight', 'scaleReceiptNumber', 'shortageWeight', 'excessWeight', 'exitTime', 'exitDate', 'status', 'confirmation', 'numberOfPeople', 'duplicateConfirmation'];
 
-// بهینه‌سازی: استفاده از آرایه $params با پردازش مستقیم
-$params = [];
-foreach (array_merge($required_fields, $optional_fields) as $field) {
-    $params[$field] = isset($data[$field]) ? sanitize_input($data[$field]) : '';
+// بهینه‌سازی: پردازش مستقیم با array_intersect_key
+$all_fields = array_merge(REQUIRED_FIELDS, OPTIONAL_FIELDS);
+$params = array_intersect_key($data, array_flip($all_fields));
+
+// پاک‌سازی داده‌ها
+$params = array_map('sanitize_input', $params);
+
+// تنظیم مقادیر پیش‌فرض برای فیلدهای اختیاری
+foreach (OPTIONAL_FIELDS as $field) {
+    if (!isset($params[$field])) {
+        $params[$field] = '';
+    }
 }
 
 // آزادسازی حافظه
-unset($data);
+unset($data, $all_fields);
 
 try {
-    // اعتبارسنجی داده‌های درخواست
-    $validation_errors = validate_request_data($params, $required_fields);
-    if (!empty($validation_errors)) {
+    // اعتبارسنجی بهینه داده‌های درخواست
+    $validation_errors = validate_request_data($params, REQUIRED_FIELDS);
+    if ($validation_errors) {
         throw new Exception(implode(" ", $validation_errors));
     }
     
-    // اتصال به پایگاه داده با استفاده از persistent connection برای بهبود عملکرد
+    // اتصال بهینه به پایگاه داده
     $conn = new mysqli('p:'.DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
     if ($conn->connect_error) {
         throw new Exception("خطا در اتصال به پایگاه داده: " . $conn->connect_error);
     }
     
-    // تنظیم کاراکترست برای پشتیبانی از یونیکد
+    // تنظیمات بهینه دیتابیس
     $conn->set_charset("utf8mb4");
-    
-    // افزایش کارایی با غیرفعال کردن autocommit
     $conn->autocommit(FALSE);
+    $conn->query("SET SESSION sql_mode = 'STRICT_TRANS_TABLES'"); // حالت سخت‌گیرانه
+    $conn->query("SET SESSION innodb_lock_wait_timeout = 5"); // کاهش زمان انتظار قفل
     
-    // پارامترهای کلیدی که باید حفظ شوند
-    $critical_params = [
-        'shipName' => $params['shipName'],
-        'loadingWarehouse' => $params['loadingWarehouse'], 
-        'cargoType' => $params['cargoType'], 
-        'shippingCompany' => $params['shippingCompany'],
-        'loadingQuotaNumber' => $params['loadingQuotaNumber'],
-        'trackingNumber' => $params['trackingNumber']
-    ];
-    
-    // بررسی وجود حواله با همین شماره در کل کشتی از ابتدای روز قبل تا الان
+    // محاسبه زمان‌های مورد نیاز یکبار
     $yesterdayStart = date('Y-m-d 00:00:00', strtotime('-1 day'));
-    $now = date('Y-m-d H:i:s');
+    $currentTime = jdate("H:i");
+    $currentDate = jdate("Y/m/d");
     
-
+    // پارامترهای کلیدی - استفاده از reference برای بهینه‌سازی حافظه
+    $shipName = &$params['shipName'];
+    $trackingNumber = &$params['trackingNumber'];
+    $loadingQuotaNumber = &$params['loadingQuotaNumber'];
     
-    $check24h_query = "SELECT loadingQuotaNumber, loadingWarehouse, shippingCompany, exitTime, exitDate, status, entryTime, updated_at FROM CargoInfo WHERE 
-                      shipName = ? AND 
-                      trackingNumber = ? AND 
-                      updated_at BETWEEN ? AND ?
+    // بررسی بهینه وجود حواله تکراری در 24 ساعت گذشته
+    $check24h_query = "SELECT loadingQuotaNumber, loadingWarehouse, shippingCompany, exitTime, exitDate, status, entryTime 
+                      FROM CargoInfo 
+                      WHERE shipName = ? AND trackingNumber = ? AND updated_at >= ? 
                       ORDER BY id DESC LIMIT 1";
-    
-
     
     $check24h_stmt = $conn->prepare($check24h_query);
     if (!$check24h_stmt) {
         throw new Exception("خطا در آماده‌سازی دستور بررسی 24 ساعته: " . $conn->error);
     }
     
-    $check24h_stmt->bind_param("ssss", 
-        $critical_params['shipName'], 
-        $critical_params['trackingNumber'],
-        $yesterdayStart,
-        $now
-    );
+    $check24h_stmt->bind_param("sss", $shipName, $trackingNumber, $yesterdayStart);
     
     if (!$check24h_stmt->execute()) {
         throw new Exception("خطا در اجرای دستور بررسی 24 ساعته: " . $check24h_stmt->error);
@@ -155,46 +158,48 @@ try {
     $check24h_result = $check24h_stmt->get_result();
     $existing24hCargo = $check24h_result->fetch_assoc();
     $check24h_stmt->close();
+    unset($check24h_result);
     
-    // اگر حواله در 24 ساعت گذشته ثبت شده باشد، هشدار ارسال کن
-    if ($existing24hCargo && $existing24hCargo['loadingQuotaNumber'] != $critical_params['loadingQuotaNumber']) {
+    // بررسی بهینه حواله تکراری
+    if ($existing24hCargo && $existing24hCargo['loadingQuotaNumber'] !== $loadingQuotaNumber) {
         // بررسی تأیید کاربر برای ثبت حواله تکراری
-        if ($params['duplicateConfirmation'] != "proceed") {
-            $warningMessage = "شماره حواله ({$params['trackingNumber']}) در 24 ساعت گذشته برای کشتی [ {$params['shipName']} ] قبلاً ثبت شده است:\n\n";
-            $warningMessage .= "شماره کوتاژ ثبت شده: {$existing24hCargo['loadingQuotaNumber']}\n";
-            $warningMessage .= "انبار ثبت شده: {$existing24hCargo['loadingWarehouse']}\n";
-            if (!empty($existing24hCargo['shippingCompany'])) {
-                $warningMessage .= "شرکت باربری: {$existing24hCargo['shippingCompany']}\n";
+        if ($params['duplicateConfirmation'] !== "proceed") {
+            // ساخت پیام هشدار بهینه
+            $warningParts = [
+                "شماره حواله ({$trackingNumber}) در 24 ساعت گذشته برای کشتی [ {$shipName} ] قبلاً ثبت شده است:\n\n",
+                "شماره کوتاژ ثبت شده: {$existing24hCargo['loadingQuotaNumber']}\n",
+                "انبار ثبت شده: {$existing24hCargo['loadingWarehouse']}\n"
+            ];
+            
+            // اضافه کردن اطلاعات اختیاری
+            $optionalFields = [
+                'shippingCompany' => 'شرکت باربری',
+                'entryTime' => 'ساعت ورود',
+                'exitTime' => 'ساعت خروج',
+                'exitDate' => 'تاریخ خروج'
+            ];
+            
+            foreach ($optionalFields as $field => $label) {
+                if (!empty($existing24hCargo[$field])) {
+                    $warningParts[] = "$label: {$existing24hCargo[$field]}\n";
+                }
             }
-            if (!empty($existing24hCargo['entryTime'])) {
-                $warningMessage .= "ساعت ورود: {$existing24hCargo['entryTime']}\n";
-            }
-            if (!empty($existing24hCargo['exitTime'])) {
-                $warningMessage .= "ساعت خروج: {$existing24hCargo['exitTime']}\n";
-            }
-            if (!empty($existing24hCargo['exitDate'])) {
-                $warningMessage .= "تاریخ خروج: {$existing24hCargo['exitDate']}\n";
-            }
-            $warningMessage .= "وضعیت فعلی حواله: {$existing24hCargo['status']}";
+            
+            $warningParts[] = "وضعیت فعلی حواله: {$existing24hCargo['status']}";
             
             send_json_response([
                 "warning" => true,
-                "message" => $warningMessage,
+                "message" => implode('', $warningParts),
                 "existing_cargo" => $existing24hCargo,
                 "requires_confirmation" => true
             ], 409);
         }
-        // اگر کاربر تأیید کرده باشد، ادامه پردازش
     }
     
-    // بررسی وجود حواله با شماره و کوتاژ مشخص - استفاده از کوئری بهینه‌تر با انتخاب فیلدهای مورد نیاز
+    // بررسی بهینه وجود حواله با کلیدهای اصلی
     $query = "SELECT id, status, confirm, exitDate, exitTime FROM CargoInfo WHERE 
-              shipName = ? AND 
-              loadingWarehouse = ? AND 
-              cargoType = ? AND 
-              shippingCompany = ? AND 
-              loadingQuotaNumber = ? AND 
-              trackingNumber = ? 
+              shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND 
+              shippingCompany = ? AND loadingQuotaNumber = ? AND trackingNumber = ? 
               LIMIT 1";
     
     $stmt = $conn->prepare($query);
@@ -203,12 +208,12 @@ try {
     }
     
     $stmt->bind_param("ssssss", 
-        $critical_params['shipName'], 
-        $critical_params['loadingWarehouse'], 
-        $critical_params['cargoType'], 
-        $critical_params['shippingCompany'], 
-        $critical_params['loadingQuotaNumber'], 
-        $critical_params['trackingNumber']
+        $shipName, 
+        $params['loadingWarehouse'], 
+        $params['cargoType'], 
+        $params['shippingCompany'], 
+        $loadingQuotaNumber, 
+        $trackingNumber
     );
     
     if (!$stmt->execute()) {
@@ -218,46 +223,41 @@ try {
     $result = $stmt->get_result();
     $existingCargo = $result->fetch_assoc();
     $stmt->close();
+    unset($result);
     
-    // محاسبه ساعت فعلی یکبار برای استفاده مجدد
-    $currentTime = jdate("H:i");
-    $currentDate = jdate("Y/m/d");
-    
-    // منطق ثبت حواله جدید یا بروزرسانی حواله موجود
+    // منطق بهینه ثبت حواله جدید یا بروزرسانی حواله موجود
     if (!$existingCargo) {
-        // اعتبارسنجی تعداد نفرات برای حواله‌های جدید
-        if (empty($params['numberOfPeople']) || !is_numeric($params['numberOfPeople']) || $params['numberOfPeople'] < 1) {
+        // اعتبارسنجی بهینه تعداد نفرات
+        $numberOfPeople = filter_var($params['numberOfPeople'], FILTER_VALIDATE_INT);
+        if ($numberOfPeople === false || $numberOfPeople < 1) {
             throw new Exception("تعداد نفرات باید عددی بزرگتر از صفر باشد");
         }
 
-        // آماده‌سازی و اجرای دستور درج با استفاده از prepared statement
+        // آماده‌سازی دستور درج بهینه
         $insert_query = "INSERT INTO CargoInfo (
             trackingNumber, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, 
             status, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber, 
             numberOfPeople, username, userType
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        ) VALUES (?, ?, ?, ?, ?, ?, 'ورود', ?, ?, ?, ?, ?, ?, ?, ?)";
         
         $insert_stmt = $conn->prepare($insert_query);
         if (!$insert_stmt) {
             throw new Exception("خطا در آماده‌سازی دستور درج: " . $conn->error);
         }
         
-        $status = "ورود";
-        
-        $insert_stmt->bind_param("sssssssssssssss", 
-            $params['trackingNumber'], 
+        $insert_stmt->bind_param("ssssssssssssss", 
+            $trackingNumber, 
             $currentTime, 
             $params['netWeight'], 
             $params['scaleReceiptNumber'], 
             $params['shortageWeight'], 
             $params['excessWeight'], 
-            $status, 
-            $critical_params['shipName'], 
-            $critical_params['loadingWarehouse'], 
-            $critical_params['cargoType'], 
-            $critical_params['shippingCompany'], 
-            $critical_params['loadingQuotaNumber'], 
-            $params['numberOfPeople'], 
+            $shipName, 
+            $params['loadingWarehouse'], 
+            $params['cargoType'], 
+            $params['shippingCompany'], 
+            $loadingQuotaNumber, 
+            $numberOfPeople, 
             $params['username'], 
             $params['userType']
         );
@@ -267,40 +267,34 @@ try {
         }
         
         $insert_stmt->close();
-        
-        // تأیید تراکنش
         $conn->commit();
         
-        // ارسال پاسخ موفقیت‌آمیز
+        // ارسال پاسخ بهینه
         send_json_response([
             "success" => true, 
-            "message" => "حواله جدید با شماره {$params['trackingNumber']} و تعداد نفرات {$params['numberOfPeople']} در ساعت $currentTime توسط کاربر {$params['username']} با نقش {$params['userType']} با موفقیت ثبت شد"
+            "message" => "حواله جدید با شماره {$trackingNumber} و تعداد نفرات {$numberOfPeople} در ساعت $currentTime توسط کاربر {$params['username']} با نقش {$params['userType']} با موفقیت ثبت شد"
         ]);
     } else {
-        // منطق بروزرسانی حواله موجود
-        if ($existingCargo['status'] == "ورود") {
+        // منطق بهینه بروزرسانی حواله موجود
+        $cargoId = $existingCargo['id'];
+        
+        if ($existingCargo['status'] === "ورود") {
             if (!empty($params['netWeight'])) {
-                // خروج حواله - نیاز به تأیید
-                if ($existingCargo['confirm'] != "تائید شده") {
+                // خروج حواله - بررسی تأیید
+                if ($existingCargo['confirm'] !== "تائید شده") {
                     throw new Exception("حواله مورد نظر توسط بارشمار هنوز تائید نشده است!");
                 }
                 
-                // اعتبارسنجی وزن خالص و شماره قبض باسکول
+                // اعتبارسنجی داده‌های خروج
                 validateExitData($params['netWeight'], $params['scaleReceiptNumber']);
                 
-                // آماده‌سازی و اجرای دستور بروزرسانی - با WHERE بهینه‌تر
+                // بروزرسانی بهینه برای خروج
                 $update_query = "UPDATE CargoInfo SET 
-                    netWeight = ?, 
-                    scaleReceiptNumber = ?, 
-                    exitTime = ?, 
-                    exitDate = ?, 
-                    status = 'خروج', 
-                    username = ?, 
-                    userType = ? 
+                    netWeight = ?, scaleReceiptNumber = ?, exitTime = ?, exitDate = ?, 
+                    status = 'خروج', username = ?, userType = ? 
                 WHERE id = ?";
                 
                 $update_stmt = $conn->prepare($update_query);
-                
                 $update_stmt->bind_param("ssssssi", 
                     $params['netWeight'], 
                     $params['scaleReceiptNumber'], 
@@ -308,55 +302,46 @@ try {
                     $currentDate, 
                     $params['username'], 
                     $params['userType'], 
-                    $existingCargo['id']
+                    $cargoId
                 );
             } elseif (!empty($params['shortageWeight']) || !empty($params['excessWeight'])) {
-                // بروزرسانی کسری/اضافه بار - با WHERE بهینه‌تر
+                // بروزرسانی بهینه کسری/اضافه بار
                 $update_query = "UPDATE CargoInfo SET 
-                    shortageWeight = ?, 
-                    excessWeight = ?, 
-                    username = ?, 
-                    userType = ? 
+                    shortageWeight = ?, excessWeight = ?, username = ?, userType = ? 
                 WHERE id = ?";
                 
                 $update_stmt = $conn->prepare($update_query);
-                
                 $update_stmt->bind_param("ssssi", 
                     $params['shortageWeight'], 
                     $params['excessWeight'], 
                     $params['username'], 
                     $params['userType'], 
-                    $existingCargo['id']
+                    $cargoId
                 );
             } else {
                 throw new Exception("برای حواله در وضعیت ورود، باید وزن خالص یا کسری/اضافه بار وارد شود");
             }
-        } elseif ($existingCargo['status'] == "خروج") {
-            // بروزرسانی حواله خروج شده - نیاز به تأیید کاربر
-            if ($params['confirmation'] != "yes") {
+        } elseif ($existingCargo['status'] === "خروج") {
+            // بروزرسانی حواله خروج شده - بررسی تأیید کاربر
+            if ($params['confirmation'] !== "yes") {
                 send_json_response([
-                    "message" => "شماره حواله {$params['trackingNumber']} در تاریخ {$existingCargo['exitDate']} و ساعت {$existingCargo['exitTime']} خروج کرده و سرویس بسته شده است!", 
+                    "message" => "شماره حواله {$trackingNumber} در تاریخ {$existingCargo['exitDate']} و ساعت {$existingCargo['exitTime']} خروج کرده و سرویس بسته شده است!", 
                     "status" => "confirmation_needed", 
                     "exitDate" => $existingCargo['exitDate'], 
                     "exitTime" => $existingCargo['exitTime']
                 ]);
             }
             
-            // اعتبارسنجی وزن خالص و شماره قبض باسکول
+            // اعتبارسنجی داده‌های خروج
             validateExitData($params['netWeight'], $params['scaleReceiptNumber']);
             
-            // آماده‌سازی و اجرای دستور بروزرسانی - با WHERE بهینه‌تر
+            // بروزرسانی بهینه حواله خروج شده
             $update_query = "UPDATE CargoInfo SET 
-                netWeight = ?, 
-                scaleReceiptNumber = ?, 
-                exitTime = ?, 
-                exitDate = ?, 
-                username = ?, 
-                userType = ? 
+                netWeight = ?, scaleReceiptNumber = ?, exitTime = ?, exitDate = ?, 
+                username = ?, userType = ? 
             WHERE id = ?";
             
             $update_stmt = $conn->prepare($update_query);
-            
             $update_stmt->bind_param("ssssssi", 
                 $params['netWeight'], 
                 $params['scaleReceiptNumber'], 
@@ -364,53 +349,62 @@ try {
                 $currentDate, 
                 $params['username'], 
                 $params['userType'], 
-                $existingCargo['id']
+                $cargoId
             );
         } else {
             throw new Exception("وضعیت نامعتبر حواله");
         }
         
-        // اجرای دستور بروزرسانی
+        // اجرای بهینه دستور بروزرسانی
         if (!$update_stmt->execute()) {
             throw new Exception("خطا در اجرای دستور به‌روزرسانی: " . $update_stmt->error);
         }
         
         $update_stmt->close();
-        
-        // تأیید تراکنش
         $conn->commit();
         
-        // ارسال پاسخ موفقیت‌آمیز
-        $response = [
+        // ارسال پاسخ بهینه
+        send_json_response([
             "success" => true,
             "message" => "عملیات با موفقیت انجام شد",
             "exitDate" => $currentDate,
             "exitTime" => $currentTime,
-            "trackingNumber" => $params['trackingNumber'],
-            "loadingQuotaNumber" => $params['loadingQuotaNumber']
-        ];
-        
-        send_json_response($response);
+            "trackingNumber" => $trackingNumber,
+            "loadingQuotaNumber" => $loadingQuotaNumber
+        ]);
     }
 } catch(Exception $e) {
-    // لغو تراکنش در صورت بروز خطا
+    // مدیریت بهینه خطا
     if (isset($conn) && $conn instanceof mysqli) {
         $conn->rollback();
     }
     
-    // ثبت خطا در فایل لاگ
-    error_log("خطا در saveOrUpdateCargoInfo.php: " . $e->getMessage());
+    // ثبت خطا با اطلاعات بیشتر
+    error_log(sprintf("[%s] خطا در saveOrUpdateCargoInfo.php: %s | IP: %s", 
+        date('Y-m-d H:i:s'), 
+        $e->getMessage(), 
+        $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+    ));
     
-    // ارسال پیام خطا به کلاینت
+    // ارسال پیام خطا
     send_json_response([
         'error' => true, 
         'message' => $e->getMessage()
     ], 500);
 } finally {
-    // آزادسازی منابع
-    if (isset($stmt) && $stmt instanceof mysqli_stmt) $stmt->close();
-    if (isset($insert_stmt) && $insert_stmt instanceof mysqli_stmt) $insert_stmt->close();
-    if (isset($update_stmt) && $update_stmt instanceof mysqli_stmt) $update_stmt->close();
-    if (isset($conn) && $conn instanceof mysqli) $conn->close();
+    // آزادسازی بهینه منابع
+    $resources = ['stmt', 'insert_stmt', 'update_stmt', 'check24h_stmt'];
+    foreach ($resources as $resource) {
+        if (isset($$resource) && $$resource instanceof mysqli_stmt) {
+            $$resource->close();
+        }
+    }
+    
+    if (isset($conn) && $conn instanceof mysqli) {
+        $conn->close();
+    }
+    
+    // آزادسازی متغیرهای بزرگ
+    unset($params, $existing24hCargo, $existingCargo);
 }
 ?>
