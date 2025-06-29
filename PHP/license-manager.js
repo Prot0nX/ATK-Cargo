@@ -229,7 +229,9 @@ function showModal(modalId) {
 
     // اضافه کردن انیمیشن
     const modalContent = modal.querySelector('.bg-white');
-    modalContent.classList.add('animate-modal-show');
+    if (modalContent) {
+        modalContent.classList.add('animate-modal-show');
+    }
 }
 
 function hideModal(modalId) {
@@ -241,8 +243,37 @@ function hideModal(modalId) {
     activeModal = null;
 }
 
+// بستن مودال جزئیات لایسنس
+function closeLicenseModal() {
+    hideModal('licenseModal');
+}
+
+// بستن مودال حذف
+function closeDeleteModal() {
+    hideModal('deleteModal');
+}
+
+// تأیید حذف لایسنس
+function confirmDelete() {
+    if (currentLicenseKey) {
+        handleDelete(currentLicenseKey);
+        hideModal('deleteModal');
+    }
+}
+
 // دریافت لیست لایسنس‌ها
 async function loadLicenses() {
+    // نمایش loading state
+    const loadingState = document.getElementById('loadingState');
+    const emptyState = document.getElementById('emptyState');
+    
+    if (loadingState) {
+        loadingState.classList.remove('hidden');
+    }
+    if (emptyState) {
+        emptyState.classList.add('hidden');
+    }
+    
     try {
         const response = await fetch('manage_licenses.php?action=list', {
             method: 'GET',
@@ -262,10 +293,20 @@ async function loadLicenses() {
             filterAndDisplayLicenses();
         } else {
             showNotification(data.message || 'خطا در دریافت لیست لایسنس‌ها', 'error');
+            // مخفی کردن loading state در صورت خطا
+            const loadingState = document.getElementById('loadingState');
+            if (loadingState) {
+                loadingState.classList.add('hidden');
+            }
         }
     } catch (error) {
         console.error('Error loading licenses:', error);
         showNotification('خطا در برقراری ارتباط با سرور', 'error');
+        // مخفی کردن loading state در صورت خطا
+        const loadingState = document.getElementById('loadingState');
+        if (loadingState) {
+            loadingState.classList.add('hidden');
+        }
     }
 }
 
@@ -422,7 +463,27 @@ function filterAndDisplayLicenses() {
 // نمایش لایسنس‌ها در جدول
 function displayLicenses(licensesToShow) {
     const tbody = document.getElementById('licensesTableBody');
+    const loadingState = document.getElementById('loadingState');
+    const emptyState = document.getElementById('emptyState');
+    
+    // مخفی کردن loading state
+    if (loadingState) {
+        loadingState.classList.add('hidden');
+    }
+    
     tbody.innerHTML = '';
+    
+    // اگر هیچ لایسنسی وجود نداشت، نمایش empty state
+    if (licensesToShow.length === 0) {
+        if (emptyState) {
+            emptyState.classList.remove('hidden');
+        }
+        return;
+    } else {
+        if (emptyState) {
+            emptyState.classList.add('hidden');
+        }
+    }
     
     licensesToShow.forEach(license => {
         const lastCheckStatus = getLastCheckStatus(license.last_check);
@@ -486,6 +547,54 @@ function displayLicenses(licensesToShow) {
     });
 }
 
+// تابع خروجی Excel
+function exportData() {
+    if (!licenses || licenses.length === 0) {
+        showNotification('هیچ داده‌ای برای خروجی وجود ندارد', 'warning');
+        return;
+    }
+
+    try {
+        // ایجاد داده‌های CSV
+        const headers = ['نام شرکت', 'کلید لایسنس', 'آخرین بررسی', 'وضعیت'];
+        const csvContent = [headers.join(',')];
+
+        licenses.forEach(license => {
+            const status = getLastCheckStatus(license.last_check);
+            const row = [
+                `"${license.company_name || ''}"`,
+                `"${license.license_key || ''}"`,
+                `"${formatDate(license.last_check)}"`,
+                `"${status.text}"`
+            ];
+            csvContent.push(row.join(','));
+        });
+
+        // ایجاد فایل و دانلود با UTF-8 BOM
+        const csvString = csvContent.join('\n');
+        const BOM = '\uFEFF'; // UTF-8 BOM برای پشتیبانی از فارسی
+        const blob = new Blob([BOM + csvString], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `licenses_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showNotification('فایل با موفقیت دانلود شد', 'success');
+        } else {
+            showNotification('مرورگر شما از دانلود فایل پشتیبانی نمی‌کند', 'error');
+        }
+    } catch (error) {
+        console.error('خطا در خروجی داده‌ها:', error);
+        showNotification('خطا در ایجاد فایل خروجی', 'error');
+    }
+}
+
 // تابع بررسی وضعیت آخرین چک لایسنس
 function getLastCheckStatus(lastCheck) {
     if (!lastCheck) {
@@ -545,51 +654,67 @@ function showLicenseDetails(licenseKey) {
     if (!license) return;
 
     const lastCheckStatus = getLastCheckStatus(license.last_check);
-    const detailsContent = document.querySelector('.license-details-content');
-    detailsContent.innerHTML = `
-        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-            <div class="grid gap-4">
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-500 dark:text-gray-400">نام شرکت:</span>
-                    <span class="font-medium text-gray-900 dark:text-white">${license.company_name}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-500 dark:text-gray-400">کلید لایسنس:</span>
-                    <div class="flex items-center gap-2">
-                        <code class="px-3 py-1 bg-gray-100 dark:bg-gray-600 rounded-lg font-mono text-sm">${license.license_key}</code>
-                        <button onclick="copyLicenseKey('${license.license_key}')"
-                                class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-500 rounded-lg transition-colors">
-                            <i class="fas fa-copy text-gray-400"></i>
-                        </button>
+    const modalBody = document.getElementById('licenseModalBody');
+    modalBody.innerHTML = `
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">اطلاعات کلی</h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500 dark:text-gray-400 text-sm">نام شرکت:</span>
+                            <span class="font-medium text-gray-900 dark:text-white">${license.company_name}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500 dark:text-gray-400 text-sm">وضعیت:</span>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${license.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'}">
+                                <i class="fas ${license.is_active ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                                ${license.is_active ? 'فعال' : 'غیرفعال'}
+                            </span>
+                        </div>
                     </div>
                 </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-500 dark:text-gray-400">وضعیت:</span>
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${license.is_active ? 'bg-green-50 text-success dark:bg-green-900/30' : 'bg-red-50 text-danger dark:bg-red-900/30'}">
-                        <i class="fas ${license.is_active ? 'fa-check-circle' : 'fa-times-circle'}"></i>
-                        ${license.is_active ? 'فعال' : 'غیرفعال'}
-                    </span>
+                
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">تاریخ‌ها</h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500 dark:text-gray-400 text-sm">تاریخ ایجاد:</span>
+                            <span class="text-gray-900 dark:text-white text-sm">${formatDate(license.created_at)}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500 dark:text-gray-400 text-sm">تاریخ فعال‌سازی:</span>
+                            <span class="text-gray-900 dark:text-white text-sm">${formatDate(license.activation_date)}</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-500 dark:text-gray-400">تاریخ ایجاد:</span>
-                    <span class="text-gray-900 dark:text-white">${formatDate(license.created_at)}</span>
+            </div>
+            
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">کلید لایسنس</h4>
+                <div class="flex items-center gap-3 p-3 bg-white dark:bg-gray-600 rounded-lg border">
+                    <code class="flex-1 font-mono text-sm text-gray-800 dark:text-gray-200">${license.license_key}</code>
+                    <button onclick="copyLicenseKey('${license.license_key}')" class="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 flex items-center gap-2">
+                        <i class="fas fa-copy"></i>
+                        کپی
+                    </button>
                 </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-500 dark:text-gray-400">تاریخ فعال‌سازی:</span>
-                    <span class="text-gray-900 dark:text-white">${formatDate(license.activation_date)}</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-500 dark:text-gray-400">آخرین استفاده:</span>
-                    <div class="flex items-center gap-2 ${lastCheckStatus.class} px-3 py-1.5 rounded-lg">
-                        <i class="fas ${lastCheckStatus.icon}"></i>
-                        <span>${formatLastCheck(license.last_check)}</span>
+            </div>
+            
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">وضعیت استفاده</h4>
+                <div class="flex items-center gap-3 p-3 ${lastCheckStatus.class} rounded-lg">
+                    <i class="fas ${lastCheckStatus.icon} text-lg"></i>
+                    <div>
+                        <div class="font-medium">${lastCheckStatus.text}</div>
+                        <div class="text-sm opacity-90">${formatLastCheck(license.last_check)}</div>
                     </div>
                 </div>
             </div>
         </div>
     `;
     
-    showModal('licenseDetailsModal');
+    showModal('licenseModal');
 }
 
 // به‌روزرسانی آمار
@@ -681,7 +806,7 @@ async function handleEditSave(licenseKey) {
         
         const data = await response.json();
         if (data.success) {
-            hideModal('editLicenseModal');
+            hideModal('editModal');
             showNotification('لایسنس با موفقیت ویرایش شد', 'success');
             await loadLicenses();
         } else {
@@ -699,11 +824,10 @@ function showDeleteModal(licenseKey) {
     if (!license) return;
 
     currentLicenseKey = licenseKey; // ذخیره کلید لایسنس فعلی
-    const modal = document.getElementById('deleteLicenseModal');
-    modal.querySelector('.company-name').textContent = license.company_name;
-    modal.querySelector('.license-key').textContent = license.license_key;
+    document.getElementById('deleteCompanyName').textContent = license.company_name;
+    document.getElementById('deleteLicenseKey').textContent = license.license_key;
     
-    showModal('deleteLicenseModal');
+    showModal('deleteModal');
 }
 
 // حذف لایسنس
@@ -722,7 +846,7 @@ async function handleDelete(licenseKey) {
         
         const data = await response.json();
         if (data.success) {
-            hideModal('deleteLicenseModal');
+            hideModal('deleteModal');
             showNotification('لایسنس با موفقیت حذف شد', 'success');
             await loadLicenses(); // بارگذاری مجدد لیست لایسنس‌ها
         } else {
@@ -776,12 +900,6 @@ function getCsrfToken() {
 }
 
 // بروزرسانی توکن CSRF قبل از ارسال فرم‌ها
-document.getElementById('createLicenseForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await getCsrfToken();
-    // ... existing form submission code ...
-});
-
 document.getElementById('saveEditBtn').addEventListener('click', async () => {
     await getCsrfToken();
     // ... existing edit submission code ...
@@ -791,6 +909,10 @@ document.getElementById('saveEditBtn').addEventListener('click', async () => {
 function checkTableOverflow() {
     const tableContainer = document.querySelector('.responsive-table');
     const tableScroll = document.querySelector('.table-scroll');
+    
+    if (!tableContainer || !tableScroll) {
+        return; // عناصر هنوز بارگذاری نشده‌اند
+    }
     
     if (tableScroll.scrollWidth > tableScroll.clientWidth) {
         tableContainer.classList.add('has-overflow');
