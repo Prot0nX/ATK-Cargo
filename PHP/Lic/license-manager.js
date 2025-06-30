@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     loadLicenses();
     initializeThemeToggle();
+    initializeMobileSidebar();
     initializeEventListeners();
     initializeModals();
     loadUserPreferences();
@@ -43,23 +44,130 @@ let currentSort = {
 // مدیریت تم و شخصی‌سازی
 function initializeThemeToggle() {
     const themeToggle = document.getElementById('themeToggle');
-    const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
-    const icon = themeToggle.querySelector('i');
+    const mobileThemeToggle = document.getElementById('mobileThemeToggle');
     
-    // تنظیم تم اولیه
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark' || (!savedTheme && prefersDarkScheme.matches)) {
-        document.documentElement.classList.add('dark');
-        icon.classList.remove('fa-sun');
-        icon.classList.add('fa-moon');
+    // Desktop theme toggle
+    if (themeToggle) {
+        const icon = themeToggle.querySelector('i');
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+        
+        if (savedTheme === 'dark' || (!savedTheme && prefersDarkScheme.matches)) {
+            document.documentElement.classList.add('dark');
+            icon.classList.remove('fa-sun');
+            icon.classList.add('fa-moon');
+        }
+        
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            icon.classList.toggle('fa-sun');
+            icon.classList.toggle('fa-moon');
+            
+            // Sync mobile theme toggle
+            if (mobileThemeToggle) {
+                const mobileIcon = mobileThemeToggle.querySelector('i');
+                mobileIcon.classList.toggle('fa-sun');
+                mobileIcon.classList.toggle('fa-moon');
+            }
+            
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        });
     }
     
-    themeToggle.addEventListener('click', () => {
-        document.documentElement.classList.toggle('dark');
-        icon.classList.toggle('fa-sun');
-        icon.classList.toggle('fa-moon');
+    // Mobile theme toggle
+    if (mobileThemeToggle) {
+        const mobileIcon = mobileThemeToggle.querySelector('i');
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
         
-        localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        if (savedTheme === 'dark' || (!savedTheme && prefersDarkScheme.matches)) {
+            document.documentElement.classList.add('dark');
+            mobileIcon.classList.remove('fa-sun');
+            mobileIcon.classList.add('fa-moon');
+        }
+        
+        mobileThemeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            mobileIcon.classList.toggle('fa-sun');
+            mobileIcon.classList.toggle('fa-moon');
+            
+            // Sync desktop theme toggle
+            if (themeToggle) {
+                const icon = themeToggle.querySelector('i');
+                icon.classList.toggle('fa-sun');
+                icon.classList.toggle('fa-moon');
+            }
+            
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        });
+    }
+}
+
+// مدیریت Mobile Sidebar
+function initializeMobileSidebar() {
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const mobileSidebar = document.getElementById('mobileSidebar');
+    const closeSidebar = document.getElementById('closeSidebar');
+    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+    let sidebarOpen = false;
+    
+    // تابع باز/بسته کردن sidebar
+    function toggleMobileSidebar() {
+        if (sidebarOpen) {
+            // بستن sidebar
+            mobileSidebar.classList.remove('translate-x-0');
+            mobileSidebar.classList.add('translate-x-full');
+            document.body.style.overflow = '';
+            sidebarOpen = false;
+            
+            // تغییر آیکون به همبرگر
+            const icon = mobileMenuToggle.querySelector('i');
+            icon.className = 'fas fa-bars text-gray-600 dark:text-gray-300 text-xl';
+        } else {
+            // باز کردن sidebar
+            mobileSidebar.classList.remove('translate-x-full');
+            mobileSidebar.classList.add('translate-x-0');
+            document.body.style.overflow = 'hidden';
+            sidebarOpen = true;
+            
+            // تغییر آیکون به X
+            const icon = mobileMenuToggle.querySelector('i');
+            icon.className = 'fas fa-times text-gray-600 dark:text-gray-300 text-xl';
+        }
+    }
+    
+    // کلیک روی دکمه همبرگر
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', toggleMobileSidebar);
+    }
+    
+    // بستن sidebar
+    function closeMobileSidebar() {
+        if (sidebarOpen) {
+            mobileSidebar.classList.remove('translate-x-0');
+            mobileSidebar.classList.add('translate-x-full');
+            document.body.style.overflow = '';
+            sidebarOpen = false;
+            
+            // تغییر آیکون به همبرگر
+            const icon = mobileMenuToggle.querySelector('i');
+            icon.className = 'fas fa-bars text-gray-600 dark:text-gray-300 text-xl';
+        }
+    }
+    
+    if (closeSidebar) {
+        closeSidebar.addEventListener('click', closeMobileSidebar);
+    }
+    
+    if (sidebarBackdrop) {
+        sidebarBackdrop.addEventListener('click', closeMobileSidebar);
+    }
+    
+    // بستن sidebar با کلید Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && sidebarOpen) {
+            closeMobileSidebar();
+        }
     });
 }
 
@@ -736,12 +844,48 @@ function updateStats() {
         const diffHours = Math.abs(now - lastCheckDate) / 36e5;
         return diffHours >= 24 && diffHours < 72;
     }).length;
+    
+    // Get unique companies count
+    const uniqueCompanies = [...new Set(licenses.map(license => license.company_name))].length;
 
-    document.getElementById('activeCount').textContent = activeCount;
-    document.getElementById('inactiveCount').textContent = inactiveCount;
-    document.getElementById('recentlyUsedCount').textContent = recentlyUsedCount;
-    document.getElementById('totalCount').textContent = licenses.length;
-    document.getElementById('needsReviewCount').textContent = needsReviewCount;
+    // Update desktop stats
+    const activeLicenses = document.getElementById('activeLicenses');
+    const inactiveLicenses = document.getElementById('inactiveLicenses');
+    const recentlyUsedLicenses = document.getElementById('recentlyUsedLicenses');
+    const totalCompanies = document.getElementById('totalCompanies');
+    const needsReviewLicenses = document.getElementById('needsReviewLicenses');
+    
+    if (activeLicenses) activeLicenses.textContent = activeCount;
+    if (inactiveLicenses) inactiveLicenses.textContent = inactiveCount;
+    if (recentlyUsedLicenses) recentlyUsedLicenses.textContent = recentlyUsedCount;
+    if (totalCompanies) totalCompanies.textContent = uniqueCompanies;
+    if (needsReviewLicenses) needsReviewLicenses.textContent = needsReviewCount;
+    
+    // Update mobile stats
+    const activeLicensesMobile = document.getElementById('activeLicensesMobile');
+    const inactiveLicensesMobile = document.getElementById('inactiveLicensesMobile');
+    const recentlyUsedLicensesMobile = document.getElementById('recentlyUsedLicensesMobile');
+    const totalCompaniesMobile = document.getElementById('totalCompaniesMobile');
+    const needsReviewLicensesMobile = document.getElementById('needsReviewLicensesMobile');
+    
+    if (activeLicensesMobile) activeLicensesMobile.textContent = activeCount;
+    if (inactiveLicensesMobile) inactiveLicensesMobile.textContent = inactiveCount;
+    if (recentlyUsedLicensesMobile) recentlyUsedLicensesMobile.textContent = recentlyUsedCount;
+    if (totalCompaniesMobile) totalCompaniesMobile.textContent = uniqueCompanies;
+    if (needsReviewLicensesMobile) needsReviewLicensesMobile.textContent = needsReviewCount;
+    
+    // Legacy support for old IDs (if they exist)
+    const activeCount_old = document.getElementById('activeCount');
+    const inactiveCount_old = document.getElementById('inactiveCount');
+    const recentlyUsedCount_old = document.getElementById('recentlyUsedCount');
+    const totalCount_old = document.getElementById('totalCount');
+    const needsReviewCount_old = document.getElementById('needsReviewCount');
+    
+    if (activeCount_old) activeCount_old.textContent = activeCount;
+    if (inactiveCount_old) inactiveCount_old.textContent = inactiveCount;
+    if (recentlyUsedCount_old) recentlyUsedCount_old.textContent = recentlyUsedCount;
+    if (totalCount_old) totalCount_old.textContent = licenses.length;
+    if (needsReviewCount_old) needsReviewCount_old.textContent = needsReviewCount;
 }
 
 // تغییر وضعیت لایسنس
