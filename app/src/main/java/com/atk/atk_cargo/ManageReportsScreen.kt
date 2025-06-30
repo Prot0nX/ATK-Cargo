@@ -261,7 +261,6 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 	val navController = rememberNavController()
 	var showQuotasDialog by remember { mutableStateOf(false) }
 	var selectedShipForQuotas by remember { mutableStateOf<String?>(null) }
-	var showSearchResultDialog by remember { mutableStateOf(false) }
 	var showRealTimeDialog by remember { mutableStateOf(false) }
 	var showAdvancedSearchDialog by remember { mutableStateOf(false) }
 	var showAnalyticsDialog by remember { mutableStateOf(false) }
@@ -275,7 +274,6 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 	val defaultColor = MaterialTheme.colorScheme.primary
 	val currentShipName by viewModel.selectedShip.collectAsState()
 	val loadingError by viewModel.loadingError.collectAsState()
-	val canNavigateBack = navController.previousBackStackEntry != null
 
 	ATKCargoTheme(darkTheme = isSystemInDarkTheme()) {
 		CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -305,8 +303,6 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 					ShipDetails(
 						initialShipName = shipName,
 						viewModel = viewModel,
-						navController = navController,
-						canNavigateBack = canNavigateBack,
 						onWarehouseSelected = { warehouseName ->
 							navController.navigate("warehouseDetails/$shipName/$warehouseName") {
 								launchSingleTop = true
@@ -323,18 +319,14 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 					WarehouseDetails(
 						shipName = shipName,
 						warehouseName = warehouseName,
-						viewModel = viewModel,
-						navController = navController,
-						canNavigateBack = canNavigateBack
+						viewModel = viewModel
 					)
 				}
 				composable("quotaDetails/{quotaNumber}") { backStackEntry ->
 					val quotaNumber = backStackEntry.arguments?.getString("quotaNumber") ?: return@composable
 					QuotaDetails(
 						quotaNumber = quotaNumber,
-						viewModel = viewModel,
-						navController = navController,
-						canNavigateBack = canNavigateBack
+						viewModel = viewModel
 					)
 				}
 			}
@@ -361,12 +353,6 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 			},
 			viewModel = viewModel
 		)
-	}
-
-	LaunchedEffect(searchResult) {
-		if (searchResult != null) {
-			showSearchResultDialog = true
-		}
 	}
 
 	ComprehensiveAnalyticsDialog(
@@ -957,41 +943,6 @@ fun ShipCardExpandedContent(
 }
 
 @Composable
-fun InfoItem(
-	icon: ImageVector,
-	label: String,
-	value: String,
-	color: Color,
-	modifier: Modifier = Modifier
-) {
-	Column(
-		modifier = modifier,
-		horizontalAlignment = Alignment.CenterHorizontally,
-		verticalArrangement = Arrangement.spacedBy(4.dp)
-	) {
-		Icon(
-			imageVector = icon,
-			contentDescription = null,
-			tint = color,
-			modifier = Modifier.size(16.dp)
-		)
-
-		Text(
-			text = value,
-			style = MaterialTheme.typography.titleSmall,
-			fontWeight = FontWeight.Bold,
-			color = color
-		)
-
-		Text(
-			text = label,
-			style = MaterialTheme.typography.bodySmall,
-			color = color.copy(alpha = 0.7f)
-		)
-	}
-}
-
-@Composable
 fun TonnageItem(
 	label: String,
 	value: String,
@@ -1149,8 +1100,6 @@ fun ShipSortingSelector(
 fun ShipDetails(
 	initialShipName: String,
 	viewModel: ReportsViewModel,
-	navController: androidx.navigation.NavController,
-	canNavigateBack: Boolean,
 	onWarehouseSelected: (String) -> Unit,
 	onSectionChanged: (Int) -> Unit
 ) {
@@ -1325,12 +1274,13 @@ fun WarehousesAndQuotasTab(
 				.fillMaxSize()
 				.padding(horizontal = 16.dp)
 		) {
-			// فیلد جستجو - طراحی مینیمال و بهینه
+			// فیلد جستجو
 			Spacer(modifier = Modifier.height(8.dp))
 			SearchField(
 				searchQuery = searchQuery,
 				onSearchQueryChange = { searchQuery = it },
-				modifier = Modifier.fillMaxWidth()
+				modifier = Modifier.fillMaxWidth(),
+				keyboardType = if (selectedSection == 1) KeyboardType.Number else KeyboardType.Text
 			)
 
 			Spacer(modifier = Modifier.height(8.dp))
@@ -1854,7 +1804,6 @@ fun QuotaGroupExpansionPanel(
 					horizontalArrangement = Arrangement.spacedBy(12.dp),
 					verticalAlignment = Alignment.CenterVertically
 				) {
-					GroupIcon(currentGroupingMode)
 					Column {
 						Row(
 							modifier = Modifier
@@ -1928,30 +1877,6 @@ fun QuotaGroupExpansionPanel(
 				}
 			}
 		}
-	}
-}
-
-@Composable
-private fun GroupIcon(groupingMode: WarehouseQuotaGroupingMode) {
-	val icon = when (groupingMode) {
-		WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY -> Icons.Default.LocalShipping
-		WarehouseQuotaGroupingMode.BY_CARGO_OWNER -> Icons.Default.Person
-		WarehouseQuotaGroupingMode.BY_WAREHOUSE -> Icons.Default.Warehouse
-	}
-
-	Surface(
-		shape = CircleShape,
-		color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-		modifier = Modifier.size(40.dp)
-	) {
-		Icon(
-			imageVector = icon,
-			contentDescription = null,
-			tint = MaterialTheme.colorScheme.primary,
-			modifier = Modifier
-				.padding(8.dp)
-				.size(24.dp)
-		)
 	}
 }
 
@@ -2898,6 +2823,7 @@ private fun calculateWarningStatus(quota: Quota): WarningStatus? {
 	} else null
 }
 
+@SuppressLint("ConfigurationScreenWidthHeight")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun QuotaPercentageDialog(
@@ -2908,14 +2834,8 @@ fun QuotaPercentageDialog(
 	var percentage by remember { mutableDoubleStateOf(quota.percentage ?: 0.0) }
 	var calculatedValues by remember { mutableStateOf(calculateValues(quota.totalTonnage, percentage, quota.remainingTonnage)) }
 	var selectedTab by remember { mutableIntStateOf(0) }
-	var isContentVisible by remember { mutableStateOf(false) }
 	val pagerState = rememberPagerState(pageCount = { 2 })
 	val coroutineScope = rememberCoroutineScope()
-
-	LaunchedEffect(Unit) {
-		delay(150)
-		isContentVisible = true
-	}
 
 	// هماهنگ‌سازی selectedTab با تغییرات pagerState
 	LaunchedEffect(pagerState.currentPage) {
@@ -3755,9 +3675,7 @@ fun ProgressBar(title: String, progress: Float, value: Int, color: Color, suffix
 fun WarehouseDetails(
 	shipName: String,
 	warehouseName: String,
-	viewModel: ReportsViewModel,
-	navController: androidx.navigation.NavController,
-	canNavigateBack: Boolean
+	viewModel: ReportsViewModel
 ) {
 	val warehouse by viewModel.selectedWarehouse.collectAsState()
 	val uiState by viewModel.uiState.collectAsState()
@@ -5700,9 +5618,7 @@ fun SortChip(
 @Composable
 fun QuotaDetails(
 	quotaNumber: String,
-	viewModel: ReportsViewModel,
-	navController: androidx.navigation.NavController,
-	canNavigateBack: Boolean
+	viewModel: ReportsViewModel
 ) {
 	val quotaDetails by viewModel.selectedQuotaDetails.collectAsState()
 	val uiState by viewModel.uiState.collectAsState()
@@ -6682,7 +6598,6 @@ fun RealTimeLoadingBottomSheet(
 	var lastUpdateTime by remember { mutableStateOf("") }
 	var isRefreshing by remember { mutableStateOf(false) }
 	var expandedShip by remember { mutableStateOf<String?>(null) }
-	var showWeightDetailsDialog by remember { mutableStateOf(false) }
 	var searchQuery by remember { mutableStateOf("") }
 	val context = LocalContext.current
 	val totalEntryVouchers = remember(loadingData) { loadingData.sumOf { it.entryVouchers } }
@@ -6774,7 +6689,7 @@ fun RealTimeLoadingBottomSheet(
 							totalEntryVouchers = totalEntryVouchers,
 							totalExitVouchers = totalExitVouchers,
 							totalNetWeight = totalNetWeight,
-							onWeightDetailsClick = { showWeightDetailsDialog = true }
+							onWeightDetailsClick = { }
 						)
 						Spacer(modifier = Modifier.height(8.dp))
 
@@ -9753,7 +9668,8 @@ private fun SearchField(
 	searchQuery: String,
 	onSearchQueryChange: (String) -> Unit,
 	modifier: Modifier = Modifier.fillMaxWidth(),
-	placeholder: String = "جستجو..."
+	placeholder: String = "جستجو...",
+	keyboardType: KeyboardType = KeyboardType.Text
 ) {
 	OutlinedTextField(
 		value = searchQuery,
@@ -9783,6 +9699,7 @@ private fun SearchField(
 				}
 			}
 		},
+		keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
 		singleLine = true,
 		shape = RoundedCornerShape(12.dp),
 		colors = OutlinedTextFieldDefaults.colors(
