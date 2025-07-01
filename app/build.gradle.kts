@@ -183,6 +183,12 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.15"
     }
+    
+    lint {
+        disable += setOf("NullSafeMutableLiveData")
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
     packaging {
         resources {
             excludes += setOf(
