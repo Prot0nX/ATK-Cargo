@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ورود به پنل مدیریت</title>
+    
+    <!-- استایل‌های خارجی -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/Vazirmatn-font-face.css" as="style">
+    <link rel="preload" href="assets/css/styles.css" as="style">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/Vazirmatn-font-face.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/js-md5@0.8.3/src/md5.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'vazir': ['Vazirmatn', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            DEFAULT: '#2563eb',
+                            light: '#3b82f6',
+                            dark: '#1d4ed8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="gradient-bg font-vazir transition-colors duration-300 custom-scrollbar min-h-screen theme-transition">
+    <div class="min-h-screen flex flex-col items-center justify-center p-4">
+        <h1 class="text-4xl font-bold text-white mb-8 text-center relative z-10 text-shadow-lg backdrop-blur-none">سیستم مدیریت لایسنس بارگیری</h1>
+        <div class="glass rounded-2xl w-full max-w-md animate-modal-show theme-transition">
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <div class="w-20 h-20 rounded-full bg-primary-light/10 dark:bg-primary-dark/10 flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-key text-4xl text-primary dark:text-primary-light"></i>
+                    </div>
+                    <p class="text-gray-300 mt-2">لطفاً رمز عبور خود را وارد کنید</p>
+                </div>
+                
+                <form id="loginForm" class="space-y-6">
+                    <div>
+                        <div class="relative">
+                            <input type="password" id="password" 
+                                   class="glass w-full rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent text-white transition-all pr-12 form-control-animate"
+                                   placeholder="رمز عبور">
+                            <button type="button" id="togglePassword" 
+                                    class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" 
+                            class="glass-button w-full px-6 py-3 rounded-xl flex items-center justify-center gap-2">
+                        <i class="fas fa-sign-in-alt"></i>
+                        ورود به پنل
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- دکمه تغییر تم -->
+    <button id="themeToggle" class="fixed top-4 left-4 glass-button p-2 rounded-xl transition-colors group relative text-gray-300 focus-ring theme-transition">
+        <i class="fas fa-sun text-lg"></i>
+        <span class="tooltip">تغییر تم</span>
+    </button>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+    <script src="login.js"></script>
+
+    <style>
+        /* استایل تولتیپ‌ها */
+        .tooltip {
+            @apply invisible absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 text-xs text-white bg-black/80 dark:bg-white/80 dark:text-gray-900 rounded whitespace-nowrap opacity-0 transition-all group-hover:visible group-hover:opacity-100 theme-transition;
+        }
+
+        .tooltip::before {
+            content: '';
+            @apply absolute -top-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-b-black/80 dark:border-b-white/80 theme-transition;
+        }
+
+        /* سایه متن برای عنوان */
+        .text-shadow-lg {
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        /* استایل جستجو */
+        #searchInput:focus + .fa-search {
+            @apply text-primary dark:text-primary-light;
+        }
+
+        /* حالت موبایل */
+        @media (max-width: 768px) {
+            .nav-title {
+                @apply text-base;
+            }
+        }
+    </style>
+</body>
+</html> 
