@@ -141,6 +141,8 @@ class SessionManager {
             
             if ($session) {
                 // حذف بررسی انقضای جلسه - جلسه‌ها فقط با خروج کاربر منقضی می‌شوند
+                // تنظیم زمان بیکاری به صفر (حذف شده)
+                $session['idle_time'] = 0;
                 return $session;
             }
             
@@ -157,8 +159,7 @@ class SessionManager {
      */
     public function isSessionActive($username, $deviceId = null) {
         try {
-            // حذف فراخوانی cleanupExpiredSessions برای جلوگیری از انقضای خودکار جلسات
-            
+                        
             $query = "
                 SELECT id, device_id, login_time, last_activity, session_token, userType
                 FROM user_sessions 
@@ -294,7 +295,7 @@ class SessionManager {
                 SELECT us.id, us.username, u.userType, us.device_model, us.device_id, 
                        us.login_time, us.last_activity, us.ip_address,
                        TIMESTAMPDIFF(SECOND, us.login_time, NOW()) as online_duration,
-                       TIMESTAMPDIFF(SECOND, COALESCE(us.last_activity, us.login_time), NOW()) as idle_time
+                       0 as idle_time
                 FROM user_sessions us
                 JOIN Users u ON us.username = u.username
                 WHERE us.is_active = 1
@@ -306,6 +307,60 @@ class SessionManager {
             
         } catch (Exception $e) {
             error_log("خطا در دریافت کاربران آنلاین: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    /**
+     * دریافت لیست تمام جلسات کاربران (فعال و غیرفعال) با فیلتر زمانی
+     * @param string $timeFilter فیلتر زمانی: 'all', 'today', '24h'
+     * @param string $statusFilter فیلتر وضعیت: 'all', 'active', 'inactive'
+     * @return array لیست جلسات
+     */
+    public function getAllSessions($timeFilter = 'all', $statusFilter = 'all') {
+        try {
+            $whereConditions = [];
+            $params = [];
+            
+            // فیلتر وضعیت
+            if ($statusFilter === 'active') {
+                $whereConditions[] = "us.is_active = 1";
+            } elseif ($statusFilter === 'inactive') {
+                $whereConditions[] = "us.is_active = 0";
+            }
+            
+            // فیلتر زمانی
+            switch ($timeFilter) {
+                case 'today':
+                    $whereConditions[] = "DATE(us.login_time) = CURDATE()";
+                    break;
+                case '24h':
+                    $whereConditions[] = "us.login_time >= DATE_SUB(NOW(), INTERVAL 24 HOUR)";
+                    break;
+                case 'all':
+                default:
+                    // بدون محدودیت زمانی
+                    break;
+            }
+            
+            $whereClause = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+            
+            $stmt = $this->pdo->prepare("
+                SELECT us.id, us.username, u.userType, us.device_model, us.device_id, 
+                       us.login_time, us.last_activity, us.logout_time, us.ip_address, us.is_active,
+                       TIMESTAMPDIFF(SECOND, us.login_time, COALESCE(us.logout_time, NOW())) as session_duration,
+                       0 as idle_time
+                FROM user_sessions us
+                JOIN Users u ON us.username = u.username
+                $whereClause
+                ORDER BY us.is_active DESC, us.login_time DESC, us.last_activity DESC
+            ");
+            
+            $stmt->execute($params);
+            return $stmt->fetchAll();
+            
+        } catch (Exception $e) {
+            error_log("خطا در دریافت تمام جلسات: " . $e->getMessage());
             return [];
         }
     }
