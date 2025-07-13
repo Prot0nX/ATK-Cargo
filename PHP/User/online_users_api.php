@@ -158,14 +158,8 @@ try {
                     }
                     
                     // محاسبه وضعیت کاربر
-                    $idleMinutes = floor($user['idle_time'] / 60);
                     $status = 'online';
                     $statusText = 'آنلاین';
-                    
-                    if ($idleMinutes > 5) {
-                        $status = 'idle';
-                        $statusText = "بیکار ($idleMinutes دقیقه)";
-                    }
                     
                     $filteredUsers[] = [
                         'id' => $user['id'],
@@ -179,8 +173,6 @@ try {
                         'last_activity' => $user['last_activity'],
                         'last_activity_jalali' => $lastActivityJalali,
                         'online_duration' => $user['online_duration'],
-                        'idle_time' => $user['idle_time'],
-                        'idle_minutes' => $idleMinutes,
                         'status' => $status,
                         'status_text' => $statusText
                     ];
@@ -192,6 +184,79 @@ try {
                 'users' => $filteredUsers,
                 'total_count' => count($filteredUsers),
                 'filter' => $filter,
+                'last_update' => jdate('Y/m/d H:i:s')
+            ], JSON_UNESCAPED_UNICODE);
+            break;
+            
+        case 'get_all_sessions':
+            $timeFilter = $_GET['time_filter'] ?? 'all';
+            $statusFilter = $_GET['status_filter'] ?? 'all';
+            
+            $allSessions = $sessionManager->getAllSessions($timeFilter, $statusFilter);
+            $processedSessions = [];
+            
+            foreach ($allSessions as $session) {
+                // تبدیل تاریخ‌ها به شمسی
+                $loginTimeJalali = '';
+                $lastActivityJalali = '';
+                $logoutTimeJalali = '';
+                
+                if ($session['login_time']) {
+                    $loginTimestamp = strtotime($session['login_time']);
+                    $loginTimeJalali = jdate('Y/m/d H:i:s', $loginTimestamp);
+                }
+                
+                if ($session['last_activity']) {
+                    $lastActivityTimestamp = strtotime($session['last_activity']);
+                    $lastActivityJalali = jdate('Y/m/d H:i:s', $lastActivityTimestamp);
+                }
+                
+                if ($session['logout_time']) {
+                    $logoutTimestamp = strtotime($session['logout_time']);
+                    $logoutTimeJalali = jdate('Y/m/d H:i:s', $logoutTimestamp);
+                }
+                
+                // تعیین وضعیت جلسه
+                $status = $session['is_active'] ? 'active' : 'inactive';
+                $statusText = $session['is_active'] ? 'فعال' : 'خارج شده';
+                
+                // تعیین وضعیت ساده: آنلاین یا آفلاین
+                 if ($session['is_active']) {
+                     $statusText = 'آنلاین';
+                 }
+                
+                $processedSessions[] = [
+                    'id' => $session['id'],
+                    'username' => $session['username'],
+                    'userType' => $session['userType'],
+                    'device_model' => $session['device_model'],
+                    'device_id' => $session['device_id'],
+                    'ip_address' => $session['ip_address'],
+                    'is_active' => $session['is_active'],
+                    'login_time' => $session['login_time'],
+                    'login_time_jalali' => $loginTimeJalali,
+                    'last_activity' => $session['last_activity'],
+                    'last_activity_jalali' => $lastActivityJalali,
+                    'logout_time' => $session['logout_time'],
+                    'logout_time_jalali' => $logoutTimeJalali,
+                    'session_duration' => $session['session_duration'],
+                    'status' => $status,
+                    'status_text' => $statusText
+                ];
+            }
+            
+            // محاسبه آمار
+            $activeCount = count(array_filter($processedSessions, function($s) { return $s['is_active']; }));
+            $inactiveCount = count(array_filter($processedSessions, function($s) { return !$s['is_active']; }));
+            
+            echo json_encode([
+                'success' => true,
+                'sessions' => $processedSessions,
+                'total_count' => count($processedSessions),
+                'active_count' => $activeCount,
+                'inactive_count' => $inactiveCount,
+                'time_filter' => $timeFilter,
+                'status_filter' => $statusFilter,
                 'last_update' => jdate('Y/m/d H:i:s')
             ], JSON_UNESCAPED_UNICODE);
             break;

@@ -208,36 +208,70 @@ class SessionManager {
                 ];
             }
             
-            $query = "UPDATE user_sessions SET is_active = 0, logout_time = NOW() WHERE username = ? AND is_active = 1";
-            $params = [$username];
+            // شروع تراکنش برای جلوگیری از مشکلات همزمانی
+            $this->pdo->beginTransaction();
             
-            if ($deviceId) {
-                $query .= " AND device_id = ?";
-                $params[] = $deviceId;
-            }
-            
-            $stmt = $this->pdo->prepare($query);
-            $result = $stmt->execute($params);
-            
-            if ($result && $stmt->rowCount() > 0) {
-                $this->logActivity($username, 'LOGOUT', $deviceId);
+            try {
+                // بررسی وجود جلسه فعال
+                $checkQuery = "SELECT id FROM user_sessions WHERE username = ? AND is_active = 1";
+                $checkParams = [$username];
+                
+                if ($deviceId) {
+                    $checkQuery .= " AND device_id = ?";
+                    $checkParams[] = $deviceId;
+                }
+                
+                $checkStmt = $this->pdo->prepare($checkQuery);
+                $checkStmt->execute($checkParams);
+                
+                if ($checkStmt->rowCount() === 0) {
+                    $this->pdo->rollback();
+                    return [
+                        'success' => false,
+                        'message' => 'جلسه فعالی برای غیرفعال کردن یافت نشد',
+                        'http_code' => 404
+                    ];
+                }
+                
+                // به‌روزرسانی جلسه‌های فعال به غیرفعال با استفاده از ID
+                $sessionIds = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
+                $placeholders = str_repeat('?,', count($sessionIds) - 1) . '?';
+                
+                $updateQuery = "UPDATE user_sessions SET is_active = 0, logout_time = NOW() WHERE id IN ($placeholders)";
+                $updateStmt = $this->pdo->prepare($updateQuery);
+                $updateResult = $updateStmt->execute($sessionIds);
+                
+                if ($updateResult && $updateStmt->rowCount() > 0) {
+                    $this->pdo->commit();
+                    $this->logActivity($username, 'LOGOUT', $deviceId);
+                    return [
+                        'success' => true,
+                        'message' => 'خروج با موفقیت انجام شد',
+                        'affected_sessions' => $updateStmt->rowCount(),
+                        'http_code' => 200
+                    ];
+                }
+                
+                $this->pdo->rollback();
                 return [
-                    'success' => true,
-                    'message' => 'خروج با موفقیت انجام شد',
-                    'affected_sessions' => $stmt->rowCount(),
-                    'http_code' => 200
+                    'success' => false,
+                    'message' => 'خطا در غیرفعال کردن جلسه',
+                    'http_code' => 500
                 ];
+                
+            } catch (Exception $innerE) {
+                $this->pdo->rollback();
+                throw $innerE;
             }
-            
-            return [
-                'success' => false,
-                'message' => 'جلسه فعالی برای غیرفعال کردن یافت نشد',
-                'http_code' => 404
-            ];
             
         } catch (Exception $e) {
             error_log("خطا در غیرفعال کردن جلسه: " . $e->getMessage());
-            throw $e;
+            return [
+                'success' => false,
+                'message' => 'خطای داخلی سرور در هنگام خروج',
+                'error' => $e->getMessage(),
+                'http_code' => 500
+            ];
         }
     }
     
@@ -336,21 +370,17 @@ class SessionManager {
                 ];
             }
             
-            // ابتدا تمام رکوردهای غیرفعال قدیمی این کاربر و دستگاه را حذف کنیم
-            $deleteOldStmt = $this->pdo->prepare("
-                DELETE FROM user_sessions 
-                WHERE username = ? AND device_id = ? AND is_active = 0
-            ");
-            $deleteOldStmt->execute([$username, $deviceId]);
+            // به‌روزرسانی جلسه‌های فعال به غیرفعال با استفاده از ID
+            $sessionIds = array_column($activeSessions, 'id');
+            $placeholders = str_repeat('?,', count($sessionIds) - 1) . '?';
             
-            // سپس جلسه‌های فعال را به غیرفعال تبدیل کنیم
             $updateStmt = $this->pdo->prepare("
                 UPDATE user_sessions 
                 SET is_active = 0, logout_time = NOW(), last_activity = NOW()
-                WHERE username = ? AND device_id = ? AND is_active = 1
+                WHERE id IN ($placeholders)
             ");
             
-            $result = $updateStmt->execute([$username, $deviceId]);
+            $result = $updateStmt->execute($sessionIds);
             
             if ($result && $updateStmt->rowCount() > 0) {
                 $this->pdo->commit();

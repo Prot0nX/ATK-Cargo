@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ATK Cargo - دسترسی محدود</title>
+    <title>ATK Cargo - هدایت به پنل مدیریت</title>
+    <meta http-equiv="refresh" content="0; url=online_users_manager.html">
     
     <!-- فونت وزیرمتن -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
@@ -67,6 +68,27 @@
             animation: slideUp 0.8s ease-out;
         }
         
+        .redirect-btn {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 8px 25px rgba(116, 185, 255, 0.3);
+        }
+        
+        .redirect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(116, 185, 255, 0.4);
+        }
+        
         @keyframes slideUp {
             from {
                 opacity: 0;
@@ -85,8 +107,8 @@
         
         .main-icon {
             font-size: 4.5em;
-            color: #ff6b6b;
-            text-shadow: 0 0 30px rgba(255, 107, 107, 0.5);
+            color: #74b9ff;
+            text-shadow: 0 0 30px rgba(116, 185, 255, 0.5);
             animation: pulse 2s ease-in-out infinite;
         }
         
@@ -203,18 +225,22 @@
         <div class="brand">ATK CARGO</div>
         
         <div class="icon-container">
-            <i class="fas fa-shield-alt main-icon"></i>
+            <i class="fas fa-users main-icon"></i>
         </div>
         
-        <h1>دسترسی محدود</h1>
+        <h1>هدایت به پنل مدیریت</h1>
         
         <div class="warning-box">
-            <i class="fas fa-exclamation-triangle warning-icon"></i>
-            <span class="warning-text">هشدار امنیتی</span>
+            <i class="fas fa-users warning-icon"></i>
+            <span class="warning-text">مدیریت کاربران آنلاین</span>
             <div class="contact-info">
-                            شما مجاز به مشاهده محتویات این بخش نیستید.<br>
-            این منطقه تنها برای کاربران مجاز قابل دسترسی است.
+                در حال هدایت به پنل مدیریت کاربران آنلاین...<br>
+                اگر به صورت خودکار هدایت نشدید، روی دکمه زیر کلیک کنید.
             </div>
+            <a href="online_users_manager.html" class="redirect-btn">
+                <i class="fas fa-arrow-left" style="margin-left: 8px;"></i>
+                ورود به پنل مدیریت
+            </a>
         </div>
     </div>
 </body>

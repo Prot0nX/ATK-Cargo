@@ -19,7 +19,7 @@ import javax.crypto.spec.SecretKeySpec
 
 class SignatureVerifier(private val context: Context) {
     companion object {
-        private const val C = "6a6e02dce2d2286ec2211cc9f20fc0dfe8c9e2ef5663e1584e7aa3bfc5e09471"
+        private const val C = "d9b3d45bf342d3b1ce53a3a73837ef6667e8edfdc40584df6e1fe9aa457717fd"
         private const val D = "e1f2g3h4i5j6k7l8m9n0o1p2q3r4s5t6"
         private const val E = "aHR0cHM6Ly9hdGstbmsuaXIvQ2FyZ28vY2hlY2tfc2lnbmF0dXJlLnBocA=="
         private const val LICENSE_ENDPOINT = "https://atk-nk.ir/Cargo/validate_license.php"

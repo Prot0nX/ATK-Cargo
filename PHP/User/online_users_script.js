@@ -4,11 +4,16 @@
  */
 
 // متغیرهای سراسری
-let currentFilter = 'all';
+let currentTimeFilter = 'all';
+let currentStatusFilter = 'all';
+let currentUserTypeFilter = 'all';
+let currentSearchQuery = '';
 let autoRefreshInterval = null;
 let isLoading = false;
 let lastUpdateTime = null;
 let retryCount = 0;
+let allUsers = []; // ذخیره همه کاربران برای جستجو
+let filteredUsers = []; // کاربران فیلتر شده
 const MAX_RETRY_COUNT = 3;
 
 // تنظیمات پیکربندی
@@ -47,8 +52,25 @@ const elements = {
     userModal: document.getElementById('userModal'),
     modalContent: document.getElementById('modalContent'),
     closeModal: document.getElementById('closeModal'),
+    statsModal: document.getElementById('statsModal'),
+    statsModalContent: document.getElementById('statsModalContent'),
+    closeStatsModal: document.getElementById('closeStatsModal'),
+    
+    // جستجو
+    searchInput: document.getElementById('searchInput'),
+    clearSearch: document.getElementById('clearSearch'),
+    searchResults: document.getElementById('searchResults'),
+    searchResultsText: document.getElementById('searchResultsText'),
+    
+    // عملیات
+    clearAllFilters: document.getElementById('clearAllFilters'),
+    exportCSV: document.getElementById('exportCSV'),
+    showAdvancedStats: document.getElementById('showAdvancedStats'),
     
     // فیلترها
+    timeFilterButtons: document.querySelectorAll('.time-filter'),
+    statusFilterButtons: document.querySelectorAll('.status-filter'),
+    userTypeFilterButtons: document.querySelectorAll('.user-type-filter'),
     filterButtons: document.querySelectorAll('.filter-btn')
 };
 
@@ -184,10 +206,16 @@ class UsersManager {
             errorCount: 0,
             successCount: 0
         };
+        this.advancedStatsManager = new AdvancedStatsManager();
     }
     
-    async loadUsers(filter = 'all') {
+    async loadUsers(timeFilter = null, statusFilter = null, userTypeFilter = null) {
         if (isLoading) return;
+        
+        // استفاده از فیلترهای فعلی اگر پارامتر ارسال نشده
+        timeFilter = timeFilter || currentTimeFilter;
+        statusFilter = statusFilter || currentStatusFilter;
+        userTypeFilter = userTypeFilter || currentUserTypeFilter;
         
         const startTime = performance.now();
         isLoading = true;
@@ -195,7 +223,7 @@ class UsersManager {
         
         try {
             this.showLoading();
-            await this.fetchUsersWithRetry(filter);
+            await this.fetchUsersWithRetry(timeFilter, statusFilter, userTypeFilter);
             this.performanceMetrics.successCount++;
         } catch (error) {
             console.error('خطا در بارگذاری کاربران:', error);
@@ -214,17 +242,37 @@ class UsersManager {
         }
     }
     
-    async fetchUsersWithRetry(filter) {
+    async fetchUsersWithRetry(timeFilter, statusFilter, userTypeFilter) {
         try {
             let response;
-            if (filter === 'all') {
-                response = await ApiManager.getRequest('get_online_users');
-            } else {
-                response = await ApiManager.getRequest(`filter_by_time&filter=${filter}`);
+            
+            // ابتدا همه جلسات (آنلاین و آفلاین) را دریافت کن
+            let endpoint = 'get_all_sessions';
+            let params = [];
+            
+            if (timeFilter && timeFilter !== 'all') {
+                params.push(`time_filter=${timeFilter}`);
             }
             
+            if (statusFilter && statusFilter !== 'all') {
+                params.push(`status_filter=${statusFilter}`);
+            }
+            
+            if (userTypeFilter && userTypeFilter !== 'all') {
+                params.push(`user_type_filter=${userTypeFilter}`);
+            }
+            
+            if (params.length > 0) {
+                endpoint += '&' + params.join('&');
+            }
+            
+            response = await ApiManager.getRequest(endpoint);
+            
             if (response.success) {
-                this.users = response.users || [];
+                allUsers = response.sessions || response.users || [];
+                
+                this.users = [...allUsers];
+                this.applyAllFilters();
                 this.renderUsers();
                 this.updateLastUpdateTime();
                 retryCount = 0;
@@ -237,21 +285,115 @@ class UsersManager {
             if (retryCount < MAX_RETRY_COUNT) {
                 console.warn(`تلاش مجدد ${retryCount}/${MAX_RETRY_COUNT}`);
                 await this.delay(CONFIG.RETRY_DELAY * retryCount);
-                return this.fetchUsersWithRetry(filter);
+                return this.fetchUsersWithRetry(timeFilter, statusFilter, userTypeFilter);
             }
             
             throw error;
         }
     }
     
+
+    
+
+    
+
+    
+    applyAllFilters() {
+        let filtered = [...allUsers];
+        
+        // فیلتر بر اساس وضعیت
+        if (currentStatusFilter && currentStatusFilter !== 'all') {
+            filtered = filtered.filter(user => {
+                const isOnline = !user.logout_time && !user.logout_time_jalali;
+                if (currentStatusFilter === 'online') {
+                    return isOnline;
+                } else if (currentStatusFilter === 'offline') {
+                    return !isOnline;
+                }
+                return true;
+            });
+        }
+        
+        // فیلتر بر اساس نوع کاربر
+        if (currentUserTypeFilter && currentUserTypeFilter !== 'all') {
+            filtered = filtered.filter(user => {
+                const userType = user.userType || user.user_type || 'user';
+                // Map verifier to approver for compatibility
+                if (currentUserTypeFilter === 'verifier') {
+                    return userType === 'verifier' || userType === 'approver';
+                }
+                return userType === currentUserTypeFilter;
+            });
+        }
+        
+        // فیلتر بر اساس جستجو
+        if (currentSearchQuery && currentSearchQuery.trim() !== '') {
+            const query = currentSearchQuery.toLowerCase().trim();
+            filtered = filtered.filter(user => {
+                const username = (user.username || user.user_name || '').toLowerCase();
+                const userType = (user.userType || user.user_type || '').toLowerCase();
+                const deviceModel = (user.device_model || '').toLowerCase();
+                const ipAddress = (user.ip_address || '').toLowerCase();
+                
+                return username.includes(query) || 
+                       userType.includes(query) || 
+                       deviceModel.includes(query) || 
+                       ipAddress.includes(query);
+            });
+        }
+        
+        this.users = filtered;
+        filteredUsers = [...filtered];
+        this.updateSearchResults();
+    }
+    
+    updateSearchResults() {
+        if (elements.searchResults) {
+            const totalUsers = allUsers.length;
+            const filteredCount = this.users.length;
+            
+            if (currentSearchQuery || currentUserTypeFilter !== 'all' || currentStatusFilter !== 'all') {
+                elements.searchResults.innerHTML = `
+                    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-blue-700 dark:text-blue-300">
+                                <i class="fas fa-filter ml-2"></i>
+                                نمایش ${filteredCount} از ${totalUsers} کاربر
+                            </span>
+                            <button onclick="clearAllFilters()" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 text-sm">
+                                <i class="fas fa-times ml-1"></i>
+                                پاک کردن فیلترها
+                            </button>
+                        </div>
+                    </div>
+                `;
+                elements.searchResults.style.display = 'block';
+            } else {
+                elements.searchResults.style.display = 'none';
+            }
+        }
+    }
+    
+    filterUsersByStatus(statusFilter) {
+        if (statusFilter === 'all') {
+            return; // نمایش همه کاربران
+        }
+        
+        this.users = this.users.filter(user => {
+            const isOnline = !user.logout_time && !user.logout_time_jalali;
+            if (statusFilter === 'online') {
+                return isOnline;
+            } else if (statusFilter === 'offline') {
+                return !isOnline;
+            }
+            return true;
+        });
+    }
+    
     async loadStats() {
         try {
-            const response = await ApiManager.getRequest('get_session_stats');
-            
-            if (response.success) {
-                this.stats = response.stats;
-                this.renderStats();
-            }
+            this.stats = this.advancedStatsManager.calculateAdvancedStats();
+            this.renderStats();
         } catch (error) {
             console.error('خطا در بارگذاری آمار:', error);
         }
@@ -260,9 +402,15 @@ class UsersManager {
     renderStats() {
         if (!this.stats) return;
         
+        // محاسبه کاربران فعال (آنلاین)
+        const activeUsers = this.calculateActiveUsers();
+        
+        // محاسبه ورودی‌های امروز
+        const todayLogins = this.calculateTodayLogins();
+        
         const animations = [
-            { element: elements.activeSessionsCount, value: this.users.length || 0 },
-            { element: elements.todayLoginsCount, value: this.stats.today_logins || 0 }
+            { element: elements.activeSessionsCount, value: activeUsers },
+            { element: elements.todayLoginsCount, value: todayLogins }
         ];
         
         animations.forEach(({ element, value }, index) => {
@@ -272,6 +420,61 @@ class UsersManager {
                 }, index * 100);
             }
         });
+    }
+    
+    calculateActiveUsers() {
+        if (!allUsers || allUsers.length === 0) return 0;
+        
+        return allUsers.filter(user => {
+            // کاربر آنلاین است اگر logout_time نداشته باشد
+            return !user.logout_time && !user.logout_time_jalali;
+        }).length;
+    }
+    
+
+    calculateTodayLogins() {
+        if (!allUsers || allUsers.length === 0) return 0;
+        
+        const today = new Date();
+        const todayString = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        // محاسبه تاریخ شمسی امروز
+        const todayJalali = this.getCurrentJalaliDate();
+        
+        return allUsers.filter(user => {
+            if (!user.login_time && !user.login_time_jalali) return false;
+            
+            // بررسی تاریخ میلادی
+            if (user.login_time) {
+                const loginDate = new Date(user.login_time);
+                const loginDateString = loginDate.toISOString().split('T')[0];
+                if (loginDateString === todayString) return true;
+            }
+            
+            // بررسی تاریخ شمسی
+            if (user.login_time_jalali) {
+                const loginJalali = user.login_time_jalali.split(' ')[0]; // فقط تاریخ
+                if (loginJalali === todayJalali) return true;
+            }
+            
+            return false;
+        }).length;
+    }
+    
+    getCurrentJalaliDate() {
+        const now = new Date();
+        // تبدیل ساده تاریخ میلادی به شمسی (برای مثال)
+        // در صورت نیاز می‌توان از کتابخانه moment-jalaali استفاده کرد
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+        const day = now.getDate();
+        
+        // تبدیل تقریبی به شمسی (این روش دقیق نیست و باید با کتابخانه مناسب جایگزین شود)
+        const jalaliYear = year - 621;
+        const jalaliMonth = month.toString().padStart(2, '0');
+        const jalaliDay = day.toString().padStart(2, '0');
+        
+        return `${jalaliYear}/${jalaliMonth}/${jalaliDay}`;
     }
     
     animateNumber(element, targetValue) {
@@ -305,15 +508,27 @@ class UsersManager {
         
         this.hideEmptyState();
         
+        // دسته‌بندی کاربران بر اساس تاریخ ورود
+        const groupedUsers = this.groupUsersByDate(this.users);
+        
         // استفاده از DocumentFragment برای بهبود عملکرد
         const fragment = document.createDocumentFragment();
         
-        this.users.forEach((user, index) => {
-            const userCard = this.createUserCard(user, index);
-            fragment.appendChild(userCard);
+        // ایجاد بخش‌های دسته‌بندی شده
+        Object.keys(groupedUsers).forEach((date, groupIndex) => {
+            const dateSection = this.createDateSection(date, groupedUsers[date], groupIndex === 0);
+            fragment.appendChild(dateSection);
+            
+            // اضافه کردن کارت‌های کاربر به بخش تاریخ
+            const sectionId = `section-${date.replace(/[^a-zA-Z0-9]/g, '-')}`;
+            const contentDiv = dateSection.querySelector(`#${sectionId}-content`);
+            groupedUsers[date].forEach((user, index) => {
+                const userCard = this.createUserCard(user, index);
+                contentDiv.appendChild(userCard);
+            });
         });
         
-        // پاک کردن محتوای قبلی و اضافه کردن کارت‌های جدید
+        // پاک کردن محتوای قبلی و اضافه کردن بخش‌های جدید
         elements.usersGrid.innerHTML = '';
         elements.usersGrid.appendChild(fragment);
         
@@ -329,13 +544,80 @@ class UsersManager {
         });
     }
     
+    groupUsersByDate(users) {
+        const groups = {};
+        
+        users.forEach(user => {
+            const loginDate = user.login_time_jalali || user.login_time || 'نامشخص';
+            const dateOnly = loginDate.split(' ')[0]; // فقط تاریخ بدون ساعت
+            
+            if (!groups[dateOnly]) {
+                groups[dateOnly] = [];
+            }
+            groups[dateOnly].push(user);
+        });
+        
+        // مرتب‌سازی تاریخ‌ها (جدیدترین اول)
+        const sortedDates = Object.keys(groups).sort((a, b) => {
+            if (a === 'نامشخص') return 1;
+            if (b === 'نامشخص') return -1;
+            return new Date(b) - new Date(a);
+        });
+        
+        const sortedGroups = {};
+        sortedDates.forEach(date => {
+            sortedGroups[date] = groups[date];
+        });
+        
+        return sortedGroups;
+    }
+    
+    createDateSection(date, users, isExpanded = false) {
+        const section = document.createElement('div');
+        section.className = 'date-section mb-3 w-full';
+        
+        const sectionId = `section-${date.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        
+        section.innerHTML = `
+            <div class="date-header bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 mb-4 border border-blue-200/50 dark:border-blue-700/50 cursor-pointer" 
+                 onclick="toggleDateSection('${sectionId}')">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3 space-x-reverse">
+                        <div class="bg-blue-500 p-2 rounded-lg">
+                            <i class="fas fa-calendar-day text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">${date}</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">${users.length} کاربر</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2 space-x-reverse">
+
+                        <i class="fas fa-chevron-${isExpanded ? 'up' : 'down'} text-gray-500 dark:text-gray-400 transition-transform duration-300" id="${sectionId}-icon"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="date-content grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 ${isExpanded ? '' : 'hidden'}" id="${sectionId}-content">
+            </div>
+        `;
+        
+        return section;
+    }
+    
     createUserCard(user, index) {
         const card = document.createElement('div');
-        const userTypeColor = this.getUserTypeColor(user.userType);
+        const userTypeColor = this.getUserTypeColor(user.userType || user.user_type);
+        const isOnline = !user.logout_time && !user.logout_time_jalali;
+        const statusColor = isOnline ? 'green' : 'red';
+        const statusText = isOnline ? 'آنلاین' : 'آفلاین';
+        const statusIcon = isOnline ? 'fa-circle' : 'fa-circle';
         
         card.className = `user-card bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl 
                          transition-all duration-300 p-6 border border-gray-200 dark:border-gray-700 
-                         hover-lift cursor-pointer glass-effect`;
+                         hover-lift cursor-pointer glass-effect w-full 
+                         ${isOnline ? 'border-l-4 border-l-green-500' : 'border-l-4 border-l-red-500'}`;
+        
+
         
         card.innerHTML = `
             <div class="flex items-start justify-between mb-4">
@@ -345,20 +627,25 @@ class UsersManager {
                             <div class="w-12 h-12 bg-gradient-to-br from-${userTypeColor}-400 to-${userTypeColor}-600 
                                         rounded-full flex items-center justify-center text-white font-bold text-lg 
                                         shadow-lg">
-                                ${user.username.charAt(0).toUpperCase()}
+                                ${(user.username || user.user_name || '').charAt(0).toUpperCase()}
                             </div>
+                            <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-${statusColor}-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse"></div>
                         </div>
                         <div>
                             <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">
-                                ${user.username}
+                                ${user.username || user.user_name || 'نامشخص'}
                             </h3>
-                            <span class="user-type ${user.userType} inline-block">
-                                <span>${this.getUserTypeText(user.userType)}</span>
-                            </span>
+                            <div class="flex items-center space-x-2 space-x-reverse">
+                                <span class="user-type ${user.userType || user.user_type} inline-flex items-center">
+                                    <span>${this.getUserTypeText(user.userType || user.user_type)}</span>
+                                </span>
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-${statusColor}-100 text-${statusColor}-800 dark:bg-${statusColor}-900 dark:text-${statusColor}-200">
+                                    <i class="fas ${statusIcon} text-${statusColor}-500 text-xs ml-1"></i>
+                                    ${statusText}
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    
-
                 </div>
             </div>
             
@@ -367,38 +654,57 @@ class UsersManager {
                     <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
                         <i class="fas fa-mobile-alt text-blue-600 dark:text-blue-400 text-xs"></i>
                     </div>
-                    <span class="font-medium">${user.device_model || 'نامشخص'}</span>
+                    <span class="font-medium">${user.device_model || user.device || 'نامشخص'}</span>
                 </div>
                 
                 <div class="flex items-center space-x-2 space-x-reverse text-sm text-gray-600 dark:text-gray-400">
                     <div class="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-clock text-green-600 dark:text-green-400 text-xs"></i>
+                        <i class="fas fa-sign-in-alt text-green-600 dark:text-green-400 text-xs"></i>
                     </div>
-                    <span class="font-medium">${user.login_time_jalali}</span>
+                    <span class="font-medium">${user.login_time_jalali || user.login_time || 'نامشخص'}</span>
                 </div>
                 
+                ${user.logout_time_jalali ? `
                 <div class="flex items-center space-x-2 space-x-reverse text-sm text-gray-600 dark:text-gray-400">
-                    <div class="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-network-wired text-purple-600 dark:text-purple-400 text-xs"></i>
+                    <div class="w-8 h-8 bg-red-100 dark:bg-red-900 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-sign-out-alt text-red-600 dark:text-red-400 text-xs"></i>
                     </div>
-                    <span class="font-medium font-mono">${user.ip_address}</span>
+                    <span class="font-medium">${user.logout_time_jalali}</span>
                 </div>
+                ` : ''}
+                
+                <div class="flex items-center space-x-2 space-x-reverse text-sm text-gray-600 dark:text-gray-400">
+                    <div class="w-8 h-8 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-network-wired text-orange-600 dark:text-orange-400 text-xs"></i>
+                    </div>
+                    <span class="font-medium font-mono">${user.ip_address || user.ip || 'نامشخص'}</span>
+                </div>
+                
+
             </div>
             
             <div class="flex space-x-3 space-x-reverse pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button class="action-btn btn-details flex-1" 
-                        onclick="showUserDetails('${user.username}', '${user.device_id}')" 
+                        onclick="showUserDetails('${user.username || user.user_name}', '${user.device_id || user.session_id}')" 
                         title="مشاهده جزئیات">
                     <i class="fas fa-info-circle"></i>
                     <span>جزئیات</span>
                 </button>
                 
+                ${isOnline ? `
                 <button class="action-btn btn-logout" 
-                        onclick="confirmForceLogout('${user.username}', '${user.device_id}')" 
+                        onclick="confirmForceLogout('${user.username || user.user_name}', '${user.device_id || user.session_id}')" 
                         title="خروج اجباری">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>خروج</span>
                 </button>
+                ` : `
+                <button class="action-btn btn-details" 
+                        title="جلسه خاتمه یافته" disabled>
+                    <i class="fas fa-check-circle"></i>
+                    <span>خاتمه یافته</span>
+                </button>
+                `}
             </div>
         `;
         
@@ -416,8 +722,8 @@ class UsersManager {
         const types = {
             'admin': 'مدیر سیستم',
             'operator': 'اپراتور',
-            'verifier': 'تأیید کننده',
-            'user': 'کاربر عادی'
+            'approver': 'تأیید کننده',
+            'verifier': 'تأیید کننده'
         };
         return types[userType] || userType;
     }
@@ -426,8 +732,8 @@ class UsersManager {
         const colors = {
             'admin': 'red',
             'operator': 'blue',
-            'verifier': 'purple',
-            'user': 'gray'
+            'approver': 'purple',
+            'verifier': 'purple'
         };
         return colors[userType] || 'gray';
     }
@@ -674,7 +980,7 @@ class AutoRefreshManager {
         autoRefreshInterval = setInterval(async () => {
             if (usersManager && !isLoading) {
                 try {
-                    await usersManager.loadUsers(currentFilter);
+                    await usersManager.loadUsers(currentTimeFilter, currentStatusFilter);
                     await usersManager.loadStats();
                 } catch (error) {
                     console.error('خطا در بروزرسانی خودکار:', error);
@@ -699,6 +1005,410 @@ class AutoRefreshManager {
 }
 
 // کلاس مدیریت فیلترها
+// کلاس مدیریت جستجو
+class SearchManager {
+    constructor() {
+        this.searchTimeout = null;
+        this.initializeSearch();
+    }
+    
+    initializeSearch() {
+        if (elements.searchInput) {
+            elements.searchInput.addEventListener('input', (e) => {
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(() => {
+                    this.handleSearch(e.target.value);
+                }, 300);
+            });
+            
+            elements.searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    clearTimeout(this.searchTimeout);
+                    this.handleSearch(e.target.value);
+                }
+            });
+        }
+    }
+    
+    handleSearch(query) {
+        currentSearchQuery = query;
+        usersManager.applyAllFilters();
+        usersManager.renderUsers();
+    }
+    
+    clearSearch() {
+        if (elements.searchInput) {
+            elements.searchInput.value = '';
+            currentSearchQuery = '';
+            usersManager.applyAllFilters();
+            usersManager.renderUsers();
+        }
+    }
+}
+
+// کلاس مدیریت آمار پیشرفته
+class AdvancedStatsManager {
+    constructor() {
+        this.stats = {};
+    }
+    
+    calculateAdvancedStats() {
+        if (!allUsers || allUsers.length === 0) {
+            return {
+                totalUsers: 0,
+                onlineUsers: 0,
+                offlineUsers: 0,
+                adminUsers: 0,
+                operatorUsers: 0,
+                approverUsers: 0,
+                regularUsers: 0,
+                guestUsers: 0,
+                deviceTypes: {},
+                loginTrends: []
+            };
+        }
+        
+        const stats = {
+            totalUsers: allUsers.length,
+            onlineUsers: 0,
+            offlineUsers: 0,
+            adminUsers: 0,
+            operatorUsers: 0,
+            approverUsers: 0,
+            regularUsers: 0,
+            guestUsers: 0,
+            deviceTypes: {},
+            loginTrends: []
+        };
+        
+
+        
+        allUsers.forEach(user => {
+            // شمارش وضعیت‌ها
+            const isOnline = !user.logout_time && !user.logout_time_jalali;
+            if (isOnline) {
+                stats.onlineUsers++;
+            } else {
+                stats.offlineUsers++;
+            }
+            
+            // شمارش نوع کاربران
+            const userType = user.userType || user.user_type || user.role || 'user';
+            const userTypeStr = String(userType).toLowerCase();
+            
+            if (userTypeStr === 'admin' || userTypeStr === 'مدیر') {
+                stats.adminUsers++;
+            } else if (userTypeStr === 'operator' || userTypeStr === 'اپراتور') {
+                stats.operatorUsers++;
+            } else if (userTypeStr === 'approver' || userTypeStr === 'تائید کننده' || userTypeStr === 'تأیید کننده' || userTypeStr === 'تایید کننده') {
+                stats.approverUsers++;
+            } else if (userTypeStr === 'guest' || userTypeStr === 'مهمان') {
+                stats.guestUsers++;
+            } else {
+                stats.regularUsers++;
+            }
+            
+            // شمارش انواع دستگاه
+            const deviceModel = user.device_model || 'نامشخص';
+            stats.deviceTypes[deviceModel] = (stats.deviceTypes[deviceModel] || 0) + 1;
+            
+
+
+        });
+        
+
+
+        
+        this.stats = stats;
+        return stats;
+    }
+    
+    showAdvancedStats() {
+        const stats = this.calculateAdvancedStats();
+        
+        const statsModal = document.getElementById('statsModal');
+        const statsModalContent = document.getElementById('statsModalContent');
+        
+        if (statsModal && statsModalContent) {
+            // به‌روزرسانی محتوای مودال
+            statsModalContent.innerHTML = `
+                <!-- آمار کلی -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white transform hover:scale-105 transition-all duration-300">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-blue-100 text-sm font-medium">کل کاربران</p>
+                                <p class="text-3xl font-bold mt-2">${stats.totalUsers.toLocaleString()}</p>
+                            </div>
+                            <div class="bg-blue-400/30 p-3 rounded-lg">
+                                <i class="fas fa-users text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white transform hover:scale-105 transition-all duration-300">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-green-100 text-sm font-medium">کاربران آنلاین</p>
+                                <p class="text-3xl font-bold mt-2">${stats.onlineUsers.toLocaleString()}</p>
+                            </div>
+                            <div class="bg-green-400/30 p-3 rounded-lg">
+                                <i class="fas fa-circle text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white transform hover:scale-105 transition-all duration-300">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-red-100 text-sm font-medium">کاربران آفلاین</p>
+                                <p class="text-3xl font-bold mt-2">${stats.offlineUsers.toLocaleString()}</p>
+                            </div>
+                            <div class="bg-red-400/30 p-3 rounded-lg">
+                                <i class="fas fa-user-slash text-2xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+
+                </div>
+                
+                <!-- آمار دستگاه‌ها -->
+                <div class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl p-6 border border-gray-200/50 dark:border-gray-600/50 mb-8">
+                        <h4 class="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                            <div class="bg-green-500 p-2 rounded-lg ml-3">
+                                <i class="fas fa-mobile-alt text-white"></i>
+                            </div>
+                            انواع دستگاه‌ها
+                        </h4>
+                        <div class="space-y-3">
+                            ${Object.entries(stats.deviceTypes)
+                                .sort(([,a], [,b]) => b - a)
+                                .slice(0, 6)
+                                .map(([device, count], index) => {
+                                    const deviceUsers = allUsers.filter(user => (user.device_model || 'نامشخص') === device);
+                                    const deviceId = `device-${index}`;
+                                    return `
+                                        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+                                            <div class="flex items-center justify-between p-3 cursor-pointer" onclick="toggleDeviceUsers('${deviceId}')">
+                                                <div class="flex items-center space-x-2 space-x-reverse">
+                                                    <i id="${deviceId}-icon" class="fas fa-chevron-down text-gray-500 transition-transform duration-200"></i>
+                                                    <span class="font-medium text-gray-700 dark:text-gray-300">${device || 'نامشخص'}</span>
+                                                </div>
+                                                <span class="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm font-bold">${count}</span>
+                                            </div>
+                                            <div id="${deviceId}" class="hidden border-t border-gray-200 dark:border-gray-600">
+                                                <div class="p-3 space-y-2 max-h-40 overflow-y-auto">
+                                                    ${deviceUsers.map(user => `
+                                                        <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded text-sm">
+                                                            <span class="text-gray-700 dark:text-gray-300">${user.username || 'نامشخص'}</span>
+                                                            <span class="text-xs px-2 py-1 rounded ${
+                                                                !user.logout_time && !user.logout_time_jalali 
+                                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                                                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                            }">
+                                                                ${!user.logout_time && !user.logout_time_jalali ? 'آنلاین' : 'آفلاین'}
+                                                            </span>
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            ${Object.keys(stats.deviceTypes).length === 0 ? '<div class="text-center text-gray-500 dark:text-gray-400 py-4">هیچ اطلاعاتی در دسترس نیست</div>' : ''}
+                        </div>
+                    </div>
+                
+                <!-- آمار زمانی -->
+
+                
+                <!-- دکمه‌های عملیاتی -->
+                <div class="mt-8 flex justify-center space-x-4 space-x-reverse">
+                    <button onclick="window.print()" class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-lg transition-all duration-300 hover:scale-105 shadow-lg flex items-center space-x-2 space-x-reverse">
+                        <i class="fas fa-print"></i>
+                        <span>چاپ گزارش</span>
+                    </button>
+                    <button onclick="csvExportManager.exportToCSV()" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-3 rounded-lg transition-all duration-300 hover:scale-105 shadow-lg flex items-center space-x-2 space-x-reverse">
+                        <i class="fas fa-download"></i>
+                        <span>دانلود CSV</span>
+                    </button>
+                </div>
+            `;
+            
+            // نمایش مودال
+            statsModal.classList.remove('hidden');
+            
+            // اضافه کردن event listener برای بستن مودال
+            const closeStatsModal = document.getElementById('closeStatsModal');
+            if (closeStatsModal) {
+                closeStatsModal.onclick = () => {
+                    statsModal.classList.add('hidden');
+                };
+            }
+            
+            // بستن مودال با کلیک روی پس‌زمینه
+            statsModal.onclick = (e) => {
+                if (e.target === statsModal) {
+                    statsModal.classList.add('hidden');
+                }
+            };
+        }
+    }
+}
+
+// تابع برای تغییر وضعیت نمایش کاربران هر دستگاه
+function toggleDeviceUsers(deviceId) {
+    const deviceSection = document.getElementById(deviceId);
+    const deviceIcon = document.getElementById(deviceId + '-icon');
+    
+    if (deviceSection && deviceIcon) {
+        if (deviceSection.classList.contains('hidden')) {
+            deviceSection.classList.remove('hidden');
+            deviceIcon.classList.remove('fa-chevron-down');
+            deviceIcon.classList.add('fa-chevron-up');
+        } else {
+            deviceSection.classList.add('hidden');
+            deviceIcon.classList.remove('fa-chevron-up');
+            deviceIcon.classList.add('fa-chevron-down');
+        }
+    }
+}
+
+// کلاس مدیریت خروجی CSV
+class CSVExportManager {
+    constructor() {
+        this.initializeExport();
+    }
+    
+    initializeExport() {
+        // تنظیم event listener برای دکمه خروجی
+    }
+    
+    exportToCSV() {
+        const dataToExport = filteredUsers.length > 0 ? filteredUsers : allUsers;
+        
+        if (!dataToExport || dataToExport.length === 0) {
+            alert('هیچ داده‌ای برای خروجی وجود ندارد!');
+            return;
+        }
+        
+        // تعریف هدرهای CSV
+        const headers = [
+            'نام کاربری',
+            'نوع کاربر', 
+            'وضعیت',
+            'مدل دستگاه',
+            'زمان ورود',
+            'زمان خروج',
+            'آدرس IP',
+            'مدت جلسه (دقیقه)'
+        ];
+        
+        // تبدیل داده‌ها به فرمت CSV
+        const csvContent = [headers.join(',')];
+        
+        dataToExport.forEach(user => {
+            const isOnline = !user.logout_time && !user.logout_time_jalali;
+            const status = isOnline ? 'آنلاین' : 'آفلاین';
+            
+            // محاسبه مدت جلسه
+            let sessionDuration = 'نامشخص';
+            if (user.login_time && user.logout_time) {
+                const loginTime = new Date(user.login_time);
+                const logoutTime = new Date(user.logout_time);
+                const duration = Math.round((logoutTime - loginTime) / (1000 * 60));
+                sessionDuration = duration > 0 ? duration.toString() : 'نامشخص';
+            }
+            
+            const row = [
+                this.escapeCSV(user.username || user.user_name || ''),
+                this.escapeCSV(this.getUserTypeLabel(user.userType || user.user_type)),
+                this.escapeCSV(status),
+                this.escapeCSV(user.device_model || ''),
+                this.escapeCSV(user.login_time_jalali || user.login_time || ''),
+                this.escapeCSV(user.logout_time_jalali || user.logout_time || ''),
+                this.escapeCSV(user.ip_address || ''),
+                this.escapeCSV(sessionDuration)
+            ];
+            
+            csvContent.push(row.join(','));
+        });
+        
+        // ایجاد فایل و دانلود
+        const csvString = '\uFEFF' + csvContent.join('\n'); // اضافه کردن BOM برای پشتیبانی از UTF-8
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        
+        const now = new Date();
+        const timestamp = now.toISOString().slice(0, 19).replace(/:/g, '-');
+        link.setAttribute('download', `users_report_${timestamp}.csv`);
+        
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // نمایش پیام موفقیت
+        this.showExportSuccess(dataToExport.length);
+    }
+    
+    escapeCSV(field) {
+        if (field === null || field === undefined) {
+            return '';
+        }
+        
+        const stringField = String(field);
+        
+        // اگر فیلد شامل کاما، نقل قول یا خط جدید باشد، آن را در نقل قول قرار دهید
+        if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+            return '"' + stringField.replace(/"/g, '""') + '"';
+        }
+        
+        return stringField;
+    }
+    
+    getUserTypeLabel(userType) {
+        const typeLabels = {
+            'admin': 'مدیر',
+            'user': 'کاربر عادی',
+            'guest': 'مهمان'
+        };
+        
+        return typeLabels[userType] || userType || 'نامشخص';
+    }
+    
+    showExportSuccess(count) {
+        // ایجاد toast notification
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300';
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-check-circle ml-2"></i>
+                <span>خروجی ${count} کاربر با موفقیت ایجاد شد</span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // نمایش toast
+        setTimeout(() => {
+            toast.classList.remove('translate-x-full');
+        }, 100);
+        
+        // حذف toast بعد از 3 ثانیه
+        setTimeout(() => {
+            toast.classList.add('translate-x-full');
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 300);
+        }, 3000);
+    }
+}
+
 class FilterManager {
     static init() {
         elements.filterButtons.forEach(btn => {
@@ -709,33 +1419,67 @@ class FilterManager {
     static handleFilterClick(e) {
         const button = e.currentTarget;
         const filter = button.dataset.filter;
+        const filterType = button.dataset.filterType || 'status';
         
-        if (filter === currentFilter) return;
+        if (filterType === 'status') {
+             if (filter === currentStatusFilter) return;
+             
+             // حذف کلاس active از همه دکمه‌های وضعیت
+             elements.filterButtons.forEach(b => {
+                 if (!b.dataset.filterType || b.dataset.filterType === 'status') {
+                     b.classList.remove('active');
+                 }
+             });
+             
+             // اضافه کردن کلاس active به دکمه کلیک شده
+             button.classList.add('active');
+             
+             // تنظیم فیلتر وضعیت جدید
+             currentStatusFilter = filter;
+             
+             // ذخیره فیلتر در localStorage
+             localStorage.setItem('selectedFilter', filter);
+        } else if (filterType === 'userType') {
+            if (filter === currentUserTypeFilter) return;
+            
+            // حذف کلاس active از همه دکمه‌های نوع کاربر
+            elements.filterButtons.forEach(b => {
+                if (b.dataset.filterType === 'userType') {
+                    b.classList.remove('active');
+                }
+            });
+            
+            // اضافه کردن کلاس active به دکمه کلیک شده
+            button.classList.add('active');
+            
+            // تنظیم فیلتر نوع کاربر جدید
+            currentUserTypeFilter = filter;
+            
+            // ذخیره فیلتر در localStorage
+            localStorage.setItem('selectedUserTypeFilter', filter);
+        }
         
-        // حذف کلاس active از همه دکمه‌ها
-        elements.filterButtons.forEach(b => b.classList.remove('active'));
-        
-        // اضافه کردن کلاس active به دکمه کلیک شده
-        button.classList.add('active');
-        
-        // تنظیم فیلتر جدید
-        currentFilter = filter;
-        
-        // بارگذاری کاربران با فیلتر جدید
-        usersManager.loadUsers(currentFilter);
-        
-        // ذخیره فیلتر در localStorage
-        localStorage.setItem('selectedFilter', filter);
+        // بارگذاری کاربران با فیلترهای جدید
+         usersManager.loadUsers(currentTimeFilter, currentStatusFilter, currentUserTypeFilter);
     }
     
     static restoreLastFilter() {
         const savedFilter = localStorage.getItem('selectedFilter');
+        const savedUserTypeFilter = localStorage.getItem('selectedUserTypeFilter');
+        
         if (savedFilter) {
-            currentFilter = savedFilter;
-            const filterButton = document.querySelector(`[data-filter="${savedFilter}"]`);
-            if (filterButton) {
-                elements.filterButtons.forEach(b => b.classList.remove('active'));
-                filterButton.classList.add('active');
+             currentStatusFilter = savedFilter;
+             const filterButton = document.querySelector(`[data-filter="${savedFilter}"][data-filter-type="status"], [data-filter="${savedFilter}"]:not([data-filter-type])`);
+             if (filterButton) {
+                 filterButton.classList.add('active');
+             }
+         }
+        
+        if (savedUserTypeFilter) {
+            currentUserTypeFilter = savedUserTypeFilter;
+            const userTypeButton = document.querySelector(`[data-filter="${savedUserTypeFilter}"][data-filter-type="userType"]`);
+            if (userTypeButton) {
+                userTypeButton.classList.add('active');
             }
         }
     }
@@ -744,10 +1488,92 @@ class FilterManager {
 // نمونه‌های کلاس‌ها
 const themeManager = new ThemeManager();
 const usersManager = new UsersManager();
+const searchManager = new SearchManager();
+const advancedStatsManager = new AdvancedStatsManager();
+const csvExportManager = new CSVExportManager();
 
 // اضافه کردن به window برای دسترسی سراسری
 window.usersManager = usersManager;
 window.themeManager = themeManager;
+window.searchManager = searchManager;
+window.advancedStatsManager = advancedStatsManager;
+window.csvExportManager = csvExportManager;
+
+// توابع سراسری جدید
+window.showAdvancedStats = function() {
+    advancedStatsManager.showAdvancedStats();
+};
+
+window.exportToCSV = function() {
+    csvExportManager.exportToCSV();
+};
+
+window.clearAllFilters = function() {
+    // پاک کردن تمام فیلترها
+    currentTimeFilter = 'all';
+    currentStatusFilter = 'all';
+    currentUserTypeFilter = 'all';
+    currentSearchQuery = '';
+    
+    // پاک کردن کلاس‌های active از همه دکمه‌های فیلتر
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        btn.classList.remove('bg-blue-100', 'dark:bg-blue-900/30', 'text-blue-700', 'dark:text-blue-300');
+        btn.classList.remove('bg-green-100', 'dark:bg-green-900/30', 'text-green-700', 'dark:text-green-300');
+        btn.classList.remove('bg-purple-100', 'dark:bg-purple-900/30', 'text-purple-700', 'dark:text-purple-300');
+    });
+    
+    // فعال کردن دکمه "همه" برای هر نوع فیلتر
+    // فیلتر زمان - همه
+    const timeAllBtn = document.querySelector('.time-filter[data-filter="all"]');
+    if (timeAllBtn) {
+        timeAllBtn.classList.add('active');
+        timeAllBtn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        timeAllBtn.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'text-blue-700', 'dark:text-blue-300');
+    }
+    
+    // فیلتر وضعیت - همه
+    const statusAllBtn = document.querySelector('.status-filter[data-status="all"]');
+    if (statusAllBtn) {
+        statusAllBtn.classList.add('active');
+        statusAllBtn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        statusAllBtn.classList.add('bg-green-100', 'dark:bg-green-900/30', 'text-green-700', 'dark:text-green-300');
+    }
+    
+    // فیلتر نوع کاربر - همه
+    const userTypeAllBtn = document.querySelector('.user-type-filter[data-usertype="all"]');
+    if (userTypeAllBtn) {
+        userTypeAllBtn.classList.add('active');
+        userTypeAllBtn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        userTypeAllBtn.classList.add('bg-purple-100', 'dark:bg-purple-900/30', 'text-purple-700', 'dark:text-purple-300');
+    }
+    
+    // پاک کردن جستجو
+    if (elements.searchInput) {
+        elements.searchInput.value = '';
+    }
+    
+    // پاک کردن دکمه پاک کردن جستجو
+    const clearSearch = document.getElementById('clearSearch');
+    if (clearSearch) {
+        clearSearch.classList.add('hidden');
+    }
+    
+    // پاک کردن localStorage
+    localStorage.removeItem('selectedFilter');
+    localStorage.removeItem('selectedUserTypeFilter');
+    localStorage.removeItem('selectedTimeFilter');
+    
+    // به‌روزرسانی شمارنده فیلترهای فعال
+    updateActiveFiltersCount();
+    
+    // بارگذاری مجدد کاربران
+    if (usersManager) {
+        usersManager.applyAllFilters();
+        usersManager.renderUsers();
+    }
+};
 
 // توابع سراسری
 window.showUserDetails = async function(username, deviceId) {
@@ -759,6 +1585,10 @@ window.showUserDetails = async function(username, deviceId) {
         }
         
         const userTypeColor = usersManager.getUserTypeColor(user.userType);
+        const isOnline = !user.logout_time && !user.logout_time_jalali;
+        const statusText = isOnline ? 'آنلاین' : 'آفلاین';
+        const statusColor = isOnline ? 'green' : 'red';
+        const statusIcon = isOnline ? 'fa-circle' : 'fa-circle';
         
         const modalContent = `
             <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl mx-auto max-h-[90vh] overflow-y-auto">
@@ -766,15 +1596,22 @@ window.showUserDetails = async function(username, deviceId) {
                 <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 rounded-t-2xl">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-4 space-x-reverse">
-                            <div class="w-16 h-16 bg-gradient-to-br from-${userTypeColor}-400 to-${userTypeColor}-600 
-                                        rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg">
-                                ${user.username.charAt(0).toUpperCase()}
+                            <div class="relative">
+                                <div class="w-16 h-16 bg-gradient-to-br from-${userTypeColor}-400 to-${userTypeColor}-600 
+                                            rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                                    ${user.username.charAt(0).toUpperCase()}
+                                </div>
+                                <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-${statusColor}-500 rounded-full border-2 border-white dark:border-gray-800"></div>
                             </div>
                             <div>
                                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white">${user.username}</h2>
                                 <p class="text-${userTypeColor}-600 dark:text-${userTypeColor}-400 font-semibold">
                                     ${usersManager.getUserTypeText(user.userType)}
                                 </p>
+                                <div class="flex items-center mt-1">
+                                    <i class="fas ${statusIcon} text-${statusColor}-500 text-xs ml-2"></i>
+                                    <span class="text-sm text-${statusColor}-600 dark:text-${statusColor}-400 font-medium">${statusText}</span>
+                                </div>
                             </div>
                         </div>
                         <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl" 
@@ -787,7 +1624,6 @@ window.showUserDetails = async function(username, deviceId) {
                 <!-- محتوای مودال -->
                 <div class="p-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-
                         
                         <!-- کارت دستگاه -->
                         <div class="stats-card">
@@ -819,41 +1655,43 @@ window.showUserDetails = async function(username, deviceId) {
                                 </div>
                                 <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-xl 
                                            flex items-center justify-center">
-                                    <i class="fas fa-clock text-green-600 dark:text-green-400 text-xl"></i>
+                                    <i class="fas fa-sign-in-alt text-green-600 dark:text-green-400 text-xl"></i>
                                 </div>
                             </div>
                         </div>
                         
-                        ${user.last_activity_jalali ? `
-                        <!-- کارت آخرین فعالیت -->
+                        ${user.logout_time_jalali ? `
+                        <!-- کارت زمان خروج -->
                         <div class="stats-card">
                             <div class="flex items-center justify-between p-2">
                                 <div>
-                                    <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">آخرین فعالیت</p>
-                                    <p class="text-lg font-bold text-orange-600 dark:text-orange-400">
-                                        ${user.last_activity_jalali}
+                                    <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">زمان خروج</p>
+                                    <p class="text-lg font-bold text-red-600 dark:text-red-400">
+                                        ${user.logout_time_jalali}
                                     </p>
                                 </div>
-                                <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-xl 
+                                <div class="w-12 h-12 bg-red-100 dark:bg-red-900 rounded-xl 
                                            flex items-center justify-center">
-                                    <i class="fas fa-history text-orange-600 dark:text-orange-400 text-xl"></i>
+                                    <i class="fas fa-sign-out-alt text-red-600 dark:text-red-400 text-xl"></i>
                                 </div>
                             </div>
                         </div>
                         ` : ''}
+                        
+
                         
                         <!-- کارت آدرس IP -->
                         <div class="stats-card">
                             <div class="flex items-center justify-between p-2">
                                 <div>
                                     <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">آدرس IP</p>
-                                    <p class="text-lg font-bold text-purple-600 dark:text-purple-400 font-mono">
+                                    <p class="text-lg font-bold text-indigo-600 dark:text-indigo-400 font-mono">
                                         ${user.ip_address}
                                     </p>
                                 </div>
-                                <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-xl 
+                                <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900 rounded-xl 
                                            flex items-center justify-center">
-                                    <i class="fas fa-network-wired text-purple-600 dark:text-purple-400 text-xl"></i>
+                                    <i class="fas fa-network-wired text-indigo-600 dark:text-indigo-400 text-xl"></i>
                                 </div>
                             </div>
                         </div>
@@ -861,11 +1699,18 @@ window.showUserDetails = async function(username, deviceId) {
                     
                     <!-- دکمه‌های عملیات -->
                     <div class="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        ${isOnline ? `
                         <button class="modal-btn modal-btn-danger flex-1" 
                                 onclick="confirmForceLogout('${user.username}', '${user.device_id}')">
                             <i class="fas fa-sign-out-alt"></i>
                             <span>خروج اجباری</span>
                         </button>
+                        ` : `
+                        <button class="modal-btn modal-btn-secondary flex-1" disabled>
+                            <i class="fas fa-check-circle"></i>
+                            <span>جلسه خاتمه یافته</span>
+                        </button>
+                        `}
                         
                         <button class="modal-btn modal-btn-secondary flex-1" 
                                 onclick="ModalManager.hide()">
@@ -933,13 +1778,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
         console.log('شروع راه‌اندازی سیستم مدیریت کاربران آنلاین...');
         
-        // راه‌اندازی فیلترها
-        FilterManager.init();
-        FilterManager.restoreLastFilter();
+        // راه‌اندازی فیلترها (حذف شده چون کلاس FilterManager وجود ندارد)
         
         // بارگذاری اولیه داده‌ها
         await Promise.all([
-            usersManager.loadUsers(currentFilter),
+            usersManager.loadUsers(currentTimeFilter, currentStatusFilter),
             usersManager.loadStats()
         ]);
         
@@ -947,11 +1790,45 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (elements.refreshBtn) {
             elements.refreshBtn.addEventListener('click', async () => {
                 await Promise.all([
-                    usersManager.loadUsers(currentFilter),
+                    usersManager.loadUsers(currentTimeFilter, currentStatusFilter),
                     usersManager.loadStats()
                 ]);
             });
         }
+        
+        // تنظیم event listenerها برای فیلترهای زمانی
+        elements.timeFilterButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // حذف کلاس active از همه دکمه‌های زمانی
+                elements.timeFilterButtons.forEach(b => b.classList.remove('active'));
+                
+                // اضافه کردن کلاس active به دکمه انتخاب شده
+                btn.classList.add('active');
+                
+                // تنظیم فیلتر زمانی فعلی
+                currentTimeFilter = btn.dataset.filter;
+                
+                // بارگذاری کاربران با فیلتر جدید
+                usersManager.loadUsers(currentTimeFilter, currentStatusFilter);
+            });
+        });
+        
+        // تنظیم event listenerها برای فیلترهای وضعیت
+        elements.statusFilterButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // حذف کلاس active از همه دکمه‌های وضعیت
+                elements.statusFilterButtons.forEach(b => b.classList.remove('active'));
+                
+                // اضافه کردن کلاس active به دکمه انتخاب شده
+                btn.classList.add('active');
+                
+                // تنظیم فیلتر وضعیت فعلی
+                currentStatusFilter = btn.dataset.status;
+                
+                // بارگذاری کاربران با فیلتر جدید
+                usersManager.loadUsers(currentTimeFilter, currentStatusFilter);
+            });
+        });
         
         // تنظیم بروزرسانی خودکار
         if (elements.autoRefresh) {
@@ -978,6 +1855,30 @@ document.addEventListener('DOMContentLoaded', async function() {
                 elements.autoRefresh.checked = true;
                 AutoRefreshManager.start();
             }
+        }
+        
+        // تنظیم event listener برای دکمه پاک کردن همه فیلترها
+        const clearAllFiltersBtn = document.getElementById('clearAllFilters');
+        if (clearAllFiltersBtn) {
+            clearAllFiltersBtn.addEventListener('click', clearAllFilters);
+        }
+        
+        // تنظیم event listener برای دکمه پاک کردن فیلترها در قسمت جستجو
+        const clearAllFiltersBtnSearch = document.getElementById('clearAllFiltersBtn');
+        if (clearAllFiltersBtnSearch) {
+            clearAllFiltersBtnSearch.addEventListener('click', clearAllFilters);
+        }
+        
+        // تنظیم event listener برای دکمه خروجی CSV
+        const exportCSVBtn = document.getElementById('exportCSV');
+        if (exportCSVBtn) {
+            exportCSVBtn.addEventListener('click', exportToCSV);
+        }
+        
+        // تنظیم event listener برای دکمه آمار پیشرفته
+        const showAdvancedStatsBtn = document.getElementById('showAdvancedStats');
+        if (showAdvancedStatsBtn) {
+            showAdvancedStatsBtn.addEventListener('click', showAdvancedStats);
         }
         
         // تنظیم event listener برای بستن مودال
@@ -1012,6 +1913,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
         
+        // Initialize filters functionality
+        initializeFilters();
+        
+        // Initialize auto refresh with timer
+        initializeAutoRefreshTimer();
+        
         console.log('سیستم مدیریت کاربران آنلاین با موفقیت راه‌اندازی شد');
         
         // نمایش آمار عملکرد در کنسول (فقط در حالت توسعه)
@@ -1044,3 +1951,289 @@ window.addEventListener('unhandledrejection', (e) => {
     }
     e.preventDefault();
 });
+
+// Initialize Filters Functionality
+function initializeFilters() {
+    // Toggle filters section
+    const toggleFiltersBtn = document.getElementById('filtersToggle');
+    const filtersSection = document.getElementById('filtersSection');
+    const toggleFiltersIcon = document.getElementById('toggleIcon');
+    
+    if (toggleFiltersBtn && filtersSection && toggleFiltersIcon) {
+        toggleFiltersBtn.addEventListener('click', function() {
+            if (filtersSection.classList.contains('hidden')) {
+                filtersSection.classList.remove('hidden');
+                toggleFiltersIcon.classList.remove('fa-chevron-down');
+                toggleFiltersIcon.classList.add('fa-chevron-up');
+            } else {
+                filtersSection.classList.add('hidden');
+                toggleFiltersIcon.classList.remove('fa-chevron-up');
+                toggleFiltersIcon.classList.add('fa-chevron-down');
+            }
+        });
+    }
+    
+    // Filter buttons event listeners
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Remove active class from siblings
+            const siblings = this.parentElement.querySelectorAll('.filter-btn');
+            siblings.forEach(sibling => {
+                sibling.classList.remove('active');
+                sibling.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                sibling.classList.remove('bg-blue-100', 'dark:bg-blue-900/30', 'text-blue-700', 'dark:text-blue-300');
+                sibling.classList.remove('bg-green-100', 'dark:bg-green-900/30', 'text-green-700', 'dark:text-green-300');
+                sibling.classList.remove('bg-purple-100', 'dark:bg-purple-900/30', 'text-purple-700', 'dark:text-purple-300');
+            });
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+            this.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            
+            // Add appropriate color based on filter type
+            if (this.classList.contains('time-filter')) {
+                this.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'text-blue-700', 'dark:text-blue-300');
+                currentTimeFilter = this.getAttribute('data-filter');
+            } else if (this.classList.contains('status-filter')) {
+                this.classList.add('bg-green-100', 'dark:bg-green-900/30', 'text-green-700', 'dark:text-green-300');
+                currentStatusFilter = this.getAttribute('data-status');
+            } else if (this.classList.contains('user-type-filter')) {
+                this.classList.add('bg-purple-100', 'dark:bg-purple-900/30', 'text-purple-700', 'dark:text-purple-300');
+                currentUserTypeFilter = this.getAttribute('data-usertype');
+            }
+            
+            updateActiveFiltersCount();
+            
+            // Apply filters
+            if (usersManager) {
+                usersManager.applyAllFilters();
+                usersManager.renderUsers();
+            }
+        });
+    });
+    
+    // Search input
+    const searchInput = document.getElementById('searchInput');
+    const clearSearch = document.getElementById('clearSearch');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            currentSearchQuery = this.value;
+            
+            if (this.value.trim() !== '') {
+                if (clearSearch) clearSearch.classList.remove('hidden');
+            } else {
+                if (clearSearch) clearSearch.classList.add('hidden');
+            }
+            
+            updateActiveFiltersCount();
+            
+            if (usersManager) {
+                usersManager.applyAllFilters();
+                usersManager.renderUsers();
+            }
+        });
+    }
+    
+    if (clearSearch) {
+        clearSearch.addEventListener('click', function() {
+            if (searchInput) {
+                searchInput.value = '';
+                currentSearchQuery = '';
+            }
+            this.classList.add('hidden');
+            updateActiveFiltersCount();
+            
+            if (usersManager) {
+                usersManager.applyAllFilters();
+                usersManager.renderUsers();
+            }
+        });
+    }
+    
+    // Clear filters button
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', clearAllFilters);
+    }
+    
+    // Initialize filters count
+    updateActiveFiltersCount();
+}
+
+// Update active filters count
+function updateActiveFiltersCount() {
+    const activeFilters = document.querySelectorAll('.filter-btn.active:not([data-filter="all"]):not([data-status="all"]):not([data-usertype="all"])');
+    const searchInput = document.getElementById('searchInput');
+    let count = activeFilters.length;
+    
+    if (searchInput && searchInput.value.trim() !== '') {
+        count++;
+    }
+    
+    const activeFiltersCount = document.getElementById('activeFiltersCount');
+    if (activeFiltersCount) {
+        activeFiltersCount.textContent = count;
+    }
+}
+
+// Clear all filters
+function clearAllFilters() {
+    // Reset all filter buttons to default state
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.classList.add('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        btn.classList.remove('bg-blue-100', 'dark:bg-blue-900/30', 'text-blue-700', 'dark:text-blue-300');
+        btn.classList.remove('bg-green-100', 'dark:bg-green-900/30', 'text-green-700', 'dark:text-green-300');
+        btn.classList.remove('bg-purple-100', 'dark:bg-purple-900/30', 'text-purple-700', 'dark:text-purple-300');
+    });
+    
+    // Activate "all" buttons for each filter type
+    // Time filter - همه
+    const timeAllBtn = document.querySelector('.time-filter[data-filter="all"]');
+    if (timeAllBtn) {
+        timeAllBtn.classList.add('active');
+        timeAllBtn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        timeAllBtn.classList.add('bg-blue-100', 'dark:bg-blue-900/30', 'text-blue-700', 'dark:text-blue-300');
+    }
+    
+    // Status filter - همه
+    const statusAllBtn = document.querySelector('.status-filter[data-status="all"]');
+    if (statusAllBtn) {
+        statusAllBtn.classList.add('active');
+        statusAllBtn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        statusAllBtn.classList.add('bg-green-100', 'dark:bg-green-900/30', 'text-green-700', 'dark:text-green-300');
+    }
+    
+    // User type filter - همه
+    const userTypeAllBtn = document.querySelector('.user-type-filter[data-usertype="all"]');
+    if (userTypeAllBtn) {
+        userTypeAllBtn.classList.add('active');
+        userTypeAllBtn.classList.remove('bg-gray-100', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        userTypeAllBtn.classList.add('bg-purple-100', 'dark:bg-purple-900/30', 'text-purple-700', 'dark:text-purple-300');
+    }
+    
+    // Clear search input
+    const searchInput = document.getElementById('searchInput');
+    const clearSearch = document.getElementById('clearSearch');
+    if (searchInput) {
+        searchInput.value = '';
+        currentSearchQuery = '';
+    }
+    if (clearSearch) {
+        clearSearch.classList.add('hidden');
+    }
+    
+    // Reset filter variables
+    currentTimeFilter = 'all';
+    currentStatusFilter = 'all';
+    currentUserTypeFilter = 'all';
+    
+    updateActiveFiltersCount();
+    
+    // Apply filters
+    if (usersManager) {
+        usersManager.applyAllFilters();
+        usersManager.renderUsers();
+    }
+}
+
+// Auto Refresh Timer Management
+let refreshTimerInterval = null;
+let refreshCountdown = 30;
+
+function initializeAutoRefreshTimer() {
+    const autoRefreshCheckbox = document.getElementById('autoRefresh');
+    const refreshTimer = document.getElementById('refreshTimer');
+    
+    if (autoRefreshCheckbox) {
+        autoRefreshCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                startRefreshTimer();
+                AutoRefreshManager.start();
+            } else {
+                stopRefreshTimer();
+                AutoRefreshManager.stop();
+            }
+        });
+    }
+}
+
+function startRefreshTimer() {
+    const refreshTimer = document.getElementById('refreshTimer');
+    if (!refreshTimer) return;
+    
+    refreshTimer.classList.remove('hidden');
+    refreshCountdown = 30;
+    
+    refreshTimerInterval = setInterval(() => {
+        refreshCountdown--;
+        refreshTimer.textContent = `(${refreshCountdown})`;
+        
+        if (refreshCountdown <= 0) {
+            refreshCountdown = 30;
+        }
+    }, 1000);
+}
+
+function stopRefreshTimer() {
+    const refreshTimer = document.getElementById('refreshTimer');
+    if (refreshTimer) {
+        refreshTimer.classList.add('hidden');
+    }
+    
+    if (refreshTimerInterval) {
+        clearInterval(refreshTimerInterval);
+        refreshTimerInterval = null;
+    }
+}
+
+// Reset timer when refresh happens
+function resetRefreshTimer() {
+    if (refreshTimerInterval) {
+        refreshCountdown = 30;
+    }
+}
+
+// توابع سراسری برای دسترسی از HTML
+function showUserDetails(username, deviceId) {
+    userManager.showUserDetails(username, deviceId);
+}
+
+function confirmForceLogout(username, deviceId) {
+    userManager.confirmForceLogout(username, deviceId);
+}
+
+function forceLogout(username, deviceId) {
+    userManager.forceLogout(username, deviceId);
+}
+
+function showAdvancedStats() {
+    userManager.showAdvancedStats();
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function toggleDateSection(sectionId) {
+    const content = document.getElementById(`${sectionId}-content`);
+    const icon = document.getElementById(`${sectionId}-icon`);
+    
+    if (content && icon) {
+        const isHidden = content.classList.contains('hidden');
+        
+        if (isHidden) {
+            content.classList.remove('hidden');
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-up');
+        } else {
+            content.classList.add('hidden');
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
+        }
+    }
+}
