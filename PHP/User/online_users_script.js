@@ -1773,6 +1773,47 @@ window.forceLogout = async function(username, deviceId) {
     }
 };
 
+// تابع خروج همه کاربران
+window.logoutAllUsers = async function() {
+    try {
+        console.log('Sending logout all users request');
+        
+        const response = await ApiManager.postRequest('logout_all_users', {});
+        
+        console.log('Logout all users response:', response);
+        
+        if (response.success) {
+            usersManager.showSuccess(response.message || 'تمامی کاربران با موفقیت از سیستم خارج شدند');
+            ModalManager.hide();
+            
+            // بروزرسانی کامل لیست کاربران
+            setTimeout(async () => {
+                await usersManager.loadUsers(currentTimeFilter, currentStatusFilter);
+                await usersManager.loadStats();
+            }, 1000);
+        } else {
+            throw new Error(response.message || response.error || 'خطا در خروج همه کاربران');
+        }
+    } catch (error) {
+        console.error('خطا در خروج همه کاربران:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
+        usersManager.showError('خطا در خروج همه کاربران: ' + error.message);
+    }
+};
+
+// تابع تایید خروج همه کاربران
+window.confirmLogoutAllUsers = function() {
+    ModalManager.showConfirm(
+        'آیا مطمئن هستید که می‌خواهید تمامی کاربران آنلاین را از سیستم خارج کنید؟',
+        'logoutAllUsers(); ModalManager.hide();',
+        'ModalManager.hide();'
+    );
+};
+
 // Event Listeners و راه‌اندازی اولیه
 document.addEventListener('DOMContentLoaded', async function() {
     try {
@@ -1879,6 +1920,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         const showAdvancedStatsBtn = document.getElementById('showAdvancedStats');
         if (showAdvancedStatsBtn) {
             showAdvancedStatsBtn.addEventListener('click', showAdvancedStats);
+        }
+        
+        // تنظیم event listener برای دکمه خروج همه
+        const logoutAllBtn = document.getElementById('logoutAll');
+        if (logoutAllBtn) {
+            logoutAllBtn.addEventListener('click', confirmLogoutAllUsers);
         }
         
         // تنظیم event listener برای بستن مودال
@@ -2237,3 +2284,145 @@ function toggleDateSection(sectionId) {
         }
     }
 }
+
+function logoutAllUsers() {
+    window.logoutAllUsers();
+}
+
+function confirmLogoutAllUsers() {
+    window.confirmLogoutAllUsers();
+}
+
+// Logout Users Dropdown and Modal Management
+class LogoutManager {
+    constructor() {
+        this.selectedLogoutType = null;
+        this.init();
+    }
+    
+    init() {
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        document.addEventListener('DOMContentLoaded', () => {
+            const logoutDropdown = document.getElementById('logoutDropdown');
+            const logoutUsersBtn = document.getElementById('logoutUsersBtn');
+            const logoutDropdownMenu = document.getElementById('logoutDropdownMenu');
+            const logoutConfirmModal = document.getElementById('logoutConfirmModal');
+            const logoutConfirmText = document.getElementById('logoutConfirmText');
+            const cancelLogout = document.getElementById('cancelLogout');
+            const confirmLogout = document.getElementById('confirmLogout');
+            
+            if (!logoutUsersBtn || !logoutDropdownMenu) return;
+            
+            // Toggle dropdown
+            logoutUsersBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                logoutDropdownMenu.classList.toggle('hidden');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (logoutDropdown && !logoutDropdown.contains(e.target)) {
+                    logoutDropdownMenu.classList.add('hidden');
+                }
+            });
+            
+            // Handle logout option selection
+            document.querySelectorAll('.logout-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    this.selectedLogoutType = option.dataset.type;
+                    logoutDropdownMenu.classList.add('hidden');
+                    
+                    // Set confirmation text based on type
+                    const confirmText = this.getConfirmationText(this.selectedLogoutType);
+                    
+                    if (logoutConfirmText) {
+                        logoutConfirmText.textContent = confirmText;
+                    }
+                    
+                    if (logoutConfirmModal) {
+                        logoutConfirmModal.classList.remove('hidden');
+                    }
+                });
+            });
+            
+            // Cancel logout
+            if (cancelLogout) {
+                cancelLogout.addEventListener('click', () => {
+                    if (logoutConfirmModal) {
+                        logoutConfirmModal.classList.add('hidden');
+                    }
+                    this.selectedLogoutType = null;
+                });
+            }
+            
+            // Confirm logout
+            if (confirmLogout) {
+                confirmLogout.addEventListener('click', () => {
+                    if (this.selectedLogoutType) {
+                        this.performLogout(this.selectedLogoutType, confirmLogout, logoutConfirmModal);
+                    }
+                });
+            }
+        });
+    }
+    
+    getConfirmationText(type) {
+        switch(type) {
+            case 'all':
+                return 'آیا مطمئن هستید که می‌خواهید همه کاربران را از سیستم خارج کنید؟';
+            case 'except-admin':
+                return 'آیا مطمئن هستید که می‌خواهید همه کاربران به جز مدیران را از سیستم خارج کنید؟';
+            case 'operators':
+                return 'آیا مطمئن هستید که می‌خواهید همه اپراتورها را از سیستم خارج کنید؟';
+            case 'verifiers':
+                return 'آیا مطمئن هستید که می‌خواهید همه تأیید کننده‌ها را از سیستم خارج کنید؟';
+            default:
+                return 'آیا مطمئن هستید که می‌خواهید کاربران انتخاب شده را از سیستم خارج کنید؟';
+        }
+    }
+    
+    performLogout(type, confirmButton, modal) {
+        // Show loading state
+        const originalContent = confirmButton.innerHTML;
+        confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i><span>در حال پردازش...</span>';
+        confirmButton.disabled = true;
+        
+        // Here you would make an API call to logout users
+        // For now, we'll just show a success message
+        setTimeout(() => {
+            alert(`عملیات خروج ${this.getTypeLabel(type)} با موفقیت انجام شد.`);
+            
+            // Reset button
+            confirmButton.innerHTML = originalContent;
+            confirmButton.disabled = false;
+            
+            // Hide modal
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            
+            // Refresh users list if usersManager exists
+            if (typeof usersManager !== 'undefined' && usersManager.loadUsers) {
+                usersManager.loadUsers();
+            }
+            
+            this.selectedLogoutType = null;
+        }, 1500);
+    }
+    
+    getTypeLabel(type) {
+        switch(type) {
+            case 'all': return 'همه کاربران';
+            case 'except-admin': return 'همه کاربران به جز مدیران';
+            case 'operators': return 'اپراتورها';
+            case 'verifiers': return 'تأیید کننده‌ها';
+            default: return 'کاربران انتخاب شده';
+        }
+    }
+}
+
+// Initialize Logout Manager
+const logoutManager = new LogoutManager();

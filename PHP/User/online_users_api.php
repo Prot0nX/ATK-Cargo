@@ -123,6 +123,16 @@ try {
             echo json_encode($result, JSON_UNESCAPED_UNICODE);
             break;
             
+        case 'logout_all_users':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                throw new Exception('روش درخواست نامعتبر است');
+            }
+            
+            $result = $sessionManager->logoutAllActiveUsers();
+            
+            echo json_encode($result, JSON_UNESCAPED_UNICODE);
+            break;
+            
         case 'filter_by_time':
             $filter = $_GET['filter'] ?? 'all';
             $onlineUsers = $sessionManager->getOnlineUsers();

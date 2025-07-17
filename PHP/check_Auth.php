@@ -88,20 +88,21 @@ try {
                 $sessionManager = new SessionManager();
                 $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
                 
-                // بررسی وجود جلسه فعال در همین دستگاه
+                // بررسی وجود جلسه فعال برای کاربر (بدون در نظر گرفتن device_id)
                 $stmt = $pdo->prepare("
-                    SELECT id, session_token 
+                    SELECT id, session_token, device_id 
                     FROM user_sessions 
-                    WHERE username = ? AND device_id = ? AND is_active = 1
+                    WHERE username = ? AND is_active = 1
+                    ORDER BY last_activity DESC
                     LIMIT 1
                 ");
                 
-                $stmt->execute([$username, $deviceId]);
+                $stmt->execute([$username]);
                 $existingSession = $stmt->fetch();
                 
                 if ($existingSession) {
-                    // کاربر در همین دستگاه قبلاً وارد شده، جلسه قبلی را به‌روزرسانی کن
-                    $sessionManager->updateLastActivity($username, $deviceId);
+                    // کاربر قبلاً وارد شده، جلسه قبلی را به‌روزرسانی کن
+                    $sessionManager->updateLastActivity($username, $existingSession['device_id']);
                     
                     // دریافت session_token از جلسه موجود
                     $sessionToken = $existingSession['session_token'];

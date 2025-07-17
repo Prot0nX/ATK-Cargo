@@ -210,6 +210,37 @@
                             <span>آمار</span>
                         </button>
                         
+                        <!-- Logout Users Dropdown -->
+                        <div class="relative" id="logoutDropdown">
+                            <button id="logoutUsersBtn" class="flex items-center space-x-1 space-x-reverse bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-all duration-200 text-xs font-medium">
+                                <i class="fas fa-sign-out-alt text-xs"></i>
+                                <span>خروج کاربران</span>
+                                <i class="fas fa-chevron-down text-xs mr-1"></i>
+                            </button>
+                            
+                            <!-- Dropdown Menu -->
+                            <div id="logoutDropdownMenu" class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 hidden">
+                                <div class="py-2">
+                                    <button class="logout-option w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors" data-type="all">
+                                        <i class="fas fa-users text-xs ml-2"></i>
+                                        همه کاربران
+                                    </button>
+                                    <button class="logout-option w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors" data-type="except-admin">
+                                        <i class="fas fa-user-shield text-xs ml-2"></i>
+                                        به جز مدیران
+                                    </button>
+                                    <button class="logout-option w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors" data-type="operators">
+                                        <i class="fas fa-cog text-xs ml-2"></i>
+                                        اپراتورها
+                                    </button>
+                                    <button class="logout-option w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors" data-type="verifiers">
+                                        <i class="fas fa-check-circle text-xs ml-2"></i>
+                                        تأیید کننده‌ها
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <button id="clearAllFilters" class="flex items-center space-x-1 space-x-reverse bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg transition-all duration-200 text-xs font-medium">
                             <i class="fas fa-eraser text-xs"></i>
                             <span>پاک</span>
@@ -422,6 +453,43 @@
                 
                 <div id="statsModalContent">
                     <!-- Stats content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutConfirmModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 animate-fade-in">
+        <div class="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg rounded-3xl shadow-2xl max-w-md w-full border border-gray-200/50 dark:border-gray-700/50 animate-scale-in">
+            <div class="p-8">
+                <div class="flex items-center justify-center mb-6">
+                    <div class="bg-gradient-to-br from-red-500 to-red-600 p-4 rounded-full">
+                        <i class="fas fa-exclamation-triangle text-white text-2xl"></i>
+                    </div>
+                </div>
+                
+                <div class="text-center mb-8">
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">تأیید خروج کاربران</h3>
+                    <p class="text-gray-600 dark:text-gray-400 leading-relaxed" id="logoutConfirmText">
+                        آیا مطمئن هستید که می‌خواهید کاربران انتخاب شده را از سیستم خارج کنید؟
+                    </p>
+                    <div class="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                        <div class="flex items-center space-x-2 space-x-reverse text-yellow-800 dark:text-yellow-300">
+                            <i class="fas fa-info-circle text-sm"></i>
+                            <span class="text-sm font-medium">این عملیات قابل بازگشت نیست</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-center space-x-4 space-x-reverse">
+                    <button id="cancelLogout" class="flex items-center space-x-2 space-x-reverse bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg">
+                        <i class="fas fa-times text-sm"></i>
+                        <span>انصراف</span>
+                    </button>
+                    <button id="confirmLogout" class="flex items-center space-x-2 space-x-reverse bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg">
+                        <i class="fas fa-sign-out-alt text-sm"></i>
+                        <span>تأیید خروج</span>
+                    </button>
                 </div>
             </div>
         </div>
