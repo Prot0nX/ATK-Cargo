@@ -193,6 +193,7 @@ class SessionManager {
     
     /**
      * غیرفعال کردن جلسه کاربر (خروج)
+     * تمام جلسات فعال کاربر بر اساس نام کاربری غیرفعال می‌شوند
      */
     public function deactivateSession($username, $deviceId = null) {
         try {
@@ -212,14 +213,9 @@ class SessionManager {
             $this->pdo->beginTransaction();
             
             try {
-                // بررسی وجود جلسه فعال
+                // بررسی وجود جلسه فعال - تمام جلسات فعال کاربر بر اساس نام کاربری
                 $checkQuery = "SELECT id FROM user_sessions WHERE username = ? AND is_active = 1";
                 $checkParams = [$username];
-                
-                if ($deviceId) {
-                    $checkQuery .= " AND device_id = ?";
-                    $checkParams[] = $deviceId;
-                }
                 
                 $checkStmt = $this->pdo->prepare($checkQuery);
                 $checkStmt->execute($checkParams);
@@ -233,7 +229,7 @@ class SessionManager {
                     ];
                 }
                 
-                // به‌روزرسانی جلسه‌های فعال به غیرفعال با استفاده از ID
+                // به‌روزرسانی تمام جلسه‌های فعال کاربر به غیرفعال
                 $sessionIds = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
                 $placeholders = str_repeat('?,', count($sessionIds) - 1) . '?';
                 
@@ -243,10 +239,10 @@ class SessionManager {
                 
                 if ($updateResult && $updateStmt->rowCount() > 0) {
                     $this->pdo->commit();
-                    $this->logActivity($username, 'LOGOUT', $deviceId);
+                    $this->logActivity($username, 'LOGOUT_ALL_SESSIONS', $deviceId);
                     return [
                         'success' => true,
-                        'message' => 'خروج با موفقیت انجام شد',
+                        'message' => 'خروج با موفقیت انجام شد - تمام جلسات فعال غیرفعال شدند',
                         'affected_sessions' => $updateStmt->rowCount(),
                         'http_code' => 200
                     ];

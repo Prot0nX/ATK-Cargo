@@ -610,5 +610,83 @@ class SessionManager {
             return null;
         }
     }
+    
+    /**
+     * خروج همه کاربران فعال از سیستم
+     */
+    public function logoutAllActiveUsers() {
+        try {
+            // شروع تراکنش برای جلوگیری از race condition
+            $this->pdo->beginTransaction();
+            
+            // ابتدا تمام جلسه‌های فعال را پیدا کنیم
+            $checkStmt = $this->pdo->prepare("
+                SELECT id, username, device_id 
+                FROM user_sessions 
+                WHERE is_active = 1
+                FOR UPDATE
+            ");
+            $checkStmt->execute();
+            $activeSessions = $checkStmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (empty($activeSessions)) {
+                $this->pdo->rollback();
+                return [
+                    'success' => true,
+                    'message' => 'هیچ کاربر فعالی برای خروج یافت نشد',
+                    'logged_out_count' => 0
+                ];
+            }
+            
+            // تمام جلسه‌های فعال را به غیرفعال تبدیل کنیم
+            $updateStmt = $this->pdo->prepare("
+                UPDATE user_sessions 
+                SET is_active = 0, logout_time = NOW(), last_activity = NOW()
+                WHERE is_active = 1
+            ");
+            
+            $result = $updateStmt->execute();
+            $loggedOutCount = $updateStmt->rowCount();
+            
+            if ($result && $loggedOutCount > 0) {
+                $this->pdo->commit();
+                
+                // ثبت لاگ برای هر کاربر خارج شده
+                foreach ($activeSessions as $session) {
+                    $this->logActivity($session['username'], 'LOGOUT_ALL_USERS', $session['device_id']);
+                }
+                
+                return [
+                    'success' => true,
+                    'message' => "تمامی کاربران ($loggedOutCount نفر) با موفقیت از سیستم خارج شدند",
+                    'logged_out_count' => $loggedOutCount
+                ];
+            }
+            
+            $this->pdo->rollback();
+            return [
+                'success' => false,
+                'message' => 'خطا در خروج همه کاربران',
+                'logged_out_count' => 0
+            ];
+            
+        } catch (Exception $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollback();
+            }
+            
+            error_log("خطا در خروج همه کاربران: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'logged_out_count' => 0,
+                'debug_info' => [
+                    'file' => __FILE__,
+                    'line' => __LINE__,
+                    'action' => 'logout_all_users'
+                ]
+            ];
+        }
+    }
 }
 ?>
