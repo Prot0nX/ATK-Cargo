@@ -1849,42 +1849,29 @@ class ReportsViewModel(
 
         try {
             file.outputStream().use { outputStream ->
-                val document = Document(PageSize.A4, 36f, 36f, 54f, 36f)
+                val document = Document(PageSize.A4, 30f, 30f, 40f, 30f) // کاهش حاشیه‌ها
                 val writer = PdfWriter.getInstance(document, outputStream)
                 document.open()
 
-                val baseFont = createFont("assets/fonts/B NAZANIN.TTF", IDENTITY_H, true)
-                val farsiFont = Font(baseFont, 10f, Font.NORMAL)
-                val farsiBoldFont = Font(baseFont, 12f, Font.BOLD)
-                val farsiHeaderFont = Font(baseFont, 18f, Font.BOLD)
-                val defaultFont = Font(Font.FontFamily.HELVETICA, 10f, Font.NORMAL)
-                val defaultBoldFont = Font(Font.FontFamily.HELVETICA, 11f, Font.BOLD)
+                // بارگیری فونت فارسی با بهبود مدیریت خطا
+                val persianFontManager = PersianFontManager()
+                val fonts = persianFontManager.loadFonts()
 
-                // تعریف رنگ‌ها
-                val primaryColor = BaseColor(0, 121, 107)
-                val secondaryColor = BaseColor(224, 242, 241)
+                // تعریف رنگ‌های بهبود یافته
+                val colorScheme = PdfColorScheme()
 
-                // اضافه کردن سربرگ
-                addHeader(document, farsiHeaderFont)
+                // اضافه کردن سربرگ مدرن
+                addModernHeader(document, fonts.headerFont, colorScheme)
 
-                // اضافه کردن اطلاعات خلاصه
-                addSummaryInfo(document, data, farsiBoldFont, farsiFont, secondaryColor)
+                // اضافه کردن اطلاعات خلاصه با قالب‌بندی بهتر
+                addEnhancedSummaryInfo(document, data, fonts, colorScheme)
 
-                // ایجاد جدول اصلی
-                val table = createMainTable(
-                    data,
-                    farsiBoldFont,
-                    farsiFont,
-                    defaultFont,
-                    defaultBoldFont,
-                    primaryColor,
-                    secondaryColor
-                )
-
+                // ایجاد جدول اصلی با بهبود layout
+                val table = createEnhancedMainTable(data, fonts, colorScheme)
                 document.add(table)
 
-                // اضافه کردن پاورقی
-                addFooter(document, writer, defaultFont)
+                // اضافه کردن پاورقی فارسی
+                addPersianFooter(document, writer, fonts.normalFont, colorScheme)
 
                 document.close()
             }
@@ -1896,163 +1883,445 @@ class ReportsViewModel(
         fileName
     }
 
-    private fun addHeader(document: Document, font: Font) {
-        val table = PdfPTable(2)
-        table.widthPercentage = 100f
-        table.setWidths(floatArrayOf(1f, 2f))
+    private fun addModernHeader(document: Document, font: Font, colorScheme: PdfColorScheme) {
+        // ایجاد جدول سربرگ با قالب‌بندی مدرن
+        val headerTable = PdfPTable(1)
+        headerTable.widthPercentage = 100f
+        headerTable.spacingAfter = 15f
 
-        // اضافه کردن عنوان گزارش
-        val titleCell = PdfPCell()
-        titleCell.border = Rectangle.NO_BORDER
-        titleCell.paddingRight = 10f
-        addRtlText(titleCell, "گزارش خلاصه حواله‌ها", font, Element.ALIGN_RIGHT)
-        table.addCell(titleCell)
+        // سلول اصلی سربرگ
+        val headerCell = PdfPCell()
+        headerCell.backgroundColor = colorScheme.primary
+        headerCell.border = Rectangle.NO_BORDER
+        headerCell.paddingTop = 20f
+        headerCell.paddingBottom = 20f
+        headerCell.paddingLeft = 15f
+        headerCell.paddingRight = 15f
 
-        document.add(table)
-        document.add(Paragraph(" ")) // فاصله
+        // تنظیم فونت سفید برای سربرگ
+        val whiteHeaderFont = Font(font.baseFont, font.size, font.style)
+        whiteHeaderFont.color = BaseColor.WHITE
+
+        addPersianText(headerCell, "گزارش خلاصه حواله‌ها", whiteHeaderFont, Element.ALIGN_CENTER, false)
+        headerTable.addCell(headerCell)
+
+        // اضافه کردن خط جداکننده زیبا
+        val separatorTable = PdfPTable(1)
+        separatorTable.widthPercentage = 100f
+        separatorTable.spacingAfter = 10f
+
+        val separatorCell = PdfPCell()
+        separatorCell.backgroundColor = colorScheme.accent
+        separatorCell.border = Rectangle.NO_BORDER
+        separatorCell.fixedHeight = 3f
+        separatorTable.addCell(separatorCell)
+
+        document.add(headerTable)
+        document.add(separatorTable)
     }
 
-    private fun addSummaryInfo(
+    private fun addEnhancedSummaryInfo(
         document: Document,
         data: FilteredSummary,
-        boldFont: Font,
-        normalFont: Font,
-        secondaryColor: BaseColor
+        fonts: PdfFonts,
+        colorScheme: PdfColorScheme
     ) {
-        val table = PdfPTable(2)
-        table.widthPercentage = 100f
-        table.setWidths(floatArrayOf(1f, 1f))
+        // ایجاد جدول اطلاعات خلاصه با قالب‌بندی مدرن
+        val infoTable = PdfPTable(2)
+        infoTable.widthPercentage = 100f
+        infoTable.setWidths(floatArrayOf(1.2f, 0.8f)) // نسبت بهتر برای ستون‌ها
+        infoTable.spacingAfter = 20f
 
-        fun addInfoRow(label: String, value: String) {
-            // ابتدا سلول مقدار را اضافه می‌کنیم
+        fun addModernInfoRow(label: String, value: String, isHighlight: Boolean = false) {
+            // سلول مقدار با فونت فارسی (سمت راست - ستون اول)
             val valueCell = PdfPCell()
-            valueCell.paddingRight = 5f
-            addRtlText(valueCell, value, normalFont, Element.ALIGN_RIGHT)
-            table.addCell(valueCell)
+            valueCell.backgroundColor = colorScheme.white
+            valueCell.border = Rectangle.BOX
+            valueCell.borderColor = colorScheme.lightGray
+            valueCell.borderWidth = 1f
+            valueCell.paddingTop = 12f
+            valueCell.paddingBottom = 12f
+            valueCell.paddingLeft = 15f
+            valueCell.paddingRight = 15f
 
-            // سپس سلول عنوان را اضافه می‌کنیم
+            val valueFont = if (isHighlight) fonts.boldFont else fonts.normalFont
+            valueFont.color = colorScheme.text
+            addPersianText(valueCell, value, valueFont, Element.ALIGN_RIGHT)
+            infoTable.addCell(valueCell)
+
+            // سلول عنوان با استایل مدرن (سمت چپ - ستون دوم)
             val labelCell = PdfPCell()
-            labelCell.backgroundColor = secondaryColor
-            labelCell.paddingRight = 5f
-            labelCell.paddingTop = 8f
-            labelCell.paddingBottom = 8f
-            addRtlText(labelCell, label, boldFont, Element.ALIGN_RIGHT)
-            table.addCell(labelCell)
+            labelCell.backgroundColor = if (isHighlight) colorScheme.accent else colorScheme.secondary
+            labelCell.border = Rectangle.NO_BORDER
+            labelCell.paddingTop = 12f
+            labelCell.paddingBottom = 12f
+            labelCell.paddingLeft = 15f
+            labelCell.paddingRight = 15f
+
+            val labelFont = if (isHighlight) fonts.boldFont else fonts.normalFont
+            if (isHighlight) labelFont.color = BaseColor.WHITE
+            addPersianText(labelCell, label, labelFont, Element.ALIGN_LEFT, false)
+            infoTable.addCell(labelCell)
         }
 
-        addInfoRow("شماره کوتاژ:", data.quotaNumber)
-        addInfoRow("از تاریخ و ساعت:", "${formatDate(data.startDate)} - ${data.startTime}")
-        addInfoRow("تا تاریخ و ساعت:", "${formatDate(data.endDate)} - ${data.endTime}")
-        addInfoRow("تعداد کل حواله‌ها:", data.voucherCount.toString())
-        addInfoRow("وزن خالص کل:", "${formatNumber(data.totalNetWeight.toInt())} کیلوگرم")
+        // اضافه کردن اطلاعات با استایل مناسب
+        addModernInfoRow("شماره کوتاژ:", data.quotaNumber)
+        addModernInfoRow("از تاریخ و ساعت:", "${convertToShamsiDate(data.startDate)} - ${convertToPersianNumbers(data.startTime)}")
+        addModernInfoRow("تا تاریخ و ساعت:", "${convertToShamsiDate(data.endDate)} - ${convertToPersianNumbers(data.endTime)}")
+        addModernInfoRow("تعداد کل حواله‌ها:", convertToPersianNumbers(data.voucherCount.toString()), true)
+        addModernInfoRow("وزن خالص کل:", "${formatPersianNumber(data.totalNetWeight.toInt())} کیلوگرم", true)
 
-        document.add(table)
-        document.add(Paragraph(" ")) // فاصله
+        document.add(infoTable)
     }
 
-    private fun createMainTable(
+    // تابع قالب‌بندی اعداد فارسی با جداکننده هزارگان
+    private fun formatPersianNumber(number: Int): String {
+        val formatted = NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
+        return convertToPersianNumbers(formatted)
+    }
+
+    private fun createEnhancedMainTable(
         data: FilteredSummary,
-        boldFarsiFont: Font,
-        normalFarsiFont: Font,
-        normalFont: Font,
-        boldFont: Font,
-        primaryColor: BaseColor,
-        secondaryColor: BaseColor
+        fonts: PdfFonts,
+        colorScheme: PdfColorScheme
     ): PdfPTable {
         val table = PdfPTable(6)
         table.widthPercentage = 100f
-        table.setWidths(floatArrayOf(3f, 2f, 2f, 2f, 2f, 2f))
+        // ترتیب عرض ستون‌ها برعکس شده (از راست به چپ): شماره قبض، وزن خالص، تاریخ خروج، ساعت خروج، ساعت ورود، شماره حواله
+        table.setWidths(floatArrayOf(2.2f, 2f, 2f, 1.8f, 1.8f, 2.5f))
+        table.spacingBefore = 10f
 
-        fun createCell(content: String, isHeader: Boolean = false, isFarsi: Boolean = false): PdfPCell {
-            val font = when {
-                isHeader && isFarsi -> boldFarsiFont.apply { color = BaseColor.WHITE }
-                isHeader && !isFarsi -> boldFont.apply { color = BaseColor.WHITE }
-                isFarsi -> normalFarsiFont
-                else -> normalFont
-            }
+        fun createModernCell(
+            content: String, 
+            isHeader: Boolean = false, 
+            isPersian: Boolean = true,
+            isNumeric: Boolean = false
+        ): PdfPCell {
             val cell = PdfPCell()
-            cell.paddingTop = 8f
-            cell.paddingBottom = 8f
+            
+            // تنظیمات padding بهتر
+            cell.paddingTop = if (isHeader) 15f else 10f
+            cell.paddingBottom = if (isHeader) 15f else 10f
+            cell.paddingLeft = 8f
+            cell.paddingRight = 8f
+
             if (isHeader) {
-                cell.backgroundColor = primaryColor
-            }
-            if (isFarsi) {
-                addRtlText(cell, content, font, Element.ALIGN_CENTER)
+                // استایل سرستون
+                cell.backgroundColor = colorScheme.primary
+                cell.border = Rectangle.BOX
+                cell.borderColor = colorScheme.white
+                cell.borderWidth = 1f
+                
+                val headerFont = Font(fonts.boldFont.baseFont, 11f, Font.BOLD)
+                headerFont.color = BaseColor.WHITE
+                
+                addPersianText(cell, content, headerFont, Element.ALIGN_CENTER, false)
             } else {
-                cell.phrase = Phrase(content, font)
-                cell.horizontalAlignment = Element.ALIGN_CENTER
+                // استایل سلول‌های داده
+                cell.backgroundColor = colorScheme.white
+                cell.border = Rectangle.BOX
+                cell.borderColor = colorScheme.lightGray
+                cell.borderWidth = 0.5f
+                
+                val cellFont = fonts.normalFont
+                cellFont.color = colorScheme.text
+                
+                if (isPersian) {
+                    val processedContent = if (isNumeric) convertToPersianNumbers(content) else content
+                    addPersianText(cell, processedContent, cellFont, Element.ALIGN_CENTER)
+                } else {
+                    cell.phrase = Phrase(content, cellFont)
+                    cell.horizontalAlignment = Element.ALIGN_CENTER
+                }
             }
+            
             return cell
         }
 
-        // سرستون‌های جدول
-        table.addCell(createCell("شماره حواله", isHeader = true, isFarsi = true))
-        table.addCell(createCell("ساعت ورود", isHeader = true, isFarsi = true))
-        table.addCell(createCell("ساعت خروج", isHeader = true, isFarsi = true))
-        table.addCell(createCell("تاریخ خروج", isHeader = true, isFarsi = true))
-        table.addCell(createCell("وزن خالص", isHeader = true, isFarsi = true))
-        table.addCell(createCell("شماره قبض", isHeader = true, isFarsi = true))
+        // سرستون‌های جدول با ترتیب راست به چپ فارسی (از راست: شماره قبض تا چپ: شماره حواله)
+        table.addCell(createModernCell("شماره قبض", isHeader = true))
+        table.addCell(createModernCell("وزن خالص (کیلوگرم)", isHeader = true))
+        table.addCell(createModernCell("تاریخ خروج", isHeader = true))
+        table.addCell(createModernCell("ساعت خروج", isHeader = true))
+        table.addCell(createModernCell("ساعت ورود", isHeader = true))
+        table.addCell(createModernCell("شماره حواله", isHeader = true))
 
-        // داده‌های جدول
+        // داده‌های جدول با ترتیب راست به چپ فارسی
         data.voucherDetails.forEachIndexed { index, detail ->
-            val rowColor = if (index % 2 == 0) BaseColor.WHITE else secondaryColor
-            table.addCell(createCell(detail.trackingNumber, isFarsi = false).apply { backgroundColor = rowColor })
-            table.addCell(createCell(detail.entryTime, isFarsi = false).apply { backgroundColor = rowColor })
-            table.addCell(createCell(detail.exitTime, isFarsi = false).apply { backgroundColor = rowColor })
-            table.addCell(createCell(formatDate(detail.exitDate), isFarsi = false).apply { backgroundColor = rowColor })
-            table.addCell(createCell(formatNumber(detail.netWeight.toInt()), isFarsi = false).apply { backgroundColor = rowColor })
-            table.addCell(createCell(detail.scaleReceiptNumber, isFarsi = false).apply { backgroundColor = rowColor })
+            // رنگ‌بندی متناوب برای بهتر خوانی
+            val isEvenRow = index % 2 == 0
+            val rowColor = if (isEvenRow) colorScheme.white else colorScheme.lightGray
+            
+            // شماره قبض (سمت راست)
+            table.addCell(createModernCell(detail.scaleReceiptNumber, isPersian = false).apply { 
+                backgroundColor = rowColor 
+            })
+            
+            // وزن خالص
+            table.addCell(createModernCell(formatPersianNumber(detail.netWeight.toInt()), isPersian = true).apply { 
+                backgroundColor = rowColor 
+            })
+            
+            // تاریخ خروج
+            table.addCell(createModernCell(convertToShamsiDate(detail.exitDate), isPersian = true).apply { 
+                backgroundColor = rowColor 
+            })
+            
+            // ساعت خروج
+            table.addCell(createModernCell(detail.exitTime, isPersian = true, isNumeric = true).apply { 
+                backgroundColor = rowColor 
+            })
+            
+            // ساعت ورود
+            table.addCell(createModernCell(detail.entryTime, isPersian = true, isNumeric = true).apply { 
+                backgroundColor = rowColor 
+            })
+            
+            // شماره حواله (سمت چپ)
+            table.addCell(createModernCell(detail.trackingNumber, isPersian = false).apply { 
+                backgroundColor = rowColor 
+            })
         }
 
         return table
     }
 
-    private fun addRtlText(cell: PdfPCell, text: String, font: Font, alignment: Int) {
+    // کلاس مدیریت فونت‌های فارسی
+    private inner class PersianFontManager {
+        fun loadFonts(): PdfFonts {
+            return try {
+                val baseFont = createFont("assets/fonts/B NAZANIN.TTF", IDENTITY_H, true)
+                val fallbackFont = Font(Font.FontFamily.HELVETICA, 11f, Font.NORMAL)
+                
+                PdfFonts(
+                    normalFont = Font(baseFont, 11f, Font.NORMAL),
+                    boldFont = Font(baseFont, 12f, Font.BOLD),
+                    headerFont = Font(baseFont, 20f, Font.BOLD),
+                    titleFont = Font(baseFont, 16f, Font.BOLD),
+                    subtitleFont = Font(baseFont, 14f, Font.BOLD),
+                    fallbackFont = fallbackFont
+                )
+            } catch (e: Exception) {
+                Log.w("PersianFontManager", "Failed to load Persian font, using fallback", e)
+                // در صورت عدم موفقیت در بارگیری فونت فارسی، از فونت پیش‌فرض استفاده می‌کنیم
+                val fallback = Font(Font.FontFamily.HELVETICA, 11f, Font.NORMAL)
+                PdfFonts(
+                    normalFont = Font(Font.FontFamily.HELVETICA, 11f, Font.NORMAL),
+                    boldFont = Font(Font.FontFamily.HELVETICA, 12f, Font.BOLD),
+                    headerFont = Font(Font.FontFamily.HELVETICA, 20f, Font.BOLD),
+                    titleFont = Font(Font.FontFamily.HELVETICA, 16f, Font.BOLD),
+                    subtitleFont = Font(Font.FontFamily.HELVETICA, 14f, Font.BOLD),
+                    fallbackFont = fallback
+                )
+            }
+        }
+    }
+
+    // کلاس نگهداری فونت‌ها
+    private data class PdfFonts(
+        val normalFont: Font,
+        val boldFont: Font,
+        val headerFont: Font,
+        val titleFont: Font,
+        val subtitleFont: Font,
+        val fallbackFont: Font
+    )
+
+    // کلاس رنگ‌بندی PDF
+    private class PdfColorScheme {
+        val primary = BaseColor(0, 96, 100)           // تیره‌تر برای بهتر خوانی
+        val secondary = BaseColor(240, 248, 255)      // آبی خیلی روشن
+        val accent = BaseColor(255, 193, 7)           // زرد برای تأکید
+        val text = BaseColor(33, 37, 41)              // خاکستری تیره برای متن
+        val lightGray = BaseColor(248, 249, 250)      // خاکستری روشن
+        val white = BaseColor.WHITE
+        val success = BaseColor(40, 167, 69)          // سبز برای موفقیت
+        val warning = BaseColor(255, 193, 7)          // زرد برای هشدار
+        val danger = BaseColor(220, 53, 69)           // قرمز برای خطر
+    }
+
+
+
+    // تابع بهبود یافته برای افزودن متن فارسی با پشتیبانی از اعداد فارسی
+    private fun addPersianText(
+        cell: PdfPCell, 
+        text: String, 
+        font: Font, 
+        alignment: Int = Element.ALIGN_RIGHT,
+        convertNumbers: Boolean = true
+    ) {
+        val processedText = if (convertNumbers) convertToPersianNumbers(text) else text
         val column = ColumnText(null)
         column.runDirection = PdfWriter.RUN_DIRECTION_RTL
         column.alignment = alignment
-        column.addElement(Paragraph(text, font))
+        column.addElement(Paragraph(processedText, font))
         cell.column = column
     }
 
-    private fun formatDate(date: String): String {
-        val parts = date.split("/")
-        return if (parts.size == 3) "${parts[0]}/${parts[1]}/${parts[2]}" else date
+    // تابع تبدیل اعداد انگلیسی به فارسی
+    private fun convertToPersianNumbers(text: String): String {
+        val persianDigits = arrayOf("۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹")
+        var result = text
+        
+        for (i in 0..9) {
+            result = result.replace(i.toString(), persianDigits[i])
+        }
+        
+        return result
+    }
+
+    // تابع تبدیل تاریخ میلادی به شمسی (برای تاریخ‌های string)
+    private fun convertToShamsiDate(date: String): String {
+        return try {
+            val parts = date.split("/")
+            if (parts.size == 3) {
+                val year = parts[0].toInt()
+                val month = parts[1].toInt()
+                val day = parts[2].toInt()
+                
+                // استفاده از الگوریتم تبدیل
+                val shamsiDate = gregorianToShamsi(year, month, day)
+                val yearStr = shamsiDate.year.toString()
+                val monthStr = shamsiDate.month.toString().padStart(2, '0')
+                val dayStr = shamsiDate.day.toString().padStart(2, '0')
+                
+                "${convertToPersianNumbers(yearStr)}/${convertToPersianNumbers(monthStr)}/${convertToPersianNumbers(dayStr)}"
+            } else {
+                convertToPersianNumbers(date)
+            }
+        } catch (e: Exception) {
+            Log.w("DateConverter", "Failed to convert date: $date", e)
+            convertToPersianNumbers(date)
+        }
+    }
+
+    // تابع تبدیل تاریخ میلادی کامل به شمسی برای استفاده در پاورقی
+    private fun convertGregorianToShamsi(gregorianDate: Date): String {
+        return try {
+            val calendar = Calendar.getInstance()
+            calendar.time = gregorianDate
+            
+            val gregorianYear = calendar.get(Calendar.YEAR)
+            val gregorianMonth = calendar.get(Calendar.MONTH) + 1
+            val gregorianDay = calendar.get(Calendar.DAY_OF_MONTH)
+            
+            // محاسبه تاریخ شمسی
+            val shamsiDate = gregorianToShamsi(gregorianYear, gregorianMonth, gregorianDay)
+            
+            val year = shamsiDate.year.toString()
+            val month = shamsiDate.month.toString().padStart(2, '0')
+            val day = shamsiDate.day.toString().padStart(2, '0')
+            
+            "${convertToPersianNumbers(year)}/${convertToPersianNumbers(month)}/${convertToPersianNumbers(day)}"
+        } catch (e: Exception) {
+            Log.w("ShamsiConverter", "Failed to convert Gregorian to Shamsi", e)
+            // در صورت خطا، تاریخ میلادی را به صورت فارسی برمی‌گردانیم
+            val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+            convertToPersianNumbers(dateFormat.format(gregorianDate))
+        }
+    }
+
+    // کلاس داده برای نگهداری تاریخ شمسی
+    private data class ShamsiDate(val year: Int, val month: Int, val day: Int)
+
+    // تابع تبدیل تاریخ میلادی به شمسی (الگوریتم بهبود یافته)
+    private fun gregorianToShamsi(gYear: Int, gMonth: Int, gDay: Int): ShamsiDate {
+        val gMonthDays = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334)
+        
+        val gy = gYear - 1600
+        val gm = gMonth - 1
+        val gd = gDay - 1
+        
+        var gDayNo = 365 * gy + ((gy + 3) / 4) - ((gy + 99) / 100) + ((gy + 399) / 400) - 80 + gd + gMonthDays[gm]
+        
+        // بررسی سال کبیسه
+        if (gm > 1 && ((gYear % 4 == 0 && gYear % 100 != 0) || (gYear % 400 == 0))) {
+            gDayNo++
+        }
+        
+        var jDayNo = gDayNo - 79
+        
+        val jNp = jDayNo / 12053
+        jDayNo %= 12053
+        
+        var jYear = 979 + 33 * jNp + 4 * (jDayNo / 1461)
+        jDayNo %= 1461
+        
+        if (jDayNo >= 366) {
+            jYear += ((jDayNo - 1) / 365)
+            jDayNo = (jDayNo - 1) % 365
+        }
+        
+        val jMonth: Int
+        val jDay: Int
+        
+        if (jDayNo < 186) {
+            // ماه‌های فروردین تا شهریور (۶ ماه اول - هر کدام ۳۱ روز)
+            jMonth = 1 + jDayNo / 31
+            jDay = 1 + (jDayNo % 31)
+        } else {
+            // ماه‌های مهر تا اسفند (۶ ماه آخر - هر کدام ۳۰ روز)
+            jMonth = 7 + (jDayNo - 186) / 30
+            jDay = 1 + ((jDayNo - 186) % 30)
+        }
+        
+        return ShamsiDate(jYear, jMonth, jDay)
     }
 
     @SuppressLint("SimpleDateFormat", "DefaultLocale")
-    private fun addFooter(document: Document, writer: PdfWriter, font: Font) {
-        val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())
+    private fun addPersianFooter(
+        document: Document, 
+        writer: PdfWriter, 
+        font: Font, 
+        colorScheme: PdfColorScheme
+    ) {
+        // تولید تاریخ و زمان فارسی
+        val currentDate = Date()
+        val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        
+        // تبدیل تاریخ کنونی به شمسی
+        val persianDate = convertGregorianToShamsi(currentDate)
+        val persianTime = convertToPersianNumbers(timeFormat.format(currentDate))
 
         for (pageNumber in 1..writer.pageNumber) {
             val footerTable = PdfPTable(3)
             footerTable.totalWidth = document.pageSize.width - document.leftMargin() - document.rightMargin()
-            footerTable.setWidths(floatArrayOf(1f, 1f, 1f))
+            footerTable.setWidths(floatArrayOf(1f, 1.5f, 1f))
 
-            // شماره صفحه
-            val cell1 = PdfPCell(Phrase(String.format("صفحه %d از %d", pageNumber, writer.pageNumber), font))
-            cell1.horizontalAlignment = Element.ALIGN_LEFT
-            cell1.border = Rectangle.NO_BORDER
-            footerTable.addCell(cell1)
+            // شماره صفحه (سمت چپ)
+            val pageCell = PdfPCell()
+            pageCell.border = Rectangle.NO_BORDER
+            pageCell.paddingTop = 10f
+            pageCell.paddingBottom = 5f
+            val pageText = "صفحه ${convertToPersianNumbers(pageNumber.toString())} از ${convertToPersianNumbers(writer.pageNumber.toString())}"
+            addPersianText(pageCell, pageText, font, Element.ALIGN_LEFT)
+            footerTable.addCell(pageCell)
 
-            // تاریخ و زمان تولید گزارش
-            val cell2 = PdfPCell(Phrase("تاریخ تولید گزارش: $time", font))
-            cell2.horizontalAlignment = Element.ALIGN_CENTER
-            cell2.border = Rectangle.NO_BORDER
-            footerTable.addCell(cell2)
+            // تاریخ و زمان تولید گزارش (وسط)
+            val dateTimeCell = PdfPCell()
+            dateTimeCell.border = Rectangle.NO_BORDER
+            dateTimeCell.paddingTop = 10f
+            dateTimeCell.paddingBottom = 5f
+            val dateTimeText = "تاریخ ایجاد گزارش: $persianDate - ساعت: $persianTime"
+            addPersianText(dateTimeCell, dateTimeText, font, Element.ALIGN_CENTER)
+            footerTable.addCell(dateTimeCell)
 
-            // نام شرکت یا اطلاعات تماس
-            val cell3 = PdfPCell(Phrase("شرکت ای تی کی", font))
-            cell3.horizontalAlignment = Element.ALIGN_RIGHT
-            cell3.border = Rectangle.NO_BORDER
-            footerTable.addCell(cell3)
+            // نام شرکت (سمت راست)
+            val companyCell = PdfPCell()
+            companyCell.border = Rectangle.NO_BORDER
+            companyCell.paddingTop = 10f
+            companyCell.paddingBottom = 5f
+            addPersianText(companyCell, "امین تجار خوزستان", font, Element.ALIGN_RIGHT, false)
+            footerTable.addCell(companyCell)
 
-            footerTable.writeSelectedRows(0, -1, document.leftMargin(), document.bottomMargin(), writer.directContent)
+            // رسم جدول پاورقی
+            footerTable.writeSelectedRows(
+                0, -1, 
+                document.leftMargin(), 
+                document.bottomMargin() + 30f, // فاصله بهتر از پایین صفحه
+                writer.directContent
+            )
         }
-    }
-
-    private fun formatNumber(number: Int): String {
-        return NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
     }
 
     fun loadComprehensiveAnalytics() {

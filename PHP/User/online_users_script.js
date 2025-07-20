@@ -1819,8 +1819,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
         console.log('شروع راه‌اندازی سیستم مدیریت کاربران آنلاین...');
         
-        // راه‌اندازی فیلترها (حذف شده چون کلاس FilterManager وجود ندارد)
-        
+       
         // بارگذاری اولیه داده‌ها
         await Promise.all([
             usersManager.loadUsers(currentTimeFilter, currentStatusFilter),
