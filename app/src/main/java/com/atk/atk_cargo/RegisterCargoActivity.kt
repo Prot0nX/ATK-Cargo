@@ -381,6 +381,9 @@ fun RegisterCargoScreen(
     // متغیرهای مربوط به دیالوگ تأیید حواله تکراری
     val showDuplicateConfirmationDialog by viewModel.showDuplicateConfirmationDialog.collectAsState()
     val duplicateWarningMessage by viewModel.duplicateWarningMessage.collectAsState()
+    
+    // وضعیت ثبت حواله
+    val isSubmitting by viewModel.isSubmitting.collectAsState()
 
     fun clearInputFields() {
         trackingNumber = ""
@@ -483,6 +486,7 @@ fun RegisterCargoScreen(
                         cargoInfoList = cargoInfoList,
                         isCargoConfirmed = cargoInfoList.find { it.trackingNumber == trackingNumber }?.confirm == "تائید شده",
                         isCargoExited = cargoInfoList.find { it.trackingNumber == trackingNumber }?.status == "خروج",
+                        isSubmitting = isSubmitting,
                         onSubmit = {
                             coroutineScope.launch {
                                 if (trackingNumber.isBlank()) {
@@ -2196,6 +2200,7 @@ fun FormSection(
     cargoInfoList: List<CargoInfo>,
     isCargoConfirmed: Boolean,
     isCargoExited: Boolean,
+    isSubmitting: Boolean,
     onSubmit: () -> Unit,
 ) {
     val isDuplicate = remember(trackingNumber, cargoInfoList) {
@@ -2226,9 +2231,11 @@ fun FormSection(
         isDuplicate,
         shortageWeight,
         excessWeight,
-        canEditWeights
+        canEditWeights,
+        isSubmitting
     ) {
         when {
+            isSubmitting -> false // غیرفعال کردن دکمه در حین ثبت
             trackingNumber.isBlank() -> false
             !isDuplicate -> numberOfPeople.isNotBlank() && numberOfPeople.toIntOrNull() != null && numberOfPeople.toIntOrNull()!! > 0
             !canEditWeights -> false
