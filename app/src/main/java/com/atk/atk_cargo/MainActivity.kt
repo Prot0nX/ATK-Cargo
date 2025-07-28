@@ -169,10 +169,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.animateLottieCompositionAsState
-import com.airbnb.lottie.compose.rememberLottieComposition
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.runtime.DisposableEffect
 import com.atk.atk_cargo.api.ApiService
 import com.atk.atk_cargo.api.CargoViewModel
 import com.atk.atk_cargo.api.CargoViewModelFactory
@@ -1549,45 +1552,19 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
 
 @Composable
 fun SplashScreen() {
-    val backgroundScale = remember { Animatable(1.1f) }
-    val logoScale = remember { Animatable(0.8f) }
-    val logoAlpha = remember { Animatable(0f) }
     val textAlpha = remember { Animatable(0f) }
     val context = LocalContext.current
     val appVersion = remember {
         try {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName
         } catch (_: Exception) {
+            "نامشخص"
         }
     }
 
     LaunchedEffect(Unit) {
-        // انیمیشن پس‌زمینه
-        backgroundScale.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(
-                durationMillis = 1000,
-                easing = FastOutSlowInEasing
-            )
-        )
-
-        // انیمیشن لوگو
-        launch {
-            logoAlpha.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 800)
-            )
-            logoScale.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            )
-        }
-
         // انیمیشن متن با تاخیر
-        delay(600)
+        delay(800)
         textAlpha.animateTo(
             targetValue = 1f,
             animationSpec = tween(durationMillis = 800)
@@ -1595,94 +1572,93 @@ fun SplashScreen() {
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.surfaceVariant,
-                        MaterialTheme.colorScheme.surface
-                    ),
-                    radius = 1200f
-                )
-            ),
-        contentAlignment = Alignment.Center
+        modifier = Modifier.fillMaxSize()
     ) {
-        // دایره پشت لوگو
+        // ویدیو پس‌زمینه تمام صفحه
+        val exoPlayer = remember {
+            ExoPlayer.Builder(context)
+                .build()
+                .apply {
+                    val mediaItem = MediaItem.fromUri("android.resource://${context.packageName}/${R.raw.splash}")
+                    setMediaItem(mediaItem)
+                    prepare()
+                    playWhenReady = true
+                    repeatMode = Player.REPEAT_MODE_ONE
+                    volume = 0f // بی‌صدا کردن ویدیو
+                }
+        }
+
+        DisposableEffect(Unit) {
+            onDispose {
+                exoPlayer.release()
+            }
+        }
+
+        AndroidView(
+            factory = { ctx ->
+                PlayerView(ctx).apply {
+                    player = exoPlayer
+                    useController = false // مخفی کردن کنترل‌های پخش
+                    setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM // پر کردن تمام صفحه
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // لایه شفاف برای بهتر خواندن متن‌ها
         Box(
             modifier = Modifier
-                .size(300.dp)
-                .scale(backgroundScale.value)
+                .fillMaxSize()
                 .background(
-                    brush = Brush.radialGradient(
+                    brush = Brush.verticalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0f)
-                        )
-                    ),
-                    shape = CircleShape
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.4f)
+                        ),
+                        startY = 0f,
+                        endY = Float.POSITIVE_INFINITY
+                    )
                 )
         )
 
-        // ستون محتوای اصلی
+        // متن‌ها در پایین صفحه
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            verticalArrangement = Arrangement.Bottom,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // لوگوی انیمیشنی
-            Box(
-                modifier = Modifier
-                    .size(250.dp)
-                    .scale(logoScale.value)
-                    .alpha(logoAlpha.value),
-                contentAlignment = Alignment.Center
-            ) {
-                val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_logo))
-                val progress by animateLottieCompositionAsState(
-                    composition = composition,
-                    iterations = 1
-                )
-                LottieAnimation(
-                    composition = composition,
-                    progress = { progress },
-                    modifier = Modifier.size(220.dp)
-                )
-            }
-
             // عنوان برنامه
             Text(
                 text = "سیستم مدیریت هوشمند بارگیری",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+                color = Color.White,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .alpha(textAlpha.value)
-                    .padding(16.dp)
+                    .padding(bottom = 8.dp)
             )
 
             // نام شرکت
             Text(
                 text = "شرکت امین تجار خوزستان",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.9f),
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.alpha(textAlpha.value)
+                modifier = Modifier
+                    .alpha(textAlpha.value)
+                    .padding(bottom = 16.dp)
             )
-        }
 
-        // نسخه برنامه در پایین صفحه
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 32.dp),
-            contentAlignment = Alignment.BottomCenter
-        ) {
+            // نسخه برنامه
             Text(
                 text = "نسخه $appVersion",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                color = Color.White.copy(alpha = 0.7f),
                 modifier = Modifier.alpha(textAlpha.value)
             )
         }

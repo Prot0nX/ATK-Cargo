@@ -113,6 +113,10 @@ class CargoViewModel(
     private val _showNetWeightDialog = MutableStateFlow(false)
     val showNetWeightDialog: StateFlow<Boolean> = _showNetWeightDialog.asStateFlow()
     
+    // متغیر برای نشان دادن وضعیت ثبت حواله
+    private val _isSubmitting = MutableStateFlow(false)
+    val isSubmitting: StateFlow<Boolean> = _isSubmitting.asStateFlow()
+    
     // متغیرهای مربوط به دیالوگ تأیید حواله تکراری
     private val _showDuplicateConfirmationDialog = MutableStateFlow(false)
     val showDuplicateConfirmationDialog: StateFlow<Boolean> = _showDuplicateConfirmationDialog.asStateFlow()
@@ -385,6 +389,8 @@ class CargoViewModel(
     ) {
         viewModelScope.launch {
             try {
+                // تنظیم وضعیت ثبت به true
+                _isSubmitting.value = true
                 // اعتبارسنجی سریع اولیه برای جلوگیری از ارسال‌های غیرضروری به سرور
                 if (trackingNumber.isBlank()) {
                     showErrorMessage("شماره حواله نمی‌تواند خالی باشد.")
@@ -443,6 +449,9 @@ class CargoViewModel(
             } catch (e: Exception) {
                 Log.e("CargoViewModel", "خطا در submitCargoInfo: ${e.message}", e)
                 showErrorMessage("خطا در ثبت اطلاعات بار: ${e.message}")
+            } finally {
+                // تنظیم وضعیت ثبت به false
+                _isSubmitting.value = false
             }
         }
     }

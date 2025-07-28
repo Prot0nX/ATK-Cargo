@@ -13,7 +13,7 @@ android {
         minSdk = 28
         targetSdk = 33
         versionCode = 1
-        versionName = "3.0.14"
+        versionName = "3.0.15"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -288,6 +288,11 @@ dependencies {
     // ==================== Animation & UI Effects ====================
     implementation(libs.lottie.compose)
     implementation(libs.konfetti.compose)
+    
+    // ==================== Video Player ====================
+    implementation("androidx.media3:media3-exoplayer:1.2.1")
+    implementation("androidx.media3:media3-ui:1.2.1")
+    implementation("androidx.media3:media3-common:1.2.1")
 
     // ==================== Charts & Visualization ====================
     implementation(libs.core)
