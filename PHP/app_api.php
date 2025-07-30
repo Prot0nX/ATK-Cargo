@@ -171,66 +171,44 @@
 				END as status_message
 			FROM InitialInfo i 
 			WHERE i.loadingQuotaNumber = ?
+				AND i.shipName = ?
+				AND i.cargoType = ?
+				AND i.shippingCompany = ?
 			LIMIT 1";
 			
 			$stmt = $db->prepare($query);
-			$stmt->bind_param("s", $quotaNumber);
+			$stmt->bind_param("ssss", $quotaNumber, $shipName, $cargoType, $shippingCompany);
 			$stmt->execute();
 			$result = $stmt->get_result();
 			
 			if ($row = $result->fetch_assoc()) {
-				// حذف تبدیل‌های اضافی و استفاده مستقیم از مقادیر SQL
-				$isActiveStatus = (bool)$row['isActive'] && ((float)$row['loadedWeight'] < (float)$row['totalWeight']);
-				
-				// بررسی تطبیق دقیق
-				if ($row['shipName'] === $shipName && $row['cargoType'] === $cargoType && $row['shippingCompany'] === $shippingCompany) {
-					return [
-						'isActive' => $isActiveStatus,
-						'status' => true,
-						'message' => $row['status_message'],
-						'details' => [
-							'quotaNumber' => $row['loadingQuotaNumber'],
-							'shipName' => $row['shipName'],
-							'cargoType' => $row['cargoType'],
-							'shippingCompany' => $row['shippingCompany'],
-							'totalWeight' => (float)$row['totalWeight'],
-							'loadedWeight' => (float)$row['loadedWeight'],
-							'remainingCapacity' => max(0, (float)$row['totalWeight'] - (float)$row['loadedWeight']),
-							'percentageLoaded' => round((float)$row['percentageLoaded'], 2)
-						]
-					];
-				} else {
-					// تطبیق جزئی - کوتاژ با مشخصات متفاوت وجود دارد
-					return [
-						'isActive' => false,
-						'status' => false,
-						'message' => "کوتاژ $quotaNumber با مشخصات متفاوتی ثبت شده است",
-						'details' => [
-							'existingQuotas' => [[
-								'loadingQuotaNumber' => $row['loadingQuotaNumber'],
-								'shipName' => $row['shipName'],
-								'cargoType' => $row['cargoType'],
-								'shippingCompany' => $row['shippingCompany'],
-								'isActive' => (bool)$row['isActive']
-							]],
-							'requestedQuota' => [
-								'quotaNumber' => $quotaNumber,
-								'shipName' => $shipName,
-								'cargoType' => $cargoType,
-								'shippingCompany' => $shippingCompany
-							]
-						]
-					];
-				}
-			}
+			// محاسبه وضعیت فعال بودن بر اساس isActive و ظرفیت باقیمانده
+			$isActiveStatus = (bool)$row['isActive'] && ((float)$row['loadedWeight'] < (float)$row['totalWeight']);
 			
-			// هیچ کوتاژی یافت نشد
 			return [
-				'isActive' => false,
-				'status' => false,
-				'message' => "کوتاژ $quotaNumber یافت نشد",
-				'details' => null
+				'isActive' => $isActiveStatus,
+				'status' => true,
+				'message' => $row['status_message'],
+				'details' => [
+					'quotaNumber' => $row['loadingQuotaNumber'],
+					'shipName' => $row['shipName'],
+					'cargoType' => $row['cargoType'],
+					'shippingCompany' => $row['shippingCompany'],
+					'totalWeight' => (float)$row['totalWeight'],
+					'loadedWeight' => (float)$row['loadedWeight'],
+					'remainingCapacity' => max(0, (float)$row['totalWeight'] - (float)$row['loadedWeight']),
+					'percentageLoaded' => round((float)$row['percentageLoaded'], 2)
+				]
 			];
+		}
+			
+			// هیچ کوتاژی با مشخصات دقیق یافت نشد
+		return [
+			'isActive' => false,
+			'status' => false,
+			'message' => "کوتاژ $quotaNumber با مشخصات درخواستی یافت نشد",
+			'details' => null
+		];
 			
 		} catch (Exception $e) {
 			throw new Exception("خطا در بررسی وضعیت کوتاژ: " . $e->getMessage());
@@ -334,7 +312,6 @@
 	}
 	
 	function getShipsList(DatabaseManager $db): array {
-		// بهینه‌سازی کوئری با محاسبه مستقیم در SQL و کاهش پردازش PHP
 		$query = "
 		SELECT
 			i.shipName,
