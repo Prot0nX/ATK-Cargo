@@ -220,7 +220,7 @@ import androidx.compose.material3.Surface as Surface3
 import androidx.compose.material3.Text as Text3
 
 enum class ScanMode {
-    LOCAL_AI_SCAN,  // مدل لوکال TensorFlow Lite
+    LOCAL_AI_SCAN,  // پردازش پیشرفته با ML Kit
     ML_KIT_SCAN     // ML Kit ساده
 }
 
@@ -1812,7 +1812,7 @@ class EnhancedNumberAnalyzer(
         
         when (scanMode) {
             ScanMode.LOCAL_AI_SCAN -> {
-                // استفاده از مدل لوکال TensorFlow Lite
+                // استفاده از پردازش پیشرفته ML Kit
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val result = localOCRProcessor.processImage(bitmap)

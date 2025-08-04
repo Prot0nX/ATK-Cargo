@@ -89,14 +89,8 @@ import com.atk.atk_cargo.api.InitialInfo
 import com.atk.atk_cargo.api.MessageType
 import com.atk.atk_cargo.api.ReportsRepository
 import com.atk.atk_cargo.api.UserPreferencesManager
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.request.post
-import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
-import io.ktor.util.InternalAPI
+import com.atk.atk_cargo.api.RetrofitClient
+import retrofit2.Response
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
@@ -1672,12 +1666,9 @@ private fun refreshData(
     )
 }
 
-@OptIn(InternalAPI::class)
 suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): Result<String> {
-    val client = HttpClient(CIO)
     return try {
-        val url = "https://atk-nk.ir/Cargo/confirm_cargo.php"
-        val requestBody = jsonInstance.encodeToString(mapOf(
+        val requestBody = mapOf(
             "trackingNumber" to info.trackingNumber,
             "loadingQuotaNumber" to info.loadingQuotaNumber,
             "loadingWarehouse" to info.loadingWarehouse,
@@ -1685,24 +1676,16 @@ suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): R
             "cargoType" to info.cargoType,
             "username" to username,
             "userType" to userType
-        ))
+        )
 
-        val response: HttpResponse = client.post(url) {
-            contentType(io.ktor.http.ContentType.Application.Json)
-            body = requestBody
-        }
+        val response = RetrofitClient.apiService.confirmCargo(requestBody)
 
-        client.close()
-
-        if (response.status == HttpStatusCode.OK) {
-            val responseBody = response.bodyAsText()
-            val jsonResponseMap = jsonInstance.decodeFromString<Map<String, JsonElement>>(responseBody)
-            
-            val message = jsonResponseMap["message"]?.toString()?.replace("\"", "") ?: "عملیات با موفقیت انجام شد"
-            
+        if (response.isSuccessful) {
+            val responseBody = response.body()
+            val message = responseBody?.get("message")?.asString ?: "عملیات با موفقیت انجام شد"
             Result.success(message)
         } else {
-            Result.failure(Exception("خطا در ارتباط با سرور: ${response.status}"))
+            Result.failure(Exception("خطا در ارتباط با سرور: ${response.code()}"))
         }
     } catch (e: Exception) {
         e.printStackTrace()
