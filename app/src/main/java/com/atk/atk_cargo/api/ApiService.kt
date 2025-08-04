@@ -1,5 +1,6 @@
 package com.atk.atk_cargo.api
 
+import com.google.gson.JsonElement
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
@@ -205,6 +206,9 @@ interface ApiService {
 
     @POST("check_logout.php")
     suspend fun logout(@Body logoutRequest: LogoutRequest): Response<LogoutResponse>
+
+    @POST("confirm_cargo.php")
+    suspend fun confirmCargo(@Body request: Map<String, String>): Response<Map<String, JsonElement>>
 }
 
 data class ApiResponse(

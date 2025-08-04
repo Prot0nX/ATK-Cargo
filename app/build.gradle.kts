@@ -267,11 +267,6 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
 
-    // ==================== Ktor Client ====================
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.cio)
-    implementation(libs.ktor.client.content.negotiation)
-
     // ==================== Coroutines & Serialization ====================
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
@@ -287,7 +282,6 @@ dependencies {
 
     // ==================== Animation & UI Effects ====================
     implementation(libs.lottie.compose)
-    implementation(libs.konfetti.compose)
     
     // ==================== Video Player ====================
     implementation("androidx.media3:media3-exoplayer:1.2.1")
@@ -299,29 +293,6 @@ dependencies {
 
     // ==================== Document Processing ====================
     implementation(libs.itextpdf)
-    implementation(libs.poi)
-    implementation(libs.poi.ooxml)
-    implementation(libs.jxl)
-
-    // ==================== Internationalization ====================
-    implementation(libs.icu4j)
-
-    // ==================== JSON Processing ====================
-    implementation(libs.json)
-
-    // ==================== TensorFlow Lite & AI ====================
-    //noinspection Aligned16KB
-    implementation(libs.tensorflow.lite)
-    //noinspection Aligned16KB
-    implementation(libs.tensorflow.lite.gpu)
-    implementation(libs.tensorflow.lite.support)
-    //noinspection Aligned16KB
-    implementation(libs.tensorflow.lite.task.vision)
-    //noinspection Aligned16KB
-    implementation(libs.tensorflow.lite.task.text)
-
-    // ==================== MediaPipe ====================
-    implementation(libs.tasks.vision.v01021)
 
     // ==================== Testing ====================
     testImplementation(libs.junit)

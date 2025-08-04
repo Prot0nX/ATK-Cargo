@@ -16,7 +16,7 @@ import kotlin.coroutines.resume
 import kotlin.math.max
 
 /**
- * کلاس پردازش لوکال OCR برای تشخیص وزن خالص
+ * کلاس پردازش پیشرفته OCR برای تشخیص وزن خالص
  * این کلاس از ML Kit و الگوریتم‌های بهینه‌شده برای تشخیص دقیق وزن استفاده می‌کند
  */
 class LocalOCRProcessor(private val context: Context) {
@@ -220,4 +220,4 @@ class LocalOCRProcessor(private val context: Context) {
     fun cleanup() {
         textRecognizer.close()
     }
-} 
+}
