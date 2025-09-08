@@ -417,6 +417,14 @@ class CargoViewModel(
                     return@launch
                 }
 
+                // بررسی تناژ موقت - اگر فعال است و مقدار آن صفر یا منفی است، امکان ثبت حواله جدید یا خروج وجود ندارد
+                if (initialInfo.tempTonnageStatus && initialInfo.tempTonnageAmount != null) {
+                    if (initialInfo.tempTonnageAmount <= 0) {
+                        showErrorMessage("تناژ موقت به پایان رسیده است. امکان ثبت حواله جدید یا خروج وجود ندارد. لطفاً با مسئول خود بررسی کنید.")
+                        return@launch
+                    }
+                }
+
                 // بررسی تکراری نبودن حواله
                 val isNewCargo = !isTrackingNumberDuplicate(trackingNumber)
 
@@ -808,7 +816,7 @@ class CargoViewModel(
 
         // بررسی دو رقم اول
         val firstTwoDigits = scaleReceipt.substring(0, 2)
-        return !(firstTwoDigits != "42" && firstTwoDigits != "43" && firstTwoDigits != "44")
+        return !(firstTwoDigits != "43" && firstTwoDigits != "44" && firstTwoDigits != "45" && firstTwoDigits != "46")
     }
 
     private suspend fun checkScaleReceiptNumber(scaleReceiptNumber: String): Boolean {
@@ -1717,19 +1725,25 @@ class ReportsViewModel(
         }
     }
 
-    fun toggleQuotaStatus(quotaNumber: String) {
+    fun toggleQuotaStatus(quotaNumber: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             try {
                 val success = repository.toggleQuotaStatus(quotaNumber)
                 if (success) {
                     // Refresh the quotas list
-                    loadShipQuotas(_selectedShip.value?.name ?: "")
+                    _currentShipName.value?.let { shipName ->
+                        loadShipQuotas(shipName)
+                    }
+                    // Refresh ships list to update status
+                    loadShips()
                     showSnackbar("وضعیت کوتاژ با موفقیت تغییر کرد")
                 } else {
                     showSnackbar("خطا در تغییر وضعیت کوتاژ")
                 }
             } catch (e: Exception) {
                 showSnackbar("خطا در تغییر وضعیت کوتاژ: ${e.message}")
+            } finally {
+                onComplete()
             }
         }
     }
@@ -1755,6 +1769,39 @@ class ReportsViewModel(
                 }
             } catch (e: Exception) {
                 showSnackbar("خطا در تغییر وضعیت محدودیت درصد کوتاژ: ${e.message}")
+            } finally {
+                onComplete()
+            }
+        }
+    }
+
+    fun updateTemporaryTonnage(
+        quotaNumber: String,
+        enabled: Boolean,
+        tonnage: Double? = null,
+        onComplete: () -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val success = repository.updateTemporaryTonnage(
+                    quotaNumber = quotaNumber,
+                    enabled = if (enabled) 1 else 0,
+                    tonnage = tonnage
+                )
+                if (success) {
+                    // Reload quotas to refresh the UI
+                    _currentShipName.value?.let { shipName ->
+                        loadShipQuotas(shipName)
+                    }
+                    showSnackbar(
+                        if (enabled) "تناژ موقت با موفقیت فعال شد"
+                        else "تناژ موقت غیرفعال شد"
+                    )
+                } else {
+                    showSnackbar("خطا در به‌روزرسانی تناژ موقت")
+                }
+            } catch (e: Exception) {
+                showSnackbar("خطا در به‌روزرسانی تناژ موقت: ${e.message}")
             } finally {
                 onComplete()
             }
@@ -2882,6 +2929,27 @@ class ReportsRepository(private val apiService: ApiService) {
             }
         }
 
+    suspend fun updateTemporaryTonnage(
+        quotaNumber: String,
+        enabled: Int,
+        tonnage: Double? = null
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.updateTemporaryTonnage(
+                quotaNumber = quotaNumber,
+                enabled = enabled,
+                tonnage = tonnage
+            )
+            if (response.isSuccessful) {
+                response.body()?.success ?: false
+            } else {
+                throw Exception("Server error: ${response.code()}")
+            }
+        } catch (e: Exception) {
+            throw Exception("Error updating temporary tonnage: ${e.message}")
+        }
+    }
+
     suspend fun deleteQuota(
         quotaNumber: String,
         shipName: String,
@@ -3140,7 +3208,9 @@ data class InitialInfo(
     val remainingServices: Int,
     val cargoOwner: String = "",
     val isActive: Int = 1,
-    val totalVoucherCount: Int = 0
+    val totalVoucherCount: Int = 0,
+    val tempTonnageStatus: Boolean = false,
+    val tempTonnageAmount: Float? = null
 ) : Parcelable
 
 data class CargoInfo(
@@ -3208,7 +3278,9 @@ data class ShipInfo(
     val totalNetWeight: String,
     val averageNetWeight: String,
     val totalServices: String,
-    val remainingServices: String
+    val remainingServices: String,
+    val tempTonnageStatus: Boolean = false,
+    val tempTonnageAmount: Float? = null
 )
 
 data class MenuItem(
@@ -3961,3 +4033,21 @@ data class LoadableTonnageResponse(
     val trucks10Wheeler: Int?,
     val message: String?
 )
+
+data class QuotaItem(
+    val number: String,
+    val shipName: String,
+    val warehouse: String,
+    val cargoType: String,
+    val shippingCompany: String,
+    val cargoOwner: String,
+    val isActive: Boolean,
+    val temporaryTonnageEnabled: Boolean,
+    val temporaryTonnageValue: Float?,
+    val quotaKey: String
+)
+
+// تابع کمکی برای فرمت کردن اعداد
+fun formatNumber(number: Number): String {
+    return NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
+}

@@ -4,17 +4,22 @@ import android.Manifest
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
+import androidx.core.content.edit
 import com.atk.atk_cargo.R
 import com.atk.atk_cargo.api.RetrofitClient.apiService
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
-import androidx.core.content.edit
 
 /**
  * سرویس دریافت اطلاعات بارگیری لحظه‌ای و نمایش نوتیفیکیشن

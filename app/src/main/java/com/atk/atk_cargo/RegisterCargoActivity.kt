@@ -441,7 +441,9 @@ fun RegisterCargoScreen(
                     totalNetWeight = initialInfo?.totalNetWeight.toString(),
                     averageNetWeight = initialInfo?.averageNetWeight.toString(),
                     totalServices = initialInfo?.totalVoucherCount.toString(),
-                    remainingServices = initialInfo?.remainingServices.toString()
+                    remainingServices = initialInfo?.remainingServices.toString(),
+                    tempTonnageStatus = initialInfo?.tempTonnageStatus ?: false,
+                    tempTonnageAmount = initialInfo?.tempTonnageAmount
                 )
 
                 ShipInfoSection(
@@ -2787,7 +2789,9 @@ fun ShipInfoSection(
                 loadableTonnage = loadableTonnage,
                 loadableTrucks18Wheeler = loadableTrucks18Wheeler,
                 loadableTrucks10Wheeler = loadableTrucks10Wheeler,
-                isExpanded = isInfoVisible
+                isExpanded = isInfoVisible,
+                tempTonnageStatus = shipInfo.tempTonnageStatus,
+                tempTonnageAmount = shipInfo.tempTonnageAmount
             )
 
             // محتوای قابل گسترش
@@ -2814,6 +2818,8 @@ private fun MinimalHeader(
     loadableTrucks18Wheeler: String,
     loadableTrucks10Wheeler: String,
     isExpanded: Boolean,
+    tempTonnageStatus: Boolean = false,
+    tempTonnageAmount: Float? = null,
 ) {
     val rotationAngle by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
@@ -2906,8 +2912,17 @@ private fun MinimalHeader(
                         style = MaterialTheme3.typography.labelMedium,
                         color = MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
+                    
+                    // نمایش تناژ مجاز و تناژ موقت
+                    val displayText = if (tempTonnageStatus && tempTonnageAmount != null) {
+                        val formattedTempTonnage = DecimalFormat("#,###").format(tempTonnageAmount.toInt())
+                        "$loadableTonnage ($formattedTempTonnage)"
+                    } else {
+                        loadableTonnage
+                    }
+                    
                     Text3(
-                        text = loadableTonnage,
+                        text = displayText,
                         style = MaterialTheme3.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = tonnageColor

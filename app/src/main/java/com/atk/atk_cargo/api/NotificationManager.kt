@@ -16,7 +16,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import com.atk.atk_cargo.MainActivity
 import com.atk.atk_cargo.R
-import com.atk.atk_cargo.formatNumber
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -557,4 +556,4 @@ class LoadingNotificationManager(private val context: Context) {
         // نمایش نوتیفیکیشن
         notificationManager.notify(notificationId + 3000, notification)
     }
-} 
+}

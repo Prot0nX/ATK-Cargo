@@ -88,14 +88,11 @@ import com.atk.atk_cargo.api.CargoViewModelFactory
 import com.atk.atk_cargo.api.InitialInfo
 import com.atk.atk_cargo.api.MessageType
 import com.atk.atk_cargo.api.ReportsRepository
-import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.RetrofitClient
-import retrofit2.Response
+import com.atk.atk_cargo.api.UserPreferencesManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
 import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.Date
