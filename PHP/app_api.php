@@ -1151,6 +1151,90 @@
 		}
 	}
 
+	function getAllQuotasList(DatabaseManager $db): array {
+		// ثبت درخواست
+		customLog("Fetching all quotas list from all ships - optimized for InitialInfo only");
+		
+		// کوئری بهینه‌سازی شده - فقط داده‌های InitialInfo
+		$query = "
+		SELECT 
+			i.loadingQuotaNumber as number,
+			i.shipName,
+			i.loadingWarehouse,
+			i.cargoType,
+			i.cargoWeight as totalTonnage,
+			i.isActive,
+			i.shippingCompany,
+			i.cargoOwner,
+			i.percentage,
+			i.is_enabled,
+			i.temp_tonnage_status,
+			i.temp_tonnage_amount
+		FROM 
+			InitialInfo i
+		ORDER BY
+			i.shipName ASC, i.isActive DESC, i.loadingQuotaNumber ASC
+		";
+
+		try {
+			$stmt = $db->prepare($query);
+			$stmt->execute();
+			$result = $stmt->get_result();
+			$quotas = [];
+			$totalQuotasCount = 0;
+			$activeQuotasCount = 0;
+			
+			while ($row = $result->fetch_assoc()) {
+				$totalQuotasCount++;
+				if ((bool)$row['isActive']) {
+					$activeQuotasCount++;
+				}
+				
+				// فقط داده‌های اولیه InitialInfo - بدون پردازش CargoInfo
+				$totalTonnage = floatval($row['totalTonnage']);
+				$percentage = $row['percentage'] !== null ? floatval($row['percentage']) : null;
+				$isPercentageRestricted = (bool)$row['is_enabled'];
+				
+				// ثبت اطلاعات کوتاژ
+				customLog("Quota: {$row['number']}, Ship: {$row['shipName']}, Warehouse: {$row['loadingWarehouse']}, Type: {$row['cargoType']}");
+				
+				$quotas[] = [
+					'number' => $row['number'],
+					'shipName' => $row['shipName'] ?? '',
+					'warehouse' => $row['loadingWarehouse'] ?? '',
+					'cargoType' => $row['cargoType'] ?? '',
+					'totalTonnage' => $totalTonnage,
+					'remainingTonnage' => $totalTonnage, // بدون محاسبه بار خروجی
+					'loadedTonnage' => 0, // بدون پردازش CargoInfo
+					'percentageLoaded' => 0,
+					'voucherCount' => 0,
+					'entryVoucherCount' => 0,
+					'exitVoucherCount' => 0,
+					'pendingVoucherCount' => 0,
+					'isActive' => (bool)$row['isActive'],
+					'shippingCompany' => $row['shippingCompany'] ?? '',
+					'cargoOwner' => $row['cargoOwner'] ?? '',
+					'percentage' => $percentage,
+					'isPercentageRestricted' => $isPercentageRestricted,
+					'loadableTonnage' => $totalTonnage, // کل تناژ قابل بارگیری
+					'avgVoucherWeight' => 0,
+					'lastExitDate' => '',
+					'temporaryTonnageEnabled' => (bool)($row['temp_tonnage_status'] ?? false),
+					'temporaryTonnageValue' => $row['temp_tonnage_amount'] ? floatval($row['temp_tonnage_amount']) : null,
+					'quotaKey' => $row['number'] . '|' . $row['shipName'] . '|' . $row['loadingWarehouse'] . '|' . $row['shippingCompany'] . '|' . $row['cargoType']
+				];
+			}
+			
+			// ثبت اطلاعات آماری
+			customLog("All quotas list generated. Total: $totalQuotasCount, Active: $activeQuotasCount");
+			
+			return $quotas;
+		} catch (Exception $e) {
+			customLog("Error in getAllQuotasList: " . $e->getMessage());
+			throw new Exception("خطا در دریافت لیست تمام کوتاژها: " . $e->getMessage());
+		}
+	}
+
 	function getQuotasList(DatabaseManager $db, string $shipName): array {
 		$shipName = sanitizeInput($shipName);
 		
@@ -1571,6 +1655,83 @@
 			throw new Exception("خطا در حذف کوتاژ: " . $e->getMessage());
 		}
 	}
+
+	// تابع دریافت کوتاژها با گروه‌بندی بر اساس شرکت حمل
+	function getGroupedQuotas($db) {
+		// دریافت تمام کوتاژها از تمام کشتی‌ها
+		$quotas = getAllQuotasList($db);
+		$grouped = [];
+		
+		foreach ($quotas as $quota) {
+			$shipName = $quota['shipName'] ?: 'نامشخص';
+			$cargoOwner = $quota['cargoOwner'] ?: 'نامشخص';
+			
+			if (!isset($grouped[$shipName])) {
+				$grouped[$shipName] = [];
+			}
+			if (!isset($grouped[$shipName][$cargoOwner])) {
+				$grouped[$shipName][$cargoOwner] = [];
+			}
+			$grouped[$shipName][$cargoOwner][] = $quota;
+		}
+		
+		return $grouped;
+	}
+
+	// تابع به‌روزرسانی تناژ موقت
+	function updateTemporaryTonnage($db, $quotaNumber, $enabled, $tonnage = null) {
+		try {
+			$quotaNumber = sanitizeInput($quotaNumber);
+			$enabledInt = intval($enabled);
+			
+			customLog("updateTemporaryTonnage: Processing quota=$quotaNumber, enabled=$enabledInt, tonnage=$tonnage");
+			
+			// بررسی وجود کوتاژ قبل از به‌روزرسانی
+			$checkQuery = "SELECT loadingQuotaNumber, temp_tonnage_status, temp_tonnage_amount FROM InitialInfo WHERE loadingQuotaNumber = ?";
+			$checkStmt = $db->prepare($checkQuery);
+			$checkStmt->bind_param("s", $quotaNumber);
+			$checkStmt->execute();
+			$result = $checkStmt->get_result();
+			
+			if ($result->num_rows === 0) {
+				throw new Exception('کوتاژ مورد نظر یافت نشد');
+			}
+			
+			$currentData = $result->fetch_assoc();
+			customLog("updateTemporaryTonnage: Current data - enabled={$currentData['temp_tonnage_status']}, value={$currentData['temp_tonnage_amount']}");
+			
+			if ($enabledInt && $tonnage !== null) {
+				// فعال کردن تناژ موقت با مقدار مشخص
+				$query = "UPDATE InitialInfo SET temp_tonnage_status = 1, temp_tonnage_amount = ? WHERE loadingQuotaNumber = ?";
+				$stmt = $db->prepare($query);
+				$stmt->bind_param("ds", $tonnage, $quotaNumber);
+				customLog("updateTemporaryTonnage: Enabling temporary tonnage with value: $tonnage");
+			} else {
+				// غیرفعال کردن تناژ موقت
+				$query = "UPDATE InitialInfo SET temp_tonnage_status = 0, temp_tonnage_amount = NULL WHERE loadingQuotaNumber = ?";
+				$stmt = $db->prepare($query);
+				$stmt->bind_param("s", $quotaNumber);
+				customLog("updateTemporaryTonnage: Disabling temporary tonnage");
+			}
+			
+			if ($stmt->execute()) {
+				if ($stmt->affected_rows > 0) {
+					customLog("updateTemporaryTonnage: Successfully updated quota $quotaNumber");
+					return ['success' => true, 'message' => 'تناژ موقت با موفقیت به‌روزرسانی شد'];
+				} else {
+					customLog("updateTemporaryTonnage: No rows affected - data might be the same");
+					return ['success' => true, 'message' => 'تناژ موقت با موفقیت به‌روزرسانی شد (بدون تغییر)'];
+				}
+			} else {
+				$error = $stmt->error;
+				customLog("updateTemporaryTonnage: SQL execution failed - $error");
+				throw new Exception('خطا در اجرای کوئری: ' . $error);
+			}
+		} catch (Exception $e) {
+			customLog("updateTemporaryTonnage: Exception - " . $e->getMessage());
+			throw new Exception('خطا در به‌روزرسانی تناژ موقت: ' . $e->getMessage());
+		}
+	}
 	
 	function gregorian_to_jalali($gy, $gm, $gd): array {
 		$g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
@@ -1692,6 +1853,29 @@ $result = checkQuotaExistenceCargo($db, $_GET['quotaNumber'], $_GET['shipName'])
 	$result = checkQuotaExistenceCargo($db, $_GET['quotaNumber'], $_GET['shipName']);
 	sendJsonResponse($result);
 	break;
+
+	case 'getGroupedQuotas':
+	$groupedQuotas = getGroupedQuotas($db);
+	sendJsonResponse($groupedQuotas);
+	break;
+
+	case 'updateTemporaryTonnage':
+if (!isset($_GET['quotaNumber']) || !isset($_GET['enabled'])) {
+	throw new Exception('پارامترهای ورودی ناقص هستند');
+}
+
+// بررسی پارامتر tonnage فقط زمانی که enabled برابر 1 باشد
+$enabled = intval($_GET['enabled']);
+if ($enabled === 1 && !isset($_GET['tonnage'])) {
+	throw new Exception('مقدار تناژ موقت الزامی است');
+}
+
+$tonnage = isset($_GET['tonnage']) ? floatval($_GET['tonnage']) : null;
+customLog("updateTemporaryTonnage called with: quotaNumber={$_GET['quotaNumber']}, enabled=$enabled, tonnage=$tonnage");
+
+$result = updateTemporaryTonnage($db, $_GET['quotaNumber'], $enabled, $tonnage);
+sendJsonResponse($result);
+break;
 			
             $selectedQuota = $_GET['selectedQuota'];
             $startDate = sanitizeInput($_GET['startDate']);
@@ -1818,16 +2002,10 @@ $result = checkQuotaExistenceCargo($db, $_GET['quotaNumber'], $_GET['shipName'])
             ];
             sendJsonResponse($realTimeData);
             break;
-			
-			default:
-            throw new Exception('عملیات نامعتبر است');
-		}
-		} catch (Exception $e) {
-		sendJsonResponse(['error' => $e->getMessage()], 500);
-		} finally {
-		if (isset($db)) {
-			$db->close();
-		}
-	}
+    }
+} catch (Exception $e) {
+    customLog("API Error: " . $e->getMessage());
+    sendJsonResponse(['error' => $e->getMessage()], 500);
+}
 	
 ?>

@@ -30,7 +30,7 @@ interface ApiService {
         @Query("shipName") shipName: String
     ): Response<QuotaExistenceMultipleResponse>
 
-    @GET("getInitialInfo.php")
+    @GET("getInitialInfo2.php")
     suspend fun getCargoInfo(
         @Query("quotaNumber") quotaNumber: String,
         @Query("shippingCompany") shippingCompany: String,
@@ -41,10 +41,10 @@ interface ApiService {
     @GET("getActiveShips.php")
     suspend fun getActiveShips(): Response<List<ActiveShipInfo>>
 
-    @POST("saveOrUpdateCargoInfo.php")
+    @POST("saveOrUpdateCargoInfo2.php")
     suspend fun saveOrUpdateCargoInfo(@Body cargoInfo: CargoInfo): Response<SaveOrUpdateResponse>
 
-    @POST("deleteCargoInfo.php")
+    @POST("deleteCargoInfo2.php")
     suspend fun deleteCargo(@Body cargoInfoRequest: CargoInfoRequest): Response<Void>
 
     @FormUrlEncoded
@@ -209,6 +209,20 @@ interface ApiService {
 
     @POST("confirm_cargo.php")
     suspend fun confirmCargo(@Body request: Map<String, String>): Response<Map<String, JsonElement>>
+
+    @GET("app_api.php")
+    suspend fun getGroupedQuotas(
+        @Query("action") action: String = "getGroupedQuotas",
+        @Query("shipName") shipName: String
+    ): Response<Map<String, Map<String, List<QuotaItem>>>>
+
+    @GET("app_api.php")
+    suspend fun updateTemporaryTonnage(
+        @Query("action") action: String = "updateTemporaryTonnage",
+        @Query("quotaNumber") quotaNumber: String,
+        @Query("enabled") enabled: Int,
+        @Query("tonnage") tonnage: Double? = null
+    ): Response<SuccessResponse>
 }
 
 data class ApiResponse(

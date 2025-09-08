@@ -1,8 +1,6 @@
 package com.atk.atk_cargo.api
 
 import android.content.Context
-import android.content.Intent
-import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
