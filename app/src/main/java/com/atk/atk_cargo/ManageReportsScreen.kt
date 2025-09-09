@@ -95,7 +95,6 @@ import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
@@ -155,10 +154,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
@@ -1508,7 +1509,6 @@ fun QuotaManagementDialog(
 	var isLoading by remember { mutableStateOf(true) }
 	var errorMessage by remember { mutableStateOf<String?>(null) }
 	var expandedShip by remember { mutableStateOf<String?>(null) }
-	var expandedCargoOwner by remember { mutableStateOf<String?>(null) }
 	var expandedQuota by remember { mutableStateOf<String?>(null) }
 	var searchQuery by remember { mutableStateOf("") }
 	var refreshTrigger by remember { mutableStateOf(0) }
@@ -1639,15 +1639,9 @@ fun QuotaManagementDialog(
 								quotaData = quotaData,
 								searchQuery = searchQuery,
 								expandedShip = expandedShip,
-								expandedCargoOwner = expandedCargoOwner,
 								expandedQuota = expandedQuota,
 								onShipToggle = { shipName ->
 									expandedShip = if (expandedShip == shipName) null else shipName
-									expandedCargoOwner = null
-									expandedQuota = null
-								},
-								onCargoOwnerToggle = { cargoOwnerKey ->
-									expandedCargoOwner = if (expandedCargoOwner == cargoOwnerKey) null else cargoOwnerKey
 									expandedQuota = null
 								},
 								onQuotaToggle = { quotaKey ->
@@ -1660,546 +1654,6 @@ fun QuotaManagementDialog(
 					}
 				}
 			}
-			}
-		}
-	}
-}
-
-@Composable
-fun QuotaCargoOwnerCard(
-	cargoOwner: String,
-	quotas: List<QuotaItem>,
-	isExpanded: Boolean,
-	onToggleExpand: () -> Unit,
-	expandedQuota: String?,
-	onQuotaToggle: (String) -> Unit,
-	onRefreshData: () -> Unit,
-	viewModel: ReportsViewModel,
-	allQuotasInactive: Boolean = false,
-	modifier: Modifier = Modifier
-) {
-	val activeQuotas = quotas.count { it.isActive }
-	val totalWeight = quotas.map { it.temporaryTonnageValue ?: 0.0f }.sum()
-
-	Card(
-		modifier = modifier
-			.fillMaxWidth()
-			.animateContentSize(
-				animationSpec = tween(
-					durationMillis = 200,
-					easing = FastOutSlowInEasing
-				)
-			),
-		shape = RoundedCornerShape(12.dp),
-		colors = CardDefaults.cardColors(
-			containerColor = if (allQuotasInactive) 
-				MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
-			else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-		),
-		border = BorderStroke(
-			width = if (allQuotasInactive) 2.dp else 1.dp,
-			color = if (allQuotasInactive) 
-				MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-			else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-		)
-	) {
-		Column {
-			// هدر صاحب کالا
-			Surface(
-				onClick = onToggleExpand,
-				color = Color.Transparent
-			) {
-				Row(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(16.dp),
-					horizontalArrangement = Arrangement.SpaceBetween,
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					Row(
-						horizontalArrangement = Arrangement.spacedBy(12.dp),
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						// آیکون صاحب کالا
-						Box(
-							modifier = Modifier
-								.size(36.dp)
-								.background(
-									color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
-									shape = CircleShape
-								),
-							contentAlignment = Alignment.Center
-						) {
-							Icon(
-								imageVector = Icons.Default.Business,
-								contentDescription = null,
-								tint = MaterialTheme.colorScheme.secondary,
-								modifier = Modifier.size(20.dp)
-							)
-						}
-
-						// اطلاعات صاحب کالا
-						Column {
-							Text(
-								text = cargoOwner,
-								style = MaterialTheme.typography.titleSmall,
-								fontWeight = FontWeight.Bold,
-								color = MaterialTheme.colorScheme.onSurface
-							)
-
-							// آمار صاحب کالا
-							Row(
-								horizontalArrangement = Arrangement.spacedBy(6.dp),
-								verticalAlignment = Alignment.CenterVertically
-							) {
-								AnalyticsStatChip(
-									value = "${quotas.size}",
-									label = "کوتاژ",
-									color = MaterialTheme.colorScheme.primary
-								)
-								AnalyticsStatChip(
-									value = "$activeQuotas",
-									label = "فعال",
-									color = MaterialTheme.colorScheme.tertiary
-								)
-								if (totalWeight > 0) {
-									AnalyticsStatChip(
-										value = formatNumber(totalWeight.roundToInt()),
-										label = "تن",
-										color = MaterialTheme.colorScheme.error
-									)
-								}
-							}
-						}
-					}
-
-					// دکمه‌های مدیریت و آیکون گسترش
-					Row(
-						horizontalArrangement = Arrangement.spacedBy(8.dp),
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						// آیکون گسترش
-						Icon(
-							imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-							contentDescription = if (isExpanded) "بستن" else "گسترش",
-							tint = MaterialTheme.colorScheme.onSurfaceVariant,
-							modifier = Modifier.size(20.dp)
-						)
-					}
-				}
-			}
-
-			// محتوای گسترش یافته
-			AnimatedVisibility(
-				visible = isExpanded,
-				enter = expandVertically() + fadeIn(),
-				exit = shrinkVertically() + fadeOut()
-			) {
-				Column(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(16.dp),
-					verticalArrangement = Arrangement.spacedBy(8.dp)
-				) {
-					quotas.forEach { quota ->
-						QuotaManagementCard(
-							quota = quota,
-							isExpanded = expandedQuota == quota.quotaKey,
-							onToggleExpand = { onQuotaToggle(quota.quotaKey) },
-							onRefreshData = onRefreshData,
-							viewModel = viewModel
-						)
-					}
-				}
-			}
-		}
-	}
-}
-
-@Composable
-fun QuotaManagementCard(
-	quota: QuotaItem,
-	isExpanded: Boolean,
-	onToggleExpand: () -> Unit,
-	onRefreshData: () -> Unit,
-	viewModel: ReportsViewModel
-) {
-	var isUpdating by remember { mutableStateOf(false) }
-	var isStatusToggling by remember { mutableStateOf(false) }
-	var tempTonnageEnabled by remember { mutableStateOf(quota.temporaryTonnageEnabled) }
-	var tempTonnageValue by remember { mutableStateOf(quota.temporaryTonnageValue?.toString() ?: "") }
-
-	Card(
-		modifier = Modifier
-			.fillMaxWidth()
-			.animateContentSize(
-				animationSpec = tween(
-					durationMillis = 200,
-					easing = FastOutSlowInEasing
-				)
-			),
-		shape = RoundedCornerShape(12.dp),
-		colors = CardDefaults.cardColors(
-			containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-		),
-		border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-	) {
-		Column {
-			// هدر کوتاژ
-			Surface(
-				onClick = onToggleExpand,
-				color = Color.Transparent
-			) {
-				Row(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(16.dp),
-					horizontalArrangement = Arrangement.SpaceBetween,
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					Row(
-						horizontalArrangement = Arrangement.spacedBy(12.dp),
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						// آیکون کوتاژ
-						Box(
-							modifier = Modifier
-								.size(32.dp)
-								.background(
-									color = if (quota.isActive) 
-										MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) 
-									else 
-										MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
-									shape = CircleShape
-								),
-							contentAlignment = Alignment.Center
-						) {
-							Icon(
-								imageVector = Icons.Default.Inventory,
-								contentDescription = null,
-								tint = if (quota.isActive) 
-									MaterialTheme.colorScheme.primary 
-								else 
-									MaterialTheme.colorScheme.error,
-								modifier = Modifier.size(18.dp)
-							)
-						}
-
-						// اطلاعات کوتاژ
-						Column {
-							Text(
-								text = "کوتاژ ${quota.number}",
-								style = MaterialTheme.typography.titleSmall,
-								fontWeight = FontWeight.Bold,
-								color = MaterialTheme.colorScheme.onSurface
-							)
-
-							// آمار کوتاژ
-							Row(
-								horizontalArrangement = Arrangement.spacedBy(6.dp),
-								verticalAlignment = Alignment.CenterVertically
-							) {
-								AnalyticsStatChip(
-									value = quota.warehouse,
-									label = "انبار",
-									color = MaterialTheme.colorScheme.secondary
-								)
-								if (quota.temporaryTonnageEnabled && quota.temporaryTonnageValue != null) {
-									AnalyticsStatChip(
-										value = formatNumber(quota.temporaryTonnageValue.roundToInt()),
-										label = "تن",
-										color = MaterialTheme.colorScheme.tertiary
-									)
-								}
-							}
-						}
-					}
-
-					// آیکون گسترش
-					Icon(
-						imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-						contentDescription = if (isExpanded) "بستن" else "گسترش",
-						tint = MaterialTheme.colorScheme.onSurfaceVariant,
-						modifier = Modifier.size(20.dp)
-					)
-				}
-			}
-
-			// ===== EXPANDED CONTENT =====
-			AnimatedVisibility(
-				visible = isExpanded,
-				enter = expandVertically(animationSpec = tween(200)) + fadeIn(),
-				exit = shrinkVertically(animationSpec = tween(200)) + fadeOut()
-			) {
-				Column(
-					modifier = Modifier.padding(top = 12.dp),
-					verticalArrangement = Arrangement.spacedBy(8.dp)
-				) {
-					HorizontalDivider(
-						color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-					)
-					
-					// ===== COMPACT INFO SECTION =====
-					CompactQuotaInfoSection(quota = quota)
-					
-					// ===== ACTIONS SECTION =====
-					CompactActionsSection(
-						quota = quota,
-						tempTonnageEnabled = tempTonnageEnabled,
-						tempTonnageValue = tempTonnageValue,
-						isUpdating = isUpdating,
-						isStatusToggling = isStatusToggling,
-						onTempTonnageEnabledChange = { tempTonnageEnabled = it },
-						onTempTonnageValueChange = { newValue ->
-							if (newValue.all { char -> char.isDigit() || char == '.' }) {
-								tempTonnageValue = newValue
-							}
-						},
-						onUpdateTonnage = {
-							isUpdating = true
-							viewModel.updateTemporaryTonnage(
-								quotaNumber = quota.number,
-								enabled = tempTonnageEnabled,
-								tonnage = if (tempTonnageEnabled && tempTonnageValue.isNotEmpty()) {
-									tempTonnageValue.toDoubleOrNull()
-								} else null
-							) {
-								isUpdating = false
-							}
-						},
-						onStatusToggle = {
-							isStatusToggling = true
-							viewModel.toggleQuotaStatus(quota.number) {
-								isStatusToggling = false
-								onRefreshData()
-							}
-						}
-					)
-				}
-			}
-		}
-	}
-}
-
-@Composable
-fun CompactQuotaInfoSection(quota: QuotaItem) {
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(8.dp),
-		horizontalArrangement = Arrangement.SpaceEvenly
-	) {
-		InfoChip(
-			icon = Icons.Default.Warehouse,
-			label = "انبار",
-			value = quota.warehouse
-		)
-		InfoChip(
-			icon = Icons.Default.Inventory,
-			label = "نوع بار",
-			value = quota.cargoType
-		)
-		InfoChip(
-			icon = Icons.Default.Person,
-			label = "صاحب بار",
-			value = quota.cargoOwner
-		)
-	}
-}
-
-@Composable
-fun InfoChip(
-	icon: ImageVector,
-	label: String,
-	value: String
-) {
-	Column(
-		horizontalAlignment = Alignment.CenterHorizontally,
-		verticalArrangement = Arrangement.spacedBy(2.dp)
-	) {
-		Icon(
-			imageVector = icon,
-			contentDescription = null,
-			modifier = Modifier.size(14.dp),
-			tint = MaterialTheme.colorScheme.onSurfaceVariant
-		)
-		Text(
-			text = label,
-			style = MaterialTheme.typography.labelSmall,
-			color = MaterialTheme.colorScheme.onSurfaceVariant
-		)
-		Text(
-			text = value,
-			style = MaterialTheme.typography.bodySmall,
-			color = MaterialTheme.colorScheme.onSurface,
-			maxLines = 1,
-			overflow = TextOverflow.Ellipsis,
-			fontWeight = FontWeight.Medium
-		)
-	}
-}
-
-@Composable
-fun CompactActionsSection(
-	quota: QuotaItem,
-	tempTonnageEnabled: Boolean,
-	tempTonnageValue: String,
-	isUpdating: Boolean,
-	isStatusToggling: Boolean,
-	onTempTonnageEnabledChange: (Boolean) -> Unit,
-	onTempTonnageValueChange: (String) -> Unit,
-	onUpdateTonnage: () -> Unit,
-	onStatusToggle: () -> Unit
-) {
-	Column(
-		modifier = Modifier.padding(horizontal = 16.dp),
-		verticalArrangement = Arrangement.spacedBy(16.dp)
-	) {
-		// ===== STATUS TOGGLE =====
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			Row(
-				verticalAlignment = Alignment.CenterVertically,
-				horizontalArrangement = Arrangement.spacedBy(8.dp)
-			) {
-				Icon(
-					imageVector = Icons.Default.ToggleOn,
-					contentDescription = null,
-					modifier = Modifier.size(18.dp),
-					tint = MaterialTheme.colorScheme.primary
-				)
-				Text(
-					text = "وضعیت کوتاژ",
-					style = MaterialTheme.typography.bodyMedium,
-					color = MaterialTheme.colorScheme.onSurface,
-					fontWeight = FontWeight.Medium
-				)
-			}
-			
-			if (isStatusToggling) {
-				CircularProgressIndicator(
-					modifier = Modifier.size(20.dp),
-					strokeWidth = 2.dp
-				)
-			} else {
-				FilledTonalButton(
-					onClick = onStatusToggle,
-					colors = ButtonDefaults.filledTonalButtonColors(
-						containerColor = if (quota.isActive) 
-							Color(0xFF4CAF50).copy(alpha = 0.15f) 
-						else Color(0xFFF44336).copy(alpha = 0.15f),
-						contentColor = if (quota.isActive) Color(0xFF2E7D32) else Color(0xFFC62828)
-					)
-				) {
-					Icon(
-						imageVector = if (quota.isActive) Icons.Default.Check else Icons.Default.Close,
-						contentDescription = null,
-						modifier = Modifier.size(16.dp)
-					)
-					Spacer(modifier = Modifier.width(6.dp))
-					Text(
-						text = if (quota.isActive) "فعال" else "غیرفعال",
-						style = MaterialTheme.typography.labelMedium
-					)
-				}
-			}
-		}
-		
-		// ===== TEMPORARY TONNAGE =====
-		Column(
-			verticalArrangement = Arrangement.spacedBy(12.dp)
-		) {
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				Row(
-					verticalAlignment = Alignment.CenterVertically,
-					horizontalArrangement = Arrangement.spacedBy(8.dp)
-				) {
-					Icon(
-						imageVector = Icons.Default.Scale,
-						contentDescription = null,
-						modifier = Modifier.size(18.dp),
-						tint = MaterialTheme.colorScheme.secondary
-					)
-					Text(
-						text = "تناژ موقت",
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onSurface,
-						fontWeight = FontWeight.Medium
-					)
-				}
-				
-				Switch(
-					checked = tempTonnageEnabled,
-					onCheckedChange = onTempTonnageEnabledChange,
-					enabled = !isUpdating
-				)
-			}
-			
-			AnimatedVisibility(
-				visible = tempTonnageEnabled,
-				enter = expandVertically() + fadeIn(),
-				exit = shrinkVertically() + fadeOut()
-			) {
-				Row(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(top = 8.dp, bottom = 8.dp),
-					horizontalArrangement = Arrangement.spacedBy(12.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					OutlinedTextField(
-						value = tempTonnageValue,
-						onValueChange = { newValue ->
-							val filteredValue = newValue.filter { it.isDigit() }
-							onTempTonnageValueChange(filteredValue)
-						},
-						modifier = Modifier.weight(1f),
-						label = { Text("مقدار (کیلوگرم)", style = MaterialTheme.typography.labelSmall) },
-						keyboardOptions = KeyboardOptions(
-							keyboardType = KeyboardType.Number,
-							imeAction = ImeAction.Done
-						),
-						enabled = !isUpdating,
-						singleLine = true,
-						shape = RoundedCornerShape(12.dp)
-					)
-					
-					if (isUpdating) {
-						CircularProgressIndicator(
-							modifier = Modifier.size(32.dp),
-							strokeWidth = 2.dp
-						)
-					} else {
-						IconButton(
-							onClick = onUpdateTonnage,
-							enabled = tempTonnageValue.isNotEmpty(),
-							modifier = Modifier
-								.size(48.dp)
-								.background(
-									color = if (tempTonnageValue.isNotEmpty()) 
-										MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-									else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-									shape = CircleShape
-								)
-						) {
-							Icon(
-								imageVector = Icons.Default.Save,
-								contentDescription = "ذخیره تناژ",
-								tint = if (tempTonnageValue.isNotEmpty()) 
-									MaterialTheme.colorScheme.primary
-								else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-								modifier = Modifier.size(20.dp)
-							)
-						}
-					}
-				}
 			}
 		}
 	}
@@ -3411,10 +2865,8 @@ fun QuotaManagementContent(
 	quotaData: Map<String, Map<String, List<QuotaItem>>>,
 	searchQuery: String,
 	expandedShip: String?,
-	expandedCargoOwner: String?,
 	expandedQuota: String?,
 	onShipToggle: (String) -> Unit,
-	onCargoOwnerToggle: (String) -> Unit,
 	onQuotaToggle: (String) -> Unit,
 	onRefreshData: () -> Unit,
 	viewModel: ReportsViewModel
@@ -3590,10 +3042,8 @@ fun QuotaManagementContent(
 				quotaData = currentData,
 				isActive = selectedTabIndex == 0,
 				expandedShip = expandedShip,
-				expandedCargoOwner = expandedCargoOwner,
 				expandedQuota = expandedQuota,
 				onShipToggle = onShipToggle,
-				onCargoOwnerToggle = onCargoOwnerToggle,
 				onQuotaToggle = onQuotaToggle,
 				onRefreshData = onRefreshData,
 				viewModel = viewModel
@@ -4061,10 +3511,8 @@ fun QuotaTabContent(
 	quotaData: Map<String, Map<String, List<QuotaItem>>>,
 	isActive: Boolean,
 	expandedShip: String?,
-	expandedCargoOwner: String?,
 	expandedQuota: String?,
 	onShipToggle: (String) -> Unit,
-	onCargoOwnerToggle: (String) -> Unit,
 	onQuotaToggle: (String) -> Unit,
 	onRefreshData: () -> Unit,
 	viewModel: ReportsViewModel,
@@ -4088,9 +3536,7 @@ fun QuotaTabContent(
 					cargoOwners = cargoOwners,
 					isExpanded = expandedShip == shipName,
 					onToggleExpand = { onShipToggle(shipName) },
-					expandedCargoOwner = expandedCargoOwner,
 					expandedQuota = expandedQuota,
-					onCargoOwnerToggle = onCargoOwnerToggle,
 					onQuotaToggle = onQuotaToggle,
 					onRefreshData = onRefreshData,
 					viewModel = viewModel,
@@ -4143,14 +3589,525 @@ fun EmptyQuotaState(
 }
 
 @Composable
+fun IntegratedQuotaCard(
+	quota: QuotaItem,
+	isExpanded: Boolean,
+	onToggleExpand: () -> Unit,
+	onRefreshData: () -> Unit,
+	viewModel: ReportsViewModel,
+	modifier: Modifier = Modifier
+) {
+	var isUpdating by remember { mutableStateOf(false) }
+	var isStatusToggling by remember { mutableStateOf(false) }
+	var tempTonnageEnabled by remember { mutableStateOf(quota.temporaryTonnageEnabled) }
+	var tempTonnageValue by remember { mutableStateOf(quota.temporaryTonnageValue?.toString() ?: "") }
+
+	Card(
+		modifier = modifier
+			.fillMaxWidth()
+			.animateContentSize(
+				animationSpec = tween(
+					durationMillis = 200,
+					easing = FastOutSlowInEasing
+				)
+			),
+		shape = RoundedCornerShape(10.dp),
+		colors = CardDefaults.cardColors(
+			containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+		),
+		border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+	) {
+		Column {
+			// هدر کوتاژ - نمایش شماره کوتاژ و صاحب کالا
+			Surface(
+				onClick = onToggleExpand,
+				color = Color.Transparent
+			) {
+				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(12.dp),
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					Row(
+						horizontalArrangement = Arrangement.spacedBy(10.dp),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						// آیکون کوتاژ با نشانگر وضعیت
+						Box(
+							modifier = Modifier
+								.size(36.dp)
+								.background(
+									color = if (quota.isActive) 
+										MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) 
+									else 
+										MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+									shape = CircleShape
+								),
+							contentAlignment = Alignment.Center
+						) {
+							Icon(
+								imageVector = Icons.Default.Description,
+								contentDescription = null,
+								tint = if (quota.isActive) 
+									MaterialTheme.colorScheme.primary 
+								else 
+									MaterialTheme.colorScheme.error,
+								modifier = Modifier.size(18.dp)
+							)
+						}
+
+						// اطلاعات کوتاژ و صاحب کالا
+						Column(
+							verticalArrangement = Arrangement.spacedBy(4.dp),
+							modifier = Modifier.weight(1f)
+						) {
+							// شماره کوتاژ و انبار در یک خط
+							Row(
+								modifier = Modifier.fillMaxWidth(),
+								horizontalArrangement = Arrangement.SpaceBetween,
+								verticalAlignment = Alignment.CenterVertically
+							) {
+								Text(
+									text = "کوتاژ ${quota.number}",
+									style = MaterialTheme.typography.titleSmall,
+									fontWeight = FontWeight.Bold,
+									color = MaterialTheme.colorScheme.onSurface
+								)
+								
+								CompactStatChip(
+									icon = Icons.Default.Warehouse,
+									value = quota.warehouse,
+									color = MaterialTheme.colorScheme.tertiary
+								)
+							}
+							
+							// صاحب کالا و وضعیت در یک خط
+							Row(
+								modifier = Modifier.fillMaxWidth(),
+								horizontalArrangement = Arrangement.SpaceBetween,
+								verticalAlignment = Alignment.CenterVertically
+							) {
+								Row(
+									horizontalArrangement = Arrangement.spacedBy(4.dp),
+									verticalAlignment = Alignment.CenterVertically
+								) {
+									Icon(
+										imageVector = Icons.Default.Person,
+										contentDescription = null,
+										tint = MaterialTheme.colorScheme.secondary,
+										modifier = Modifier.size(14.dp)
+									)
+									Text(
+										text = quota.cargoOwner,
+										style = MaterialTheme.typography.bodySmall,
+										color = MaterialTheme.colorScheme.secondary,
+										fontWeight = FontWeight.Medium
+									)
+								}
+								
+								Row(
+									horizontalArrangement = Arrangement.spacedBy(6.dp),
+									verticalAlignment = Alignment.CenterVertically
+								) {
+									Surface(
+										shape = RoundedCornerShape(8.dp),
+										color = if (quota.isActive) 
+											MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) 
+										else 
+											MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+									) {
+										Text(
+											text = if (quota.isActive) "فعال" else "غیرفعال",
+											style = MaterialTheme.typography.labelSmall,
+											color = if (quota.isActive) 
+												MaterialTheme.colorScheme.primary 
+											else 
+												MaterialTheme.colorScheme.error,
+											fontWeight = FontWeight.Medium,
+											modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+										)
+									}
+									
+									if (quota.temporaryTonnageEnabled && quota.temporaryTonnageValue != null) {
+										CompactStatChip(
+											icon = Icons.Default.Scale,
+											value = "${formatNumber(quota.temporaryTonnageValue.roundToInt())} تن",
+											color = MaterialTheme.colorScheme.primary
+										)
+									}
+								}
+							}
+						}
+					}
+
+					// آیکون گسترش
+					Icon(
+						imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+						contentDescription = if (isExpanded) "بستن" else "گسترش",
+						tint = MaterialTheme.colorScheme.onSurfaceVariant,
+						modifier = Modifier.size(20.dp)
+					)
+				}
+			}
+
+			// محتوای گسترش یافته - طراحی مینیمال و جمع و جور
+			AnimatedVisibility(
+				visible = isExpanded,
+				enter = expandVertically(animationSpec = tween(200)) + fadeIn(),
+				exit = shrinkVertically(animationSpec = tween(200)) + fadeOut()
+			) {
+				MinimalTempTonnageSection(
+					quota = quota,
+					tempTonnageEnabled = tempTonnageEnabled,
+					tempTonnageValue = tempTonnageValue,
+					isUpdating = isUpdating,
+					isStatusToggling = isStatusToggling,
+					onTempTonnageEnabledChange = { enabled ->
+						tempTonnageEnabled = enabled
+						// Automatically save when switch is toggled off
+						if (!enabled) {
+							isUpdating = true
+							viewModel.updateTemporaryTonnage(
+								quotaNumber = quota.number,
+								enabled = false,
+								tonnage = null
+							) {
+								isUpdating = false
+								onRefreshData()
+							}
+						}
+					},
+					onTempTonnageValueChange = { newValue ->
+						if (newValue.all { char -> char.isDigit() || char == '.' }) {
+							tempTonnageValue = newValue
+						}
+					},
+					onUpdateTonnage = {
+						isUpdating = true
+						viewModel.updateTemporaryTonnage(
+							quotaNumber = quota.number,
+							enabled = tempTonnageEnabled,
+							tonnage = if (tempTonnageEnabled && tempTonnageValue.isNotEmpty()) {
+								tempTonnageValue.toDoubleOrNull()
+							} else null
+						) {
+							isUpdating = false
+							onRefreshData()
+						}
+					},
+					onStatusToggle = {
+						isStatusToggling = true
+						viewModel.toggleQuotaStatus(quota.number) {
+							isStatusToggling = false
+							onRefreshData()
+						}
+					}
+				)
+			}
+		}
+	}
+}
+
+@Composable
+fun CompactStatChip(
+	icon: ImageVector,
+	value: String,
+	color: Color,
+	modifier: Modifier = Modifier
+) {
+	Surface(
+		modifier = modifier,
+		shape = RoundedCornerShape(6.dp),
+		color = color.copy(alpha = 0.1f)
+	) {
+		Row(
+			modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+			horizontalArrangement = Arrangement.spacedBy(3.dp),
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			Icon(
+				imageVector = icon,
+				contentDescription = null,
+				tint = color,
+				modifier = Modifier.size(12.dp)
+			)
+			Text(
+				text = value,
+				style = MaterialTheme.typography.labelSmall,
+				color = color,
+				fontWeight = FontWeight.Medium
+			)
+		}
+	}
+}
+
+@Composable
+fun MinimalTempTonnageSection(
+	quota: QuotaItem,
+	tempTonnageEnabled: Boolean,
+	tempTonnageValue: String,
+	isUpdating: Boolean,
+	isStatusToggling: Boolean,
+	onTempTonnageEnabledChange: (Boolean) -> Unit,
+	onTempTonnageValueChange: (String) -> Unit,
+	onUpdateTonnage: () -> Unit,
+	onStatusToggle: () -> Unit,
+	modifier: Modifier = Modifier
+) {
+	Column(
+		modifier = modifier
+			.fillMaxWidth()
+			.padding(16.dp),
+		verticalArrangement = Arrangement.spacedBy(16.dp)
+	) {
+		// اطلاعات ضروری کوتاژ به صورت فشرده
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			horizontalArrangement = Arrangement.SpaceBetween,
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			// شرکت باربری
+			MinimalInfoChip(
+				icon = Icons.Default.LocalShipping,
+				value = quota.shippingCompany
+			)
+			
+			// وضعیت کوتاژ
+			MinimalStatusButton(
+				isActive = quota.isActive,
+				isLoading = isStatusToggling,
+				onToggle = onStatusToggle
+			)
+		}
+		
+		// بخش مدیریت تناژ موقت
+		Card(
+			modifier = Modifier.fillMaxWidth(),
+			shape = RoundedCornerShape(12.dp),
+			colors = CardDefaults.cardColors(
+				containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+			),
+			border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+		) {
+			Column(
+				modifier = Modifier.padding(16.dp),
+				verticalArrangement = Arrangement.spacedBy(12.dp)
+			) {
+				// هدر تناژ موقت
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					Row(
+						verticalAlignment = Alignment.CenterVertically,
+						horizontalArrangement = Arrangement.spacedBy(8.dp)
+					) {
+						Icon(
+							imageVector = Icons.Default.Scale,
+							contentDescription = null,
+							tint = MaterialTheme.colorScheme.primary,
+							modifier = Modifier.size(20.dp)
+						)
+						Text(
+							text = "تناژ موقت",
+							style = MaterialTheme.typography.titleSmall,
+							color = MaterialTheme.colorScheme.primary,
+							fontWeight = FontWeight.Bold
+						)
+					}
+					
+					Switch(
+						checked = tempTonnageEnabled,
+						onCheckedChange = onTempTonnageEnabledChange,
+						enabled = !isUpdating
+					)
+				}
+				
+				// فیلد ورودی تناژ
+				AnimatedVisibility(
+					visible = tempTonnageEnabled,
+					enter = expandVertically() + fadeIn(),
+					exit = shrinkVertically() + fadeOut()
+				) {
+					Row(
+						modifier = Modifier.fillMaxWidth(),
+						horizontalArrangement = Arrangement.spacedBy(12.dp),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						OutlinedTextField(
+							value = tempTonnageValue,
+							onValueChange = { newValue ->
+								val filteredValue = newValue.filter { it.isDigit() }
+								onTempTonnageValueChange(filteredValue)
+							},
+							modifier = Modifier.weight(1f),
+							label = {
+								Text(
+									"مقدار (کیلوگرم)",
+									style = MaterialTheme.typography.labelMedium
+								)
+							},
+							keyboardOptions = KeyboardOptions(
+								keyboardType = KeyboardType.Number,
+								imeAction = ImeAction.Done
+							),
+							enabled = !isUpdating,
+							singleLine = true,
+							shape = RoundedCornerShape(12.dp),
+							colors = OutlinedTextFieldDefaults.colors(
+								focusedBorderColor = MaterialTheme.colorScheme.primary,
+								focusedLabelColor = MaterialTheme.colorScheme.primary
+							)
+						)
+						
+						// دکمه ذخیره
+						if (isUpdating) {
+							Box(
+								modifier = Modifier
+									.size(48.dp)
+									.background(
+										color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+										shape = CircleShape
+									),
+								contentAlignment = Alignment.Center
+							) {
+								CircularProgressIndicator(
+									modifier = Modifier.size(24.dp),
+									strokeWidth = 2.dp,
+									color = MaterialTheme.colorScheme.primary
+								)
+							}
+						} else {
+							FilledIconButton(
+								onClick = onUpdateTonnage,
+								enabled = tempTonnageValue.isNotEmpty(),
+								modifier = Modifier.size(48.dp),
+								colors = IconButtonDefaults.filledIconButtonColors(
+									containerColor = if (tempTonnageValue.isNotEmpty())
+										MaterialTheme.colorScheme.primary
+									else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+									contentColor = if (tempTonnageValue.isNotEmpty())
+										MaterialTheme.colorScheme.onPrimary
+									else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f)
+								)
+							) {
+								Icon(
+									imageVector = Icons.Default.Save,
+									contentDescription = "ذخیره تناژ",
+									modifier = Modifier.size(20.dp)
+								)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+@Composable
+fun MinimalInfoChip(
+	icon: ImageVector,
+	value: String,
+	modifier: Modifier = Modifier
+) {
+	Surface(
+		modifier = modifier,
+		shape = RoundedCornerShape(8.dp),
+		color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+	) {
+		Row(
+			modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+			horizontalArrangement = Arrangement.spacedBy(4.dp),
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			Icon(
+				imageVector = icon,
+				contentDescription = null,
+				tint = MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier.size(14.dp)
+			)
+			Text(
+				text = value,
+				style = MaterialTheme.typography.labelMedium,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				fontWeight = FontWeight.Bold,
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis
+			)
+		}
+	}
+}
+
+@Composable
+fun MinimalStatusButton(
+	isActive: Boolean,
+	isLoading: Boolean,
+	onToggle: () -> Unit,
+	modifier: Modifier = Modifier
+) {
+	val containerColor = if (isActive) {
+		Color(0xFF4CAF50).copy(alpha = 0.15f)
+	} else {
+		Color(0xFFF44336).copy(alpha = 0.15f)
+	}
+	val contentColor = if (isActive) {
+		Color(0xFF2E7D32)
+	} else {
+		Color(0xFFC62828)
+	}
+	
+	if (isLoading) {
+		Box(
+			modifier = modifier
+				.background(
+					color = containerColor,
+					shape = RoundedCornerShape(8.dp)
+				)
+				.padding(horizontal = 12.dp, vertical = 6.dp),
+			contentAlignment = Alignment.Center
+		) {
+			CircularProgressIndicator(
+				modifier = Modifier.size(16.dp),
+				strokeWidth = 2.dp,
+				color = contentColor
+			)
+		}
+	} else {
+		FilledTonalButton(
+			onClick = onToggle,
+			modifier = modifier,
+			colors = ButtonDefaults.filledTonalButtonColors(
+				containerColor = containerColor,
+				contentColor = contentColor
+			),
+			shape = RoundedCornerShape(8.dp)
+		) {
+			Icon(
+				imageVector = if (isActive) Icons.Default.Check else Icons.Default.Close,
+				contentDescription = null,
+				modifier = Modifier.size(14.dp)
+			)
+			Spacer(modifier = Modifier.width(4.dp))
+			Text(
+				text = if (isActive) "فعال" else "غیرفعال",
+				style = MaterialTheme.typography.labelSmall,
+				fontWeight = FontWeight.Medium
+			)
+		}
+	}
+}
+
+@Composable
 fun QuotaShipExpansionPanel(
 	shipName: String,
 	cargoOwners: Map<String, List<QuotaItem>>,
 	isExpanded: Boolean,
 	onToggleExpand: () -> Unit,
-	expandedCargoOwner: String?,
 	expandedQuota: String?,
-	onCargoOwnerToggle: (String) -> Unit,
 	onQuotaToggle: (String) -> Unit,
 	onRefreshData: () -> Unit,
 	viewModel: ReportsViewModel,
@@ -4276,24 +4233,22 @@ fun QuotaShipExpansionPanel(
 						.padding(16.dp),
 					verticalArrangement = Arrangement.spacedBy(8.dp)
 				) {
-					// مرتب‌سازی صاحب کالاها بر اساس وضعیت کوتاژها (فعال اول، غیرفعال آخر)
-				cargoOwners.toList().sortedBy { (_, quotas) ->
-					val hasActiveQuota = quotas.any { it.isActive }
-					if (hasActiveQuota) 0 else 1
-				}.forEach { (cargoOwner, quotas) ->
-					val cargoOwnerKey = "${shipName}_${cargoOwner}"
-					val allQuotasInactive = quotas.isNotEmpty() && quotas.all { !it.isActive }
-					
-					QuotaCargoOwnerCard(
-						cargoOwner = cargoOwner,
-						quotas = quotas,
-						isExpanded = expandedCargoOwner == cargoOwnerKey,
-						onToggleExpand = { onCargoOwnerToggle(cargoOwnerKey) },
-						expandedQuota = expandedQuota,
-						onQuotaToggle = onQuotaToggle,
+					// تجمیع تمام کوتاژها و مرتب‌سازی بر اساس صاحب کالا
+				val allQuotas = cargoOwners.values.flatten()
+					.sortedWith(
+						compareBy<QuotaItem> { it.cargoOwner }
+							.thenByDescending { it.isActive }
+							.thenBy { it.number }
+					)
+
+				// نمایش مستقیم تمام کوتاژها با اطلاعات صاحب کالا
+				allQuotas.forEach { quota ->
+					IntegratedQuotaCard(
+						quota = quota,
+						isExpanded = expandedQuota == quota.quotaKey,
+						onToggleExpand = { onQuotaToggle(quota.quotaKey) },
 						onRefreshData = onRefreshData,
-						viewModel = viewModel,
-						allQuotasInactive = allQuotasInactive
+						viewModel = viewModel
 					)
 				}
 				}

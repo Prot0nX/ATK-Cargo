@@ -1793,6 +1793,8 @@ class ReportsViewModel(
                     _currentShipName.value?.let { shipName ->
                         loadShipQuotas(shipName)
                     }
+                    // Refresh ships list to update temporary tonnage status
+                    loadShips()
                     showSnackbar(
                         if (enabled) "تناژ موقت با موفقیت فعال شد"
                         else "تناژ موقت غیرفعال شد"
