@@ -12,6 +12,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
@@ -54,12 +55,14 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -112,8 +115,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -167,6 +168,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -240,7 +242,7 @@ class MainActivity : ComponentActivity() {
 
         try {
             initializeDependencies()
-            
+
             setContent {
                 ATKCargoTheme {
                     var showMainContent by remember { mutableStateOf(false) }
@@ -251,20 +253,20 @@ class MainActivity : ComponentActivity() {
                         // ابتدا بررسی امنیتی را انجام می‌دهیم
                         performSecurityCheck()
                         delay(1500) // افزایش تاخیر
-                        
+
                         // سپس بررسی بروزرسانی را انجام می‌دهیم
                         checkForUpdate()
                         delay(1500) // افزایش تاخیر
-                        
+
                         // راه‌اندازی سرویس نوتیفیکیشن بارگیری لحظه‌ای
                         startLoadingNotificationService()
-                        
+
                         // نمایش محتوای اصلی
                         showMainContent = true
-                        
+
                         // تاخیر طولانی‌تر قبل از شروع سرویس‌ها
                         delay(3000)
-                        
+
                         // تاخیر بیشتر قبل از فعال کردن درخواست مجوزها
                         delay(5000)
                         canRequestPermissions = true
@@ -276,14 +278,14 @@ class MainActivity : ComponentActivity() {
                             try {
                                 // نیازی به درخواست مجوز نوتیفیکیشن نیست
                                 // مجوز حذف شده است
-                                
+
                                 // تاخیر اضافی برای اطمینان از پایداری برنامه
                                 delay(2000)
-                                
+
                                 // مدیریت بهینه مجوز بهینه‌سازی باتری برای نسخه‌های مختلف اندروید
                                 val packageName = packageName
                                 val pm = getSystemService(POWER_SERVICE) as PowerManager
-                                
+
                                 if (!pm.isIgnoringBatteryOptimizations(packageName)) {
                                     withContext(Dispatchers.Main) {
                                         try {
@@ -341,7 +343,7 @@ class MainActivity : ComponentActivity() {
             }
 
             observeApplicationStates()
-            
+
         } catch (_: Exception) {
             // خطای کلی در راه‌اندازی برنامه
         }
@@ -500,23 +502,23 @@ class MainActivity : ComponentActivity() {
                 val username = userPreferencesManager.username.first()
                 val deviceId = userPreferencesManager.deviceId.first()
                 val sessionToken = userPreferencesManager.sessionToken.first()
-                
+
                 if (username.isNotEmpty()) {
                     val apiService = RetrofitClient.apiService
                     val sessionRequest = SessionCheckRequest(username, deviceId, sessionToken.takeIf { it.isNotEmpty() })
-                    
+
                     val response = apiService.checkSession(sessionRequest)
                     when {
                         response.isSuccessful && response.body()?.success == true -> {
                             _isSessionValid.value = true
-                            
+
                             // راه‌اندازی سرویس اعلان‌های بارگیری بعد از تأیید اعتبار جلسه
                             startLoadingNotificationService()
                         }
                         else -> {
                             _isSessionValid.value = false
                             userPreferencesManager.clearUserCredentials()
-                            
+
                             // نمایش پیام ساده برای خروج از سیستم
                             showMessage("لطفاً دوباره وارد شوید!")
                         }
@@ -542,12 +544,12 @@ class MainActivity : ComponentActivity() {
     fun startLoadingNotificationService() {
         // بررسی و درخواست مجوز نوتیفیکیشن
         checkNotificationPermission()
-        
+
         // بررسی سطح دسترسی کاربر قبل از راه‌اندازی سرویس
         lifecycleScope.launch {
             val userPreferencesManager = UserPreferencesManager(this@MainActivity)
             val userType = userPreferencesManager.userType.first()
-            
+
             if (userType == "admin") {
                 // شروع سرویس فقط برای کاربران admin
                 Log.d("MainActivity", "User is admin, starting loading notification service")
@@ -560,21 +562,21 @@ class MainActivity : ComponentActivity() {
                 startService(intent)
             }
         }
-        
+
 
     }
-    
 
-    
 
-    
+
+
+
     private fun checkNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val hasPermission = ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
-            
+
             if (!hasPermission) {
                 ActivityCompat.requestPermissions(
                     this,
@@ -584,7 +586,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    
+
     companion object {
         private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 100
     }
@@ -603,7 +605,7 @@ fun UpdateDialog(
 ) {
     // انیمیشن برای نمایش دیالوگ
     val dialogAlpha by animateFloatAsState(targetValue = 1f, label = "")
-    
+
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Dialog(
             onDismissRequest = {
@@ -636,7 +638,7 @@ fun UpdateDialog(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                                    .fillMaxWidth()
+                            .fillMaxWidth()
                     ) {
                         ChangeLogSection(updateInfo.changeLog)
                     }
@@ -646,11 +648,11 @@ fun UpdateDialog(
                         downloadProgress = downloadProgress,
                         updateSize = updateInfo.updateSize,
                         onUpdateClick = onUpdateClick,
-                                        onPauseClick = onPauseClick,
-                                        onResumeClick = onResumeClick,
-                                        onCancelClick = onCancelClick
-                                    )
-                                }
+                        onPauseClick = onPauseClick,
+                        onResumeClick = onResumeClick,
+                        onCancelClick = onCancelClick
+                    )
+                }
             }
         }
     }
@@ -1016,8 +1018,8 @@ private fun ExpandableChangeLogCategory(
     onExpandChange: (Boolean) -> Unit
 ) {
     Card(
-            modifier = Modifier
-                .fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
             .padding(vertical = 4.dp)
             .animateContentSize(
                 animationSpec = spring(
@@ -1030,26 +1032,26 @@ private fun ExpandableChangeLogCategory(
             containerColor = color.copy(alpha = 0.1f)
         ),
         shape = RoundedCornerShape(12.dp)
-) {
-    Column(
-            modifier = Modifier.padding(12.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+        Column(
+            modifier = Modifier.padding(12.dp)
         ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
+                ) {
+                    Icon(
                         imageVector = icon,
-                    contentDescription = null,
+                        contentDescription = null,
                         tint = color,
                         modifier = Modifier.size(20.dp)
-                )
-                Text(
+                    )
+                    Text(
                         text = title,
                         style = MaterialTheme.typography.titleSmall,
                         color = color,
@@ -1070,15 +1072,15 @@ private fun ExpandableChangeLogCategory(
                     animationSpec = tween(
                         durationMillis = 300,
                         easing = FastOutSlowInEasing
-            ),
-            label = ""
-        )
+                    ),
+                    label = ""
+                )
 
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
                     contentDescription = if (isExpanded) "بستن" else "باز کردن",
                     tint = color,
-            modifier = Modifier
+                    modifier = Modifier
                         .size(24.dp)
                         .rotate(rotation)
                 )
@@ -1093,8 +1095,8 @@ private fun ExpandableChangeLogCategory(
                     )
                 ) + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
-) {
-    Column(
+            ) {
+                Column(
                     modifier = Modifier
                         .padding(top = 12.dp)
                         .fillMaxWidth()
@@ -1112,10 +1114,10 @@ private fun ExpandableChangeLogCategory(
                                     .size(6.dp)
                                     .offset(y = 8.dp)
                                     .background(color.copy(alpha = 0.5f), CircleShape)
-                )
-                Text(
+                            )
+                            Text(
                                 text = item,
-                    style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -1144,29 +1146,29 @@ private fun UpdateActionSection(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         ),
         shape = RoundedCornerShape(16.dp)
-) {
-    Column(
-            modifier = Modifier.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             when (downloadState) {
                 is UpdateManager.DownloadState.Idle -> {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-                Text(
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
                             text = "حجم فایل: $updateSize مگابایت",
                             style = MaterialTheme.typography.bodyMedium
                         )
-            Button(
+                        Button(
                             onClick = onUpdateClick,
                             contentPadding = PaddingValues(horizontal = 24.dp)
-            ) {
-                Icon(
+                        ) {
+                            Icon(
                                 Icons.Default.Add,
-                    contentDescription = null,
+                                contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -1237,7 +1239,7 @@ private fun ErrorState(
                 )
             }
         }
- 
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1278,7 +1280,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
     val isSessionValid by mainActivity.isSessionValid.collectAsState()
 
     LaunchedEffect(key1 = true) {
-		delay(5000)
+        delay(5000)
         showSplash = false
     }
 
@@ -1322,56 +1324,56 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                             isSessionValid = isSessionValid,
                                             onLoginClick = { showLoginDialog = true },
                                             onLogoutClick = {
-                                coroutineScope.launch {
-                                    try {
-                                        // دریافت اطلاعات دستگاه
-                                        val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
-                                        
-                                        // ارسال درخواست خروج به سرور
-                                        val sessionToken = userPreferencesManager.sessionToken.first()
-                                        val logoutRequest = LogoutRequest(
-                                            username = username,
-                                            deviceId = deviceId,
-                                            sessionToken = sessionToken.takeIf { it.isNotEmpty() }
-                                        )
-                                        
-                                        val response = RetrofitClient.apiService.logout(logoutRequest)
-                                        if (response.isSuccessful && response.body()?.success == true) {
-                                            // توقف بررسی دوره‌ای جلسه
+                                                coroutineScope.launch {
+                                                    try {
+                                                        // دریافت اطلاعات دستگاه
+                                                        val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
 
-                                            // پاک کردن اطلاعات محلی
-                                            userPreferencesManager.clearUserCredentials()
-                                            Toast.makeText(mainActivity, "خروج با موفقیت انجام شد", Toast.LENGTH_SHORT).show()
-                                        } else {
-                                            // مدیریت خطاهای HTTP status codes
-                                            val errorMessage = when (response.code()) {
-                                                400 -> "❌ درخواست نامعتبر"
-                                                401 -> "🔐 جلسه منقضی شده است"
-                                                404 -> "⚠️ جلسه فعالی یافت نشد"
-                                                500 -> "🔧 خطای داخلی سرور"
-                                                else -> "خطا در خروج (کد: ${response.code()})"
-                                            }
-                                            
-                                            // حتی در صورت خطا، اطلاعات محلی را پاک کن
+                                                        // ارسال درخواست خروج به سرور
+                                                        val sessionToken = userPreferencesManager.sessionToken.first()
+                                                        val logoutRequest = LogoutRequest(
+                                                            username = username,
+                                                            deviceId = deviceId,
+                                                            sessionToken = sessionToken.takeIf { it.isNotEmpty() }
+                                                        )
 
-                                            userPreferencesManager.clearUserCredentials()
-                                            Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
-                                        }
-                                    } catch (_: Exception) {
-                                        // در صورت خطا، اطلاعات محلی را پاک کن
+                                                        val response = RetrofitClient.apiService.logout(logoutRequest)
+                                                        if (response.isSuccessful && response.body()?.success == true) {
+                                                            // توقف بررسی دوره‌ای جلسه
 
-                                        userPreferencesManager.clearUserCredentials()
-                                        Toast.makeText(mainActivity, "خروج انجام شد", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            },
+                                                            // پاک کردن اطلاعات محلی
+                                                            userPreferencesManager.clearUserCredentials()
+                                                            Toast.makeText(mainActivity, "خروج با موفقیت انجام شد", Toast.LENGTH_SHORT).show()
+                                                        } else {
+                                                            // مدیریت خطاهای HTTP status codes
+                                                            val errorMessage = when (response.code()) {
+                                                                400 -> "❌ درخواست نامعتبر"
+                                                                401 -> "🔐 جلسه منقضی شده است"
+                                                                404 -> "⚠️ جلسه فعالی یافت نشد"
+                                                                500 -> "🔧 خطای داخلی سرور"
+                                                                else -> "خطا در خروج (کد: ${response.code()})"
+                                                            }
+
+                                                            // حتی در صورت خطا، اطلاعات محلی را پاک کن
+
+                                                            userPreferencesManager.clearUserCredentials()
+                                                            Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    } catch (_: Exception) {
+                                                        // در صورت خطا، اطلاعات محلی را پاک کن
+
+                                                        userPreferencesManager.clearUserCredentials()
+                                                        Toast.makeText(mainActivity, "خروج انجام شد", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                }
+                                            },
                                             onManageUsersClick = { showUserManagement = true }
                                         )
                                     }
                                     composable(
                                         route = "initial_info",
                                         // اضافه کردن انیمیشن برای انتقال بین صفحات
-                                        enterTransition = { 
+                                        enterTransition = {
                                             slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
                                         },
                                         exitTransition = {
@@ -1383,8 +1385,8 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                     }
                                     composable(
                                         route = "select_info",
-                                        enterTransition = { 
-                                            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left) 
+                                        enterTransition = {
+                                            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
                                         },
                                         exitTransition = {
                                             slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
@@ -1396,8 +1398,8 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                     }
                                     composable(
                                         route = "cargo_counter",
-                                        enterTransition = { 
-                                            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left) 
+                                        enterTransition = {
+                                            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
                                         },
                                         exitTransition = {
                                             slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
@@ -1408,8 +1410,8 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                     }
                                     composable(
                                         route = "manage_reports",
-                                        enterTransition = { 
-                                            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left) 
+                                        enterTransition = {
+                                            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
                                         },
                                         exitTransition = {
                                             slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
@@ -1491,7 +1493,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                             ),
                                             color = MaterialTheme.colorScheme.primary
                                         )
-                                        
+
                                         Box(
                                             modifier = Modifier
                                                 .padding(horizontal = 8.dp)
@@ -1501,7 +1503,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                                     CircleShape
                                                 )
                                         )
-                                        
+
                                         Text(
                                             "سایت نیاکوزرین",
                                             style = MaterialTheme.typography.bodySmall,
@@ -1550,6 +1552,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
     }
 }
 
+@OptIn(UnstableApi::class)
 @Composable
 fun SplashScreen() {
     val textAlpha = remember { Animatable(0f) }
@@ -1723,10 +1726,10 @@ fun HomeScreen(
                             try {
                                 showGridAnimation = false
                                 delay(300)
-                                
+
                                 // دریافت اطلاعات دستگاه
                                 val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
-                                
+
                                 // ارسال درخواست خروج به سرور
                                 val sessionToken = userPreferencesManager.sessionToken.first()
                                 val logoutRequest = LogoutRequest(
@@ -1734,7 +1737,7 @@ fun HomeScreen(
                                     deviceId = deviceId,
                                     sessionToken = sessionToken.takeIf { it.isNotEmpty() }
                                 )
-                                
+
                                 val response = RetrofitClient.apiService.logout(logoutRequest)
                                 if (response.isSuccessful && response.body()?.success == true) {
 
@@ -1750,10 +1753,10 @@ fun HomeScreen(
                                         500 -> "🔧 خطای داخلی سرور"
                                         else -> "خطا در خروج (کد: ${response.code()})"
                                     }
-                                    
+
                                     // نمایش پیام خطا
                                     Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
-                                    
+
 
                                     userPreferencesManager.clearUserCredentials()
                                     mainActivity.updateSessionValidity(false)
@@ -1842,7 +1845,7 @@ private fun ModernHeader(
     var isInitialRender by remember { mutableStateOf(true) }
     val headerScale = remember { Animatable(0.96f) }
     val headerOpacity = remember { Animatable(0f) }
-    
+
     // انیمیشن‌های شروع
     LaunchedEffect(key1 = Unit) {
         launch {
@@ -1903,7 +1906,7 @@ private fun ModernHeader(
                                 try {
                                     // دریافت اطلاعات دستگاه
                                     val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
-                                    
+
                                     // ارسال درخواست خروج به سرور
                                     val sessionToken = userPreferencesManager.sessionToken.first()
                                     val logoutRequest = LogoutRequest(
@@ -1911,7 +1914,7 @@ private fun ModernHeader(
                                         deviceId = deviceId,
                                         sessionToken = sessionToken.takeIf { it.isNotEmpty() }
                                     )
-                                    
+
                                     val response = RetrofitClient.apiService.logout(logoutRequest)
                                     if (response.isSuccessful && response.body()?.success == true) {
 
@@ -1927,10 +1930,10 @@ private fun ModernHeader(
                                             500 -> "🔧 خطای داخلی سرور"
                                             else -> "خطا در خروج (کد: ${response.code()})"
                                         }
-                                        
+
                                         // نمایش پیام خطا
                                         Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
-                                        
+
 
                                         userPreferencesManager.clearUserCredentials()
                                         mainActivity.updateSessionValidity(false)
@@ -2003,7 +2006,7 @@ private fun ModernHeader(
                                         modifier = Modifier.size(22.dp)
                                     )
                                 }
-                                
+
                                 // اطلاعات متنی کاربر مهمان
                                 Column {
                                     Text(
@@ -2024,7 +2027,7 @@ private fun ModernHeader(
                                     }
                                 }
                             }
-                            
+
                             // دکمه ورود با طراحی جدید
                             Button(
                                 onClick = onLoginClick,
@@ -2072,14 +2075,14 @@ fun ProfileMenu(
     var currentUser by remember { mutableStateOf<User?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    
+
     // انیمیشن‌های بهبود یافته
     val rotationState by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
         animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
         label = ""
     )
-    
+
     // انیمیشن محتوا
     val contentScale = remember { Animatable(0.96f) }
 
@@ -2171,7 +2174,7 @@ fun ProfileMenu(
                                 "verifier" -> MaterialTheme.colorScheme.tertiary
                                 else -> MaterialTheme.colorScheme.primary
                             }
-                            
+
                             Box(
                                 modifier = Modifier
                                     .size(50.dp)
@@ -2240,7 +2243,7 @@ fun ProfileMenu(
                             }
                         }
                     }
-                    
+
                     // آیکون باز/بسته کردن منو
                     Box(
                         modifier = Modifier
@@ -2289,7 +2292,7 @@ fun ProfileMenu(
                             thickness = 1.dp,
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                         )
-                        
+
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // دکمه‌های عملیات
@@ -2421,15 +2424,15 @@ fun ProfileSettingsDialog(
                     .verticalScroll(rememberScrollState())
                     .padding(vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Card(
-                    modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                ),
-                    shape = RoundedCornerShape(12.dp)
             ) {
-                Column(
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
                         modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -2447,12 +2450,12 @@ fun ProfileSettingsDialog(
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
                                 "نام و نام خانوادگی:",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -2472,7 +2475,7 @@ fun ProfileSettingsDialog(
                             )
                             Text(
                                 getUserTypeDisplay(user.userType),
-                                    fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.Bold,
                                 color = when (user.userType) {
                                     "admin" -> MaterialTheme.colorScheme.primary
                                     "operator" -> MaterialTheme.colorScheme.secondary
@@ -2541,7 +2544,7 @@ fun ProfileSettingsDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                                        Icon(
+                        Icon(
                             Icons.Default.Info,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
@@ -2605,7 +2608,7 @@ fun ProfileSettingsDialog(
         AlertDialog(
             onDismissRequest = { showConfirmation = false },
             title = {
-                            Text(
+                Text(
                     "تأیید تغییر رمز عبور",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
@@ -2710,12 +2713,12 @@ private fun getIconForUserType(userType: String): ImageVector {
 private fun WelcomeSection(username: String) {
     var textVisible by remember { mutableStateOf(false) }
     val textScale = remember { Animatable(0.9f) }
-    
+
     val hintText = if (username.isNotEmpty())
         "لطفاً گزینه مورد نظر خود را انتخاب کنید"
-    else 
+    else
         "برای دسترسی به امکانات سیستم لطفاً وارد شوید"
-    
+
     // انیمیشن رنگ برای نام کاربر
     val usernameColorAnimation = rememberInfiniteTransition()
     val usernameColor by usernameColorAnimation.animateColor(
@@ -2726,7 +2729,7 @@ private fun WelcomeSection(username: String) {
             repeatMode = RepeatMode.Reverse
         )
     )
-    
+
     // انیمیشن مقیاس برای نام کاربر
     val usernameScaleAnimation = rememberInfiniteTransition()
     val usernameScale by usernameScaleAnimation.animateFloat(
@@ -2780,7 +2783,7 @@ private fun WelcomeSection(username: String) {
                     shape = CircleShape
                 )
         )
-        
+
         Box(
             modifier = Modifier
                 .size(60.dp)
@@ -2835,7 +2838,7 @@ private fun WelcomeSection(username: String) {
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            
+
                             // فقط نام کاربر با انیمیشن (بدون حالت تایپ کردن)
                             Text(
                                 text = username,
@@ -2856,9 +2859,9 @@ private fun WelcomeSection(username: String) {
                             color = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(4.dp))
-                    
+
                     // متن راهنما بدون انیمیشن
                     Text(
                         text = hintText,
@@ -2894,7 +2897,7 @@ private fun AnimatedMenuGrid(
             val primaryColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.02f)
             val secondaryColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.02f)
             val tertiaryColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.02f)
-            
+
             // دایره بزرگ بالا چپ
             Box(
                 modifier = Modifier
@@ -2908,7 +2911,7 @@ private fun AnimatedMenuGrid(
                         shape = CircleShape
                     )
             )
-            
+
             // دایره متوسط پایین راست
             Box(
                 modifier = Modifier
@@ -2923,7 +2926,7 @@ private fun AnimatedMenuGrid(
                         shape = CircleShape
                     )
             )
-            
+
             // دایره کوچک وسط
             Box(
                 modifier = Modifier
@@ -2939,11 +2942,11 @@ private fun AnimatedMenuGrid(
                     )
             )
         }
-        
+
         // تقسیم‌بندی آیتم‌های منو
         val adminItems = menuItems.filter { it.route == "manage_users" }
         val regularItems = menuItems.filter { it.route != "manage_users" }
-        
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -2963,7 +2966,7 @@ private fun AnimatedMenuGrid(
                     }
                 )
             }
-            
+
             // آیتم‌های عملیاتی در گرید
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columnCount),
@@ -2983,7 +2986,7 @@ private fun AnimatedMenuGrid(
                 ) { index ->
                     val item = regularItems[index]
                     val isWideItem = regularItems.size == 1
-                    
+
                     AnimatedMenuCard(
                         item = item,
                         isWideItem = isWideItem,
@@ -3015,21 +3018,21 @@ private fun AnimatedMenuCard(
         Pair(MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.secondaryContainer),
         Pair(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiaryContainer)
     )
-    
+
     // رنگ منحصر به فرد برای هر آیتم
     val colorPair = colors[index % colors.size]
     val mainColor = colorPair.first
     val secondaryColor = colorPair.second
-    
+
     // تاخیر شناور برای انیمیشن ظهور پلکانی
     val delayFactor = index * 100
-    
+
     // متغیرهای حالت برای انیمیشن‌های تعاملی
     var isHovered by remember { mutableStateOf(false) }
     val scale = remember { Animatable(0.96f) }
     val elevationState = remember { Animatable(0f) }
     val rotationState = remember { Animatable(0f) }
-    
+
     // انیمیشن‌های بازخورد تعاملی
     val hoverScale by animateFloatAsState(
         targetValue = if (isHovered) 1.04f else 1f,
@@ -3039,7 +3042,7 @@ private fun AnimatedMenuCard(
         ),
         label = ""
     )
-    
+
     // انیمیشن ظهور هر آیتم
     AnimatedVisibility(
         visible = showAnimation,
@@ -3084,7 +3087,7 @@ private fun AnimatedMenuCard(
                 )
             }
         }
-        
+
         // کارت اصلی
         Card(
             modifier = Modifier
@@ -3098,7 +3101,7 @@ private fun AnimatedMenuCard(
                 // بهبود عملکرد کلیک
                 .pointerInput(Unit) {
                     detectTapGestures(
-                        onPress = { 
+                        onPress = {
                             isHovered = true
                             tryAwaitRelease()
                             isHovered = false
@@ -3166,9 +3169,9 @@ private fun AnimatedMenuCard(
                                     .rotate(rotationState.value)
                             )
                         }
-                        
+
                         Spacer(modifier = Modifier.width(16.dp))
-                        
+
                         // محتوای متنی
                         Column(
                             verticalArrangement = Arrangement.Center
@@ -3179,9 +3182,9 @@ private fun AnimatedMenuCard(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            
+
                             Spacer(modifier = Modifier.height(2.dp))
-                            
+
                             Text(
                                 text = getMenuDescription(item.route),
                                 style = MaterialTheme.typography.bodySmall,
@@ -3219,9 +3222,9 @@ private fun AnimatedMenuCard(
                                     .rotate(rotationState.value)
                             )
                         }
-                        
+
                         Spacer(modifier = Modifier.height(10.dp))
-                        
+
                         // عنوان با فونت کوچکتر
                         Text(
                             text = item.title,
@@ -3232,7 +3235,7 @@ private fun AnimatedMenuCard(
                             overflow = TextOverflow.Ellipsis,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        
+
                         // توضیحات با فونت کوچکتر
                         Text(
                             text = getMenuDescription(item.route),
@@ -3264,7 +3267,7 @@ private fun getMenuDescription(route: String): String {
 private fun LoginPrompt(onLoginClick: () -> Unit) {
     val scale = remember { Animatable(0.95f) }
     val shadowElevation = remember { Animatable(0f) }
-    
+
     LaunchedEffect(Unit) {
         delay(300)
         launch {
@@ -3324,7 +3327,7 @@ private fun LoginPrompt(onLoginClick: () -> Unit) {
                             shape = CircleShape
                         )
                 )
-                
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -3353,9 +3356,9 @@ private fun LoginPrompt(onLoginClick: () -> Unit) {
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(24.dp))
-                    
+
                     Text(
                         "برای دسترسی به منوها وارد شوید",
                         style = MaterialTheme.typography.titleLarge,
@@ -3363,18 +3366,18 @@ private fun LoginPrompt(onLoginClick: () -> Unit) {
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    
+
                     Spacer(modifier = Modifier.height(12.dp))
-                    
+
                     Text(
                         "دسترسی به تمامی امکانات سیستم تنها با ورود به حساب کاربری امکان‌پذیر است",
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    
+
                     Spacer(modifier = Modifier.height(32.dp))
-                    
+
                     Button(
                         onClick = onLoginClick,
                         modifier = Modifier
@@ -3424,86 +3427,35 @@ fun UserManagementDialog(
     val currentUsername by userPreferencesManager.username.collectAsState(initial = "")
     val currentUserType by userPreferencesManager.userType.collectAsState(initial = "")
     val isMainAdmin = currentUsername == "Prot0nX"
-    
-    // انیمیشن‌های ظاهر شدن
-    val dialogAppearance = remember { Animatable(0.9f) }
+
+    // Minimalist animation approach
     val contentAlpha = remember { Animatable(0f) }
-    val headerAppearance = remember { Animatable(0f) }
-    val searchBarOffset = remember { Animatable(-50f) }
-    val listOffset = remember { Animatable(50f) }
+    val dialogScale = remember { Animatable(0.95f) }
 
     LaunchedEffect(Unit) {
-        // انیمیشن اصلی دیالوگ
         launch {
-            dialogAppearance.animateTo(
+            dialogScale.animateTo(
                 targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioLowBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
+                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
             )
         }
-        
-        // انیمیشن محتوا
         launch {
-            delay(100)
             contentAlpha.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(durationMillis = 500)
-            )
-        }
-        
-        // انیمیشن هدر
-        launch {
-            delay(200)
-            headerAppearance.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            )
-        }
-        
-        // انیمیشن جستجو
-        launch {
-            delay(300)
-            searchBarOffset.animateTo(
-                targetValue = 0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            )
-        }
-        
-        // انیمیشن لیست
-        launch {
-            delay(400)
-            listOffset.animateTo(
-                targetValue = 0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
+                animationSpec = tween(durationMillis = 250)
             )
         }
     }
 
-    // تابع کمکی برای مرتب‌سازی کاربران
+    // Helper functions
     fun sortUsersByType(users: List<User>): List<User> {
-        val typeOrder = mapOf(
-            "admin" to 0,
-            "operator" to 1,
-            "verifier" to 2
-        )
+        val typeOrder = mapOf("admin" to 0, "operator" to 1, "verifier" to 2)
         return users.sortedWith(compareBy(
-            { typeOrder[it.userType] ?: 3 }, // اول بر اساس نوع کاربری
-            { it.username } // سپس بر اساس نام کاربری
+            { typeOrder[it.userType] ?: 3 },
+            { it.username }
         ))
     }
 
-    // تابع کمکی برای به‌روزرسانی لیست کاربران
     fun updateUsersList(newUsers: List<User>) {
         users = sortUsersByType(newUsers)
         filteredUsers = if (searchQuery.isEmpty()) {
@@ -3512,13 +3464,13 @@ fun UserManagementDialog(
             sortUsersByType(
                 users.filter { user ->
                     user.username.contains(searchQuery, ignoreCase = true) ||
-                    (user.fullName?.contains(searchQuery, ignoreCase = true) == true)
+                            (user.fullName?.contains(searchQuery, ignoreCase = true) == true)
                 }
             )
         }
     }
 
-    // بارگیری کاربران
+    // Load users
     LaunchedEffect(Unit) {
         try {
             val response = RetrofitClient.apiService.getAllUsers()
@@ -3530,7 +3482,7 @@ fun UserManagementDialog(
         }
     }
 
-    // فیلتر کاربران بر اساس جستجو
+    // Filter users based on search
     LaunchedEffect(searchQuery, users) {
         filteredUsers = if (searchQuery.isEmpty()) {
             users
@@ -3538,7 +3490,7 @@ fun UserManagementDialog(
             sortUsersByType(
                 users.filter { user ->
                     user.username.contains(searchQuery, ignoreCase = true) ||
-                    (user.fullName?.contains(searchQuery, ignoreCase = true) == true)
+                            (user.fullName?.contains(searchQuery, ignoreCase = true) == true)
                 }
             )
         }
@@ -3553,259 +3505,179 @@ fun UserManagementDialog(
         )
     ) {
         Surface(
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 2.dp,
-            shadowElevation = 8.dp,
+            tonalElevation = 6.dp,
             modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.9f)
-                .scale(dialogAppearance.value)
+                .fillMaxWidth(0.92f)
+                .fillMaxHeight(0.85f)
+                .scale(dialogScale.value)
                 .alpha(contentAlpha.value)
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp)
             ) {
-                // اضافه کردن افکت گرادیان پس‌زمینه
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.surface,
-                                    MaterialTheme.colorScheme.surface,
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                                )
-                            )
-                        )
-                )
-                
-                // دایره‌های تزئینی
-                Box(
-                    modifier = Modifier
-                        .size(220.dp)
-                        .offset(x = (-100).dp, y = (-80).dp)
-                        .alpha(0.03f)
-                        .background(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    Color.Transparent
-                                )
-                            ),
-                            shape = CircleShape
-                        )
-                )
-                
-                Box(
-                    modifier = Modifier
-                        .size(180.dp)
-                        .align(Alignment.BottomEnd)
-                        .offset(x = 80.dp, y = 60.dp)
-                        .alpha(0.02f)
-                        .background(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.tertiary,
-                                    Color.Transparent
-                                )
-                            ),
-                            shape = CircleShape
-                        )
-                )
-            
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp)
+                // Clean header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Header with Add Button
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .scale(headerAppearance.value),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(40.dp)
                     ) {
-                        // دکمه بستن با طراحی جدید
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "بستن",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Text(
+                        "مدیریت کاربران",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    if (currentUserType == "admin") {
                         IconButton(
-                            onClick = onDismiss,
+                            onClick = { showAddDialog = true },
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .background(MaterialTheme.colorScheme.secondaryContainer)
                         ) {
                             Icon(
-                                Icons.Default.Close,
-                                contentDescription = "بستن",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                Icons.Default.Add,
+                                contentDescription = "افزودن کاربر",
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         }
-                        
-                        // عنوان با انیمیشن
+                    } else {
+                        Spacer(modifier = Modifier.size(40.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Clean search field
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { 
                         Text(
-                            "مدیریت کاربران",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
+                            "جستجو...",
+                            style = MaterialTheme.typography.bodyMedium
                         )
-                        
-                        // دکمه افزودن کاربر جدید
-                        if (currentUserType == "admin") {
-                            IconButton(
-                                onClick = { showAddDialog = true },
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        brush = Brush.linearGradient(
-                                            colors = listOf(
-                                                MaterialTheme.colorScheme.primary,
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                                            )
-                                        )
-                                    )
-                            ) {
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
                                 Icon(
-                                    Icons.Default.Add,
-                                    contentDescription = "افزودن کاربر",
-                                    tint = MaterialTheme.colorScheme.onPrimary
+                                    Icons.Default.Close,
+                                    contentDescription = "پاک کردن",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                        } else {
-                            Spacer(modifier = Modifier.size(40.dp))
                         }
-                    }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                    )
+                )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    // Search Box with animation
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .offset(y = searchBarOffset.value.dp),
-                        placeholder = { Text("جستجوی نام کاربری یا نام...") },
-                        leadingIcon = { 
-                            Icon(
-                                Icons.Default.Search,
-                                contentDescription = null,
-                                tint = if (searchQuery.isNotEmpty())
-                                    MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            ) 
-                        },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "پاک کردن",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                // Clean content area
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f)
+                ) {
+                    when {
+                        isLoading -> {
+                            // Loading state
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(36.dp),
+                                    strokeWidth = 3.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    "در حال بارگذاری...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        filteredUsers.isEmpty() -> {
+                            // Empty state
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.PersonSearch,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = if (searchQuery.isEmpty())
+                                        "لیست کاربران خالی است"
+                                    else
+                                        "نتیجه‌ای یافت نشد",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                    fontWeight = FontWeight.Medium
+                                )
+
+                                if (searchQuery.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    TextButton(
+                                        onClick = { searchQuery = "" }
+                                    ) {
+                                        Text("پاک کردن جستجو")
+                                    }
                                 }
                             }
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                            focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Users List with background and animation
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .weight(1f)
-                            .offset(y = listOffset.value.dp),
-                        shape = RoundedCornerShape(24.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
-                        tonalElevation = 1.dp
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(12.dp)
-                        ) {
-                            if (isLoading) {
-                                // حالت در حال بارگذاری
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(48.dp),
-                                        strokeWidth = 4.dp,
-                                        color = MaterialTheme.colorScheme.primary
+                        }
+                        else -> {
+                            // Users list
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(vertical = 8.dp)
+                            ) {
+                                items(filteredUsers, key = { it.id }) { user ->
+                                    UserListItem(
+                                        user = user,
+                                        onEditClick = { showEditDialog = user },
+                                        onDeleteClick = { showDeleteConfirmation = user },
+                                        isMainAdmin = isMainAdmin
                                     )
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    Text(
-                                        "در حال بارگذاری اطلاعات کاربران...",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            } else if (filteredUsers.isEmpty()) {
-                                // حالت بدون نتیجه
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        Icons.Default.PersonSearch,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .size(80.dp)
-                                            .alpha(0.4f),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                    )
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    Text(
-                                        text = if (searchQuery.isEmpty()) 
-                                            "لیست کاربران خالی است"
-                                        else
-                                            "کاربری با این مشخصات یافت نشد",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    
-                                    if (searchQuery.isNotEmpty()) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        OutlinedButton(
-                                            onClick = { searchQuery = "" },
-                                            shape = RoundedCornerShape(12.dp),
-                                            modifier = Modifier.padding(top = 8.dp)
-                                        ) {
-                                            Text("پاک کردن جستجو")
-                                        }
-                                    }
-                                }
-                            } else {
-                                // نمایش لیست کاربران
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxSize(),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                                    contentPadding = PaddingValues(vertical = 12.dp, horizontal = 4.dp)
-                                ) {
-                                    items(filteredUsers, key = { it.id }) { user ->
-                                        UserListItem(
-                                            user = user,
-                                            onEditClick = { showEditDialog = user },
-                                            onDeleteClick = { showDeleteConfirmation = user },
-                                            isMainAdmin = isMainAdmin
-                                        )
-                                    }
                                 }
                             }
                         }
@@ -3903,42 +3775,15 @@ private fun UserListItem(
         else -> MaterialTheme.colorScheme.outline
     }
 
-    var isHovered by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isHovered) 1.02f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = ""
-    )
-    val elevation by animateFloatAsState(
-        targetValue = if (isHovered) 4f else 1f,
-        animationSpec = tween(durationMillis = 200),
-        label = ""
-    )
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 3.dp, horizontal = 4.dp)
-            .scale(scale)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = { 
-                        isHovered = true
-                        tryAwaitRelease()
-                        isHovered = false
-                    }
-                )
-            },
-        shape = RoundedCornerShape(16.dp),
+            .padding(vertical = 2.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = elevation.dp
-        )
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -3947,154 +3792,101 @@ private fun UserListItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // User Info Section with icon
+            // User info section
             Row(
                 modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // آیکون کاربر با دایره رنگی متناسب با نوع کاربری
+                // Simple user icon
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
-                        .background(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    userTypeColor.copy(alpha = 0.2f),
-                                    userTypeColor.copy(alpha = 0.05f)
-                                )
-                            )
-                        ),
+                        .background(userTypeColor.copy(alpha = 0.1f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = getIconForUserType(user.userType),
                         contentDescription = null,
                         tint = userTypeColor,
-                        modifier = Modifier.size(26.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-                
-                // اطلاعات کاربر
+
+                // User details
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
                             text = user.username,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        
+
                         if (user.username == "Prot0nX") {
                             Surface(
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(4.dp),
-                                modifier = Modifier.padding(start = 4.dp)
+                                shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
                                     text = "مدیر اصلی",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
                                     fontWeight = FontWeight.Medium
                                 )
                             }
                         }
                     }
 
-                    // نمایش نام و نام خانوادگی
-                    Text(
-                        text = user.fullName ?: "—",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    // نمایش نوع کاربری با بج شیک
-                    Surface(
-                        color = userTypeColor.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(6.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(userTypeColor)
-                            )
-                            Text(
-                                text = getUserTypeDisplay(user.userType),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = userTypeColor,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                    if (!user.fullName.isNullOrEmpty()) {
+                        Text(
+                            text = user.fullName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
+
+                    // User type badge
+                    Text(
+                        text = getUserTypeDisplay(user.userType),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = userTypeColor,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
 
-            // Action Buttons - فقط برای مدیر اصلی فعال هستند
+            // Action buttons - minimal design
             if (isMainAdmin) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = 8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // دکمه ویرایش با افکت hover
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                shape = CircleShape
-                            )
-                            .clickable(onClick = onEditClick),
-                        contentAlignment = Alignment.Center
+                    // Edit button
+                    IconButton(
+                        onClick = onEditClick,
+                        modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
                             Icons.Default.Edit,
                             contentDescription = "ویرایش",
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
 
-                    // دکمه حذف با افکت hover
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (user.username == "Prot0nX") 
-                                    MaterialTheme.colorScheme.error.copy(alpha = 0.05f)
-                                else 
-                                    MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = if (user.username == "Prot0nX")
-                                    MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-                                else
-                                    MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
-                                shape = CircleShape
-                            )
-                            .clickable(
-                                enabled = user.username != "Prot0nX",
-                                onClick = onDeleteClick
-                            ),
-                        contentAlignment = Alignment.Center
+                    // Delete button
+                    IconButton(
+                        onClick = onDeleteClick,
+                        enabled = user.username != "Prot0nX",
+                        modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
                             Icons.Default.Delete,
@@ -4102,44 +3894,7 @@ private fun UserListItem(
                             tint = if (user.username == "Prot0nX")
                                 MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
                             else MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-            } else {
-                // اگر کاربر فعلی مدیر اصلی نیست، دکمه‌ها را غیرفعال نشان می‌دهیم
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = 8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "ویرایش",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "حذف",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
@@ -4163,74 +3918,65 @@ fun AddUserDialog(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "افزودن کاربر جدید",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        },
-        text = {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .wrapContentHeight()
+                .heightIn(max = 650.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(vertical = 16.dp),
+                    .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Username field with validation
+                // Header
+                Text(
+                    "افزودن کاربر جدید",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+
+                // Form fields
                 OutlinedTextField(
                     value = username,
                     onValueChange = { input ->
                         val newValue = input.filter { char ->
-                            char.isLetterOrDigit() && char.code < 128  // Ensures only ASCII characters
+                            char.isLetterOrDigit() && char.code < 128
                         }
-                        username = newValue.lowercase()  // Convert to lowercase for consistency
+                        username = newValue.lowercase()
                         errorMessage = ""
                     },
                     label = { Text("نام کاربری") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = LocalTextStyle.current.copy(
-                        textAlign = TextAlign.Center,
-                    ),
+                    shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Ascii,
                         imeAction = ImeAction.Next
-                    ),
-                    supportingText = {
-                        Text(
-                            "فقط حروف انگلیسی و اعداد مجاز است",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    },
-                    isError = errorMessage.isNotEmpty() && username.isEmpty(),
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = null,
-                            tint = if (username.isNotEmpty())
-                                MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    )
                 )
 
-                // Full name field
                 OutlinedTextField(
                     value = fullName,
                     onValueChange = { fullName = it.trim() },
                     label = { Text("نام و نام خانوادگی") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
+                    shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                 )
 
-                // Password field
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it.filter { char -> char.isDigit() } },
@@ -4238,7 +3984,7 @@ fun AddUserDialog(
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
+                    shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.NumberPassword,
                         imeAction = ImeAction.Done
@@ -4251,64 +3997,112 @@ fun AddUserDialog(
                 )
 
                 if (errorMessage.isNotEmpty()) {
-                    Text(
-                        text = errorMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Right
-                    )
-                }
-            }
-        },
-        confirmButton = {
-                                    Button(
-                onClick = {
-                    when {
-                        username.isEmpty() -> {
-                            errorMessage = "لطفاً نام کاربری را وارد کنید"
-                            return@Button
-                        }
-                        username.length < 4 -> {
-                            errorMessage = "نام کاربری باید حداقل 4 کاراکتر باشد"
-                            return@Button
-                        }
-                        fullName.isEmpty() -> {
-                            errorMessage = "لطفاً نام و نام خانوادگی را وارد کنید"
-                            return@Button
-                        }
-                        password.isEmpty() -> {
-                            errorMessage = "لطفاً رمز عبور را وارد کنید"
-                            return@Button
-                        }
-                        password.length < 4 -> {
-                            errorMessage = "رمز عبور باید حداقل 4 رقم باشد"
-                            return@Button
-                        }
-                        else -> {
-                            showConfirmation = true
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Error,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = errorMessage,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
                     }
-                },
-                enabled = !isLoading,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("ایجاد کاربر")
+                }
+
+                // Standardized Action buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Cancel button
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text("انصراف")
+                        }
+                    }
+                    
+                    // Submit button
+                    Button(
+                        onClick = {
+                            when {
+                                username.isEmpty() -> {
+                                    errorMessage = "لطفاً نام کاربری را وارد کنید"
+                                    return@Button
+                                }
+                                username.length < 4 -> {
+                                    errorMessage = "نام کاربری باید حداقل 4 کاراکتر باشد"
+                                    return@Button
+                                }
+                                fullName.isEmpty() -> {
+                                    errorMessage = "لطفاً نام و نام خانوادگی را وارد کنید"
+                                    return@Button
+                                }
+                                password.isEmpty() -> {
+                                    errorMessage = "لطفاً رمز عبور را وارد کنید"
+                                    return@Button
+                                }
+                                password.length < 4 -> {
+                                    errorMessage = "رمز عبور باید حداقل 4 رقم باشد"
+                                    return@Button
+                                }
+                                else -> {
+                                    showConfirmation = true
+                                }
+                            }
+                        },
+                        enabled = !isLoading,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text("ایجاد کاربر")
+                            }
+                        }
+                    }
                 }
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("انصراف")
-            }
         }
-    )
+    }
 
     if (showConfirmation) {
         AddConfirmationDialog(
@@ -4356,26 +4150,27 @@ private fun UserTypeSelection(
     onUserTypeSelected: (String) -> Unit
 ) {
     Column(
-                                        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
             "نوع کاربر:",
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.SemiBold
         )
 
-        // Using simple Row instead of LazyVerticalGrid
+        // Horizontal arrangement of user type options
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             userTypes.forEach { userType ->
-                UserTypeOption(
+                UserTypeOptionHorizontal(
                     userType = userType,
                     isSelected = selectedUserType == userType.value,
-                    onSelect = { onUserTypeSelected(userType.value) }
+                    onSelect = { onUserTypeSelected(userType.value) },
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
@@ -4385,18 +4180,21 @@ private fun UserTypeSelection(
 private val userTypes = listOf(
     UserTypeInfo(
         label = "مدیر سیستم",
+        description = "مدیریت کاربران و سیستم",
         value = "admin",
         icon = Icons.Default.AdminPanelSettings,
         color = Color(0xFF2196F3)
     ),
     UserTypeInfo(
         label = "باسکول‌چی",
+        description = "وزن و ثبت بارها",
         value = "operator",
         icon = Icons.Default.Engineering,
         color = Color(0xFF4CAF50)
     ),
     UserTypeInfo(
         label = "بارشمار",
+        description = "شمارش و بررسی بارها",
         value = "verifier",
         icon = Icons.Default.PersonSearch,
         color = Color(0xFFFFA000)
@@ -4404,60 +4202,101 @@ private val userTypes = listOf(
 )
 
 @Composable
-private fun UserTypeOption(
+private fun UserTypeOptionHorizontal(
     userType: UserTypeInfo,
     isSelected: Boolean,
-    onSelect: () -> Unit
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val backgroundColor = if (isSelected) {
-        userType.color.copy(alpha = 0.15f)
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-    }
-
-    val borderColor = if (isSelected) {
-        userType.color.copy(alpha = 0.5f)
-    } else {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-    }
-
-    Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(backgroundColor)
-            .border(
-                width = 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(12.dp)
-            )
-            .clickable(onClick = onSelect)
-            .padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onSelect() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            }
+        ),
+        border = if (isSelected) {
+            null  // BorderStroke not available, use null
+        } else null,
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Icon(
-            imageVector = userType.icon,
-            contentDescription = null,
-            modifier = Modifier.size(24.dp),
-            tint = if (isSelected) userType.color else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Text(
-            text = userType.label,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (isSelected) userType.color else MaterialTheme.colorScheme.onSurface,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-        )
-
-        RadioButton(
-            selected = isSelected,
-            onClick = onSelect,
-            colors = RadioButtonDefaults.colors(
-                selectedColor = userType.color,
-                unselectedColor = MaterialTheme.colorScheme.outline
-            ),
-            modifier = Modifier.size(20.dp)
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            // Icon with background
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = userType.icon,
+                    contentDescription = null,
+                    tint = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            
+            // Title
+            Text(
+                text = userType.label,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            
+            // Compact description
+            Text(
+                text = userType.description,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            
+            // Selection indicator
+            if (isSelected) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
     }
 }
 
@@ -4489,52 +4328,65 @@ private fun EditUserDialog(
         )
     }
 
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "ویرایش کاربر",
-                style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Right,
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        text = {
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .height(400.dp)
+        ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
+                modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Header
+                Text(
+                    "ویرایش کاربر",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+
                 OutlinedTextField(
                     value = username,
-                    onValueChange = { username = it.trim() },
+                    onValueChange = { 
+                        username = it.trim()
+                        errorMessage = ""
+                    },
                     label = { Text("نام کاربری") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
+                    shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                 )
 
-                // فیلد جدید نام و نام خانوادگی
                 OutlinedTextField(
                     value = fullName,
-                    onValueChange = { fullName = it.trim() },
+                    onValueChange = { 
+                        fullName = it.trim()
+                        errorMessage = ""
+                    },
                     label = { Text("نام و نام خانوادگی") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
+                    shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                 )
 
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it.filter { char -> char.isDigit() } },
-                    label = { Text("رمز عبور جدید") },
+                    label = { Text("رمز عبور جدید (اختیاری)") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
+                    shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.NumberPassword,
                         imeAction = ImeAction.Done
@@ -4542,31 +4394,90 @@ private fun EditUserDialog(
                 )
 
                 if (errorMessage.isNotEmpty()) {
-                    Text(
-                        text = errorMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Right
-                    )
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Error,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = errorMessage,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
                 }
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                prepareUpdateRequest()?.let {
-                    showConfirmation = true
+
+                // Standardized Action buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Cancel button
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text("انصراف")
+                        }
+                    }
+                    
+                    // Confirm button
+                    Button(
+                        onClick = {
+                            prepareUpdateRequest()?.let {
+                                showConfirmation = true
+                            }
+                        },
+                        enabled = !isLoading,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text("تأیید تغییرات")
+                            }
+                        }
+                    }
                 }
-            }) {
-                Text("ذخیره")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("انصراف")
             }
         }
-    )
+    }
 
     if (showConfirmation) {
         EditConfirmationDialog(
@@ -4593,141 +4504,124 @@ private fun AddConfirmationDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "تأیید اطلاعات کاربر جدید",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .height(400.dp)
+        ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("آیا از صحت اطلاعات وارد شده اطمینان دارید؟")
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // اطلاعات کاربر
-            Card(
+                Text(
+                    "تأیید اطلاعات کاربر جدید",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                ),
-                    shape = RoundedCornerShape(8.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("نام کاربری:")
-                            Text(
-                                username,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("نام و نام خانوادگی:")
-                            Text(
-                                fullName,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("نوع کاربر:")
-                            Text(
-                                getUserTypeDisplay(selectedUserType),
-                                fontWeight = FontWeight.Bold,
-                                color = when (selectedUserType) {
-                                    "admin" -> MaterialTheme.colorScheme.primary
-                                    "operator" -> MaterialTheme.colorScheme.secondary
-                                    "verifier" -> MaterialTheme.colorScheme.tertiary
-                                    else -> MaterialTheme.colorScheme.onSurface
-                                }
-                            )
-                        }
-                    }
-                }
+                    textAlign = TextAlign.Center
+                )
 
-                // راهنما
-                Surface(
+                Text(
+                    "آیا از صحت اطلاعات وارد شده اطمینان دارید؟",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                // User info card
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(4.dp)
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            "پس از ایجاد کاربر، اطلاعات ورود به حساب را به کاربر اعلام کنید.",
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        InfoRow("نام کاربری:", username)
+                        InfoRow("نام و نام خانوادگی:", fullName)
+                        InfoRow("نوع کاربر:", getUserTypeDisplay(selectedUserType))
                     }
                 }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                enabled = !isLoading,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+
+                // Action buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        enabled = !isLoading,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("بازبینی")
+                    }
+                    
+                    Button(
+                        onClick = onConfirm,
+                        enabled = !isLoading,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text("تأیید و ایجاد")
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text("تأیید و ایجاد")
+                            }
+                        }
                     }
                 }
             }
-        },
-        dismissButton = {
-            OutlinedButton(
-                onClick = onDismiss,
-                enabled = !isLoading
-            ) {
-                Text("بازبینی")
-            }
         }
-    )
+    }
+}
+
+@Composable
+private fun InfoRow(
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
 }
 
 @Composable
@@ -4740,30 +4634,45 @@ private fun EditConfirmationDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = {
-                                Text(
-                "تأیید تغییرات",
-                                    style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .height(400.dp)
+        ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("آیا از اعمال تغییرات زیر اطمینان دارید؟")
-                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "تأیید تغییرات",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
 
-                // نمایش تغییرات
+                Text(
+                    "آیا از اعمال تغییرات زیر اطمینان دارید؟",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                // Changes card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -4772,86 +4681,32 @@ private fun EditConfirmationDialog(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (originalUser.username != newUsername) {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                Text(
-                                    "نام کاربری:",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Text(
-                                            originalUser.username,
-                                            style = TextStyle(textDecoration = TextDecoration.LineThrough),
-                                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
-                                        )
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.ArrowForward,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                    Text(
-                                        newUsername,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
+                            ChangeRow(
+                                label = "نام کاربری:",
+                                oldValue = originalUser.username,
+                                newValue = newUsername
+                            )
                         }
 
-                        // نمایش تغییرات نام و نام خانوادگی
                         if (originalUser.fullName != newFullName) {
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                            Text(
-                                    "نام و نام خانوادگی:",
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                Text(
-                                            originalUser.fullName ?: "",
-                                            style = TextStyle(textDecoration = TextDecoration.LineThrough),
-                                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
-                                        )
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.ArrowForward,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                    Text(
-                                        newFullName,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
+                            ChangeRow(
+                                label = "نام و نام خانوادگی:",
+                                oldValue = originalUser.fullName ?: "",
+                                newValue = newFullName
+                            )
                         }
 
                         if (hasPasswordChanged) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.tertiaryContainer,
-                                shape = RoundedCornerShape(4.dp)
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+                                ),
+                                shape = RoundedCornerShape(6.dp),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                             ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
                                         .padding(8.dp),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
@@ -4864,70 +4719,101 @@ private fun EditConfirmationDialog(
                                     )
                                     Text(
                                         "رمز عبور تغییر خواهد کرد",
-                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        style = MaterialTheme.typography.bodySmall
                                     )
                                 }
                             }
                         }
 
-                        // نمایش نوع کاربری
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("نوع کاربر:")
-                            Text(
-                                getUserTypeDisplay(originalUser.userType),
-                                fontWeight = FontWeight.Bold,
-                                color = when (originalUser.userType) {
-                                    "admin" -> MaterialTheme.colorScheme.primary
-                                    "operator" -> MaterialTheme.colorScheme.secondary
-                                    "verifier" -> MaterialTheme.colorScheme.tertiary
-                                    else -> MaterialTheme.colorScheme.onSurface
-                                }
+                        InfoRow("نوع کاربر:", getUserTypeDisplay(originalUser.userType))
+                    }
+                }
+
+                // Action buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        enabled = !isLoading,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("بازبینی")
+                    }
+                    
+                    Button(
+                        onClick = onConfirm,
+                        enabled = !isLoading,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
                             )
+                        } else {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Save,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text("تأیید و ذخیره")
+                            }
                         }
                     }
                 }
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                enabled = !isLoading,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Save,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text("تأیید و ذخیره")
-                    }
-                }
-            }
-        },
-        dismissButton = {
-            OutlinedButton(
-                onClick = onDismiss,
-                enabled = !isLoading
-            ) {
-                Text("بازبینی")
-            }
         }
-    )
+    }
+}
+
+@Composable
+private fun ChangeRow(label: String, oldValue: String, newValue: String) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = oldValue,
+                    style = TextStyle(textDecoration = TextDecoration.LineThrough),
+                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                    fontSize = 12.sp
+                )
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Text(
+                text = newValue,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
 }
 
 @Composable
@@ -4938,138 +4824,150 @@ private fun DeleteConfirmationDialog(
 ) {
     var isLoading by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "تأیید حذف کاربر",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .height(400.dp)
+        ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("آیا از حذف کاربر زیر اطمینان دارید؟")
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // اطلاعات کاربر
-                    Card(
+                Text(
+                    "تأیید حذف کاربر",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        ),
-                    shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
+                    textAlign = TextAlign.Center
+                )
+
+                Text(
+                    "آیا از حذف کاربر زیر اطمینان دارید؟",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                // User info card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
                             .fillMaxWidth()
                             .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("نام کاربری:")
-                            Text(
-                                user.username,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("نوع کاربر:")
-                            Text(
-                                getUserTypeDisplay(user.userType),
-                                fontWeight = FontWeight.Bold,
-                                color = when (user.userType) {
-                                    "admin" -> MaterialTheme.colorScheme.primary
-                                    "operator" -> MaterialTheme.colorScheme.secondary
-                                    "verifier" -> MaterialTheme.colorScheme.tertiary
-                                    else -> MaterialTheme.colorScheme.onSurface
-                                }
-                            )
-                        }
+                        InfoRow("نام کاربری:", user.username)
+                        InfoRow("نوع کاربر:", getUserTypeDisplay(user.userType))
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // هشدار
-                Surface(
+                // Warning
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.errorContainer,
-                    shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                            .padding(8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(20.dp)
                         )
-                                Text(
+                        Text(
                             "توجه: این عملیات قابل بازگشت نیست!",
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    isLoading = true
-                    onConfirm()
-                },
-                enabled = !isLoading,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                )
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onError
-                    )
-                } else {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                                Icon(
-                            Icons.Default.Delete,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
+                            fontWeight = FontWeight.SemiBold
                         )
-                        Text("تأیید و حذف")
                     }
                 }
-            }
-        },
-        dismissButton = {
-            OutlinedButton(
-                onClick = onDismiss,
-                enabled = !isLoading
-            ) {
-                Text("انصراف")
+
+                // Standardized Action buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Cancel button
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        enabled = !isLoading,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text("انصراف")
+                        }
+                    }
+                    
+                    // Confirm Delete button
+                    Button(
+                        onClick = {
+                            isLoading = true
+                            onConfirm()
+                        },
+                        enabled = !isLoading,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = MaterialTheme.colorScheme.onError,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text("تأیید و حذف")
+                            }
+                        }
+                    }
+                }
             }
         }
-    )
+    }
 }
 
 fun getUserTypeDisplay(userType: String): String {
@@ -5107,12 +5005,12 @@ fun LoginDialog(
     val formSlideOffset = remember { Animatable(100f) }
     val buttonScale = remember { Animatable(0.8f) }
     val backgroundGradientOffset = remember { Animatable(0f) }
-    
+
     // انیمیشن‌های تعاملی
     val errorShakeController = remember { Animatable(0f) }
     val successPulse = remember { Animatable(1f) }
     val loadingRotation = remember { Animatable(0f) }
-    
+
     // انیمیشن پس‌زمینه متحرک
     LaunchedEffect(Unit) {
         launch {
@@ -5129,7 +5027,7 @@ fun LoginDialog(
     // انیمیشن‌های ورود با تأخیر مرحله‌ای
     LaunchedEffect(Unit) {
         showDialog = true
-        
+
         // انیمیشن ورود دیالوگ با افکت پیچش
         launch {
             dialogScale.animateTo(
@@ -5149,7 +5047,7 @@ fun LoginDialog(
                 )
             )
         }
-        
+
         // انیمیشن محتوا
         launch {
             delay(150)
@@ -5158,7 +5056,7 @@ fun LoginDialog(
                 animationSpec = tween(800, easing = FastOutSlowInEasing)
             )
         }
-        
+
         // انیمیشن لوگو با چرخش کامل
         launch {
             delay(300)
@@ -5177,7 +5075,7 @@ fun LoginDialog(
                 animationSpec = tween(1200, easing = FastOutSlowInEasing)
             )
         }
-        
+
         // انیمیشن فرم با اسلاید
         launch {
             delay(600)
@@ -5189,7 +5087,7 @@ fun LoginDialog(
                 )
             )
         }
-        
+
         // انیمیشن دکمه
         launch {
             delay(900)
@@ -5213,7 +5111,7 @@ fun LoginDialog(
             errorShakeController.animateTo(0f, tween(100))
         }
     }
-    
+
     // انیمیشن لودینگ
     LaunchedEffect(isLoading) {
         if (isLoading) {
@@ -5274,7 +5172,7 @@ fun LoginDialog(
                                 )
                             )
                     )
-                    
+
                     // دایره‌های تزئینی پیشرفته
                     Box(
                         modifier = Modifier
@@ -5293,7 +5191,7 @@ fun LoginDialog(
                             )
                             .scale(1f + backgroundGradientOffset.value * 0.1f)
                     )
-                    
+
                     Box(
                         modifier = Modifier
                             .size(100.dp)
@@ -5312,7 +5210,7 @@ fun LoginDialog(
                             )
                             .scale(1f + backgroundGradientOffset.value * 0.15f)
                     )
-                    
+
                     Box(
                         modifier = Modifier
                             .size(100.dp)
@@ -5389,7 +5287,7 @@ fun LoginDialog(
                                     )
                                     .padding(4.dp)
                             )
-                            
+
                             // دایره داخلی
                             Box(
                                 modifier = Modifier
@@ -5455,15 +5353,15 @@ fun LoginDialog(
                             // فیلد نام کاربری با افکت‌های پیشرفته
                             OutlinedTextField(
                                 value = username,
-                                onValueChange = { 
+                                onValueChange = {
                                     username = it.trim()
                                     if (errorMessage != null) errorMessage = null
                                 },
-                                label = { 
+                                label = {
                                     Text(
                                         "نام کاربری",
                                         style = MaterialTheme.typography.bodyMedium
-                                    ) 
+                                    )
                                 },
                                 leadingIcon = {
                                     Box(
@@ -5504,15 +5402,15 @@ fun LoginDialog(
                             // فیلد رمز عبور با افکت‌های پیشرفته
                             OutlinedTextField(
                                 value = password,
-                                onValueChange = { 
+                                onValueChange = {
                                     password = it.filter { char -> char.isDigit() }
                                     if (errorMessage != null) errorMessage = null
                                 },
-                                label = { 
+                                label = {
                                     Text(
                                         "رمز عبور",
                                         style = MaterialTheme.typography.bodyMedium
-                                    ) 
+                                    )
                                 },
                                 leadingIcon = {
                                     Box(
@@ -5641,7 +5539,7 @@ fun LoginDialog(
                                 if (username.isNotEmpty() && password.isNotEmpty()) {
                                     isLoading = true
                                     errorMessage = null
-                                    
+
                                     coroutineScope.launch {
                                         try {
                                             val hashedPassword = hashPassword(password)
@@ -5659,7 +5557,7 @@ fun LoginDialog(
                                                 deviceId = deviceId,
                                                 androidVersion = androidVersion
                                             )
-                                            
+
                                             val response = apiService.checkLogin(loginRequest)
 
                                             if (response.isSuccessful) {
@@ -5677,14 +5575,14 @@ fun LoginDialog(
                                                                 tween(200)
                                                             )
                                                         }
-                                                        
+
                                                         // ذخیره session_token در صورت وجود
                                                         responseBody.sessionToken?.let { sessionToken ->
                                                             launch {
                                                                 userPreferencesManager.saveSessionToken(sessionToken)
                                                             }
                                                         }
-                                                        
+
                                                         onLoginChecked(
                                                             true,
                                                             responseBody.message,
@@ -5692,24 +5590,24 @@ fun LoginDialog(
                                                             username
                                                         )
                                                         updateSessionValidity(true)
-                                                        
+
                                                     } else {
-                                        // بررسی نوع خطا برای نمایش پیام مناسب
-                                        errorMessage = when {
-                                            responseBody.message.contains("دستگاه دیگری") || 
-                                            responseBody.message.contains("در حال حاضر در دستگاه") -> {
-                                                "🚫 ورود همزمان مجاز نیست\n\n" +
-                                                "شما در حال حاضر در دستگاه دیگری وارد سیستم هستید."
-                                            }
-                                            responseBody.message.contains("نام کاربری یا رمز عبور") -> {
-                                                "❌ نام کاربری یا رمز عبور اشتباه است"
-                                            }
-                                            responseBody.message.contains("دسترسی لازم") -> {
-                                                "⛔ شما دسترسی لازم برای این بخش را ندارید"
-                                            }
-                                            else -> responseBody.message
-                                        }
-                                    }
+                                                        // بررسی نوع خطا برای نمایش پیام مناسب
+                                                        errorMessage = when {
+                                                            responseBody.message.contains("دستگاه دیگری") ||
+                                                                    responseBody.message.contains("در حال حاضر در دستگاه") -> {
+                                                                "🚫 ورود همزمان مجاز نیست\n\n" +
+                                                                        "شما در حال حاضر در دستگاه دیگری وارد سیستم هستید."
+                                                            }
+                                                            responseBody.message.contains("نام کاربری یا رمز عبور") -> {
+                                                                "❌ نام کاربری یا رمز عبور اشتباه است"
+                                                            }
+                                                            responseBody.message.contains("دسترسی لازم") -> {
+                                                                "⛔ شما دسترسی لازم برای این بخش را ندارید"
+                                                            }
+                                                            else -> responseBody.message
+                                                        }
+                                                    }
                                                 } else {
                                                     errorMessage = "پاسخ سرور خالی است"
                                                 }
@@ -5742,7 +5640,7 @@ fun LoginDialog(
                                 .height(56.dp)
                                 .scale(buttonScale.value * successPulse.value),
                             shape = RoundedCornerShape(20.dp),
-                            color = if (isLoading) 
+                            color = if (isLoading)
                                 MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                             else MaterialTheme.colorScheme.primary,
                             shadowElevation = if (isLoading) 4.dp else 12.dp,

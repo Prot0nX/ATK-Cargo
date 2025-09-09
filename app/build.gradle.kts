@@ -216,6 +216,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.foundation.layout)
     // ==================== Core Library Desugaring ====================
     coreLibraryDesugaring(libs.desugar.jdk.libs.v215)
     

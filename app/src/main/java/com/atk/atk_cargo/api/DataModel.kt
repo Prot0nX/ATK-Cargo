@@ -3516,6 +3516,7 @@ data class CreateUserRequest(
 
 data class UserTypeInfo(
     val label: String,
+    val description: String,
     val value: String,
     val icon: ImageVector,
     val color: Color
