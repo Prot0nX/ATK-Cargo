@@ -1,5 +1,7 @@
 package com.atk.atk_cargo.security
 
+import android.content.ClipData
+import android.content.pm.PackageManager
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animate
@@ -8,6 +10,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +29,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,19 +45,33 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+import java.security.MessageDigest
 
 @Composable
-fun SecurityBlockScreen(isLoading: Boolean, errorType: SecurityErrorType = SecurityErrorType.TAMPERED) {
+fun SecurityBlockScreen(
+    isLoading: Boolean, 
+    errorType: SecurityErrorType = SecurityErrorType.TAMPERED
+) {
+    // برای غیرفعال کردن نمایش امضا، خط زیر را کامنت کنید
+//    val signatureHash = getAppSignatureHash()
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Box(
             modifier = Modifier
@@ -191,7 +210,15 @@ fun SecurityBlockScreen(isLoading: Boolean, errorType: SecurityErrorType = Secur
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // بخش نمایش هش امضا - برای غیرفعال کردن، خطوط زیر را کامنت کنید
+//                        ShowSignatureHashSection(
+//                            signatureHash = signatureHash,
+//                            modifier = Modifier.fillMaxWidth()
+//                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
 
                         Button(
                             onClick = { android.os.Process.killProcess(android.os.Process.myPid()) },
@@ -283,6 +310,150 @@ fun EnhancedLoadingScreen() {
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = contentAlpha)
                 )
             }
+        }
+    }
+}
+
+// ===== توابع مربوط به نمایش امضای برنامه =====
+@Composable
+fun getAppSignatureHash(): String {
+    val context = LocalContext.current
+    return remember {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(
+                context.packageName,
+                PackageManager.GET_SIGNING_CERTIFICATES
+            )
+            val signatures = packageInfo.signingInfo?.apkContentsSigners ?: emptyArray()
+            if (signatures.isNotEmpty()) {
+                val messageDigest = MessageDigest.getInstance("SHA-256")
+                val hashBytes = messageDigest.digest(signatures[0].toByteArray())
+                hashBytes.joinToString("") { "%02x".format(it) }
+            } else {
+                "امضا یافت نشد"
+            }
+        } catch (e: Exception) {
+            "خطا در استخراج امضا: ${e.message}"
+        }
+    }
+}
+
+@Composable
+fun ShowSignatureHashSection(
+    signatureHash: String,
+    modifier: Modifier = Modifier
+) {
+    SignatureHashCard(
+        signatureHash = signatureHash,
+        modifier = modifier
+    )
+}
+
+@Composable
+fun SignatureHashCard(
+    signatureHash: String,
+    modifier: Modifier = Modifier
+) {
+    val clipboard: Clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    var showCopiedMessage by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showCopiedMessage) {
+        if (showCopiedMessage) {
+            kotlinx.coroutines.delay(2000)
+            showCopiedMessage = false
+        }
+    }
+
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Fingerprint,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "هش امضای برنامه",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        scope.launch {
+                            val clipData = ClipData.newPlainText("signature_hash", signatureHash)
+                            clipboard.setClipEntry(ClipEntry(clipData))
+                            showCopiedMessage = true
+                        }
+                    },
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = signatureHash,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontFamily = FontFamily.Monospace
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Icon(
+                        imageVector = Icons.Default.ContentCopy,
+                        contentDescription = "کپی کردن",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            if (showCopiedMessage) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "✓ کپی شد",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "برای کپی کردن روی هش کلیک کنید",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
