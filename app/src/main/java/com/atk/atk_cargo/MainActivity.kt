@@ -1280,7 +1280,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
     val isSessionValid by mainActivity.isSessionValid.collectAsState()
 
     LaunchedEffect(key1 = true) {
-        delay(5000)
+        delay(4700)
         showSplash = false
     }
 
