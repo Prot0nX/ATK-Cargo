@@ -20,12 +20,6 @@ android {
             useSupportLibrary = true
         }
 
-        // بهینه‌سازی تنظیمات NDK
-        ndk {
-            //noinspection ChromeOsAbiSupport
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
-        }
-        
         // تنظیمات بهینه‌سازی اضافی برای کاهش حجم
         resourceConfigurations += setOf("en", "fa")
 
@@ -50,6 +44,12 @@ android {
             versionNameSuffix = "-debug"
             isMinifyEnabled = false
             isShrinkResources = false
+            
+            // تنظیمات NDK برای دیباگ - شامل تمام معماری‌ها
+            ndk {
+                //noinspection ChromeOsAbiSupport
+                abiFilters += listOf("arm64-v8a", "x86_64")
+            }
         }
         
         release {
@@ -60,6 +60,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            
+            // تنظیمات NDK برای ریلیز - فقط ARM
+            ndk {
+                //noinspection ChromeOsAbiSupport
+                abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            }
             
             // بهینه‌سازی APK
             multiDexEnabled = true
@@ -170,7 +176,6 @@ android {
         viewBinding = true
         buildConfig = true
         
-        // غیرفعال کردن ویژگی‌های غیرضروری برای کاهش حجم
         aidl = false
         renderScript = false
         resValues = false
