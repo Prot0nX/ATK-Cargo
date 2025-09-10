@@ -66,6 +66,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -319,13 +320,13 @@ fun InitialInfoScreen() {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(24.dp),
-                                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                                        .padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
                                     // Header
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         Box(
                                             modifier = Modifier
@@ -368,7 +369,7 @@ fun InitialInfoScreen() {
                                         text = "اطلاعات کشتی",
                                         style = MaterialTheme.typography.titleSmall,
                                         color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(bottom = 8.dp)
+                                        modifier = Modifier.padding(bottom = 4.dp)
                                     )
 
                                     // Ship name field with enhanced design
@@ -449,7 +450,7 @@ fun InitialInfoScreen() {
                                         text = "محل بارگیری",
                                         style = MaterialTheme.typography.titleSmall,
                                         color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
                                     )
 
                                     // Warehouse field with enhanced design
@@ -524,7 +525,7 @@ fun InitialInfoScreen() {
                                         )
                                     )
 
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
 
                                     // Enhanced continue button
                                     Button(
@@ -573,7 +574,7 @@ fun InitialInfoScreen() {
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     // Header
                                     Row(
@@ -617,13 +618,6 @@ fun InitialInfoScreen() {
                                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                     )
 
-                                    Text(
-                                        text = "نوع محموله",
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(bottom = 2.dp)
-                                    )
-
                                     ExposedDropdownMenuBox(
                                         expanded = expanded,
                                         onExpandedChange = { expanded = !expanded }
@@ -663,7 +657,7 @@ fun InitialInfoScreen() {
                                             ),
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .menuAnchor()
+                                                .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
                                         )
                                         ExposedDropdownMenu(
                                             expanded = expanded,
@@ -1483,12 +1477,12 @@ fun ConfirmationDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Content Sections
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     EnhancedInfoGroup(
                         title = "اطلاعات کشتی",
@@ -2101,7 +2095,7 @@ private fun formatNumber(number: String): String {
     return try {
         val value = number.toLong()
         "%,d".format(Locale.US, value)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         number
     }
 }
