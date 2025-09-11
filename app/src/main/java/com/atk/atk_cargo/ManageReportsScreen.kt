@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.atk.atk_cargo
 
 import android.annotation.SuppressLint
@@ -11740,6 +11742,7 @@ private fun AnalyticsQuotaGroupExpansionPanel(
 					quotas.forEach { quota ->
 						AnalyticsQuotaCard(
 							quota = quota,
+							groupingMode = groupingMode,
 							isExpanded = expandedQuotaNumber == quota.loadingQuotaNumber,
 							onExpandChange = { shouldExpand ->
 								onQuotaExpandChange(quota.loadingQuotaNumber, shouldExpand)
@@ -11788,6 +11791,7 @@ private fun AnalyticsStatChip(
 @Composable
 private fun AnalyticsQuotaCard(
 	quota: QuotaCompletionData,
+	groupingMode: QuotaGroupingMode,
 	isExpanded: Boolean,
 	onExpandChange: (Boolean) -> Unit,
 	modifier: Modifier = Modifier
@@ -11859,7 +11863,10 @@ private fun AnalyticsQuotaCard(
 									color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
 								)
 								Text(
-									text = quota.shippingCompany,
+									text = when (groupingMode) {
+										QuotaGroupingMode.BY_SHIP -> quota.shippingCompany
+										QuotaGroupingMode.BY_CARRIER -> quota.shipName
+									},
 									style = MaterialTheme.typography.bodyMedium,
 									fontWeight = FontWeight.Bold,
 									color = MaterialTheme.colorScheme.primary
