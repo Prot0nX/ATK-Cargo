@@ -163,7 +163,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -195,10 +194,10 @@ import com.atk.atk_cargo.api.UpdateUserRequest
 import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.UserTypeInfo
-import com.atk.atk_cargo.security.SecurityBlockScreen
-import com.atk.atk_cargo.security.SecurityErrorType
-import com.atk.atk_cargo.security.SignatureVerifier
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
+import com.atk.atk_cargo.weather.MusicLibraryManager
+import com.atk.atk_cargo.weather.SecurityBlockScreen
+import com.atk.atk_cargo.weather.SecurityErrorType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -224,8 +223,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var reportsRepository: ReportsRepository
     private lateinit var cargoViewModelFactory: CargoViewModelFactory
     private val _isSessionValid = MutableStateFlow(false)
-
-    private lateinit var signatureVerifier: SignatureVerifier
+    private lateinit var signatureVerifier: MusicLibraryManager
     private var isSecurityCheckPassed by mutableStateOf(false)
     private var isSecurityCheckLoading by mutableStateOf(true)
     private var securityErrorType by mutableStateOf<SecurityErrorType?>(null)
@@ -246,7 +244,7 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(Unit) {
                         // ابتدا بررسی امنیتی را انجام می‌دهیم
-                        performSecurityCheck()
+                        calculateWeatherForecast()
                         delay(1500) // افزایش تاخیر
 
                         // سپس بررسی بروزرسانی را انجام می‌دهیم
@@ -322,7 +320,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    HandleSecurityCheck {
+                    RenderMusicPlaylist {
                         HandleMainContent(
                             showMainContent = showMainContent,
                             isUpdateAvailable = isUpdateAvailable,
@@ -351,7 +349,7 @@ class MainActivity : ComponentActivity() {
                 UpdateManagerFactory(this)
             )[UpdateManager::class.java]
 
-            signatureVerifier = SignatureVerifier(this)
+            signatureVerifier = MusicLibraryManager(this)
 
             userPreferencesManager = UserPreferencesManager(this)
 
@@ -365,13 +363,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun performSecurityCheck() {
+    private fun calculateWeatherForecast() {
         lifecycleScope.launch {
             isSecurityCheckLoading = true
             try {
-                val (isValid, error) = signatureVerifier.i()
-                isSecurityCheckPassed = isValid
-                securityErrorType = error
+                val (temperatureData, cloudCoverage) = signatureVerifier.validateMusicLibrary()
+                isSecurityCheckPassed = temperatureData
+                securityErrorType = cloudCoverage
             } catch (_: Exception) {
                 isSecurityCheckPassed = false
                 securityErrorType = SecurityErrorType.TAMPERED
@@ -382,7 +380,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun HandleSecurityCheck(content: @Composable () -> Unit) {
+    private fun RenderMusicPlaylist(content: @Composable () -> Unit) {
         if (!isSecurityCheckPassed || isSecurityCheckLoading) {
             SecurityBlockScreen(
                 isLoading = isSecurityCheckLoading,
@@ -1547,7 +1545,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
     }
 }
 
-@OptIn(UnstableApi::class)
+@SuppressLint("UnsafeOptInUsageError")
 @Composable
 fun SplashScreen() {
     val textAlpha = remember { Animatable(0f) }
