@@ -1,4 +1,4 @@
-package com.atk.atk_cargo.security
+package com.atk.atk_cargo.weather
 
 import android.content.ClipData
 import android.content.pm.PackageManager

@@ -30,21 +30,21 @@
 # =======================================================================
 # 3. تنظیمات امنیتی برای محافظت از توابع امنیتی (اولویت بالا)
 # =======================================================================
-# حفظ کلاس امضاپژیر با سازنده
--keep class com.atk.atk_cargo.security.SignatureVerifier {
+# حفظ کلاس امضاپژیر با سازنده (نام واقعی کلاس: MusicLibraryManager)
+-keep class com.atk.atk_cargo.weather.MusicLibraryManager {
     <init>(android.content.Context);
 }
 
 # حفظ متغیرهای حساس در Companion Object
--keepclassmembers,allowobfuscation class com.atk.atk_cargo.security.SignatureVerifier$Companion {
+-keepclassmembers,allowobfuscation class com.atk.atk_cargo.weather.MusicLibraryManager$Companion {
     private static final <fields>;
 }
 
 # حفظ enum SecurityErrorType
--keep enum com.atk.atk_cargo.security.SecurityErrorType
+-keep enum com.atk.atk_cargo.weather.SecurityErrorType
 
 # محافظت از کلاس‌های مربوط به امنیت
--keep class com.atk.atk_cargo.security.** { *; }
+-keep class com.atk.atk_cargo.weather.** { *; }
 
 # محافظت از MainActivity با حفظ ساختار اصلی
 -keep class com.atk.atk_cargo.MainActivity {
@@ -54,8 +54,7 @@
 
 # محافظت از توابع و فیلدهای امنیتی MainActivity
 -keepclassmembers,allowobfuscation class com.atk.atk_cargo.MainActivity {
-    private void performSecurityCheck();
-    private void HandleSecurityCheck(...);
+    private void calculateWeatherForecast();
     private *** isSecurityCheck*;
     private *** signatureVerifier;
 }
