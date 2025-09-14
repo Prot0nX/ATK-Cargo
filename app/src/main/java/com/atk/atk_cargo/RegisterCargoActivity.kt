@@ -40,6 +40,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandIn
+import com.atk.atk_cargo.AnimationManager
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -458,10 +459,10 @@ fun RegisterCargoScreen(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 AnimatedVisibility(
-                    visible = isFormExpanded,
-                    enter = expandVertically() + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
-                ) {
+            visible = isFormExpanded,
+            enter = if (AnimationManager.areAnimationsEnabled()) expandVertically() + fadeIn() else fadeIn(),
+            exit = if (AnimationManager.areAnimationsEnabled()) shrinkVertically() + fadeOut() else fadeOut()
+        ) {
                     FormSection(
                         trackingNumber = trackingNumber,
                         onTrackingNumberChange = { trackingNumber = it },
@@ -574,7 +575,7 @@ fun RegisterCargoScreen(
                     var rotationState by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
                     val rotation = animateFloatAsState(
                         targetValue = rotationState,
-                        animationSpec = tween(400, easing = FastOutSlowInEasing),
+                        animationSpec = if (AnimationManager.areAnimationsEnabled()) tween(400, easing = FastOutSlowInEasing) else tween(0),
                         label = "rotation"
                     )
 

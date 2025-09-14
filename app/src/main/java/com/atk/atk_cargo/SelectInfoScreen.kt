@@ -17,6 +17,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import com.atk.atk_cargo.AnimationManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -477,8 +478,8 @@ fun AnimatedHeader(
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = fadeIn() + slideInVertically(),
-        exit = fadeOut() + slideOutVertically()
+        enter = if (AnimationManager.areAnimationsEnabled()) fadeIn() + slideInVertically() else fadeIn(),
+        exit = if (AnimationManager.areAnimationsEnabled()) fadeOut() + slideOutVertically() else fadeOut()
     ) {
         Row(
             modifier = Modifier
@@ -643,10 +644,10 @@ fun StatusSnackbar(
 
     val translateX by animateDpAsState(
         targetValue = if (animatedVisibility) 0.dp else 300.dp,
-        animationSpec = spring(
+        animationSpec = if (AnimationManager.areAnimationsEnabled()) spring(
             dampingRatio = Spring.DampingRatioLowBouncy,
             stiffness = Spring.StiffnessVeryLow
-        ), label = ""
+        ) else tween(0), label = ""
     )
 
     val alpha by animateFloatAsState(

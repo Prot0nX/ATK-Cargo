@@ -2,11 +2,16 @@ package com.atk.atk_cargo
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.ActivityManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.PowerManager
+import android.os.StatFs
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
@@ -356,10 +361,40 @@ class MainActivity : ComponentActivity() {
             reportsRepository = ReportsRepository(RetrofitClient.apiService)
 
             cargoViewModelFactory = CargoViewModelFactory(reportsRepository, userPreferencesManager)
+            
+            // ارزیابی عملکرد سخت‌افزار و تنظیم انیمیشن‌ها
+            initializeHardwarePerformanceEvaluation()
 
         } catch (e: Exception) {
             // خطا در مقداردهی وابستگی‌ها
             throw e // پرتاب مجدد خطا برای مدیریت در سطح بالاتر
+        }
+    }
+    
+    /**
+     * ارزیابی عملکرد سخت‌افزار و تنظیم مدیر انیمیشن‌ها
+     * این تابع امتیاز عملکرد را محاسبه و ذخیره می‌کند تا نیاز به پردازش مجدد نباشد
+     */
+    private fun initializeHardwarePerformanceEvaluation() {
+        lifecycleScope.launch {
+            try {
+                val userPreferencesManager = UserPreferencesManager(this@MainActivity)
+                val hardwareEvaluator = HardwarePerformanceEvaluator(this@MainActivity, userPreferencesManager)
+                
+                // استفاده از تابع suspend برای ارزیابی عملکرد با قابلیت کش
+                val performanceScore = hardwareEvaluator.evaluatePerformance()
+                
+                // تنظیم امتیاز عملکرد در مدیر انیمیشن‌ها
+                AnimationManager.setPerformanceScore(performanceScore)
+                
+                Log.d("HardwarePerformance", "امتیاز عملکرد دستگاه: $performanceScore")
+                Log.d("AnimationManager", "وضعیت انیمیشن‌ها: ${if (AnimationManager.areAnimationsEnabled()) "فعال" else "غیرفعال"}")
+                
+            } catch (e: Exception) {
+                Log.e("HardwarePerformance", "خطا در ارزیابی عملکرد سخت‌افزار: ${e.message}")
+                // در صورت خطا، امتیاز متوسط تنظیم می‌شود
+                AnimationManager.setPerformanceScore(50)
+            }
         }
     }
 
@@ -2068,6 +2103,8 @@ fun ProfileMenu(
     var currentUser by remember { mutableStateOf<User?>(null) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val userPreferencesManager = remember { UserPreferencesManager(context) }
+    val hardwareScore by userPreferencesManager.hardwareScore.collectAsState(initial = -1)
 
     // انیمیشن‌های بهبود یافته
     val rotationState by animateFloatAsState(
@@ -2232,6 +2269,24 @@ fun ProfileMenu(
                                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                                         }
                                     )
+                                }
+                                
+                                // نمایش امتیاز سخت‌افزار
+                                if (hardwareScore > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(
+                                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "امتیاز: $hardwareScore",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.tertiary
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -5320,5 +5375,215 @@ fun getMenuItemsForUserType(userType: String): List<MenuItem> {
             MenuItem("تعریف کشتی", R.drawable.ic_journal, "initial_info"),
             MenuItem("مدیریت گزارشات", R.drawable.ic_reports, "manage_reports")
         )
+    }
+}
+
+/**
+ * کلاس ارزیابی عملکرد سخت‌افزار دستگاه
+ */
+class HardwarePerformanceEvaluator(
+    private val context: Context,
+    private val userPreferencesManager: UserPreferencesManager
+) {
+    
+    companion object {
+        private const val EVALUATION_VALIDITY_HOURS = 24 // ارزیابی مجدد هر 24 ساعت
+    }
+    
+    /**
+     * ارزیابی عملکرد سخت‌افزار و تعیین امتیاز
+     * @return امتیاز عملکرد از 0 تا 100
+     */
+    suspend fun evaluatePerformance(): Int {
+        // بررسی آیا ارزیابی قبلی هنوز معتبر است
+        val lastEvaluation = userPreferencesManager.getScoreTimestamp()
+        val currentTime = System.currentTimeMillis()
+        val validityDuration = EVALUATION_VALIDITY_HOURS * 60 * 60 * 1000L
+        
+        // بررسی تغییر مشخصات دستگاه
+        val currentDeviceSpecs = generateDeviceSpecs()
+        val cachedDeviceSpecs = userPreferencesManager.getDeviceSpecs()
+        
+        // اگر ارزیابی قبلی معتبر است و مشخصات تغییر نکرده، امتیاز کش شده را برگردان
+        if (currentTime - lastEvaluation < validityDuration && 
+            cachedDeviceSpecs == currentDeviceSpecs) {
+            val cachedScore = userPreferencesManager.getHardwareScore()
+            if (cachedScore != -1) {
+                Log.d("HardwarePerformance", "استفاده از امتیاز کش شده: $cachedScore")
+                return cachedScore
+            }
+        }
+        
+        Log.d("HardwarePerformance", "محاسبه مجدد امتیاز سخت‌افزار...")
+        
+        var totalScore = 0
+        var maxScore = 0
+        
+        // ارزیابی RAM
+        val ramScore = evaluateRAM()
+        totalScore += ramScore
+        maxScore += 30
+        
+        // ارزیابی CPU
+        val cpuScore = evaluateCPU()
+        totalScore += cpuScore
+        maxScore += 25
+        
+        // ارزیابی نسخه اندروید
+        val androidScore = evaluateAndroidVersion()
+        totalScore += androidScore
+        maxScore += 20
+        
+        // ارزیابی فضای ذخیره‌سازی
+        val storageScore = evaluateStorage()
+        totalScore += storageScore
+        maxScore += 15
+        
+        // ارزیابی وضعیت باتری
+        val batteryScore = evaluateBattery()
+        totalScore += batteryScore
+        maxScore += 10
+        
+        // محاسبه امتیاز نهایی
+        val finalScore = ((totalScore.toFloat() / maxScore) * 100).toInt().coerceIn(0, 100)
+        
+        // ذخیره نتیجه در UserPreferencesManager
+        userPreferencesManager.saveHardwareScore(finalScore, currentDeviceSpecs)
+        
+        Log.d("HardwarePerformance", "امتیاز جدید محاسبه و ذخیره شد: $finalScore")
+        
+        return finalScore
+    }
+    
+    /**
+     * تولید رشته مشخصات دستگاه برای مقایسه تغییرات
+     */
+    private fun generateDeviceSpecs(): String {
+        return try {
+            val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val memoryInfo = ActivityManager.MemoryInfo()
+            activityManager.getMemoryInfo(memoryInfo)
+            
+            val totalRAM = memoryInfo.totalMem / (1024 * 1024 * 1024)
+            val coreCount = Runtime.getRuntime().availableProcessors()
+            val androidVersion = Build.VERSION.SDK_INT
+            
+            val statFs = StatFs(Environment.getDataDirectory().path)
+            val totalStorage = statFs.totalBytes / (1024 * 1024 * 1024)
+            
+            "RAM:${totalRAM}GB|CPU:${coreCount}cores|Android:${androidVersion}|Storage:${totalStorage}GB"
+        } catch (_: Exception) {
+            "UNKNOWN_SPECS"
+        }
+    }
+    
+    private fun evaluateRAM(): Int {
+        return try {
+            val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val memoryInfo = ActivityManager.MemoryInfo()
+            activityManager.getMemoryInfo(memoryInfo)
+            
+            val totalRAM = memoryInfo.totalMem / (1024 * 1024 * 1024) // تبدیل به گیگابایت
+            
+            when {
+                totalRAM >= 8 -> 30 // 8GB یا بیشتر
+                totalRAM >= 6 -> 25 // 6-8GB
+                totalRAM >= 4 -> 20 // 4-6GB
+                totalRAM >= 3 -> 15 // 3-4GB
+                totalRAM >= 2 -> 10 // 2-3GB
+                else -> 5 // کمتر از 2GB
+            }
+        } catch (_: Exception) {
+            15 // امتیاز متوسط در صورت خطا
+        }
+    }
+    
+    private fun evaluateCPU(): Int {
+        return try {
+            val coreCount = Runtime.getRuntime().availableProcessors()
+            
+            when {
+                coreCount >= 8 -> 25 // 8 هسته یا بیشتر
+                coreCount >= 6 -> 20 // 6-8 هسته
+                coreCount >= 4 -> 15 // 4-6 هسته
+                coreCount >= 2 -> 10 // 2-4 هسته
+                else -> 5 // تک هسته
+            }
+        } catch (_: Exception) {
+            12 // امتیاز متوسط در صورت خطا
+        }
+    }
+    
+    @SuppressLint("ObsoleteSdkInt")
+    private fun evaluateAndroidVersion(): Int {
+        return when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> 20 // Android 13+
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> 18 // Android 12
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> 16 // Android 11
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> 14 // Android 10
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.P -> 12 // Android 9
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> 10 // Android 8
+            else -> 5 // نسخه‌های قدیمی‌تر
+        }
+    }
+    
+    private fun evaluateStorage(): Int {
+        return try {
+            val statFs = StatFs(Environment.getDataDirectory().path)
+            val availableBytes = statFs.availableBytes
+            val availableGB = availableBytes / (1024 * 1024 * 1024)
+            
+            when {
+                availableGB >= 32 -> 15 // 32GB یا بیشتر فضای آزاد
+                availableGB >= 16 -> 12 // 16-32GB
+                availableGB >= 8 -> 10 // 8-16GB
+                availableGB >= 4 -> 7 // 4-8GB
+                availableGB >= 2 -> 5 // 2-4GB
+                else -> 2 // کمتر از 2GB
+            }
+        } catch (_: Exception) {
+            8 // امتیاز متوسط در صورت خطا
+        }
+    }
+    
+    private fun evaluateBattery(): Int {
+        return try {
+            val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+            val batteryLevel = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            
+            when {
+                batteryLevel >= 80 -> 10 // باتری بالای 80%
+                batteryLevel >= 50 -> 8 // باتری 50-80%
+                batteryLevel >= 30 -> 6 // باتری 30-50%
+                batteryLevel >= 15 -> 4 // باتری 15-30%
+                else -> 2 // باتری کمتر از 15%
+            }
+        } catch (_: Exception) {
+            6 // امتیاز متوسط در صورت خطا
+        }
+    }
+    
+}
+
+/**
+ * مدیر انیمیشن‌ها بر اساس عملکرد سخت‌افزار
+ */
+object AnimationManager {
+    private var performanceScore: Int = 50
+    private var animationsEnabled: Boolean = true
+    
+    /**
+     * تنظیم امتیاز عملکرد و تعیین وضعیت انیمیشن‌ها
+     */
+    fun setPerformanceScore(score: Int) {
+        performanceScore = score
+        animationsEnabled = score >= 60 // انیمیشن‌ها فقط برای دستگاه‌های با امتیاز 60 یا بالاتر فعال می‌شوند
+    }
+    
+    /**
+     * بررسی فعال بودن انیمیشن‌ها
+     */
+    fun areAnimationsEnabled(): Boolean {
+        return animationsEnabled
     }
 }
