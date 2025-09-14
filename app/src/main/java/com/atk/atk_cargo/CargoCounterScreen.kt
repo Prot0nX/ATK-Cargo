@@ -11,6 +11,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import com.atk.atk_cargo.AnimationManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -1010,8 +1011,8 @@ private fun WarehouseCard(
             // محتوای باز شونده
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
+                enter = if (AnimationManager.areAnimationsEnabled()) fadeIn() + expandVertically() else fadeIn(),
+                exit = if (AnimationManager.areAnimationsEnabled()) fadeOut() + shrinkVertically() else fadeOut()
             ) {
                 Column(
                     modifier = Modifier.padding(

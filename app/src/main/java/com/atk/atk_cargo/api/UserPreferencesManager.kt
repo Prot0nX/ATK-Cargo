@@ -6,9 +6,12 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import java.io.IOException
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
@@ -64,6 +67,30 @@ class UserPreferencesManager(private val context: Context) {
             preferences[SESSION_TOKEN_KEY] ?: ""
         }
 
+    val hardwareScore = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[HARDWARE_SCORE_KEY] ?: -1
+        }
+
+    val deviceSpecs = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[DEVICE_SPECS_KEY] ?: ""
+        }
+
     suspend fun saveUserCredentials(username: String, userType: String, deviceId: String = "", sessionToken: String = "") {
         dataStore.edit { preferences ->
             preferences[USERNAME_KEY] = username
@@ -89,6 +116,64 @@ class UserPreferencesManager(private val context: Context) {
         }
     }
 
+    suspend fun saveHardwareScore(score: Int, deviceSpecs: String) {
+        dataStore.edit { preferences ->
+            preferences[HARDWARE_SCORE_KEY] = score
+            preferences[DEVICE_SPECS_KEY] = deviceSpecs
+            preferences[SCORE_TIMESTAMP_KEY] = System.currentTimeMillis()
+        }
+    }
+
+    suspend fun getHardwareScore(): Int {
+        return dataStore.data
+            .catch { exception ->
+                if (exception is IOException) {
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
+            }
+            .map { preferences ->
+                preferences[HARDWARE_SCORE_KEY] ?: -1
+            }.first()
+    }
+
+    suspend fun getDeviceSpecs(): String {
+        return dataStore.data
+            .catch { exception ->
+                if (exception is IOException) {
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
+            }
+            .map { preferences ->
+                preferences[DEVICE_SPECS_KEY] ?: ""
+            }.first()
+    }
+
+    suspend fun getScoreTimestamp(): Long {
+        return dataStore.data
+            .catch { exception ->
+                if (exception is IOException) {
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
+            }
+            .map { preferences ->
+                preferences[SCORE_TIMESTAMP_KEY] ?: 0L
+            }.first()
+    }
+
+    suspend fun clearHardwareScore() {
+        dataStore.edit { preferences ->
+            preferences.remove(HARDWARE_SCORE_KEY)
+            preferences.remove(DEVICE_SPECS_KEY)
+            preferences.remove(SCORE_TIMESTAMP_KEY)
+        }
+    }
+
     suspend fun clearUserCredentials() {
         dataStore.edit { preferences ->
             preferences.remove(USERNAME_KEY)
@@ -107,5 +192,8 @@ class UserPreferencesManager(private val context: Context) {
         private val USER_TYPE_KEY = stringPreferencesKey("user_type")
         private val DEVICE_ID_KEY = stringPreferencesKey("device_id")
         private val SESSION_TOKEN_KEY = stringPreferencesKey("session_token")
+        private val HARDWARE_SCORE_KEY = intPreferencesKey("hardware_score")
+        private val DEVICE_SPECS_KEY = stringPreferencesKey("device_specs")
+        private val SCORE_TIMESTAMP_KEY = longPreferencesKey("score_timestamp")
     }
 }
