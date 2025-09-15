@@ -21,6 +21,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.atk.atk_cargo.SnackbarMessage
 import com.atk.atk_cargo.api.RetrofitClient.apiService
 import com.google.gson.Gson
+import com.google.gson.JsonObject
 import com.itextpdf.text.BaseColor
 import com.itextpdf.text.Document
 import com.itextpdf.text.Element
@@ -1848,6 +1849,17 @@ class ReportsViewModel(
         }
     }
 
+    fun performAdvancedSearchByTracking(trackingNumber: String, onResult: (Result<List<CargoInfo>>) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val result = repository.getCargoInfoByTrackingNumber(trackingNumber)
+                onResult(Result.success(result))
+            } catch (e: Exception) {
+                onResult(Result.failure(e))
+            }
+        }
+    }
+
     fun exportData(format: String, data: FilteredSummary) {
         viewModelScope.launch {
             try {
@@ -3057,6 +3069,63 @@ class ReportsRepository(private val apiService: ApiService) {
         }
     }
 
+    suspend fun getCargoInfoByTrackingNumber(trackingNumber: String): List<CargoInfo> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getCargoInfoByTrackingNumber(trackingNumber)
+
+                if (response.isSuccessful) {
+                    val responseBody = response.body()
+
+                    if (responseBody != null) {
+                        // Check if there's an error in the response
+                        if (!responseBody.error.isNullOrEmpty()) {
+                            return@withContext emptyList()
+                        }
+                        
+                        // Process the cargoInfoList from the response
+                        val cargoInfoList = mutableListOf<CargoInfo>()
+                        val searchResults = responseBody.cargoInfoList ?: emptyList()
+
+                        searchResults.forEach { cargoInfoSearch ->
+                            cargoInfoSearch.cargoInfo?.let { cargoInfo ->
+                                cargoInfoList.add(cargoInfo)
+                            } ?: Log.w("CargoSearch", "⚠️ CargoInfoSearch item has null cargoInfo")
+                        }
+                        
+                        return@withContext cargoInfoList
+                    } else {
+                        return@withContext emptyList()
+                    }
+                } else {
+
+                    // Handle error response
+                    try {
+                        val errorBody = response.errorBody()?.string()
+
+                        if (!errorBody.isNullOrEmpty()) {
+                            // Check if error message is JSON
+                            if (errorBody.trim().startsWith("{")) {
+                                val errorJson = Gson().fromJson(errorBody, JsonObject::class.java)
+                                if (errorJson.has("error")) {
+                                    val errorMessage = errorJson.get("error").asString
+                                }
+                            } else {
+                                Log.w("CargoSearch", "🚨 Server error (non-JSON): $errorBody")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("CargoSearch", "❌ Error parsing error response: ${e.message}")
+                    }
+                    
+                    return@withContext emptyList()
+                }
+            } catch (e: Exception) {
+                return@withContext emptyList()
+            }
+        }
+    }
+
     suspend fun getComprehensiveAnalysis(): ComprehensiveAnalysisResponse {
         val response = apiService.getComprehensiveAnalysis()
         if (response.isSuccessful) {
@@ -3299,6 +3368,13 @@ data class SuccessResponse(
 
 data class CargoInfoSearch(
     val cargoInfo: CargoInfo?
+)
+
+// Response wrapper for search_by_tracking.php API
+data class CargoSearchResponse(
+    val cargoInfoList: List<CargoInfoSearch>? = null,
+    val totalCount: Int? = null,
+    val error: String? = null
 )
 
 data class SessionCheckRequest(
