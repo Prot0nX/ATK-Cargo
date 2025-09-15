@@ -5378,9 +5378,6 @@ fun getMenuItemsForUserType(userType: String): List<MenuItem> {
     }
 }
 
-/**
- * کلاس ارزیابی عملکرد سخت‌افزار دستگاه
- */
 class HardwarePerformanceEvaluator(
     private val context: Context,
     private val userPreferencesManager: UserPreferencesManager
@@ -5565,9 +5562,6 @@ class HardwarePerformanceEvaluator(
     
 }
 
-/**
- * مدیر انیمیشن‌ها بر اساس عملکرد سخت‌افزار
- */
 object AnimationManager {
     private var performanceScore: Int = 50
     private var animationsEnabled: Boolean = true

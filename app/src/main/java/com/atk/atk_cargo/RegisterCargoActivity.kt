@@ -40,7 +40,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandIn
-import com.atk.atk_cargo.AnimationManager
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -2874,23 +2873,17 @@ private fun MinimalHeader(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    Text3(
-                        text = "کوتاژ:",
-                        style = MaterialTheme3.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme3.colorScheme.onSurfaceVariant
-                    )
                     Surface3(
                         shape = RoundedCornerShape(4.dp),
                         color = MaterialTheme3.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                        modifier = Modifier.padding(2.dp)
                     ) {
                         Text3(
                             text = quotaNumber,
                             style = MaterialTheme3.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme3.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                         )
                     }
                 }
