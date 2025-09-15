@@ -172,10 +172,15 @@ interface ApiService {
     @POST("check_session.php")
     suspend fun checkSession(@Body request: SessionCheckRequest): Response<SessionResponse>
 
-    @GET("advancedsearch.php")
+    @GET("search_by_scaleReceipt.php")
     suspend fun getCargoInfoByReceiptNumber(
         @Query("receipt") receiptNumber: String
     ): Response<CargoInfoSearch>
+
+    @GET("search_by_tracking.php")
+    suspend fun getCargoInfoByTrackingNumber(
+        @Query("tracking") trackingNumber: String
+    ): Response<CargoSearchResponse>
 
     @GET("app_api.php")
     suspend fun getLoadableTonnage(
