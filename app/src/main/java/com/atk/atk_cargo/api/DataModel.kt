@@ -142,6 +142,13 @@ class CargoViewModel(
 
     private val _cachedTrackingNumbers = MutableStateFlow<Set<String>>(emptySet())
 
+    // StateFlow های مربوط به حواله‌های تکراری
+    private val _duplicateTrackingNumbers = MutableStateFlow<List<String>>(emptyList())
+    val duplicateTrackingNumbers: StateFlow<List<String>> = _duplicateTrackingNumbers.asStateFlow()
+    
+    private val _showDuplicateDialog = MutableStateFlow(false)
+    val showDuplicateDialog: StateFlow<Boolean> = _showDuplicateDialog.asStateFlow()
+
     // وضعیت کشتی‌های انتخاب شده
     private val _selectedShipNames = MutableStateFlow<Set<String>>(emptySet())
     val selectedShipNames: StateFlow<Set<String>> = _selectedShipNames.asStateFlow()
@@ -309,7 +316,40 @@ class CargoViewModel(
         lastQuotaStatusCheck = 0
         lastLoadableTonnageUpdate = 0
     }
+
+    private fun checkForDuplicateTrackingNumbers(cargoList: List<CargoInfo>): List<String> {
+        val trackingNumberCounts = mutableMapOf<String, Int>()
+        
+        // شمارش تعداد تکرار هر شماره حواله
+        cargoList.forEach { cargo ->
+            val trackingNumber = cargo.trackingNumber.trim()
+            trackingNumberCounts[trackingNumber] = trackingNumberCounts.getOrDefault(trackingNumber, 0) + 1
+        }
+        
+        // استخراج شماره حواله‌هایی که بیش از یک بار تکرار شده‌اند
+        return trackingNumberCounts.filter { it.value > 1 }.keys.toList()
+    }
     
+    private fun filterDuplicateTrackingNumbers(cargoList: List<CargoInfo>): List<CargoInfo> {
+        val seenTrackingNumbers = mutableSetOf<String>()
+        val filteredList = mutableListOf<CargoInfo>()
+        
+        cargoList.forEach { cargo ->
+            val trackingNumber = cargo.trackingNumber.trim()
+            if (!seenTrackingNumbers.contains(trackingNumber)) {
+                seenTrackingNumbers.add(trackingNumber)
+                filteredList.add(cargo)
+            }
+        }
+        
+        return filteredList
+    }
+    
+    fun dismissDuplicateDialog() {
+        _showDuplicateDialog.value = false
+        _duplicateTrackingNumbers.value = emptyList()
+    }
+
     fun refreshCargoInfo() {
         viewModelScope.launch {
             _initialInfo.value?.let { info ->
@@ -934,7 +974,19 @@ class CargoViewModel(
                     repository.getCargoInfo(quotaNumber, shippingCompany, warehouse, cargoType)
                 }
 
-                // به‌روزرسانی UI با اطلاعات اصلی
+                // بررسی حواله‌های تکراری قبل از بروزرسانی UI
+                val duplicateTrackingNumbers = checkForDuplicateTrackingNumbers(result.cargoInfoList)
+                
+                if (duplicateTrackingNumbers.isNotEmpty()) {
+                    // نمایش پیام هشدار برای حواله‌های تکراری
+                    withContext(Dispatchers.Main.immediate) {
+                        _duplicateTrackingNumbers.value = duplicateTrackingNumbers
+                        _showDuplicateDialog.value = true
+                        Log.w("CargoViewModel", "حواله‌های تکراری شناسایی شدند: ${duplicateTrackingNumbers.joinToString(", ")}")
+                    }
+                }
+                
+                // نمایش تمام حواله‌ها (شامل تکراری‌ها) در لیست
                 _cargoInfoList.value = result.cargoInfoList
                 _initialInfo.value = result.initialInfo
                 _filteredCargoInfoList.value = result.cargoInfoList

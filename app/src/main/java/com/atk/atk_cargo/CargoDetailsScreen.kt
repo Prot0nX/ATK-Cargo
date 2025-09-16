@@ -7,7 +7,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import com.atk.atk_cargo.AnimationManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -93,13 +92,10 @@ import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-private val jsonInstance = Json { ignoreUnknownKeys = true }
 
 @Composable
 fun CargoDetailsScreen(
@@ -1236,7 +1232,6 @@ fun ModernCargoStatusTimeline(info: CargoInfo) {
                 icon = icon,
                 isCompleted = index <= currentStepIndex,
                 isCurrent = index == currentStepIndex,
-                isLast = index == steps.lastIndex,
                 modifier = Modifier.weight(1f)
             )
             
@@ -1264,7 +1259,6 @@ fun ModernTimelineStep(
     icon: ImageVector,
     isCompleted: Boolean, 
     isCurrent: Boolean,
-    isLast: Boolean,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -1567,19 +1561,6 @@ private fun ModernInfoCard(
                 overflow = TextOverflow.Ellipsis
             )
         }
-    }
-}
-
-@Composable
-private fun InfoRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
     }
 }
 

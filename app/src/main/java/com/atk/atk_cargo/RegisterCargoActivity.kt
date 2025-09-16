@@ -9,6 +9,7 @@ import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -29,6 +30,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.EaseInBack
 import androidx.compose.animation.core.EaseOutBack
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
@@ -74,6 +76,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -93,6 +96,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ConfirmationNumber
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.ExpandMore
@@ -118,6 +122,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -149,6 +154,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -163,6 +169,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -222,6 +229,279 @@ import androidx.compose.material3.Text as Text3
 enum class ScanMode {
     LOCAL_AI_SCAN,  // پردازش پیشرفته با ML Kit
     ML_KIT_SCAN     // ML Kit ساده
+}
+
+suspend fun handleQuotaEntry(
+    quotaCode: String,
+    currentInitialInfo: InitialInfo?,
+    viewModel: CargoViewModel,
+    activity: RegisterCargoActivity,
+    snackbarHostState: SnackbarHostState
+) {
+    if (currentInitialInfo == null) {
+        snackbarHostState.showSnackbar("اطلاعات اولیه یافت نشد")
+        return
+    }
+
+    try {
+        // بررسی وجود کوتاژ جدید
+        val response = viewModel.checkQuotaExistenceCargo(quotaCode, currentInitialInfo.shipName)
+        
+        if (response.exists && response.matchingQuotas.isNotEmpty()) {
+            val selectedQuota = response.matchingQuotas.first()
+            
+            // بررسی اینکه کوتاژ متعلق به همان کشتی باشد
+            if (selectedQuota.shipName == currentInitialInfo.shipName) {
+                // ایجاد InitialInfo جدید
+                val newInitialInfo = InitialInfo(
+                    shipName = selectedQuota.shipName,
+                    loadingWarehouse = selectedQuota.warehouse,
+                    cargoType = selectedQuota.cargoType,
+                    shippingCompany = selectedQuota.shippingCompany,
+                    cargoWeight = 0f,
+                    loadingQuotaNumber = selectedQuota.quotaNumber.toIntOrNull() ?: 0,
+                    remainingWeight = 0f,
+                    totalNetWeight = 0f,
+                    averageNetWeight = 0f,
+                    remainingServices = 0
+                )
+                
+                // بروزرسانی اطلاعات در Activity
+                activity.updateInitialInfo(newInitialInfo)
+                
+                // نمایش پیام موفقیت
+                snackbarHostState.showSnackbar("کوتاژ با موفقیت تغییر یافت به: ${selectedQuota.quotaNumber}")
+            } else {
+                snackbarHostState.showSnackbar("خطا: کوتاژ $quotaCode متعلق به کشتی ${selectedQuota.shipName} است، نه کشتی ${currentInitialInfo.shipName}!")
+            }
+        } else {
+            snackbarHostState.showSnackbar("کوتاژ $quotaCode برای کشتی ${currentInitialInfo.shipName} یافت نشد")
+        }
+    } catch (e: Exception) {
+        snackbarHostState.showSnackbar("خطا در بررسی کوتاژ: ${e.message}")
+    }
+}
+
+@Composable
+fun DuplicateTrackingNumbersDialog(
+    duplicateNumbers: List<String>,
+    onDismiss: () -> Unit,
+    onSearchTrackingNumber: (String) -> Unit = {}
+) {
+    var selectedTrackingNumber by remember { mutableStateOf<String?>(null) }
+    var isVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .wrapContentHeight()
+                .scale(
+                    animateFloatAsState(
+                        targetValue = if (isVisible) 1f else 0.8f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        label = "scale"
+                    ).value
+                )
+                .alpha(
+                    animateFloatAsState(
+                        targetValue = if (isVisible) 1f else 0f,
+                        animationSpec = tween(300),
+                        label = "alpha"
+                    ).value
+                ),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
+            shadowElevation = 12.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header مینیمال
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // آیکون هشدار مینیمال
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "حواله‌های تکراری",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "${duplicateNumbers.size} شماره حواله تکراری",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // لیست مینیمال حواله‌های تکراری
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                ) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 180.dp)
+                            .padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(duplicateNumbers) { trackingNumber ->
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectedTrackingNumber = trackingNumber
+                                    },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (selectedTrackingNumber == trackingNumber) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
+                                tonalElevation = if (selectedTrackingNumber == trackingNumber) 2.dp else 0.dp
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // نقطه رنگی برای نشان دادن تکراری بودن
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(
+                                                MaterialTheme.colorScheme.error,
+                                                CircleShape
+                                            )
+                                    )
+
+                                    Text(
+                                        text = trackingNumber,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = if (selectedTrackingNumber == trackingNumber) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    )
+
+                                    // آیکون انتخاب
+                                    if (selectedTrackingNumber == trackingNumber) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // دکمه‌های عملیات
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // دکمه جستجو (فقط اگر حواله‌ای انتخاب شده باشد)
+                    if (selectedTrackingNumber != null) {
+                        Button(
+                            onClick = {
+                                selectedTrackingNumber?.let { trackingNumber ->
+                                    onSearchTrackingNumber(trackingNumber)
+                                    onDismiss()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "جستجو",
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+
+                    // دکمه بستن
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = if (selectedTrackingNumber != null) "بستن" else "متوجه شدم",
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 class RegisterCargoActivity : ComponentActivity() {
@@ -323,6 +603,12 @@ class RegisterCargoActivity : ComponentActivity() {
     private fun showErrorMessage(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
+
+    // متد بروزرسانی اطلاعات اولیه برای تغییر کوتاژ
+    fun updateInitialInfo(newInitialInfo: InitialInfo) {
+        viewModel.setInitialInfo(newInitialInfo)
+        viewModel.refreshCargoInfo()
+    }
 }
 
 private suspend fun recognizeTextFromImage(image: InputImage): String = suspendCancellableCoroutine { continuation ->
@@ -378,12 +664,22 @@ fun RegisterCargoScreen(
     val loadableTrucks18Wheeler by viewModel.loadableTrucks18Wheeler.collectAsState()
     val loadableTrucks10Wheeler by viewModel.loadableTrucks10Wheeler.collectAsState()
     
+    // LazyListState برای کنترل اسکرول لیست حواله‌ها
+    val listState = rememberLazyListState()
+    
     // متغیرهای مربوط به دیالوگ تأیید حواله تکراری
     val showDuplicateConfirmationDialog by viewModel.showDuplicateConfirmationDialog.collectAsState()
     val duplicateWarningMessage by viewModel.duplicateWarningMessage.collectAsState()
     
+    // متغیرهای مربوط به دیالوگ نمایش حواله‌های تکراری
+    val showDuplicateDialog by viewModel.showDuplicateDialog.collectAsState()
+    val duplicateTrackingNumbers by viewModel.duplicateTrackingNumbers.collectAsState()
+    
     // وضعیت ثبت حواله
     val isSubmitting by viewModel.isSubmitting.collectAsState()
+    
+    // متغیرهای مربوط به دیالوگ تغییر کوتاژ
+    var showQuotaEntryDialog by remember { mutableStateOf(false) }
 
     fun clearInputFields() {
         trackingNumber = ""
@@ -405,12 +701,17 @@ fun RegisterCargoScreen(
         searchQuery
     ) {
         derivedStateOf {
-            cargoInfoList.filter { cargoInfo ->
-                cargoInfo.trackingNumber.contains(
+            val filtered = cargoInfoList.filter { cargoInfo ->
+                val matches = cargoInfo.trackingNumber.contains(
                     searchQuery,
                     ignoreCase = true
                 )
+                if (searchQuery.isNotEmpty()) {
+                    Log.d("RegisterCargoActivity_Log", "Checking ${cargoInfo.trackingNumber} against '$searchQuery': $matches")
+                }
+                matches
             }
+            filtered
         }
     }
 
@@ -423,7 +724,38 @@ fun RegisterCargoScreen(
                 .fillMaxSize()
                 .systemBarsPadding()
                 .navigationBarsPadding(),
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+            floatingActionButton = {
+                // Circular FAB with 70% transparency for background visibility
+                androidx.compose.material3.FloatingActionButton(
+                    onClick = { 
+                        showQuotaEntryDialog = true 
+                    },
+                    modifier = Modifier
+                        .size(56.dp)
+                        .shadow(
+                            elevation = 8.dp,
+                            shape = CircleShape,
+                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        ),
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f), // 70% transparency
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 8.dp,
+                        pressedElevation = 12.dp,
+                        hoveredElevation = 10.dp
+                    ),
+                    shape = CircleShape // Perfect circular shape
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ConfirmationNumber,
+                        contentDescription = "تغییر کوتاژ",
+                        modifier = Modifier.size(22.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
+            }
         ) { paddingValues ->
             Column(
                 modifier = Modifier
@@ -553,7 +885,9 @@ fun RegisterCargoScreen(
                     // فیلد جستجوی شماره حواله (60% عرض)
                     OutlinedTextField(
                         value = searchQuery,
-                        onValueChange = { searchQuery = it },
+                        onValueChange = { newValue ->
+                            searchQuery = newValue
+                        },
                         label = { Text("جستجوی شماره حواله") },
                         modifier = Modifier.weight(0.6f),
                         leadingIcon = {
@@ -629,6 +963,7 @@ fun RegisterCargoScreen(
                     items = nonExitedCargos.sortedByDescending { it.entryTime },
                     initiallyExpanded = true,
                     searchQuery = searchQuery,
+                    duplicateTrackingNumbers = duplicateTrackingNumbers, // انتقال پارامتر حواله‌های تکراری
                     onItemClick = { selectedInfo ->
                         selectedCargoInfo.value = selectedInfo
                         showDetailDialog.value = true
@@ -640,6 +975,7 @@ fun RegisterCargoScreen(
                     items = exitedCargos.sortedByDescending { "${it.exitDate} ${it.exitTime}" },
                     initiallyExpanded = false,
                     searchQuery = searchQuery,
+                    duplicateTrackingNumbers = duplicateTrackingNumbers, // انتقال پارامتر حواله‌های تکراری
                     onItemClick = { selectedInfo ->
                         selectedCargoInfo.value = selectedInfo
                         showDetailDialog.value = true
@@ -772,6 +1108,45 @@ fun RegisterCargoScreen(
             onDismiss = {
                 viewModel.dismissDuplicateConfirmationDialog()
             }
+        )
+    }
+
+    // دیالوگ نمایش حواله‌های تکراری
+    if (showDuplicateDialog) {
+        DuplicateTrackingNumbersDialog(
+            duplicateNumbers = duplicateTrackingNumbers,
+            onDismiss = {
+                viewModel.dismissDuplicateDialog()
+            },
+            onSearchTrackingNumber = { trackingNumber ->
+                // تنظیم شماره حواله در فیلد جستجو
+                searchQuery = trackingNumber
+                // اسکرول به بالای لیست برای نمایش نتایج جستجو
+                coroutineScope.launch {
+                    listState.animateScrollToItem(0)
+                }
+            }
+        )
+    }
+    
+    // دیالوگ تغییر کوتاژ
+    if (showQuotaEntryDialog) {
+        QuotaEntryDialog(
+            showDialog = true,
+            onDismiss = { showQuotaEntryDialog = false },
+            onConfirm = { quotaCode ->
+                coroutineScope.launch {
+                    handleQuotaEntry(quotaCode, initialInfo, viewModel, activity, snackbarHostState)
+                }
+                showQuotaEntryDialog = false
+            },
+            onScanBarcode = {
+                // TODO: Implement barcode scanning for quota
+                showQuotaEntryDialog = false
+            },
+            shipName = initialInfo?.shipName ?: "",
+            currentQuota = initialInfo?.loadingQuotaNumber?.toString() ?: "",
+            viewModel = viewModel
         )
     }
 }
@@ -1052,6 +1427,545 @@ fun QuotaWarningDialog(
                             fontWeight = FontWeight.Bold
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun QuotaEntryDialog(
+    showDialog: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+    onScanBarcode: () -> Unit,
+    shipName: String,
+    currentQuota: String,
+    viewModel: CargoViewModel
+) {
+    var quotaEntry by remember { mutableStateOf("") }
+    var isError by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Reset state when dialog opens
+    LaunchedEffect(showDialog) {
+        if (showDialog) {
+            quotaEntry = ""
+            isError = false
+            errorMessage = ""
+            isLoading = false
+            delay(150) // Slightly longer delay for better UX
+            focusRequester.requestFocus()
+        }
+    }
+
+    if (showDialog) {
+        Dialog(
+            onDismissRequest = { if (!isLoading) onDismiss() },
+            properties = DialogProperties(
+                dismissOnBackPress = !isLoading,
+                dismissOnClickOutside = !isLoading,
+                usePlatformDefaultWidth = false
+            )
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .padding(16.dp)
+                    .height(440.dp)
+                    .animateContentSize(
+                        animationSpec = tween(
+                            durationMillis = 200,
+                            easing = FastOutSlowInEasing
+                        )
+                    ),
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp,
+                shadowElevation = 8.dp
+            ) {
+                // ساختار جدید برای ثابت کردن دکمه‌ها در پایین
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                ) {
+                    // محتوای اصلی دیالوگ
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        // Enhanced Header Section with Icon
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ConfirmationNumber,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+                                
+                                Text(
+                                    text = "تغییر کوتاژ",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            
+                            IconButton(
+                                onClick = { if (!isLoading) onDismiss() },
+                                enabled = !isLoading,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "بستن",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        // Enhanced Ship Info Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DirectionsBoat,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = "کشتی: $shipName",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Text(
+                                        text = "کوتاژ فعلی: $currentQuota",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Enhanced Input Section
+                        EnhancedDialogContent(
+                            quotaEntry = quotaEntry,
+                            onQuotaEntryChange = { newValue ->
+                                if (newValue.length <= 4 && newValue.all { it.isDigit() }) {
+                                    quotaEntry = newValue
+                                    if (isError) {
+                                        isError = false
+                                        errorMessage = ""
+                                    }
+                                }
+                            },
+                            isError = isError,
+                            errorMessage = errorMessage,
+                            focusRequester = focusRequester,
+                            isLoading = isLoading
+                        )
+                    }
+
+                    // دکمه‌های ثابت در پایین - جدا از محتوای اصلی
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Primary Action Button
+                        Button(
+                            onClick = {
+                                when {
+                                    quotaEntry.isEmpty() -> {
+                                        isError = true
+                                        errorMessage = "لطفاً کوتاژ جدید را وارد کنید"
+                                    }
+                                    quotaEntry.length != 4 -> {
+                                        isError = true
+                                        errorMessage = "کوتاژ باید دقیقاً 4 رقم باشد"
+                                    }
+                                    quotaEntry == currentQuota -> {
+                                        isError = true
+                                        errorMessage = "کوتاژ جدید نمی‌تواند مشابه کوتاژ فعلی باشد"
+                                    }
+                                    else -> {
+                                        // بهینه‌سازی: بررسی سریع قبل از شروع coroutine
+                                        if (quotaEntry.all { it.isDigit() }) {
+                                            isLoading = true
+                                            coroutineScope.launch {
+                                                try {
+                                                    // بررسی وجود کوتاژ قبل از تأیید
+                                                    val response = viewModel.checkQuotaExistenceCargo(quotaEntry, shipName)
+                                                    
+                                                    if (response.exists && response.matchingQuotas.isNotEmpty()) {
+                                                        val selectedQuota = response.matchingQuotas.first()
+                                                        
+                                                        // بررسی اینکه کوتاژ متعلق به همان کشتی باشد
+                                                        if (selectedQuota.shipName == shipName) {
+                                                            // کوتاژ معتبر است، ادامه دهید
+                                                            onConfirm(quotaEntry)
+                                                        } else {
+                                                            // کوتاژ متعلق به کشتی دیگری است
+                                                            isError = true
+                                                            errorMessage = "کوتاژ $quotaEntry متعلق به کشتی ${selectedQuota.shipName} است"
+                                                        }
+                                                    } else {
+                                                        // کوتاژ وجود ندارد
+                                                        isError = true
+                                                        errorMessage = "کوتاژ $quotaEntry برای کشتی $shipName یافت نشد"
+                                                    }
+                                                } catch (e: Exception) {
+                                                    // خطا در بررسی کوتاژ
+                                                    isError = true
+                                                    errorMessage = "خطا در بررسی کوتاژ: ${e.message}"
+                                                } finally {
+                                                    isLoading = false
+                                                }
+                                            }
+                                        } else {
+                                            // بهینه‌سازی: نمایش فوری خطا برای ورودی غیرعددی
+                                            isError = true
+                                            errorMessage = "کوتاژ باید فقط شامل اعداد باشد"
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            enabled = !isLoading,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            if (isLoading) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    androidx.compose.material3.CircularProgressIndicator(
+                                        modifier = Modifier.size(14.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                    Text(
+                                        text = "پردازش...",
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                }
+                            } else {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "تأیید",
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                }
+                            }
+                        }
+
+                        // Secondary Action Button
+                        OutlinedButton(
+                            onClick = onScanBarcode,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            enabled = !isLoading,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.primary
+                            ),
+                            border = BorderStroke(
+                                1.5.dp, 
+                                if (isLoading) MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                else MaterialTheme.colorScheme.primary
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.QrCodeScanner,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "اسکن",
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EnhancedDialogContent(
+    quotaEntry: String,
+    onQuotaEntryChange: (String) -> Unit,
+    isError: Boolean,
+    errorMessage: String,
+    focusRequester: FocusRequester,
+    isLoading: Boolean
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Input Field with Enhanced Design
+        OutlinedTextField(
+            value = quotaEntry,
+            onValueChange = onQuotaEntryChange,
+            label = { 
+                Text(
+                    "کوتاژ جدید",
+                    style = MaterialTheme.typography.bodyMedium
+                ) 
+            },
+            placeholder = { 
+                Text(
+                    "مثال: 1234",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                ) 
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.ConfirmationNumber,
+                    contentDescription = null,
+                    tint = if (isError) MaterialTheme.colorScheme.error 
+                          else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
+            trailingIcon = {
+                if (quotaEntry.isNotEmpty()) {
+                    IconButton(
+                        onClick = { onQuotaEntryChange("") },
+                        enabled = !isLoading,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "پاک کردن",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { 
+                    // Handle done action if needed
+                }
+            ),
+            singleLine = true,
+            isError = isError,
+            enabled = !isLoading,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = if (isError) MaterialTheme.colorScheme.error 
+                                   else MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = if (isError) MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                                     else MaterialTheme.colorScheme.outline,
+                focusedLabelColor = if (isError) MaterialTheme.colorScheme.error 
+                                  else MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                errorBorderColor = MaterialTheme.colorScheme.error,
+                errorLabelColor = MaterialTheme.colorScheme.error,
+                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                disabledLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+            ),
+            shape = RoundedCornerShape(16.dp)
+        )
+
+        // Character Counter
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Helper Text
+            Text(
+                text = "کوتاژ باید 4 رقم باشد",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+            
+            // Character Counter
+            Text(
+                text = "${quotaEntry.length}/4",
+                style = MaterialTheme.typography.bodySmall,
+                color = when {
+                    quotaEntry.length == 4 -> MaterialTheme.colorScheme.primary
+                    quotaEntry.length > 4 -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                }
+            )
+        }
+
+        // Enhanced Error Display - بهینه‌سازی شده
+        AnimatedVisibility(
+            visible = isError && errorMessage.isNotEmpty(),
+            enter = fadeIn(
+                animationSpec = tween(
+                    durationMillis = 150, // سریع‌تر
+                    easing = FastOutSlowInEasing
+                )
+            ) + expandVertically(
+                animationSpec = tween(
+                    durationMillis = 150,
+                    easing = FastOutSlowInEasing
+                )
+            ),
+            exit = fadeOut(
+                animationSpec = tween(
+                    durationMillis = 100, // خروج سریع‌تر
+                    easing = LinearEasing
+                )
+            ) + shrinkVertically(
+                animationSpec = tween(
+                    durationMillis = 100,
+                    easing = LinearEasing
+                )
+            )
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+                ),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(
+                    1.dp, 
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    
+                    Text(
+                        text = errorMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+
+        // Progress Indicator for Loading State - بهینه‌سازی شده
+        AnimatedVisibility(
+            visible = isLoading,
+            enter = fadeIn(
+                animationSpec = tween(
+                    durationMillis = 150,
+                    easing = FastOutSlowInEasing
+                )
+            ) + expandVertically(
+                animationSpec = tween(
+                    durationMillis = 150,
+                    easing = FastOutSlowInEasing
+                )
+            ),
+            exit = fadeOut(
+                animationSpec = tween(
+                    durationMillis = 100,
+                    easing = LinearEasing
+                )
+            ) + shrinkVertically(
+                animationSpec = tween(
+                    durationMillis = 100,
+                    easing = LinearEasing
+                )
+            )
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    Text(
+                        text = "در حال بررسی کوتاژ...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
         }
@@ -1914,6 +2828,7 @@ class EnhancedNumberAnalyzer(
 fun ErrorHandlingCargoInfoRow(
     info: CargoInfo,
     onRowClick: (CargoInfo) -> Unit,
+    duplicateTrackingNumbers: List<String> = emptyList() // پارامتر جدید برای حواله‌های تکراری
 ) {
     var hasError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
@@ -1929,6 +2844,7 @@ fun ErrorHandlingCargoInfoRow(
         CargoInfoRow(
             info = info,
             onRowClick = onRowClick,
+            duplicateTrackingNumbers = duplicateTrackingNumbers, // انتقال پارامتر به کامپوننت فرزند
             onError = { error ->
                 hasError = true
                 errorMessage = "Error rendering item ${info.trackingNumber}: $error"
@@ -1944,6 +2860,7 @@ fun ExpandableSection(
     initiallyExpanded: Boolean = false,
     searchQuery: String = "",
     onItemClick: (CargoInfo) -> Unit,
+    duplicateTrackingNumbers: List<String> = emptyList() // پارامتر جدید برای حواله‌های تکراری
 ) {
     var isExpanded by remember { mutableStateOf(initiallyExpanded) }
     
@@ -2069,7 +2986,8 @@ fun ExpandableSection(
                     items(items) { info ->
                         ErrorHandlingCargoInfoRow(
                             info = info,
-                            onRowClick = onItemClick
+                            onRowClick = onItemClick,
+                            duplicateTrackingNumbers = duplicateTrackingNumbers // انتقال پارامتر به کامپوننت فرزند
                         )
                     }
                 }
@@ -2838,26 +3756,6 @@ private fun MinimalHeader(
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // آیکون کشتی
-            Surface3(
-                shape = CircleShape,
-                color = MaterialTheme3.colorScheme.primaryContainer,
-                modifier = Modifier.size(36.dp)
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DirectionsBoat,
-                        contentDescription = null,
-                        tint = MaterialTheme3.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(10.dp))
 
             // اطلاعات اصلی
             Column(modifier = Modifier.weight(1f)) {
@@ -2883,7 +3781,7 @@ private fun MinimalHeader(
                             style = MaterialTheme3.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme3.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(2.dp)
                         )
                     }
                 }
@@ -3225,6 +4123,7 @@ fun CargoInfoRow(
     info: CargoInfo,
     onRowClick: (CargoInfo) -> Unit,
     onError: (String) -> Unit,
+    duplicateTrackingNumbers: List<String> = emptyList() // پارامتر جدید برای حواله‌های تکراری
 ) {
     val formattedNetWeight = remember(info.netWeight) {
         try {
@@ -3255,6 +4154,9 @@ fun CargoInfoRow(
         } else ""
     }
 
+    // بررسی اینکه آیا این حواله تکراری است یا نه
+    val isDuplicate = duplicateTrackingNumbers.contains(info.trackingNumber)
+
     Surface3(
         modifier = Modifier
             .fillMaxWidth()
@@ -3263,12 +4165,13 @@ fun CargoInfoRow(
         shape = RoundedCornerShape(8.dp),
         color = MaterialTheme3.colorScheme.surface,
         border = BorderStroke(
-            width = 1.dp,
+            width = if (isDuplicate) 2.dp else 1.dp, // ضخامت بیشتر برای حواله‌های تکراری
             color = when {
+                isDuplicate -> MaterialTheme3.colorScheme.tertiary // رنگ خاص برای حواله‌های تکراری
                 info.status == "خروج" -> MaterialTheme3.colorScheme.primary
                 info.confirm == "تائید شده" -> MaterialTheme3.colorScheme.secondary
                 else -> MaterialTheme3.colorScheme.error
-            }.copy(alpha = 0.3f)
+            }.copy(alpha = if (isDuplicate) 0.8f else 0.3f)
         )
     ) {
         Column(
@@ -3290,6 +4193,7 @@ fun CargoInfoRow(
                     Surface3(
                         shape = CircleShape,
                         color = when {
+                            isDuplicate -> MaterialTheme3.colorScheme.tertiaryContainer // رنگ خاص برای حواله‌های تکراری
                             info.status == "خروج" -> MaterialTheme3.colorScheme.primaryContainer
                             info.confirm == "تائید شده" -> MaterialTheme3.colorScheme.secondaryContainer
                             else -> MaterialTheme3.colorScheme.errorContainer
@@ -3302,12 +4206,14 @@ fun CargoInfoRow(
                         ) {
                             Icon(
                                 imageVector = when {
+                                    isDuplicate -> Icons.Default.ContentCopy // آیکون خاص برای حواله‌های تکراری
                                     info.status == "خروج" -> Icons.Default.LocalShipping
                                     info.confirm == "تائید شده" -> Icons.Default.Check
                                     else -> Icons.Default.Schedule
                                 },
                                 contentDescription = null,
                                 tint = when {
+                                    isDuplicate -> MaterialTheme3.colorScheme.onTertiaryContainer
                                     info.status == "خروج" -> MaterialTheme3.colorScheme.onPrimaryContainer
                                     info.confirm == "تائید شده" -> MaterialTheme3.colorScheme.onSecondaryContainer
                                     else -> MaterialTheme3.colorScheme.onErrorContainer
