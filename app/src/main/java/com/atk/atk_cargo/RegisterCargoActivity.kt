@@ -3127,6 +3127,11 @@ fun FormSection(
         trackingNumber.isNotBlank() && cargoInfoList.any { it.trackingNumber == trackingNumber }
     }
 
+    // بررسی اعتبار شماره حواله (فقط اعداد)
+    val isTrackingNumberValid = remember(trackingNumber) {
+        trackingNumber.isEmpty() || trackingNumber.all { it.isDigit() }
+    }
+
     // دریافت اطلاعات حواله فعلی
     val currentCargo = remember(trackingNumber, cargoInfoList) {
         if (isDuplicate) cargoInfoList.find { it.trackingNumber == trackingNumber } else null
@@ -3152,11 +3157,13 @@ fun FormSection(
         shortageWeight,
         excessWeight,
         canEditWeights,
-        isSubmitting
+        isSubmitting,
+        isTrackingNumberValid
     ) {
         when {
-            isSubmitting -> false // غیرفعال کردن دکمه در حین ثبت
+            isSubmitting -> false
             trackingNumber.isBlank() -> false
+            !isTrackingNumberValid -> false
             !isDuplicate -> numberOfPeople.isNotBlank() && numberOfPeople.toIntOrNull() != null && numberOfPeople.toIntOrNull()!! > 0
             !canEditWeights -> false
             else -> {
@@ -3216,12 +3223,17 @@ fun FormSection(
             ) {
                 OutlinedTextField(
                     value = trackingNumber,
-                    onValueChange = onTrackingNumberChange,
+                    onValueChange = { newValue ->
+                        // فقط اجازه ورود اعداد
+                        if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                            onTrackingNumberChange(newValue)
+                        }
+                    },
                     label = { Text3("شماره حواله") },
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
-                    isError = isDuplicate && !canEditWeights,
+                    isError = (isDuplicate && !canEditWeights) || !isTrackingNumberValid,
                             leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.ConfirmationNumber,
@@ -3232,10 +3244,12 @@ fun FormSection(
                     },
                     shape = RoundedCornerShape(8.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme3.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme3.colorScheme.outline,
-                        focusedLabelColor = MaterialTheme3.colorScheme.primary,
-                        cursorColor = MaterialTheme3.colorScheme.primary
+                        focusedBorderColor = if (isTrackingNumberValid) MaterialTheme3.colorScheme.primary else MaterialTheme3.colorScheme.error,
+                        unfocusedBorderColor = if (isTrackingNumberValid) MaterialTheme3.colorScheme.outline else MaterialTheme3.colorScheme.error,
+                        focusedLabelColor = if (isTrackingNumberValid) MaterialTheme3.colorScheme.primary else MaterialTheme3.colorScheme.error,
+                        cursorColor = MaterialTheme3.colorScheme.primary,
+                        errorBorderColor = MaterialTheme3.colorScheme.error,
+                        errorLabelColor = MaterialTheme3.colorScheme.error
                     )
                 )
                 
@@ -3269,6 +3283,39 @@ fun FormSection(
                         disabledTextColor = MaterialTheme3.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 )
+            }
+
+            // نمایش پیام خطای اعتبارسنجی شماره حواله
+            AnimatedVisibility(
+                visible = !isTrackingNumberValid && trackingNumber.isNotBlank(),
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "فیلد شماره حواله فقط می‌تواند شامل اعداد باشد. لطفاً مقدار وارد شده را اصلاح نمایید.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
             }
 
             // نمایش پیام وضعیت با انیمیشن
@@ -3699,7 +3746,7 @@ fun ShipInfoSection(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             // هدر مینیمال
-            MinimalHeader(
+            TopHeader(
                 onToggle = onToggleVisibility,
                 loadedPercentage = loadedPercentage.toFloat(),
                 shipName = shipInfo.shipName,
@@ -3727,7 +3774,7 @@ fun ShipInfoSection(
 }
 
 @Composable
-private fun MinimalHeader(
+private fun TopHeader(
     onToggle: () -> Unit,
     loadedPercentage: Float,
     shipName: String,
@@ -3781,7 +3828,7 @@ private fun MinimalHeader(
                             style = MaterialTheme3.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme3.colorScheme.primary,
-                            modifier = Modifier.padding(2.dp)
+                            modifier = Modifier.padding(4.dp)
                         )
                     }
                 }
