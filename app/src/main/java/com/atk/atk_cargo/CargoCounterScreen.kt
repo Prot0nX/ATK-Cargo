@@ -11,7 +11,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import com.atk.atk_cargo.AnimationManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -96,7 +95,6 @@ import com.atk.atk_cargo.api.ActiveShipInfo
 import com.atk.atk_cargo.api.ColorSelector
 import com.atk.atk_cargo.api.MessageType
 import com.atk.atk_cargo.api.RetrofitClient
-import com.atk.atk_cargo.api.ShiftInfo
 import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.CoroutineScope
@@ -162,9 +160,7 @@ fun CargoCounterScreen(navController: NavController) {
     
     val filteredShips = activeShips.filter { selectedShipNames.contains(it.shipName) }
     val groupedShips = filteredShips.groupBy { it.shipName }
-    
-    var currentShiftInfo by remember { mutableStateOf<ShiftInfo?>(null) }
-    
+
     // دریافت وضعیت باز/بسته بودن کشتی از ViewModel
     val expandedShipName by viewModel.expandedShipName.collectAsState(initial = null)
     
@@ -206,7 +202,6 @@ fun CargoCounterScreen(navController: NavController) {
                 if (response.isSuccessful) {
                     val realTimeDataResponse = response.body()
                     if (realTimeDataResponse != null) {
-                        currentShiftInfo = realTimeDataResponse.shiftInfo
                         showUpdateMessage("اطلاعات با موفقیت بروزرسانی شد", MessageType.SUCCESS)
                         // بروزرسانی اطلاعات کشتی‌ها با استفاده از داده‌های دریافتی
                         if (realTimeDataResponse.data.isNotEmpty()) {
@@ -233,7 +228,7 @@ fun CargoCounterScreen(navController: NavController) {
                 } else {
                     showUpdateMessage("خطا در دریافت اطلاعات: ${response.code()}", MessageType.ERROR)
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 showUpdateMessage("خطا در ارتباط با سرور", MessageType.ERROR)
             } finally {
                 isRefreshing = false
@@ -250,7 +245,7 @@ fun CargoCounterScreen(navController: NavController) {
                     updateShipColors(ships)
                     updateStatistics()
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 showUpdateMessage("خطا در بروزرسانی داده‌ها", MessageType.ERROR)
                 isRefreshing = false
             }
