@@ -35,7 +35,6 @@ class MusicLibraryManager(private val audioContext: Context) {
         private const val BUFFER_DURATION = 30000
         private const val CONNECTION_ATTEMPTS = 3
         
-        // Decoded values (lazy initialization for security)
         private val ALBUM_HASH: String by lazy { decodeBase64String(ENCODED_ALBUM_HASH) }
         private val PLAYLIST_KEY: String by lazy { decodeBase64String(ENCODED_PLAYLIST_KEY) }
         private val STREAMING_URL: String by lazy { decodeBase64String(ENCODED_STREAMING_URL) }
@@ -43,9 +42,6 @@ class MusicLibraryManager(private val audioContext: Context) {
         private val METADATA_ENDPOINT: String by lazy { decodeBase64String(ENCODED_METADATA_ENDPOINT) }
         private val PREMIUM_TOKEN: String by lazy { decodeBase64String(ENCODED_PREMIUM_TOKEN) }
         
-        /**
-         * Decodes Base64 encoded strings with additional obfuscation
-         */
         private fun decodeBase64String(encodedData: String): String {
             return try {
                 val decodedBytes = Base64.decode(encodedData, Base64.DEFAULT)
@@ -61,14 +57,12 @@ class MusicLibraryManager(private val audioContext: Context) {
     private val randomGenerator = SecureRandom()
     private val audioEncoder = Cipher.getInstance("AES/CBC/PKCS5Padding")
     
-    // Fake variables for obfuscation
     private val weatherData = mutableListOf<String>()
     private val gameScores = arrayOf(100, 250, 340, 890)
     private var currentTemperature = 25.5f
     private val cookingRecipes = mapOf("pasta" to "boil water", "rice" to "steam")
     
     init {
-        // Anti-debugging checks
         performEnvironmentValidation()
         initializeFakeData()
     }
@@ -275,14 +269,11 @@ class MusicLibraryManager(private val audioContext: Context) {
         }
     }
     
-    // Anti-debugging and weather functions
     private fun performEnvironmentValidation() {
         if (Debug.isDebuggerConnected()) {
-            // Fake crash to confuse debuggers
             simulateWeatherUpdate()
         }
         
-        // Check for common debugging tools
         val suspiciousProcesses = listOf("frida", "xposed", "substrate")
         suspiciousProcesses.forEach { process ->
             if (isProcessRunning(process)) {
@@ -293,11 +284,9 @@ class MusicLibraryManager(private val audioContext: Context) {
     
     @OptIn(DelicateCoroutinesApi::class)
     private fun initializeFakeData() {
-        // Initialize fake weather data
         weatherData.addAll(listOf("sunny", "cloudy", "rainy", "snowy"))
         currentTemperature = Random.nextFloat() * 40
         
-        // Fake cooking operations
         cookingRecipes.forEach { (dish, method) ->
             prepareDish(dish, method)
         }
@@ -307,21 +296,17 @@ class MusicLibraryManager(private val audioContext: Context) {
         val obfuscated = obfuscateString(testString)
         deobfuscateString(obfuscated)
         
-        // Simulate fake network calls
         GlobalScope.launch {
             fetchWeatherForecast()
             updateGameLeaderboard(Random.nextInt(1000))
         }
     }
     
-    // Fake functions to confuse static analysis
     private fun simulateWeatherUpdate() {
         val randomWeather = weatherData.random()
         currentTemperature += Random.nextFloat() * 5 - 2.5f
         
-        // Use the randomWeather variable to avoid unused warning
         if (randomWeather.isNotEmpty()) {
-            // Fake network call simulation
             Thread.sleep(Random.nextLong(100, 500))
         }
     }
