@@ -2725,7 +2725,7 @@ class ReportsRepository(private val apiService: ApiService) {
                 throw Exception("Failed to fetch cargo info. Response code: ${response.code()}, Error body: $errorBody")
             }
         } catch (e: Exception) {
-            Log.e("ReportsRepository", "Exception in getCargoInfo: ${e.message}", e)
+            Log.e("ReportsRepository_Log", "Exception in getCargoInfo: ${e.message}", e)
             throw e
         }
     }
@@ -2748,24 +2748,30 @@ class ReportsRepository(private val apiService: ApiService) {
             if (response.isSuccessful) {
                 return response.body()?.initialInfo
             } else {
-                Log.e("ReportsRepository", "Error fetching initial info: ${response.code()}")
+                Log.e("ReportsRepository_Log", "Error fetching initial info: ${response.code()}")
                 return null
             }
         } catch (e: Exception) {
-            Log.e("ReportsRepository", "Exception in getInitialInfo: ${e.message}", e)
+            Log.e("ReportsRepository_Log", "Exception in getInitialInfo: ${e.message}", e)
             return null
         }
     }
 
     suspend fun getShipsList(): ShipsData = withContext(Dispatchers.IO) {
         try {
+            Log.d("ReportsRepository_Log", "درخواست دریافت لیست کشتی‌ها از سرور - URL: app_api_2.php")
             val response = apiService.getShipsList()
             if (response.isSuccessful) {
-                response.body()?.data ?: ShipsData(emptyList(), emptyList())
+                Log.d("ReportsRepository_Log", "دریافت موفق لیست کشتی‌ها - کد پاسخ: ${response.code()}")
+                val shipsData = response.body()?.data ?: ShipsData(emptyList(), emptyList())
+                Log.d("ReportsRepository_Log", "تعداد کشتی‌های فعال: ${shipsData.activeShips.size}, تعداد کشتی‌های غیرفعال: ${shipsData.inactiveShips.size}")
+                shipsData
             } else {
+                Log.e("ReportsRepository_Log", "خطا در دریافت لیست کشتی‌ها - کد خطا: ${response.code()}, پیام خطا: ${response.errorBody()?.string()}")
                 ShipsData(emptyList(), emptyList())
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            Log.e("ReportsRepository_Log", "استثنا در دریافت لیست کشتی‌ها: ${e.message}", e)
             ShipsData(emptyList(), emptyList())
         }
     }
@@ -2846,11 +2852,11 @@ class ReportsRepository(private val apiService: ApiService) {
                 quotas
             } else {
                 val errorBody = response.errorBody()?.string()
-                Log.e("ReportsRepository", "Server error ${response.code()}: $errorBody")
+                Log.e("ReportsRepository_Log", "Server error ${response.code()}: $errorBody")
                 throw Exception("Server error: ${response.code()} - $errorBody")
             }
         } catch (e: Exception) {
-            Log.e("ReportsRepository", "Exception in getFilteredQuotas: ${e.message}", e)
+            Log.e("ReportsRepository_Log", "Exception in getFilteredQuotas: ${e.message}", e)
             throw Exception("Error fetching filtered quotas: ${e.message}")
         }
     }
