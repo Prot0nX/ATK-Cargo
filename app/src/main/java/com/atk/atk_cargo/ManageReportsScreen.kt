@@ -7,6 +7,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -527,11 +528,15 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
 	val defaultColor = MaterialTheme.colorScheme.primary
 	val currentShipSortingMode by viewModel.shipSortingMode.collectAsState()
 	
+	// لاگ برای نمایش وضعیت داده‌های دریافتی از سرور
+	Log.d("ShipsList_Log", "شروع بارگذاری لیست کشتی‌ها - تعداد کشتی‌های فعال: ${shipsData.activeShips.size}, تعداد کشتی‌های غیرفعال: ${shipsData.inactiveShips.size}")
+	
 	val filteredActiveShips by remember(shipsData.activeShips, searchTerm, currentShipSortingMode) {
 		derivedStateOf {
 			val filtered = shipsData.activeShips.filter {
 				it.name.contains(searchTerm, ignoreCase = true)
 			}
+			Log.d("ShipsList_Log", "کشتی‌های فعال فیلتر شده: ${filtered.size} - با عبارت جستجو: '$searchTerm'")
 			sortShips(filtered, currentShipSortingMode)
 		}
 	}
@@ -540,12 +545,19 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
 			val filtered = shipsData.inactiveShips.filter {
 				it.name.contains(searchTerm, ignoreCase = true)
 			}
+			Log.d("ShipsList_Log", "کشتی‌های غیرفعال فیلتر شده: ${filtered.size} - با عبارت جستجو: '$searchTerm'")
 			sortShips(filtered, currentShipSortingMode)
 		}
 	}
 
 	LaunchedEffect(Unit) {
-		viewModel.loadShips()
+		Log.d("ShipsList_Log", "درخواست بارگذاری لیست کشتی‌ها از سرور با استفاده از app_api_2.php")
+		try {
+			viewModel.loadShips()
+			Log.d("ShipsList_Log", "درخواست بارگذاری لیست کشتی‌ها ارسال شد")
+		} catch (e: Exception) {
+			Log.e("ShipsList_Log", "خطا در بارگذاری لیست کشتی‌ها: ${e.message}", e)
+		}
 	}
 
 	Box(modifier = Modifier.fillMaxSize()) {

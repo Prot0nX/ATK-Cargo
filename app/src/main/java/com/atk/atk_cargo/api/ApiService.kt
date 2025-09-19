@@ -23,7 +23,7 @@ interface ApiService {
         @Query("scaleReceiptNumber") scaleReceiptNumber: String
     ): Response<ScaleReceiptCheckResponse>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun checkQuotaExistenceCargo(
         @Query("action") action: String = "checkQuotaExistenceCargo",
         @Query("quotaNumber") quotaNumber: String,
@@ -57,23 +57,26 @@ interface ApiService {
     @POST("check_Auth.php")
     suspend fun checkLogin(@Body loginRequest: LoginRequest): Response<LoginResponse>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun getShipsList(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "getShipsList",
         @Query("startDateTime") startDateTime: String? = null,
         @Query("endDateTime") endDateTime: String? = null
     ): Response<ApiResponse2<ShipsData>>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun getShipDetails(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "getShipDetails",
         @Query("shipName") shipName: String,
         @Query("startDateTime") startDateTime: String? = null,
         @Query("endDateTime") endDateTime: String? = null
     ): Response<Ship>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun getWarehouseDetails(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "getWarehouseDetails",
         @Query("shipName") shipName: String,
         @Query("warehouseName") warehouseName: String,
@@ -81,28 +84,32 @@ interface ApiService {
         @Query("endDateTime") endDateTime: String? = null
     ): Response<Warehouse>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun getQuotaDetails(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "getQuotaDetails",
         @Query("quotaNumber") quotaNumber: String
     ): Response<QuotaDetails>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun getShipQuotas(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "getQuotasList",
         @Query("shipName") shipName: String
     ): Response<List<Quota>>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun getFilteredQuotas(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "getFilteredQuotas",
         @Query("shipName") shipName: String,
         @Query("startDateTime") startDateTime: String,
         @Query("endDateTime") endDateTime: String
     ): Response<List<Quota>>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun getFilteredSummary(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String,
         @Query("shipName") shipName: String,
         @Query("warehouseName") warehouseName: String,
@@ -111,8 +118,9 @@ interface ApiService {
         @Query("endDateTime") endDateTime: String
     ): Response<FilteredSummaryResponse>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun editQuota(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "editQuota",
         @Query("oldQuotaNumber") oldQuotaNumber: String,
         @Query("newQuotaNumber") newQuotaNumber: String,
@@ -123,29 +131,33 @@ interface ApiService {
         @Query("totalTonnage") totalTonnage: Float
     ): Response<SuccessResponse>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun updateQuotaPercentage(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "updateQuotaPercentage",
         @Query("quotaNumber") quotaNumber: String,
         @Query("percentage") percentage: Double,
         @Query("isEnabled") isEnabled: Int
     ): Response<SuccessResponse>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun toggleQuotaStatus(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "toggleQuotaStatus",
         @Query("quotaNumber") quotaNumber: String
     ): Response<SuccessResponse>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun updateQuotaPercentageRestriction(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "updateQuotaPercentageRestriction",
         @Query("quotaNumber") quotaNumber: String,
         @Query("isEnabled") isEnabled: Int
     ): Response<SuccessResponse>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun deleteQuota(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "deleteQuota",
         @Query("quotaNumber") quotaNumber: String,
         @Query("shipName") shipName: String,
@@ -154,8 +166,9 @@ interface ApiService {
         @Query("cargoType") cargoType: String
     ): Response<SuccessResponse>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun checkQuotaStatus(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "checkQuotaStatus",
         @Query("quotaNumber") quotaNumber: String,
         @Query("shipName") shipName: String? = null,
@@ -182,8 +195,9 @@ interface ApiService {
         @Query("tracking") trackingNumber: String
     ): Response<CargoSearchResponse>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun getLoadableTonnage(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "getLoadableTonnage",
         @Query("quotaNumber") quotaNumber: String,
         @Query("shippingCompany") shippingCompany: String,
@@ -215,14 +229,16 @@ interface ApiService {
     @POST("confirm_cargo.php")
     suspend fun confirmCargo(@Body request: Map<String, String>): Response<Map<String, JsonElement>>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun getGroupedQuotas(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "getGroupedQuotas",
         @Query("shipName") shipName: String
     ): Response<Map<String, Map<String, List<QuotaItem>>>>
 
-    @GET("app_api.php")
+    @GET("protected_proxy.php")
     suspend fun updateTemporaryTonnage(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "updateTemporaryTonnage",
         @Query("quotaNumber") quotaNumber: String,
         @Query("enabled") enabled: Int,
