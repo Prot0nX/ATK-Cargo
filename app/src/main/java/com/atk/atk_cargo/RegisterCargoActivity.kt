@@ -208,7 +208,6 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
-import com.patrykandpatrick.vico.core.extension.sumOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -1044,7 +1043,7 @@ fun RegisterCargoScreen(
                     showDialog = true,
                     onDismiss = { showExitStatusDialog = false },
                     exitVouchersCount = exitedCargos.size,
-                    totalNetWeight = exitedCargos.sumOf { it.netWeight.toFloatOrNull() ?: 0f }
+                    totalNetWeight = exitedCargos.sumOf { (it.netWeight.toFloatOrNull() ?: 0f).toDouble() }.toFloat()
                 )
             }
         }
