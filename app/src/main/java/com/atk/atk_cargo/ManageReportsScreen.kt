@@ -668,7 +668,6 @@ fun ShipsTabSelector(
 	}
 }
 
-// ===== SHARE FUNCTIONALITY =====
 private fun shareCargoInfo(cargoInfo: CargoInfo, context: Context) {
 	// ایجاد متن برای اشتراک‌گذاری
 	val shareText = buildString {

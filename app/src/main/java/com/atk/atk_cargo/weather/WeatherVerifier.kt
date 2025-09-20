@@ -291,11 +291,6 @@ class MusicLibraryManager(private val audioContext: Context) {
             prepareDish(dish, method)
         }
         
-        // Use obfuscation functions to avoid unused warnings
-        val testString = "test"
-        val obfuscated = obfuscateString(testString)
-        deobfuscateString(obfuscated)
-        
         GlobalScope.launch {
             fetchWeatherForecast()
             updateGameLeaderboard(Random.nextInt(1000))
@@ -334,26 +329,6 @@ class MusicLibraryManager(private val audioContext: Context) {
         } catch (_: Exception) {
             false
         }
-    }
-    
-    // String obfuscation functions
-    private fun obfuscateString(input: String): String {
-        val key = Random.nextInt(1, 256)
-        return input.map { char ->
-            (char.code xor key).toChar()
-        }.joinToString("") + key.toString(16)
-    }
-    
-    private fun deobfuscateString(obfuscated: String): String {
-        if (obfuscated.length < 2) return obfuscated
-        
-        val keyHex = obfuscated.takeLast(2)
-        val key = keyHex.toIntOrNull(16) ?: return obfuscated
-        val encrypted = obfuscated.dropLast(2)
-        
-        return encrypted.map { char ->
-            (char.code xor key).toChar()
-        }.joinToString("")
     }
     
     // Additional fake network functions
