@@ -25,6 +25,7 @@ interface ApiService {
 
     @GET("protected_proxy.php")
     suspend fun checkQuotaExistenceCargo(
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "checkQuotaExistenceCargo",
         @Query("quotaNumber") quotaNumber: String,
         @Query("shipName") shipName: String
@@ -110,7 +111,7 @@ interface ApiService {
     @GET("protected_proxy.php")
     suspend fun getFilteredSummary(
         @Query("target") target: String = "app_api.php",
-        @Query("action") action: String,
+        @Query("action") action: String = "getFilteredSummary",
         @Query("shipName") shipName: String,
         @Query("warehouseName") warehouseName: String,
         @Query("selectedQuota") selectedQuota: String,

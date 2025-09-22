@@ -668,7 +668,6 @@ fun ShipsTabSelector(
 	}
 }
 
-// ===== SHARE FUNCTIONALITY =====
 private fun shareCargoInfo(cargoInfo: CargoInfo, context: Context) {
 	// ایجاد متن برای اشتراک‌گذاری
 	val shareText = buildString {
@@ -1357,11 +1356,6 @@ fun ShipDetails(
 		)
 	}
 }
-
-data class TabItem(
-	val icon: ImageVector,
-	val title: String
-)
 
 @Composable
 fun WarehousesAndQuotasTab(
@@ -4480,7 +4474,7 @@ private fun QuotaCardContent(warning: WarningStatus) {
 				title = "اطلاعات اصلی",
 				items = listOf(
 					"شماره کوتاژ" to warning.quotaNumber,
-					"درصد تنظیم شده" to "${warning.percentage.format(1)}%"
+					"درصد تنظیم شده" to "${warning.percentage.format(2)}%"
 				),
 				modifier = Modifier.weight(1f)
 			)
@@ -4575,7 +4569,6 @@ private fun calculateWarningStatus(quota: Quota): WarningStatus? {
 }
 
 @SuppressLint("ConfigurationScreenWidthHeight")
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun QuotaPercentageDialog(
 	quota: Quota,
@@ -4584,21 +4577,6 @@ fun QuotaPercentageDialog(
 ) {
 	var percentage by remember { mutableDoubleStateOf(quota.percentage ?: 0.0) }
 	var calculatedValues by remember { mutableStateOf(calculateValues(quota.totalTonnage, percentage, quota.remainingTonnage)) }
-	var selectedTab by remember { mutableIntStateOf(0) }
-	val pagerState = rememberPagerState(pageCount = { 2 })
-	val coroutineScope = rememberCoroutineScope()
-
-	// هماهنگ‌سازی selectedTab با تغییرات pagerState
-	LaunchedEffect(pagerState.currentPage) {
-		selectedTab = pagerState.currentPage
-	}
-
-	// هماهنگ‌سازی pagerState با تغییرات selectedTab
-	LaunchedEffect(selectedTab) {
-		coroutineScope.launch {
-			pagerState.animateScrollToPage(selectedTab)
-		}
-	}
 
 	Dialog(
 		onDismissRequest = onDismiss,
@@ -4628,42 +4606,21 @@ fun QuotaPercentageDialog(
 
 				Spacer(modifier = Modifier.height(24.dp))
 
-				// Tabs
-				DialogTabs(
-					selectedTab = selectedTab,
-					onTabSelected = { index ->
-						selectedTab = index
-					}
-				)
-
-				Spacer(modifier = Modifier.height(24.dp))
-
-				Box(
-					modifier = Modifier
-						.fillMaxWidth()
-						.heightIn(min = 300.dp)
-				) {
-					HorizontalPager(
-						state = pagerState
-					) { page ->
-						when (page) {
-							0 -> PercentageInputTab(
-								percentage = percentage,
-								calculatedValues = calculatedValues,
-								onPercentageChange = { newPercentage ->
-									if (newPercentage in 0.0..2.0) {
-										percentage = newPercentage
-										calculatedValues = calculateValues(
-											quota.totalTonnage,
-											newPercentage,
-											quota.remainingTonnage
-										)
-									}
-								}
+				// محتوای تنظیم درصد
+				PercentageInputTab(
+					percentage = percentage,
+					calculatedValues = calculatedValues,
+					onPercentageChange = { newPercentage ->
+						if (newPercentage in 0.0..2.0) {
+							percentage = newPercentage
+							calculatedValues = calculateValues(
+								quota.totalTonnage,
+								newPercentage,
+								quota.remainingTonnage
 							)
 						}
 					}
-				}
+				)
 
 				Spacer(modifier = Modifier.height(24.dp))
 
@@ -4677,7 +4634,7 @@ fun QuotaPercentageDialog(
 								quotaNumber = quota.number,
 								percentage = percentage,
 								calculations = calculatedValues,
-								isEnabled = if (percentage > 0.0) 1 else 0
+								isEnabled = if (percentage > 0.00) 1 else 0
 							)
 							onConfirm(quotaData)
 							onDismiss()
@@ -4779,83 +4736,7 @@ private fun DialogHeader(quota: Quota) {
 	}
 }
 
-@Composable
-private fun DialogTabs(
-	selectedTab: Int,
-	onTabSelected: (Int) -> Unit
-) {
-	Surface(
-		modifier = Modifier
-			.fillMaxWidth()
-			.height(56.dp),
-		shape = RoundedCornerShape(16.dp),
-		color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-		border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-	) {
-		Row(
-			modifier = Modifier
-				.fillMaxSize()
-				.padding(4.dp)
-		) {
-			val tabs = listOf(
-				TabItem(Icons.Default.AddTask, "تنظیم درصد"),
-			)
 
-			tabs.forEachIndexed { index, tab ->
-				val isSelected = selectedTab == index
-				val backgroundColor by animateColorAsState(
-					targetValue = if (isSelected) {
-						MaterialTheme.colorScheme.primary
-					} else {
-						Color.Transparent
-					},
-					label = ""
-				)
-
-				Surface(
-					onClick = { onTabSelected(index) },
-					modifier = Modifier
-						.weight(1f)
-						.fillMaxHeight(),
-					shape = RoundedCornerShape(12.dp),
-					color = backgroundColor
-				) {
-					Row(
-						modifier = Modifier.fillMaxSize(),
-						horizontalArrangement = Arrangement.Center,
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						Icon(
-							imageVector = tab.icon,
-							contentDescription = null,
-							tint = if (isSelected) {
-								MaterialTheme.colorScheme.onPrimary
-							} else {
-								MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-							},
-							modifier = Modifier.size(18.dp)
-						)
-						Spacer(modifier = Modifier.width(8.dp))
-						Text(
-							text = tab.title,
-							style = MaterialTheme.typography.bodyMedium,
-							color = if (isSelected) {
-								MaterialTheme.colorScheme.onPrimary
-							} else {
-								MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-							},
-							fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-						)
-					}
-				}
-
-				if (index < tabs.lastIndex) {
-					Spacer(modifier = Modifier.width(8.dp))
-				}
-			}
-		}
-	}
-}
 
 private fun lerp(start: Int, end: Int, fraction: Float): Int {
 	return (start + (end - start) * fraction).roundToInt()
@@ -4893,8 +4774,8 @@ private fun PercentageInputTab(
 		) {
 			// Decrease Button
 			EnhancedIconButton(
-				onClick = { onPercentageChange(percentage - 0.1) },
-				enabled = percentage > 0.0,
+				onClick = { onPercentageChange(percentage - 0.01) },
+				enabled = percentage > 0.00,
 				icon = Icons.Default.Remove
 			)
 
@@ -4903,8 +4784,8 @@ private fun PercentageInputTab(
 
 			// Increase Button
 			EnhancedIconButton(
-				onClick = { onPercentageChange(percentage + 0.1) },
-				enabled = percentage < 2.0,
+				onClick = { onPercentageChange(percentage + 0.01) },
+				enabled = percentage < 2.00,
 				icon = Icons.Default.Add
 			)
 		}
@@ -4983,7 +4864,7 @@ private fun PercentageDisplay(percentage: Double) {
 			contentAlignment = Alignment.Center
 		) {
 			Text(
-				text = "%.1f%%".format(percentage),
+				text = "%.2f%%".format(percentage),
 				style = MaterialTheme.typography.titleLarge,
 				fontWeight = FontWeight.Bold,
 				color = MaterialTheme.colorScheme.primary
@@ -5001,7 +4882,7 @@ private fun QuickSelectButtons(
 		modifier = Modifier.fillMaxWidth(),
 		horizontalArrangement = Arrangement.spacedBy(8.dp)
 	) {
-		listOf(0.0, 0.7, 1.0, 1.5, 2.0).forEach { value ->
+		listOf(0.00, 0.50, 0.70, 1.00, 1.50).forEach { value ->
 			QuickSelectButton(
 				value = value,
 				isSelected = currentPercentage == value,
@@ -5036,7 +4917,7 @@ private fun RowScope.QuickSelectButton(
 		modifier = Modifier.weight(1f)
 	) {
 		Text(
-			text = "%.1f%%".format(value),
+			text = "%.2f%%".format(value),
 			style = MaterialTheme.typography.bodyMedium,
 			color = if (isSelected) {
 				MaterialTheme.colorScheme.onPrimary
@@ -5094,9 +4975,25 @@ private fun ResultRow(
 			color = MaterialTheme.colorScheme.onSurfaceVariant
 		)
 
+		val weightValue = value.replace(",", "").toFloatOrNull() ?: 0f
+
+		val (displayValue, suffix) = when {
+			weightValue >= 1_000_000 -> {
+				val thousandTons = (weightValue / 1_000).toInt()
+				thousandTons to "هزار تن"
+			}
+			weightValue >= 1_000 -> {
+				val tons = (weightValue).toInt()
+				tons to "تن"
+			}
+			else -> {
+				weightValue.toInt() to "کیلو"
+			}
+		}
+
 		AnimatedNumber(
-			targetValue = value.replace(",", "").toInt(),
-			suffix = "تن"
+			targetValue = displayValue,
+			suffix = suffix
 		)
 	}
 }
@@ -7664,7 +7561,7 @@ fun QuotaCard(
 								remainingTonnage = quota.remainingTonnage
 							)
 							Text(
-								text = "${formatWeightWithDetail(calculatedValues.totalRemainingAfterPercentage.toFloat())} (%.1f%%)".format(quota.percentage ?: 0.0),
+								text = "${formatWeightWithDetail(calculatedValues.totalRemainingAfterPercentage.toFloat())} (%.2f%%)".format(quota.percentage ?: 0.0),
 								style = MaterialTheme.typography.bodySmall,
 								color = accentColor,
 								fontWeight = FontWeight.Medium
