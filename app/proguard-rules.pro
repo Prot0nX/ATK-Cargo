@@ -62,6 +62,19 @@
 # =======================================================================
 # 4. تنظیمات API و ارتباطات شبکه (اولویت متوسط)
 # =======================================================================
+# محافظت خاص از ApiService و کلاس‌های مرتبط
+-keep class com.atk.atk_cargo.api.ApiService { *; }
+-keepnames class com.atk.atk_cargo.api.** { *; }
+-keepattributes Signature, RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+
+# جلوگیری از بهینه‌سازی مضر برای ApiService
+-keepclassmembers class com.atk.atk_cargo.api.ApiService {
+    <methods>;
+}
+-keepclassmembers interface com.atk.atk_cargo.api.ApiService {
+    <methods>;
+}
+
 # Retrofit
 -keep class retrofit2.** { *; }
 -keepclasseswithmembers class * {
