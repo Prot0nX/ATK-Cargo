@@ -36,7 +36,6 @@ import com.itextpdf.text.pdf.ColumnText
 import com.itextpdf.text.pdf.PdfPCell
 import com.itextpdf.text.pdf.PdfPTable
 import com.itextpdf.text.pdf.PdfWriter
-import com.patrykandpatrick.vico.core.extension.sumOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -1515,12 +1514,12 @@ class ReportsViewModel(
                             Triple(
                                 shipName,
                                 quotas.size,
-                                quotas.sumOf { it.last_24h_weight }
+                                quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
                             )
                         }
                         .sortedWith(
                             compareByDescending<Triple<String, Int, Float>> { it.second }
-                            .thenByDescending { it.third }
+                                .thenByDescending { it.third }
                         )
                         .flatMap { (shipName, _, _) ->
                             filtered.filter { it.shipName == shipName }
@@ -1532,7 +1531,7 @@ class ReportsViewModel(
                             Triple(
                                 carrier,
                                 quotas.size,
-                                quotas.sumOf { it.last_24h_weight }
+                                quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
                             )
                         }
                         .sortedWith(
@@ -2645,7 +2644,7 @@ class ReportsViewModel(
 
     fun shareRealTimeLoadingData(loadingData: List<RealTimeLoadingData>, shiftInfo: ShiftInfo?): String {
         // محاسبه کل حواله‌های خروجی
-        val totalExitVouchers = loadingData.sumOf { it.exitVouchers.toFloat() }.toInt()
+        val totalExitVouchers = loadingData.sumOf { it.exitVouchers }
 
         // ساخت متن قابل اشتراک‌گذاری
         val shareText = StringBuilder()
@@ -2679,7 +2678,7 @@ class ReportsViewModel(
 
             shipGroupedData.forEach { (shipName, shipData) ->
                 // محاسبه تعداد حواله‌های خروج شده برای این انبار و کشتی
-                val exitVouchers = shipData.sumOf { it.exitVouchers.toFloat() }.toInt()
+                val exitVouchers = shipData.sumOf { it.exitVouchers }
 
                 // اضافه کردن به لیست ترکیبی فقط اگر حواله خروجی داشته باشد
                 if (exitVouchers > 0) {

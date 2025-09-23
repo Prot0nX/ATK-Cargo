@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.compose.compiler)
     id("kotlin-parcelize")
 }
 
@@ -20,14 +21,15 @@ android {
             useSupportLibrary = true
         }
 
-        // تنظیمات بهینه‌سازی اضافی برای کاهش حجم
-        resourceConfigurations += setOf("en", "fa")
-
         // تنظیمات ProGuard
         proguardFiles(
             getDefaultProguardFile("proguard-android-optimize.txt"),
             "proguard-rules.pro"
         )
+    }
+
+    androidResources {
+        localeFilters += setOf("en", "fa")
     }
 
     externalNativeBuild {
@@ -162,13 +164,15 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
     
-    kotlinOptions {
-        jvmTarget = "11"
-        freeCompilerArgs += listOf(
-            "-opt-in=kotlin.RequiresOptIn",
-            "-Xjvm-default=all",
-            "-Xopt-in=androidx.compose.material3.ExperimentalMaterial3Api"
-        )
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+            freeCompilerArgs.addAll(
+                "-opt-in=kotlin.RequiresOptIn",
+                "-Xjvm-default=all",
+                "-Xopt-in=androidx.compose.material3.ExperimentalMaterial3Api"
+            )
+        }
     }
     
     buildFeatures {
@@ -185,8 +189,10 @@ android {
         prefab = false
     }
     
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.15"
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
     
     lint {
