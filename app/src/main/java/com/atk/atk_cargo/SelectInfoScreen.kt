@@ -118,19 +118,44 @@ import com.atk.atk_cargo.api.MessageType
 import com.atk.atk_cargo.api.RealTimeLoadingData
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.ShiftInfo
+import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Composable
 fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewModel) {
+    val context = LocalContext.current
+    val userPreferencesManager = remember { UserPreferencesManager(context) }
+    
+    // بررسی وضعیت ورود
+    val isLoggedIn by userPreferencesManager.isLoggedIn.collectAsState(initial = false)
+    
+    LaunchedEffect(Unit) {
+        try {
+            val loginStatus = userPreferencesManager.isLoggedIn.first()
+            if (!loginStatus) {
+                navController.navigate("main") {
+                    popUpTo(0) { inclusive = true }
+                }
+                return@LaunchedEffect
+            }
+        } catch (e: Exception) {
+            Log.e("SelectInfoScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
+            navController.navigate("main") {
+                popUpTo(0) { inclusive = true }
+            }
+            return@LaunchedEffect
+        }
+    }
+    
     var isRefreshing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var activeShips by remember { mutableStateOf<List<ActiveShipInfo>>(emptyList()) }
-    val context = LocalContext.current
     var currentShiftInfo by remember { mutableStateOf<ShiftInfo?>(null) }
     var isChecking by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }

@@ -3,6 +3,7 @@ package com.atk.atk_cargo.api
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -91,10 +92,23 @@ class UserPreferencesManager(private val context: Context) {
             preferences[DEVICE_SPECS_KEY] ?: ""
         }
 
+    val isLoggedIn = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[IS_LOGGED_IN_KEY] ?: false
+        }
+
     suspend fun saveUserCredentials(username: String, userType: String, deviceId: String = "", sessionToken: String = "") {
         dataStore.edit { preferences ->
             preferences[USERNAME_KEY] = username
             preferences[USER_TYPE_KEY] = userType
+            preferences[IS_LOGGED_IN_KEY] = true
             if (deviceId.isNotEmpty()) {
                 preferences[DEVICE_ID_KEY] = deviceId
             }
@@ -113,6 +127,18 @@ class UserPreferencesManager(private val context: Context) {
     suspend fun clearSessionToken() {
         dataStore.edit { preferences ->
             preferences.remove(SESSION_TOKEN_KEY)
+        }
+    }
+
+    suspend fun setLoginState(isLoggedIn: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[IS_LOGGED_IN_KEY] = isLoggedIn
+        }
+    }
+
+    suspend fun logout() {
+        dataStore.edit { preferences ->
+            preferences[IS_LOGGED_IN_KEY] = false
         }
     }
 
@@ -179,7 +205,7 @@ class UserPreferencesManager(private val context: Context) {
             preferences.remove(USERNAME_KEY)
             preferences.remove(USER_TYPE_KEY)
             preferences.remove(SESSION_TOKEN_KEY)
-            // deviceId را حفظ می‌کنیم تا کاربر مجبور نباشد دوباره آن را وارد کند
+            preferences[IS_LOGGED_IN_KEY] = false
         }
 
         // پاکسازی ترجیحات مربوط به بارگیری
@@ -195,5 +221,6 @@ class UserPreferencesManager(private val context: Context) {
         private val HARDWARE_SCORE_KEY = intPreferencesKey("hardware_score")
         private val DEVICE_SPECS_KEY = stringPreferencesKey("device_specs")
         private val SCORE_TIMESTAMP_KEY = longPreferencesKey("score_timestamp")
+        private val IS_LOGGED_IN_KEY = booleanPreferencesKey("is_logged_in")
     }
 }
