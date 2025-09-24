@@ -88,7 +88,7 @@ try {
                 $sessionManager = new SessionManager();
                 $ipAddress = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
                 
-                // بررسی وجود جلسه فعال برای کاربر (بدون در نظر گرفتن device_id)
+                // بررسی وجود جلسه فعال برای کاربر
                 $stmt = $pdo->prepare("
                     SELECT id, session_token, device_id 
                     FROM user_sessions 
@@ -101,20 +101,26 @@ try {
                 $existingSession = $stmt->fetch();
                 
                 if ($existingSession) {
-                    // کاربر قبلاً وارد شده، جلسه قبلی را به‌روزرسانی کن
-                    $sessionManager->updateLastActivity($username, $existingSession['device_id']);
-                    
-                    // دریافت session_token از جلسه موجود
-                    $sessionToken = $existingSession['session_token'];
-                    
-                    http_response_code(200);
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'شما قبلاً وارد شده‌اید. جلسه به‌روزرسانی شد.',
-                        'userType' => $user['userType'],
-                        'session_token' => $sessionToken
-                    ]);
-                    exit;
+                    // بررسی اینکه آیا کاربر از همان دستگاه وارد شده یا نه
+                    if ($existingSession['device_id'] === $deviceId) {
+                        // همان دستگاه است، جلسه قبلی را به‌روزرسانی کن
+                        $sessionManager->updateLastActivity($username, $existingSession['device_id']);
+                        
+                        // دریافت session_token از جلسه موجود
+                        $sessionToken = $existingSession['session_token'];
+                        
+                        http_response_code(200);
+                        echo json_encode([
+                            'success' => true,
+                            'message' => 'شما قبلاً وارد شده‌اید. جلسه به‌روزرسانی شد.',
+                            'userType' => $user['userType'],
+                            'session_token' => $sessionToken
+                        ], JSON_UNESCAPED_UNICODE);
+                        exit;
+                    } else {
+                        // دستگاه متفاوت است، ورود همزمان مجاز نیست
+                        send_json_response(false, "ورود همزمان از چند دستگاه امکان‌پذیر نیست. شما از دستگاه دیگری وارد شده‌اید.", 409);
+                    }
                 }
                 
                 // ایجاد جلسه جدید با ارسال نوع کاربر

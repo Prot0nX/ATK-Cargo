@@ -527,35 +527,53 @@ class MainActivity : ComponentActivity() {
     private fun checkUserSession() {
         lifecycleScope.launch {
             try {
-                val username = userPreferencesManager.username.first()
-                val deviceId = userPreferencesManager.deviceId.first()
-                val sessionToken = userPreferencesManager.sessionToken.first()
-
-                if (username.isNotEmpty()) {
-                    val apiService = RetrofitClient.apiService
-                    val sessionRequest = SessionCheckRequest(username, deviceId, sessionToken.takeIf { it.isNotEmpty() })
-
-                    val response = apiService.checkSession(sessionRequest)
-                    when {
-                        response.isSuccessful && response.body()?.success == true -> {
-                            _isSessionValid.value = true
-
-                            // راه‌اندازی سرویس اعلان‌های بارگیری بعد از تأیید اعتبار جلسه
-                            startLoadingNotificationService()
-                        }
-                        else -> {
-                            _isSessionValid.value = false
-                            userPreferencesManager.clearUserCredentials()
-
-                            // نمایش پیام ساده برای خروج از سیستم
-                            showMessage("لطفاً دوباره وارد شوید!")
-                        }
-                    }
-                } else {
+                // بررسی اعتبار جلسه محلی
+                if (!userPreferencesManager.isValidSession()) {
                     _isSessionValid.value = false
+                    return@launch
                 }
-            } catch (_: Exception) {
-                // در صورت خطا، جلسه را معتبر فرض می‌کنیم تا کاربر بتواند به کار خود ادامه دهد
+
+                val sessionData = userPreferencesManager.getSessionData()
+                if (sessionData == null) {
+                    _isSessionValid.value = false
+                    return@launch
+                }
+
+                val (username, deviceId, sessionToken) = sessionData
+                val apiService = RetrofitClient.apiService
+                val sessionRequest = SessionCheckRequest(username, deviceId, sessionToken)
+
+                val response = apiService.checkSession(sessionRequest)
+                when {
+                    response.isSuccessful && response.body()?.success == true -> {
+                        _isSessionValid.value = true
+                        // راه‌اندازی سرویس اعلان‌های بارگیری بعد از تأیید اعتبار جلسه
+                        startLoadingNotificationService()
+                    }
+                    response.code() == 403 -> {
+                        // ورود همزمان تشخیص داده شده
+                        _isSessionValid.value = false
+                        userPreferencesManager.handleSessionError()
+                        
+                        val errorMessage = response.body()?.message ?: "ورود همزمان از چند دستگاه امکان‌پذیر نیست"
+                        showMessage(errorMessage)
+                    }
+                    response.code() == 401 -> {
+                        // جلسه منقضی شده یا نامعتبر
+                        _isSessionValid.value = false
+                        userPreferencesManager.handleSessionError()
+                        
+                        val errorMessage = response.body()?.message ?: "جلسه شما منقضی شده است. لطفاً مجدداً وارد شوید"
+                        showMessage(errorMessage)
+                    }
+                    else -> {
+                        _isSessionValid.value = false
+                        userPreferencesManager.handleSessionError()
+                        showMessage("خطا در بررسی جلسه. لطفاً دوباره وارد شوید!")
+                    }
+                }
+            } catch (e: Exception) {
+                // در صورت خطای شبکه، جلسه را معتبر فرض می‌کنیم
                 _isSessionValid.value = true
             }
         }

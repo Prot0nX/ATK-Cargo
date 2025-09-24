@@ -117,7 +117,6 @@ import com.atk.atk_cargo.api.MatchingQuota
 import com.atk.atk_cargo.api.MessageType
 import com.atk.atk_cargo.api.RealTimeLoadingData
 import com.atk.atk_cargo.api.RetrofitClient
-import com.atk.atk_cargo.api.ShiftInfo
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
@@ -131,10 +130,7 @@ import kotlinx.coroutines.launch
 fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewModel) {
     val context = LocalContext.current
     val userPreferencesManager = remember { UserPreferencesManager(context) }
-    
-    // بررسی وضعیت ورود
-    val isLoggedIn by userPreferencesManager.isLoggedIn.collectAsState(initial = false)
-    
+
     LaunchedEffect(Unit) {
         try {
             val loginStatus = userPreferencesManager.isLoggedIn.first()
@@ -156,7 +152,6 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
     var isRefreshing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var activeShips by remember { mutableStateOf<List<ActiveShipInfo>>(emptyList()) }
-    var currentShiftInfo by remember { mutableStateOf<ShiftInfo?>(null) }
     var isChecking by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
     var dialogContent by remember { mutableStateOf<@Composable () -> Unit>({}) }
@@ -221,7 +216,6 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                 if (response.isSuccessful) {
                     val realTimeDataResponse = response.body()
                     if (realTimeDataResponse != null) {
-                        currentShiftInfo = realTimeDataResponse.shiftInfo
                         showUpdateMessage("اطلاعات با موفقیت بروزرسانی شد", MessageType.SUCCESS)
                         viewModel.updateInfoValues()
                     } else {
@@ -230,7 +224,7 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                 } else {
                     showUpdateMessage("خطا در دریافت اطلاعات: ${response.code()}", MessageType.ERROR)
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 showUpdateMessage("خطا در ارتباط با سرور", MessageType.ERROR)
             } finally {
                 isRefreshing = false
@@ -247,7 +241,7 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                     updateShipColors(ships)
                     updateStatistics()
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 showUpdateMessage("خطا در بروزرسانی داده‌ها", MessageType.ERROR)
                 isRefreshing = false
             }
@@ -1322,15 +1316,13 @@ private fun GroupedShipList(
     // لود داده‌های لحظه‌ای برای هر کشتی
     val coroutineScope = rememberCoroutineScope()
     var realTimeDataList by remember { mutableStateOf<List<RealTimeLoadingData>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    
+
     // برای به‌روزرسانی داده‌های لحظه‌ای
     var updateCounter by remember { mutableIntStateOf(0) }
     
     LaunchedEffect(updateCounter) {
         coroutineScope.launch {
             try {
-                isLoading = true
                 val response = RetrofitClient.apiService.getRealTimeLoadingData()
                 if (response.isSuccessful) {
                     val responseData = response.body()
@@ -1338,10 +1330,9 @@ private fun GroupedShipList(
                         realTimeDataList = responseData.data
                     }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // خطایی رخ داده، اما ادامه می‌دهیم با داده‌های ActiveShipInfo
             } finally {
-                isLoading = false
             }
         }
     }
@@ -1647,7 +1638,6 @@ fun ActiveQuotasDialog(
     val coroutineScope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(true) }
     var realTimeData by remember { mutableStateOf<List<RealTimeLoadingData>>(emptyList()) }
-    var shiftInfo by remember { mutableStateOf<ShiftInfo?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     
     val convertedShips = remember(realTimeData) {
@@ -1673,7 +1663,6 @@ fun ActiveQuotasDialog(
                 val responseData = response.body()
                 if (responseData != null) {
                     realTimeData = responseData.data
-                    shiftInfo = responseData.shiftInfo
                 } else {
                     errorMessage = "داده‌های دریافتی خالی است"
                 }
@@ -1773,7 +1762,6 @@ fun ActiveQuotasDialog(
                                     val responseData = response.body()
                                     if (responseData != null) {
                                         realTimeData = responseData.data
-                                        shiftInfo = responseData.shiftInfo
                                         errorMessage = null
                                     } else {
                                         errorMessage = "داده‌های دریافتی خالی است"
