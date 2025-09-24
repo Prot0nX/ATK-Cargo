@@ -2,6 +2,7 @@ package com.atk.atk_cargo
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.ColorMatrix
@@ -184,6 +185,7 @@ import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -211,6 +213,7 @@ import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -235,7 +238,8 @@ suspend fun handleQuotaEntry(
     currentInitialInfo: InitialInfo?,
     viewModel: CargoViewModel,
     activity: RegisterCargoActivity,
-    snackbarHostState: SnackbarHostState
+    snackbarHostState: SnackbarHostState,
+    onQuotaChanged: () -> Unit = {}
 ) {
     if (currentInitialInfo == null) {
         snackbarHostState.showSnackbar("اطلاعات اولیه یافت نشد")
@@ -267,6 +271,9 @@ suspend fun handleQuotaEntry(
                 
                 // بروزرسانی اطلاعات در Activity
                 activity.updateInitialInfo(newInitialInfo)
+                
+                // فراخوانی callback برای نمایش دیالوگ TopHeader
+                onQuotaChanged()
                 
                 // نمایش پیام موفقیت
                 snackbarHostState.showSnackbar("کوتاژ با موفقیت تغییر یافت به: ${selectedQuota.quotaNumber}")
@@ -503,6 +510,215 @@ fun DuplicateTrackingNumbersDialog(
     }
 }
 
+@Composable
+fun TopHeaderInfoDialog(
+    loadingQuotaNumber: Int,
+    loadableTonnage: String,
+    tempTonnageStatus: Boolean,
+    tempTonnageAmount: Float?,
+    loadableTrucks18Wheeler: String,
+    loadableTrucks10Wheeler: String,
+    onDismiss: () -> Unit
+) {
+    val dialogEnterTransition = remember {
+        expandIn(
+            expandFrom = Alignment.Center,
+            animationSpec = tween(300, easing = EaseOutBack)
+        ) + fadeIn(animationSpec = tween(300))
+    }
+
+    val dialogExitTransition = remember {
+        shrinkOut(
+            shrinkTowards = Alignment.Center,
+            animationSpec = tween(300, easing = EaseInBack)
+        ) + fadeOut(animationSpec = tween(300))
+    }
+
+    val backgroundColor = MaterialTheme.colorScheme.surface
+    val iconTint = MaterialTheme.colorScheme.primary
+
+    Dialog(
+        onDismissRequest = { /* Prevent dismissal on outside click */ },
+        properties = DialogProperties(
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .wrapContentHeight()
+                .clip(RoundedCornerShape(24.dp)),
+            shape = RoundedCornerShape(24.dp),
+            color = backgroundColor,
+            tonalElevation = 8.dp
+        ) {
+            AnimatedVisibility(
+                visible = true,
+                enter = dialogEnterTransition,
+                exit = dialogExitTransition
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Header with colored circle background
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .background(iconTint.copy(alpha = 0.1f), CircleShape)
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsBoat,
+                            contentDescription = null,
+                            tint = iconTint,
+                            modifier = Modifier.size(68.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Title
+                    Text(
+                        text = "اطلاعات کشتی",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = iconTint
+                    )
+                    
+                    if (loadingQuotaNumber > 0) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "شماره کوتاژ: $loadingQuotaNumber",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Information content with card background
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = iconTint.copy(alpha = 0.05f),
+                        border = BorderStroke(1.dp, iconTint.copy(alpha = 0.2f))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // تناژ مجاز
+                            InfoRow(
+                                icon = Icons.Default.Scale,
+                                label = "تناژ مجاز",
+                                value = if (loadableTonnage.isNotEmpty()) "$loadableTonnage تن" else "نامشخص",
+                                iconColor = iconTint
+                            )
+                            
+                            // تناژ موقت
+                            if (tempTonnageStatus && tempTonnageAmount != null) {
+                                InfoRow(
+                                    icon = Icons.Default.Schedule,
+                                    label = "تناژ موقت",
+                                    value = "${tempTonnageAmount.toInt()} تن",
+                                    iconColor = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                            
+                            HorizontalDivider(
+                                color = iconTint.copy(alpha = 0.2f),
+                                thickness = 1.dp
+                            )
+                            
+                            // کامیون‌های 18 چرخ
+                            InfoRow(
+                                icon = Icons.Default.LocalShipping,
+                                label = "تعداد کامیون مجاز 18 چرخ",
+                                value = if (loadableTrucks18Wheeler.isNotEmpty()) "$loadableTrucks18Wheeler دستگاه" else "0 دستگاه",
+                                iconColor = MaterialTheme.colorScheme.tertiary
+                            )
+                            
+                            // کامیون‌های 10 چرخ
+                            InfoRow(
+                                icon = Icons.Default.LocalShipping,
+                                label = "تعداد کامیون مجاز 10 چرخ",
+                                value = if (loadableTrucks10Wheeler.isNotEmpty()) "$loadableTrucks10Wheeler دستگاه" else "0 دستگاه",
+                                iconColor = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Button with gradient background
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = iconTint,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 4.dp,
+                            pressedElevation = 8.dp
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                    ) {
+                        Text(
+                            "متوجه شدم",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    iconColor: Color
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconColor,
+            modifier = Modifier.size(20.dp)
+        )
+        
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
 class RegisterCargoActivity : ComponentActivity() {
     private lateinit var viewModel: CargoViewModel
     private val barcodeLauncher = registerForActivityResult(ScanContract()) { result ->
@@ -513,6 +729,30 @@ class RegisterCargoActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // بررسی وضعیت ورود
+        val userPreferencesManager = UserPreferencesManager(this)
+        
+        // بررسی وضعیت ورود به صورت ایمن
+        lifecycleScope.launch {
+            try {
+                val isLoggedIn = userPreferencesManager.isLoggedIn.first()
+                if (!isLoggedIn) {
+                    val intent = Intent(this@RegisterCargoActivity, MainActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    finish()
+                    return@launch
+                }
+            } catch (e: Exception) {
+                Log.e("RegisterCargoActivity", "خطا در بررسی وضعیت ورود: ${e.message}")
+                val intent = Intent(this@RegisterCargoActivity, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+                finish()
+                return@launch
+            }
+        }
 
         val initialInfoExtra = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getParcelableExtra("initialInfo", InitialInfo::class.java)
@@ -529,7 +769,6 @@ class RegisterCargoActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         val reportsRepository = ReportsRepository(RetrofitClient.apiService)
-        val userPreferencesManager = UserPreferencesManager(this)
         val viewModelFactory = CargoViewModelFactory(reportsRepository, userPreferencesManager)
         viewModel = ViewModelProvider(this, viewModelFactory)[CargoViewModel::class.java]
 
@@ -662,6 +901,12 @@ fun RegisterCargoScreen(
     val loadableTonnage by viewModel.loadableTonnage.collectAsState()
     val loadableTrucks18Wheeler by viewModel.loadableTrucks18Wheeler.collectAsState()
     val loadableTrucks10Wheeler by viewModel.loadableTrucks10Wheeler.collectAsState()
+    
+    // متغیر برای کنترل نمایش دیالوگ اطلاعات TopHeader
+    var showTopHeaderInfoDialog by remember { mutableStateOf(false) }
+    
+    // متغیر برای تشخیص نوع بروزرسانی (اولیه، تغییر کوتاژ، یا بروزرسانی عادی)
+    var updateType by remember { mutableStateOf<String?>(null) }
     
     // LazyListState برای کنترل اسکرول لیست حواله‌ها
     val listState = rememberLazyListState()
@@ -1135,7 +1380,11 @@ fun RegisterCargoScreen(
             onDismiss = { showQuotaEntryDialog = false },
             onConfirm = { quotaCode ->
                 coroutineScope.launch {
-                    handleQuotaEntry(quotaCode, initialInfo, viewModel, activity, snackbarHostState)
+                    handleQuotaEntry(quotaCode, initialInfo, viewModel, activity, snackbarHostState) {
+                        // نمایش دیالوگ TopHeader پس از تغییر موفقیت‌آمیز کوتاژ
+                        updateType = "quota_change"
+                        showTopHeaderInfoDialog = true
+                    }
                 }
                 showQuotaEntryDialog = false
             },
@@ -1147,6 +1396,30 @@ fun RegisterCargoScreen(
             currentQuota = initialInfo?.loadingQuotaNumber?.toString() ?: "",
             viewModel = viewModel
         )
+    }
+    
+    // دیالوگ نمایش اطلاعات TopHeader در زمان بارگذاری صفحه
+    if (showTopHeaderInfoDialog) {
+        TopHeaderInfoDialog(
+            loadingQuotaNumber = initialInfo?.loadingQuotaNumber ?: 0,
+            loadableTonnage = loadableTonnage,
+            tempTonnageStatus = initialInfo?.tempTonnageStatus ?: false,
+            tempTonnageAmount = initialInfo?.tempTonnageAmount,
+            loadableTrucks18Wheeler = loadableTrucks18Wheeler,
+            loadableTrucks10Wheeler = loadableTrucks10Wheeler,
+            onDismiss = { showTopHeaderInfoDialog = false }
+        )
+    }
+    
+    // نمایش دیالوگ اطلاعات TopHeader در بارگذاری اولیه
+    LaunchedEffect(initialInfo, loadableTonnage) {
+        if (initialInfo != null && loadableTonnage.isNotEmpty() && updateType != "quota_change") {
+            delay(2000) // تاخیر برای اطمینان از بارگذاری کامل اطلاعات
+            showTopHeaderInfoDialog = true
+            if (updateType == null) {
+                updateType = "initial" // علامت‌گذاری که بارگذاری اولیه انجام شده
+            }
+        }
     }
 }
 
