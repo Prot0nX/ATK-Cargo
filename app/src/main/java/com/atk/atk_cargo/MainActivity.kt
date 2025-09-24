@@ -1557,6 +1557,8 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                             // دریافت session_token از UserPreferencesManager
                             val sessionToken = userPreferencesManager.sessionToken.first()
                             userPreferencesManager.saveUserCredentials(loggedInUsername, loggedInUserType, deviceId, sessionToken)
+                            // ذخیره وضعیت ورود کاربر
+                            userPreferencesManager.setLoginState(true)
                             mainActivity.updateSessionValidity(true)
                             // شروع بررسی دوره‌ای جلسه پس از ورود موفق
                             mainActivity.startLoadingNotificationService()

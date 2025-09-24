@@ -258,6 +258,7 @@ import com.atk.atk_cargo.api.ShiftInfo
 import com.atk.atk_cargo.api.ShiftPerformanceData
 import com.atk.atk_cargo.api.Ship
 import com.atk.atk_cargo.api.ShipSortingMode
+import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.VoucherDetail
 import com.atk.atk_cargo.api.Warehouse
 import com.atk.atk_cargo.api.WarehouseEfficiencyData
@@ -270,6 +271,7 @@ import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.atk.atk_cargo.ui.theme.getCompletionColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -280,6 +282,27 @@ import kotlin.math.roundToInt
 
 @Composable
 fun ManageReportsScreen(viewModel: ReportsViewModel) {
+	val context = LocalContext.current
+	val userPreferencesManager = remember { UserPreferencesManager(context) }
+
+	LaunchedEffect(Unit) {
+		try {
+			val loginStatus = userPreferencesManager.isLoggedIn.first()
+			if (!loginStatus) {
+				val intent = Intent(context, MainActivity::class.java)
+				intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+				context.startActivity(intent)
+				return@LaunchedEffect
+			}
+		} catch (e: Exception) {
+			Log.e("ManageReportsScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
+			val intent = Intent(context, MainActivity::class.java)
+			intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+			context.startActivity(intent)
+			return@LaunchedEffect
+		}
+	}
+	
 	val navController = rememberNavController()
 	var showQuotasDialog by remember { mutableStateOf(false) }
 	var selectedShipForQuotas by remember { mutableStateOf<String?>(null) }

@@ -1,5 +1,6 @@
 package com.atk.atk_cargo
 
+import android.content.Intent
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -79,6 +80,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -95,6 +97,7 @@ import com.atk.atk_cargo.api.ActiveShipInfo
 import com.atk.atk_cargo.api.ColorSelector
 import com.atk.atk_cargo.api.MessageType
 import com.atk.atk_cargo.api.RetrofitClient
+import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.CoroutineScope
@@ -102,6 +105,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.net.URLEncoder
@@ -147,6 +151,30 @@ data class CargoSnackbarMessage(
 
 @Composable
 fun CargoCounterScreen(navController: NavController) {
+    val context = LocalContext.current
+    val userPreferencesManager = remember { UserPreferencesManager(context) }
+    
+    // بررسی وضعیت ورود
+    val isLoggedIn by userPreferencesManager.isLoggedIn.collectAsState(initial = false)
+    
+    LaunchedEffect(Unit) {
+        try {
+            val loginStatus = userPreferencesManager.isLoggedIn.first()
+            if (!loginStatus) {
+                val intent = Intent(context, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                context.startActivity(intent)
+                return@LaunchedEffect
+            }
+        } catch (e: Exception) {
+            Log.e("CargoCounterScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
+            val intent = Intent(context, MainActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            context.startActivity(intent)
+            return@LaunchedEffect
+        }
+    }
+    
     // استفاده از ViewModel برای حفظ وضعیت
     val viewModel: CargoCounterViewModel = viewModel()
     
