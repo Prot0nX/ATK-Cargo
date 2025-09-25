@@ -148,7 +148,7 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
             return@LaunchedEffect
         }
     }
-    
+
     var isRefreshing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     var activeShips by remember { mutableStateOf<List<ActiveShipInfo>>(emptyList()) }
@@ -870,10 +870,10 @@ private fun DialogHeader(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
+
             if (quotaCount > 1) {
                 Spacer(modifier = Modifier.width(8.dp))
-                
+
                 // راهنمای رنگ‌ها به صورت خلاصه در یک خط
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -892,7 +892,7 @@ private fun DialogHeader(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(10.dp)
                         )
-                        
+
                         Box(
                             modifier = Modifier
                                 .size(6.dp)
@@ -908,7 +908,7 @@ private fun DialogHeader(
                                 .size(6.dp)
                                 .background(MaterialTheme.colorScheme.secondary, CircleShape)
                         )
-                        
+
                         Text(
                             text = "موارد متفاوت",
                             style = MaterialTheme.typography.labelSmall,
@@ -990,7 +990,7 @@ fun QuotaItem(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
             QuotaDetails(quota, differentFields, isActive)
 
@@ -1048,7 +1048,7 @@ private fun QuotaDetailItem(
         "cargoType" -> MaterialTheme.colorScheme.secondary
         else -> MaterialTheme.colorScheme.primary
     }
-    
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1112,7 +1112,7 @@ private fun QuotaDetailItem(
                                 .background(differenceColor, CircleShape)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        
+
                         Text(
                             text = value,
                             style = MaterialTheme.typography.bodyMedium,
@@ -1203,7 +1203,7 @@ private fun QuotaHeader(
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(6.dp))
 
             // نمایش برچسب وضعیت
@@ -1319,7 +1319,7 @@ private fun GroupedShipList(
 
     // برای به‌روزرسانی داده‌های لحظه‌ای
     var updateCounter by remember { mutableIntStateOf(0) }
-    
+
     LaunchedEffect(updateCounter) {
         coroutineScope.launch {
             try {
@@ -1336,7 +1336,7 @@ private fun GroupedShipList(
             }
         }
     }
-    
+
     // برای به‌روزرسانی خودکار داده‌ها
     LaunchedEffect(Unit) {
         while (true) {
@@ -1352,7 +1352,7 @@ private fun GroupedShipList(
             item {
                 // یافتن داده‌های لحظه‌ای مربوط به این کشتی
                 val shipRealTimeData = realTimeDataList.filter { it.shipName == shipName }
-                
+
                 if (shipRealTimeData.isNotEmpty()) {
                     // استفاده از داده‌های لحظه‌ای
                     ShipGroupWithRealTimeData(
@@ -1380,12 +1380,12 @@ private fun GroupedShipList(
 private fun ShipGroupWithRealTimeData(
     shipName: String,
     realTimeData: List<RealTimeLoadingData>,
-    ships: List<ActiveShipInfo>, 
+    ships: List<ActiveShipInfo>,
     onEnter: (ActiveShipInfo, String) -> Unit,
     color: Color
 ) {
     var showDialog by remember { mutableStateOf(false) }
-    
+
     // محاسبه آمار از داده‌های لحظه‌ای
     val totalVouchers = realTimeData.sumOf { it.entryVouchers + it.exitVouchers }
     val completedVouchers = realTimeData.sumOf { it.exitVouchers }
@@ -1421,7 +1421,7 @@ private fun ShipGroupWithRealTimeData(
                         color = color
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    
+
                     // نمایش آمار با فرمت مشابه MinimalQuotasHeader
                     Row(
                         verticalAlignment = Alignment.CenterVertically
@@ -1634,12 +1634,11 @@ private fun DialogContent(
 fun ActiveQuotasDialog(
     onDismiss: () -> Unit
 ) {
-    // استفاده از ViewModel برای دریافت داده‌ها
     val coroutineScope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(true) }
     var realTimeData by remember { mutableStateOf<List<RealTimeLoadingData>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    
+
     val convertedShips = remember(realTimeData) {
         realTimeData.map { data ->
             ActiveShipInfo(
@@ -3938,7 +3937,7 @@ private fun ShipGroup(
     color: Color
 ) {
     var showDialog by remember { mutableStateOf(false) }
-    
+
     // محاسبه آمار
     val totalVouchers = ships.sumOf { it.entryVouchers + it.exitVouchers }
     val completedVouchers = ships.sumOf { it.exitVouchers }
@@ -3974,7 +3973,7 @@ private fun ShipGroup(
                         color = color
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    
+
                     // نمایش آمار
                     Row(
                         verticalAlignment = Alignment.CenterVertically

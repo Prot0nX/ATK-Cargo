@@ -205,47 +205,12 @@ class UserPreferencesManager(private val context: Context) {
             preferences.remove(USERNAME_KEY)
             preferences.remove(USER_TYPE_KEY)
             preferences.remove(SESSION_TOKEN_KEY)
-            preferences.remove(DEVICE_ID_KEY)
             preferences[IS_LOGGED_IN_KEY] = false
         }
 
         // پاکسازی ترجیحات مربوط به بارگیری
         context.getSharedPreferences("loading_alerts", Context.MODE_PRIVATE).edit().clear().apply()
         context.getSharedPreferences("LoadingCheckPrefs", Context.MODE_PRIVATE).edit().clear().apply()
-    }
-
-    suspend fun isValidSession(): Boolean {
-        return try {
-            val username = username.first()
-            val deviceId = deviceId.first()
-            val sessionToken = sessionToken.first()
-            val isLoggedIn = isLoggedIn.first()
-            
-            isLoggedIn && username.isNotEmpty() && deviceId.isNotEmpty() && sessionToken.isNotEmpty()
-        } catch (e: Exception) {
-            false
-        }
-    }
-
-    suspend fun getSessionData(): Triple<String, String, String>? {
-        return try {
-            val username = username.first()
-            val deviceId = deviceId.first()
-            val sessionToken = sessionToken.first()
-            
-            if (username.isNotEmpty() && deviceId.isNotEmpty() && sessionToken.isNotEmpty()) {
-                Triple(username, deviceId, sessionToken)
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    suspend fun handleSessionError() {
-        // در صورت خطای جلسه، اطلاعات کاربر را پاک می‌کنیم
-        clearUserCredentials()
     }
 
     companion object {

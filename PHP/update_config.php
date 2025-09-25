@@ -11,16 +11,19 @@ function getFileSize($filePath): string {
 
 return [
     'latest_version' => '3.0.7', 
-    'download_url' => 'https://atk-nk.site/Cargo/downloads/app-release.apk',
+    'download_url' => 'https://atk-nk.ir/Cargo/downloads/app-release.apk',
     'change_log' => [
-        'newFeatures' => [   ],
+        'newFeatures' => [
+			
+		],
         'improvements' => [
-
+			'بهینه سازی سیستم ثبت حواله جدید'
         ],
         'fixes' => [
-            'اصلاح سیستم ثبت شماره قبض باسکول'
+			
         ],
         'others' => [
+			
         ]
     ],
     'min_required_version' => '1.9',
@@ -28,7 +31,7 @@ return [
     'update_message' => 'نسخه جدید با امکانات جدید در دسترس است',
     'force_update' => false,
     'update_size' => getFileSize(__DIR__ . '/downloads/app-release.apk'),
-    'release_date' => '1403/12/13', 
+    'release_date' => '1404/05/09', 
     
     'version_constraints' => [
         'min_android_version' => 21,

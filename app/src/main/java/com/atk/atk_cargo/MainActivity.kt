@@ -200,6 +200,8 @@ import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.UserTypeInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
+import com.google.gson.Gson
+import com.atk.atk_cargo.api.SessionResponse
 import com.atk.atk_cargo.weather.MusicLibraryManager
 import com.atk.atk_cargo.weather.SecurityBlockScreen
 import com.atk.atk_cargo.weather.SecurityErrorType
@@ -361,7 +363,7 @@ class MainActivity : ComponentActivity() {
             reportsRepository = ReportsRepository(RetrofitClient.apiService)
 
             cargoViewModelFactory = CargoViewModelFactory(reportsRepository, userPreferencesManager)
-            
+
             // ارزیابی عملکرد سخت‌افزار و تنظیم انیمیشن‌ها
             initializeHardwarePerformanceEvaluation()
 
@@ -370,7 +372,7 @@ class MainActivity : ComponentActivity() {
             throw e // پرتاب مجدد خطا برای مدیریت در سطح بالاتر
         }
     }
-    
+
     /**
      * ارزیابی عملکرد سخت‌افزار و تنظیم مدیر انیمیشن‌ها
      * این تابع امتیاز عملکرد را محاسبه و ذخیره می‌کند تا نیاز به پردازش مجدد نباشد
@@ -380,16 +382,16 @@ class MainActivity : ComponentActivity() {
             try {
                 val userPreferencesManager = UserPreferencesManager(this@MainActivity)
                 val hardwareEvaluator = HardwarePerformanceEvaluator(this@MainActivity, userPreferencesManager)
-                
+
                 // استفاده از تابع suspend برای ارزیابی عملکرد با قابلیت کش
                 val performanceScore = hardwareEvaluator.evaluatePerformance()
-                
+
                 // تنظیم امتیاز عملکرد در مدیر انیمیشن‌ها
                 AnimationManager.setPerformanceScore(performanceScore)
-                
+
                 Log.d("HardwarePerformance", "امتیاز عملکرد دستگاه: $performanceScore")
                 Log.d("AnimationManager", "وضعیت انیمیشن‌ها: ${if (AnimationManager.areAnimationsEnabled()) "فعال" else "غیرفعال"}")
-                
+
             } catch (e: Exception) {
                 Log.e("HardwarePerformance", "خطا در ارزیابی عملکرد سخت‌افزار: ${e.message}")
                 // در صورت خطا، امتیاز متوسط تنظیم می‌شود
@@ -527,53 +529,35 @@ class MainActivity : ComponentActivity() {
     private fun checkUserSession() {
         lifecycleScope.launch {
             try {
-                // بررسی اعتبار جلسه محلی
-                if (!userPreferencesManager.isValidSession()) {
+                val username = userPreferencesManager.username.first()
+                val deviceId = userPreferencesManager.deviceId.first()
+                val sessionToken = userPreferencesManager.sessionToken.first()
+
+                if (username.isNotEmpty()) {
+                    val apiService = RetrofitClient.apiService
+                    val sessionRequest = SessionCheckRequest(username, deviceId, sessionToken.takeIf { it.isNotEmpty() })
+
+                    val response = apiService.checkSession(sessionRequest)
+                    when {
+                        response.isSuccessful && response.body()?.success == true -> {
+                            _isSessionValid.value = true
+
+                            // راه‌اندازی سرویس اعلان‌های بارگیری بعد از تأیید اعتبار جلسه
+                            startLoadingNotificationService()
+                        }
+                        else -> {
+                            _isSessionValid.value = false
+                            userPreferencesManager.clearUserCredentials()
+
+                            // نمایش پیام ساده برای خروج از سیستم
+                            showMessage("لطفاً دوباره وارد شوید!")
+                        }
+                    }
+                } else {
                     _isSessionValid.value = false
-                    return@launch
                 }
-
-                val sessionData = userPreferencesManager.getSessionData()
-                if (sessionData == null) {
-                    _isSessionValid.value = false
-                    return@launch
-                }
-
-                val (username, deviceId, sessionToken) = sessionData
-                val apiService = RetrofitClient.apiService
-                val sessionRequest = SessionCheckRequest(username, deviceId, sessionToken)
-
-                val response = apiService.checkSession(sessionRequest)
-                when {
-                    response.isSuccessful && response.body()?.success == true -> {
-                        _isSessionValid.value = true
-                        // راه‌اندازی سرویس اعلان‌های بارگیری بعد از تأیید اعتبار جلسه
-                        startLoadingNotificationService()
-                    }
-                    response.code() == 403 -> {
-                        // ورود همزمان تشخیص داده شده
-                        _isSessionValid.value = false
-                        userPreferencesManager.handleSessionError()
-                        
-                        val errorMessage = response.body()?.message ?: "ورود همزمان از چند دستگاه امکان‌پذیر نیست"
-                        showMessage(errorMessage)
-                    }
-                    response.code() == 401 -> {
-                        // جلسه منقضی شده یا نامعتبر
-                        _isSessionValid.value = false
-                        userPreferencesManager.handleSessionError()
-                        
-                        val errorMessage = response.body()?.message ?: "جلسه شما منقضی شده است. لطفاً مجدداً وارد شوید"
-                        showMessage(errorMessage)
-                    }
-                    else -> {
-                        _isSessionValid.value = false
-                        userPreferencesManager.handleSessionError()
-                        showMessage("خطا در بررسی جلسه. لطفاً دوباره وارد شوید!")
-                    }
-                }
-            } catch (e: Exception) {
-                // در صورت خطای شبکه، جلسه را معتبر فرض می‌کنیم
+            } catch (_: Exception) {
+                // در صورت خطا، جلسه را معتبر فرض می‌کنیم تا کاربر بتواند به کار خود ادامه دهد
                 _isSessionValid.value = true
             }
         }
@@ -2290,7 +2274,7 @@ fun ProfileMenu(
                                         }
                                     )
                                 }
-                                
+
                                 // نمایش امتیاز سخت‌افزار
                                 if (hardwareScore > 0) {
                                     Box(
@@ -3081,7 +3065,7 @@ private fun AnimatedMenuCard(
 ) {
     // آرایه رنگ‌ها با طیف‌های جذاب و مدرن
     val colors = listOf(
-        // رنگ اصلی، رنگ سایه 
+        // رنگ اصلی، رنگ سایه
         Pair(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer),
         Pair(MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.secondaryContainer),
         Pair(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiaryContainer)
@@ -3637,7 +3621,7 @@ fun UserManagementDialog(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { 
+                    placeholder = {
                         Text(
                             "جستجو...",
                             style = MaterialTheme.typography.bodyMedium
@@ -4113,7 +4097,7 @@ fun AddUserDialog(
                             Text("انصراف")
                         }
                     }
-                    
+
                     // Submit button
                     Button(
                         onClick = {
@@ -4325,7 +4309,7 @@ private fun UserTypeOptionHorizontal(
                     modifier = Modifier.size(16.dp)
                 )
             }
-            
+
             // Title
             Text(
                 text = userType.label,
@@ -4340,7 +4324,7 @@ private fun UserTypeOptionHorizontal(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            
+
             // Compact description
             Text(
                 text = userType.description,
@@ -4354,7 +4338,7 @@ private fun UserTypeOptionHorizontal(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            
+
             // Selection indicator
             if (isSelected) {
                 Icon(
@@ -4423,7 +4407,7 @@ private fun EditUserDialog(
 
                 OutlinedTextField(
                     value = username,
-                    onValueChange = { 
+                    onValueChange = {
                         username = it.trim()
                         errorMessage = ""
                     },
@@ -4436,7 +4420,7 @@ private fun EditUserDialog(
 
                 OutlinedTextField(
                     value = fullName,
-                    onValueChange = { 
+                    onValueChange = {
                         fullName = it.trim()
                         errorMessage = ""
                     },
@@ -4510,7 +4494,7 @@ private fun EditUserDialog(
                             Text("انصراف")
                         }
                     }
-                    
+
                     // Confirm button
                     Button(
                         onClick = {
@@ -4636,7 +4620,7 @@ private fun AddConfirmationDialog(
                     ) {
                         Text("بازبینی")
                     }
-                    
+
                     Button(
                         onClick = onConfirm,
                         enabled = !isLoading,
@@ -4810,7 +4794,7 @@ private fun EditConfirmationDialog(
                     ) {
                         Text("بازبینی")
                     }
-                    
+
                     Button(
                         onClick = onConfirm,
                         enabled = !isLoading,
@@ -4998,7 +4982,7 @@ private fun DeleteConfirmationDialog(
                             Text("انصراف")
                         }
                     }
-                    
+
                     // Confirm Delete button
                     Button(
                         onClick = {
@@ -5215,7 +5199,7 @@ fun LoginDialog(
                             ) {
                                 Icon(
                                     if (showPassword) Icons.Default.Visibility
-                                        else Icons.Default.VisibilityOff,
+                                    else Icons.Default.VisibilityOff,
                                     contentDescription = if (showPassword) "پنهان کردن رمز" else "نمایش رمز",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(18.dp)
@@ -5223,7 +5207,7 @@ fun LoginDialog(
                             }
                         },
                         visualTransformation = if (showPassword) VisualTransformation.None
-                            else PasswordVisualTransformation(),
+                        else PasswordVisualTransformation(),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(64.dp),
@@ -5317,12 +5301,23 @@ fun LoginDialog(
                                             errorMessage = responseBody?.message ?: "خطا در ورود"
                                         }
                                     } else {
-                                        errorMessage = when (response.code()) {
-                                            401 -> "نام کاربری یا رمز عبور اشتباه است"
-                                            403 -> "دسترسی مجاز نیست"
-                                            409 -> "ورود همزمان مجاز نیست"
-                                            500 -> "خطای سرور"
-                                            else -> "خطا در اتصال"
+                                        // برای کد 409، سعی می‌کنیم پیام سرور را دریافت کنیم
+                                        if (response.code() == 409) {
+                                            try {
+                                                 val errorBody = response.errorBody()?.string()
+                                                 val gson = Gson()
+                                                 val errorResponse = gson.fromJson(errorBody, SessionResponse::class.java)
+                                                 errorMessage = errorResponse?.message ?: "شما در حال حاضر از دستگاه دیگری وارد شده‌اید. لطفاً ابتدا از آن دستگاه خارج شوید."
+                                            } catch (_: Exception) {
+                                                errorMessage = "شما در حال حاضر از دستگاه دیگری وارد شده‌اید. لطفاً ابتدا از دستگاه اولی خارج شوید."
+                                            }
+                                        } else {
+                                            errorMessage = when (response.code()) {
+                                                401 -> "نام کاربری یا رمز عبور اشتباه است"
+                                                403 -> "دسترسی مجاز نیست"
+                                                500 -> "خطای سرور"
+                                                else -> "خطا در اتصال"
+                                            }
                                         }
                                     }
                                 } catch (e: Exception) {
@@ -5402,11 +5397,11 @@ class HardwarePerformanceEvaluator(
     private val context: Context,
     private val userPreferencesManager: UserPreferencesManager
 ) {
-    
+
     companion object {
         private const val EVALUATION_VALIDITY_HOURS = 24 // ارزیابی مجدد هر 24 ساعت
     }
-    
+
     /**
      * ارزیابی عملکرد سخت‌افزار و تعیین امتیاز
      * @return امتیاز عملکرد از 0 تا 100
@@ -5416,13 +5411,13 @@ class HardwarePerformanceEvaluator(
         val lastEvaluation = userPreferencesManager.getScoreTimestamp()
         val currentTime = System.currentTimeMillis()
         val validityDuration = EVALUATION_VALIDITY_HOURS * 60 * 60 * 1000L
-        
+
         // بررسی تغییر مشخصات دستگاه
         val currentDeviceSpecs = generateDeviceSpecs()
         val cachedDeviceSpecs = userPreferencesManager.getDeviceSpecs()
-        
+
         // اگر ارزیابی قبلی معتبر است و مشخصات تغییر نکرده، امتیاز کش شده را برگردان
-        if (currentTime - lastEvaluation < validityDuration && 
+        if (currentTime - lastEvaluation < validityDuration &&
             cachedDeviceSpecs == currentDeviceSpecs) {
             val cachedScore = userPreferencesManager.getHardwareScore()
             if (cachedScore != -1) {
@@ -5430,48 +5425,48 @@ class HardwarePerformanceEvaluator(
                 return cachedScore
             }
         }
-        
+
         Log.d("HardwarePerformance", "محاسبه مجدد امتیاز سخت‌افزار...")
-        
+
         var totalScore = 0
         var maxScore = 0
-        
+
         // ارزیابی RAM
         val ramScore = evaluateRAM()
         totalScore += ramScore
         maxScore += 30
-        
+
         // ارزیابی CPU
         val cpuScore = evaluateCPU()
         totalScore += cpuScore
         maxScore += 25
-        
+
         // ارزیابی نسخه اندروید
         val androidScore = evaluateAndroidVersion()
         totalScore += androidScore
         maxScore += 20
-        
+
         // ارزیابی فضای ذخیره‌سازی
         val storageScore = evaluateStorage()
         totalScore += storageScore
         maxScore += 15
-        
+
         // ارزیابی وضعیت باتری
         val batteryScore = evaluateBattery()
         totalScore += batteryScore
         maxScore += 10
-        
+
         // محاسبه امتیاز نهایی
         val finalScore = ((totalScore.toFloat() / maxScore) * 100).toInt().coerceIn(0, 100)
-        
+
         // ذخیره نتیجه در UserPreferencesManager
         userPreferencesManager.saveHardwareScore(finalScore, currentDeviceSpecs)
-        
+
         Log.d("HardwarePerformance", "امتیاز جدید محاسبه و ذخیره شد: $finalScore")
-        
+
         return finalScore
     }
-    
+
     /**
      * تولید رشته مشخصات دستگاه برای مقایسه تغییرات
      */
@@ -5480,28 +5475,28 @@ class HardwarePerformanceEvaluator(
             val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             val memoryInfo = ActivityManager.MemoryInfo()
             activityManager.getMemoryInfo(memoryInfo)
-            
+
             val totalRAM = memoryInfo.totalMem / (1024 * 1024 * 1024)
             val coreCount = Runtime.getRuntime().availableProcessors()
             val androidVersion = Build.VERSION.SDK_INT
-            
+
             val statFs = StatFs(Environment.getDataDirectory().path)
             val totalStorage = statFs.totalBytes / (1024 * 1024 * 1024)
-            
+
             "RAM:${totalRAM}GB|CPU:${coreCount}cores|Android:${androidVersion}|Storage:${totalStorage}GB"
         } catch (_: Exception) {
             "UNKNOWN_SPECS"
         }
     }
-    
+
     private fun evaluateRAM(): Int {
         return try {
             val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             val memoryInfo = ActivityManager.MemoryInfo()
             activityManager.getMemoryInfo(memoryInfo)
-            
+
             val totalRAM = memoryInfo.totalMem / (1024 * 1024 * 1024) // تبدیل به گیگابایت
-            
+
             when {
                 totalRAM >= 8 -> 30 // 8GB یا بیشتر
                 totalRAM >= 6 -> 25 // 6-8GB
@@ -5514,11 +5509,11 @@ class HardwarePerformanceEvaluator(
             15 // امتیاز متوسط در صورت خطا
         }
     }
-    
+
     private fun evaluateCPU(): Int {
         return try {
             val coreCount = Runtime.getRuntime().availableProcessors()
-            
+
             when {
                 coreCount >= 8 -> 25 // 8 هسته یا بیشتر
                 coreCount >= 6 -> 20 // 6-8 هسته
@@ -5530,7 +5525,7 @@ class HardwarePerformanceEvaluator(
             12 // امتیاز متوسط در صورت خطا
         }
     }
-    
+
     @SuppressLint("ObsoleteSdkInt")
     private fun evaluateAndroidVersion(): Int {
         return when {
@@ -5543,13 +5538,13 @@ class HardwarePerformanceEvaluator(
             else -> 5 // نسخه‌های قدیمی‌تر
         }
     }
-    
+
     private fun evaluateStorage(): Int {
         return try {
             val statFs = StatFs(Environment.getDataDirectory().path)
             val availableBytes = statFs.availableBytes
             val availableGB = availableBytes / (1024 * 1024 * 1024)
-            
+
             when {
                 availableGB >= 32 -> 15 // 32GB یا بیشتر فضای آزاد
                 availableGB >= 16 -> 12 // 16-32GB
@@ -5562,12 +5557,12 @@ class HardwarePerformanceEvaluator(
             8 // امتیاز متوسط در صورت خطا
         }
     }
-    
+
     private fun evaluateBattery(): Int {
         return try {
             val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
             val batteryLevel = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-            
+
             when {
                 batteryLevel >= 80 -> 10 // باتری بالای 80%
                 batteryLevel >= 50 -> 8 // باتری 50-80%
@@ -5579,13 +5574,13 @@ class HardwarePerformanceEvaluator(
             6 // امتیاز متوسط در صورت خطا
         }
     }
-    
+
 }
 
 object AnimationManager {
     private var performanceScore: Int = 50
     private var animationsEnabled: Boolean = true
-    
+
     /**
      * تنظیم امتیاز عملکرد و تعیین وضعیت انیمیشن‌ها
      */
@@ -5593,7 +5588,7 @@ object AnimationManager {
         performanceScore = score
         animationsEnabled = score >= 60 // انیمیشن‌ها فقط برای دستگاه‌های با امتیاز 60 یا بالاتر فعال می‌شوند
     }
-    
+
     /**
      * بررسی فعال بودن انیمیشن‌ها
      */

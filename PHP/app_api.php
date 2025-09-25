@@ -1,5 +1,5 @@
 <?php
-	//app_api_2.php
+	//app_api.php
 	
 	declare(strict_types=1);
 	
@@ -197,7 +197,7 @@
 					'totalWeight' => (float)$row['totalWeight'],
 					'loadedWeight' => (float)$row['loadedWeight'],
 					'remainingCapacity' => max(0, (float)$row['totalWeight'] - (float)$row['loadedWeight']),
-					'percentageLoaded' => number_format((float)$row['percentageLoaded'], 2, '.', '')
+					'percentageLoaded' => round((float)$row['percentageLoaded'], 2)
 				]
 			];
 		}
@@ -225,7 +225,7 @@
 	}
 	
 	if ($percentageLoaded >= 95) {
-		return "هشدار: ظرفیت بارگیری کوتاژ $quotaNumber با نوع کالای $cargoType به " . number_format($percentageLoaded, 2, '.', '') . "% رسیده است";
+		return "هشدار: ظرفیت بارگیری کوتاژ $quotaNumber با نوع کالای $cargoType به " . round($percentageLoaded, 2) . "% رسیده است";
 	}
 	
 	return "کوتاژ $quotaNumber با نوع کالای $cargoType فعال است";
@@ -240,7 +240,7 @@
         'totalWeight' => floatval($row['totalWeight']),
         'loadedWeight' => $loadedWeight,
         'remainingCapacity' => $remainingCapacity,
-        'percentageLoaded' => number_format($percentageLoaded, 2, '.', '')
+        'percentageLoaded' => round($percentageLoaded, 2)
 		];
 	}
 	
@@ -325,7 +325,7 @@
 			CASE 
 				WHEN SUM(i.cargoWeight) > 0 THEN 
 					ROUND((COALESCE(SUM(loaded.loadedWeight), 0) / SUM(i.cargoWeight)) * 100, 2)
-				ELSE 0.00 
+				ELSE 0 
 			END as percentageLoaded,
 			MAX(i.isActive) as isActive
 		FROM InitialInfo i
@@ -387,7 +387,7 @@
 			}
 			
 			// ارسال پاسخ بهینه‌شده
-			return [
+			sendJsonResponse([
 				'data' => [
 					'activeShips' => $activeShips,
 					'inactiveShips' => $inactiveShips,
@@ -401,7 +401,7 @@
 						'timestamp' => date('Y-m-d H:i:s')
 					]
 				]
-			];
+			]);
 		} catch (Exception $e) {
 			customLog("Error in getShipsList: " . $e->getMessage());
 			throw new Exception("خطا در دریافت لیست کشتی‌ها: " . $e->getMessage());
@@ -486,7 +486,7 @@
 					'totalTonnage' => $warehouseTotalTonnage,
 					'remainingTonnage' => $warehouseRemainingTonnage,
 					'loadedTonnage' => $warehouseLoadedTonnage,
-					'percentageLoaded' => number_format($warehousePercentageLoaded, 2, '.', '')
+					'percentageLoaded' => round($warehousePercentageLoaded, 2)
 				];
 				
 				// محاسبه مجموع برای کل کشتی
@@ -517,7 +517,7 @@
 				'totalTonnage' => $totalTonnage,
 				'remainingTonnage' => $totalRemainingTonnage,
 				'loadedTonnage' => $totalLoadedTonnage,
-				'percentageLoaded' => number_format($totalPercentageLoaded, 2, '.', ''),
+				'percentageLoaded' => round($totalPercentageLoaded, 2),
 				'totalVoucherCount' => $totalVoucherCount,
 				'isActive' => $isActive,
 				'warehouses' => $warehouses,
@@ -715,7 +715,7 @@
 				'totalTonnage' => $totalTonnage,
 				'remainingTonnage' => $totalRemainingTonnage,
 				'loadedTonnage' => $totalLoadedTonnage,
-				'percentageLoaded' => number_format($totalPercentageLoaded, 2, '.', ''),
+				'percentageLoaded' => round($totalPercentageLoaded, 2),
 				'totalVoucherCount' => $totalVoucherCount,
 				'quotas' => $quotas,
 				'availableExitDates' => $allExitDates,
@@ -1546,7 +1546,7 @@
 	function updateQuotaPercentage(DatabaseManager $db, string $quotaNumber, float $percentage): bool {
 		try {
 			// محاسبه مقدار is_enabled بر اساس درصد
-			$isEnabled = ($percentage > 0.00) ? 1 : 0;
+			$isEnabled = ($percentage > 0.0) ? 1 : 0;
 			
 			// بروزرسانی همزمان درصد و وضعیت فعال بودن
 			$query = "UPDATE InitialInfo SET percentage = ?, is_enabled = ? WHERE loadingQuotaNumber = ?";
@@ -1771,7 +1771,7 @@
 		switch ($action) {
 			case 'getShipsList':
             $ships = getShipsList($db);
-            sendJsonResponse($ships);
+            sendJsonResponse(['data' => $ships]);
             break;
 			
 			case 'getShipDetails':
