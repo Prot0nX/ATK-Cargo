@@ -34,19 +34,9 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 }
 
 $username = isset($data['username']) ? filter_var(trim($data['username']), FILTER_SANITIZE_STRING) : '';
-$deviceId = isset($data['deviceId']) ? filter_var(trim($data['deviceId']), FILTER_SANITIZE_STRING) : '';
-$sessionToken = isset($data['session_token']) ? filter_var(trim($data['session_token']), FILTER_SANITIZE_STRING) : '';
 
 if (empty($username)) {
     send_json_response(false, "نام کاربری الزامی است.", 400);
-}
-
-if (empty($deviceId)) {
-    send_json_response(false, "شناسه دستگاه الزامی است.", 400);
-}
-
-if (empty($sessionToken)) {
-    send_json_response(false, "توکن جلسه الزامی است.", 400);
 }
 
 try {
@@ -65,28 +55,16 @@ try {
 
     // استفاده از SessionManager برای بررسی وضعیت جلسه
     $sessionManager = new SessionManager();
+    $deviceId = isset($data['deviceId']) ? trim($data['deviceId']) : null;
+    $sessionToken = isset($data['session_token']) ? trim($data['session_token']) : null;
     
-    // دریافت جلسه فعال کاربر
-    $activeSession = $sessionManager->getActiveSession($username);
-    
-    if (!$activeSession) {
+    // بررسی ساده وضعیت جلسه - فقط بررسی می‌کند که آیا جلسه فعال است یا خیر
+    if ($sessionManager->isSessionActive($username, $deviceId)) {
+        // جلسه معتبر است و last_activity خودکار به‌روزرسانی شده
+        send_json_response(true, "جلسه کاربر معتبر است", 200, $user['userType']);
+    } else {
         send_json_response(false, "جلسه کاربر فعال نیست. لطفاً وارد شوید.", 401);
     }
-    
-    // بررسی تطبیق device_id و session_token
-    if ($activeSession['device_id'] !== $deviceId) {
-        send_json_response(false, "ورود همزمان از چند دستگاه امکان‌پذیر نیست. شما از دستگاه دیگری وارد شده‌اید.", 403);
-    }
-    
-    if ($activeSession['session_token'] !== $sessionToken) {
-        send_json_response(false, "توکن جلسه نامعتبر است. لطفاً مجدداً وارد شوید.", 401);
-    }
-    
-    // به‌روزرسانی آخرین فعالیت
-    $sessionManager->updateLastActivity($username, $deviceId);
-    
-    // جلسه معتبر است
-    send_json_response(true, "جلسه کاربر معتبر است", 200, $user['userType']);
 } catch (PDOException $e) {
     error_log("Database error: " . $e->getMessage());
     send_json_response(false, "خطایی رخ داده است. لطفا بعدا تلاش کنید.", 500);

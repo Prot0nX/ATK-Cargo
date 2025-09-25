@@ -42,26 +42,34 @@ class SessionManager {
      */
     public function createSession($username, $deviceId, $deviceModel, $androidVersion, $ipAddress, $userType = null) {
         try {
-            // بررسی جلسه فعال موجود برای همین دستگاه
+            // بررسی وجود جلسه فعال برای کاربر (هر دستگاهی)
             $stmt = $this->pdo->prepare("
-                SELECT id, session_token 
+                SELECT id, session_token, device_id 
                 FROM user_sessions 
-                WHERE username = ? AND device_id = ? AND is_active = 1
+                WHERE username = ? AND is_active = 1
                 LIMIT 1
             ");
             
-            $stmt->execute([$username, $deviceId]);
+            $stmt->execute([$username]);
             $existingSession = $stmt->fetch();
             
             if ($existingSession) {
-                // اگر همان دستگاه است، جلسه را به‌روزرسانی می‌کنیم
-                $updateResult = $this->updateSessionActivity($username, $deviceId);
-                if ($updateResult['success']) {
+                if ($existingSession['device_id'] === $deviceId) {
+                    // همان دستگاه - جلسه را به‌روزرسانی می‌کنیم
+                    $updateResult = $this->updateSessionActivity($username, $deviceId);
+                    if ($updateResult['success']) {
+                        return [
+                            'success' => true,
+                            'message' => 'جلسه موجود به‌روزرسانی شد',
+                            'session_id' => $existingSession['id'],
+                            'session_token' => $existingSession['session_token']
+                        ];
+                    }
+                } else {
+                    // دستگاه متفاوت - ورود همزمان مجاز نیست
                     return [
-                        'success' => true,
-                        'message' => 'جلسه موجود به‌روزرسانی شد',
-                        'session_id' => $existingSession['id'],
-                        'session_token' => $existingSession['session_token']
+                        'success' => false,
+                        'message' => 'شما در حال حاضر از دستگاه دیگری وارد شده‌اید. لطفاً ابتدا از آن دستگاه خارج شوید.'
                     ];
                 }
             }
@@ -78,14 +86,6 @@ class SessionManager {
                     throw new Exception("کاربر در سیستم یافت نشد");
                 }
             }
-            
-            // غیرفعال کردن تمام جلسه‌های فعال قبلی کاربر
-            $stmt = $this->pdo->prepare("
-                UPDATE user_sessions 
-                SET is_active = 0, logout_time = NOW() 
-                WHERE username = ? AND is_active = 1
-            ");
-            $stmt->execute([$username]);
             
             // تولید توکن جلسه منحصر به فرد
             $sessionToken = bin2hex(random_bytes(32));

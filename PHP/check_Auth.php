@@ -101,9 +101,9 @@ try {
                 $existingSession = $stmt->fetch();
                 
                 if ($existingSession) {
-                    // بررسی اینکه آیا کاربر از همان دستگاه وارد شده یا نه
+                    // بررسی اینکه آیا همان دستگاه است یا نه
                     if ($existingSession['device_id'] === $deviceId) {
-                        // همان دستگاه است، جلسه قبلی را به‌روزرسانی کن
+                        // همان دستگاه - جلسه قبلی را به‌روزرسانی کن
                         $sessionManager->updateLastActivity($username, $existingSession['device_id']);
                         
                         // دریافت session_token از جلسه موجود
@@ -115,11 +115,11 @@ try {
                             'message' => 'شما قبلاً وارد شده‌اید. جلسه به‌روزرسانی شد.',
                             'userType' => $user['userType'],
                             'session_token' => $sessionToken
-                        ], JSON_UNESCAPED_UNICODE);
+                        ]);
                         exit;
                     } else {
-                        // دستگاه متفاوت است، ورود همزمان مجاز نیست
-                        send_json_response(false, "ورود همزمان از چند دستگاه امکان‌پذیر نیست. شما از دستگاه دیگری وارد شده‌اید.", 409);
+                        // دستگاه متفاوت - ورود همزمان مجاز نیست
+                        send_json_response(false, "شما در حال حاضر از دستگاه دیگری وارد شده‌اید. لطفاً ابتدا از آن دستگاه خارج شوید.", 409);
                     }
                 }
                 

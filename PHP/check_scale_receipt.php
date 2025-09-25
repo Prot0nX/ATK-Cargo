@@ -38,7 +38,7 @@ function is_valid_scale_receipt($scaleReceiptNumber) {
 
     // بررسی دو رقم اول
     $firstTwoDigits = substr($scaleReceiptNumber, 0, 2);
-    if ($firstTwoDigits !== '43' && $firstTwoDigits !== '40'  && $firstTwoDigits !== '41'  && $firstTwoDigits !== '42') {
+    if ($firstTwoDigits !== '43' && $firstTwoDigits !== '44'  && $firstTwoDigits !== '45'  && $firstTwoDigits !== '46') {
         return false;
     }
 

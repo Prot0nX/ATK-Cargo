@@ -288,6 +288,42 @@ try {
                 // اعتبارسنجی داده‌های خروج
                 validateExitData($params['netWeight'], $params['scaleReceiptNumber']);
                 
+                // کسر تناژ موقت در صورت فعال بودن
+                $netWeightValue = floatval($params['netWeight']);
+                $tempTonnageQuery = "SELECT temp_tonnage_status, temp_tonnage_amount FROM InitialInfo 
+                                   WHERE shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND 
+                                         shippingCompany = ? AND loadingQuotaNumber = ? LIMIT 1";
+                $tempTonnageStmt = $conn->prepare($tempTonnageQuery);
+                $tempTonnageStmt->bind_param("sssss", 
+                    $shipName, 
+                    $params['loadingWarehouse'], 
+                    $params['cargoType'], 
+                    $params['shippingCompany'], 
+                    $loadingQuotaNumber
+                );
+                $tempTonnageStmt->execute();
+                $tempTonnageResult = $tempTonnageStmt->get_result();
+                $tempTonnageData = $tempTonnageResult->fetch_assoc();
+                $tempTonnageStmt->close();
+                
+                if ($tempTonnageData && $tempTonnageData['temp_tonnage_status'] == 1 && $tempTonnageData['temp_tonnage_amount'] > 0) {
+                    $newTempTonnage = max(0, $tempTonnageData['temp_tonnage_amount'] - $netWeightValue);
+                    $updateTempTonnageQuery = "UPDATE InitialInfo SET temp_tonnage_amount = ? 
+                                             WHERE shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND 
+                                                   shippingCompany = ? AND loadingQuotaNumber = ?";
+                    $updateTempTonnageStmt = $conn->prepare($updateTempTonnageQuery);
+                    $updateTempTonnageStmt->bind_param("dsssss", 
+                        $newTempTonnage, 
+                        $shipName, 
+                        $params['loadingWarehouse'], 
+                        $params['cargoType'], 
+                        $params['shippingCompany'], 
+                        $loadingQuotaNumber
+                    );
+                    $updateTempTonnageStmt->execute();
+                    $updateTempTonnageStmt->close();
+                }
+                
                 // بروزرسانی بهینه برای خروج
                 $update_query = "UPDATE CargoInfo SET 
                     netWeight = ?, scaleReceiptNumber = ?, exitTime = ?, exitDate = ?, 
