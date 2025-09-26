@@ -870,7 +870,7 @@ fun ShipCard(
 		border = BorderStroke(1.dp, cardColor.copy(alpha = 0.1f))
 	) {
 		// هدر کارت
-		ShipCardHeader(
+		ShipCardContent(
 			ship = ship,
 			cardColor = cardColor,
 			contentAlpha = contentAlpha
@@ -879,12 +879,16 @@ fun ShipCard(
 }
 
 @Composable
-fun ShipCardHeader(
+fun ShipCardContent(
 	ship: Ship,
 	cardColor: Color,
 	contentAlpha: Float,
 	modifier: Modifier = Modifier
 ) {
+	val totalTonnageColor = MaterialTheme.colorScheme.primary
+	val loadedTonnageColor = MaterialTheme.colorScheme.error
+	val remainingTonnageColor = MaterialTheme.colorScheme.onBackground
+
 	Row(
 		modifier = modifier
 			.fillMaxWidth()
@@ -933,7 +937,7 @@ fun ShipCardHeader(
 					StatChip(
 						icon = Icons.Default.ArrowDownward,
 						value = formatNumber(ship.remainingTonnage.toInt()),
-						color = MaterialTheme.colorScheme.tertiary,
+						color = remainingTonnageColor,
 						label = "مانده"
 					)
 				}
@@ -949,13 +953,13 @@ fun ShipCardHeader(
 					StatChip(
 						icon = Icons.Default.Scale,
 						value = formatNumber(ship.totalTonnage.toInt()),
-						color = cardColor.copy(alpha = contentAlpha),
+						color = totalTonnageColor,
 						label = "کل"
 					)
 					StatChip(
 						icon = Icons.Default.ArrowUpward,
 						value = formatNumber(loadedTonnage.toInt()),
-						color = MaterialTheme.colorScheme.primary,
+						color = loadedTonnageColor,
 						label = "بارگیری"
 					)
 				}
