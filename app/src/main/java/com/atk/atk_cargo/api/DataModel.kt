@@ -328,22 +328,7 @@ class CargoViewModel(
         // استخراج شماره حواله‌هایی که بیش از یک بار تکرار شده‌اند
         return trackingNumberCounts.filter { it.value > 1 }.keys.toList()
     }
-    
-    private fun filterDuplicateTrackingNumbers(cargoList: List<CargoInfo>): List<CargoInfo> {
-        val seenTrackingNumbers = mutableSetOf<String>()
-        val filteredList = mutableListOf<CargoInfo>()
-        
-        cargoList.forEach { cargo ->
-            val trackingNumber = cargo.trackingNumber.trim()
-            if (!seenTrackingNumbers.contains(trackingNumber)) {
-                seenTrackingNumbers.add(trackingNumber)
-                filteredList.add(cargo)
-            }
-        }
-        
-        return filteredList
-    }
-    
+
     fun dismissDuplicateDialog() {
         _showDuplicateDialog.value = false
         _duplicateTrackingNumbers.value = emptyList()
@@ -429,8 +414,14 @@ class CargoViewModel(
     ) {
         viewModelScope.launch {
             try {
+                // بررسی وضعیت ارسال فعلی برای جلوگیری از درخواست‌های تکراری
+                if (_isSubmitting.value) {
+                    return@launch
+                }
+                
                 // تنظیم وضعیت ثبت به true
                 _isSubmitting.value = true
+                
                 // اعتبارسنجی سریع اولیه برای جلوگیری از ارسال‌های غیرضروری به سرور
                 if (trackingNumber.isBlank()) {
                     showErrorMessage("شماره حواله نمی‌تواند خالی باشد.")
@@ -443,9 +434,20 @@ class CargoViewModel(
                     return@launch
                 }
 
-                // بررسی وضعیت کوتاژ (درصد و فعال بودن)
-                checkAndHandleQuotaPercentage(initialInfo.loadingQuotaNumber.toString())
-                checkQuotaStatus(initialInfo)
+                // بررسی کش وضعیت کوتاژ (فقط در صورت نیاز)
+                val currentTime = System.currentTimeMillis()
+                val quotaActive = cachedQuotaStatus
+                
+                if (currentTime - lastQuotaStatusCheck > quotaStatusCacheTimeout || quotaActive == null) {
+                    // بررسی وضعیت کوتاژ (درصد و فعال بودن)
+                    checkAndHandleQuotaPercentage(initialInfo.loadingQuotaNumber.toString())
+                    checkQuotaStatus(initialInfo)
+                    cachedQuotaStatus = _isQuotaActive.value
+                    lastQuotaStatusCheck = currentTime
+                } else {
+                    _isQuotaActive.value = quotaActive
+                    Log.d("CargoViewModel", "Using cached quota status: $quotaActive")
+                }
 
                 if (_isQuotaActive.value != true) {
                     val message = if (_messageType.value == MessageType.WARNING) {
@@ -640,6 +642,8 @@ class CargoViewModel(
                     }
                     else -> {
                         handleSuccessResponse(responseBody, trackingNumber, netWeight, scaleReceiptNumber, shortageWeight, excessWeight)
+                        // فقط در صورت موفقیت، کش را پاک کنیم
+                        clearApiCache()
                     }
                 }
             } else {
@@ -723,10 +727,6 @@ class CargoViewModel(
             updateLocalCargoListForExit(trackingNumber, netWeight, responseBody)
         }
 
-        // پاک کردن کش برای اطمینان از دریافت آخرین اطلاعات
-        clearApiCache()
-        
-        // استفاده از refreshCargoInfo که شامل تمام بهینه‌سازی‌ها است
         refreshCargoInfo()
     }
 
@@ -1196,12 +1196,6 @@ class CargoViewModel(
 
                 val response = apiService.saveOrUpdateCargoInfo(updatedCargoInfo)
                 if (response.isSuccessful) {
-                    // پاک کردن کش برای اطمینان از دریافت آخرین اطلاعات
-                    clearApiCache()
-                    
-                    // یک تأخیر کوتاه برای اطمینان از ثبت کامل در سرور
-                    delay(500)
-                    
                     // بروزرسانی مستقیم در لیست محلی
                     val updatedList = _cargoInfoList.value.map { cargo ->
                         if (cargo.trackingNumber == cargoInfo.trackingNumber) {
@@ -1214,12 +1208,13 @@ class CargoViewModel(
                     // بروزرسانی هر دو لیست برای نمایش صحیح
                     _cargoInfoList.value = updatedList
                     _filteredCargoInfoList.value = updatedList
+                
                     
-                    // لاگ برای دیباگ
-                    Log.d("CargoViewModel", "حواله با شماره ${cargoInfo.trackingNumber} به وضعیت خروج تغییر یافت")
-                    Log.d("CargoViewModel", "تعداد کل حواله‌ها: ${updatedList.size}, تعداد حواله‌های خروج: ${updatedList.count { it.status == "خروج" }}")
-                    
+                    // پاک کردن کش و فراخوانی refreshCargoInfo فقط در صورت نیاز
+                    clearApiCache()
+        
                     refreshCargoInfo()
+                    
                     _resultMessage.value = "اطلاعات بروزرسانی شد"
                     _showAnimatedMessage.value = true
                     _messageType.value = MessageType.SUCCESS
@@ -2256,12 +2251,7 @@ class ReportsViewModel(
         val text = BaseColor(33, 37, 41)              // خاکستری تیره برای متن
         val lightGray = BaseColor(248, 249, 250)      // خاکستری روشن
         val white = BaseColor.WHITE
-        val success = BaseColor(40, 167, 69)          // سبز برای موفقیت
-        val warning = BaseColor(255, 193, 7)          // زرد برای هشدار
-        val danger = BaseColor(220, 53, 69)           // قرمز برای خطر
     }
-
-
 
     // تابع بهبود یافته برای افزودن متن فارسی با پشتیبانی از اعداد فارسی
     private fun addPersianText(
@@ -3177,7 +3167,7 @@ class ReportsRepository(private val apiService: ApiService) {
                     
                     return@withContext emptyList()
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 return@withContext emptyList()
             }
         }
