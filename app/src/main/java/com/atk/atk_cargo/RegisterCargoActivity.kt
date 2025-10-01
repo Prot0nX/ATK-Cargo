@@ -1096,6 +1096,8 @@ fun RegisterCargoScreen(
                                     numberOfPeople
                                 )
 
+                                // جلوگیری از نمایش TopHeaderInfoDialog پس از ثبت حواله
+                                updateType = "cargo_submit"
                                 focusManager.clearFocus()
                             }
                         }
@@ -1255,6 +1257,8 @@ fun RegisterCargoScreen(
                     onConfirm = {
                         cargoInfoToUpdate?.let { cargoInfo ->
                             viewModel.updateCargoInfo(cargoInfo, netWeight)
+                            // جلوگیری از نمایش TopHeaderInfoDialog پس از خروج حواله
+                            updateType = "cargo_update"
                             showConfirmationDialog = false
                             cargoInfoToUpdate = null
                         }
@@ -1275,6 +1279,8 @@ fun RegisterCargoScreen(
                             excessWeight,
                             numberOfPeople
                         )
+                        // جلوگیری از نمایش TopHeaderInfoDialog پس از ثبت حواله
+                        updateType = "cargo_submit"
                         viewModel.hideNetWeightDialog()
                     },
                     onDismiss = {
@@ -1414,10 +1420,9 @@ fun RegisterCargoScreen(
     // نمایش دیالوگ اطلاعات TopHeader در بارگذاری اولیه
     LaunchedEffect(initialInfo, loadableTonnage) {
         if (initialInfo != null && loadableTonnage.isNotEmpty() && updateType != "quota_change") {
-            delay(2000) // تاخیر برای اطمینان از بارگذاری کامل اطلاعات
-            showTopHeaderInfoDialog = true
             if (updateType == null) {
-                updateType = "initial" // علامت‌گذاری که بارگذاری اولیه انجام شده
+                showTopHeaderInfoDialog = true
+                updateType = "initial" 
             }
         }
     }
