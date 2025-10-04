@@ -1244,10 +1244,14 @@ fun RegisterCargoScreen(
                         info = info,
                         viewModel = viewModel,
                         snackbarHostState = snackbarHostState,
-                        searchQuery = searchQuery
-                    ) {
-                        showDetailDialog.value = false
-                    }
+                        searchQuery = searchQuery,
+                        onDismiss = {
+                            showDetailDialog.value = false
+                        },
+                        onUpdateTypeChange = { newUpdateType ->
+                            updateType = newUpdateType
+                        }
+                    )
                 }
             }
 
@@ -1417,12 +1421,14 @@ fun RegisterCargoScreen(
         )
     }
     
-    // نمایش دیالوگ اطلاعات TopHeader در بارگذاری اولیه
     LaunchedEffect(initialInfo, loadableTonnage) {
-        if (initialInfo != null && loadableTonnage.isNotEmpty() && updateType != "quota_change") {
-            if (updateType == null) {
-                showTopHeaderInfoDialog = true
-                updateType = "initial" 
+        if (initialInfo != null && loadableTonnage.isNotEmpty()) {
+            val excludedUpdateTypes = setOf("cargo_submit", "cargo_update", "cargo_delete")
+            if (updateType == null || updateType !in excludedUpdateTypes) {
+                if (updateType == null) {
+                    showTopHeaderInfoDialog = true
+                    updateType = "initial" 
+                }
             }
         }
     }
@@ -1861,7 +1867,7 @@ fun QuotaEntryDialog(
                         }
 
                         // Enhanced Input Section
-                        EnhancedDialogContent(
+                        DialogContent(
                             quotaEntry = quotaEntry,
                             onQuotaEntryChange = { newValue ->
                                 if (newValue.length <= 4 && newValue.all { it.isDigit() }) {
@@ -2021,7 +2027,7 @@ fun QuotaEntryDialog(
 }
 
 @Composable
-private fun EnhancedDialogContent(
+private fun DialogContent(
     quotaEntry: String,
     onQuotaEntryChange: (String) -> Unit,
     isError: Boolean,
@@ -3105,7 +3111,7 @@ class EnhancedNumberAnalyzer(
 fun ErrorHandlingCargoInfoRow(
     info: CargoInfo,
     onRowClick: (CargoInfo) -> Unit,
-    duplicateTrackingNumbers: List<String> = emptyList() // پارامتر جدید برای حواله‌های تکراری
+    duplicateTrackingNumbers: List<String> = emptyList()
 ) {
     var hasError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
@@ -3137,7 +3143,7 @@ fun ExpandableSection(
     initiallyExpanded: Boolean = false,
     searchQuery: String = "",
     onItemClick: (CargoInfo) -> Unit,
-    duplicateTrackingNumbers: List<String> = emptyList() // پارامتر جدید برای حواله‌های تکراری
+    duplicateTrackingNumbers: List<String> = emptyList()
 ) {
     var isExpanded by remember { mutableStateOf(initiallyExpanded) }
     
@@ -4447,7 +4453,7 @@ fun CargoInfoRow(
     info: CargoInfo,
     onRowClick: (CargoInfo) -> Unit,
     onError: (String) -> Unit,
-    duplicateTrackingNumbers: List<String> = emptyList() // پارامتر جدید برای حواله‌های تکراری
+    duplicateTrackingNumbers: List<String> = emptyList()
 ) {
     val formattedNetWeight = remember(info.netWeight) {
         try {
@@ -4937,6 +4943,7 @@ fun CargoInfoDetailsDialog(
     snackbarHostState: SnackbarHostState,
     searchQuery: String = "",
     onDismiss: () -> Unit,
+    onUpdateTypeChange: (String) -> Unit = {}
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
@@ -4983,7 +4990,7 @@ fun CargoInfoDetailsDialog(
                 
                 Column(modifier = Modifier.fillMaxSize()) {
                     // Modern Header
-                    ModernHeader(info, onDismiss)
+                    Header(info, onDismiss)
 
                     // Scrollable Content with Expandable Sections
                     LazyColumn(
@@ -4995,7 +5002,7 @@ fun CargoInfoDetailsDialog(
                     ) {
                         // اطلاعات اصلی
                         item {
-                            ModernExpandableSection(
+                            ExpandableSection(
                                 title = "اطلاعات اصلی",
                                 icon = Icons.Default.Info,
                                 isExpanded = expandedSection == "اطلاعات اصلی",
@@ -5004,13 +5011,13 @@ fun CargoInfoDetailsDialog(
                                 },
                                 accentColor = MaterialTheme.colorScheme.primary
                             ) {
-                                ModernMainInfoContent(info)
+                                MainInfoContent(info)
                             }
                         }
 
                         // اطلاعات وزن
                         item {
-                            ModernExpandableSection(
+                            ExpandableSection(
                                 title = "اطلاعات وزن",
                                 icon = Icons.Default.Scale,
                                 isExpanded = expandedSection == "اطلاعات وزن",
@@ -5019,13 +5026,13 @@ fun CargoInfoDetailsDialog(
                                 },
                                 accentColor = MaterialTheme.colorScheme.tertiary
                             ) {
-                                ModernWeightInfoContent(info)
+                                WeightInfoContent(info)
                             }
                         }
 
                         // اطلاعات زمان و تاریخ
                         item {
-                            ModernExpandableSection(
+                            ExpandableSection(
                                 title = "اطلاعات زمان و تاریخ",
                                 icon = Icons.Default.Schedule,
                                 isExpanded = expandedSection == "اطلاعات زمان و تاریخ",
@@ -5034,13 +5041,13 @@ fun CargoInfoDetailsDialog(
                                 },
                                 accentColor = MaterialTheme.colorScheme.secondary
                             ) {
-                                ModernTimeInfoContent(info)
+                                TimeInfoContent(info)
                             }
                         }
                     }
 
                     // Modern Footer with shadow
-                    ModernFooter(
+                    Footer(
                         onDelete = { showDeleteConfirmation = true },
                         onDismiss = onDismiss
                     )
@@ -5050,7 +5057,7 @@ fun CargoInfoDetailsDialog(
     }
 
     if (showDeleteConfirmation) {
-        ModernDeleteDialog(
+        DeleteDialog(
             onConfirm = {
                 coroutineScope.launch {
                     val request = CargoInfoRequest(
@@ -5062,6 +5069,7 @@ fun CargoInfoDetailsDialog(
                         loadingQuotaNumber = info.loadingQuotaNumber
                     )
                     viewModel.deleteCargo(request, password)
+                    onUpdateTypeChange("cargo_delete")
                     snackbarHostState.showSnackbar("حواله با موفقیت حذف شد")
                     onDismiss()
                 }
@@ -5074,7 +5082,7 @@ fun CargoInfoDetailsDialog(
 }
 
 @Composable
-private fun ModernHeader(info: CargoInfo, onDismiss: () -> Unit) {
+private fun Header(info: CargoInfo, onDismiss: () -> Unit) {
     val isLightTheme = !isSystemInDarkTheme()
     val headerGradient = if (isLightTheme) {
         Brush.horizontalGradient(
@@ -5207,16 +5215,16 @@ private fun ModernHeader(info: CargoInfo, onDismiss: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // وضعیت ورود/خروج
-                ModernStatusChip(
+                StatusChip(
                     status = info.status,
                     isLightTheme = isLightTheme
                 )
 
                 // وضعیت تایید
                 if (info.confirm == "تائید شده") {
-                    ModernConfirmationChip(isLightTheme = isLightTheme)
+                    ConfirmationChip(isLightTheme = isLightTheme)
                 } else {
-                    ModernPendingChip(isLightTheme = isLightTheme)
+                    PendingChip(isLightTheme = isLightTheme)
                 }
             }
         }
@@ -5224,7 +5232,7 @@ private fun ModernHeader(info: CargoInfo, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun ModernStatusChip(status: String, isLightTheme: Boolean) {
+private fun StatusChip(status: String, isLightTheme: Boolean) {
     val (backgroundColor, contentColor, icon, label) = when (status) {
         "ورود" -> {
             val green = Color(0xFF4CAF50)
@@ -5268,7 +5276,7 @@ private fun ModernStatusChip(status: String, isLightTheme: Boolean) {
 }
 
 @Composable
-private fun ModernConfirmationChip(isLightTheme: Boolean) {
+private fun ConfirmationChip(isLightTheme: Boolean) {
     val blue = Color(0xFF2196F3)
     val backgroundColor = if (isLightTheme) blue.copy(alpha = 0.15f) else blue.copy(alpha = 0.1f)
     val contentColor = if (isLightTheme) blue else blue.copy(alpha = 0.9f)
@@ -5301,7 +5309,7 @@ private fun ModernConfirmationChip(isLightTheme: Boolean) {
 }
 
 @Composable
-private fun ModernPendingChip(isLightTheme: Boolean) {
+private fun PendingChip(isLightTheme: Boolean) {
     val orange = Color(0xFFFF9800)
     val backgroundColor = if (isLightTheme) orange.copy(alpha = 0.15f) else orange.copy(alpha = 0.1f)
     val contentColor = if (isLightTheme) orange else orange.copy(alpha = 0.9f)
@@ -5336,7 +5344,7 @@ private fun ModernPendingChip(isLightTheme: Boolean) {
 data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
 @Composable
-private fun ModernExpandableSection(
+private fun ExpandableSection(
     title: String,
     icon: ImageVector,
     initiallyExpanded: Boolean = false,
@@ -5440,34 +5448,34 @@ private fun ModernExpandableSection(
 }
 
 @Composable
-private fun ModernMainInfoContent(info: CargoInfo) {
+private fun MainInfoContent(info: CargoInfo) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ModernInfoItem(label = "نام کشتی", value = info.shipName)
-        ModernInfoItem(label = "انبار بارگیری", value = info.loadingWarehouse)
-        ModernInfoItem(label = "نوع کالا", value = info.cargoType)
-        ModernInfoItem(label = "شرکت حمل و نقل", value = info.shippingCompany)
-        ModernInfoItem(label = "شماره حواله بارگیری", value = info.loadingQuotaNumber)
+        InfoItem(label = "نام کشتی", value = info.shipName)
+        InfoItem(label = "انبار بارگیری", value = info.loadingWarehouse)
+        InfoItem(label = "نوع کالا", value = info.cargoType)
+        InfoItem(label = "شرکت حمل و نقل", value = info.shippingCompany)
+        InfoItem(label = "شماره حواله بارگیری", value = info.loadingQuotaNumber)
     }
 }
 
 @Composable
-private fun ModernWeightInfoContent(info: CargoInfo) {
+private fun WeightInfoContent(info: CargoInfo) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ModernWeightItem(value = info.netWeight)
+        WeightItem(value = info.netWeight)
     }
 }
 
 @Composable
-private fun ModernTimeInfoContent(info: CargoInfo) {
+private fun TimeInfoContent(info: CargoInfo) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        ModernInfoItem(label = "زمان ورود", value = info.entryTime ?: "--")
-        ModernInfoItem(label = "زمان خروج", value = info.exitTime ?: "--")
-        ModernInfoItem(label = "تاریخ خروج", value = info.exitDate ?: "--")
+        InfoItem(label = "زمان ورود", value = info.entryTime ?: "--")
+        InfoItem(label = "زمان خروج", value = info.exitTime ?: "--")
+        InfoItem(label = "تاریخ خروج", value = info.exitDate ?: "--")
     }
 }
 
 @Composable
-private fun ModernInfoItem(label: String, value: String) {
+private fun InfoItem(label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -5488,7 +5496,7 @@ private fun ModernInfoItem(label: String, value: String) {
 }
 
 @Composable
-private fun ModernWeightItem(value: String) {
+private fun WeightItem(value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -5512,7 +5520,7 @@ private fun ModernWeightItem(value: String) {
 }
 
 @Composable
-private fun ModernFooter(onDelete: () -> Unit, onDismiss: () -> Unit) {
+private fun Footer(onDelete: () -> Unit, onDismiss: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
@@ -5568,7 +5576,7 @@ private fun ModernFooter(onDelete: () -> Unit, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun ModernDeleteDialog(
+private fun DeleteDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     password: String,
