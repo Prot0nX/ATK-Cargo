@@ -1439,7 +1439,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                         CargoCounterScreen(navController = navController)
                                     }
                                     composable(
-                                        route = "manage_reports",
+                                        route = "manage_ships",
                                         enterTransition = {
                                             slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
                                         },
@@ -1851,7 +1851,7 @@ fun HomeScreen(
     LaunchedEffect(selectedMenuItem) {
         selectedMenuItem?.let { menuItem ->
             when (menuItem.route) {
-                "initial_info", "select_info", "cargo_counter", "manage_reports", "manage_users" -> {
+                "initial_info", "select_info", "cargo_counter", "manage_ships", "manage_users" -> {
                     showGridAnimation = false
                     delay(300)
                     navController.navigate(menuItem.route)
@@ -3309,7 +3309,7 @@ private fun getMenuDescription(route: String): String {
         "select_info" -> "ثبت و مدیریت حواله‌ها"
         "cargo_counter" -> "نظارت بر بارگیری"
         "initial_info" -> "تعریف اطلاعات کشتی"
-        "manage_reports" -> "گزارش‌های مدیریتی"
+        "manage_ships" -> "گزارش‌های مدیریتی"
         "manage_users" -> "مدیریت کاربران سیستم"
         else -> ""
     }
@@ -5374,7 +5374,7 @@ fun getMenuItemsForUserType(userType: String): List<MenuItem> {
             MenuItem("ثبت حواله", R.drawable.ic_boosters, "select_info"),
             MenuItem("نظارت بارشمار", R.drawable.ic_cargo_counter, "cargo_counter"),
             MenuItem("تعریف کشتی", R.drawable.ic_journal, "initial_info"),
-            MenuItem("مدیریت گزارشات", R.drawable.ic_reports, "manage_reports"),
+            MenuItem("مدیریت کشتی ها", R.drawable.ic_reports, "manage_ships"),
             MenuItem("مدیریت کاربران", R.drawable.profile_admin, "manage_users")
         )
         "operator" -> listOf(
@@ -5388,7 +5388,7 @@ fun getMenuItemsForUserType(userType: String): List<MenuItem> {
             MenuItem("ثبت حواله", R.drawable.ic_boosters, "select_info"),
             MenuItem("نظارت بارشمار", R.drawable.ic_cargo_counter, "cargo_counter"),
             MenuItem("تعریف کشتی", R.drawable.ic_journal, "initial_info"),
-            MenuItem("مدیریت گزارشات", R.drawable.ic_reports, "manage_reports")
+            MenuItem("مدیریت کشتی ها", R.drawable.ic_reports, "manage_ships")
         )
     }
 }
