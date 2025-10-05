@@ -180,6 +180,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarData
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -284,6 +286,7 @@ import kotlin.math.roundToInt
 fun ManageReportsScreen(viewModel: ReportsViewModel) {
 	val context = LocalContext.current
 	val userPreferencesManager = remember { UserPreferencesManager(context) }
+	val snackbarHostState = remember { SnackbarHostState() }
 
 	LaunchedEffect(Unit) {
 		try {
@@ -294,12 +297,20 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 				context.startActivity(intent)
 				return@LaunchedEffect
 			}
-		} catch (e: Exception) {
-			Log.e("ManageReportsScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
+		} catch (_: Exception) {
 			val intent = Intent(context, MainActivity::class.java)
 			intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
 			context.startActivity(intent)
 			return@LaunchedEffect
+		}
+	}
+
+	LaunchedEffect(Unit) {
+		viewModel.snackbarMessages.collect { message ->
+			snackbarHostState.showSnackbar(
+				message = message,
+				duration = SnackbarDuration.Short
+			)
 		}
 	}
 	
@@ -324,7 +335,16 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 
 	ATKCargoTheme(darkTheme = isSystemInDarkTheme()) {
 		CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-		Scaffold { innerPadding ->
+		Scaffold(
+			snackbarHost = { 
+			SnackbarHost(
+				hostState = snackbarHostState,
+				snackbar = { snackbarData ->
+					CustomSnackbar(snackbarData = snackbarData)
+				}
+			)
+		},
+		) { innerPadding ->
 			NavHost(
 				navController = navController,
 				startDestination = "shipsList",
@@ -511,7 +531,6 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 		)
 	}
 
-	// نمایش خطاهای بارگیری
 	if (loadingError != null) {
 		AlertDialog(
 			onDismissRequest = { viewModel.clearLoadingError() },
@@ -554,7 +573,6 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
 			val filtered = shipsData.activeShips.filter {
 				it.name.contains(searchTerm, ignoreCase = true)
 			}
-			Log.d("ShipsList_Log", "کشتی‌های فعال فیلتر شده: ${filtered.size} - با عبارت جستجو: '$searchTerm'")
 			sortShips(filtered, currentShipSortingMode)
 		}
 	}
@@ -563,16 +581,13 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
 			val filtered = shipsData.inactiveShips.filter {
 				it.name.contains(searchTerm, ignoreCase = true)
 			}
-			Log.d("ShipsList_Log", "کشتی‌های غیرفعال فیلتر شده: ${filtered.size} - با عبارت جستجو: '$searchTerm'")
 			sortShips(filtered, currentShipSortingMode)
 		}
 	}
 
 	LaunchedEffect(Unit) {
-		Log.d("ShipsList_Log", "درخواست بارگذاری لیست کشتی‌ها از سرور با استفاده از app_api_2.php")
 		try {
 			viewModel.loadShips()
-			Log.d("ShipsList_Log", "درخواست بارگذاری لیست کشتی‌ها ارسال شد")
 		} catch (e: Exception) {
 			Log.e("ShipsList_Log", "خطا در بارگذاری لیست کشتی‌ها: ${e.message}", e)
 		}
@@ -1857,7 +1872,7 @@ fun QuotasList(
 			verticalArrangement = Arrangement.spacedBy(8.dp)
 		) {
 			groupedQuotas.forEach { (groupName, sortedQuotas) ->
-				item {
+				item(key = groupName) {
 					groupName?.let {
 						QuotaGroupExpansionPanel(
 							groupName = it,
@@ -1979,7 +1994,7 @@ fun QuotaGroupExpansionPanel(
 				HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
 				Spacer(modifier = Modifier.height(8.dp))
 
-				quotas.forEach { quota ->
+				quotas.forEachIndexed { index, quota ->
 					QuotaCard(
 						quota = quota,
 						isExpanded = expandedQuotaNumber == quota.number,
@@ -1991,7 +2006,9 @@ fun QuotaGroupExpansionPanel(
 						onDelete = onDelete,
 						onPercentageChange = onPercentageChange
 					)
-					Spacer(modifier = Modifier.height(8.dp))
+					if (index < quotas.size - 1) {
+						Spacer(modifier = Modifier.height(8.dp))
+					}
 				}
 			}
 		}
@@ -2440,6 +2457,66 @@ fun QuotaWarningDialog(
 							}
 						}
 					}
+				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun CustomSnackbar(
+	snackbarData: SnackbarData,
+	modifier: Modifier = Modifier
+) {
+	val backgroundColor = MaterialTheme.colorScheme.primary
+	val contentColor = MaterialTheme.colorScheme.onPrimary
+	
+	Card(
+		modifier = modifier
+			.fillMaxWidth()
+			.padding(horizontal = 12.dp, vertical = 6.dp),
+		shape = RoundedCornerShape(12.dp),
+		colors = CardDefaults.cardColors(
+			containerColor = backgroundColor
+		),
+		elevation = CardDefaults.cardElevation(
+			defaultElevation = 4.dp
+		)
+	) {
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(horizontal = 12.dp, vertical = 8.dp),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(8.dp)
+		) {
+			// آیکون اطلاعات
+			Icon(
+				imageVector = Icons.Default.Info,
+				contentDescription = null,
+				tint = contentColor.copy(alpha = 0.9f),
+				modifier = Modifier.size(16.dp)
+			)
+			
+			// متن پیام
+			Text(
+				text = snackbarData.visuals.message,
+				style = MaterialTheme.typography.bodyMedium,
+				color = contentColor,
+				modifier = Modifier.weight(1f)
+			)
+			
+			// دکمه بستن
+			snackbarData.visuals.actionLabel?.let { actionLabel ->
+				TextButton(
+					onClick = { snackbarData.performAction() },
+					contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+				) {
+					Text(
+						text = actionLabel,
+						style = MaterialTheme.typography.bodySmall,
+						color = contentColor
+					)
 				}
 			}
 		}
@@ -5394,7 +5471,7 @@ fun WarehouseDetails(
 	}
 
 	// نمایش Snackbar
-	LaunchedEffect(snackbarHostState) {
+	LaunchedEffect(Unit) {
 		viewModel.snackbarMessages.collect { message ->
 			snackbarHostState.showSnackbar(message)
 		}
@@ -7441,7 +7518,7 @@ fun QuotaCard(
 	var showToggleDialog by remember { mutableStateOf(false) }
 	var showPercentageDialog by remember { mutableStateOf(false) }
 
-	// رنگ‌های کارت بر اساس وضعیت فعال/غیرفعال
+	// بهینه‌سازی رنگ‌ها بر اساس وضعیت فعال/غیرفعال
 	val cardColor = if (quota.isActive) {
 		MaterialTheme.colorScheme.surface
 	} else {
@@ -7458,14 +7535,46 @@ fun QuotaCard(
 		MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
 	}
 
-	// محاسبه پیشرفت بارگیری
-	val progress = calculateProgress(quota.loadedTonnage, quota.totalTonnage)
+	// محاسبه پیشرفت بارگیری با remember
+	val progress = remember(quota.loadedTonnage, quota.totalTonnage) {
+		calculateProgress(quota.loadedTonnage, quota.totalTonnage)
+	}
+
+	// محاسبه مقادیر کوتاژ با remember
+	val calculatedValues = remember(quota.totalTonnage, quota.percentage, quota.remainingTonnage) {
+		calculateValues(
+			totalTonnage = quota.totalTonnage,
+			percentage = quota.percentage ?: 0.0,
+			remainingTonnage = quota.remainingTonnage
+		)
+	}
+
+	// بهینه‌سازی callback functions
+	val onEditClick = remember(quota.number) {
+		{ showEditDialog = true }
+	}
+	
+	val onPercentageClick = remember(quota.number) {
+		{ showPercentageDialog = true }
+	}
+	
+	val onToggleClick = remember(quota.number) {
+		{ showToggleDialog = true }
+	}
+	
+	val onDeleteClick = remember(quota.number) {
+		{ showDeleteDialog = true }
+	}
+	
+	val onExpandClick = remember(quota.number, isExpanded) {
+		{ onExpandToggle(!isExpanded) }
+	}
 
 	Card(
 		modifier = Modifier
 			.fillMaxWidth()
 			.clip(RoundedCornerShape(12.dp))
-			.clickable { onExpandToggle(!isExpanded) },
+			.clickable(onClick = onExpandClick),
 		colors = CardDefaults.cardColors(containerColor = cardColor),
 		border = BorderStroke(
 			width = 1.dp,
@@ -7474,24 +7583,18 @@ fun QuotaCard(
 			} else {
 				MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
 			}
-		),
-		elevation = CardDefaults.cardElevation(
-			defaultElevation = if (quota.isActive) 1.dp else 0.dp
 		)
 	) {
 		Column(modifier = Modifier.padding(10.dp)) {
-			// Header - طراحی مینیمال‌تر
 			Row(
 				modifier = Modifier.fillMaxWidth(),
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
-				// اطلاعات اصلی کوتاژ
 				Row(
 					verticalAlignment = Alignment.CenterVertically,
 					horizontalArrangement = Arrangement.spacedBy(8.dp)
 				) {
-					// آیکون کوتاژ با طراحی مینیمال‌تر
 					Surface(
 						modifier = Modifier.size(32.dp),
 						shape = CircleShape,
@@ -7508,7 +7611,6 @@ fun QuotaCard(
 						}
 					}
 
-					// اطلاعات کوتاژ
 					Column {
 						Text(
 							text = "کوتاژ ${quota.number}",
@@ -7519,7 +7621,6 @@ fun QuotaCard(
 							overflow = TextOverflow.Ellipsis
 						)
 
-						// نمایش نوع کالا و تناژ مانده در یک خط
 						Row(
 							horizontalArrangement = Arrangement.spacedBy(4.dp),
 							verticalAlignment = Alignment.CenterVertically
@@ -7540,18 +7641,11 @@ fun QuotaCard(
 								)
 							}
 
-							// نمایش مانده کل درصد با آیکون
 							Icon(
 								imageVector = Icons.Default.Scale,
 								contentDescription = null,
 								tint = accentColor,
 								modifier = Modifier.size(12.dp)
-							)
-							// محاسبه مقدار مانده کل درصد
-							val calculatedValues = calculateValues(
-								totalTonnage = quota.totalTonnage,
-								percentage = quota.percentage ?: 0.0,
-								remainingTonnage = quota.remainingTonnage
 							)
 							Text(
 								text = "${formatWeightWithDetail(calculatedValues.totalRemainingAfterPercentage.toFloat())} (%.2f%%)".format(quota.percentage ?: 0.0),
@@ -7563,12 +7657,10 @@ fun QuotaCard(
 					}
 				}
 
-				// وضعیت و دکمه باز/بسته کردن
 				Row(
 					horizontalArrangement = Arrangement.spacedBy(4.dp),
 					verticalAlignment = Alignment.CenterVertically
 				) {
-					// نمایش وضعیت فعال/غیرفعال با آیکون به جای متن
 					Icon(
 						imageVector = if (quota.isActive) Icons.Default.CheckCircle else Icons.Default.Cancel,
 						contentDescription = if (quota.isActive) "فعال" else "غیرفعال",
@@ -7576,7 +7668,6 @@ fun QuotaCard(
 						modifier = Modifier.size(16.dp)
 					)
 
-					// نمایش درصد پیشرفت در حالت بسته
 					if (!isExpanded) {
 						Text(
 							text = "${(progress * 100).toInt()}%",
@@ -7586,7 +7677,6 @@ fun QuotaCard(
 						)
 					}
 
-					// آیکون باز/بسته کردن
 					Icon(
 						imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
 						contentDescription = if (isExpanded) "بستن" else "بازکردن",
@@ -7595,7 +7685,6 @@ fun QuotaCard(
 				}
 			}
 
-			// نمایش نوار پیشرفت در حالت بسته
 			if (!isExpanded) {
 				Spacer(modifier = Modifier.height(8.dp))
 				LinearProgressIndicator(
@@ -7609,7 +7698,6 @@ fun QuotaCard(
 				)
 			}
 
-			// محتوای باز شده
 			AnimatedVisibility(
 				visible = isExpanded,
 				enter = expandVertically() + fadeIn(),
@@ -7619,7 +7707,6 @@ fun QuotaCard(
 					modifier = Modifier.padding(top = 12.dp),
 					verticalArrangement = Arrangement.spacedBy(12.dp)
 				) {
-					// بخش پیشرفت بارگیری
 					Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
 						Row(
 							modifier = Modifier.fillMaxWidth(),
@@ -7649,7 +7736,6 @@ fun QuotaCard(
 						)
 					}
 
-					// بخش آمار در یک ردیف
 					Surface(
 						color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
 						shape = RoundedCornerShape(8.dp)
@@ -7676,7 +7762,6 @@ fun QuotaCard(
 						}
 					}
 
-					// بخش دکمه‌های عملیات
 					HorizontalDivider(
 						color = contentColor.copy(alpha = 0.1f)
 					)
@@ -7689,25 +7774,25 @@ fun QuotaCard(
 							icon = Icons.Default.Edit,
 							label = "ویرایش",
 							color = MaterialTheme.colorScheme.primary,
-							onClick = { showEditDialog = true }
+							onClick = onEditClick
 						)
 						ActionButton(
 							icon = Icons.Default.AddTask,
 							label = "درصد",
 							color = MaterialTheme.colorScheme.secondary,
-							onClick = { showPercentageDialog = true }
+							onClick = onPercentageClick
 						)
 						ActionButton(
 							icon = if (quota.isActive) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
 							label = if (quota.isActive) "غیرفعال‌سازی" else "فعال‌سازی",
 							color = if (quota.isActive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-							onClick = { showToggleDialog = true }
+							onClick = onToggleClick
 						)
 						ActionButton(
 							icon = Icons.Default.Delete,
 							label = "حذف",
 							color = MaterialTheme.colorScheme.error,
-							onClick = { showDeleteDialog = true }
+							onClick = onDeleteClick
 						)
 					}
 				}
@@ -7715,22 +7800,67 @@ fun QuotaCard(
 		}
 	}
 
+	val onDeleteConfirm = remember(quota) {
+		{
+			onDelete(quota)
+			showDeleteDialog = false
+		}
+	}
+	
+	val onDeleteDismiss = remember {
+		{ showDeleteDialog = false }
+	}
+	
+	val onPercentageDismiss = remember {
+		{ showPercentageDialog = false }
+	}
+	
+	val onToggleConfirm = remember(quota.number) {
+		{
+			onToggleStatus(quota.number)
+			showToggleDialog = false
+		}
+	}
+	
+	val onToggleDismiss = remember {
+		{ showToggleDialog = false }
+	}
+	
+	val quotaEditData = remember(quota) {
+		QuotaEditData(
+			quotaNumber = quota.number,
+			shipName = quota.shipName ?: "",
+			shippingCompany = quota.shippingCompany,
+			warehouse = quota.warehouse ?: "",
+			cargoType = quota.cargoType ?: "",
+			totalTonnage = quota.totalTonnage
+		)
+	}
+	
+	val onEditConfirm = remember(quota.number) {
+		{ editedData: QuotaEditData ->
+			onEdit(quota.number, editedData)
+			showEditDialog = false
+		}
+	}
+	
+	val onEditDismiss = remember {
+		{ showEditDialog = false }
+	}
+
 	// دیالوگ‌ها
 	if (showDeleteDialog) {
 		DeleteQuotaDialog(
 			quotaNumber = quota.number,
-			onConfirm = {
-				onDelete(quota)
-				showDeleteDialog = false
-			},
-			onDismiss = { showDeleteDialog = false }
+			onConfirm = onDeleteConfirm,
+			onDismiss = onDeleteDismiss
 		)
 	}
 
 	if (showPercentageDialog) {
 		QuotaPercentageDialog(
 			quota = quota,
-			onDismiss = { showPercentageDialog = false },
+			onDismiss = onPercentageDismiss,
 			onConfirm = onPercentageChange
 		)
 	}
@@ -7739,29 +7869,16 @@ fun QuotaCard(
 		ToggleQuotaStatusDialog(
 			quotaNumber = quota.number,
 			isActive = quota.isActive,
-			onConfirm = {
-				onToggleStatus(quota.number)
-				showToggleDialog = false
-			},
-			onDismiss = { showToggleDialog = false }
+			onConfirm = onToggleConfirm,
+			onDismiss = onToggleDismiss
 		)
 	}
 
 	if (showEditDialog) {
 		EditQuotaDialog(
-			quotaData = QuotaEditData(
-				quotaNumber = quota.number,
-				shipName = quota.shipName ?: "",
-				shippingCompany = quota.shippingCompany,
-				warehouse = quota.warehouse ?: "",
-				cargoType = quota.cargoType ?: "",
-				totalTonnage = quota.totalTonnage
-			),
-			onConfirm = { editedData ->
-				onEdit(quota.number, editedData)
-				showEditDialog = false
-			},
-			onDismiss = { showEditDialog = false }
+			quotaData = quotaEditData,
+			onConfirm = onEditConfirm,
+			onDismiss = onEditDismiss
 		)
 	}
 }
