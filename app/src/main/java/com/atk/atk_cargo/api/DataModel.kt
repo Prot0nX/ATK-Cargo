@@ -1424,7 +1424,7 @@ class ReportsViewModel(
     private val colorSelector = ColorSelector(cardColors)
     private val _snackbarMessages = MutableSharedFlow<String>()
     val snackbarMessages = _snackbarMessages.asSharedFlow()
-    private fun showSnackbar(message: String) {
+    fun showSnackbar(message: String) {
         viewModelScope.launch {
             _snackbarMessages.emit(message)
         }
@@ -1696,6 +1696,34 @@ class ReportsViewModel(
         }
     }
 
+    private fun updateQuotaInList(quotaNumber: String, updateFunction: (Quota) -> Quota) {
+        val currentQuotas = _selectedShipQuotas.value.toMutableList()
+        val quotaIndex = currentQuotas.indexOfFirst { it.number == quotaNumber }
+        
+        if (quotaIndex != -1) {
+            currentQuotas[quotaIndex] = updateFunction(currentQuotas[quotaIndex])
+            _selectedShipQuotas.value = currentQuotas
+        }
+    }
+    
+    private fun removeQuotaFromList(quotaNumber: String) {
+        val currentQuotas = _selectedShipQuotas.value.toMutableList()
+        currentQuotas.removeAll { it.number == quotaNumber }
+        _selectedShipQuotas.value = currentQuotas
+    }
+    
+    private fun addOrUpdateQuotaInList(quota: Quota) {
+        val currentQuotas = _selectedShipQuotas.value.toMutableList()
+        val existingIndex = currentQuotas.indexOfFirst { it.number == quota.number }
+        
+        if (existingIndex != -1) {
+            currentQuotas[existingIndex] = quota
+        } else {
+            currentQuotas.add(quota)
+        }
+        _selectedShipQuotas.value = currentQuotas
+    }
+
     fun getFilteredSummary(
         shipName: String,
         warehouseName: String,
@@ -1734,12 +1762,26 @@ class ReportsViewModel(
                     totalTonnage = newQuotaData.totalTonnage
                 )
                 if (success) {
-                    // به‌روزرسانی نام فعلی کشتی
-                    _currentShipName.value = newQuotaData.shipName
-                    // بارگذاری مجدد اطلاعات کشتی با نام جدید
-                    loadShipDetails(newQuotaData.shipName)
-                    // بارگذاری مجدد لیست کوتاژها با نام جدید
-                    loadShipQuotas(newQuotaData.shipName)
+                    val currentShipName = _currentShipName.value
+                    
+                    if (currentShipName == newQuotaData.shipName) {
+                        updateQuotaInList(oldQuotaNumber) { quota ->
+                            quota.copy(
+                                number = newQuotaData.quotaNumber,
+                                shipName = newQuotaData.shipName,
+                                shippingCompany = newQuotaData.shippingCompany,
+                                warehouse = newQuotaData.warehouse,
+                                cargoType = newQuotaData.cargoType,
+                                totalTonnage = newQuotaData.totalTonnage
+                            )
+                        }
+                    } else {
+                        removeQuotaFromList(oldQuotaNumber)
+                        _currentShipName.value = newQuotaData.shipName
+                        loadShipDetails(newQuotaData.shipName)
+                        loadShipQuotas(newQuotaData.shipName)
+                    }
+                    
                     showSnackbar("کوتاژ با موفقیت ویرایش شد")
                 } else {
                     showSnackbar("خطا در ویرایش کوتاژ")
@@ -1758,9 +1800,8 @@ class ReportsViewModel(
                     percentage = data.percentage
                 )
                 if (success) {
-                    // بروزرسانی لیست کوتاژها
-                    _currentShipName.value?.let { shipName ->
-                        loadShipQuotas(shipName)
+                    updateQuotaInList(data.quotaNumber) { quota ->
+                        quota.copy(percentage = data.percentage)
                     }
                     showSnackbar("درصد کوتاژ با موفقیت بروزرسانی شد")
                 } else {
@@ -1777,12 +1818,9 @@ class ReportsViewModel(
             try {
                 val success = repository.toggleQuotaStatus(quotaNumber)
                 if (success) {
-                    // Refresh the quotas list
-                    _currentShipName.value?.let { shipName ->
-                        loadShipQuotas(shipName)
+                    updateQuotaInList(quotaNumber) { quota ->
+                        quota.copy(isActive = !quota.isActive)
                     }
-                    // Refresh ships list to update status
-                    loadShips()
                     showSnackbar("وضعیت کوتاژ با موفقیت تغییر کرد")
                 } else {
                     showSnackbar("خطا در تغییر وضعیت کوتاژ")
@@ -1803,9 +1841,8 @@ class ReportsViewModel(
                     isEnabled = if (isRestricted) 1 else 0
                 )
                 if (success) {
-                    // Reload quotas to refresh the UI
-                    _currentShipName.value?.let { shipName ->
-                        loadShipQuotas(shipName)
+                    updateQuotaInList(quotaNumber) { quota ->
+                        quota.copy(isPercentageRestricted = isRestricted)
                     }
                     showSnackbar(
                         if (isRestricted) "محدودیت درصد کوتاژ فعال شد"
@@ -1836,12 +1873,9 @@ class ReportsViewModel(
                     tonnage = tonnage
                 )
                 if (success) {
-                    // Reload quotas to refresh the UI
                     _currentShipName.value?.let { shipName ->
                         loadShipQuotas(shipName)
                     }
-                    // Refresh ships list to update temporary tonnage status
-                    loadShips()
                     showSnackbar(
                         if (enabled) "تناژ موقت با موفقیت فعال شد"
                         else "تناژ موقت غیرفعال شد"
@@ -1868,8 +1902,7 @@ class ReportsViewModel(
                     cargoType = quota.cargoType ?: ""
                 )
                 if (success) {
-                    // Refresh the quotas list
-                    loadShipQuotas(_selectedShip.value?.name ?: "")
+                    removeQuotaFromList(quota.number)
                     showSnackbar("کوتاژ با موفقیت حذف شد")
                 } else {
                     showSnackbar("خطا در حذف کوتاژ")
