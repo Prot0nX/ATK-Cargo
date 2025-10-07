@@ -180,8 +180,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarData
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -286,7 +284,6 @@ import kotlin.math.roundToInt
 fun ManageReportsScreen(viewModel: ReportsViewModel) {
 	val context = LocalContext.current
 	val userPreferencesManager = remember { UserPreferencesManager(context) }
-	val snackbarHostState = remember { SnackbarHostState() }
 
 	LaunchedEffect(Unit) {
 		try {
@@ -297,7 +294,8 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 				context.startActivity(intent)
 				return@LaunchedEffect
 			}
-		} catch (_: Exception) {
+		} catch (e: Exception) {
+			Log.e("ManageReportsScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
 			val intent = Intent(context, MainActivity::class.java)
 			intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
 			context.startActivity(intent)
@@ -305,15 +303,6 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 		}
 	}
 
-	LaunchedEffect(Unit) {
-		viewModel.snackbarMessages.collect { message ->
-			snackbarHostState.showSnackbar(
-				message = message,
-				duration = SnackbarDuration.Short
-			)
-		}
-	}
-	
 	val navController = rememberNavController()
 	var showQuotasDialog by remember { mutableStateOf(false) }
 	var selectedShipForQuotas by remember { mutableStateOf<String?>(null) }
@@ -335,71 +324,62 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 
 	ATKCargoTheme(darkTheme = isSystemInDarkTheme()) {
 		CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-		Scaffold(
-			snackbarHost = { 
-			SnackbarHost(
-				hostState = snackbarHostState,
-				snackbar = { snackbarData ->
-					CustomSnackbar(snackbarData = snackbarData)
-				}
-			)
-		},
-		) { innerPadding ->
-			NavHost(
-				navController = navController,
-				startDestination = "shipsList",
-				modifier = Modifier.padding(innerPadding)
-			) {
-				composable("shipsList") {
-				LaunchedEffect(Unit) {
-					currentSelectedSection = 0
-					viewModel.clearSelectedDateRange()
-				}
+			Scaffold { innerPadding ->
+				NavHost(
+					navController = navController,
+					startDestination = "shipsList",
+					modifier = Modifier.padding(innerPadding)
+				) {
+					composable("shipsList") {
+						LaunchedEffect(Unit) {
+							currentSelectedSection = 0
+							viewModel.clearSelectedDateRange()
+						}
 
-				ShipsList(
-					viewModel = viewModel,
-					onShipSelected = { shipName ->
-						navController.navigate("shipDetails/$shipName") {
-							launchSingleTop = true
-						}
-					}
-				)
-			}
-				composable("shipDetails/{shipName}") { backStackEntry ->
-					val shipName = backStackEntry.arguments?.getString("shipName") ?: return@composable
-					ShipDetails(
-						initialShipName = shipName,
-						viewModel = viewModel,
-						onWarehouseSelected = { warehouseName ->
-							navController.navigate("warehouseDetails/$shipName/$warehouseName") {
-								launchSingleTop = true
+						ShipsList(
+							viewModel = viewModel,
+							onShipSelected = { shipName ->
+								navController.navigate("shipDetails/$shipName") {
+									launchSingleTop = true
+								}
 							}
-						},
-						onSectionChanged = { section ->
-							currentSelectedSection = section
-						}
-					)
-				}
-				composable("warehouseDetails/{shipName}/{warehouseName}") { backStackEntry ->
-					val shipName = backStackEntry.arguments?.getString("shipName") ?: return@composable
-					val warehouseName = backStackEntry.arguments?.getString("warehouseName") ?: return@composable
-					WarehouseDetails(
-						shipName = shipName,
-						warehouseName = warehouseName,
-						viewModel = viewModel
-					)
-				}
-				composable("quotaDetails/{quotaNumber}") { backStackEntry ->
-					val quotaNumber = backStackEntry.arguments?.getString("quotaNumber") ?: return@composable
-					QuotaDetails(
-						quotaNumber = quotaNumber,
-						viewModel = viewModel
-					)
+						)
+					}
+					composable("shipDetails/{shipName}") { backStackEntry ->
+						val shipName = backStackEntry.arguments?.getString("shipName") ?: return@composable
+						ShipDetails(
+							initialShipName = shipName,
+							viewModel = viewModel,
+							onWarehouseSelected = { warehouseName ->
+								navController.navigate("warehouseDetails/$shipName/$warehouseName") {
+									launchSingleTop = true
+								}
+							},
+							onSectionChanged = { section ->
+								currentSelectedSection = section
+							}
+						)
+					}
+					composable("warehouseDetails/{shipName}/{warehouseName}") { backStackEntry ->
+						val shipName = backStackEntry.arguments?.getString("shipName") ?: return@composable
+						val warehouseName = backStackEntry.arguments?.getString("warehouseName") ?: return@composable
+						WarehouseDetails(
+							shipName = shipName,
+							warehouseName = warehouseName,
+							viewModel = viewModel
+						)
+					}
+					composable("quotaDetails/{quotaNumber}") { backStackEntry ->
+						val quotaNumber = backStackEntry.arguments?.getString("quotaNumber") ?: return@composable
+						QuotaDetails(
+							quotaNumber = quotaNumber,
+							viewModel = viewModel
+						)
+					}
 				}
 			}
 		}
 	}
-		}
 
 	if (showQuotasDialog && selectedShipForQuotas != null) {
 		QuotasDialog(
@@ -531,6 +511,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel) {
 		)
 	}
 
+	// نمایش خطاهای بارگیری
 	if (loadingError != null) {
 		AlertDialog(
 			onDismissRequest = { viewModel.clearLoadingError() },
@@ -573,6 +554,7 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
 			val filtered = shipsData.activeShips.filter {
 				it.name.contains(searchTerm, ignoreCase = true)
 			}
+			Log.d("ShipsList_Log", "کشتی‌های فعال فیلتر شده: ${filtered.size} - با عبارت جستجو: '$searchTerm'")
 			sortShips(filtered, currentShipSortingMode)
 		}
 	}
@@ -581,13 +563,16 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
 			val filtered = shipsData.inactiveShips.filter {
 				it.name.contains(searchTerm, ignoreCase = true)
 			}
+			Log.d("ShipsList_Log", "کشتی‌های غیرفعال فیلتر شده: ${filtered.size} - با عبارت جستجو: '$searchTerm'")
 			sortShips(filtered, currentShipSortingMode)
 		}
 	}
 
 	LaunchedEffect(Unit) {
+		Log.d("ShipsList_Log", "درخواست بارگذاری لیست کشتی‌ها از سرور با استفاده از app_api_2.php")
 		try {
 			viewModel.loadShips()
+			Log.d("ShipsList_Log", "درخواست بارگذاری لیست کشتی‌ها ارسال شد")
 		} catch (e: Exception) {
 			Log.e("ShipsList_Log", "خطا در بارگذاری لیست کشتی‌ها: ${e.message}", e)
 		}
@@ -721,7 +706,7 @@ private fun shareCargoInfo(cargoInfo: CargoInfo, context: Context) {
 		appendLine("━━━━━━━━━━━━━━━━━━━━")
 		appendLine("📱 ارسال شده از اپلیکیشن ATK Cargo")
 	}
-	
+
 	// ایجاد Intent برای اشتراک‌گذاری
 	val shareIntent = Intent().apply {
 		action = Intent.ACTION_SEND
@@ -729,10 +714,10 @@ private fun shareCargoInfo(cargoInfo: CargoInfo, context: Context) {
 		putExtra(Intent.EXTRA_TEXT, shareText)
 		putExtra(Intent.EXTRA_SUBJECT, "اطلاعات حواله ${cargoInfo.trackingNumber}")
 	}
-	
+
 	// نمایش انتخابگر اشتراک‌گذاری
 	val chooserIntent = Intent.createChooser(shareIntent, "اشتراک‌گذاری اطلاعات حواله")
-	
+
 	// شروع Activity اشتراک‌گذاری
 	try {
 		context.startActivity(chooserIntent)
@@ -764,7 +749,7 @@ fun ShipTabItem(
 		animationSpec = tween(300),
 		label = "background"
 	)
-	
+
 	val contentColor by animateColorAsState(
 		targetValue = if (isSelected) {
 			MaterialTheme.colorScheme.onPrimary
@@ -795,9 +780,9 @@ fun ShipTabItem(
 				tint = contentColor,
 				modifier = Modifier.size(18.dp)
 			)
-			
+
 			Spacer(modifier = Modifier.width(8.dp))
-			
+
 			Text(
 				text = "${tab.title} (${tab.count})",
 				style = MaterialTheme.typography.bodyMedium,
@@ -853,7 +838,7 @@ fun EmptyShipsState(
 				tint = MaterialTheme.colorScheme.outline,
 				modifier = Modifier.size(48.dp)
 			)
-			
+
 			Text(
 				text = if (isActive) "کشتی فعالی یافت نشد" else "کشتی غیرفعالی یافت نشد",
 				style = MaterialTheme.typography.bodyLarge,
@@ -959,7 +944,7 @@ fun ShipCardContent(
 
 				Spacer(modifier = Modifier.height(4.dp))
 				val loadedTonnage = ship.totalTonnage - ship.remainingTonnage
-				
+
 				Row(
 					modifier = Modifier.fillMaxWidth(),
 					horizontalArrangement = Arrangement.SpaceBetween,
@@ -1032,7 +1017,7 @@ fun ShipSortingSelector(
 				},
 				modifier = Modifier.weight(1f)
 			)
-			
+
 			// تناژ بارگیری
 			SortingModeButton(
 				text = "تناژ بارگیری",
@@ -1049,7 +1034,7 @@ fun ShipSortingSelector(
 				},
 				modifier = Modifier.weight(1f)
 			)
-			
+
 			// ترتیب اسم
 			SortingModeButton(
 				text = "ترتیب اسم",
@@ -1082,6 +1067,12 @@ fun ShipDetails(
 	val selectedShipQuotas by viewModel.selectedShipQuotas.collectAsState()
 	var showWarningDialog by remember { mutableStateOf(false) }
 	val uiState by viewModel.uiState.collectAsState()
+	
+	// متغیرهای StateFlow جدید برای مدیریت بهتر وضعیت بارگذاری
+	val isLoadingShipDetails by viewModel.isLoadingShipDetails.collectAsState()
+	val isLoadingShipQuotas by viewModel.isLoadingShipQuotas.collectAsState()
+	val shipDetailsLoadingState by viewModel.shipDetailsLoadingState.collectAsState()
+	
 	var selectedTabIndex by remember { mutableIntStateOf(0) }
 	val pagerState = rememberPagerState(pageCount = { 1 })
 	val coroutineScope = rememberCoroutineScope()
@@ -1097,8 +1088,8 @@ fun ShipDetails(
 
 	LaunchedEffect(initialShipName) {
 		viewModel.clearCurrentShipData()
-		viewModel.loadShipDetails(initialShipName)
-		viewModel.loadShipQuotas(initialShipName)
+		// استفاده از تابع بهینه‌شده برای بارگذاری موازی
+		viewModel.loadShipDataAsync(initialShipName)
 	}
 
 	LaunchedEffect(pagerState.currentPage) {
@@ -1114,48 +1105,124 @@ fun ShipDetails(
 	Box(modifier = Modifier.fillMaxSize()) {
 		Column(modifier = Modifier.fillMaxSize()) {
 
-			when (uiState) {
-				is ReportsViewModel.UiState.Loading -> {
+			when {
+				uiState is ReportsViewModel.UiState.Error -> {
 					Box(
 						modifier = Modifier.fillMaxSize(),
 						contentAlignment = Alignment.Center
 					) {
-						CircularProgressIndicator()
+						Column(
+							modifier = Modifier
+								.fillMaxWidth(0.8f)
+								.wrapContentHeight()
+								.clip(RoundedCornerShape(16.dp))
+								.background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f))
+								.padding(24.dp),
+							horizontalAlignment = Alignment.CenterHorizontally,
+							verticalArrangement = Arrangement.spacedBy(16.dp)
+						) {
+							Icon(
+								imageVector = Icons.Default.Error,
+								contentDescription = null,
+								tint = MaterialTheme.colorScheme.error,
+								modifier = Modifier.size(48.dp)
+							)
+							Text(
+								text = "خطا در سیستم",
+								style = MaterialTheme.typography.titleMedium,
+								color = MaterialTheme.colorScheme.onErrorContainer,
+								textAlign = TextAlign.Center,
+								fontWeight = FontWeight.Bold
+							)
+							Text(
+								text = (uiState as? ReportsViewModel.UiState.Error)?.message ?: "خطای نامشخص",
+								style = MaterialTheme.typography.bodyMedium,
+								color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+								textAlign = TextAlign.Center
+							)
+						}
 					}
 				}
-				is ReportsViewModel.UiState.Error -> {
+				// اگر هر دو در حال بارگذاری هستند و هیچ داده‌ای موجود نیست
+				(isLoadingShipDetails && isLoadingShipQuotas) && ship == null -> {
 					Box(
 						modifier = Modifier.fillMaxSize(),
 						contentAlignment = Alignment.Center
 					) {
-						Text(
-							text = (uiState as ReportsViewModel.UiState.Error).message,
-							color = MaterialTheme.colorScheme.error
-						)
+						Column(
+							horizontalAlignment = Alignment.CenterHorizontally,
+							verticalArrangement = Arrangement.spacedBy(16.dp)
+						) {
+							CircularProgressIndicator()
+							Text(
+								text = "در حال بارگذاری اطلاعات کشتی...",
+								style = MaterialTheme.typography.bodyMedium,
+								color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+							)
+						}
 					}
 				}
-				is ReportsViewModel.UiState.Success -> {
-					ship?.let { shipDetails ->
-						HorizontalPager(
-							state = pagerState,
-							userScrollEnabled = false,
-							modifier = Modifier.fillMaxSize()
-						) { page ->
-							AnimatedContent(
-								targetState = page,
-								transitionSpec = {
-									if (targetState > initialState) {
-										slideInHorizontally { width -> width } + fadeIn() togetherWith
-												slideOutHorizontally { width -> -width } + fadeOut()
-									} else {
-										slideInHorizontally { width -> -width } + fadeIn() togetherWith
-												slideOutHorizontally { width -> width } + fadeOut()
-									}
-								},
-								label = "Page transition"
-							) { targetPage ->
-								when (targetPage) {
-									0 -> WarehousesAndQuotasTab(
+				// اگر خطا در بارگذاری اطلاعات کشتی رخ داده و هیچ داده‌ای موجود نیست
+				shipDetailsLoadingState is ReportsViewModel.LoadingState.Error && ship == null -> {
+					Box(
+						modifier = Modifier.fillMaxSize(),
+						contentAlignment = Alignment.Center
+					) {
+						Column(
+							modifier = Modifier
+								.fillMaxWidth(0.8f)
+								.wrapContentHeight()
+								.clip(RoundedCornerShape(16.dp))
+								.background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f))
+								.padding(24.dp),
+							horizontalAlignment = Alignment.CenterHorizontally,
+							verticalArrangement = Arrangement.spacedBy(16.dp)
+						) {
+							Icon(
+								imageVector = Icons.Default.Error,
+								contentDescription = null,
+								tint = MaterialTheme.colorScheme.error,
+								modifier = Modifier.size(48.dp)
+							)
+							Text(
+								text = "خطا در بارگذاری اطلاعات کشتی",
+								style = MaterialTheme.typography.titleMedium,
+								color = MaterialTheme.colorScheme.onErrorContainer,
+								textAlign = TextAlign.Center,
+								fontWeight = FontWeight.Bold
+							)
+							Text(
+								text = (shipDetailsLoadingState as? ReportsViewModel.LoadingState.Error)?.message ?: "خطای نامشخص",
+								style = MaterialTheme.typography.bodyMedium,
+								color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+								textAlign = TextAlign.Center
+							)
+						}
+					}
+				}
+				// نمایش اطلاعات موجود حتی اگر برخی قسمت‌ها در حال بارگذاری باشند
+				ship != null -> {
+					HorizontalPager(
+						state = pagerState,
+						userScrollEnabled = false,
+						modifier = Modifier.fillMaxSize()
+					) { page ->
+						AnimatedContent(
+							targetState = page,
+							transitionSpec = {
+								if (targetState > initialState) {
+									slideInHorizontally { width -> width } + fadeIn() togetherWith
+											slideOutHorizontally { width -> -width } + fadeOut()
+								} else {
+									slideInHorizontally { width -> -width } + fadeIn() togetherWith
+											slideOutHorizontally { width -> width } + fadeOut()
+								}
+							},
+							label = "Page transition"
+						) { targetPage ->
+							when (targetPage) {
+								0 -> ship?.let { shipDetails ->
+									WarehousesAndQuotasTab(
 										shipDetails = shipDetails,
 										selectedShipQuotas = selectedShipQuotas,
 										onWarehouseSelected = onWarehouseSelected,
@@ -1165,43 +1232,45 @@ fun ShipDetails(
 								}
 							}
 						}
-					} ?: run {
-						Box(
+					}
+				}
+				// حالت پیش‌فرض برای مواردی که هیچ داده‌ای موجود نیست
+				else -> {
+					Box(
+						modifier = Modifier
+							.fillMaxSize()
+							.padding(16.dp),
+						contentAlignment = Alignment.Center
+					) {
+						Column(
 							modifier = Modifier
-								.fillMaxSize()
-								.padding(16.dp),
-							contentAlignment = Alignment.Center
+								.fillMaxWidth(0.8f)
+								.wrapContentHeight()
+								.clip(RoundedCornerShape(16.dp))
+								.background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f))
+								.padding(24.dp),
+							horizontalAlignment = Alignment.CenterHorizontally,
+							verticalArrangement = Arrangement.spacedBy(16.dp)
 						) {
-							Column(
-								modifier = Modifier
-									.fillMaxWidth(0.8f)
-									.wrapContentHeight()
-									.clip(RoundedCornerShape(16.dp))
-									.background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f))
-									.padding(24.dp),
-								horizontalAlignment = Alignment.CenterHorizontally,
-								verticalArrangement = Arrangement.spacedBy(16.dp)
-							) {
-								Icon(
-									imageVector = Icons.Default.Error,
-									contentDescription = null,
-									tint = MaterialTheme.colorScheme.error,
-									modifier = Modifier.size(48.dp)
-								)
-								Text(
-									text = "اطلاعات کشتی در دسترس نیست",
-									style = MaterialTheme.typography.titleMedium,
-									color = MaterialTheme.colorScheme.onErrorContainer,
-									textAlign = TextAlign.Center,
-									fontWeight = FontWeight.Bold
-								)
-								Text(
-									text = "اطلاعات مورد نظر یافت نشد. لطفاً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.",
-									style = MaterialTheme.typography.bodyMedium,
-									color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
-									textAlign = TextAlign.Center
-								)
-							}
+							Icon(
+								imageVector = Icons.Default.Error,
+								contentDescription = null,
+								tint = MaterialTheme.colorScheme.error,
+								modifier = Modifier.size(48.dp)
+							)
+							Text(
+								text = "اطلاعات کشتی در دسترس نیست",
+								style = MaterialTheme.typography.titleMedium,
+								color = MaterialTheme.colorScheme.onErrorContainer,
+								textAlign = TextAlign.Center,
+								fontWeight = FontWeight.Bold
+							)
+							Text(
+								text = "اطلاعات مورد نظر یافت نشد. لطفاً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.",
+								style = MaterialTheme.typography.bodyMedium,
+								color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+								textAlign = TextAlign.Center
+							)
 						}
 					}
 				}
@@ -1229,6 +1298,10 @@ fun WarehousesAndQuotasTab(
 	var selectedSection by remember { mutableIntStateOf(0) }
 	val sections = listOf("انبارها", "کوتاژها")
 	var searchQuery by remember { mutableStateOf("") }
+	
+	// مشاهده وضعیت‌های بارگذاری جداگانه
+	val isLoadingShipQuotas by viewModel.isLoadingShipQuotas.collectAsState()
+	val shipQuotasLoadingState by viewModel.shipQuotasLoadingState.collectAsState()
 
 	Column(
 		modifier = Modifier
@@ -1276,16 +1349,80 @@ fun WarehousesAndQuotasTab(
 					},
 					onWarehouseSelected = onWarehouseSelected
 				)
-				1 -> QuotasList(
-					quotas = selectedShipQuotas,
-					searchQuery = searchQuery,
-					groupingMode = viewModel.warehouseQuotaGroupingMode,
-					onGroupingModeChange = viewModel::setWarehouseQuotaGroupingMode,
-					onEdit = viewModel::editQuota,
-					onToggleStatus = viewModel::toggleQuotaStatus,
-					onDelete = viewModel::deleteQuota,
-					viewModel = viewModel
-				)
+				1 -> {
+					// نمایش بهینه‌شده کوتاژها با مدیریت وضعیت بارگذاری
+					Box(modifier = Modifier.fillMaxSize()) {
+						QuotasList(
+							quotas = selectedShipQuotas,
+							searchQuery = searchQuery,
+							groupingMode = viewModel.warehouseQuotaGroupingMode,
+							onGroupingModeChange = viewModel::setWarehouseQuotaGroupingMode,
+							onEdit = viewModel::editQuota,
+							onToggleStatus = viewModel::toggleQuotaStatus,
+							onDelete = viewModel::deleteQuota,
+							viewModel = viewModel
+						)
+						
+						// نمایش اندیکاتور بارگذاری برای کوتاژها
+						if (isLoadingShipQuotas) {
+							Surface(
+								modifier = Modifier
+									.align(Alignment.TopEnd)
+									.padding(16.dp),
+								shape = RoundedCornerShape(20.dp),
+								color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
+								shadowElevation = 4.dp
+							) {
+								Row(
+									modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+									horizontalArrangement = Arrangement.spacedBy(8.dp),
+									verticalAlignment = Alignment.CenterVertically
+								) {
+									CircularProgressIndicator(
+										modifier = Modifier.size(16.dp),
+										strokeWidth = 2.dp,
+										color = MaterialTheme.colorScheme.primary
+									)
+									Text(
+										text = "به‌روزرسانی کوتاژها...",
+										style = MaterialTheme.typography.bodySmall,
+										color = MaterialTheme.colorScheme.onPrimaryContainer
+									)
+								}
+							}
+						}
+						
+						// نمایش خطا در صورت وجود
+						if (shipQuotasLoadingState is ReportsViewModel.LoadingState.Error && selectedShipQuotas.isNotEmpty()) {
+							Surface(
+								modifier = Modifier
+									.align(Alignment.TopEnd)
+									.padding(16.dp),
+								shape = RoundedCornerShape(8.dp),
+								color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f),
+								shadowElevation = 4.dp
+							) {
+								Row(
+									modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+									horizontalArrangement = Arrangement.spacedBy(8.dp),
+									verticalAlignment = Alignment.CenterVertically
+								) {
+									Icon(
+										imageVector = Icons.Default.Warning,
+										contentDescription = null,
+										tint = MaterialTheme.colorScheme.error,
+										modifier = Modifier.size(16.dp)
+									)
+									Text(
+										text = "خطا در به‌روزرسانی",
+										style = MaterialTheme.typography.bodySmall,
+										color = MaterialTheme.colorScheme.onErrorContainer
+									)
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 	}
@@ -1452,7 +1589,7 @@ fun QuotaManagementDialog(
 	viewModel: ReportsViewModel
 ) {
 	if (!isVisible) return
-	
+
 	val currentShipName by viewModel.selectedShip.collectAsState()
 	var quotaData by remember { mutableStateOf<Map<String, Map<String, List<QuotaItem>>>>(emptyMap()) }
 	var isLoading by remember { mutableStateOf(true) }
@@ -1515,94 +1652,94 @@ fun QuotaManagementDialog(
 						.fillMaxSize()
 						.padding(12.dp)
 				) {
-				Spacer(modifier = Modifier.height(8.dp))
+					Spacer(modifier = Modifier.height(8.dp))
 
-				// Search Bar
-				SearchField(
-					searchQuery = searchQuery,
-					onSearchQueryChange = { searchQuery = it },
-					modifier = Modifier.fillMaxWidth(),
-					placeholder = "جستجوی کوتاژ",
-					keyboardType = KeyboardType.Number
-				)
+					// Search Bar
+					SearchField(
+						searchQuery = searchQuery,
+						onSearchQueryChange = { searchQuery = it },
+						modifier = Modifier.fillMaxWidth(),
+						placeholder = "جستجوی کوتاژ",
+						keyboardType = KeyboardType.Number
+					)
 
-				Spacer(modifier = Modifier.height(8.dp))
+					Spacer(modifier = Modifier.height(8.dp))
 
-				// محتوای اصلی با توجه به وضعیت بارگذاری
-				Box(
-					modifier = Modifier
-						.fillMaxSize()
-						.weight(1f)
-				) {
-					when {
-						isLoading -> {
-							Box(
-								modifier = Modifier.fillMaxSize(),
-								contentAlignment = Alignment.Center
-							) {
-								Column(
-									horizontalAlignment = Alignment.CenterHorizontally,
-									verticalArrangement = Arrangement.spacedBy(16.dp)
+					// محتوای اصلی با توجه به وضعیت بارگذاری
+					Box(
+						modifier = Modifier
+							.fillMaxSize()
+							.weight(1f)
+					) {
+						when {
+							isLoading -> {
+								Box(
+									modifier = Modifier.fillMaxSize(),
+									contentAlignment = Alignment.Center
 								) {
-									CircularProgressIndicator(
-										color = MaterialTheme.colorScheme.primary
-									)
-									Text(
-										text = "در حال بارگذاری کوتاژها...",
-										style = MaterialTheme.typography.bodyMedium,
-										color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-									)
+									Column(
+										horizontalAlignment = Alignment.CenterHorizontally,
+										verticalArrangement = Arrangement.spacedBy(16.dp)
+									) {
+										CircularProgressIndicator(
+											color = MaterialTheme.colorScheme.primary
+										)
+										Text(
+											text = "در حال بارگذاری کوتاژها...",
+											style = MaterialTheme.typography.bodyMedium,
+											color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+										)
+									}
 								}
 							}
-						}
-						errorMessage != null -> {
-							Card(
-								modifier = Modifier
-									.fillMaxWidth()
-									.padding(horizontal = 24.dp),
-								colors = CardDefaults.cardColors(
-									containerColor = MaterialTheme.colorScheme.errorContainer
-								),
-								shape = RoundedCornerShape(12.dp)
-							) {
-								Row(
-									modifier = Modifier.padding(16.dp),
-									verticalAlignment = Alignment.CenterVertically,
-									horizontalArrangement = Arrangement.spacedBy(12.dp)
+							errorMessage != null -> {
+								Card(
+									modifier = Modifier
+										.fillMaxWidth()
+										.padding(horizontal = 24.dp),
+									colors = CardDefaults.cardColors(
+										containerColor = MaterialTheme.colorScheme.errorContainer
+									),
+									shape = RoundedCornerShape(12.dp)
 								) {
-									Icon(
-										imageVector = Icons.Default.Error,
-										contentDescription = null,
-										tint = MaterialTheme.colorScheme.onErrorContainer
-									)
-									Text(
-										text = "خطا: $errorMessage",
-										style = MaterialTheme.typography.bodyMedium,
-										color = MaterialTheme.colorScheme.onErrorContainer
-									)
+									Row(
+										modifier = Modifier.padding(16.dp),
+										verticalAlignment = Alignment.CenterVertically,
+										horizontalArrangement = Arrangement.spacedBy(12.dp)
+									) {
+										Icon(
+											imageVector = Icons.Default.Error,
+											contentDescription = null,
+											tint = MaterialTheme.colorScheme.onErrorContainer
+										)
+										Text(
+											text = "خطا: $errorMessage",
+											style = MaterialTheme.typography.bodyMedium,
+											color = MaterialTheme.colorScheme.onErrorContainer
+										)
+									}
 								}
 							}
-						}
-						else -> {
-							QuotaManagementContent(
-								quotaData = quotaData,
-								searchQuery = searchQuery,
-								expandedShip = expandedShip,
-								expandedQuota = expandedQuota,
-								onShipToggle = { shipName ->
-									expandedShip = if (expandedShip == shipName) null else shipName
-									expandedQuota = null
-								},
-								onQuotaToggle = { quotaKey ->
-									expandedQuota = if (expandedQuota == quotaKey) null else quotaKey
-								},
-								onRefreshData = refreshData,
-								viewModel = viewModel
-							)
+							else -> {
+								QuotaManagementContent(
+									quotaData = quotaData,
+									searchQuery = searchQuery,
+									expandedShip = expandedShip,
+									expandedQuota = expandedQuota,
+									onShipToggle = { shipName ->
+										expandedShip = if (expandedShip == shipName) null else shipName
+										expandedQuota = null
+									},
+									onQuotaToggle = { quotaKey ->
+										expandedQuota = if (expandedQuota == quotaKey) null else quotaKey
+									},
+									onRefreshData = refreshData,
+									viewModel = viewModel
+								)
+							}
 						}
 					}
 				}
-			}
 			}
 		}
 	}
@@ -1802,13 +1939,13 @@ fun QuotasList(
 			fun getWeightInKg(tonnage: Float): Float {
 				return tonnage * 1000f // تبدیل تن به کیلوگرم
 			}
-			
+
 			// تابع کمکی برای محاسبه مانده کوتاژ پس از کسر درصد
 			fun calculateRemainingAfterPercentage(quota: Quota): Float {
 				val percentageAmount = quota.totalTonnage * ((quota.percentage ?: 0.0) / 100)
 				return quota.remainingTonnage - percentageAmount.toFloat()
 			}
-			
+
 			// ابتدا کوتاژها را فیلتر و گروه‌بندی می‌کنیم
 			val groupedMap = quotas
 				.filter { quota ->
@@ -1872,7 +2009,7 @@ fun QuotasList(
 			verticalArrangement = Arrangement.spacedBy(8.dp)
 		) {
 			groupedQuotas.forEach { (groupName, sortedQuotas) ->
-				item(key = groupName) {
+				item {
 					groupName?.let {
 						QuotaGroupExpansionPanel(
 							groupName = it,
@@ -1994,7 +2131,7 @@ fun QuotaGroupExpansionPanel(
 				HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
 				Spacer(modifier = Modifier.height(8.dp))
 
-				quotas.forEachIndexed { index, quota ->
+				quotas.forEach { quota ->
 					QuotaCard(
 						quota = quota,
 						isExpanded = expandedQuotaNumber == quota.number,
@@ -2006,9 +2143,7 @@ fun QuotaGroupExpansionPanel(
 						onDelete = onDelete,
 						onPercentageChange = onPercentageChange
 					)
-					if (index < quotas.size - 1) {
-						Spacer(modifier = Modifier.height(8.dp))
-					}
+					Spacer(modifier = Modifier.height(8.dp))
 				}
 			}
 		}
@@ -2464,66 +2599,6 @@ fun QuotaWarningDialog(
 }
 
 @Composable
-private fun CustomSnackbar(
-	snackbarData: SnackbarData,
-	modifier: Modifier = Modifier
-) {
-	val backgroundColor = MaterialTheme.colorScheme.primary
-	val contentColor = MaterialTheme.colorScheme.onPrimary
-	
-	Card(
-		modifier = modifier
-			.fillMaxWidth()
-			.padding(horizontal = 12.dp, vertical = 6.dp),
-		shape = RoundedCornerShape(12.dp),
-		colors = CardDefaults.cardColors(
-			containerColor = backgroundColor
-		),
-		elevation = CardDefaults.cardElevation(
-			defaultElevation = 4.dp
-		)
-	) {
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(horizontal = 12.dp, vertical = 8.dp),
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(8.dp)
-		) {
-			// آیکون اطلاعات
-			Icon(
-				imageVector = Icons.Default.Info,
-				contentDescription = null,
-				tint = contentColor.copy(alpha = 0.9f),
-				modifier = Modifier.size(16.dp)
-			)
-			
-			// متن پیام
-			Text(
-				text = snackbarData.visuals.message,
-				style = MaterialTheme.typography.bodyMedium,
-				color = contentColor,
-				modifier = Modifier.weight(1f)
-			)
-			
-			// دکمه بستن
-			snackbarData.visuals.actionLabel?.let { actionLabel ->
-				TextButton(
-					onClick = { snackbarData.performAction() },
-					contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-				) {
-					Text(
-						text = actionLabel,
-						style = MaterialTheme.typography.bodySmall,
-						color = contentColor
-					)
-				}
-			}
-		}
-	}
-}
-
-@Composable
 private fun DialogHeader(
 	currentPage: Int,
 	totalPages: Int,
@@ -2593,49 +2668,49 @@ private fun DialogHeader(
 		if (totalPages > 1) {
 			Spacer(modifier = Modifier.height(8.dp))
 
-				Surface(
-					modifier = Modifier.wrapContentWidth(),
-					shape = RoundedCornerShape(8.dp),
-					color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
-					border = BorderStroke(
-						width = 1.dp,
-						color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
-					)
-				) {
-					Row(
-						modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-						horizontalArrangement = Arrangement.spacedBy(6.dp),
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						Icon(
-							imageVector = Icons.Default.Description,
-							contentDescription = null,
-							tint = MaterialTheme.colorScheme.error,
-							modifier = Modifier.size(16.dp)
-						)
-						Text(
-							text = buildString {
-								append(currentPage + 1)
-								append(" از ")
-								append(totalPages)
-								append(" کوتاژ")
-							},
-							style = MaterialTheme.typography.bodyMedium,
-							color = MaterialTheme.colorScheme.error,
-							fontWeight = FontWeight.Medium
-						)
-					}
-				}
-
-				// Divider
-				Spacer(modifier = Modifier.height(8.dp))
-				HorizontalDivider(
-					thickness = 1.dp,
-					color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+			Surface(
+				modifier = Modifier.wrapContentWidth(),
+				shape = RoundedCornerShape(8.dp),
+				color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+				border = BorderStroke(
+					width = 1.dp,
+					color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
 				)
+			) {
+				Row(
+					modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+					horizontalArrangement = Arrangement.spacedBy(6.dp),
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					Icon(
+						imageVector = Icons.Default.Description,
+						contentDescription = null,
+						tint = MaterialTheme.colorScheme.error,
+						modifier = Modifier.size(16.dp)
+					)
+					Text(
+						text = buildString {
+							append(currentPage + 1)
+							append(" از ")
+							append(totalPages)
+							append(" کوتاژ")
+						},
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.error,
+						fontWeight = FontWeight.Medium
+					)
+				}
 			}
+
+			// Divider
+			Spacer(modifier = Modifier.height(8.dp))
+			HorizontalDivider(
+				thickness = 1.dp,
+				color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+			)
 		}
 	}
+}
 
 @Composable
 private fun WarningDialogHeader(
@@ -2973,7 +3048,7 @@ fun QuotaManagementContent(
 	var showFiltersDialog by remember { mutableStateOf(false) }
 	val filteredData = remember(quotaData, searchQuery, filters) {
 		var result = quotaData
-		
+
 		// فیلتر بر اساس جستجوی متنی
 		if (searchQuery.isNotBlank()) {
 			result = result.mapNotNull { (shipName, cargoOwners) ->
@@ -2986,13 +3061,13 @@ fun QuotaManagementContent(
 						cargoOwner to filteredQuotas
 					} else null
 				}.toMap()
-				
+
 				if (filteredCargoOwners.isNotEmpty()) {
 					shipName to filteredCargoOwners
 				} else null
 			}.toMap()
 		}
-		
+
 		// اعمال فیلترهای پیشرفته
 		result = result.mapNotNull { (shipName, cargoOwners) ->
 			val filteredCargoOwners = cargoOwners.mapNotNull { (cargoOwner, quotas) ->
@@ -3003,14 +3078,14 @@ fun QuotaManagementContent(
 						filters.showInactiveOnly -> !quota.isActive
 						else -> true
 					}
-					
+
 					// فیلتر انبار
 					val warehouseFilter = if (filters.selectedWarehouses.isEmpty()) {
 						true
 					} else {
 						filters.selectedWarehouses.contains(quota.warehouse)
 					}
-					
+
 					// فیلتر وزن
 					val weightFilter = {
 						val weight = quota.temporaryTonnageValue ?: 0f
@@ -3018,28 +3093,28 @@ fun QuotaManagementContent(
 						val maxOk = filters.maxWeight?.let { weight <= it } ?: true
 						minOk && maxOk
 					}()
-					
+
 					// فیلتر تناژ موقت
 					val tempTonnageFilter = filters.hasTemporaryTonnage?.let { hasTemp ->
 						if (hasTemp) quota.temporaryTonnageEnabled else !quota.temporaryTonnageEnabled
 					} ?: true
-					
+
 					statusFilter && warehouseFilter && weightFilter && tempTonnageFilter
 				}
-				
+
 				if (filteredQuotas.isNotEmpty()) {
 					cargoOwner to filteredQuotas
 				} else null
 			}.toMap()
-			
+
 			if (filteredCargoOwners.isNotEmpty()) {
 				shipName to filteredCargoOwners
 			} else null
 		}.toMap()
-		
+
 		result
 	}
-	
+
 	// تابع مرتب‌سازی داده‌ها
 	val sortedData = remember(filteredData, sortType) {
 		val sortedMap = filteredData.toList().sortedWith { (shipName1, cargoOwners1), (shipName2, cargoOwners2) ->
@@ -3070,26 +3145,26 @@ fun QuotaManagementContent(
 		}.toMap()
 		sortedMap
 	}
-	
+
 	// تقسیم داده‌ها بر اساس وضعیت فعال/غیرفعال
 	val (activeShipsData, inactiveShipsData) = remember(sortedData) {
 		val active = mutableMapOf<String, Map<String, List<QuotaItem>>>()
 		val inactive = mutableMapOf<String, Map<String, List<QuotaItem>>>()
-		
+
 		sortedData.forEach { (shipName, cargoOwners) ->
 			val allQuotas = cargoOwners.values.flatten()
 			val hasActiveQuota = allQuotas.any { it.isActive }
-			
+
 			if (hasActiveQuota) {
 				active[shipName] = cargoOwners
 			} else {
 				inactive[shipName] = cargoOwners
 			}
 		}
-		
+
 		Pair(active.toMap(), inactive.toMap())
 	}
-	
+
 	Column {
 		// تب‌های دسته‌بندی کوتاژها
 		QuotaTabSelector(
@@ -3098,9 +3173,9 @@ fun QuotaManagementContent(
 			activeShipsCount = activeShipsData.size,
 			inactiveShipsCount = inactiveShipsData.size
 		)
-		
+
 		Spacer(modifier = Modifier.height(8.dp))
-		
+
 		// ردیف ابزارهای مرتب‌سازی و فیلتر
 		Row(
 			modifier = Modifier.fillMaxWidth(),
@@ -3112,13 +3187,13 @@ fun QuotaManagementContent(
 				showSortMenu = showSortMenu,
 				onShowSortMenuChange = { showSortMenu = it }
 			)
-			
+
 			FilterOptionsCard(
 				filters = filters,
 				onShowFiltersDialog = { showFiltersDialog = true }
 			)
 		}
-		
+
 		Spacer(modifier = Modifier.height(8.dp))
 
 		// محتوای تب انتخاب شده
@@ -3132,7 +3207,7 @@ fun QuotaManagementContent(
 				1 -> inactiveShipsData
 				else -> activeShipsData
 			}
-			
+
 			QuotaTabContent(
 				quotaData = currentData,
 				isActive = selectedTabIndex == 0,
@@ -3144,7 +3219,7 @@ fun QuotaManagementContent(
 				viewModel = viewModel
 			)
 		}
-		
+
 		// دیالوگ فیلترهای پیشرفته
 		if (showFiltersDialog) {
 			AdvancedFiltersDialog(
@@ -3163,7 +3238,7 @@ fun AdvancedFiltersDialog(
 	onDismiss: () -> Unit
 ) {
 	var tempFilters by remember { mutableStateOf(filters) }
-	
+
 	Dialog(onDismissRequest = onDismiss) {
 		Card(
 			modifier = Modifier
@@ -3204,7 +3279,7 @@ fun AdvancedFiltersDialog(
 						color = MaterialTheme.colorScheme.onSurface,
 						fontWeight = FontWeight.Medium
 					)
-					
+
 					// دکمه بستن
 					IconButton(
 						onClick = onDismiss,
@@ -3218,7 +3293,7 @@ fun AdvancedFiltersDialog(
 						)
 					}
 				}
-				
+
 				// فیلتر وضعیت
 				Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 					Text(
@@ -3227,7 +3302,7 @@ fun AdvancedFiltersDialog(
 						fontWeight = FontWeight.Medium,
 						color = MaterialTheme.colorScheme.onSurface
 					)
-					
+
 					Row(
 						modifier = Modifier.fillMaxWidth(),
 						horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -3252,7 +3327,7 @@ fun AdvancedFiltersDialog(
 							},
 							label = { Text("فقط فعال") }
 						)
-						
+
 						FilterChip(
 							modifier = Modifier.weight(1f),
 							selected = tempFilters.showInactiveOnly,
@@ -3275,7 +3350,7 @@ fun AdvancedFiltersDialog(
 						)
 					}
 				}
-				
+
 				// فیلتر تناژ موقت
 				Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 					Text(
@@ -3284,7 +3359,7 @@ fun AdvancedFiltersDialog(
 						fontWeight = FontWeight.Medium,
 						color = MaterialTheme.colorScheme.onSurface
 					)
-					
+
 					Row(
 						modifier = Modifier.fillMaxWidth(),
 						horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -3299,7 +3374,7 @@ fun AdvancedFiltersDialog(
 							},
 							label = { Text("دارای تناژ موقت") }
 						)
-						
+
 						FilterChip(
 							modifier = Modifier.weight(1f),
 							selected = tempFilters.hasTemporaryTonnage == false,
@@ -3312,7 +3387,7 @@ fun AdvancedFiltersDialog(
 						)
 					}
 				}
-				
+
 				// دکمه‌های عملیات
 				Row(
 					modifier = Modifier.fillMaxWidth(),
@@ -3331,7 +3406,7 @@ fun AdvancedFiltersDialog(
 							fontWeight = FontWeight.Medium
 						)
 					}
-					
+
 					Button(
 						modifier = Modifier.weight(1f),
 						onClick = {
@@ -3365,7 +3440,7 @@ fun FilterOptionsCard(
 		if (filters.minWeight != null || filters.maxWeight != null) 1 else null,
 		if (filters.hasTemporaryTonnage != null) 1 else null
 	).size
-	
+
 	Card(
 		modifier = modifier.size(48.dp),
 		shape = RoundedCornerShape(12.dp),
@@ -3394,7 +3469,7 @@ fun FilterOptionsCard(
 					},
 					modifier = Modifier.size(24.dp)
 				)
-				
+
 				// نمایش تعداد فیلترهای فعال
 				if (activeFiltersCount > 0) {
 					Box(
@@ -3436,7 +3511,7 @@ fun SortOptionsCard(
 		SortType.TOTAL_WEIGHT_ASC to "وزن کل (کم به زیاد)",
 		SortType.TOTAL_WEIGHT_DESC to "وزن کل (زیاد به کم)"
 	)
-	
+
 	Card(
 		modifier = modifier.size(48.dp),
 		shape = RoundedCornerShape(12.dp),
@@ -3458,7 +3533,7 @@ fun SortOptionsCard(
 					modifier = Modifier.size(24.dp)
 				)
 			}
-			
+
 			// منوی کشویی گزینه‌های مرتب‌سازی
 			DropdownMenu(
 				expanded = showSortMenu,
@@ -3485,9 +3560,9 @@ fun SortOptionsCard(
 								Text(
 									text = label,
 									style = MaterialTheme.typography.bodyMedium,
-									color = if (sortType == sortTypeOption) 
-										MaterialTheme.colorScheme.primary 
-									else 
+									color = if (sortType == sortTypeOption)
+										MaterialTheme.colorScheme.primary
+									else
 										MaterialTheme.colorScheme.onSurface
 								)
 							}
@@ -3557,7 +3632,7 @@ fun QuotaTabItem(
 		animationSpec = tween(300),
 		label = "background"
 	)
-	
+
 	val contentColor by animateColorAsState(
 		targetValue = if (isSelected) {
 			MaterialTheme.colorScheme.onPrimary
@@ -3588,9 +3663,9 @@ fun QuotaTabItem(
 				tint = contentColor,
 				modifier = Modifier.size(18.dp)
 			)
-			
+
 			Spacer(modifier = Modifier.width(8.dp))
-			
+
 			Text(
 				text = "${tab.title} (${tab.count})",
 				style = MaterialTheme.typography.bodyMedium,
@@ -3625,7 +3700,7 @@ fun QuotaTabContent(
 				// بررسی اینکه آیا تمام کوتاژهای این کشتی غیرفعال هستند
 				val allQuotas = cargoOwners.values.flatten()
 				val allQuotasInactive = allQuotas.isNotEmpty() && allQuotas.all { !it.isActive }
-				
+
 				QuotaShipExpansionPanel(
 					shipName = shipName,
 					cargoOwners = cargoOwners,
@@ -3661,18 +3736,18 @@ fun EmptyQuotaState(
 				modifier = Modifier.size(64.dp),
 				tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
 			)
-			
+
 			Spacer(modifier = Modifier.height(16.dp))
-			
+
 			Text(
 				text = if (isActive) "هیچ کشتی با کوتاژ فعالی یافت نشد" else "هیچ کشتی با کوتاژ غیرفعالی یافت نشد",
 				style = MaterialTheme.typography.bodyLarge,
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 				textAlign = TextAlign.Center
 			)
-			
+
 			Spacer(modifier = Modifier.height(8.dp))
-			
+
 			Text(
 				text = if (isActive) "تمام کشتی‌ها دارای کوتاژ غیرفعال هستند" else "تمام کشتی‌ها دارای کوتاژ فعال هستند",
 				style = MaterialTheme.typography.bodyMedium,
@@ -3734,9 +3809,9 @@ fun IntegratedQuotaCard(
 							modifier = Modifier
 								.size(36.dp)
 								.background(
-									color = if (quota.isActive) 
-										MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) 
-									else 
+									color = if (quota.isActive)
+										MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+									else
 										MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
 									shape = CircleShape
 								),
@@ -3745,9 +3820,9 @@ fun IntegratedQuotaCard(
 							Icon(
 								imageVector = Icons.Default.Description,
 								contentDescription = null,
-								tint = if (quota.isActive) 
-									MaterialTheme.colorScheme.primary 
-								else 
+								tint = if (quota.isActive)
+									MaterialTheme.colorScheme.primary
+								else
 									MaterialTheme.colorScheme.error,
 								modifier = Modifier.size(18.dp)
 							)
@@ -3770,14 +3845,14 @@ fun IntegratedQuotaCard(
 									fontWeight = FontWeight.Bold,
 									color = MaterialTheme.colorScheme.onSurface
 								)
-								
+
 								CompactStatChip(
 									icon = Icons.Default.Warehouse,
 									value = quota.warehouse,
 									color = MaterialTheme.colorScheme.tertiary
 								)
 							}
-							
+
 							// صاحب کالا و وضعیت
 							Row(
 								modifier = Modifier.fillMaxWidth(),
@@ -3801,14 +3876,14 @@ fun IntegratedQuotaCard(
 										fontWeight = FontWeight.Medium
 									)
 								}
-								
+
 								Row(
 									horizontalArrangement = Arrangement.spacedBy(6.dp),
 									verticalAlignment = Alignment.CenterVertically
 								) {
 									Switch(
 										checked = quota.isActive,
-										onCheckedChange = { 
+										onCheckedChange = {
 											isStatusToggling = true
 											viewModel.toggleQuotaStatus(quota.number) {
 												isStatusToggling = false
@@ -3817,7 +3892,7 @@ fun IntegratedQuotaCard(
 										},
 										enabled = !isStatusToggling
 									)
-									
+
 									if (quota.temporaryTonnageEnabled && quota.temporaryTonnageValue != null) {
 										CompactStatChip(
 											icon = Icons.Default.Scale,
@@ -3960,7 +4035,7 @@ fun TempTonnageSection(
 				icon = Icons.Default.LocalShipping,
 				value = quota.shippingCompany
 			)
-			
+
 			// وضعیت کوتاژ
 			MinimalStatusButton(
 				isActive = quota.isActive,
@@ -3968,7 +4043,7 @@ fun TempTonnageSection(
 				onToggle = onStatusToggle
 			)
 		}
-		
+
 		// بخش مدیریت تناژ موقت
 		Card(
 			modifier = Modifier.fillMaxWidth(),
@@ -4005,14 +4080,14 @@ fun TempTonnageSection(
 							fontWeight = FontWeight.Bold
 						)
 					}
-					
+
 					Switch(
 						checked = tempTonnageEnabled,
 						onCheckedChange = onTempTonnageEnabledChange,
 						enabled = !isUpdating
 					)
 				}
-				
+
 				// فیلد ورودی تناژ
 				AnimatedVisibility(
 					visible = tempTonnageEnabled,
@@ -4049,7 +4124,7 @@ fun TempTonnageSection(
 								focusedLabelColor = MaterialTheme.colorScheme.primary
 							)
 						)
-						
+
 						// دکمه ذخیره
 						if (isUpdating) {
 							Box(
@@ -4146,7 +4221,7 @@ fun MinimalStatusButton(
 	} else {
 		Color(0xFFC62828)
 	}
-	
+
 	if (isLoading) {
 		Box(
 			modifier = modifier
@@ -4216,13 +4291,13 @@ fun QuotaShipExpansionPanel(
 			),
 		shape = RoundedCornerShape(12.dp),
 		colors = CardDefaults.cardColors(
-			containerColor = if (allQuotasInactive) 
+			containerColor = if (allQuotasInactive)
 				MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
 			else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
 		),
 		border = BorderStroke(
 			width = if (allQuotasInactive) 2.dp else 1.dp,
-			color = if (allQuotasInactive) 
+			color = if (allQuotasInactive)
 				MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
 			else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
 		)
@@ -4321,23 +4396,23 @@ fun QuotaShipExpansionPanel(
 					verticalArrangement = Arrangement.spacedBy(8.dp)
 				) {
 					// تجمیع تمام کوتاژها و مرتب‌سازی بر اساس صاحب کالا
-				val allQuotas = cargoOwners.values.flatten()
-					.sortedWith(
-						compareBy<QuotaItem> { it.cargoOwner }
-							.thenByDescending { it.isActive }
-							.thenBy { it.number }
-					)
+					val allQuotas = cargoOwners.values.flatten()
+						.sortedWith(
+							compareBy<QuotaItem> { it.cargoOwner }
+								.thenByDescending { it.isActive }
+								.thenBy { it.number }
+						)
 
-				// نمایش مستقیم تمام کوتاژها با اطلاعات صاحب کالا
-				allQuotas.forEach { quota ->
-					IntegratedQuotaCard(
-						quota = quota,
-						isExpanded = expandedQuota == quota.quotaKey,
-						onToggleExpand = { onQuotaToggle(quota.quotaKey) },
-						onRefreshData = onRefreshData,
-						viewModel = viewModel
-					)
-				}
+					// نمایش مستقیم تمام کوتاژها با اطلاعات صاحب کالا
+					allQuotas.forEach { quota ->
+						IntegratedQuotaCard(
+							quota = quota,
+							isExpanded = expandedQuota == quota.quotaKey,
+							onToggleExpand = { onQuotaToggle(quota.quotaKey) },
+							onRefreshData = onRefreshData,
+							viewModel = viewModel
+						)
+					}
 				}
 			}
 		}
@@ -4745,7 +4820,7 @@ private fun PercentageInputTab(
 ) {
 	var isFineMode by remember { mutableStateOf(true) }
 	val adjustmentStep = if (isFineMode) 0.01 else 0.10
-	
+
 	Column(modifier = Modifier.fillMaxWidth()) {
 		val progress = percentage / 2.0
 		Box(modifier = Modifier
@@ -4763,7 +4838,7 @@ private fun PercentageInputTab(
 		}
 
 		Spacer(modifier = Modifier.height(16.dp))
-		
+
 		// Adjustment Mode Toggle
 		Row(
 			modifier = Modifier.fillMaxWidth(),
@@ -4803,9 +4878,9 @@ private fun PercentageInputTab(
 							fontWeight = FontWeight.Medium
 						)
 					}
-					
+
 					Spacer(modifier = Modifier.width(4.dp))
-					
+
 					// Coarse mode button
 					Button(
 						onClick = { isFineMode = false },
@@ -5471,7 +5546,7 @@ fun WarehouseDetails(
 	}
 
 	// نمایش Snackbar
-	LaunchedEffect(Unit) {
+	LaunchedEffect(snackbarHostState) {
 		viewModel.snackbarMessages.collect { message ->
 			snackbarHostState.showSnackbar(message)
 		}
@@ -7355,32 +7430,32 @@ fun QuotaDetails(
 				.verticalScroll(rememberScrollState())
 				.padding(16.dp)
 		) {
-		when (uiState) {
-			is ReportsViewModel.UiState.Loading -> {
-				CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-			}
+			when (uiState) {
+				is ReportsViewModel.UiState.Loading -> {
+					CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+				}
 
-			is ReportsViewModel.UiState.Error -> {
-				Text(
-					text = (uiState as ReportsViewModel.UiState.Error).message,
-					color = MaterialTheme.colorScheme.error
-				)
-			}
+				is ReportsViewModel.UiState.Error -> {
+					Text(
+						text = (uiState as ReportsViewModel.UiState.Error).message,
+						color = MaterialTheme.colorScheme.error
+					)
+				}
 
-			is ReportsViewModel.UiState.Success -> {
-				quotaDetails?.let { details ->
-					QuotaMainCard(details)
-					Spacer(modifier = Modifier.height(16.dp))
-					QuotaInfoCards(details)
-					Spacer(modifier = Modifier.height(16.dp))
-					QuotaProgressBar(details)
-					Spacer(modifier = Modifier.height(16.dp))
-					QuotaAdditionalInfo(details)
-				} ?: run {
-					Text("اطلاعات کوتاژ در دسترس نیست")
+				is ReportsViewModel.UiState.Success -> {
+					quotaDetails?.let { details ->
+						QuotaMainCard(details)
+						Spacer(modifier = Modifier.height(16.dp))
+						QuotaInfoCards(details)
+						Spacer(modifier = Modifier.height(16.dp))
+						QuotaProgressBar(details)
+						Spacer(modifier = Modifier.height(16.dp))
+						QuotaAdditionalInfo(details)
+					} ?: run {
+						Text("اطلاعات کوتاژ در دسترس نیست")
+					}
 				}
 			}
-		}
 		}
 	}
 }
@@ -7517,8 +7592,6 @@ fun QuotaCard(
 	var showDeleteDialog by remember { mutableStateOf(false) }
 	var showToggleDialog by remember { mutableStateOf(false) }
 	var showPercentageDialog by remember { mutableStateOf(false) }
-
-	// بهینه‌سازی رنگ‌ها بر اساس وضعیت فعال/غیرفعال
 	val cardColor = if (quota.isActive) {
 		MaterialTheme.colorScheme.surface
 	} else {
@@ -7534,47 +7607,13 @@ fun QuotaCard(
 	} else {
 		MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
 	}
-
-	// محاسبه پیشرفت بارگیری با remember
-	val progress = remember(quota.loadedTonnage, quota.totalTonnage) {
-		calculateProgress(quota.loadedTonnage, quota.totalTonnage)
-	}
-
-	// محاسبه مقادیر کوتاژ با remember
-	val calculatedValues = remember(quota.totalTonnage, quota.percentage, quota.remainingTonnage) {
-		calculateValues(
-			totalTonnage = quota.totalTonnage,
-			percentage = quota.percentage ?: 0.0,
-			remainingTonnage = quota.remainingTonnage
-		)
-	}
-
-	// بهینه‌سازی callback functions
-	val onEditClick = remember(quota.number) {
-		{ showEditDialog = true }
-	}
-	
-	val onPercentageClick = remember(quota.number) {
-		{ showPercentageDialog = true }
-	}
-	
-	val onToggleClick = remember(quota.number) {
-		{ showToggleDialog = true }
-	}
-	
-	val onDeleteClick = remember(quota.number) {
-		{ showDeleteDialog = true }
-	}
-	
-	val onExpandClick = remember(quota.number, isExpanded) {
-		{ onExpandToggle(!isExpanded) }
-	}
+	val progress = calculateProgress(quota.loadedTonnage, quota.totalTonnage)
 
 	Card(
 		modifier = Modifier
 			.fillMaxWidth()
 			.clip(RoundedCornerShape(12.dp))
-			.clickable(onClick = onExpandClick),
+			.clickable { onExpandToggle(!isExpanded) },
 		colors = CardDefaults.cardColors(containerColor = cardColor),
 		border = BorderStroke(
 			width = 1.dp,
@@ -7625,7 +7664,6 @@ fun QuotaCard(
 							horizontalArrangement = Arrangement.spacedBy(4.dp),
 							verticalAlignment = Alignment.CenterVertically
 						) {
-							// نوع کالا
 							quota.cargoType?.let { type ->
 								Text(
 									text = type,
@@ -7646,6 +7684,11 @@ fun QuotaCard(
 								contentDescription = null,
 								tint = accentColor,
 								modifier = Modifier.size(12.dp)
+							)
+							val calculatedValues = calculateValues(
+								totalTonnage = quota.totalTonnage,
+								percentage = quota.percentage ?: 0.0,
+								remainingTonnage = quota.remainingTonnage
 							)
 							Text(
 								text = "${formatWeightWithDetail(calculatedValues.totalRemainingAfterPercentage.toFloat())} (%.2f%%)".format(quota.percentage ?: 0.0),
@@ -7774,25 +7817,25 @@ fun QuotaCard(
 							icon = Icons.Default.Edit,
 							label = "ویرایش",
 							color = MaterialTheme.colorScheme.primary,
-							onClick = onEditClick
+							onClick = { showEditDialog = true }
 						)
 						ActionButton(
 							icon = Icons.Default.AddTask,
 							label = "درصد",
 							color = MaterialTheme.colorScheme.secondary,
-							onClick = onPercentageClick
+							onClick = { showPercentageDialog = true }
 						)
 						ActionButton(
 							icon = if (quota.isActive) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
 							label = if (quota.isActive) "غیرفعال‌سازی" else "فعال‌سازی",
 							color = if (quota.isActive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-							onClick = onToggleClick
+							onClick = { showToggleDialog = true }
 						)
 						ActionButton(
 							icon = Icons.Default.Delete,
 							label = "حذف",
 							color = MaterialTheme.colorScheme.error,
-							onClick = onDeleteClick
+							onClick = { showDeleteDialog = true }
 						)
 					}
 				}
@@ -7800,67 +7843,21 @@ fun QuotaCard(
 		}
 	}
 
-	val onDeleteConfirm = remember(quota) {
-		{
-			onDelete(quota)
-			showDeleteDialog = false
-		}
-	}
-	
-	val onDeleteDismiss = remember {
-		{ showDeleteDialog = false }
-	}
-	
-	val onPercentageDismiss = remember {
-		{ showPercentageDialog = false }
-	}
-	
-	val onToggleConfirm = remember(quota.number) {
-		{
-			onToggleStatus(quota.number)
-			showToggleDialog = false
-		}
-	}
-	
-	val onToggleDismiss = remember {
-		{ showToggleDialog = false }
-	}
-	
-	val quotaEditData = remember(quota) {
-		QuotaEditData(
-			quotaNumber = quota.number,
-			shipName = quota.shipName ?: "",
-			shippingCompany = quota.shippingCompany,
-			warehouse = quota.warehouse ?: "",
-			cargoType = quota.cargoType ?: "",
-			totalTonnage = quota.totalTonnage
-		)
-	}
-	
-	val onEditConfirm = remember(quota.number) {
-		{ editedData: QuotaEditData ->
-			onEdit(quota.number, editedData)
-			showEditDialog = false
-		}
-	}
-	
-	val onEditDismiss = remember {
-		{ showEditDialog = false }
-	}
-
-	// دیالوگ‌ها
 	if (showDeleteDialog) {
 		DeleteQuotaDialog(
 			quotaNumber = quota.number,
-			onConfirm = onDeleteConfirm,
-			onDismiss = onDeleteDismiss
+			onConfirm = {
+				onDelete(quota)
+				showDeleteDialog = false
+			},
+			onDismiss = { showDeleteDialog = false }
 		)
 	}
 
 	if (showPercentageDialog) {
 		QuotaPercentageDialog(
 			quota = quota,
-			onDismiss = onPercentageDismiss,
+			onDismiss = { showPercentageDialog = false },
 			onConfirm = onPercentageChange
 		)
 	}
@@ -7869,16 +7866,29 @@ fun QuotaCard(
 		ToggleQuotaStatusDialog(
 			quotaNumber = quota.number,
 			isActive = quota.isActive,
-			onConfirm = onToggleConfirm,
-			onDismiss = onToggleDismiss
+			onConfirm = {
+				onToggleStatus(quota.number)
+				showToggleDialog = false
+			},
+			onDismiss = { showToggleDialog = false }
 		)
 	}
 
 	if (showEditDialog) {
 		EditQuotaDialog(
-			quotaData = quotaEditData,
-			onConfirm = onEditConfirm,
-			onDismiss = onEditDismiss
+			quotaData = QuotaEditData(
+				quotaNumber = quota.number,
+				shipName = quota.shipName ?: "",
+				shippingCompany = quota.shippingCompany,
+				warehouse = quota.warehouse ?: "",
+				cargoType = quota.cargoType ?: "",
+				totalTonnage = quota.totalTonnage
+			),
+			onConfirm = { editedData ->
+				onEdit(quota.number, editedData)
+				showEditDialog = false
+			},
+			onDismiss = { showEditDialog = false }
 		)
 	}
 }
@@ -9474,32 +9484,32 @@ fun FloatingActionButton(
 							)
 						)
 						add(
-						FabItem(
-							icon = Icons.Default.Analytics,
-							label = "آمار جامع",
-							onClick = onAnalyticsClick
-						)
-					)
-					// نمایش آیتم مدیریت کوتاژها
-					onQuotaManagementClick?.let { quotaManagementClick ->
-						add(
 							FabItem(
-								icon = Icons.Default.ManageAccounts,
-								label = "مدیریت کوتاژها",
-								onClick = quotaManagementClick
+								icon = Icons.Default.Analytics,
+								label = "آمار جامع",
+								onClick = onAnalyticsClick
 							)
 						)
-					}
-					// نمایش آیتم بازه زمانی فقط در تب کوتاژها
-					onDateRangeClick?.let { dateRangeClick ->
-						add(
-							FabItem(
-								icon = Icons.Default.DateRange,
-								label = "بازه زمانی",
-								onClick = dateRangeClick
+						// نمایش آیتم مدیریت کوتاژها
+						onQuotaManagementClick?.let { quotaManagementClick ->
+							add(
+								FabItem(
+									icon = Icons.Default.ManageAccounts,
+									label = "مدیریت کوتاژها",
+									onClick = quotaManagementClick
+								)
 							)
-						)
-					}
+						}
+						// نمایش آیتم بازه زمانی فقط در تب کوتاژها
+						onDateRangeClick?.let { dateRangeClick ->
+							add(
+								FabItem(
+									icon = Icons.Default.DateRange,
+									label = "بازه زمانی",
+									onClick = dateRangeClick
+								)
+							)
+						}
 					}
 
 					items.forEachIndexed { index, item ->
@@ -9731,7 +9741,7 @@ fun AdvancedSearchDialog(
 		Dialog(
 			onDismissRequest = onDismiss,
 			properties = DialogProperties(
-				dismissOnBackPress = true, 
+				dismissOnBackPress = true,
 				dismissOnClickOutside = false,
 				usePlatformDefaultWidth = false
 			)
@@ -9825,7 +9835,7 @@ fun AdvancedSearchDialog(
 						horizontalArrangement = Arrangement.spacedBy(8.dp)
 					) {
 						FilterChip(
-							onClick = { 
+							onClick = {
 								selectedSearchType = SearchType.RECEIPT_NUMBER
 								searchNumber = ""
 							},
@@ -9853,7 +9863,7 @@ fun AdvancedSearchDialog(
 						)
 
 						FilterChip(
-							onClick = { 
+							onClick = {
 								selectedSearchType = SearchType.TRACKING_NUMBER
 								searchNumber = ""
 							},
@@ -10010,7 +10020,7 @@ fun MultipleSearchResultDialog(
 	Dialog(
 		onDismissRequest = onDismiss,
 		properties = DialogProperties(
-			dismissOnBackPress = true, 
+			dismissOnBackPress = true,
 			dismissOnClickOutside = false,
 			usePlatformDefaultWidth = false
 		)
@@ -10185,7 +10195,7 @@ private fun CargoSearchResultCard(
 						overflow = TextOverflow.Ellipsis
 					)
 				}
-				
+
 				Row(
 					horizontalArrangement = Arrangement.spacedBy(8.dp),
 					verticalAlignment = Alignment.CenterVertically
@@ -10207,7 +10217,7 @@ private fun CargoSearchResultCard(
 							modifier = Modifier.size(16.dp)
 						)
 					}
-					
+
 					Icon(
 						imageVector = Icons.Default.ChevronRight,
 						contentDescription = null,
@@ -10231,7 +10241,7 @@ private fun CargoSearchResultCard(
 						label = "قبض باسکول",
 						value = cargoInfo.scaleReceiptNumber,
 						isClickable = true,
-						onCopy = { 
+						onCopy = {
 							// کپی شماره قبض باسکول
 							val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 							val clipData = ClipData.newPlainText("شماره قبض باسکول", cargoInfo.scaleReceiptNumber)
@@ -10245,7 +10255,7 @@ private fun CargoSearchResultCard(
 						value = "${formatNumber(cargoInfo.netWeight.toIntOrNull() ?: 0)} کیلوگرم"
 					)
 				}
-				
+
 				Column(
 					modifier = Modifier.weight(1f),
 					verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -10288,17 +10298,17 @@ private fun CargoSearchResultCard(
 
 				Surface(
 					shape = RoundedCornerShape(8.dp),
-					color = if (cargoInfo.exitTime != null) 
-						Color(0xFF4CAF50).copy(alpha = 0.1f) 
-					else 
+					color = if (cargoInfo.exitTime != null)
+						Color(0xFF4CAF50).copy(alpha = 0.1f)
+					else
 						Color(0xFFFF9800).copy(alpha = 0.1f)
 				) {
 					Text(
 						text = if (cargoInfo.exitTime != null) "خروج شده" else "در انتظار خروج",
 						style = MaterialTheme.typography.bodySmall,
-						color = if (cargoInfo.exitTime != null) 
-							Color(0xFF4CAF50) 
-						else 
+						color = if (cargoInfo.exitTime != null)
+							Color(0xFF4CAF50)
+						else
 							Color(0xFFFF9800),
 						modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
 					)
@@ -10317,7 +10327,7 @@ private fun InfoRowCompact(
 	onCopy: (() -> Unit)? = null
 ) {
 	val context = LocalContext.current
-	
+
 	Row(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -10328,7 +10338,7 @@ private fun InfoRowCompact(
 				val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 				val clip = ClipData.newPlainText(label, value)
 				clipboard.setPrimaryClip(clip)
-				
+
 				// نمایش پیام تأیید
 				Toast.makeText(context, "$label کپی شد", Toast.LENGTH_SHORT).show()
 			}
@@ -10359,7 +10369,7 @@ private fun InfoRowCompact(
 				overflow = TextOverflow.Ellipsis
 			)
 		}
-		
+
 		// نمایش آیکن کپی برای آیتم‌های قابل کپی
 		if (isClickable && onCopy != null) {
 			Icon(
@@ -10381,7 +10391,7 @@ fun SearchResultDialog(
 	Dialog(
 		onDismissRequest = onDismiss,
 		properties = DialogProperties(
-			dismissOnBackPress = true, 
+			dismissOnBackPress = true,
 			dismissOnClickOutside = false,
 			usePlatformDefaultWidth = false
 		)
