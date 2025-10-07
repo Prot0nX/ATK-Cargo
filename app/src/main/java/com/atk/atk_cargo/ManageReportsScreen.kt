@@ -78,6 +78,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -269,6 +270,10 @@ import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.api.toTon
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.atk.atk_cargo.ui.theme.getCompletionColor
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -1296,7 +1301,7 @@ fun WarehousesAndQuotasTab(
 	onSectionChanged: (Int) -> Unit
 ) {
 	var selectedSection by remember { mutableIntStateOf(0) }
-	val sections = listOf("انبارها", "کوتاژها")
+	val sections = listOf("کوتاژها", "انبارها")
 	var searchQuery by remember { mutableStateOf("") }
 	
 	// مشاهده وضعیت‌های بارگذاری جداگانه
@@ -1323,7 +1328,7 @@ fun WarehousesAndQuotasTab(
 				searchQuery = searchQuery,
 				onSearchQueryChange = { searchQuery = it },
 				modifier = Modifier.fillMaxWidth(),
-				keyboardType = if (selectedSection == 1) KeyboardType.Number else KeyboardType.Text
+				keyboardType = if (selectedSection == 0) KeyboardType.Number else KeyboardType.Text
 			)
 
 			Spacer(modifier = Modifier.height(8.dp))
@@ -1343,13 +1348,7 @@ fun WarehousesAndQuotasTab(
 
 			// محتوای انتخاب شده
 			when (selectedSection) {
-				0 -> WarehousesSection(
-					warehouses = shipDetails.warehouses.filter {
-						it.name.contains(searchQuery, ignoreCase = true)
-					},
-					onWarehouseSelected = onWarehouseSelected
-				)
-				1 -> {
+				0 -> {
 					// نمایش بهینه‌شده کوتاژها با مدیریت وضعیت بارگذاری
 					Box(modifier = Modifier.fillMaxSize()) {
 						QuotasList(
@@ -1423,6 +1422,12 @@ fun WarehousesAndQuotasTab(
 						}
 					}
 				}
+				1 -> WarehousesSection(
+					warehouses = shipDetails.warehouses.filter {
+						it.name.contains(searchQuery, ignoreCase = true)
+					},
+					onWarehouseSelected = onWarehouseSelected
+				)
 			}
 		}
 	}
@@ -1436,7 +1441,7 @@ private fun ShipHeaderCard(shipDetails: Ship) {
 	Card(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = 16.dp, vertical = 8.dp),
+			.padding(horizontal = 12.dp, vertical = 8.dp),
 		colors = CardDefaults.cardColors(
 			containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
 		),
@@ -1446,8 +1451,8 @@ private fun ShipHeaderCard(shipDetails: Ship) {
 		Column(
 			modifier = Modifier
 				.fillMaxWidth()
-				.padding(16.dp),
-			verticalArrangement = Arrangement.spacedBy(12.dp)
+				.padding(12.dp),
+			verticalArrangement = Arrangement.spacedBy(8.dp)
 		) {
 			Row(
 				modifier = Modifier.fillMaxWidth(),
@@ -1458,11 +1463,14 @@ private fun ShipHeaderCard(shipDetails: Ship) {
 					horizontalArrangement = Arrangement.spacedBy(8.dp),
 					verticalAlignment = Alignment.CenterVertically
 				) {
-					Icon(
-						imageVector = Icons.Default.DirectionsBoat,
-						contentDescription = null,
-						tint = MaterialTheme.colorScheme.primary,
-						modifier = Modifier.size(20.dp)
+					val composition by rememberLottieComposition(
+						LottieCompositionSpec.RawRes(R.raw.ship)
+					)
+					
+					LottieAnimation(
+						composition = composition,
+						iterations = LottieConstants.IterateForever,
+						modifier = Modifier.size(36.dp)
 					)
 					
 					Text(
@@ -1519,56 +1527,24 @@ private fun ShipHeaderCard(shipDetails: Ship) {
 
 			Row(
 				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
+				horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
 				verticalAlignment = Alignment.CenterVertically
 			) {
-				Row(
-					horizontalArrangement = Arrangement.spacedBy(16.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					Text(
-						text = "کل: ${formatNumber(shipDetails.totalTonnage.toInt())}",
-						style = MaterialTheme.typography.bodySmall,
-						color = if (isSystemInDarkTheme()) Color(0xFF4CAF50) else Color(0xFF2E7D32),
-						fontWeight = FontWeight.Bold
-					)
-					
-					Text(
-						text = "مانده: ${formatNumber(shipDetails.remainingTonnage.toInt())}",
-						style = MaterialTheme.typography.bodySmall,
-						color = if (isSystemInDarkTheme()) Color(0xFFEF5350) else Color(0xFFD32F2F),
-						fontWeight = FontWeight.Bold
-					)
-				}
-
-				Row(
-					horizontalArrangement = Arrangement.spacedBy(8.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					Box(
-						modifier = Modifier
-							.width(60.dp)
-							.height(6.dp)
-							.clip(RoundedCornerShape(3.dp))
-							.background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-					) {
-						Box(
-							modifier = Modifier
-								.fillMaxWidth(progress)
-								.fillMaxHeight()
-								.background(
-								getCompletionColor(progress * 100, isSystemInDarkTheme())
-							)
-						)
-					}
-					
-					Text(
-						text = "${(progress * 100).roundToInt()}%",
-						style = MaterialTheme.typography.bodySmall,
-						fontWeight = FontWeight.Medium,
-						color = getCompletionColor(progress * 100, isSystemInDarkTheme())
-					)
-				}
+				StatChip(
+					icon = Icons.Default.ArrowUpward,
+					value = formatNumber(shipDetails.totalTonnage.toInt()),
+					color = MaterialTheme.colorScheme.primary,
+					label = "کل"
+				)
+				
+				StatChip(
+					icon = Icons.Default.ArrowDownward,
+					value = formatNumber(shipDetails.remainingTonnage.toInt()),
+					color = MaterialTheme.colorScheme.tertiary,
+					label = "مانده"
+				)
+				
+				ProgressIndicator(progress = progress)
 			}
 		}
 	}
@@ -2039,7 +2015,6 @@ fun QuotaGroupExpansionPanel(
 								fontWeight = FontWeight.Bold
 							)
 
-							// نمایش جمع کل در حالت دسته‌بندی صاحب کالا و انبار
 							if (currentGroupingMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER || currentGroupingMode == WarehouseQuotaGroupingMode.BY_WAREHOUSE) {
 								Surface(
 									shape = RoundedCornerShape(16.dp),
@@ -2123,6 +2098,42 @@ private fun QuotaStats(
 			value = formatNumber(remainingWeight.toInt()),
 			color = MaterialTheme.colorScheme.tertiary,
 			label = "مانده",
+		)
+	}
+}
+
+@Composable
+private fun ProgressIndicator(
+	progress: Float,
+	modifier: Modifier = Modifier
+) {
+	Row(
+		horizontalArrangement = Arrangement.spacedBy(6.dp),
+		verticalAlignment = Alignment.CenterVertically,
+		modifier = modifier
+	) {
+		Box(
+			modifier = Modifier
+				.width(75.dp)
+				.height(6.dp)
+				.clip(RoundedCornerShape(3.dp))
+				.background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+		) {
+			Box(
+				modifier = Modifier
+					.fillMaxWidth(progress)
+					.fillMaxHeight()
+					.background(
+						getCompletionColor(progress * 100, isSystemInDarkTheme())
+					)
+			)
+		}
+		
+		Text(
+			text = "${(progress * 100).roundToInt()}%",
+			style = MaterialTheme.typography.bodySmall,
+			fontWeight = FontWeight.Medium,
+			color = getCompletionColor(progress * 100, isSystemInDarkTheme())
 		)
 	}
 }
@@ -2405,18 +2416,26 @@ fun QuotaWarningDialog(
 	onDismiss: () -> Unit,
 	viewModel: ReportsViewModel
 ) {
-	val pagerState = rememberPagerState(pageCount = { warnings.size })
+	val warningsPerPage = 3
+	val groupedWarnings = warnings.chunked(warningsPerPage)
+	val totalPages = groupedWarnings.size
+	val pagerState = rememberPagerState(pageCount = { totalPages })
 	val coroutineScope = rememberCoroutineScope()
+	var expandedCardId by remember { mutableStateOf<String?>(null) }
 	val scale by animateFloatAsState(
 		targetValue = 1f,
-		animationSpec = spring(
-			dampingRatio = Spring.DampingRatioLowBouncy,
-			stiffness = Spring.StiffnessLow
+		animationSpec = tween(
+			durationMillis = 200,
+			easing = FastOutSlowInEasing
 		),
 		label = "dialog scale"
 	)
 	val alpha by animateFloatAsState(
 		targetValue = 1f,
+		animationSpec = tween(
+			durationMillis = 150,
+			easing = FastOutSlowInEasing
+		),
 		label = "dialog alpha"
 	)
 
@@ -2433,11 +2452,16 @@ fun QuotaWarningDialog(
 		Surface(
 			modifier = Modifier
 				.fillMaxWidth(0.95f)
-				.wrapContentHeight()
-
-				.padding(16.dp)
+				.fillMaxHeight(0.70f)
+				.padding(12.dp)
 				.scale(scale)
-				.alpha(alpha),
+				.alpha(alpha)
+				.animateContentSize(
+					animationSpec = tween(
+						durationMillis = 250,
+						easing = FastOutSlowInEasing
+					)
+				),
 			shape = RoundedCornerShape(24.dp),
 			tonalElevation = 6.dp,
 			color = MaterialTheme.colorScheme.surface
@@ -2445,103 +2469,106 @@ fun QuotaWarningDialog(
 			Column(
 				modifier = Modifier
 					.fillMaxWidth()
-					.padding(24.dp)
+					.fillMaxHeight()
+					.padding(16.dp)
 			) {
-				// Dialog Header - Same style as QuotaPercentageDialog
 				WarningDialogHeader(
 					currentPage = pagerState.currentPage,
-					totalPages = warnings.size,
+					totalPages = totalPages,
 					onClose = onDismiss
 				)
 
 				Spacer(modifier = Modifier.height(24.dp))
 
-				// Content Section - Scrollable
-				LazyColumn(
-					modifier = Modifier
-						.weight(1f, fill = false)
-						.fillMaxWidth(),
-					verticalArrangement = Arrangement.spacedBy(12.dp),
-					contentPadding = PaddingValues(vertical = 8.dp)
+				Column(
+					modifier = Modifier.weight(1f)
 				) {
-					items(warnings) { warning ->
-						ElegantQuotaCard(
-							warning = warning,
-							viewModel = viewModel
+					HorizontalPager(
+						state = pagerState,
+						modifier = Modifier
+							.fillMaxWidth()
+							.weight(1f, fill = false)
+					) { page ->
+						LazyColumn(
+							modifier = Modifier
+								.fillMaxWidth()
+								.padding(horizontal = 8.dp),
+							verticalArrangement = Arrangement.spacedBy(12.dp),
+							contentPadding = PaddingValues(vertical = 8.dp)
+						) {
+							items(groupedWarnings[page]) { warning ->
+								ElegantQuotaCard(
+									warning = warning,
+									viewModel = viewModel,
+									isExpanded = expandedCardId == warning.quotaNumber,
+									onExpandChange = { shouldExpand ->
+										expandedCardId = if (shouldExpand) warning.quotaNumber else null
+									}
+								)
+							}
+						}
+					}
+
+					Spacer(modifier = Modifier.height(12.dp))
+
+					if (totalPages > 1) {
+						WarningPageNavigation(
+							pagerState = pagerState,
+							pageCount = totalPages
 						)
 					}
 				}
 
-				Spacer(modifier = Modifier.height(24.dp))
+				Spacer(modifier = Modifier.height(12.dp))
 
-				// Navigation and Action Buttons
-				Column(
-					verticalArrangement = Arrangement.spacedBy(16.dp)
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.spacedBy(12.dp)
 				) {
-					// Page Navigation (if multiple warnings)
-					if (warnings.size > 1) {
-						WarningPageNavigation(
-							currentPage = pagerState.currentPage,
-							pageCount = warnings.size,
-							onNavigate = { page ->
-								coroutineScope.launch {
-									pagerState.animateScrollToPage(page)
-								}
-							}
+					OutlinedButton(
+						onClick = onDismiss,
+						modifier = Modifier.weight(1f),
+						shape = RoundedCornerShape(12.dp),
+						border = BorderStroke(
+							width = 1.dp,
+							color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
 						)
+					) {
+						Row(
+							horizontalArrangement = Arrangement.spacedBy(8.dp),
+							verticalAlignment = Alignment.CenterVertically
+						) {
+							Icon(
+								imageVector = Icons.Default.Close,
+								contentDescription = null,
+								modifier = Modifier.size(20.dp)
+							)
+							Text("بستن")
+						}
 					}
 
-					// Action Buttons - Same style as QuotaPercentageDialog
-					Row(
-						modifier = Modifier.fillMaxWidth(),
-						horizontalArrangement = Arrangement.spacedBy(16.dp)
-					) {
-						OutlinedButton(
-							onClick = onDismiss,
-							modifier = Modifier.weight(1f),
-							shape = RoundedCornerShape(12.dp),
-							border = BorderStroke(
-								width = 1.dp,
-								color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-							)
-						) {
-							Row(
-								horizontalArrangement = Arrangement.spacedBy(8.dp),
-								verticalAlignment = Alignment.CenterVertically
-							) {
-								Icon(
-									imageVector = Icons.Default.Close,
-									contentDescription = null,
-									modifier = Modifier.size(20.dp)
-								)
-								Text("بستن")
-							}
-						}
-
-						Button(
-							onClick = {
-								coroutineScope.launch {
-									// Handle all warnings at once
-									warnings.forEach { warning ->
-										viewModel.toggleQuotaStatus(warning.quotaNumber)
-									}
-									onDismiss()
+					Button(
+						onClick = {
+							coroutineScope.launch {
+								warnings.forEach { warning ->
+									viewModel.toggleQuotaStatus(warning.quotaNumber)
 								}
-							},
-							modifier = Modifier.weight(1f),
-							shape = RoundedCornerShape(12.dp)
-						) {
-							Row(
-								horizontalArrangement = Arrangement.spacedBy(8.dp),
-								verticalAlignment = Alignment.CenterVertically
-							) {
-								Icon(
-									imageVector = Icons.Default.Check,
-									contentDescription = null,
-									modifier = Modifier.size(20.dp)
-								)
-								Text("متوجه شدم")
+								onDismiss()
 							}
+						},
+						modifier = Modifier.weight(1f),
+						shape = RoundedCornerShape(12.dp)
+					) {
+						Row(
+							horizontalArrangement = Arrangement.spacedBy(8.dp),
+							verticalAlignment = Alignment.CenterVertically
+						) {
+							Icon(
+								imageVector = Icons.Default.Check,
+								contentDescription = null,
+								modifier = Modifier.size(20.dp)
+							)
+							Text("غیرفعال کردن")
 						}
 					}
 				}
@@ -2559,7 +2586,7 @@ private fun DialogHeader(
 	Column(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = 16.dp)
+			.padding(horizontal = 12.dp)
 	) {
 		// Header Top Section
 		Row(
@@ -2616,7 +2643,6 @@ private fun DialogHeader(
 			}
 		}
 
-		// Page Counter (if more than one warning)
 		if (totalPages > 1) {
 			Spacer(modifier = Modifier.height(8.dp))
 
@@ -2676,27 +2702,34 @@ private fun WarningDialogHeader(
 @Composable
 private fun ElegantQuotaCard(
 	warning: WarningStatus,
-	viewModel: ReportsViewModel
+	viewModel: ReportsViewModel,
+	isExpanded: Boolean,
+	onExpandChange: (Boolean) -> Unit
 ) {
-	QuotaCard(warning, viewModel)
+	QuotaCard(
+		warning = warning,
+		viewModel = viewModel,
+		isExpanded = isExpanded,
+		onExpandChange = onExpandChange
+	)
 }
 
 @Composable
 private fun WarningPageNavigation(
-	currentPage: Int,
-	pageCount: Int,
-	onNavigate: (Int) -> Unit
+	pagerState: PagerState,
+	pageCount: Int
 ) {
-	PageNavigation(currentPage, pageCount, onNavigate)
+	PageNavigation(pagerState, pageCount)
 }
 
 @Composable
 private fun PageNavigation(
-	currentPage: Int,
-	pageCount: Int,
-	onNavigate: (Int) -> Unit
+	pagerState: PagerState,
+	pageCount: Int
 ) {
 	if (pageCount <= 1) return
+	
+	val coroutineScope = rememberCoroutineScope()
 
 	Column(
 		modifier = Modifier
@@ -2711,8 +2744,12 @@ private fun PageNavigation(
 		) {
 			repeat(pageCount) { page ->
 				PageIndicatorDot(
-					isSelected = page == currentPage,
-					onClick = { onNavigate(page) }
+					isSelected = page == pagerState.currentPage,
+					onClick = { 
+						coroutineScope.launch {
+							pagerState.animateScrollToPage(page)
+						}
+					}
 				)
 				if (page < pageCount - 1) {
 					Spacer(modifier = Modifier.width(8.dp))
@@ -2728,15 +2765,19 @@ private fun PageNavigation(
 			NavigationButton(
 				text = "قبلی",
 				icon = Icons.AutoMirrored.Filled.ArrowBack,
-				enabled = currentPage > 0,
-				onClick = { onNavigate(currentPage - 1) }
+				enabled = pagerState.currentPage > 0,
+				onClick = { 
+					pagerState.animateScrollToPage(pagerState.currentPage - 1)
+				}
 			)
 
 			NavigationButton(
 				text = "بعدی",
 				icon = Icons.AutoMirrored.Filled.ArrowForward,
-				enabled = currentPage < pageCount - 1,
-				onClick = { onNavigate(currentPage + 1) }
+				enabled = pagerState.currentPage < pageCount - 1,
+				onClick = { 
+					pagerState.animateScrollToPage(pagerState.currentPage + 1)
+				}
 			)
 		}
 	}
@@ -2753,11 +2794,19 @@ private fun PageIndicatorDot(
 		} else {
 			MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
 		},
+		animationSpec = tween(
+			durationMillis = 150,
+			easing = FastOutSlowInEasing
+		),
 		label = "dot color"
 	)
 
 	val size by animateDpAsState(
 		targetValue = if (isSelected) 10.dp else 8.dp,
+		animationSpec = tween(
+			durationMillis = 150,
+			easing = FastOutSlowInEasing
+		),
 		label = "dot size"
 	)
 
@@ -2774,10 +2823,16 @@ private fun NavigationButton(
 	text: String,
 	icon: ImageVector,
 	enabled: Boolean,
-	onClick: () -> Unit
+	onClick: suspend () -> Unit
 ) {
+	val coroutineScope = rememberCoroutineScope()
+	
 	OutlinedButton(
-		onClick = onClick,
+		onClick = { 
+			coroutineScope.launch {
+				onClick()
+			}
+		},
 		enabled = enabled,
 		colors = ButtonDefaults.outlinedButtonColors(
 			contentColor = MaterialTheme.colorScheme.error
@@ -2804,9 +2859,10 @@ private fun NavigationButton(
 @Composable
 private fun QuotaCard(
 	warning: WarningStatus,
-	viewModel: ReportsViewModel
+	viewModel: ReportsViewModel,
+	isExpanded: Boolean,
+	onExpandChange: (Boolean) -> Unit
 ) {
-	var isExpanded by remember { mutableStateOf(false) }
 	var isPercentageRestrictionLoading by remember { mutableStateOf(false) }
 	var isStatusToggleLoading by remember { mutableStateOf(false) }
 	val mainColor = MaterialTheme.colorScheme.error
@@ -2815,7 +2871,12 @@ private fun QuotaCard(
 	Card(
 		modifier = Modifier
 			.fillMaxWidth()
-			.animateContentSize(),
+			.animateContentSize(
+				animationSpec = tween(
+					durationMillis = 200,
+					easing = FastOutSlowInEasing
+				)
+			),
 		colors = CardDefaults.cardColors(
 			containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.05f)
 		),
@@ -2829,13 +2890,33 @@ private fun QuotaCard(
 				shortQuotaNumber = warning.quotaNumber.takeLast(4),
 				warning = warning,
 				isExpanded = isExpanded,
-				onExpandClick = { isExpanded = !isExpanded }
+				onExpandClick = { onExpandChange(!isExpanded) }
 			)
 
 			AnimatedVisibility(
 				visible = isExpanded,
-				enter = expandVertically() + fadeIn(),
-				exit = shrinkVertically() + fadeOut()
+				enter = expandVertically(
+					animationSpec = tween(
+						durationMillis = 200,
+						easing = FastOutSlowInEasing
+					)
+				) + fadeIn(
+					animationSpec = tween(
+						durationMillis = 150,
+						easing = FastOutSlowInEasing
+					)
+				),
+				exit = shrinkVertically(
+					animationSpec = tween(
+						durationMillis = 150,
+						easing = FastOutSlowInEasing
+					)
+				) + fadeOut(
+					animationSpec = tween(
+						durationMillis = 100,
+						easing = FastOutSlowInEasing
+					)
+				)
 			) {
 				Column(
 					modifier = Modifier.padding(
@@ -2855,7 +2936,6 @@ private fun QuotaCard(
 						modifier = Modifier.fillMaxWidth(),
 						horizontalArrangement = Arrangement.SpaceEvenly
 					) {
-						// Percentage Restriction Control
 						if (isPercentageRestrictionLoading) {
 							LoadingActionButton(
 								label = if (warning.isPercentageRestricted) "آزاد کردن درصد" else "محدود کردن درصد",
@@ -2882,7 +2962,6 @@ private fun QuotaCard(
 							)
 						}
 
-						// Status Toggle Control
 						if (isStatusToggleLoading) {
 							LoadingActionButton(
 								label = if (warning.isActive) "غیرفعال‌سازی کوتاژ" else "فعال‌سازی کوتاژ",
@@ -6432,7 +6511,9 @@ fun QuotaChip(
 						color = if (quota.isActive) {
 							if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.tertiary
 						} else {
-							if (isSelected) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+							if (isSelected) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.error.copy(
+								alpha = 0.7f
+							)
 						},
 						shape = CircleShape
 					)
@@ -6515,7 +6596,10 @@ fun VoucherDetailsButton(summary: FilteredSummary) {
 						Box(
 							modifier = Modifier
 								.size(3.dp)
-								.background(MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.4f), CircleShape)
+								.background(
+									MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.4f),
+									CircleShape
+								)
 						)
 
 						// وزن کل
@@ -9498,10 +9582,12 @@ fun FloatingActionButton(
 
 									do {
 										val nextEvent = awaitPointerEvent()
-										val stillDown = nextEvent.changes.firstOrNull()?.pressed == true
+										val stillDown =
+											nextEvent.changes.firstOrNull()?.pressed == true
 										if (!stillDown) {
 											isPressed = false
-											val pressDuration = System.currentTimeMillis() - longPressStartTime
+											val pressDuration =
+												System.currentTimeMillis() - longPressStartTime
 											if (pressDuration > 1500) { // 1.5 seconds long press
 												isTransparent = !isTransparent
 											}
