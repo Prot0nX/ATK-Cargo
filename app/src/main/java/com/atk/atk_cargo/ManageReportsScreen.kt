@@ -11987,7 +11987,6 @@ fun QuotaAnalysis(
 		viewModel.updateInitialQuotas(completionData)
 	}
 
-	var expandedQuotaNumber by remember { mutableStateOf<String?>(null) }
 	var expandedGroup by remember { mutableStateOf<String?>(null) }
 	val groupingMode by viewModel.groupingMode.collectAsState()
 	val searchQuery by viewModel.searchQuery.collectAsState()
@@ -12134,12 +12133,8 @@ fun QuotaAnalysis(
 						quotas = quotas,
 						groupingMode = groupingMode,
 						isExpanded = expandedGroup == groupName,
-						onExpandClick = {
-							expandedGroup = if (expandedGroup == groupName) null else groupName
-						},
-						expandedQuotaNumber = expandedQuotaNumber,
-						onQuotaExpandChange = { quotaNumber, shouldExpand ->
-							expandedQuotaNumber = if (shouldExpand) quotaNumber else null
+						onExpandChange = { shouldExpand ->
+							expandedGroup = if (shouldExpand) groupName else null
 						}
 					)
 				}
@@ -12194,9 +12189,7 @@ private fun AnalyticsQuotaGroupExpansionPanel(
 	quotas: List<QuotaCompletionData>,
 	groupingMode: QuotaGroupingMode,
 	isExpanded: Boolean,
-	onExpandClick: () -> Unit,
-	expandedQuotaNumber: String?,
-	onQuotaExpandChange: (String, Boolean) -> Unit,
+	onExpandChange: (Boolean) -> Unit,
 	modifier: Modifier = Modifier
 ) {
 	val totalWeight = quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
@@ -12211,9 +12204,9 @@ private fun AnalyticsQuotaGroupExpansionPanel(
 		modifier = modifier
 			.fillMaxWidth()
 			.animateContentSize(
-				animationSpec = tween(
-					durationMillis = 200,
-					easing = FastOutSlowInEasing
+				animationSpec = spring(
+					dampingRatio = Spring.DampingRatioMediumBouncy,
+					stiffness = Spring.StiffnessLow
 				)
 			),
 		shape = RoundedCornerShape(12.dp),
@@ -12223,9 +12216,8 @@ private fun AnalyticsQuotaGroupExpansionPanel(
 		border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
 	) {
 		Column {
-			// هدر گروه
 			Surface(
-				onClick = onExpandClick,
+				onClick = { onExpandChange(!isExpanded) },
 				color = Color.Transparent
 			) {
 				Row(
@@ -12239,74 +12231,81 @@ private fun AnalyticsQuotaGroupExpansionPanel(
 						horizontalArrangement = Arrangement.spacedBy(12.dp),
 						verticalAlignment = Alignment.CenterVertically
 					) {
-						// آیکون گروه
-						Box(
-							modifier = Modifier
-								.size(40.dp)
-								.background(
-									color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-									shape = CircleShape
-								),
-							contentAlignment = Alignment.Center
-						) {
-							Icon(
-								imageVector = groupIcon,
-								contentDescription = null,
-								tint = MaterialTheme.colorScheme.primary,
-								modifier = Modifier.size(24.dp)
-							)
-						}
-
-						// اطلاعات گروه
-						Column {
-							Text(
-								text = groupName,
-								style = MaterialTheme.typography.titleMedium,
-								fontWeight = FontWeight.Bold,
-								color = MaterialTheme.colorScheme.onSurface
-							)
-
-							// آمار گروه
-							Row(
-								horizontalArrangement = Arrangement.spacedBy(8.dp),
-								verticalAlignment = Alignment.CenterVertically
-							) {
-								AnalyticsStatChip(
-									value = "${quotas.size}",
-									label = "کوتاژ",
-									color = MaterialTheme.colorScheme.primary
-								)
-								AnalyticsStatChip(
-									value = formatNumber(totalWeight.roundToInt()),
-									label = "تن",
-									color = MaterialTheme.colorScheme.secondary
-								)
-								AnalyticsStatChip(
-									value = formatNumber(totalVouchers),
-									label = "حواله",
-									color = MaterialTheme.colorScheme.tertiary
-								)
-							}
-						}
-					}
-
-					// آیکون گسترش
+				Box(
+					modifier = Modifier
+						.size(40.dp)
+						.background(
+							color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+							shape = CircleShape
+						),
+					contentAlignment = Alignment.Center
+				) {
 					Icon(
-						imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-						contentDescription = if (isExpanded) "بستن" else "گسترش",
-						tint = MaterialTheme.colorScheme.onSurfaceVariant,
+						imageVector = groupIcon,
+						contentDescription = null,
+						tint = MaterialTheme.colorScheme.primary,
 						modifier = Modifier.size(24.dp)
 					)
 				}
+
+				Column {
+					Text(
+						text = groupName,
+						style = MaterialTheme.typography.titleMedium,
+						fontWeight = FontWeight.Bold,
+						color = MaterialTheme.colorScheme.onSurface
+					)
+
+					Row(
+						horizontalArrangement = Arrangement.spacedBy(8.dp),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						AnalyticsStatChip(
+							value = "${quotas.size}",
+							label = "کوتاژ",
+							color = MaterialTheme.colorScheme.primary
+						)
+						AnalyticsStatChip(
+							value = formatNumber(totalWeight.roundToInt()),
+							label = "تن",
+							color = MaterialTheme.colorScheme.secondary
+						)
+						AnalyticsStatChip(
+							value = formatNumber(totalVouchers),
+							label = "حواله",
+							color = MaterialTheme.colorScheme.tertiary
+						)
+					}
+				}
+					}
+
+					IconButton(
+						onClick = { onExpandChange(!isExpanded) }
+					) {
+						Icon(
+							imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+							contentDescription = if (isExpanded) "بستن" else "گسترش",
+							tint = MaterialTheme.colorScheme.onSurfaceVariant
+						)
+					}
+				}
 			}
 
-			// محتوای گسترش یافته
 			AnimatedVisibility(
 				visible = isExpanded,
-				enter = expandVertically() + fadeIn(),
-				exit = shrinkVertically() + fadeOut()
+				enter = expandVertically(
+					animationSpec = spring(
+						dampingRatio = Spring.DampingRatioMediumBouncy,
+						stiffness = Spring.StiffnessLow
+					)
+				) + fadeIn(),
+				exit = shrinkVertically(
+					animationSpec = spring(
+						dampingRatio = Spring.DampingRatioMediumBouncy,
+						stiffness = Spring.StiffnessLow
+					)
+				) + fadeOut()
 			) {
-				// استفاده از Column به جای LazyColumn برای جلوگیری از nested scrolling
 				Column(
 					modifier = Modifier
 						.heightIn(max = 400.dp)
@@ -12317,11 +12316,7 @@ private fun AnalyticsQuotaGroupExpansionPanel(
 					quotas.forEach { quota ->
 						AnalyticsQuotaCard(
 							quota = quota,
-							groupingMode = groupingMode,
-							isExpanded = expandedQuotaNumber == quota.loadingQuotaNumber,
-							onExpandChange = { shouldExpand ->
-								onQuotaExpandChange(quota.loadingQuotaNumber, shouldExpand)
-							}
+							groupingMode = groupingMode
 						)
 					}
 				}
@@ -12367,8 +12362,6 @@ private fun AnalyticsStatChip(
 private fun AnalyticsQuotaCard(
 	quota: QuotaCompletionData,
 	groupingMode: QuotaGroupingMode,
-	isExpanded: Boolean,
-	onExpandChange: (Boolean) -> Unit,
 	modifier: Modifier = Modifier
 ) {
 	val isDarkTheme = isSystemInDarkTheme()
@@ -12384,214 +12377,79 @@ private fun AnalyticsQuotaCard(
 		),
 		border = BorderStroke(1.dp, completionColor.copy(alpha = 0.2f))
 	) {
-		Column {
-			// هدر کارت
-			Surface(
-				onClick = { onExpandChange(!isExpanded) },
-				color = Color.Transparent
-			) {
-				Row(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(12.dp),
-					horizontalArrangement = Arrangement.SpaceBetween,
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					Row(
-						horizontalArrangement = Arrangement.spacedBy(12.dp),
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						// آیکون کوتاژ
-						Box(
-							modifier = Modifier
-								.size(32.dp)
-								.background(
-									color = completionColor.copy(alpha = 0.1f),
-									shape = CircleShape
-								),
-							contentAlignment = Alignment.Center
-						) {
-							Icon(
-								imageVector = Icons.Default.Receipt,
-								contentDescription = null,
-								tint = completionColor,
-								modifier = Modifier.size(18.dp)
-							)
-						}
-
-						// اطلاعات کوتاژ
-						Column {
-							Row(
-								horizontalArrangement = Arrangement.spacedBy(4.dp),
-								verticalAlignment = Alignment.CenterVertically
-							) {
-								Text(
-									text = quota.loadingQuotaNumber,
-									style = MaterialTheme.typography.bodyLarge,
-									fontWeight = FontWeight.Bold,
-									color = MaterialTheme.colorScheme.onSurface
-								)
-								Text(
-									text = "|",
-									style = MaterialTheme.typography.bodyMedium,
-									fontWeight = FontWeight.Bold,
-									color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-								)
-								Text(
-									text = when (groupingMode) {
-										QuotaGroupingMode.BY_SHIP -> quota.shippingCompany
-										QuotaGroupingMode.BY_CARRIER -> quota.shipName
-									},
-									style = MaterialTheme.typography.bodyMedium,
-									fontWeight = FontWeight.Bold,
-									color = MaterialTheme.colorScheme.primary
-								)
-							}
-
-							Row(
-								horizontalArrangement = Arrangement.spacedBy(6.dp),
-								verticalAlignment = Alignment.CenterVertically
-							) {
-								AnalyticsStatChip(
-									value = formatNumber(quota.last_24h_vouchers),
-									label = "حواله",
-									color = completionColor
-								)
-								AnalyticsStatChip(
-									value = formatNumber(quota.last_24h_weight.roundToInt()),
-									label = "تن",
-									color = completionColor
-								)
-							}
-						}
-					}
-
-					// آیکون گسترش
-					Icon(
-						imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-						contentDescription = if (isExpanded) "بستن" else "گسترش",
-						tint = completionColor,
-						modifier = Modifier.size(20.dp)
-					)
-				}
-			}
-
-			// محتوای گسترش یافته
-			AnimatedVisibility(
-				visible = isExpanded,
-				enter = expandVertically() + fadeIn(),
-				exit = shrinkVertically() + fadeOut()
-			) {
-				Column(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(12.dp)
-				) {
-					HorizontalDivider(
-						color = completionColor.copy(alpha = 0.2f),
-						modifier = Modifier.padding(bottom = 8.dp)
-					)
-
-					// جزئیات کوتاژ
-					AnalyticsQuotaDetailsCard(
-						quotaData = quota,
-						color = completionColor
-					)
-				}
-			}
-		}
-	}
-}
-
-@Composable
-private fun AnalyticsQuotaDetailsCard(
-	quotaData: QuotaCompletionData,
-	color: Color,
-	modifier: Modifier = Modifier
-) {
-	Surface(
-		modifier = modifier.fillMaxWidth(),
-		color = color.copy(alpha = 0.05f),
-		shape = RoundedCornerShape(8.dp),
-		border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
-	) {
 		Column(
 			modifier = Modifier
 				.fillMaxWidth()
-				.padding(12.dp),
-			verticalArrangement = Arrangement.spacedBy(8.dp)
+				.padding(12.dp)
 		) {
-			// اطلاعات کشتی و باربری
+			// هدر کارت
 			Row(
 				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
+				horizontalArrangement = Arrangement.spacedBy(12.dp),
 				verticalAlignment = Alignment.CenterVertically
 			) {
-				Row(
-					horizontalArrangement = Arrangement.spacedBy(8.dp),
-					verticalAlignment = Alignment.CenterVertically
+				// آیکون کوتاژ
+				Box(
+					modifier = Modifier
+						.size(32.dp)
+						.background(
+							color = completionColor.copy(alpha = 0.1f),
+							shape = CircleShape
+						),
+					contentAlignment = Alignment.Center
 				) {
 					Icon(
-						imageVector = Icons.Default.DirectionsBoat,
+						imageVector = Icons.Default.Receipt,
 						contentDescription = null,
-						tint = color,
-						modifier = Modifier.size(16.dp)
-					)
-					Text(
-						text = quotaData.shipName,
-						style = MaterialTheme.typography.bodyMedium,
-						fontWeight = FontWeight.Medium
+						tint = completionColor,
+						modifier = Modifier.size(18.dp)
 					)
 				}
 
-				Row(
-					horizontalArrangement = Arrangement.spacedBy(8.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					Icon(
-						imageVector = Icons.Default.LocalShipping,
-						contentDescription = null,
-						tint = MaterialTheme.colorScheme.primary,
-						modifier = Modifier.size(16.dp)
-					)
-					Text(
-						text = quotaData.shippingCompany,
-						style = MaterialTheme.typography.bodyMedium,
-						fontWeight = FontWeight.Bold,
-						color = MaterialTheme.colorScheme.primary
-					)
-				}
-			}
+				// اطلاعات کوتاژ
+				Column {
+					Row(
+						horizontalArrangement = Arrangement.spacedBy(4.dp),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						Text(
+							text = quota.loadingQuotaNumber,
+							style = MaterialTheme.typography.bodyLarge,
+							fontWeight = FontWeight.Bold,
+							color = MaterialTheme.colorScheme.onSurface
+						)
+						Text(
+							text = "|",
+							style = MaterialTheme.typography.bodyMedium,
+							fontWeight = FontWeight.Bold,
+							color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+						)
+						Text(
+							text = when (groupingMode) {
+								QuotaGroupingMode.BY_SHIP -> quota.shippingCompany
+								QuotaGroupingMode.BY_CARRIER -> quota.shipName
+							},
+							style = MaterialTheme.typography.bodyMedium,
+							fontWeight = FontWeight.Bold,
+							color = MaterialTheme.colorScheme.primary
+						)
+					}
 
-			// آمار تکمیلی
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				Row(
-					horizontalArrangement = Arrangement.spacedBy(6.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					AnalyticsStatChip(
-						value = formatNumber(quotaData.total_vouchers),
-						label = "کل حواله",
-						color = color
-					)
-					AnalyticsStatChip(
-						value = "${quotaData.completion_percentage.roundToInt()}%",
-						label = "تکمیل",
-						color = color
-					)
-				}
-
-				Column(horizontalAlignment = Alignment.End) {
-					Text(
-						text = "${formatNumber(quotaData.total_quota_weight.roundToInt())} تن کل",
-						style = MaterialTheme.typography.bodyMedium,
-						fontWeight = FontWeight.Medium,
-						color = color
-					)
+					Row(
+						horizontalArrangement = Arrangement.spacedBy(6.dp),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						AnalyticsStatChip(
+							value = formatNumber(quota.last_24h_vouchers),
+							label = "حواله",
+							color = completionColor
+						)
+						AnalyticsStatChip(
+							value = formatNumber(quota.last_24h_weight.roundToInt()),
+							label = "تن",
+							color = completionColor
+						)
+					}
 				}
 			}
 		}
@@ -12622,7 +12480,6 @@ private fun CarrierCard(
 	carrier: CarrierPerformanceAnalysis,
 	modifier: Modifier = Modifier
 ) {
-	var isExpanded by remember { mutableStateOf(false) }
 	val color = when {
 		carrier.quality_score >= 80 -> MaterialTheme.colorScheme.primary
 		carrier.quality_score >= 70 -> MaterialTheme.colorScheme.secondary
@@ -12632,14 +12489,7 @@ private fun CarrierCard(
 	Card(
 		modifier = modifier
 			.fillMaxWidth()
-			.padding(vertical = 2.dp)
-			.clickable { isExpanded = !isExpanded }
-			.animateContentSize(
-				animationSpec = spring(
-					dampingRatio = Spring.DampingRatioMediumBouncy,
-					stiffness = Spring.StiffnessLow
-				)
-			),
+			.padding(vertical = 2.dp),
 		colors = CardDefaults.cardColors(
 			containerColor = color.copy(alpha = 0.05f)
 		),
@@ -12649,67 +12499,44 @@ private fun CarrierCard(
 			// Header
 			Row(
 				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
+				horizontalArrangement = Arrangement.spacedBy(12.dp),
 				verticalAlignment = Alignment.CenterVertically
 			) {
-				// Company Info
-				Row(
-					horizontalArrangement = Arrangement.spacedBy(12.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					// Status Icon with Background
-					StatusIndicator(carrier.quality_score, color)
+				// Status Icon with Background
+				StatusIndicator(carrier.quality_score, color)
 
-					// Company Details
-					Column {
-						Text(
-							text = carrier.shippingCompany,
-							style = MaterialTheme.typography.titleMedium,
-							fontWeight = FontWeight.Bold
-						)
-						Row(
-							horizontalArrangement = Arrangement.spacedBy(8.dp),
-							verticalAlignment = Alignment.CenterVertically
+				// Company Details
+				Column {
+					Text(
+						text = carrier.shippingCompany,
+						style = MaterialTheme.typography.titleMedium,
+						fontWeight = FontWeight.Bold
+					)
+					Row(
+						horizontalArrangement = Arrangement.spacedBy(8.dp),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						Badge(
+							containerColor = color.copy(alpha = 0.1f),
+							contentColor = color
 						) {
-							Badge(
-								containerColor = color.copy(alpha = 0.1f),
-								contentColor = color
-							) {
-								Text(carrier.performance_category)
-							}
-							Badge(
-								containerColor = color.copy(alpha = 0.1f),
-								contentColor = color
-							) {
-								Text("${carrier.quality_score.roundToInt()}%")
-							}
+							Text(carrier.performance_category)
+						}
+						Badge(
+							containerColor = color.copy(alpha = 0.1f),
+							contentColor = color
+						) {
+							Text("${carrier.quality_score.roundToInt()}%")
 						}
 					}
 				}
-
-				// Expand Icon
-				IconButton(onClick = { isExpanded = !isExpanded }) {
-					Icon(
-						imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-						contentDescription = null,
-						tint = color
-					)
-				}
 			}
 
-			// Quick Stats
-			if (!isExpanded) {
-				QuickStats(carrier, color)
-			}
+			// Stats
+			QuickStats(carrier, color)
 
-			// Expanded Content
-			AnimatedVisibility(
-				visible = isExpanded,
-				enter = expandVertically() + fadeIn(),
-				exit = shrinkVertically() + fadeOut()
-			) {
-				DetailedStats(carrier, color)
-			}
+			// Detailed Stats
+			DetailedStats(carrier, color)
 		}
 	}
 }
