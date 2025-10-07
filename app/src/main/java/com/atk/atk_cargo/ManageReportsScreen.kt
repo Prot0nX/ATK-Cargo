@@ -1433,148 +1433,140 @@ private fun ShipHeaderCard(shipDetails: Ship) {
 	val loadedTonnage = shipDetails.totalTonnage - shipDetails.remainingTonnage
 	val progress = calculateProgress(loadedTonnage, shipDetails.totalTonnage)
 
-	Surface(
+	Card(
 		modifier = Modifier
-			.fillMaxWidth(),
-		color = MaterialTheme.colorScheme.primary
+			.fillMaxWidth()
+			.padding(horizontal = 16.dp, vertical = 8.dp),
+		colors = CardDefaults.cardColors(
+			containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+		),
+		border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+		shape = RoundedCornerShape(12.dp)
 	) {
 		Column(
 			modifier = Modifier
 				.fillMaxWidth()
-				.padding(horizontal = 16.dp, vertical = 8.dp),
+				.padding(16.dp),
 			verticalArrangement = Arrangement.spacedBy(12.dp)
 		) {
-			// هدر اصلی با نام کشتی
 			Row(
 				modifier = Modifier.fillMaxWidth(),
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
-				// نام کشتی و آیکون
 				Row(
-					horizontalArrangement = Arrangement.spacedBy(12.dp),
+					horizontalArrangement = Arrangement.spacedBy(8.dp),
 					verticalAlignment = Alignment.CenterVertically
 				) {
-					// آیکون کشتی
-					Surface(
-						shape = CircleShape,
-						color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f),
-						modifier = Modifier.size(48.dp)
-					) {
-						Box(contentAlignment = Alignment.Center) {
-							Icon(
-								imageVector = Icons.Default.DirectionsBoat,
-								contentDescription = null,
-								tint = MaterialTheme.colorScheme.onPrimary,
-								modifier = Modifier.size(24.dp)
-							)
-						}
-					}
-
-					// نام کشتی و وضعیت
-					Column {
-						Text(
-							text = if (shipDetails.name.length > 11) {
-								shipDetails.name.take(11) + "..."
-							} else {
-								shipDetails.name
-							},
-							style = MaterialTheme.typography.headlineSmall,
-							color = MaterialTheme.colorScheme.onPrimary,
-							fontWeight = FontWeight.Bold,
-							maxLines = 1,
-							overflow = TextOverflow.Ellipsis
-						)
-
-						Text(
-							text = "کشتی ${if (shipDetails.isActive) "فعال" else "غیرفعال"}",
-							style = MaterialTheme.typography.bodyMedium,
-							color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-						)
-					}
+					Icon(
+						imageVector = Icons.Default.DirectionsBoat,
+						contentDescription = null,
+						tint = MaterialTheme.colorScheme.primary,
+						modifier = Modifier.size(20.dp)
+					)
+					
+					Text(
+						text = shipDetails.name,
+						style = MaterialTheme.typography.titleMedium,
+						fontWeight = FontWeight.Bold,
+						color = MaterialTheme.colorScheme.onSurface,
+						maxLines = 1,
+						overflow = TextOverflow.Ellipsis
+					)
 				}
 
-				// آمار کشتی
 				Row(
 					horizontalArrangement = Arrangement.spacedBy(12.dp),
 					verticalAlignment = Alignment.CenterVertically
 				) {
-					// تعداد کوتاژ
-					HeaderStatItem(
-						icon = Icons.Default.Description,
-						value = formatNumber(shipDetails.quotaCount),
-						label = "کوتاژ"
-					)
+					Row(
+						horizontalArrangement = Arrangement.spacedBy(4.dp),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						Icon(
+							imageVector = Icons.Default.Description,
+							contentDescription = null,
+							tint = MaterialTheme.colorScheme.primary,
+							modifier = Modifier.size(16.dp)
+						)
+						Text(
+							text = formatNumber(shipDetails.quotaCount),
+							style = MaterialTheme.typography.bodyMedium,
+							fontWeight = FontWeight.Medium,
+							color = MaterialTheme.colorScheme.onSurface
+						)
+					}
 
-					// تعداد انبار
-					HeaderStatItem(
-						icon = Icons.Default.Warehouse,
-						value = formatNumber(shipDetails.warehouses.size),
-						label = "انبار"
-					)
+					Row(
+						horizontalArrangement = Arrangement.spacedBy(4.dp),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						Icon(
+							imageVector = Icons.Default.Warehouse,
+							contentDescription = null,
+							tint = MaterialTheme.colorScheme.secondary,
+							modifier = Modifier.size(16.dp)
+						)
+						Text(
+							text = formatNumber(shipDetails.warehouses.size),
+							style = MaterialTheme.typography.bodyMedium,
+							fontWeight = FontWeight.Medium,
+							color = MaterialTheme.colorScheme.onSurface
+						)
+					}
 				}
 			}
 
-			// نوار پیشرفت و آمار تناژ
-			Column(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(top = 8.dp),
-				verticalArrangement = Arrangement.spacedBy(8.dp)
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically
 			) {
-				// آمار تناژ
 				Row(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.SpaceBetween,
+					horizontalArrangement = Arrangement.spacedBy(16.dp),
 					verticalAlignment = Alignment.CenterVertically
 				) {
-					// تناژ کل
 					Text(
-						text = "تناژ کل: ${formatNumber(shipDetails.totalTonnage.toInt())}",
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
+						text = "کل: ${formatNumber(shipDetails.totalTonnage.toInt())}",
+						style = MaterialTheme.typography.bodySmall,
+						color = if (isSystemInDarkTheme()) Color(0xFF4CAF50) else Color(0xFF2E7D32),
+						fontWeight = FontWeight.Bold
 					)
-
-					// تناژ باقی‌مانده
+					
 					Text(
 						text = "مانده: ${formatNumber(shipDetails.remainingTonnage.toInt())}",
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
+						style = MaterialTheme.typography.bodySmall,
+						color = if (isSystemInDarkTheme()) Color(0xFFEF5350) else Color(0xFFD32F2F),
+						fontWeight = FontWeight.Bold
 					)
 				}
 
-				// نوار پیشرفت
-				Box(
-					modifier = Modifier
-						.fillMaxWidth()
-						.height(8.dp)
-						.clip(RoundedCornerShape(4.dp))
-						.background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
+				Row(
+					horizontalArrangement = Arrangement.spacedBy(8.dp),
+					verticalAlignment = Alignment.CenterVertically
 				) {
 					Box(
 						modifier = Modifier
-							.fillMaxWidth(progress)
-							.fillMaxHeight()
-							.background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f))
-					)
-				}
-
-				// درصد پیشرفت
-				Row(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.SpaceBetween,
-					verticalAlignment = Alignment.CenterVertically
-				) {
+							.width(60.dp)
+							.height(6.dp)
+							.clip(RoundedCornerShape(3.dp))
+							.background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+					) {
+						Box(
+							modifier = Modifier
+								.fillMaxWidth(progress)
+								.fillMaxHeight()
+								.background(
+								getCompletionColor(progress * 100, isSystemInDarkTheme())
+							)
+						)
+					}
+					
 					Text(
-						text = "${(progress * 100).roundToInt()}% تکمیل شده",
+						text = "${(progress * 100).roundToInt()}%",
 						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-					)
-
-					Text(
-						text = "${(100 - (progress * 100).roundToInt())}% باقی‌مانده",
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+						fontWeight = FontWeight.Medium,
+						color = getCompletionColor(progress * 100, isSystemInDarkTheme())
 					)
 				}
 			}
@@ -1740,46 +1732,6 @@ fun QuotaManagementDialog(
 						}
 					}
 				}
-			}
-		}
-	}
-}
-
-@Composable
-private fun HeaderStatItem(
-	icon: ImageVector,
-	value: String,
-	label: String
-) {
-	Surface(
-		shape = RoundedCornerShape(8.dp),
-		color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f)
-	) {
-		Row(
-			modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-			horizontalArrangement = Arrangement.spacedBy(6.dp),
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			Icon(
-				imageVector = icon,
-				contentDescription = null,
-				tint = MaterialTheme.colorScheme.onPrimary,
-				modifier = Modifier.size(16.dp)
-			)
-
-			Column(horizontalAlignment = Alignment.Start) {
-				Text(
-					text = value,
-					style = MaterialTheme.typography.titleSmall,
-					color = MaterialTheme.colorScheme.onPrimary,
-					fontWeight = FontWeight.Bold
-				)
-
-				Text(
-					text = label,
-					style = MaterialTheme.typography.bodySmall,
-					color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-				)
 			}
 		}
 	}
