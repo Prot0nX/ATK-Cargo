@@ -39,6 +39,8 @@ import com.itextpdf.text.pdf.PdfWriter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -112,11 +114,11 @@ class CargoViewModel(
     val messageType: StateFlow<MessageType> = _messageType.asStateFlow()
     private val _showNetWeightDialog = MutableStateFlow(false)
     val showNetWeightDialog: StateFlow<Boolean> = _showNetWeightDialog.asStateFlow()
-    
+
     // متغیر برای نشان دادن وضعیت ثبت حواله
     private val _isSubmitting = MutableStateFlow(false)
     val isSubmitting: StateFlow<Boolean> = _isSubmitting.asStateFlow()
-    
+
     // متغیرهای مربوط به دیالوگ تأیید حواله تکراری
     private val _showDuplicateConfirmationDialog = MutableStateFlow(false)
     val showDuplicateConfirmationDialog: StateFlow<Boolean> = _showDuplicateConfirmationDialog.asStateFlow()
@@ -131,11 +133,11 @@ class CargoViewModel(
     private val _isShowingMessage = MutableStateFlow(false)
     private val _loadableTonnage = MutableStateFlow("")
     val loadableTonnage: StateFlow<String> = _loadableTonnage.asStateFlow()
-    
+
     // اضافه کردن StateFlow برای تعداد ماشین‌های قابل بارگیری
     private val _loadableTrucks18Wheeler = MutableStateFlow("")
     val loadableTrucks18Wheeler: StateFlow<String> = _loadableTrucks18Wheeler.asStateFlow()
-    
+
     private val _loadableTrucks10Wheeler = MutableStateFlow("")
     val loadableTrucks10Wheeler: StateFlow<String> = _loadableTrucks10Wheeler.asStateFlow()
 
@@ -144,14 +146,14 @@ class CargoViewModel(
     // StateFlow های مربوط به حواله‌های تکراری
     private val _duplicateTrackingNumbers = MutableStateFlow<List<String>>(emptyList())
     val duplicateTrackingNumbers: StateFlow<List<String>> = _duplicateTrackingNumbers.asStateFlow()
-    
+
     private val _showDuplicateDialog = MutableStateFlow(false)
     val showDuplicateDialog: StateFlow<Boolean> = _showDuplicateDialog.asStateFlow()
 
     // وضعیت کشتی‌های انتخاب شده
     private val _selectedShipNames = MutableStateFlow<Set<String>>(emptySet())
     val selectedShipNames: StateFlow<Set<String>> = _selectedShipNames.asStateFlow()
-    
+
     // به‌روزرسانی کشتی‌های انتخاب شده
     fun updateSelectedShips(ships: Set<String>) {
         _selectedShipNames.value = ships
@@ -304,7 +306,7 @@ class CargoViewModel(
     private var cachedLoadableTonnage: String? = null
     private val quotaStatusCacheTimeout = 15_000L // 15 ثانیه
     private val loadableTonnageCacheTimeout = 30_000L // 30 ثانیه
-    
+
     /**
      * پاک کردن کش APIها برای اطمینان از دریافت آخرین اطلاعات
      * این تابع زمانی استفاده می‌شود که تغییری در وضعیت حواله‌ها رخ داده است
@@ -318,13 +320,13 @@ class CargoViewModel(
 
     private fun checkForDuplicateTrackingNumbers(cargoList: List<CargoInfo>): List<String> {
         val trackingNumberCounts = mutableMapOf<String, Int>()
-        
+
         // شمارش تعداد تکرار هر شماره حواله
         cargoList.forEach { cargo ->
             val trackingNumber = cargo.trackingNumber.trim()
             trackingNumberCounts[trackingNumber] = trackingNumberCounts.getOrDefault(trackingNumber, 0) + 1
         }
-        
+
         // استخراج شماره حواله‌هایی که بیش از یک بار تکرار شده‌اند
         return trackingNumberCounts.filter { it.value > 1 }.keys.toList()
     }
@@ -344,20 +346,20 @@ class CargoViewModel(
                         Log.e("CargoViewModel", "Invalid initial info for refresh: $info")
                         return@launch
                     }
-                    
+
                     // بررسی وضعیت کوتاژ با کش (فقط در صورت نیاز)
                     val currentTime = System.currentTimeMillis()
                     if (currentTime - lastQuotaStatusCheck > quotaStatusCacheTimeout || cachedQuotaStatus == null) {
                         checkQuotaStatus(info)
                         lastQuotaStatusCheck = currentTime
                     }
-                    
+
                     // لاگ قبل از بروزرسانی
                     Log.d("CargoViewModel", "قبل از بروزرسانی - حواله‌های خروج: ${_cargoInfoList.value.count { it.status == "خروج" }}")
-                    
+
                     // نگهداری آخرین لیست برای مقایسه
                     val oldCargoList = _cargoInfoList.value
-                    
+
                     loadCargoInfoList(
                         quotaNumber = info.loadingQuotaNumber.toString(),
                         shippingCompany = info.shippingCompany,
@@ -365,25 +367,25 @@ class CargoViewModel(
                         cargoType = info.cargoType,
                         onComplete = {
                             val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-                            
+
                             // بررسی تغییرات لیست
                             val newCargoList = _cargoInfoList.value
                             val hasStatusChanges = oldCargoList.any { oldCargo ->
                                 val newCargo = newCargoList.find { it.trackingNumber == oldCargo.trackingNumber }
                                 newCargo != null && oldCargo.status != newCargo.status
                             }
-                            
+
                             // نمایش پیام مناسب
                             if (hasStatusChanges) {
                                 showUpdateMessage(
-                    "وضعیت حواله‌ها به‌روزرسانی شد"
-                )
+                                    "وضعیت حواله‌ها به‌روزرسانی شد"
+                                )
                                 // فقط در صورت تغییر وضعیت، تناژ قابل بارگیری را بروزرسانی کن
                                 updateLoadableTonnageIfNeeded()
                             } else {
                                 showUpdateMessage(
-                    "اطلاعات در ساعت $currentTime به‌روزرسانی شد"
-                )
+                                    "اطلاعات در ساعت $currentTime به‌روزرسانی شد"
+                                )
                             }
                         }
                     )
@@ -418,10 +420,10 @@ class CargoViewModel(
                 if (_isSubmitting.value) {
                     return@launch
                 }
-                
+
                 // تنظیم وضعیت ثبت به true
                 _isSubmitting.value = true
-                
+
                 // اعتبارسنجی سریع اولیه برای جلوگیری از ارسال‌های غیرضروری به سرور
                 if (trackingNumber.isBlank()) {
                     showErrorMessage("شماره حواله نمی‌تواند خالی باشد.")
@@ -437,7 +439,7 @@ class CargoViewModel(
                 // بررسی کش وضعیت کوتاژ (فقط در صورت نیاز)
                 val currentTime = System.currentTimeMillis()
                 val quotaActive = cachedQuotaStatus
-                
+
                 if (currentTime - lastQuotaStatusCheck > quotaStatusCacheTimeout || quotaActive == null) {
                     // بررسی وضعیت کوتاژ (درصد و فعال بودن)
                     checkAndHandleQuotaPercentage(initialInfo.loadingQuotaNumber.toString())
@@ -493,7 +495,7 @@ class CargoViewModel(
 
                 // ارسال اطلاعات به سرور با مدیریت خطا
                 sendCargoInfoToServer(
-                    cargoInfo, trackingNumber, netWeight, 
+                    cargoInfo, trackingNumber, netWeight,
                     scaleReceiptNumber, shortageWeight, excessWeight
                 )
             } catch (e: Exception) {
@@ -543,18 +545,18 @@ class CargoViewModel(
                 showErrorMessage("وزن خالص باید عددی مثبت باشد.")
                 return false
             }
-            
+
             if (weight < 5000 || weight > 45000) {
                 showErrorMessage("وزن خالص باید بین 5000 تا 45000 کیلوگرم باشد.")
                 return false
             }
-            
+
             // بررسی شماره قبض باسکول
             if (scaleReceiptNumber.isBlank()) {
                 showErrorMessage("برای ثبت خروج، شماره قبض باسکول الزامی است.")
                 return false
             }
-            
+
             if (scaleReceiptNumber.length < 8 || scaleReceiptNumber.length > 10) {
                 showErrorMessage("شماره قبض باسکول باید بین 8 تا 10 رقم باشد.")
                 return false
@@ -593,7 +595,7 @@ class CargoViewModel(
         initialInfo: InitialInfo
     ): CargoInfo {
         val isExit = netWeight.isNotBlank()
-        
+
         return CargoInfo(
             trackingNumber = trackingNumber,
             numberOfPeople = numberOfPeople,
@@ -627,7 +629,7 @@ class CargoViewModel(
     ) {
         try {
             val response = apiService.saveOrUpdateCargoInfo(cargoInfo)
-            
+
             if (response.isSuccessful) {
                 val responseBody = response.body()
 
@@ -660,7 +662,7 @@ class CargoViewModel(
     private fun handleErrorHttpResponse(response: Response<SaveOrUpdateResponse>) {
         val errorBody = response.errorBody()?.string()
         val errorCode = response.code()
-        
+
         try {
             val parsedError = parseErrorResponse(errorBody)
             if (parsedError != null) {
@@ -677,7 +679,7 @@ class CargoViewModel(
             showErrorMessage("خطا در پردازش پاسخ سرور: ${e.message}")
         }
     }
-    
+
     private fun handle24HourWarning(responseBody: SaveOrUpdateResponse) {
         if (responseBody.requiresConfirmation == true) {
             // نمایش دیالوگ تأیید برای حواله تکراری
@@ -745,10 +747,10 @@ class CargoViewModel(
             }
         }
         _cargoInfoList.value = updatedList
-        
+
         // بروزرسانی فیلتر شده هم برای نمایش صحیح در دسته‌بندی‌ها
         _filteredCargoInfoList.value = updatedList
-        
+
         // لاگ برای دیباگ
         Log.d("CargoViewModel", "حواله با شماره $trackingNumber به وضعیت خروج تغییر یافت")
         Log.d("CargoViewModel", "تعداد کل حواله‌ها: ${updatedList.size}, تعداد حواله‌های خروج: ${updatedList.count { it.status == "خروج" }}")
@@ -761,14 +763,14 @@ class CargoViewModel(
             null
         }
     }
-    
+
     // توابع مدیریت دیالوگ تأیید حواله تکراری
     fun dismissDuplicateConfirmationDialog() {
         _showDuplicateConfirmationDialog.value = false
         _duplicateWarningMessage.value = ""
         _pendingCargoInfo.value = null
     }
-    
+
     fun confirmDuplicateCargoRegistration() {
         val cargoInfo = _pendingCargoInfo.value
         if (cargoInfo != null) {
@@ -783,11 +785,11 @@ class CargoViewModel(
                             handleErrorResponse(responseBody)
                         } else {
                             handleSuccessResponse(
-                                responseBody, 
-                                cargoInfo.trackingNumber, 
-                                cargoInfo.netWeight, 
-                                cargoInfo.scaleReceiptNumber, 
-                                cargoInfo.shortageWeight, 
+                                responseBody,
+                                cargoInfo.trackingNumber,
+                                cargoInfo.netWeight,
+                                cargoInfo.scaleReceiptNumber,
+                                cargoInfo.shortageWeight,
                                 cargoInfo.excessWeight
                             )
                         }
@@ -802,7 +804,7 @@ class CargoViewModel(
         }
         dismissDuplicateConfirmationDialog()
     }
-    
+
     fun cancelDuplicateCargoRegistration() {
         dismissDuplicateConfirmationDialog()
         showMessage("ثبت حواله لغو شد.", MessageType.ERROR)
@@ -811,11 +813,11 @@ class CargoViewModel(
     private suspend fun checkQuotaStatus(initialInfo: InitialInfo) {
         try {
             val status = repository.checkQuotaStatus(
-                    quotaNumber = initialInfo.loadingQuotaNumber.toString(),
-                    shipName = initialInfo.shipName,
-                    cargoType = initialInfo.cargoType,
-                    shippingCompany = initialInfo.shippingCompany
-                )
+                quotaNumber = initialInfo.loadingQuotaNumber.toString(),
+                shipName = initialInfo.shipName,
+                cargoType = initialInfo.cargoType,
+                shippingCompany = initialInfo.shippingCompany
+            )
 
             // کش کردن نتیجه
             cachedQuotaStatus = status.isActive
@@ -862,7 +864,7 @@ class CargoViewModel(
     private suspend fun checkScaleReceiptNumber(scaleReceiptNumber: String): Boolean {
 
         if (!isValidScaleReceipt(scaleReceiptNumber)) {
-                showMessage("شماره قبض باسکول معتبر نیست. لطفاً دوباره اسکن کنید.", MessageType.ERROR)
+            showMessage("شماره قبض باسکول معتبر نیست. لطفاً دوباره اسکن کنید.", MessageType.ERROR)
             return false
         }
 
@@ -873,18 +875,18 @@ class CargoViewModel(
                 val result = response.body()
 
                 if (result?.exists == true) {
-                        showMessage(result.message, MessageType.ERROR)
+                    showMessage(result.message, MessageType.ERROR)
                     false
                 } else {
                     true
                 }
             } else {
                 val errorBody = response.errorBody()?.string()
-                    showMessage("خطا در بررسی شماره قبض باسکول: $errorBody", MessageType.ERROR)
+                showMessage("خطا در بررسی شماره قبض باسکول: $errorBody", MessageType.ERROR)
                 false
             }
         } catch (e: Exception) {
-                showMessage("خطا در ارتباط با سرور: ${e.message}", MessageType.ERROR)
+            showMessage("خطا در ارتباط با سرور: ${e.message}", MessageType.ERROR)
             false
         }
     }
@@ -914,7 +916,7 @@ class CargoViewModel(
                 val initialShipInfo = withContext(Dispatchers.IO) {
                     repository.getInitialInfo(quotaNumber, shippingCompany, warehouse, cargoType)
                 }
-                
+
                 initialShipInfo?.let { info ->
                     // استفاده از API جدید برای دریافت فوری تناژ قابل بارگیری
                     try {
@@ -926,10 +928,10 @@ class CargoViewModel(
                                 cargoType = info.cargoType
                             )
                         }
-                        
+
                         if (response.isSuccessful && response.body()?.success == true) {
                             val data = response.body()!!
-                            
+
                             withContext(Dispatchers.Main.immediate) {
                                 data.loadableTonnage?.let { tonnage ->
                                     // نمایش مقدار تناژ قابل بارگیری حتی اگر منفی باشد
@@ -940,16 +942,16 @@ class CargoViewModel(
                                     }
                                     _loadableTonnage.value = formattedValue
                                 }
-                                
+
                                 // بروزرسانی تعداد کامیون‌ها از مقادیر محاسبه‌شده در سرور
                                 data.trucks18Wheeler?.let { count ->
                                     _loadableTrucks18Wheeler.value = count.toString()
                                 }
-                                
+
                                 data.trucks10Wheeler?.let { count ->
                                     _loadableTrucks10Wheeler.value = count.toString()
                                 }
-                                
+
                                 Log.d("CargoViewModel", "Initial loadable tonnage updated via API: ${_loadableTonnage.value}")
                             }
                         } else {
@@ -964,7 +966,7 @@ class CargoViewModel(
                 Log.e("CargoViewModel", "Error in pre-loading tonnage data", e)
             }
         }
-        
+
         // سپس بقیه اطلاعات را بارگذاری می‌کنیم
         viewModelScope.launch {
             try {
@@ -975,7 +977,7 @@ class CargoViewModel(
 
                 // بررسی حواله‌های تکراری قبل از بروزرسانی UI
                 val duplicateTrackingNumbers = checkForDuplicateTrackingNumbers(result.cargoInfoList)
-                
+
                 if (duplicateTrackingNumbers.isNotEmpty()) {
                     // نمایش پیام هشدار برای حواله‌های تکراری
                     withContext(Dispatchers.Main.immediate) {
@@ -984,12 +986,12 @@ class CargoViewModel(
                         Log.w("CargoViewModel", "حواله‌های تکراری شناسایی شدند: ${duplicateTrackingNumbers.joinToString(", ")}")
                     }
                 }
-                
+
                 // نمایش تمام حواله‌ها (شامل تکراری‌ها) در لیست
                 _cargoInfoList.value = result.cargoInfoList
                 _initialInfo.value = result.initialInfo
                 _filteredCargoInfoList.value = result.cargoInfoList
-                
+
                 // لاگ برای دیباگ بعد از بارگذاری
                 Log.d("CargoViewModel", "بارگذاری داده‌ها - تعداد کل: ${result.cargoInfoList.size}, حواله‌های خروج: ${result.cargoInfoList.count { it.status == "خروج" }}")
 
@@ -1012,7 +1014,7 @@ class CargoViewModel(
                 val shippingCompany = result.initialInfo.shippingCompany
                 val warehouse = result.initialInfo.loadingWarehouse
                 val cargoType = result.initialInfo.cargoType
-                
+
                 // استفاده از CoroutineScope جدید برای اجرای با اولویت بالا
                 CoroutineScope(Dispatchers.Default + SupervisorJob()).launch {
                     try {
@@ -1024,19 +1026,19 @@ class CargoViewModel(
                                 cargoType = cargoType
                             )
                         }
-                        
+
                         if (response.isSuccessful && response.body()?.success == true) {
                             val data = response.body()!!
                             withContext(Dispatchers.Main.immediate) {
                                 data.loadableTonnage?.let { tonnage ->
                                     _loadableTonnage.value = DecimalFormat("#,###").format(tonnage.roundToInt())
                                 }
-                                
+
                                 // استفاده از مقادیر محاسبه‌شده در سمت سرور
                                 data.trucks18Wheeler?.let { count ->
                                     _loadableTrucks18Wheeler.value = count.toString()
                                 }
-                                
+
                                 data.trucks10Wheeler?.let { count ->
                                     _loadableTrucks10Wheeler.value = count.toString()
                                 }
@@ -1054,7 +1056,7 @@ class CargoViewModel(
                     try {
                         // تاخیر اندک برای اطمینان از اینکه UI ابتدا بروزرسانی شود
                         delay(100)
-                        
+
                         val currentQuotas = _cargoInfoList.value
                         currentQuotas.forEach { cargoInfo ->
                             val quota = repository.getShipQuotas(cargoInfo.shipName)
@@ -1101,7 +1103,7 @@ class CargoViewModel(
                 if (responseBody?.success == true) {
                     // پاک کردن کش برای اطمینان از دریافت آخرین وضعیت
                     clearApiCache()
-                    
+
                     // استفاده از refreshCargoInfo که شامل بهینه‌سازی‌های کش است
                     refreshCargoInfo()
                 } else {
@@ -1204,17 +1206,17 @@ class CargoViewModel(
                             cargo
                         }
                     }
-                    
+
                     // بروزرسانی هر دو لیست برای نمایش صحیح
                     _cargoInfoList.value = updatedList
                     _filteredCargoInfoList.value = updatedList
-                
-                    
+
+
                     // پاک کردن کش و فراخوانی refreshCargoInfo فقط در صورت نیاز
                     clearApiCache()
-        
+
                     refreshCargoInfo()
-                    
+
                     _resultMessage.value = "اطلاعات بروزرسانی شد"
                     _showAnimatedMessage.value = true
                     _messageType.value = MessageType.SUCCESS
@@ -1286,10 +1288,10 @@ class CargoViewModel(
                         _resultMessage.value = "حواله با موفقیت حذف شد."
                         _showAnimatedMessage.value = true
                         _messageType.value = MessageType.SUCCESS
-                        
+
                         // پاک کردن کش برای اطمینان از دریافت آخرین اطلاعات
                         clearApiCache()
-                        
+
                         // استفاده از refreshCargoInfo که شامل تمام بهینه‌سازی‌ها است
                         refreshCargoInfo()
                     } else {
@@ -1321,13 +1323,13 @@ class CargoViewModel(
     // بروزرسانی هوشمند تناژ قابل بارگیری با کش و کنترل زمان
     private fun updateLoadableTonnageIfNeeded(forceUpdate: Boolean = false) {
         val currentTime = System.currentTimeMillis()
-        
+
         // بررسی نیاز به بروزرسانی بر اساس کش
         if (!forceUpdate && currentTime - lastLoadableTonnageUpdate < loadableTonnageCacheTimeout && cachedLoadableTonnage != null) {
             Log.d("CargoViewModel", "Using cached loadable tonnage: $cachedLoadableTonnage")
             return
         }
-        
+
         // استفاده از CoroutineScope جدید با اولویت بالا
         CoroutineScope(Dispatchers.Default + SupervisorJob()).launch {
             try {
@@ -1341,10 +1343,10 @@ class CargoViewModel(
                             cargoType = info.cargoType
                         )
                     }
-                    
+
                     if (response.isSuccessful && response.body()?.success == true) {
                         val data = response.body()!!
-                        
+
                         // استفاده از Main.immediate برای بروزرسانی فوری UI
                         withContext(Dispatchers.Main.immediate) {
                             data.loadableTonnage?.let { tonnage ->
@@ -1353,16 +1355,16 @@ class CargoViewModel(
                                 cachedLoadableTonnage = formattedTonnage
                                 lastLoadableTonnageUpdate = currentTime
                             }
-                            
+
                             // استفاده از مقادیر محاسبه‌شده در سمت سرور
                             data.trucks18Wheeler?.let { count ->
                                 _loadableTrucks18Wheeler.value = count.toString()
                             }
-                            
+
                             data.trucks10Wheeler?.let { count ->
                                 _loadableTrucks10Wheeler.value = count.toString()
                             }
-                            
+
                             Log.d("CargoViewModel", "Loadable tonnage updated via API: ${_loadableTonnage.value}")
                         }
                     } else {
@@ -1379,10 +1381,10 @@ class CargoViewModel(
     private fun updateLoadableTrucksCount(loadableTonnage: Double) {
         // محاسبه تعداد ماشین‌های 18 چرخ (فقط برای مقادیر مثبت)
         val trucks18Wheeler = if (loadableTonnage > 0) (loadableTonnage / 25000.0).toInt() else 0
-        
+
         // محاسبه تعداد ماشین‌های 10 چرخ (فقط برای مقادیر مثبت)
         val trucks10Wheeler = if (loadableTonnage > 0) (loadableTonnage / 15000.0).toInt() else 0
-        
+
         // مقادیر را در StateFlow ها قرار می‌دهیم
         _loadableTrucks18Wheeler.value = trucks18Wheeler.toString()
         _loadableTrucks10Wheeler.value = trucks10Wheeler.toString()
@@ -1424,7 +1426,7 @@ class ReportsViewModel(
     private val colorSelector = ColorSelector(cardColors)
     private val _snackbarMessages = MutableSharedFlow<String>()
     val snackbarMessages = _snackbarMessages.asSharedFlow()
-    fun showSnackbar(message: String) {
+    private fun showSnackbar(message: String) {
         viewModelScope.launch {
             _snackbarMessages.emit(message)
         }
@@ -1447,23 +1449,23 @@ class ReportsViewModel(
 
     private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY)
     val warehouseQuotaGroupingMode: StateFlow<WarehouseQuotaGroupingMode> = _warehouseQuotaGroupingMode.asStateFlow()
-    
+
     // متغیرهای مربوط به بازه زمانی انتخاب شده
     private val _selectedDateRange = MutableStateFlow<Pair<String, String>?>(null)
     val selectedDateRange: StateFlow<Pair<String, String>?> = _selectedDateRange.asStateFlow()
-    
+
     // متغیرهای مربوط به مرتب‌سازی کوتاژها
     private val _quotaSortingMode = MutableStateFlow(QuotaSortingMode.REMAINING_TONNAGE_ASC)
     val quotaSortingMode: StateFlow<QuotaSortingMode> = _quotaSortingMode.asStateFlow()
-    
+
     // متغیرهای مربوط به مرتب‌سازی گروه‌ها
     private val _groupSortingMode = MutableStateFlow(GroupSortingMode.REMAINING_TONNAGE_ASC)
     val groupSortingMode: StateFlow<GroupSortingMode> = _groupSortingMode.asStateFlow()
-    
+
     // متغیرهای مربوط به مرتب‌سازی کشتی‌ها
     private val _shipSortingMode = MutableStateFlow(ShipSortingMode.REMAINING_TONNAGE_ASC)
     val shipSortingMode: StateFlow<ShipSortingMode> = _shipSortingMode.asStateFlow()
-    
+
 
     // تابع تغییر حالت گروه‌بندی
     fun setGroupingMode(mode: QuotaGroupingMode) {
@@ -1496,8 +1498,8 @@ class ReportsViewModel(
             } else {
                 _initialQuotas.value.filter { quota ->
                     quota.shipName.lowercase().contains(query) ||
-                    quota.loadingQuotaNumber.contains(query) ||
-                    quota.shippingCompany.lowercase().contains(query)
+                            quota.loadingQuotaNumber.contains(query) ||
+                            quota.shippingCompany.lowercase().contains(query)
                 }
             }
 
@@ -1531,7 +1533,7 @@ class ReportsViewModel(
                         }
                         .sortedWith(
                             compareByDescending<Triple<String, Int, Float>> { it.second }
-                            .thenByDescending { it.third }
+                                .thenByDescending { it.third }
                         )
                         .flatMap { (carrier, _, _) ->
                             filtered.filter { it.shippingCompany == carrier }
@@ -1584,15 +1586,15 @@ class ReportsViewModel(
 
                 // گام 1: ابتدا اسامی کشتی‌ها را استخراج می‌کنیم
                 val shipNames = response.data.map { it.shipName }.distinct().toSet()
-                
+
                 // گام 2: تخصیص رنگ‌های کاملاً متمایز فقط به کشتی‌ها
                 // از روش جدید استفاده می‌کنیم که رنگ‌های غیرتکراری را اختصاص می‌دهد
                 val shipColors = colorSelector.assignDistinctColors(shipNames)
                     .mapValues { (_, color) -> adjustColorForTheme(color, isDarkTheme) }
-                
+
                 // گام 3: به‌روزرسانی رنگ‌های کشتی‌ها در ViewModel
                 _shipColorMap.value = shipColors
-                
+
                 // برای حفظ سازگاری با کدهای دیگر، رنگ کوتاژها را برابر با رنگ کشتی مربوطه قرار می‌دهیم
                 val quotaColors = mutableMapOf<String, Color>()
                 response.data.forEach { data ->
@@ -1601,26 +1603,56 @@ class ReportsViewModel(
                     quotaColors[data.loadingQuotaNumber] = shipColor
                 }
                 _quotaColorMap.value = quotaColors
-                
+
                 // اطلاعات تشخیصی برای خطایابی
                 Log.d("ColorManager", "Ships: ${shipNames.size}, Unique colors: ${shipColors.values.toSet().size}")
-                
+
             } catch (e: Exception) {
                 _loadingError.value = "خطا در دریافت اطلاعات: ${e.message}"
             }
         }
     }
 
+    private val _shipDetailsLoadingState = MutableStateFlow<LoadingState>(LoadingState.Idle)
+    val shipDetailsLoadingState: StateFlow<LoadingState> = _shipDetailsLoadingState.asStateFlow()
+    
+    private val _shipQuotasLoadingState = MutableStateFlow<LoadingState>(LoadingState.Idle)
+    val shipQuotasLoadingState: StateFlow<LoadingState> = _shipQuotasLoadingState.asStateFlow()
+    
+    private val _isLoadingShipDetails = MutableStateFlow(false)
+    val isLoadingShipDetails: StateFlow<Boolean> = _isLoadingShipDetails.asStateFlow()
+    
+    private val _isLoadingShipQuotas = MutableStateFlow(false)
+    val isLoadingShipQuotas: StateFlow<Boolean> = _isLoadingShipQuotas.asStateFlow()
+
     fun loadShipDetails(shipName: String) {
         viewModelScope.launch {
-            _uiState.value = UiState.Loading
+            _isLoadingShipDetails.value = true
+            _shipDetailsLoadingState.value = LoadingState.Idle
+            
             try {
-                val shipDetails = repository.getShipDetails(shipName)
+                val shipDetails = withContext(Dispatchers.IO) {
+                    repository.getShipDetails(shipName)
+                }
+                
                 _selectedShip.value = shipDetails
                 _currentShipName.value = shipName
-                _uiState.value = UiState.Success
+                
+                _shipDetailsLoadingState.value = LoadingState.Idle
+                
+                if (_shipQuotasLoadingState.value !is LoadingState.Error) {
+                    _uiState.value = UiState.Success
+                }
+                
             } catch (e: Exception) {
-                _uiState.value = UiState.Error("خطا در بارگیری جزئیات کشتی: ${e.message}")
+                val errorMessage = "خطا در بارگیری جزئیات کشتی: ${e.message}"
+                _shipDetailsLoadingState.value = LoadingState.Error(errorMessage)
+                
+                if (_selectedShip.value == null) {
+                    _uiState.value = UiState.Error(errorMessage)
+                }
+            } finally {
+                _isLoadingShipDetails.value = false
             }
         }
     }
@@ -1660,13 +1692,75 @@ class ReportsViewModel(
 
     fun loadShipQuotas(shipName: String) {
         viewModelScope.launch {
-            _uiState.value = UiState.Loading
+            _isLoadingShipQuotas.value = true
+            _shipQuotasLoadingState.value = LoadingState.Idle
+            
             try {
-                val quotas = repository.getShipQuotas(shipName)
+                val quotas = withContext(Dispatchers.IO) {
+                    repository.getShipQuotas(shipName)
+                }
+                
                 _selectedShipQuotas.value = quotas
-                _uiState.value = UiState.Success
+                
+                _shipQuotasLoadingState.value = LoadingState.Idle
+                
+                if (_shipDetailsLoadingState.value !is LoadingState.Error) {
+                    _uiState.value = UiState.Success
+                }
+                
             } catch (e: Exception) {
-                _uiState.value = UiState.Error("خطا در بارگیری کوتاژهای کشتی: ${e.message}")
+                val errorMessage = "خطا در بارگیری کوتاژهای کشتی: ${e.message}"
+                _shipQuotasLoadingState.value = LoadingState.Error(errorMessage)
+                
+                if (_selectedShipQuotas.value.isEmpty()) {
+                    _uiState.value = UiState.Error(errorMessage)
+                }
+            } finally {
+                _isLoadingShipQuotas.value = false
+            }
+        }
+    }
+
+    fun loadShipDataAsync(shipName: String) {
+        viewModelScope.launch {
+            _uiState.value = UiState.Loading
+            
+            try {
+                val shipDetailsDeferred = async { repository.getShipDetails(shipName) }
+                val shipQuotasDeferred = async { repository.getShipQuotas(shipName) }
+                
+                val shipDetails = shipDetailsDeferred.await()
+                val quotas = shipQuotasDeferred.await()
+                
+                _selectedShip.value = shipDetails
+                _currentShipName.value = shipName
+                _selectedShipQuotas.value = quotas
+                
+                _shipDetailsLoadingState.value = LoadingState.Idle
+                _shipQuotasLoadingState.value = LoadingState.Idle
+                _uiState.value = UiState.Success
+                
+            } catch (e: Exception) {
+                val errorMessage = "خطا در بارگیری اطلاعات کشتی: ${e.message}"
+                _uiState.value = UiState.Error(errorMessage)
+                _shipDetailsLoadingState.value = LoadingState.Error(errorMessage)
+                _shipQuotasLoadingState.value = LoadingState.Error(errorMessage)
+            }
+        }
+    }
+
+    fun refreshShipDataSilently(shipName: String) {
+        viewModelScope.launch {
+            try {
+                val shipDetailsDeferred = async { repository.getShipDetails(shipName) }
+                val shipQuotasDeferred = async { repository.getShipQuotas(shipName) }
+                
+                _selectedShip.value = shipDetailsDeferred.await()
+                _selectedShipQuotas.value = shipQuotasDeferred.await()
+                _currentShipName.value = shipName
+                
+            } catch (e: Exception) {
+                showSnackbar("خطا در بروزرسانی اطلاعات: ${e.message}")
             }
         }
     }
@@ -1694,34 +1788,6 @@ class ReportsViewModel(
         _selectedShip.value?.name?.let { shipName ->
             loadShipQuotas(shipName)
         }
-    }
-
-    private fun updateQuotaInList(quotaNumber: String, updateFunction: (Quota) -> Quota) {
-        val currentQuotas = _selectedShipQuotas.value.toMutableList()
-        val quotaIndex = currentQuotas.indexOfFirst { it.number == quotaNumber }
-        
-        if (quotaIndex != -1) {
-            currentQuotas[quotaIndex] = updateFunction(currentQuotas[quotaIndex])
-            _selectedShipQuotas.value = currentQuotas
-        }
-    }
-    
-    private fun removeQuotaFromList(quotaNumber: String) {
-        val currentQuotas = _selectedShipQuotas.value.toMutableList()
-        currentQuotas.removeAll { it.number == quotaNumber }
-        _selectedShipQuotas.value = currentQuotas
-    }
-    
-    private fun addOrUpdateQuotaInList(quota: Quota) {
-        val currentQuotas = _selectedShipQuotas.value.toMutableList()
-        val existingIndex = currentQuotas.indexOfFirst { it.number == quota.number }
-        
-        if (existingIndex != -1) {
-            currentQuotas[existingIndex] = quota
-        } else {
-            currentQuotas.add(quota)
-        }
-        _selectedShipQuotas.value = currentQuotas
     }
 
     fun getFilteredSummary(
@@ -1762,26 +1828,10 @@ class ReportsViewModel(
                     totalTonnage = newQuotaData.totalTonnage
                 )
                 if (success) {
-                    val currentShipName = _currentShipName.value
-                    
-                    if (currentShipName == newQuotaData.shipName) {
-                        updateQuotaInList(oldQuotaNumber) { quota ->
-                            quota.copy(
-                                number = newQuotaData.quotaNumber,
-                                shipName = newQuotaData.shipName,
-                                shippingCompany = newQuotaData.shippingCompany,
-                                warehouse = newQuotaData.warehouse,
-                                cargoType = newQuotaData.cargoType,
-                                totalTonnage = newQuotaData.totalTonnage
-                            )
-                        }
-                    } else {
-                        removeQuotaFromList(oldQuotaNumber)
-                        _currentShipName.value = newQuotaData.shipName
-                        loadShipDetails(newQuotaData.shipName)
-                        loadShipQuotas(newQuotaData.shipName)
-                    }
-                    
+                    // به‌روزرسانی نام فعلی کشتی
+                    _currentShipName.value = newQuotaData.shipName
+                    // بروزرسانی فوری و بدون تاخیر اطلاعات
+                    refreshShipDataSilently(newQuotaData.shipName)
                     showSnackbar("کوتاژ با موفقیت ویرایش شد")
                 } else {
                     showSnackbar("خطا در ویرایش کوتاژ")
@@ -1800,8 +1850,8 @@ class ReportsViewModel(
                     percentage = data.percentage
                 )
                 if (success) {
-                    updateQuotaInList(data.quotaNumber) { quota ->
-                        quota.copy(percentage = data.percentage)
+                    _currentShipName.value?.let { shipName ->
+                        refreshShipDataSilently(shipName)
                     }
                     showSnackbar("درصد کوتاژ با موفقیت بروزرسانی شد")
                 } else {
@@ -1818,9 +1868,10 @@ class ReportsViewModel(
             try {
                 val success = repository.toggleQuotaStatus(quotaNumber)
                 if (success) {
-                    updateQuotaInList(quotaNumber) { quota ->
-                        quota.copy(isActive = !quota.isActive)
+                    _currentShipName.value?.let { shipName ->
+                        refreshShipDataSilently(shipName)
                     }
+                    loadShips()
                     showSnackbar("وضعیت کوتاژ با موفقیت تغییر کرد")
                 } else {
                     showSnackbar("خطا در تغییر وضعیت کوتاژ")
@@ -1841,8 +1892,9 @@ class ReportsViewModel(
                     isEnabled = if (isRestricted) 1 else 0
                 )
                 if (success) {
-                    updateQuotaInList(quotaNumber) { quota ->
-                        quota.copy(isPercentageRestricted = isRestricted)
+                    // Reload quotas to refresh the UI
+                    _currentShipName.value?.let { shipName ->
+                        loadShipQuotas(shipName)
                     }
                     showSnackbar(
                         if (isRestricted) "محدودیت درصد کوتاژ فعال شد"
@@ -1873,9 +1925,12 @@ class ReportsViewModel(
                     tonnage = tonnage
                 )
                 if (success) {
+                    // Reload quotas to refresh the UI
                     _currentShipName.value?.let { shipName ->
                         loadShipQuotas(shipName)
                     }
+                    // Refresh ships list to update temporary tonnage status
+                    loadShips()
                     showSnackbar(
                         if (enabled) "تناژ موقت با موفقیت فعال شد"
                         else "تناژ موقت غیرفعال شد"
@@ -1902,7 +1957,8 @@ class ReportsViewModel(
                     cargoType = quota.cargoType ?: ""
                 )
                 if (success) {
-                    removeQuotaFromList(quota.number)
+                    // Silently refresh data without affecting main UI state
+                    refreshShipDataSilently(_selectedShip.value?.name ?: "")
                     showSnackbar("کوتاژ با موفقیت حذف شد")
                 } else {
                     showSnackbar("خطا در حذف کوتاژ")
@@ -2141,13 +2197,13 @@ class ReportsViewModel(
         table.spacingBefore = 10f
 
         fun createModernCell(
-            content: String, 
-            isHeader: Boolean = false, 
+            content: String,
+            isHeader: Boolean = false,
             isPersian: Boolean = true,
             isNumeric: Boolean = false
         ): PdfPCell {
             val cell = PdfPCell()
-            
+
             // تنظیمات padding بهتر
             cell.paddingTop = if (isHeader) 15f else 10f
             cell.paddingBottom = if (isHeader) 15f else 10f
@@ -2160,10 +2216,10 @@ class ReportsViewModel(
                 cell.border = Rectangle.BOX
                 cell.borderColor = colorScheme.white
                 cell.borderWidth = 1f
-                
+
                 val headerFont = Font(fonts.boldFont.baseFont, 11f, Font.BOLD)
                 headerFont.color = BaseColor.WHITE
-                
+
                 addPersianText(cell, content, headerFont, Element.ALIGN_CENTER, false)
             } else {
                 // استایل سلول‌های داده
@@ -2171,10 +2227,10 @@ class ReportsViewModel(
                 cell.border = Rectangle.BOX
                 cell.borderColor = colorScheme.lightGray
                 cell.borderWidth = 0.5f
-                
+
                 val cellFont = fonts.normalFont
                 cellFont.color = colorScheme.text
-                
+
                 if (isPersian) {
                     val processedContent = if (isNumeric) convertToPersianNumbers(content) else content
                     addPersianText(cell, processedContent, cellFont, Element.ALIGN_CENTER)
@@ -2183,7 +2239,7 @@ class ReportsViewModel(
                     cell.horizontalAlignment = Element.ALIGN_CENTER
                 }
             }
-            
+
             return cell
         }
 
@@ -2200,35 +2256,35 @@ class ReportsViewModel(
             // رنگ‌بندی متناوب برای بهتر خوانی
             val isEvenRow = index % 2 == 0
             val rowColor = if (isEvenRow) colorScheme.white else colorScheme.lightGray
-            
+
             // شماره قبض (سمت راست)
-            table.addCell(createModernCell(detail.scaleReceiptNumber, isPersian = false).apply { 
-                backgroundColor = rowColor 
+            table.addCell(createModernCell(detail.scaleReceiptNumber, isPersian = false).apply {
+                backgroundColor = rowColor
             })
-            
+
             // وزن خالص
-            table.addCell(createModernCell(formatPersianNumber(detail.netWeight.toInt()), isPersian = true).apply { 
-                backgroundColor = rowColor 
+            table.addCell(createModernCell(formatPersianNumber(detail.netWeight.toInt()), isPersian = true).apply {
+                backgroundColor = rowColor
             })
-            
+
             // تاریخ خروج
-            table.addCell(createModernCell(convertToShamsiDate(detail.exitDate), isPersian = true).apply { 
-                backgroundColor = rowColor 
+            table.addCell(createModernCell(convertToShamsiDate(detail.exitDate), isPersian = true).apply {
+                backgroundColor = rowColor
             })
-            
+
             // ساعت خروج
-            table.addCell(createModernCell(detail.exitTime, isPersian = true, isNumeric = true).apply { 
-                backgroundColor = rowColor 
+            table.addCell(createModernCell(detail.exitTime, isPersian = true, isNumeric = true).apply {
+                backgroundColor = rowColor
             })
-            
+
             // ساعت ورود
-            table.addCell(createModernCell(detail.entryTime, isPersian = true, isNumeric = true).apply { 
-                backgroundColor = rowColor 
+            table.addCell(createModernCell(detail.entryTime, isPersian = true, isNumeric = true).apply {
+                backgroundColor = rowColor
             })
-            
+
             // شماره حواله (سمت چپ)
-            table.addCell(createModernCell(detail.trackingNumber, isPersian = false).apply { 
-                backgroundColor = rowColor 
+            table.addCell(createModernCell(detail.trackingNumber, isPersian = false).apply {
+                backgroundColor = rowColor
             })
         }
 
@@ -2241,7 +2297,7 @@ class ReportsViewModel(
             return try {
                 val baseFont = createFont("assets/fonts/B NAZANIN.TTF", IDENTITY_H, true)
                 val fallbackFont = Font(Font.FontFamily.HELVETICA, 11f, Font.NORMAL)
-                
+
                 PdfFonts(
                     normalFont = Font(baseFont, 11f, Font.NORMAL),
                     boldFont = Font(baseFont, 12f, Font.BOLD),
@@ -2288,9 +2344,9 @@ class ReportsViewModel(
 
     // تابع بهبود یافته برای افزودن متن فارسی با پشتیبانی از اعداد فارسی
     private fun addPersianText(
-        cell: PdfPCell, 
-        text: String, 
-        font: Font, 
+        cell: PdfPCell,
+        text: String,
+        font: Font,
         alignment: Int = Element.ALIGN_RIGHT,
         convertNumbers: Boolean = true
     ) {
@@ -2306,11 +2362,11 @@ class ReportsViewModel(
     private fun convertToPersianNumbers(text: String): String {
         val persianDigits = arrayOf("۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹")
         var result = text
-        
+
         for (i in 0..9) {
             result = result.replace(i.toString(), persianDigits[i])
         }
-        
+
         return result
     }
 
@@ -2322,13 +2378,13 @@ class ReportsViewModel(
                 val year = parts[0].toInt()
                 val month = parts[1].toInt()
                 val day = parts[2].toInt()
-                
+
                 // استفاده از الگوریتم تبدیل
                 val shamsiDate = gregorianToShamsi(year, month, day)
                 val yearStr = shamsiDate.year.toString()
                 val monthStr = shamsiDate.month.toString().padStart(2, '0')
                 val dayStr = shamsiDate.day.toString().padStart(2, '0')
-                
+
                 "${convertToPersianNumbers(yearStr)}/${convertToPersianNumbers(monthStr)}/${convertToPersianNumbers(dayStr)}"
             } else {
                 convertToPersianNumbers(date)
@@ -2344,18 +2400,18 @@ class ReportsViewModel(
         return try {
             val calendar = Calendar.getInstance()
             calendar.time = gregorianDate
-            
+
             val gregorianYear = calendar.get(Calendar.YEAR)
             val gregorianMonth = calendar.get(Calendar.MONTH) + 1
             val gregorianDay = calendar.get(Calendar.DAY_OF_MONTH)
-            
+
             // محاسبه تاریخ شمسی
             val shamsiDate = gregorianToShamsi(gregorianYear, gregorianMonth, gregorianDay)
-            
+
             val year = shamsiDate.year.toString()
             val month = shamsiDate.month.toString().padStart(2, '0')
             val day = shamsiDate.day.toString().padStart(2, '0')
-            
+
             "${convertToPersianNumbers(year)}/${convertToPersianNumbers(month)}/${convertToPersianNumbers(day)}"
         } catch (e: Exception) {
             Log.w("ShamsiConverter", "Failed to convert Gregorian to Shamsi", e)
@@ -2371,34 +2427,34 @@ class ReportsViewModel(
     // تابع تبدیل تاریخ میلادی به شمسی (الگوریتم بهبود یافته)
     private fun gregorianToShamsi(gYear: Int, gMonth: Int, gDay: Int): ShamsiDate {
         val gMonthDays = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334)
-        
+
         val gy = gYear - 1600
         val gm = gMonth - 1
         val gd = gDay - 1
-        
+
         var gDayNo = 365 * gy + ((gy + 3) / 4) - ((gy + 99) / 100) + ((gy + 399) / 400) - 80 + gd + gMonthDays[gm]
-        
+
         // بررسی سال کبیسه
         if (gm > 1 && ((gYear % 4 == 0 && gYear % 100 != 0) || (gYear % 400 == 0))) {
             gDayNo++
         }
-        
+
         var jDayNo = gDayNo - 79
-        
+
         val jNp = jDayNo / 12053
         jDayNo %= 12053
-        
+
         var jYear = 979 + 33 * jNp + 4 * (jDayNo / 1461)
         jDayNo %= 1461
-        
+
         if (jDayNo >= 366) {
             jYear += ((jDayNo - 1) / 365)
             jDayNo = (jDayNo - 1) % 365
         }
-        
+
         val jMonth: Int
         val jDay: Int
-        
+
         if (jDayNo < 186) {
             // ماه‌های فروردین تا شهریور (۶ ماه اول - هر کدام ۳۱ روز)
             jMonth = 1 + jDayNo / 31
@@ -2408,21 +2464,21 @@ class ReportsViewModel(
             jMonth = 7 + (jDayNo - 186) / 30
             jDay = 1 + ((jDayNo - 186) % 30)
         }
-        
+
         return ShamsiDate(jYear, jMonth, jDay)
     }
 
     @SuppressLint("SimpleDateFormat", "DefaultLocale")
     private fun addPersianFooter(
-        document: Document, 
-        writer: PdfWriter, 
-        font: Font, 
+        document: Document,
+        writer: PdfWriter,
+        font: Font,
         colorScheme: PdfColorScheme
     ) {
         // تولید تاریخ و زمان فارسی
         val currentDate = Date()
         val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-        
+
         // تبدیل تاریخ کنونی به شمسی
         val persianDate = convertGregorianToShamsi(currentDate)
         val persianTime = convertToPersianNumbers(timeFormat.format(currentDate))
@@ -2460,8 +2516,8 @@ class ReportsViewModel(
 
             // رسم جدول پاورقی
             footerTable.writeSelectedRows(
-                0, -1, 
-                document.leftMargin(), 
+                0, -1,
+                document.leftMargin(),
                 document.bottomMargin() + 30f, // فاصله بهتر از پایین صفحه
                 writer.directContent
             )
@@ -2724,7 +2780,6 @@ class ReportsViewModel(
         return shareText.toString()
     }
 }
-
 class ReportsRepository(private val apiService: ApiService) {
     suspend fun getCargoInfo(
         quotaNumber: String,
@@ -3162,7 +3217,7 @@ class ReportsRepository(private val apiService: ApiService) {
                         if (!responseBody.error.isNullOrEmpty()) {
                             return@withContext emptyList()
                         }
-                        
+
                         // Process the cargoInfoList from the response
                         val cargoInfoList = mutableListOf<CargoInfo>()
                         val searchResults = responseBody.cargoInfoList ?: emptyList()
@@ -3172,7 +3227,7 @@ class ReportsRepository(private val apiService: ApiService) {
                                 cargoInfoList.add(cargoInfo)
                             } ?: Log.w("CargoSearch", "⚠️ CargoInfoSearch item has null cargoInfo")
                         }
-                        
+
                         return@withContext cargoInfoList
                     } else {
                         return@withContext emptyList()
@@ -3197,7 +3252,7 @@ class ReportsRepository(private val apiService: ApiService) {
                     } catch (e: Exception) {
                         Log.e("CargoSearch", "❌ Error parsing error response: ${e.message}")
                     }
-                    
+
                     return@withContext emptyList()
                 }
             } catch (_: Exception) {
@@ -3218,7 +3273,6 @@ class ReportsRepository(private val apiService: ApiService) {
         }
     }
 }
-
 @SuppressLint("DefaultLocale")
 fun gregorianToJalali(gregorian: Calendar): String {
     val gy = gregorian.get(Calendar.YEAR)
@@ -3322,7 +3376,6 @@ data class CargoStats(
     val averageNetWeight: Float,
     val remainingServices: Int
 )
-
 enum class MessageType {
     SUCCESS, WARNING, ERROR
 }
@@ -3344,7 +3397,6 @@ data class CheckExistenceResponse(
     val status: String,
     val message: String
 )
-
 @Parcelize
 data class InitialInfo(
     val shipName: String,
@@ -3450,7 +3502,6 @@ data class CargoInfoSearch(
     val cargoInfo: CargoInfo?
 )
 
-// Response wrapper for search_by_tracking.php API
 data class CargoSearchResponse(
     val cargoInfoList: List<CargoInfoSearch>? = null,
     val totalCount: Int? = null,
@@ -3462,7 +3513,6 @@ data class SessionCheckRequest(
     val deviceId: String = "",
     val sessionToken: String? = null
 )
-
 data class SessionResponse(val success: Boolean, val message: String, val userType: String?)
 
 data class RealTimeDataResponse(
@@ -3702,7 +3752,6 @@ data class UpdateInfo(
     val releaseDate: String = "",
     val minAndroidVersion: Int = 21
 )
-
 class ColorSelector(private val colors: List<Color>) {
     // تمام رنگ‌های اختصاص داده شده به هر شناسه
     private val assignedColors = mutableMapOf<String, Color>()
@@ -3813,7 +3862,6 @@ class ColorSelector(private val colors: List<Color>) {
         colors.forEach { usedColors[it] = false }
     }
 }
-
 fun adjustColorForTheme(color: Color, isDarkTheme: Boolean): Color {
     val hsl = FloatArray(7)
     ColorUtils.colorToHSL(color.toArgb(), hsl)
@@ -3828,7 +3876,6 @@ fun adjustColorForTheme(color: Color, isDarkTheme: Boolean): Color {
 
     return Color(ColorUtils.HSLToColor(hsl))
 }
-
 val cardColors = listOf(
     // رنگ‌های بهینه شده برای تم روشن و تیره
     Color(0xFFEF5350), // Red 400 - ملایم‌تر از قرمز تند
@@ -3878,9 +3925,7 @@ val cardColors = listOf(
     Color(0xFFB2EBF2), // Cyan 100 - فیروزه‌ای خیلی ملایم
     Color(0xFFE1BEE7)  // Purple 100 - بنفش خیلی ملایم
 )
-
 fun Float.toTon(): Int = (this / 1000).toInt()
-
 sealed class LoadingState {
     object Idle : LoadingState()
     data class Error(val message: String) : LoadingState()
@@ -4125,29 +4170,24 @@ data class WarehousePeakAnalysis(
     val period_percentage: Float,
     val activity_level: String
 )
-
 enum class QuotaGroupingMode {
     BY_SHIP,
     BY_CARRIER
 }
-
 enum class WarehouseQuotaGroupingMode {
     BY_SHIPPING_COMPANY,
     BY_CARGO_OWNER,
     BY_WAREHOUSE
 }
-
 enum class QuotaSortingMode {
     REMAINING_TONNAGE_ASC,
     REMAINING_TONNAGE_DESC
 }
-
 enum class GroupSortingMode {
     ALPHABETICAL,
     REMAINING_TONNAGE_ASC,
     REMAINING_TONNAGE_DESC
 }
-
 enum class ShipSortingMode {
     REMAINING_TONNAGE_ASC,
     REMAINING_TONNAGE_DESC,
@@ -4205,8 +4245,6 @@ data class QuotaItem(
     val temporaryTonnageValue: Float?,
     val quotaKey: String
 )
-
-// تابع کمکی برای فرمت کردن اعداد
 fun formatNumber(number: Number): String {
     return NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
 }
