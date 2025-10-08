@@ -2,6 +2,7 @@ package com.atk.atk_cargo
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
@@ -99,9 +100,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.lifecycleScope
 import com.atk.atk_cargo.api.CheckExistenceRequest
 import com.atk.atk_cargo.api.InitialInfo
 import com.atk.atk_cargo.api.RetrofitClient
+import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -109,6 +113,35 @@ import java.util.Locale
 class InitialInfoActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // بررسی وضعیت ورود از سمت سرور
+        val userPreferencesManager = UserPreferencesManager(this)
+        
+        lifecycleScope.launch {
+            try {
+                val result = validateServerSession(userPreferencesManager)
+                result.fold(
+                    onSuccess = {
+                        // Session معتبر است، ادامه می‌دهد
+                    },
+                    onFailure = {
+                        finish()
+                        startActivity(Intent(this@InitialInfoActivity, MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        })
+                        return@launch
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("InitialInfoActivity", "خطا در بررسی وضعیت ورود: ${e.message}")
+                finish()
+                startActivity(Intent(this@InitialInfoActivity, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                })
+                return@launch
+            }
+        }
+        
         setContent {
             ATKCargoTheme {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -507,7 +540,11 @@ fun InitialInfoScreen() {
                                         keyboardActions = KeyboardActions(
                                             onNext = {
                                                 trimLoadingWarehouse()
-                                                focusManager.moveFocus(FocusDirection.Next)
+                                                if (isValidShipName(shipName) && isValidWarehouseName(loadingWarehouse)) {
+                                                    currentStep++
+                                                } else {
+                                                    focusManager.moveFocus(FocusDirection.Next)
+                                                }
                                             }
                                         ),
                                         modifier = Modifier
@@ -872,11 +909,11 @@ fun InitialInfoScreen() {
                                         ),
                                         keyboardOptions = KeyboardOptions(
                                             keyboardType = KeyboardType.Number,
-                                            imeAction = ImeAction.Done
+                                            imeAction = ImeAction.Next
                                         ),
                                         keyboardActions = KeyboardActions(
-                                            onDone = {
-                                                focusManager.clearFocus()
+                                            onNext = {
+                                                focusManager.moveFocus(FocusDirection.Next)
                                             }
                                         ),
                                         modifier = Modifier.fillMaxWidth()
@@ -935,12 +972,19 @@ fun InitialInfoScreen() {
                                             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                                         ),
                                         keyboardOptions = KeyboardOptions(
-                                            imeAction = ImeAction.Done
+                                            imeAction = ImeAction.Next
                                         ),
                                         keyboardActions = KeyboardActions(
-                                            onDone = {
+                                            onNext = {
                                                 trimCargoOwner()
-                                                focusManager.clearFocus()
+                                                if (isValidPersianText(shippingCompany) &&
+                                                    isValidWeight(cargoWeight) &&
+                                                    isValidQuotaNumber(loadingQuotaNumber) &&
+                                                    isValidPersianText(cargoOwner)) {
+                                                    currentStep++
+                                                } else {
+                                                    focusManager.clearFocus()
+                                                }
                                             }
                                         ),
                                         modifier = Modifier
