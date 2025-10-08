@@ -1447,7 +1447,7 @@ class ReportsViewModel(
     private val _filteredQuotas = MutableStateFlow<List<QuotaCompletionData>>(emptyList())
     val filteredQuotas: StateFlow<List<QuotaCompletionData>> = _filteredQuotas
 
-    private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY)
+    private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_CARGO_OWNER)
     val warehouseQuotaGroupingMode: StateFlow<WarehouseQuotaGroupingMode> = _warehouseQuotaGroupingMode.asStateFlow()
 
     // متغیرهای مربوط به بازه زمانی انتخاب شده
