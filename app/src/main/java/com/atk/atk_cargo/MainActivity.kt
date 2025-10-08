@@ -192,6 +192,7 @@ import com.atk.atk_cargo.api.ReportsRepository
 import com.atk.atk_cargo.api.ReportsViewModel
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.SessionCheckRequest
+import com.atk.atk_cargo.api.SessionResponse
 import com.atk.atk_cargo.api.UpdateInfo
 import com.atk.atk_cargo.api.UpdateManager
 import com.atk.atk_cargo.api.UpdateManagerFactory
@@ -200,11 +201,10 @@ import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.UserTypeInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
-import com.google.gson.Gson
-import com.atk.atk_cargo.api.SessionResponse
 import com.atk.atk_cargo.weather.MusicLibraryManager
 import com.atk.atk_cargo.weather.SecurityBlockScreen
 import com.atk.atk_cargo.weather.SecurityErrorType
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -1451,7 +1451,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                         val reportsViewModel: ReportsViewModel = viewModel(
                                             factory = ReportsViewModel.Factory
                                         )
-                                        ManageReportsScreen(viewModel = reportsViewModel)
+                                        ManageReportsScreen(viewModel = reportsViewModel, navController = navController)
                                     }
                                     composable(
                                         route = "cargoDetailsScreen/{quotaNumber}/{shippingCompany}/{warehouse}/{cargoType}",

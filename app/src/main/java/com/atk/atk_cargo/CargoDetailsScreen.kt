@@ -90,8 +90,8 @@ import com.atk.atk_cargo.api.MessageType
 import com.atk.atk_cargo.api.ReportsRepository
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.api.validateServerSession
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
 import java.text.SimpleDateFormat
@@ -110,24 +110,24 @@ fun CargoDetailsScreen(
     val context = LocalContext.current
     val userPreferencesManager = remember { UserPreferencesManager(context) }
     
-    // بررسی وضعیت ورود
-    val isLoggedIn by userPreferencesManager.isLoggedIn.collectAsState(initial = false)
-    
     LaunchedEffect(Unit) {
         try {
-            val loginStatus = userPreferencesManager.isLoggedIn.first()
-            if (!loginStatus) {
-                navController.navigate("main") {
-                    popUpTo(0) { inclusive = true }
+            val result = validateServerSession(userPreferencesManager)
+            result.fold(
+                onSuccess = {
+                    // Session معتبر است، ادامه می‌دهد
+                },
+                onFailure = {
+                    navController.navigate("home") {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
-                return@LaunchedEffect
-            }
+            )
         } catch (e: Exception) {
             Log.e("CargoDetailsScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
-            navController.navigate("main") {
+            navController.navigate("home") {
                 popUpTo(0) { inclusive = true }
             }
-            return@LaunchedEffect
         }
     }
     val viewModel: CargoViewModel = viewModel(factory = CargoViewModelFactory(repository, userPreferencesManager))

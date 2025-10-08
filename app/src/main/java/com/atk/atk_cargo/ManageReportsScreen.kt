@@ -232,9 +232,14 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.atk.atk_cargo.api.CalculationResult
 import com.atk.atk_cargo.api.CargoInfo
 import com.atk.atk_cargo.api.CargoOwnerData
@@ -268,15 +273,11 @@ import com.atk.atk_cargo.api.WarningStatus
 import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.api.toTon
+import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.atk.atk_cargo.ui.theme.getCompletionColor
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.LottieConstants
-import com.airbnb.lottie.compose.rememberLottieComposition
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -286,25 +287,40 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @Composable
-fun ManageReportsScreen(viewModel: ReportsViewModel) {
+fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavController? = null) {
 	val context = LocalContext.current
 	val userPreferencesManager = remember { UserPreferencesManager(context) }
 
 	LaunchedEffect(Unit) {
 		try {
-			val loginStatus = userPreferencesManager.isLoggedIn.first()
-			if (!loginStatus) {
+			val result = validateServerSession(userPreferencesManager)
+			result.fold(
+				onSuccess = {
+					// Session معتبر است، ادامه می‌دهد
+				},
+				onFailure = {
+					if (navController != null) {
+						navController.navigate("home") {
+							popUpTo(0) { inclusive = true }
+						}
+					} else {
+						val intent = Intent(context, MainActivity::class.java)
+						intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+						context.startActivity(intent)
+					}
+				}
+			)
+		} catch (e: Exception) {
+			Log.e("ManageReportsScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
+			if (navController != null) {
+				navController.navigate("home") {
+					popUpTo(0) { inclusive = true }
+				}
+			} else {
 				val intent = Intent(context, MainActivity::class.java)
 				intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
 				context.startActivity(intent)
-				return@LaunchedEffect
 			}
-		} catch (e: Exception) {
-			Log.e("ManageReportsScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
-			val intent = Intent(context, MainActivity::class.java)
-			intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-			context.startActivity(intent)
-			return@LaunchedEffect
 		}
 	}
 
