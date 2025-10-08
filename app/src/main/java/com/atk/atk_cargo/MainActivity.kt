@@ -1451,7 +1451,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                         val reportsViewModel: ReportsViewModel = viewModel(
                                             factory = ReportsViewModel.Factory
                                         )
-                                        ManageReportsScreen(viewModel = reportsViewModel)
+                                        ManageReportsScreen(viewModel = reportsViewModel, navController = navController)
                                     }
                                     composable(
                                         route = "cargoDetailsScreen/{quotaNumber}/{shippingCompany}/{warehouse}/{cargoType}",
