@@ -99,6 +99,7 @@ import com.atk.atk_cargo.api.MessageType
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.cardColors
+import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -154,23 +155,24 @@ fun CargoCounterScreen(navController: NavController) {
     val context = LocalContext.current
     val userPreferencesManager = remember { UserPreferencesManager(context) }
     
-    // بررسی وضعیت ورود
-    val isLoggedIn by userPreferencesManager.isLoggedIn.collectAsState(initial = false)
-    
     LaunchedEffect(Unit) {
         try {
-            val loginStatus = userPreferencesManager.isLoggedIn.first()
-            if (!loginStatus) {
-                val intent = Intent(context, MainActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                context.startActivity(intent)
-                return@LaunchedEffect
-            }
+            val result = validateServerSession(userPreferencesManager)
+            result.fold(
+                onSuccess = {
+                    // Session معتبر است، ادامه می‌دهد
+                },
+                onFailure = {
+                    navController.navigate("home") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         } catch (e: Exception) {
             Log.e("CargoCounterScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
-            val intent = Intent(context, MainActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            context.startActivity(intent)
+            navController.navigate("home") {
+                popUpTo(0) { inclusive = true }
+            }
             return@LaunchedEffect
         }
     }

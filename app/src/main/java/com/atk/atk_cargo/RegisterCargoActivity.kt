@@ -203,6 +203,7 @@ import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.ShipInfo
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.WarningStatus
+import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.ml.LocalOCRProcessor
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.google.mlkit.vision.common.InputImage
@@ -730,26 +731,30 @@ class RegisterCargoActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // بررسی وضعیت ورود
+        // بررسی وضعیت ورود از سمت سرور
         val userPreferencesManager = UserPreferencesManager(this)
         
-        // بررسی وضعیت ورود به صورت ایمن
         lifecycleScope.launch {
             try {
-                val isLoggedIn = userPreferencesManager.isLoggedIn.first()
-                if (!isLoggedIn) {
-                    val intent = Intent(this@RegisterCargoActivity, MainActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                    finish()
-                    return@launch
-                }
+                val result = validateServerSession(userPreferencesManager)
+                result.fold(
+                    onSuccess = {
+                        // Session معتبر است، ادامه می‌دهد
+                    },
+                    onFailure = {
+                        finish()
+                        startActivity(Intent(this@RegisterCargoActivity, MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        })
+                        return@launch
+                    }
+                )
             } catch (e: Exception) {
                 Log.e("RegisterCargoActivity", "خطا در بررسی وضعیت ورود: ${e.message}")
-                val intent = Intent(this@RegisterCargoActivity, MainActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                startActivity(intent)
                 finish()
+                startActivity(Intent(this@RegisterCargoActivity, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                })
                 return@launch
             }
         }
