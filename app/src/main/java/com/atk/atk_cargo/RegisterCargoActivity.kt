@@ -14,6 +14,7 @@ import android.util.Log
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.annotation.OptIn
 import androidx.camera.core.Camera
@@ -55,12 +56,12 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -83,8 +84,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AddChart
@@ -107,7 +106,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -123,7 +121,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -166,9 +163,11 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -214,7 +213,6 @@ import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -907,6 +905,9 @@ fun RegisterCargoScreen(
     val loadableTrucks18Wheeler by viewModel.loadableTrucks18Wheeler.collectAsState()
     val loadableTrucks10Wheeler by viewModel.loadableTrucks10Wheeler.collectAsState()
     
+    // State for controlling which expandable section is open (only one at a time)
+    var expandedSectionTitle by remember { mutableStateOf("ورود شده") }
+    
     // متغیر برای کنترل نمایش دیالوگ اطلاعات TopHeader
     var showTopHeaderInfoDialog by remember { mutableStateOf(false) }
     
@@ -975,33 +976,98 @@ fun RegisterCargoScreen(
                 .navigationBarsPadding(),
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             floatingActionButton = {
-                // Circular FAB with 70% transparency for background visibility
-                androidx.compose.material3.FloatingActionButton(
-                    onClick = { 
-                        showQuotaEntryDialog = true 
-                    },
+                // Glassmorphism Floating Action Button
+                Box(
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.05f)
+                                ),
+                                radius = 100f
+                            )
+                        )
+                        .border(
+                            width = 1.dp,
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                )
+                            ),
+                            shape = CircleShape
+                        )
                         .shadow(
-                            elevation = 8.dp,
+                            elevation = 12.dp,
                             shape = CircleShape,
-                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                        ),
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f), // 70% transparency
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    elevation = FloatingActionButtonDefaults.elevation(
-                        defaultElevation = 8.dp,
-                        pressedElevation = 12.dp,
-                        hoveredElevation = 10.dp
-                    ),
-                    shape = CircleShape // Perfect circular shape
+                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            showQuotaEntryDialog = true
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ConfirmationNumber,
-                        contentDescription = "تغییر کوتاژ",
-                        modifier = Modifier.size(22.dp),
-                        tint = MaterialTheme.colorScheme.onPrimary
+                    // Inner glass effect
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.2f),
+                                        Color.White.copy(alpha = 0.05f),
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                    ),
+                                    start = Offset(0f, 0f),
+                                    end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Icon with subtle glow effect
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ConfirmationNumber,
+                                contentDescription = "تغییر کوتاژ",
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+                            )
+                        }
+                    }
+                    
+                    // Subtle highlight on top
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.3f),
+                                        Color.Transparent,
+                                        Color.Transparent
+                                    ),
+                                    startY = 0f,
+                                    endY = 50f
+                                )
+                            )
                     )
                 }
             }
@@ -1214,7 +1280,11 @@ fun RegisterCargoScreen(
                     items = nonExitedCargos.sortedByDescending { it.entryTime },
                     initiallyExpanded = true,
                     searchQuery = searchQuery,
-                    duplicateTrackingNumbers = duplicateTrackingNumbers, // انتقال پارامتر حواله‌های تکراری
+                    duplicateTrackingNumbers = duplicateTrackingNumbers,
+                    isExpanded = expandedSectionTitle == "ورود شده",
+                    onExpandedChange = { expanded ->
+                        expandedSectionTitle = if (expanded) "ورود شده" else ""
+                    },
                     onItemClick = { selectedInfo ->
                         selectedCargoInfo.value = selectedInfo
                         showDetailDialog.value = true
@@ -1226,7 +1296,11 @@ fun RegisterCargoScreen(
                     items = exitedCargos.sortedByDescending { "${it.exitDate} ${it.exitTime}" },
                     initiallyExpanded = false,
                     searchQuery = searchQuery,
-                    duplicateTrackingNumbers = duplicateTrackingNumbers, // انتقال پارامتر حواله‌های تکراری
+                    duplicateTrackingNumbers = duplicateTrackingNumbers,
+                    isExpanded = expandedSectionTitle == "خروج شده",
+                    onExpandedChange = { expanded ->
+                        expandedSectionTitle = if (expanded) "خروج شده" else ""
+                    },
                     onItemClick = { selectedInfo ->
                         selectedCargoInfo.value = selectedInfo
                         showDetailDialog.value = true
@@ -1401,10 +1475,6 @@ fun RegisterCargoScreen(
                         showTopHeaderInfoDialog = true
                     }
                 }
-                showQuotaEntryDialog = false
-            },
-            onScanBarcode = {
-                // TODO: Implement barcode scanning for quota
                 showQuotaEntryDialog = false
             },
             shipName = initialInfo?.shipName ?: "",
@@ -1721,12 +1791,20 @@ fun QuotaWarningDialog(
     }
 }
 
+private fun processScannedQuota(scannedCode: String): String {
+    val trimmedCode = scannedCode.trim()
+    return when {
+        trimmedCode.contains("-") -> trimmedCode.split("-").last()
+        trimmedCode.startsWith("990000") -> trimmedCode.substring(6)
+        else -> trimmedCode
+    }
+}
+
 @Composable
 fun QuotaEntryDialog(
     showDialog: Boolean,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
-    onScanBarcode: () -> Unit,
     shipName: String,
     currentQuota: String,
     viewModel: CargoViewModel
@@ -1737,6 +1815,30 @@ fun QuotaEntryDialog(
     var isLoading by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val coroutineScope = rememberCoroutineScope()
+    
+    // Barcode scanner setup
+    val barcodeLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
+        result.contents?.let { scannedCode ->
+            val processedCode = processScannedQuota(scannedCode)
+            quotaEntry = processedCode
+            if (isError) {
+                isError = false
+                errorMessage = ""
+            }
+        }
+    }
+    
+    fun startBarcodeScanner() {
+        val options = ScanOptions()
+            .setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES)
+            .setPrompt("اسکن کوتاژ")
+            .setCameraId(0)
+            .setBeepEnabled(false)
+            .setBarcodeImageEnabled(true)
+            .setOrientationLocked(false)
+        
+        barcodeLauncher.launch(options)
+    }
 
     // Reset state when dialog opens
     LaunchedEffect(showDialog) {
@@ -1992,36 +2094,60 @@ fun QuotaEntryDialog(
                             }
                         }
 
-                        // Secondary Action Button
-                        OutlinedButton(
-                            onClick = onScanBarcode,
+                        // Glassmorphism Scan Button
+                        Surface(
+                            onClick = { startBarcodeScanner() },
                             modifier = Modifier
                                 .weight(1f)
                                 .height(48.dp),
                             enabled = !isLoading,
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.primary
-                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                             border = BorderStroke(
-                                1.5.dp, 
-                                if (isLoading) MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                                else MaterialTheme.colorScheme.primary
+                                1.dp,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shadowElevation = 0.dp,
+                            tonalElevation = 0.dp
                         ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        brush = Brush.linearGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                                            ),
+                                            start = Offset(0f, 0f),
+                                            end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.QrCodeScanner,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Text(
-                                    text = "اسکن",
-                                    style = MaterialTheme.typography.labelMedium
-                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.QrCodeScanner,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = if (isLoading) 
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                        else 
+                                            MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = "اسکن",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = if (isLoading) 
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                        else 
+                                            MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
                             }
                         }
                     }
@@ -3148,9 +3274,11 @@ fun ExpandableSection(
     initiallyExpanded: Boolean = false,
     searchQuery: String = "",
     onItemClick: (CargoInfo) -> Unit,
-    duplicateTrackingNumbers: List<String> = emptyList()
+    duplicateTrackingNumbers: List<String> = emptyList(),
+    isExpanded: Boolean = initiallyExpanded,
+    onExpandedChange: (Boolean) -> Unit = {}
 ) {
-    var isExpanded by remember { mutableStateOf(initiallyExpanded) }
+    val actualExpanded = isExpanded
     
     // Auto-expand if search query matches any item in this section
     LaunchedEffect(searchQuery, items) {
@@ -3159,13 +3287,13 @@ fun ExpandableSection(
                 it.trackingNumber.contains(searchQuery, ignoreCase = true)
             }
             if (hasMatchingItem) {
-                isExpanded = true
+                onExpandedChange(true)
             }
         }
     }
     
     val rotationAngle by animateFloatAsState(
-        targetValue = if (isExpanded) 180f else 0f,
+        targetValue = if (actualExpanded) 180f else 0f,
         animationSpec = tween(300),
         label = "rotation"
     )
@@ -3191,7 +3319,7 @@ fun ExpandableSection(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { isExpanded = !isExpanded }
+                    .clickable { onExpandedChange(!actualExpanded) }
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -3250,7 +3378,7 @@ fun ExpandableSection(
                 // آیکون گسترش
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) "بستن" else "باز کردن",
+                    contentDescription = if (actualExpanded) "بستن" else "باز کردن",
                     tint = MaterialTheme3.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .size(20.dp)
@@ -3260,7 +3388,7 @@ fun ExpandableSection(
 
             // محتوای قابل گسترش
             AnimatedVisibility(
-                visible = isExpanded,
+                visible = actualExpanded,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
@@ -4953,57 +5081,141 @@ fun CargoInfoDetailsDialog(
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
-    !isSystemInDarkTheme()
+    val clipboard = LocalClipboardManager.current
     
-    // State for controlling which section is expanded
     var expandedSection by remember { mutableStateOf("اطلاعات اصلی") }
     
-    // Check if search query matches this cargo and auto-expand appropriate section
     LaunchedEffect(searchQuery) {
         if (searchQuery.isNotEmpty() && info.trackingNumber.contains(searchQuery, ignoreCase = true)) {
             expandedSection = "اطلاعات اصلی"
         }
     }
 
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.info))
+    val lottieAnimatable = rememberLottieAnimatable()
+
+    LaunchedEffect(composition) {
+        lottieAnimatable.animate(
+            composition = composition,
+            iterations = LottieConstants.IterateForever,
+        )
+    }
+
+    val dialogEnterTransition = remember {
+        expandIn(
+            expandFrom = Alignment.Center,
+            animationSpec = tween(300, easing = EaseOutBack)
+        ) + fadeIn(animationSpec = tween(300))
+    }
+
+    val dialogExitTransition = remember {
+        shrinkOut(
+            shrinkTowards = Alignment.Center,
+            animationSpec = tween(300, easing = EaseInBack)
+        ) + fadeOut(animationSpec = tween(300))
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false
+        )
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .fillMaxHeight(0.92f)
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.9f)
                 .clip(RoundedCornerShape(24.dp)),
+            shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 8.dp
+            tonalElevation = 8.dp
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Background gradient for the entire dialog
-                Box(
+            AnimatedVisibility(
+                visible = true,
+                enter = dialogEnterTransition,
+                exit = dialogExitTransition
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.surface,
-                                    MaterialTheme.colorScheme.surface,
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                                )
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Header with Lottie animation similar to MessageDialog
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .background(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), 
+                                CircleShape
                             )
+                            .padding(12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        LottieAnimation(
+                            composition = composition,
+                            progress = { lottieAnimatable.progress },
+                            modifier = Modifier.size(60.dp)
                         )
-                )
-                
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // Modern Header
-                    Header(info, onDismiss)
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Title
+                    Text(
+                        text = "جزئیات حواله",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Tracking number with card background similar to MessageDialog
+                    Surface(
+                        onClick = {
+                            coroutineScope.launch {
+                                clipboard.setText(AnnotatedString(info.trackingNumber))
+                                snackbarHostState.showSnackbar("شماره حواله کپی شد")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "شماره حواله: ${info.trackingNumber}",
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    textAlign = TextAlign.Center
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "کپی",
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     // Scrollable Content with Expandable Sections
                     LazyColumn(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // اطلاعات اصلی
                         item {
@@ -5016,7 +5228,15 @@ fun CargoInfoDetailsDialog(
                                 },
                                 accentColor = MaterialTheme.colorScheme.primary
                             ) {
-                                MainInfoContent(info)
+                                MainInfoContent(
+                                    info = info,
+                                    onCopyScaleReceipt = {
+                                        coroutineScope.launch {
+                                            clipboard.setText(AnnotatedString(info.loadingQuotaNumber))
+                                            snackbarHostState.showSnackbar("شماره قبض باسکول کپی شد")
+                                        }
+                                    }
+                                )
                             }
                         }
 
@@ -5051,11 +5271,57 @@ fun CargoInfoDetailsDialog(
                         }
                     }
 
-                    // Modern Footer with shadow
-                    Footer(
-                        onDelete = { showDeleteConfirmation = true },
-                        onDismiss = onDismiss
-                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Action buttons similar to MessageDialog style
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Delete Button
+                        Button(
+                            onClick = { showDeleteConfirmation = true },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 4.dp,
+                                pressedElevation = 8.dp
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "حذف",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        // Close Button
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        ) {
+                            Text(
+                                text = "بستن",
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -5085,268 +5351,6 @@ fun CargoInfoDetailsDialog(
         )
     }
 }
-
-@Composable
-private fun Header(info: CargoInfo, onDismiss: () -> Unit) {
-    val isLightTheme = !isSystemInDarkTheme()
-    val headerGradient = if (isLightTheme) {
-        Brush.horizontalGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.primary,
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-            )
-        )
-    } else {
-        Brush.horizontalGradient(
-            colors = listOf(
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                MaterialTheme.colorScheme.surface
-            )
-        )
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(headerGradient)
-            .padding(top = 28.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
-    ) {
-        // Close Button
-        IconButton(
-            onClick = onDismiss,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .size(40.dp)
-                .background(
-                    color = if (isLightTheme) {
-                        Color.White.copy(alpha = 0.2f)
-                    } else {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                    },
-                    shape = CircleShape
-                )
-        ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "بستن",
-                tint = if (isLightTheme) {
-                    Color.White
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        Column(modifier = Modifier.padding(end = 48.dp)) {
-            // Title with Icon
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Icon Container with animated gradient border
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(
-                            brush = Brush.sweepGradient(
-                                colors = listOf(
-                                    if (isLightTheme) Color.White.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                    if (isLightTheme) Color.White.copy(alpha = 0.4f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                                )
-                            ),
-                            shape = CircleShape
-                        )
-                        .padding(2.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = if (isLightTheme) {
-                            Color.White.copy(alpha = 0.2f)
-                        } else {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.ConfirmationNumber,
-                                contentDescription = null,
-                                modifier = Modifier.size(30.dp),
-                                tint = if (isLightTheme) {
-                                    Color.White
-                                } else {
-                                    MaterialTheme.colorScheme.primary
-                                }
-                            )
-                        }
-                    }
-                }
-
-                Column {
-                    Text(
-                        text = "حواله شماره",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (isLightTheme) {
-                            Color.White.copy(alpha = 0.8f)
-                        } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        }
-                    )
-                    
-                    Text(
-                        text = info.trackingNumber,
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp
-                        ),
-                        color = if (isLightTheme) {
-                            Color.White
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Status Chips with improved layout
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // وضعیت ورود/خروج
-                StatusChip(
-                    status = info.status,
-                    isLightTheme = isLightTheme
-                )
-
-                // وضعیت تایید
-                if (info.confirm == "تائید شده") {
-                    ConfirmationChip(isLightTheme = isLightTheme)
-                } else {
-                    PendingChip(isLightTheme = isLightTheme)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatusChip(status: String, isLightTheme: Boolean) {
-    val (backgroundColor, contentColor, icon, label) = when (status) {
-        "ورود" -> {
-            val green = Color(0xFF4CAF50)
-            val bgColor = if (isLightTheme) green.copy(alpha = 0.15f) else green.copy(alpha = 0.1f)
-            val textColor = if (isLightTheme) green else green.copy(alpha = 0.9f)
-            Quadruple(bgColor, textColor, Icons.AutoMirrored.Filled.Login, "ورود")
-        }
-        else -> {
-            val red = Color(0xFFF44336)
-            val bgColor = if (isLightTheme) red.copy(alpha = 0.15f) else red.copy(alpha = 0.1f)
-            val textColor = if (isLightTheme) red else red.copy(alpha = 0.9f)
-            Quadruple(bgColor, textColor, Icons.AutoMirrored.Filled.Logout, "خروج")
-        }
-    }
-
-    Surface(
-        color = backgroundColor,
-        shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.height(32.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Medium
-                ),
-                color = contentColor
-            )
-        }
-    }
-}
-
-@Composable
-private fun ConfirmationChip(isLightTheme: Boolean) {
-    val blue = Color(0xFF2196F3)
-    val backgroundColor = if (isLightTheme) blue.copy(alpha = 0.15f) else blue.copy(alpha = 0.1f)
-    val contentColor = if (isLightTheme) blue else blue.copy(alpha = 0.9f)
-
-    Surface(
-        color = backgroundColor,
-        shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.height(32.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                text = "تائید شده",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Medium
-                ),
-                color = contentColor
-            )
-        }
-    }
-}
-
-@Composable
-private fun PendingChip(isLightTheme: Boolean) {
-    val orange = Color(0xFFFF9800)
-    val backgroundColor = if (isLightTheme) orange.copy(alpha = 0.15f) else orange.copy(alpha = 0.1f)
-    val contentColor = if (isLightTheme) orange else orange.copy(alpha = 0.9f)
-
-    Surface(
-        color = backgroundColor,
-        shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.height(32.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Pending,
-                contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                text = "در انتظار",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Medium
-                ),
-                color = contentColor
-            )
-        }
-    }
-}
-
-data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
 @Composable
 private fun ExpandableSection(
@@ -5453,13 +5457,20 @@ private fun ExpandableSection(
 }
 
 @Composable
-private fun MainInfoContent(info: CargoInfo) {
+private fun MainInfoContent(
+    info: CargoInfo,
+    onCopyScaleReceipt: () -> Unit = {}
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         InfoItem(label = "نام کشتی", value = info.shipName)
         InfoItem(label = "انبار بارگیری", value = info.loadingWarehouse)
         InfoItem(label = "نوع کالا", value = info.cargoType)
         InfoItem(label = "شرکت حمل و نقل", value = info.shippingCompany)
-        InfoItem(label = "شماره حواله بارگیری", value = info.loadingQuotaNumber)
+        InfoItem(
+            label = "شماره قبض باسکول", 
+            value = info.loadingQuotaNumber,
+            onClick = onCopyScaleReceipt
+        )
     }
 }
 
@@ -5480,9 +5491,17 @@ private fun TimeInfoContent(info: CargoInfo) {
 }
 
 @Composable
-private fun InfoItem(label: String, value: String) {
+private fun InfoItem(label: String, value: String, onClick: (() -> Unit)? = null) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable { onClick() }
+                } else {
+                    Modifier
+                }
+            ),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -5492,11 +5511,25 @@ private fun InfoItem(label: String, value: String) {
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
         
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            if (onClick != null) {
+                Icon(
+                    imageVector = Icons.Default.ContentCopy,
+                    contentDescription = "کپی",
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
     }
 }
 
@@ -5525,145 +5558,171 @@ private fun WeightItem(value: String) {
 }
 
 @Composable
-private fun Footer(onDelete: () -> Unit, onDismiss: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 8.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Delete Button
-            Button(
-                onClick = onDelete,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                ),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = null)
-                    Text(text = "حذف حواله")
-                }
-            }
-            
-            // Close Button
-            Button(
-                onClick = onDismiss,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = null)
-                    Text(text = "بستن")
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun DeleteDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     password: String,
     onPasswordChange: (String) -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_warning))
+    val lottieAnimatable = rememberLottieAnimatable()
+
+    LaunchedEffect(composition) {
+        lottieAnimatable.animate(
+            composition = composition,
+            iterations = LottieConstants.IterateForever,
+        )
+    }
+
+    val dialogEnterTransition = remember {
+        expandIn(
+            expandFrom = Alignment.Center,
+            animationSpec = tween(300, easing = EaseOutBack)
+        ) + fadeIn(animationSpec = tween(300))
+    }
+
+    val dialogExitTransition = remember {
+        shrinkOut(
+            shrinkTowards = Alignment.Center,
+            animationSpec = tween(300, easing = EaseInBack)
+        ) + fadeOut(animationSpec = tween(300))
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false
+        )
+    ) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .wrapContentHeight()
+                .clip(RoundedCornerShape(24.dp)),
+            shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 8.dp
+            tonalElevation = 8.dp
         ) {
-            Column(
-                modifier = Modifier
-                    .padding(20.dp)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            AnimatedVisibility(
+                visible = true,
+                enter = dialogEnterTransition,
+                exit = dialogExitTransition
             ) {
-                // Icon
-                Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(48.dp)
-                )
-                
-                // Title
-                Text(
-                    text = "حذف حواله",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                
-                // Message
-                Text(
-                    text = "آیا از حذف این حواله اطمینان دارید؟ این عملیات غیرقابل بازگشت است.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    textAlign = TextAlign.Center
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Password Field
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = onPasswordChange,
-                    label = { Text("رمز عبور") },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                // Buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Confirm Button
-                    Button(
-                        onClick = onConfirm,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        enabled = password.isNotEmpty()
+                    // Header with colored circle background
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f), CircleShape)
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text("تایید حذف")
+                        LottieAnimation(
+                            composition = composition,
+                            progress = { lottieAnimatable.progress },
+                            modifier = Modifier.size(80.dp)
+                        )
                     }
 
-                    // Cancel Button
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Title
+                    Text(
+                        text = "حذف حواله",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.error
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Message with card background
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.05f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
                     ) {
-                        Text("انصراف")
+                        Text(
+                            text = "آیا از حذف این حواله اطمینان دارید؟ این عملیات غیرقابل بازگشت است.",
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Justify
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Password Field
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = onPasswordChange,
+                        label = { Text("رمز عبور") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.error,
+                            focusedLabelColor = MaterialTheme.colorScheme.error
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Buttons with improved styling
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Cancel Button
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        ) {
+                            Text(
+                                text = "انصراف",
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
+
+                        // Confirm Button
+                        Button(
+                            onClick = onConfirm,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 4.dp,
+                                pressedElevation = 8.dp
+                            ),
+                            enabled = password.isNotEmpty()
+                        ) {
+                            Text(
+                                text = "تایید حذف",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
             }
