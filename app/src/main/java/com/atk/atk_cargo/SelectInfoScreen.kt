@@ -1881,12 +1881,10 @@ fun ActiveQuotasDialog(
     }
 }
 
-// حالت‌های فیلتر
 enum class FilterState {
     ALL, PENDING, COMPLETED
 }
 
-// حالت‌های نمایش
 enum class ViewMode {
     GROUPED, FLAT
 }
