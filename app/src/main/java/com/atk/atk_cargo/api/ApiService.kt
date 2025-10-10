@@ -45,6 +45,9 @@ interface ApiService {
     @POST("saveOrUpdateCargoInfo.php")
     suspend fun saveOrUpdateCargoInfo(@Body cargoInfo: CargoInfo): Response<SaveOrUpdateResponse>
 
+    @POST("updateCargoInfo.php")
+    suspend fun updateCargoInfo(@Body cargoInfo: CargoInfo): Response<SaveOrUpdateResponse>
+
     @POST("deleteCargoInfo2.php")
     suspend fun deleteCargo(@Body cargoInfoRequest: CargoInfoRequest): Response<Void>
 

@@ -133,6 +133,7 @@ import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.PendingActions
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Receipt
@@ -181,6 +182,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -232,10 +234,14 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.atk.atk_cargo.api.CalculationResult
 import com.atk.atk_cargo.api.CargoInfo
 import com.atk.atk_cargo.api.CargoOwnerData
@@ -272,13 +278,8 @@ import com.atk.atk_cargo.api.toTon
 import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.atk.atk_cargo.ui.theme.getCompletionColor
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.LottieConstants
-import com.airbnb.lottie.compose.rememberLottieComposition
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -339,6 +340,8 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
 	var searchResult by remember { mutableStateOf<CargoInfo?>(null) }
 	var multipleSearchResults by remember { mutableStateOf<List<CargoInfo>?>(null) }
 	var errorMessage by remember { mutableStateOf<String?>(null) }
+	var lastSearchType by remember { mutableStateOf<SearchType?>(null) }
+	var lastSearchValue by remember { mutableStateOf<String?>(null) }
 	val isDarkTheme = isSystemInDarkTheme()
 	val defaultColor = MaterialTheme.colorScheme.primary
 	val currentShipName by viewModel.selectedShip.collectAsState()
@@ -461,6 +464,8 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
 		isOpen = showAdvancedSearchDialog,
 		onDismiss = { showAdvancedSearchDialog = false },
 		onSearchReceipt = { receiptNumber ->
+			lastSearchType = SearchType.RECEIPT_NUMBER
+			lastSearchValue = receiptNumber
 			viewModel.performAdvancedSearch(receiptNumber) { result ->
 				result.fold(
 					onSuccess = { cargoInfo ->
@@ -478,6 +483,8 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
 			}
 		},
 		onSearchTracking = { trackingNumber ->
+			lastSearchType = SearchType.TRACKING_NUMBER
+			lastSearchValue = trackingNumber
 			viewModel.performAdvancedSearchByTracking(trackingNumber) { result ->
 				result.fold(
 					onSuccess = { cargoInfoList ->
@@ -499,7 +506,13 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
 	searchResult?.let { cargo ->
 		SearchResultDialog(
 			cargoInfo = cargo,
-			onDismiss = { searchResult = null }
+			onDismiss = { searchResult = null },
+			onRefresh = { updatedCargo ->
+				searchResult = updatedCargo
+			},
+			searchType = lastSearchType,
+			searchValue = lastSearchValue,
+			viewModel = viewModel
 		)
 	}
 
@@ -10436,12 +10449,36 @@ private fun InfoRowCompact(
 		}
 	}
 }
+
 @Composable
 fun SearchResultDialog(
 	cargoInfo: CargoInfo,
-	onDismiss: () -> Unit
+	onDismiss: () -> Unit,
+	onRefresh: (CargoInfo) -> Unit,
+	searchType: SearchType?,
+	searchValue: String?,
+	viewModel: ReportsViewModel
 ) {
 	val mainColor = MaterialTheme.colorScheme.primary
+	val snackbarHostState = remember { SnackbarHostState() }
+	val scope = rememberCoroutineScope()
+	
+	var isEditMode by remember { mutableStateOf(false) }
+	var isSaving by remember { mutableStateOf(false) }
+	var showConfirmDialog by remember { mutableStateOf(false) }
+	
+	// Editable fields
+	var editedTrackingNumber by remember { mutableStateOf(cargoInfo.trackingNumber) }
+	var editedNumberOfPeople by remember { mutableStateOf(cargoInfo.numberOfPeople) }
+	var editedEntryTime by remember { mutableStateOf(cargoInfo.entryTime) }
+	var editedNetWeight by remember { mutableStateOf(cargoInfo.netWeight) }
+	var editedScaleReceiptNumber by remember { mutableStateOf(cargoInfo.scaleReceiptNumber) }
+	var editedShortageWeight by remember { mutableStateOf(cargoInfo.shortageWeight) }
+	var editedExcessWeight by remember { mutableStateOf(cargoInfo.excessWeight) }
+	var editedExitTime by remember { mutableStateOf(cargoInfo.exitTime ?: "") }
+	var editedExitDate by remember { mutableStateOf(cargoInfo.exitDate ?: "") }
+	var editedStatus by remember { mutableStateOf(cargoInfo.status) }
+	var editedLoadingQuotaNumber by remember { mutableStateOf(cargoInfo.loadingQuotaNumber) }
 
 	Dialog(
 		onDismissRequest = onDismiss,
@@ -10451,26 +10488,36 @@ fun SearchResultDialog(
 			usePlatformDefaultWidth = false
 		)
 	) {
-		Card(
-			modifier = Modifier
-				.fillMaxWidth(0.9f)
-				.heightIn(max = 600.dp)
-				.padding(16.dp)
-				.animateContentSize(),
-			colors = CardDefaults.cardColors(
-				containerColor = MaterialTheme.colorScheme.primaryContainer
-			),
-			shape = RoundedCornerShape(16.dp),
-			border = BorderStroke(
-				width = 1.dp,
-				color = mainColor
-			)
-		) {
-			Column(
+		Scaffold(
+			snackbarHost = {
+				SnackbarHost(
+					hostState = snackbarHostState,
+					modifier = Modifier.padding(16.dp)
+				)
+			},
+			containerColor = Color.Transparent
+		) { paddingValues ->
+			Card(
 				modifier = Modifier
-					.fillMaxSize()
+					.fillMaxWidth(0.95f)
+					.fillMaxHeight(0.9f)
+					.padding(paddingValues)
 					.padding(16.dp)
+					.animateContentSize(),
+				colors = CardDefaults.cardColors(
+					containerColor = MaterialTheme.colorScheme.primaryContainer
+				),
+				shape = RoundedCornerShape(16.dp),
+				border = BorderStroke(
+					width = 1.dp,
+					color = mainColor
+				)
 			) {
+				Column(
+					modifier = Modifier
+						.fillMaxSize()
+						.padding(16.dp)
+				) {
 				// Header
 				Row(
 					modifier = Modifier.fillMaxWidth(),
@@ -10488,7 +10535,7 @@ fun SearchResultDialog(
 							contentAlignment = Alignment.Center
 						) {
 							Icon(
-								imageVector = Icons.Default.Receipt,
+								imageVector = if (isEditMode) Icons.Default.Edit else Icons.Default.Receipt,
 								contentDescription = null,
 								tint = mainColor,
 								modifier = Modifier.size(28.dp)
@@ -10496,13 +10543,13 @@ fun SearchResultDialog(
 						}
 						Column {
 							Text(
-								text = "نتیجه جستجو",
+								text = if (isEditMode) "ویرایش اطلاعات" else "نتیجه جستجو",
 								style = MaterialTheme.typography.titleLarge,
 								fontWeight = FontWeight.Bold,
 								color = MaterialTheme.colorScheme.onPrimaryContainer
 							)
 							Text(
-								text = "قبض باسکول: ${cargoInfo.scaleReceiptNumber}",
+								text = "قبض باسکول: ${if (isEditMode) editedScaleReceiptNumber else cargoInfo.scaleReceiptNumber}",
 								style = MaterialTheme.typography.bodyMedium,
 								color = MaterialTheme.colorScheme.onPrimaryContainer
 							)
@@ -10523,44 +10570,633 @@ fun SearchResultDialog(
 					}
 				}
 
-				Spacer(modifier = Modifier.height(24.dp))
+				Spacer(modifier = Modifier.height(16.dp))
 
 				LazyColumn(
 					modifier = Modifier.weight(1f),
 					verticalArrangement = Arrangement.spacedBy(16.dp)
 				) {
-					item {
-						CargoMainInfo(cargoInfo)
-					}
+					if (isEditMode) {
+						// Edit Mode
+						item {
+							EditableCargoMainInfo(
+								trackingNumber = editedTrackingNumber,
+								onTrackingNumberChange = { editedTrackingNumber = it },
+								scaleReceiptNumber = editedScaleReceiptNumber,
+								onScaleReceiptNumberChange = { editedScaleReceiptNumber = it },
+								loadingQuotaNumber = editedLoadingQuotaNumber,
+								onLoadingQuotaNumberChange = { editedLoadingQuotaNumber = it },
+								numberOfPeople = editedNumberOfPeople,
+								onNumberOfPeopleChange = { editedNumberOfPeople = it }
+							)
+						}
 
-					item {
-						CargoWeightInfo(cargoInfo)
-					}
+						item {
+							EditableCargoWeightInfo(
+								netWeight = editedNetWeight,
+								onNetWeightChange = { editedNetWeight = it },
+								shortageWeight = editedShortageWeight,
+								onShortageWeightChange = { editedShortageWeight = it },
+								excessWeight = editedExcessWeight,
+								onExcessWeightChange = { editedExcessWeight = it }
+							)
+						}
 
-					item {
-						CargoTimeInfo(cargoInfo)
-					}
+						item {
+							EditableCargoTimeInfo(
+								entryTime = editedEntryTime,
+								onEntryTimeChange = { editedEntryTime = it },
+								exitTime = editedExitTime,
+								onExitTimeChange = { editedExitTime = it },
+								exitDate = editedExitDate,
+								onExitDateChange = { editedExitDate = it },
+								status = editedStatus,
+								onStatusChange = { editedStatus = it }
+							)
+						}
 
-					item {
-						CargoShippingInfo(cargoInfo)
+						item {
+							CargoShippingInfo(cargoInfo)
+						}
+					} else {
+						// View Mode
+						item {
+							CargoMainInfo(cargoInfo)
+						}
+
+						item {
+							CargoWeightInfo(cargoInfo)
+						}
+
+						item {
+							CargoTimeInfo(cargoInfo)
+						}
+
+						item {
+							CargoShippingInfo(cargoInfo)
+						}
 					}
 				}
 
 				Spacer(modifier = Modifier.height(16.dp))
 
-				Button(
-					onClick = onDismiss,
+				// Action Buttons
+				Row(
 					modifier = Modifier.fillMaxWidth(),
-					shape = RoundedCornerShape(12.dp)
+					horizontalArrangement = Arrangement.spacedBy(8.dp)
 				) {
-					Icon(
-						imageVector = Icons.Default.Close,
-						contentDescription = null
-					)
-					Spacer(modifier = Modifier.width(8.dp))
-					Text("بستن")
+					if (isEditMode) {
+						Button(
+							onClick = {
+								if (cargoInfo.id == null) {
+									scope.launch {
+										snackbarHostState.showSnackbar("شناسه رکورد نامعتبر است")
+									}
+									return@Button
+								}
+								showConfirmDialog = true
+							},
+							modifier = Modifier.weight(1f),
+							shape = RoundedCornerShape(12.dp),
+							enabled = !isSaving
+						) {
+							if (isSaving) {
+								CircularProgressIndicator(
+									modifier = Modifier.size(20.dp),
+									color = MaterialTheme.colorScheme.onPrimary,
+									strokeWidth = 2.dp
+								)
+							} else {
+								Icon(imageVector = Icons.Default.Save, contentDescription = null)
+								Spacer(modifier = Modifier.width(8.dp))
+								Text("ذخیره")
+							}
+						}
+
+						Button(
+							onClick = {
+								isEditMode = false
+								// Reset values
+								editedTrackingNumber = cargoInfo.trackingNumber
+								editedNumberOfPeople = cargoInfo.numberOfPeople
+								editedEntryTime = cargoInfo.entryTime
+								editedNetWeight = cargoInfo.netWeight
+								editedScaleReceiptNumber = cargoInfo.scaleReceiptNumber
+								editedShortageWeight = cargoInfo.shortageWeight
+								editedExcessWeight = cargoInfo.excessWeight
+								editedExitTime = cargoInfo.exitTime ?: ""
+								editedExitDate = cargoInfo.exitDate ?: ""
+								editedStatus = cargoInfo.status
+								editedLoadingQuotaNumber = cargoInfo.loadingQuotaNumber
+							},
+							modifier = Modifier.weight(1f),
+							shape = RoundedCornerShape(12.dp),
+							colors = ButtonDefaults.buttonColors(
+								containerColor = MaterialTheme.colorScheme.error
+							),
+							enabled = !isSaving
+						) {
+							Icon(imageVector = Icons.Default.Cancel, contentDescription = null)
+							Spacer(modifier = Modifier.width(8.dp))
+							Text("لغو")
+						}
+					} else {
+						Button(
+							onClick = { isEditMode = true },
+							modifier = Modifier.weight(1f),
+							shape = RoundedCornerShape(12.dp),
+							enabled = cargoInfo.id != null
+						) {
+							Icon(imageVector = Icons.Default.Edit, contentDescription = null)
+							Spacer(modifier = Modifier.width(8.dp))
+							Text("ویرایش")
+						}
+
+						Button(
+							onClick = onDismiss,
+							modifier = Modifier.weight(1f),
+							shape = RoundedCornerShape(12.dp)
+						) {
+							Icon(imageVector = Icons.Default.Close, contentDescription = null)
+							Spacer(modifier = Modifier.width(8.dp))
+							Text("بستن")
+						}
+					}
 				}
 			}
+		}
+	}
+	
+	// دیالوگ تأیید قبل از ذخیره
+	if (showConfirmDialog) {
+		CargoEditConfirmDialog(
+			cargoInfo = cargoInfo,
+			editedTrackingNumber = editedTrackingNumber,
+			editedNumberOfPeople = editedNumberOfPeople,
+			editedEntryTime = editedEntryTime,
+			editedNetWeight = editedNetWeight,
+			editedScaleReceiptNumber = editedScaleReceiptNumber,
+			editedShortageWeight = editedShortageWeight,
+			editedExcessWeight = editedExcessWeight,
+			editedExitTime = editedExitTime,
+			editedExitDate = editedExitDate,
+			editedStatus = editedStatus,
+			editedLoadingQuotaNumber = editedLoadingQuotaNumber,
+			onDismiss = { showConfirmDialog = false },
+			onConfirm = {
+				showConfirmDialog = false
+				isSaving = true
+				
+				val updatedCargo = cargoInfo.copy(
+					trackingNumber = editedTrackingNumber,
+					numberOfPeople = editedNumberOfPeople,
+					entryTime = editedEntryTime,
+					netWeight = editedNetWeight,
+					scaleReceiptNumber = editedScaleReceiptNumber,
+					shortageWeight = editedShortageWeight,
+					excessWeight = editedExcessWeight,
+					exitTime = editedExitTime.ifEmpty { null },
+					exitDate = editedExitDate.ifEmpty { null },
+					status = editedStatus,
+					loadingQuotaNumber = editedLoadingQuotaNumber
+				)
+				
+				Log.d("CargoEdit", "🔄 شروع بروزرسانی - ID: ${updatedCargo.id}")
+				Log.d("CargoEdit", "📦 داده‌های ویرایش شده: $updatedCargo")
+				
+				viewModel.updateCargoInfo(updatedCargo) { result ->
+					isSaving = false
+					result.fold(
+						onSuccess = { response ->
+							Log.d("CargoEdit", "✅ پاسخ موفق: $response")
+							if (response.error == false) {
+								isEditMode = false
+								
+								// بروزرسانی خودکار از سرور
+								if (searchType != null && searchValue != null) {
+									when (searchType) {
+										SearchType.RECEIPT_NUMBER -> {
+											viewModel.performAdvancedSearch(searchValue) { searchResult ->
+												searchResult.fold(
+													onSuccess = { refreshedCargo ->
+														if (refreshedCargo != null) {
+															onRefresh(refreshedCargo)
+															scope.launch {
+																snackbarHostState.showSnackbar(
+																	message = "✅ ${response.message}",
+																	duration = SnackbarDuration.Short
+																)
+															}
+														}
+													},
+													onFailure = {
+														scope.launch {
+															snackbarHostState.showSnackbar(
+																message = "بروزرسانی انجام شد اما خطا در دریافت اطلاعات جدید",
+																duration = SnackbarDuration.Long
+															)
+														}
+													}
+												)
+											}
+										}
+										SearchType.TRACKING_NUMBER -> {
+											// برای حواله، فقط پیام موفقیت نمایش بده
+											scope.launch {
+												snackbarHostState.showSnackbar(
+													message = "✅ ${response.message}",
+													duration = SnackbarDuration.Short
+												)
+											}
+										}
+									}
+								} else {
+									scope.launch {
+										snackbarHostState.showSnackbar(
+											message = "✅ ${response.message}",
+											duration = SnackbarDuration.Short
+										)
+									}
+								}
+							} else {
+								Log.e("CargoEdit", "❌ خطا در response: ${response.message}")
+								scope.launch {
+									snackbarHostState.showSnackbar(
+										message = "❌ ${response.message}",
+										duration = SnackbarDuration.Long
+									)
+								}
+							}
+						},
+						onFailure = { error ->
+							Log.e("CargoEdit", "💥 Exception: ${error.message}", error)
+							scope.launch {
+								snackbarHostState.showSnackbar(
+									message = "❌ خطا: ${error.localizedMessage}",
+									duration = SnackbarDuration.Long
+								)
+							}
+						}
+					)
+				}
+			}
+		)
+	}
+	}
+}
+
+@Composable
+fun CargoEditConfirmDialog(
+	cargoInfo: CargoInfo,
+	editedTrackingNumber: String,
+	editedNumberOfPeople: String,
+	editedEntryTime: String,
+	editedNetWeight: String,
+	editedScaleReceiptNumber: String,
+	editedShortageWeight: String,
+	editedExcessWeight: String,
+	editedExitTime: String,
+	editedExitDate: String,
+	editedStatus: String,
+	editedLoadingQuotaNumber: String,
+	onDismiss: () -> Unit,
+	onConfirm: () -> Unit
+) {
+	Dialog(
+		onDismissRequest = onDismiss,
+		properties = DialogProperties(
+			dismissOnBackPress = true,
+			dismissOnClickOutside = false,
+			usePlatformDefaultWidth = false
+		)
+	) {
+		Surface(
+			modifier = Modifier
+				.fillMaxWidth(0.95f)
+				.wrapContentHeight()
+				.heightIn(max = 700.dp)
+				.padding(16.dp)
+				.verticalScroll(rememberScrollState()),
+			shape = RoundedCornerShape(24.dp),
+			tonalElevation = 6.dp,
+			color = MaterialTheme.colorScheme.surface
+		) {
+			Column(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(24.dp)
+			) {
+				// Header با انیمیشن
+				CargoEditConfirmHeader()
+
+				Spacer(modifier = Modifier.height(24.dp))
+
+				// نمایش تغییرات
+				CargoChangesPreview(
+					cargoInfo = cargoInfo,
+					editedTrackingNumber = editedTrackingNumber,
+					editedNumberOfPeople = editedNumberOfPeople,
+					editedEntryTime = editedEntryTime,
+					editedNetWeight = editedNetWeight,
+					editedScaleReceiptNumber = editedScaleReceiptNumber,
+					editedShortageWeight = editedShortageWeight,
+					editedExcessWeight = editedExcessWeight,
+					editedExitTime = editedExitTime,
+					editedExitDate = editedExitDate,
+					editedStatus = editedStatus,
+					editedLoadingQuotaNumber = editedLoadingQuotaNumber
+				)
+
+				Spacer(modifier = Modifier.height(24.dp))
+
+				// دکمه‌های عمل
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.spacedBy(16.dp)
+				) {
+					Button(
+						onClick = onConfirm,
+						modifier = Modifier.weight(1f),
+						shape = RoundedCornerShape(12.dp)
+					) {
+						Row(
+							horizontalArrangement = Arrangement.spacedBy(8.dp),
+							verticalAlignment = Alignment.CenterVertically
+						) {
+							Icon(
+								imageVector = Icons.Default.Check,
+								contentDescription = null,
+								modifier = Modifier.size(20.dp)
+							)
+							Text("تایید و ذخیره")
+						}
+					}
+
+					OutlinedButton(
+						onClick = onDismiss,
+						modifier = Modifier.weight(1f),
+						shape = RoundedCornerShape(12.dp),
+						border = BorderStroke(
+							width = 1.dp,
+							color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+						)
+					) {
+						Row(
+							horizontalArrangement = Arrangement.spacedBy(8.dp),
+							verticalAlignment = Alignment.CenterVertically
+						) {
+							Icon(
+								imageVector = Icons.Default.Close,
+								contentDescription = null,
+								modifier = Modifier.size(20.dp)
+							)
+							Text("انصراف")
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun CargoEditConfirmHeader() {
+	Row(
+		modifier = Modifier.fillMaxWidth(),
+		verticalAlignment = Alignment.CenterVertically
+	) {
+		// Animated Icon Container
+		Box(
+			modifier = Modifier
+				.size(56.dp)
+				.background(
+					color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+					shape = CircleShape
+				),
+			contentAlignment = Alignment.Center
+		) {
+			val infiniteTransition = rememberInfiniteTransition(label = "")
+			val scale by infiniteTransition.animateFloat(
+				initialValue = 1f,
+				targetValue = 1.2f,
+				animationSpec = infiniteRepeatable(
+					animation = tween(800),
+					repeatMode = RepeatMode.Reverse
+				),
+				label = ""
+			)
+
+			Icon(
+				imageVector = Icons.Default.Save,
+				contentDescription = null,
+				tint = MaterialTheme.colorScheme.primary,
+				modifier = Modifier
+					.size(32.dp)
+					.scale(scale)
+			)
+		}
+
+		Spacer(modifier = Modifier.width(16.dp))
+
+		Column {
+			Text(
+				text = "تأیید بروزرسانی",
+				style = MaterialTheme.typography.titleLarge,
+				fontWeight = FontWeight.Bold
+			)
+			Text(
+				text = "آیا از ذخیره تغییرات اطمینان دارید؟",
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+			)
+		}
+	}
+}
+
+@Composable
+private fun CargoChangesPreview(
+	cargoInfo: CargoInfo,
+	editedTrackingNumber: String,
+	editedNumberOfPeople: String,
+	editedEntryTime: String,
+	editedNetWeight: String,
+	editedScaleReceiptNumber: String,
+	editedShortageWeight: String,
+	editedExcessWeight: String,
+	editedExitTime: String,
+	editedExitDate: String,
+	editedStatus: String,
+	editedLoadingQuotaNumber: String
+) {
+	val changes = mutableListOf<Triple<String, String, String>>()
+	
+	// بررسی تغییرات
+	if (cargoInfo.trackingNumber != editedTrackingNumber) {
+		changes.add(Triple("شماره حواله", cargoInfo.trackingNumber, editedTrackingNumber))
+	}
+	if (cargoInfo.numberOfPeople != editedNumberOfPeople) {
+		changes.add(Triple("تعداد نفرات", cargoInfo.numberOfPeople, editedNumberOfPeople))
+	}
+	if (cargoInfo.entryTime != editedEntryTime) {
+		changes.add(Triple("زمان ورود", cargoInfo.entryTime, editedEntryTime))
+	}
+	if (cargoInfo.netWeight != editedNetWeight) {
+		changes.add(Triple("وزن خالص", cargoInfo.netWeight, editedNetWeight))
+	}
+	if (cargoInfo.scaleReceiptNumber != editedScaleReceiptNumber) {
+		changes.add(Triple("شماره قبض باسکول", cargoInfo.scaleReceiptNumber, editedScaleReceiptNumber))
+	}
+	if (cargoInfo.shortageWeight != editedShortageWeight) {
+		changes.add(Triple("وزن کسری", cargoInfo.shortageWeight, editedShortageWeight))
+	}
+	if (cargoInfo.excessWeight != editedExcessWeight) {
+		changes.add(Triple("وزن اضافی", cargoInfo.excessWeight, editedExcessWeight))
+	}
+	if ((cargoInfo.exitTime ?: "") != editedExitTime) {
+		changes.add(Triple("زمان خروج", cargoInfo.exitTime ?: "", editedExitTime))
+	}
+	if ((cargoInfo.exitDate ?: "") != editedExitDate) {
+		changes.add(Triple("تاریخ خروج", cargoInfo.exitDate ?: "", editedExitDate))
+	}
+	if (cargoInfo.status != editedStatus) {
+		changes.add(Triple("وضعیت", cargoInfo.status, editedStatus))
+	}
+	if (cargoInfo.loadingQuotaNumber != editedLoadingQuotaNumber) {
+		changes.add(Triple("شماره کوتاژ", cargoInfo.loadingQuotaNumber, editedLoadingQuotaNumber))
+	}
+
+	if (changes.isNotEmpty()) {
+		Card(
+			modifier = Modifier.fillMaxWidth(),
+			colors = CardDefaults.cardColors(
+				containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+			),
+			shape = RoundedCornerShape(12.dp)
+		) {
+			Column(
+				modifier = Modifier.padding(16.dp),
+				verticalArrangement = Arrangement.spacedBy(12.dp)
+			) {
+				Row(
+					verticalAlignment = Alignment.CenterVertically,
+					horizontalArrangement = Arrangement.spacedBy(8.dp)
+				) {
+					Icon(
+						imageVector = Icons.Default.Edit,
+						contentDescription = null,
+						tint = MaterialTheme.colorScheme.primary,
+						modifier = Modifier.size(20.dp)
+					)
+					Text(
+						text = "تغییرات اعمال شده (${changes.size} مورد)",
+						style = MaterialTheme.typography.titleMedium,
+						fontWeight = FontWeight.Bold,
+						color = MaterialTheme.colorScheme.primary
+					)
+				}
+
+				changes.forEach { (field, oldValue, newValue) ->
+					ChangeItem(
+						fieldName = field,
+						oldValue = oldValue,
+						newValue = newValue
+					)
+				}
+			}
+		}
+	} else {
+		Card(
+			modifier = Modifier.fillMaxWidth(),
+			colors = CardDefaults.cardColors(
+				containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+			),
+			shape = RoundedCornerShape(12.dp)
+		) {
+			Row(
+				modifier = Modifier.padding(16.dp),
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(12.dp)
+			) {
+				Icon(
+					imageVector = Icons.Default.Info,
+					contentDescription = null,
+					tint = MaterialTheme.colorScheme.onSurfaceVariant,
+					modifier = Modifier.size(24.dp)
+				)
+				Text(
+					text = "هیچ تغییری اعمال نشده است",
+					style = MaterialTheme.typography.bodyLarge,
+					color = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+			}
+		}
+	}
+}
+
+@Composable
+private fun ChangeItem(
+	fieldName: String,
+	oldValue: String,
+	newValue: String
+) {
+	Column(
+		modifier = Modifier
+			.fillMaxWidth()
+			.background(
+				MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+				RoundedCornerShape(8.dp)
+			)
+			.padding(12.dp),
+		verticalArrangement = Arrangement.spacedBy(4.dp)
+	) {
+		Text(
+			text = fieldName,
+			style = MaterialTheme.typography.labelMedium,
+			fontWeight = FontWeight.Bold,
+			color = MaterialTheme.colorScheme.onSurface
+		)
+		
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			horizontalArrangement = Arrangement.spacedBy(8.dp),
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			// مقدار قبلی
+			Text(
+				text = oldValue.ifEmpty { "خالی" },
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.error,
+				modifier = Modifier
+					.background(
+						MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+						RoundedCornerShape(4.dp)
+					)
+					.padding(horizontal = 8.dp, vertical = 4.dp),
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis
+			)
+			
+			Icon(
+				imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+				contentDescription = null,
+				tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+				modifier = Modifier.size(16.dp)
+			)
+			
+			// مقدار جدید
+			Text(
+				text = newValue.ifEmpty { "خالی" },
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.primary,
+				modifier = Modifier
+					.background(
+						MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+						RoundedCornerShape(4.dp)
+					)
+					.padding(horizontal = 8.dp, vertical = 4.dp),
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis
+			)
 		}
 	}
 }
@@ -10676,6 +11312,219 @@ private fun CargoShippingInfo(cargoInfo: CargoInfo) {
 					icon = Icons.Default.LocalShipping,
 					label = "شرکت بارگیری",
 					value = cargoInfo.shippingCompany
+				)
+			}
+		}
+	)
+}
+
+@Composable
+private fun EditableCargoMainInfo(
+	trackingNumber: String,
+	onTrackingNumberChange: (String) -> Unit,
+	scaleReceiptNumber: String,
+	onScaleReceiptNumberChange: (String) -> Unit,
+	loadingQuotaNumber: String,
+	onLoadingQuotaNumberChange: (String) -> Unit,
+	numberOfPeople: String,
+	onNumberOfPeopleChange: (String) -> Unit
+) {
+	InfoCard(
+		mainColor = MaterialTheme.colorScheme.primary,
+		title = "اطلاعات اصلی",
+		icon = Icons.Default.Description,
+		content = {
+			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+				OutlinedTextField(
+					value = trackingNumber,
+					onValueChange = onTrackingNumberChange,
+					label = { Text("شماره حواله") },
+					leadingIcon = {
+						Icon(imageVector = Icons.Default.Numbers, contentDescription = null)
+					},
+					modifier = Modifier.fillMaxWidth(),
+					singleLine = true,
+					shape = RoundedCornerShape(12.dp)
+				)
+				
+				OutlinedTextField(
+					value = scaleReceiptNumber,
+					onValueChange = { 
+						if (it.all { char -> char.isDigit() }) {
+							onScaleReceiptNumberChange(it)
+						}
+					},
+					label = { Text("قبض باسکول") },
+					leadingIcon = {
+						Icon(imageVector = Icons.Default.Receipt, contentDescription = null)
+					},
+					modifier = Modifier.fillMaxWidth(),
+					singleLine = true,
+					keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+					shape = RoundedCornerShape(12.dp)
+				)
+				
+				OutlinedTextField(
+					value = loadingQuotaNumber,
+					onValueChange = onLoadingQuotaNumberChange,
+					label = { Text("شماره کوتاژ") },
+					leadingIcon = {
+						Icon(imageVector = Icons.Default.Newspaper, contentDescription = null)
+					},
+					modifier = Modifier.fillMaxWidth(),
+					singleLine = true,
+					shape = RoundedCornerShape(12.dp)
+				)
+				
+				OutlinedTextField(
+					value = numberOfPeople,
+					onValueChange = onNumberOfPeopleChange,
+					label = { Text("تعداد افراد") },
+					leadingIcon = {
+						Icon(imageVector = Icons.Default.People, contentDescription = null)
+					},
+					modifier = Modifier.fillMaxWidth(),
+					singleLine = true,
+					shape = RoundedCornerShape(12.dp)
+				)
+			}
+		}
+	)
+}
+
+@Composable
+private fun EditableCargoWeightInfo(
+	netWeight: String,
+	onNetWeightChange: (String) -> Unit,
+	shortageWeight: String,
+	onShortageWeightChange: (String) -> Unit,
+	excessWeight: String,
+	onExcessWeightChange: (String) -> Unit
+) {
+	InfoCard(
+		mainColor = MaterialTheme.colorScheme.secondary,
+		title = "اطلاعات وزن",
+		icon = Icons.Default.Scale,
+		content = {
+			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+				OutlinedTextField(
+					value = netWeight,
+					onValueChange = { 
+						if (it.all { char -> char.isDigit() }) {
+							onNetWeightChange(it)
+						}
+					},
+					label = { Text("وزن خالص (کیلوگرم)") },
+					leadingIcon = {
+						Icon(imageVector = Icons.Default.Scale, contentDescription = null)
+					},
+					modifier = Modifier.fillMaxWidth(),
+					singleLine = true,
+					keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+					shape = RoundedCornerShape(12.dp)
+				)
+				
+				OutlinedTextField(
+					value = shortageWeight,
+					onValueChange = { 
+						if (it.all { char -> char.isDigit() }) {
+							onShortageWeightChange(it)
+						}
+					},
+					label = { Text("کسری بار (کیلوگرم)") },
+					leadingIcon = {
+						Icon(imageVector = Icons.Default.ArrowDownward, contentDescription = null)
+					},
+					modifier = Modifier.fillMaxWidth(),
+					singleLine = true,
+					keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+					shape = RoundedCornerShape(12.dp)
+				)
+				
+				OutlinedTextField(
+					value = excessWeight,
+					onValueChange = { 
+						if (it.all { char -> char.isDigit() }) {
+							onExcessWeightChange(it)
+						}
+					},
+					label = { Text("اضافه بار (کیلوگرم)") },
+					leadingIcon = {
+						Icon(imageVector = Icons.Default.ArrowUpward, contentDescription = null)
+					},
+					modifier = Modifier.fillMaxWidth(),
+					singleLine = true,
+					keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+					shape = RoundedCornerShape(12.dp)
+				)
+			}
+		}
+	)
+}
+
+@Composable
+private fun EditableCargoTimeInfo(
+	entryTime: String,
+	onEntryTimeChange: (String) -> Unit,
+	exitTime: String,
+	onExitTimeChange: (String) -> Unit,
+	exitDate: String,
+	onExitDateChange: (String) -> Unit,
+	status: String,
+	onStatusChange: (String) -> Unit
+) {
+	InfoCard(
+		mainColor = MaterialTheme.colorScheme.tertiary,
+		title = "زمان‌بندی",
+		icon = Icons.Default.Schedule,
+		content = {
+			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+				OutlinedTextField(
+					value = entryTime,
+					onValueChange = onEntryTimeChange,
+					label = { Text("ساعت ورود") },
+					leadingIcon = {
+						Icon(imageVector = Icons.AutoMirrored.Filled.Login, contentDescription = null)
+					},
+					modifier = Modifier.fillMaxWidth(),
+					singleLine = true,
+					shape = RoundedCornerShape(12.dp)
+				)
+				
+				OutlinedTextField(
+					value = exitTime,
+					onValueChange = onExitTimeChange,
+					label = { Text("ساعت خروج") },
+					leadingIcon = {
+						Icon(imageVector = Icons.AutoMirrored.Filled.Logout, contentDescription = null)
+					},
+					modifier = Modifier.fillMaxWidth(),
+					singleLine = true,
+					shape = RoundedCornerShape(12.dp)
+				)
+				
+				OutlinedTextField(
+					value = exitDate,
+					onValueChange = onExitDateChange,
+					label = { Text("تاریخ خروج") },
+					leadingIcon = {
+						Icon(imageVector = Icons.Default.CalendarToday, contentDescription = null)
+					},
+					modifier = Modifier.fillMaxWidth(),
+					singleLine = true,
+					shape = RoundedCornerShape(12.dp)
+				)
+				
+				OutlinedTextField(
+					value = status,
+					onValueChange = onStatusChange,
+					label = { Text("وضعیت") },
+					leadingIcon = {
+						Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null)
+					},
+					modifier = Modifier.fillMaxWidth(),
+					singleLine = true,
+					shape = RoundedCornerShape(12.dp)
 				)
 			}
 		}

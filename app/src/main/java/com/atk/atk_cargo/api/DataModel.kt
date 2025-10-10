@@ -40,7 +40,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -1995,6 +1994,31 @@ class ReportsViewModel(
         }
     }
 
+    fun updateCargoInfo(cargoInfo: CargoInfo, onResult: (Result<SaveOrUpdateResponse>) -> Unit) {
+        viewModelScope.launch {
+            try {
+                Log.d("ReportsViewModel", "🔄 ViewModel: شروع بروزرسانی")
+                Log.d("ReportsViewModel", "📦 ViewModel: CargoInfo = $cargoInfo")
+                
+                val result = repository.updateCargoInfo(cargoInfo)
+                
+                result.fold(
+                    onSuccess = { response ->
+                        Log.d("ReportsViewModel", "✅ ViewModel: موفقیت - $response")
+                    },
+                    onFailure = { error ->
+                        Log.e("ReportsViewModel", "❌ ViewModel: خطا - ${error.message}")
+                    }
+                )
+                
+                onResult(result)
+            } catch (e: Exception) {
+                Log.e("ReportsViewModel", "💥 ViewModel: Exception - ${e.message}", e)
+                onResult(Result.failure(e))
+            }
+        }
+    }
+
     fun exportData(format: String, data: FilteredSummary) {
         viewModelScope.launch {
             try {
@@ -2780,6 +2804,7 @@ class ReportsViewModel(
         return shareText.toString()
     }
 }
+
 class ReportsRepository(private val apiService: ApiService) {
     suspend fun getCargoInfo(
         quotaNumber: String,
@@ -2836,12 +2861,9 @@ class ReportsRepository(private val apiService: ApiService) {
 
     suspend fun getShipsList(): ShipsData = withContext(Dispatchers.IO) {
         try {
-            Log.d("ReportsRepository_Log", "درخواست دریافت لیست کشتی‌ها از سرور - URL: app_api_2.php")
             val response = apiService.getShipsList()
             if (response.isSuccessful) {
-                Log.d("ReportsRepository_Log", "دریافت موفق لیست کشتی‌ها - کد پاسخ: ${response.code()}")
                 val shipsData = response.body()?.data ?: ShipsData(emptyList(), emptyList())
-                Log.d("ReportsRepository_Log", "تعداد کشتی‌های فعال: ${shipsData.activeShips.size}, تعداد کشتی‌های غیرفعال: ${shipsData.inactiveShips.size}")
                 shipsData
             } else {
                 Log.e("ReportsRepository_Log", "خطا در دریافت لیست کشتی‌ها - کد خطا: ${response.code()}, پیام خطا: ${response.errorBody()?.string()}")
@@ -3192,13 +3214,36 @@ class ReportsRepository(private val apiService: ApiService) {
         return withContext(Dispatchers.IO) {
             try {
                 val response = apiService.getCargoInfoByReceiptNumber(receiptNumber)
+
                 if (response.isSuccessful) {
-                    val result = response.body()?.cargoInfo
+                    val body = response.body()
+                    val result = body?.cargoInfo
                     result
                 } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e("CargoSearch", "❌ خطا ${response.code()}: $errorBody")
+                    
+                    // تلاش برای parse کردن JSON خطا
+                    try {
+                        if (!errorBody.isNullOrEmpty() && errorBody.trim().startsWith("{")) {
+                            val errorJson = Gson().fromJson(errorBody, JsonObject::class.java)
+                            if (errorJson.has("message")) {
+                                Log.e("CargoSearch", "💬 پیام خطا: ${errorJson.get("message").asString}")
+                            }
+                            if (errorJson.has("file")) {
+                                Log.e("CargoSearch", "📁 فایل: ${errorJson.get("file").asString}")
+                            }
+                            if (errorJson.has("line")) {
+                                Log.e("CargoSearch", "📍 خط: ${errorJson.get("line").asInt}")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("CargoSearch", "خطا در parse کردن JSON: ${e.message}")
+                    }
                     null
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.e("CargoSearch", "💥 Exception در جستجو: ${e.message}", e)
                 null
             }
         }
@@ -3213,12 +3258,11 @@ class ReportsRepository(private val apiService: ApiService) {
                     val responseBody = response.body()
 
                     if (responseBody != null) {
-                        // Check if there's an error in the response
                         if (!responseBody.error.isNullOrEmpty()) {
+                            Log.w("CargoSearch", "⚠️ خطا در response: ${responseBody.error}")
                             return@withContext emptyList()
                         }
 
-                        // Process the cargoInfoList from the response
                         val cargoInfoList = mutableListOf<CargoInfo>()
                         val searchResults = responseBody.cargoInfoList ?: emptyList()
 
@@ -3230,13 +3274,14 @@ class ReportsRepository(private val apiService: ApiService) {
 
                         return@withContext cargoInfoList
                     } else {
+                        Log.w("CargoSearch", "⚠️ Response body null است")
                         return@withContext emptyList()
                     }
                 } else {
-
                     // Handle error response
                     try {
                         val errorBody = response.errorBody()?.string()
+                        Log.e("CargoSearch", "❌ خطا ${response.code()}: $errorBody")
 
                         if (!errorBody.isNullOrEmpty()) {
                             // Check if error message is JSON
@@ -3244,6 +3289,7 @@ class ReportsRepository(private val apiService: ApiService) {
                                 val errorJson = Gson().fromJson(errorBody, JsonObject::class.java)
                                 if (errorJson.has("error")) {
                                     val errorMessage = errorJson.get("error").asString
+                                    Log.e("CargoSearch", "❌ پیام خطا: $errorMessage")
                                 }
                             } else {
                                 Log.w("CargoSearch", "🚨 Server error (non-JSON): $errorBody")
@@ -3255,8 +3301,47 @@ class ReportsRepository(private val apiService: ApiService) {
 
                     return@withContext emptyList()
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.e("CargoSearch", "💥 Exception در جستجو: ${e.message}", e)
                 return@withContext emptyList()
+            }
+        }
+    }
+
+    suspend fun updateCargoInfo(cargoInfo: CargoInfo): Result<SaveOrUpdateResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.updateCargoInfo(cargoInfo)
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null) {
+                        Result.success(body)
+                    } else {
+                        Log.e("ReportsRepository", "❌ پاسخ سرور خالی است")
+                        Result.failure(Exception("پاسخ سرور خالی است"))
+                    }
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e("ReportsRepository", "❌ خطا ${response.code()}: $errorBody")
+                    
+                    // تلاش برای parse کردن JSON خطا
+                    try {
+                        if (!errorBody.isNullOrEmpty() && errorBody.trim().startsWith("{")) {
+                            val errorJson = Gson().fromJson(errorBody, JsonObject::class.java)
+                            if (errorJson.has("message")) {
+                                Log.e("ReportsRepository", "💬 پیام خطا: ${errorJson.get("message").asString}")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("ReportsRepository", "خطا در parse کردن JSON: ${e.message}")
+                    }
+                    
+                    Result.failure(Exception("خطا در بروزرسانی: $errorBody"))
+                }
+            } catch (e: Exception) {
+                Log.e("ReportsRepository", "💥 Exception در بروزرسانی: ${e.message}", e)
+                Result.failure(e)
             }
         }
     }
@@ -3273,6 +3358,7 @@ class ReportsRepository(private val apiService: ApiService) {
         }
     }
 }
+
 @SuppressLint("DefaultLocale")
 fun gregorianToJalali(gregorian: Calendar): String {
     val gy = gregorian.get(Calendar.YEAR)
@@ -3417,6 +3503,7 @@ data class InitialInfo(
 ) : Parcelable
 
 data class CargoInfo(
+    val id: Int? = null,
     val trackingNumber: String,
     val numberOfPeople: String,
     val username: String,
