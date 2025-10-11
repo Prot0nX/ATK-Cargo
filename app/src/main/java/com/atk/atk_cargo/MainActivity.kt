@@ -211,6 +211,7 @@ import com.atk.atk_cargo.weather.MusicLibraryManager
 import com.atk.atk_cargo.weather.SecurityBlockScreen
 import com.atk.atk_cargo.weather.SecurityErrorType
 import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -2742,9 +2743,23 @@ private fun WelcomeSection(username: String) {
     }
 }
 
+data class SummaryData(
+    @SerializedName("warehouseStatus")
+    val warehouseStatus: WarehouseStatus? = null,
+    @SerializedName("overallTrend")
+    val overallTrend: String? = null
+)
+
+data class WarehouseStatus(
+    @SerializedName("mostActive")
+    val mostActive: String? = null,
+    @SerializedName("leastActive")
+    val leastActive: String? = null
+)
+
 @Composable
 private fun SummaryDialog(onDismiss: () -> Unit) {
-    var summaryText by remember { mutableStateOf<String?>(null) }
+    var summaryData by remember { mutableStateOf<SummaryData?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -2754,9 +2769,43 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
             try {
                 val response = RetrofitClient.apiService.getSummaryData()
                 if (response.isSuccessful) {
-                    val body = response.body()
-                    summaryText = body?.string()
-                    if (summaryText.isNullOrEmpty()) {
+                    val body = response.body()?.string()
+                    if (!body.isNullOrEmpty()) {
+                        var jsonString = body.trim()
+                        if (jsonString.startsWith("```json")) {
+                            jsonString = jsonString.removePrefix("```json").trim()
+                        } else if (jsonString.startsWith("```")) {
+                            jsonString = jsonString.removePrefix("```").trim()
+                        }
+                        if (jsonString.endsWith("```")) {
+                            jsonString = jsonString.removeSuffix("```").trim()
+                        }
+                        
+                        if (jsonString.startsWith("\"") && jsonString.endsWith("\"")) {
+                            jsonString = jsonString.substring(1, jsonString.length - 1)
+                                .replace("\\\"", "\"")
+                                .replace("\\n", "\n")
+                                .replace("\\\\", "\\")
+                        }
+
+                        val gson = Gson()
+                        val jsonElement = gson.fromJson(jsonString, com.google.gson.JsonElement::class.java)
+                        
+                        if (jsonElement.isJsonPrimitive && jsonElement.asJsonPrimitive.isString) {
+                            // اگر هنوز String است، دوباره پارس می‌کنیم
+                            val innerJson = jsonElement.asString
+                            summaryData = gson.fromJson(innerJson, SummaryData::class.java)
+                        } else if (jsonElement.isJsonObject) {
+                            // اگر Object است، مستقیم پارس می‌کنیم
+                            summaryData = gson.fromJson(jsonElement, SummaryData::class.java)
+                        } else {
+                            errorMessage = "فرمت داده نامعتبر است"
+                        }
+                        
+                        if (summaryData == null) {
+                            errorMessage = "خطا در پردازش داده"
+                        }
+                    } else {
                         errorMessage = "داده‌ای دریافت نشد"
                     }
                 } else {
@@ -2970,136 +3019,384 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                     }
                                 }
                             }
-                            summaryText != null -> {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .verticalScroll(rememberScrollState()),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    val lines = summaryText!!.split("\n")
-                                    lines.forEach { line ->
-                                        when {
-                                            line.trim().startsWith("*") -> {
-                                                val content = line.trim().removePrefix("*").trim()
-                                                Surface(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                            summaryData != null -> {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .verticalScroll(rememberScrollState()),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        // بخش وضعیت انبارها
+                                        summaryData!!.warehouseStatus?.let { warehouse ->
+                                            ExpandableSection(
+                                                title = "وضعیت انبارها",
+                                                icon = Icons.Default.Info
+                                            ) {
+                                                Column(
+                                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                                 ) {
-                                                    Row(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(12.dp),
-                                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                                        verticalAlignment = Alignment.Top
-                                                    ) {
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .size(24.dp)
-                                                                .background(
-                                                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                                                    CircleShape
-                                                                ),
-                                                            contentAlignment = Alignment.Center
-                                                        ) {
-                                                            Text(
-                                                                "•",
-                                                                style = MaterialTheme.typography.titleMedium,
-                                                                color = MaterialTheme.colorScheme.primary,
-                                                                fontWeight = FontWeight.Bold
-                                                            )
-                                                        }
-                                                        Text(
-                                                            text = buildAnnotatedString {
-                                                                var currentIndex = 0
-                                                                val boldPattern = """\*\*(.*?)\*\*""".toRegex()
-                                                                boldPattern.findAll(content).forEach { match ->
-                                                                    append(content.substring(currentIndex, match.range.first))
-                                                                    withStyle(
-                                                                        style = SpanStyle(
-                                                                            fontWeight = FontWeight.Bold,
-                                                                            color = MaterialTheme.colorScheme.primary
-                                                                        )
-                                                                    ) {
-                                                                        append(match.groupValues[1])
-                                                                    }
-                                                                    currentIndex = match.range.last + 1
-                                                                }
-                                                                append(content.substring(currentIndex))
-                                                            },
-                                                            style = MaterialTheme.typography.bodyLarge,
-                                                            color = MaterialTheme.colorScheme.onSurface,
-                                                            lineHeight = 26.sp,
-                                                            modifier = Modifier.weight(1f)
+                                                    // انبار با بیشترین فعالیت
+                                                    warehouse.mostActive?.let { text ->
+                                                        InfoCard(
+                                                            text = text,
+                                                            icon = "📈",
+                                                            color = MaterialTheme.colorScheme.primary
+                                                        )
+                                                    }
+
+                                                    // انبار با کمترین فعالیت
+                                                    warehouse.leastActive?.let { text ->
+                                                        InfoCard(
+                                                            text = text,
+                                                            icon = "📉",
+                                                            color = MaterialTheme.colorScheme.tertiary
                                                         )
                                                     }
                                                 }
                                             }
-                                            line.trim().isNotEmpty() -> {
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(vertical = 4.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .width(4.dp)
-                                                            .height(24.dp)
-                                                            .background(
-                                                                brush = Brush.verticalGradient(
-                                                                    colors = listOf(
-                                                                        MaterialTheme.colorScheme.primary,
-                                                                        MaterialTheme.colorScheme.tertiary
-                                                                    )
-                                                                ),
-                                                                shape = RoundedCornerShape(2.dp)
-                                                            )
-                                                    )
-                                                    Text(
-                                                        text = line,
-                                                        style = MaterialTheme.typography.titleLarge,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = MaterialTheme.colorScheme.primary
-                                                    )
-                                                }
+                                        }
+
+                                        // بخش روند کلی
+                                        summaryData!!.overallTrend?.let { trend ->
+                                            ExpandableSection(
+                                                title = "روند کلی بارگیری",
+                                                icon = Icons.Default.Check
+                                            ) {
+                                                TrendCard(text = trend)
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    // دکمه بستن در پایین
-                    if (!isLoading && summaryText != null) {
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            onClick = onDismiss
-                        ) {
-                            Box(
+                        // دکمه بستن در پایین
+                        if (!isLoading && summaryData != null) {
+                            Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 14.dp),
-                                contentAlignment = Alignment.Center
+                                    .padding(20.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                onClick = onDismiss
                             ) {
-                                Text(
-                                    "متوجه شدم",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 14.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        "متوجه شدم",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
+     }
+}
+
+@Composable
+private fun ExpandableSection(
+    title: String,
+    icon: ImageVector,
+    content: @Composable () -> Unit
+) {
+    var isExpanded by remember { mutableStateOf(true) }
+    val rotationAngle by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "rotation"
+    )
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 4.dp,
+        tonalElevation = 2.dp
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Header قابل کلیک
+            Surface(
+                onClick = { isExpanded = !isExpanded },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                color = Color.Transparent
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // پس‌زمینه با گرادیانت
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(60.dp)
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+                                        Color.Transparent
+                                    )
+                                ),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            // آیکن با گرادیانت
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                            )
+                                        ),
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    icon,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+
+                            // عنوان
+                            Column {
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .width(50.dp)
+                                        .height(2.dp)
+                                        .background(
+                                            brush = Brush.horizontalGradient(
+                                                colors = listOf(
+                                                    MaterialTheme.colorScheme.primary,
+                                                    MaterialTheme.colorScheme.tertiary,
+                                                    Color.Transparent
+                                                )
+                                            ),
+                                            shape = RoundedCornerShape(1.dp)
+                                        )
+                                )
+                            }
+                        }
+
+                        // آیکن فلش
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                    CircleShape
+                                )
+                                .rotate(rotationAngle),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.ExpandMore,
+                                contentDescription = if (isExpanded) "بستن" else "باز کردن",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // محتوا با انیمیشن
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                ) + fadeIn(),
+                exit = shrinkVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                ) + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    content()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoCard(text: String, icon: String, color: Color) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = color.copy(alpha = 0.1f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // آیکن
+            Text(
+                text = icon,
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.size(32.dp)
+            )
+
+            // متن با پردازش اعداد و نام انبار
+            Text(
+                text = buildAnnotatedString {
+                    var currentIndex = 0
+
+                    // الگوی ترکیبی برای کلمه "انبار" و اعداد
+                    val pattern = """(انبار(?= )|[\d,]+)""".toRegex()
+
+                    pattern.findAll(text).forEach { match ->
+                        append(text.substring(currentIndex, match.range.first))
+
+                        val matchedText = match.value
+                        when {
+                            matchedText == "انبار" -> {
+                                withStyle(
+                                    style = SpanStyle(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                        background = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+                                    )
+                                ) {
+                                    append(matchedText)
+                                }
+                            }
+                            matchedText.matches("""[\d,]+""".toRegex()) -> {
+                                withStyle(
+                                    style = SpanStyle(
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                ) {
+                                    append(matchedText)
+                                }
+                            }
+                        }
+                        currentIndex = match.range.last + 1
+                    }
+                    append(text.substring(currentIndex))
+                },
+                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun TrendCard(text: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // آیکن
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f),
+                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
+                            )
+                        ),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "✓",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            // متن با پردازش اعداد
+            Text(
+                text = buildAnnotatedString {
+                    var currentIndex = 0
+                    
+                    // الگوی اعداد
+                    val numberPattern = """[\d,]+""".toRegex()
+                    
+                    numberPattern.findAll(text).forEach { match ->
+                        append(text.substring(currentIndex, match.range.first))
+                        
+                        withStyle(
+                            style = SpanStyle(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        ) {
+                            append(match.value)
+                        }
+                        currentIndex = match.range.last + 1
+                    }
+                    append(text.substring(currentIndex))
+                },
+                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }
