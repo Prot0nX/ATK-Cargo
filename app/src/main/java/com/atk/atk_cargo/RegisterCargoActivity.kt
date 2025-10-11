@@ -2027,8 +2027,15 @@ fun QuotaEntryDialog(
                                                         
                                                         // بررسی اینکه کوتاژ متعلق به همان کشتی باشد
                                                         if (selectedQuota.shipName == shipName) {
-                                                            // کوتاژ معتبر است، ادامه دهید
-                                                            onConfirm(quotaEntry)
+                                                            // بررسی وضعیت فعال بودن کوتاژ
+                                                            if (selectedQuota.isActive) {
+                                                                // کوتاژ معتبر و فعال است، ادامه دهید
+                                                                onConfirm(quotaEntry)
+                                                            } else {
+                                                                // کوتاژ غیرفعال است
+                                                                isError = true
+                                                                errorMessage = "کوتاژ $quotaEntry در حال حاضر غیرفعال است و قابل انتخاب نیست"
+                                                            }
                                                         } else {
                                                             // کوتاژ متعلق به کشتی دیگری است
                                                             isError = true
