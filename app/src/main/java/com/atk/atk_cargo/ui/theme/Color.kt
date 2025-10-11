@@ -46,6 +46,30 @@ val Gray700 = Color(0xFF616161)
 val Gray800 = Color(0xFF424242)
 val Gray900 = Color(0xFF212121)
 
+// رنگ‌های آبی
+val Blue50 = Color(0xFFE3F2FD)
+val Blue100 = Color(0xFFBBDEFB)
+val Blue200 = Color(0xFF90CAF9)
+val Blue500 = Color(0xFF2196F3)
+val Blue700 = Color(0xFF1976D2)
+val Blue900 = Color(0xFF0D47A1)
+
+// رنگ‌های بنفش
+val Purple50 = Color(0xFFF3E5F5)
+val Purple100 = Color(0xFFE1BEE7)
+val Purple200 = Color(0xFFCE93D8)
+val Purple500 = Color(0xFF9C27B0)
+val Purple700 = Color(0xFF7B1FA2)
+val Purple900 = Color(0xFF4A148C)
+
+// رنگ‌های قرمز
+val Red50 = Color(0xFFFFEBEE)
+val Red100 = Color(0xFFFFCDD2)
+val Red200 = Color(0xFF9A4A4A)
+val Red500 = Color(0xFFF44336)
+val Red700 = Color(0xFFD32F2F)
+val Red900 = Color(0xFFB71C1C)
+
 // رنگ‌های اضافی برای تم تاریک
 val DarkBackground = Color(0xFF121212)
 val DarkSurface = Color(0xFF1E1E1E)
