@@ -33,13 +33,16 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandIn
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -145,8 +148,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -1752,7 +1758,6 @@ fun HomeScreen(
                 Header(
                     username = username,
                     userType = userType,
-                    onLoginClick = onLoginClick,
                     onLogoutClick = {
                         coroutineScope.launch {
                             try {
@@ -1867,7 +1872,6 @@ fun HomeScreen(
 private fun Header(
     username: String,
     userType: String,
-    onLoginClick: () -> Unit,
     onLogoutClick: () -> Unit,
     userPreferencesManager: UserPreferencesManager,
     coroutineScope: CoroutineScope,
@@ -1875,6 +1879,7 @@ private fun Header(
 ) {
     val headerScale = remember { Animatable(0.97f) }
     val headerOpacity = remember { Animatable(0f) }
+    var showSummary by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         launch {
@@ -1894,114 +1899,80 @@ private fun Header(
         }
     }
 
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .scale(headerScale.value)
             .alpha(headerOpacity.value)
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        if (username.isNotEmpty()) {
-            ProfileMenu(
-                username = username,
-                userType = userType,
-                onLogoutClick = {
-                    coroutineScope.launch {
-                        try {
-                            val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
-                            val sessionToken = userPreferencesManager.sessionToken.first()
-                            val logoutRequest = LogoutRequest(
-                                username = username,
-                                deviceId = deviceId,
-                                sessionToken = sessionToken.takeIf { it.isNotEmpty() }
-                            )
+        if (username.isNotEmpty() && userType == "admin") {
+            IconButton(
+                onClick = { showSummary = true },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "خلاصه آمار",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        } else if (username.isNotEmpty()) {
+            Spacer(modifier = Modifier.size(40.dp))
+        }
 
-                            val response = RetrofitClient.apiService.logout(logoutRequest)
-                            if (response.isSuccessful && response.body()?.success == true) {
-                                userPreferencesManager.clearUserCredentials()
-                                mainActivity.updateSessionValidity(false)
-                                onLogoutClick()
-                            } else {
-                                val errorMessage = when (response.code()) {
-                                    400 -> "❌ درخواست نامعتبر"
-                                    401 -> "🔐 جلسه منقضی شده است"
-                                    404 -> "⚠️ جلسه فعالی یافت نشد"
-                                    500 -> "🔧 خطای داخلی سرور"
-                                    else -> "خطا در خروج (کد: ${response.code()})"
+        if (username.isNotEmpty()) {
+            Box(modifier = Modifier.weight(1f, fill = false)) {
+                ProfileMenu(
+                    username = username,
+                    userType = userType,
+                    onLogoutClick = {
+                        coroutineScope.launch {
+                            try {
+                                val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+                                val sessionToken = userPreferencesManager.sessionToken.first()
+                                val logoutRequest = LogoutRequest(
+                                    username = username,
+                                    deviceId = deviceId,
+                                    sessionToken = sessionToken.takeIf { it.isNotEmpty() }
+                                )
+
+                                val response = RetrofitClient.apiService.logout(logoutRequest)
+                                if (response.isSuccessful && response.body()?.success == true) {
+                                    userPreferencesManager.clearUserCredentials()
+                                    mainActivity.updateSessionValidity(false)
+                                    onLogoutClick()
+                                } else {
+                                    val errorMessage = when (response.code()) {
+                                        400 -> "❌ درخواست نامعتبر"
+                                        401 -> "🔐 جلسه منقضی شده است"
+                                        404 -> "⚠️ جلسه فعالی یافت نشد"
+                                        500 -> "🔧 خطای داخلی سرور"
+                                        else -> "خطا در خروج (کد: ${response.code()})"
+                                    }
+                                    Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
+                                    userPreferencesManager.clearUserCredentials()
+                                    mainActivity.updateSessionValidity(false)
+                                    onLogoutClick()
                                 }
-                                Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
+                            } catch (_: Exception) {
                                 userPreferencesManager.clearUserCredentials()
                                 mainActivity.updateSessionValidity(false)
                                 onLogoutClick()
                             }
-                        } catch (_: Exception) {
-                            userPreferencesManager.clearUserCredentials()
-                            mainActivity.updateSessionValidity(false)
-                            onLogoutClick()
                         }
                     }
-                }
-            )
-        } else {
-            // حالت کاربر مهمان - طراحی مینیمال
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onLoginClick),
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                tonalElevation = 0.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = "کاربر مهمان",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "برای دسترسی کامل وارد شوید",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Login,
-                        contentDescription = "ورود",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
+                )
             }
         }
+    }
+    
+    // دیالوگ خلاصه آمار
+    if (showSummary) {
+        SummaryDialog(onDismiss = { showSummary = false })
     }
 }
 
@@ -2225,7 +2196,7 @@ private fun ActionButtons(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Settings Button - طراحی مینیمال
+        // Settings Button
         Surface(
             onClick = onSettingsClick,
             modifier = Modifier.weight(1f),
@@ -2252,7 +2223,7 @@ private fun ActionButtons(
             }
         }
 
-        // Logout Button - طراحی مینیمال
+        // Logout Button
         Surface(
             onClick = onLogoutClick,
             modifier = Modifier.weight(1f),
@@ -2765,6 +2736,368 @@ private fun WelcomeSection(username: String) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SummaryDialog(onDismiss: () -> Unit) {
+    var summaryText by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        scope.launch {
+            try {
+                val response = RetrofitClient.apiService.getSummaryData()
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    summaryText = body?.string()
+                    if (summaryText.isNullOrEmpty()) {
+                        errorMessage = "داده‌ای دریافت نشد"
+                    }
+                } else {
+                    errorMessage = "خطا در دریافت داده (کد: ${response.code()})"
+                }
+            } catch (e: Exception) {
+                errorMessage = "خطا در ارتباط با سرور: ${e.message}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    // انیمیشن‌های ورود و خروج
+    val dialogEnterTransition = remember {
+        expandIn(
+            expandFrom = Alignment.Center,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ) + fadeIn(animationSpec = tween(300))
+    }
+
+    val dialogExitTransition = remember {
+        shrinkOut(
+            shrinkTowards = Alignment.Center,
+            animationSpec = tween(300, easing = FastOutSlowInEasing)
+        ) + fadeOut(animationSpec = tween(300))
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.85f),
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp,
+            shadowElevation = 12.dp
+        ) {
+            AnimatedVisibility(
+                visible = true,
+                enter = dialogEnterTransition,
+                exit = dialogExitTransition
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // Header با گرادیانت
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+                                    )
+                                )
+                            )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 20.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // آیکن بستن
+                            Surface(
+                                onClick = onDismiss,
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "بستن",
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            // عنوان با آیکن
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Text(
+                                    "خلاصه آمار شیفت",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.size(40.dp))
+                        }
+                    }
+
+                    // خط جداکننده با گرادیانت
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.dp)
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f),
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                    )
+
+                    // محتوا
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(20.dp),
+                        contentAlignment = if (isLoading || errorMessage != null) Alignment.Center else Alignment.TopStart
+                    ) {
+                        when {
+                            isLoading -> {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(80.dp)
+                                            .background(
+                                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
+                                                CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(40.dp),
+                                            strokeWidth = 3.dp
+                                        )
+                                    }
+                                    Text(
+                                        "در حال دریافت داده...",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            errorMessage != null -> {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(100.dp)
+                                            .background(
+                                                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
+                                                CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Error,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(50.dp)
+                                        )
+                                    }
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f))
+                                    ) {
+                                        Text(
+                                            errorMessage!!,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.error,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.padding(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            summaryText != null -> {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .verticalScroll(rememberScrollState()),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    val lines = summaryText!!.split("\n")
+                                    lines.forEach { line ->
+                                        when {
+                                            line.trim().startsWith("*") -> {
+                                                val content = line.trim().removePrefix("*").trim()
+                                                Surface(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(12.dp),
+                                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                        verticalAlignment = Alignment.Top
+                                                    ) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(24.dp)
+                                                                .background(
+                                                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                                                    CircleShape
+                                                                ),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Text(
+                                                                "•",
+                                                                style = MaterialTheme.typography.titleMedium,
+                                                                color = MaterialTheme.colorScheme.primary,
+                                                                fontWeight = FontWeight.Bold
+                                                            )
+                                                        }
+                                                        Text(
+                                                            text = buildAnnotatedString {
+                                                                var currentIndex = 0
+                                                                val boldPattern = """\*\*(.*?)\*\*""".toRegex()
+                                                                boldPattern.findAll(content).forEach { match ->
+                                                                    append(content.substring(currentIndex, match.range.first))
+                                                                    withStyle(
+                                                                        style = SpanStyle(
+                                                                            fontWeight = FontWeight.Bold,
+                                                                            color = MaterialTheme.colorScheme.primary
+                                                                        )
+                                                                    ) {
+                                                                        append(match.groupValues[1])
+                                                                    }
+                                                                    currentIndex = match.range.last + 1
+                                                                }
+                                                                append(content.substring(currentIndex))
+                                                            },
+                                                            style = MaterialTheme.typography.bodyLarge,
+                                                            color = MaterialTheme.colorScheme.onSurface,
+                                                            lineHeight = 26.sp,
+                                                            modifier = Modifier.weight(1f)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                            line.trim().isNotEmpty() -> {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(vertical = 4.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .width(4.dp)
+                                                            .height(24.dp)
+                                                            .background(
+                                                                brush = Brush.verticalGradient(
+                                                                    colors = listOf(
+                                                                        MaterialTheme.colorScheme.primary,
+                                                                        MaterialTheme.colorScheme.tertiary
+                                                                    )
+                                                                ),
+                                                                shape = RoundedCornerShape(2.dp)
+                                                            )
+                                                    )
+                                                    Text(
+                                                        text = line,
+                                                        style = MaterialTheme.typography.titleLarge,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // دکمه بستن در پایین
+                    if (!isLoading && summaryText != null) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            onClick = onDismiss
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 14.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "متوجه شدم",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
