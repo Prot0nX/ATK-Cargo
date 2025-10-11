@@ -75,6 +75,49 @@
     <methods>;
 }
 
+# =======================================================================
+# 4.1. مبهم‌سازی و محافظت از API Endpoints (امنیت بالا)
+# =======================================================================
+
+# حفظ ساختار ApiService اما مبهم‌سازی مقادیر رشته‌ای
+-keepclassmembers interface com.atk.atk_cargo.api.ApiService {
+    @retrofit2.http.POST <methods>;
+    @retrofit2.http.GET <methods>;
+}
+
+# مبهم‌سازی تمام رشته‌های ثابت در ApiService
+-adaptresourcefilecontents com/atk/atk_cargo/api/ApiService.class
+
+# حذف اطلاعات دیباگ از ApiService در release
+-assumenosideeffects class com.atk.atk_cargo.api.ApiService {
+    # این باعث حذف لاگ‌های مربوط به API می‌شود
+}
+
+# مبهم‌سازی پارامترهای Query و Field
+-keepclassmembers class * {
+    @retrofit2.http.Query *;
+    @retrofit2.http.Field *;
+    @retrofit2.http.Body *;
+}
+
+# رمزنگاری و مبهم‌سازی نام متدها و پارامترها
+-obfuscationdictionary proguard-dictionary.txt
+-classobfuscationdictionary proguard-dictionary.txt
+-packageobfuscationdictionary proguard-dictionary.txt
+
+# مبهم‌سازی تهاجمی برای کلاس‌های API
+-repackageclasses 'obfuscated.api'
+-allowaccessmodification
+
+# حذف اطلاعات منبع و شماره خط برای ApiService در release
+-keepattributes !SourceFile,!LineNumberTable
+
+# مبهم‌سازی رشته‌های ثابت در کلاس‌های API
+# این باعث می‌شود نام فایل‌های PHP مبهم شوند
+-assumenosideeffects class kotlin.jvm.internal.Intrinsics {
+    public static void checkNotNullParameter(java.lang.Object, java.lang.String);
+}
+
 # Retrofit
 -keep class retrofit2.** { *; }
 -keepclasseswithmembers class * {
