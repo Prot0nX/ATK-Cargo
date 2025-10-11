@@ -103,6 +103,7 @@ import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
@@ -277,6 +278,11 @@ import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.api.toTon
 import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
+import com.atk.atk_cargo.ui.theme.Blue700
+import com.atk.atk_cargo.ui.theme.Green700
+import com.atk.atk_cargo.ui.theme.Purple700
+import com.atk.atk_cargo.ui.theme.Red500
+import com.atk.atk_cargo.ui.theme.Red900
 import com.atk.atk_cargo.ui.theme.getCompletionColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
@@ -7877,30 +7883,30 @@ fun QuotaCard(
 
 					Row(
 						modifier = Modifier.fillMaxWidth(),
-						horizontalArrangement = Arrangement.SpaceEvenly
+						horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
 					) {
 						ActionButton(
 							icon = Icons.Default.Edit,
 							label = "ویرایش",
-							color = MaterialTheme.colorScheme.primary,
+							color = Blue700,
 							onClick = { showEditDialog = true }
 						)
 						ActionButton(
-							icon = Icons.Default.AddTask,
+							icon = Icons.Default.Build,
 							label = "درصد",
-							color = MaterialTheme.colorScheme.secondary,
+							color = Purple700,
 							onClick = { showPercentageDialog = true }
 						)
 						ActionButton(
 							icon = if (quota.isActive) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
-							label = if (quota.isActive) "غیرفعال‌سازی" else "فعال‌سازی",
-							color = if (quota.isActive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+							label = if (quota.isActive) "غیرفعال" else "فعال",
+							color = if (quota.isActive) Red500 else Green700,
 							onClick = { showToggleDialog = true }
 						)
 						ActionButton(
 							icon = Icons.Default.Delete,
 							label = "حذف",
-							color = MaterialTheme.colorScheme.error,
+							color = Red900,
 							onClick = { showDeleteDialog = true }
 						)
 					}
@@ -7966,32 +7972,32 @@ fun ActionButton(
 	color: Color,
 	onClick: () -> Unit
 ) {
-	Column(
-		horizontalAlignment = Alignment.CenterHorizontally,
-		modifier = Modifier.clickable(onClick = onClick)
+	Surface(
+		onClick = onClick,
+		shape = RoundedCornerShape(12.dp),
+		color = color.copy(alpha = 0.08f),
+		modifier = Modifier.width(70.dp)
 	) {
-		Surface(
-			modifier = Modifier.size(36.dp),
-			shape = CircleShape,
-			color = color.copy(alpha = 0.1f),
-			border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
+		Column(
+			horizontalAlignment = Alignment.CenterHorizontally,
+			modifier = Modifier.padding(vertical = 10.dp, horizontal = 6.dp)
 		) {
-			Box(contentAlignment = Alignment.Center) {
-				Icon(
-					imageVector = icon,
-					contentDescription = label,
-					tint = color,
-					modifier = Modifier.size(18.dp)
-				)
-			}
+			Icon(
+				imageVector = icon,
+				contentDescription = label,
+				tint = color,
+				modifier = Modifier.size(20.dp)
+			)
+			Spacer(modifier = Modifier.height(4.dp))
+			Text(
+				text = label,
+				style = MaterialTheme.typography.labelSmall,
+				color = color,
+				fontWeight = FontWeight.Medium,
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis
+			)
 		}
-		Spacer(modifier = Modifier.height(4.dp))
-		Text(
-			text = label,
-			style = MaterialTheme.typography.labelSmall,
-			color = color,
-			fontWeight = FontWeight.Medium
-		)
 	}
 }
 
