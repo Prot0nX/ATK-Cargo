@@ -10,10 +10,9 @@ class AtkCargoApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        container = AppContainer(this)
+        container = AppContainer()
 
         try {
-            // Initialize WorkManager
             val config = Configuration.Builder()
                 .setMinimumLoggingLevel(Log.INFO)
                 .build()

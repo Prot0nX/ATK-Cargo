@@ -39,7 +39,7 @@ object RetrofitClient {
                         0f
                     }
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 0f
             }
         }

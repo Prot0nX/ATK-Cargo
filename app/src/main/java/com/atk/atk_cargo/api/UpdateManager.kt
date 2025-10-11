@@ -37,8 +37,9 @@ import java.util.concurrent.TimeUnit
 import kotlin.math.pow
 
 class UpdateManager(
-    private val context: Context
+    context: Context
 ) : ViewModel() {
+    private val appContext: Context = context.applicationContext
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -105,7 +106,7 @@ class UpdateManager(
                         socket.connect(InetSocketAddress("8.8.8.8", 53), 5000)
                         return@withContext true
                     }
-                } catch (e: IOException) {
+                } catch (_: IOException) {
                     // If Google DNS fails, try soft98.ir
                     val url = URL("https://soft98.ir")
                     val connection = url.openConnection() as HttpURLConnection
@@ -114,7 +115,7 @@ class UpdateManager(
                     connection.disconnect()
                     return@withContext true
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 return@withContext false
             }
         }
@@ -128,7 +129,7 @@ class UpdateManager(
 
         return withContext(Dispatchers.IO) {
             try {
-                val currentVersion = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                val currentVersion = appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
                 val encodedVersion = URLEncoder.encode(currentVersion, "UTF-8")
                 val encodedApiKey = URLEncoder.encode(Constants.API_KEY, "UTF-8")
 
@@ -137,14 +138,14 @@ class UpdateManager(
                     .build()
 
                 client.newCall(request).execute().use { response ->
-                    val responseBody = response.body?.string()
+                    val responseBody = response.body.string()
                     when {
                         response.code == 426 -> {
-                            val error = JSONObject(responseBody ?: "").optString("error", "نسخه برنامه منسوخ شده است")
+                            val error = JSONObject(responseBody).optString("error", "نسخه برنامه منسوخ شده است")
                             _downloadState.value = DownloadState.Error(error)
                             false
                         }
-                        response.isSuccessful && responseBody != null -> {
+                        response.isSuccessful -> {
                             val jsonResponse = JSONObject(responseBody)
                             val hasUpdate = jsonResponse.getBoolean("hasUpdate")
                             if (hasUpdate) {
@@ -195,7 +196,7 @@ class UpdateManager(
                         List(array.length()) { array.getString(it) }
                     } ?: emptyList()
                 )
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 ChangeLogInfo()
             }
         }
@@ -214,7 +215,7 @@ class UpdateManager(
 
                 _downloadState.value = DownloadState.Downloading
                 downloadTimestamp = System.currentTimeMillis()
-                currentDownloadFile = File(context.externalCacheDir, "updates/update_${downloadTimestamp}.apk")
+                currentDownloadFile = File(appContext.externalCacheDir, "updates/update_${downloadTimestamp}.apk")
                 currentDownloadFile.parentFile?.mkdirs()
 
                 if (startPosition == 0L) {
@@ -265,7 +266,7 @@ class UpdateManager(
                 if (downloadedBytes >= totalBytes) {
                     _downloadState.value = DownloadState.Completed
                 }
-            } catch (e: CancellationException) {
+            } catch (_: CancellationException) {
                 _downloadState.value = DownloadState.Paused(
                     downloadedBytes = downloadedBytes,
                     totalBytes = totalBytes,
@@ -332,7 +333,7 @@ class UpdateManager(
                     throw IOException("Unexpected response: ${response.code}")
                 }
 
-                val body = response.body ?: throw IOException("Empty response body")
+                val body = response.body
                 val buffer = ByteArray(calculateOptimalBufferSize(totalBytes))
 
                 RandomAccessFile(currentDownloadFile, "rw").use { file ->
@@ -426,7 +427,7 @@ class UpdateManager(
         return if (::currentDownloadFile.isInitialized && currentDownloadFile.exists()) {
             currentDownloadFile
         } else {
-            File(context.externalCacheDir, "updates/update_${downloadTimestamp}.apk")
+            File(appContext.externalCacheDir, "updates/update_${downloadTimestamp}.apk")
         }
     }
 
@@ -448,12 +449,9 @@ class UpdateManager(
                 throw IOException("فرمت فایل نصب نامعتبر است")
             }
 
-            // اطمینان از اتمام نوشتن فایل
-            Thread.sleep(500)
-
             val uri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
+                appContext,
+                "${appContext.packageName}.fileprovider",
                 apkFile
             )
 
@@ -463,14 +461,14 @@ class UpdateManager(
                 addCategory(Intent.CATEGORY_DEFAULT)
             }
 
-            if (intent.resolveActivity(context.packageManager) != null) {
-                context.startActivity(intent)
+            if (intent.resolveActivity(appContext.packageManager) != null) {
+                appContext.startActivity(intent)
             } else {
                 throw Exception("برنامه‌ای برای نصب فایل APK یافت نشد")
             }
         } catch (e: Exception) {
             val errorMessage = when {
-                e.message?.contains("ENOENT") == true -> "مسیر فایل نصب یافت نشد"
+                e is IOException && e.message?.contains("ENOSPC") == true -> "فضای کافی در دستگاه موجود نیست"
                 e.message?.contains("Permission denied") == true -> "خطای دسترسی به حافظه"
                 else -> "خطا در نصب بروزرسانی: ${e.message}"
             }
@@ -498,7 +496,7 @@ class UpdateManager(
 
     private fun cleanupDownloadFiles() {
         try {
-            val updatesDir = File(context.externalCacheDir, "updates")
+            val updatesDir = File(appContext.externalCacheDir, "updates")
             if (updatesDir.exists()) {
                 updatesDir.listFiles()?.forEach { file ->
                     if (file.name != "update_${downloadTimestamp}.apk") {

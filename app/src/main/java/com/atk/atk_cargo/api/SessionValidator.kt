@@ -2,12 +2,6 @@ package com.atk.atk_cargo.api
 
 import kotlinx.coroutines.flow.first
 
-/**
- * بررسی اعتبار session کاربر از سمت سرور
- * 
- * @param userPreferencesManager مدیریت اطلاعات کاربر
- * @return Result<Boolean> - موفقیت یا شکست بررسی session
- */
 suspend fun validateServerSession(
     userPreferencesManager: UserPreferencesManager
 ): Result<Boolean> {
