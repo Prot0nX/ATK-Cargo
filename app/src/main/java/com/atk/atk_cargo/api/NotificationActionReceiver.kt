@@ -3,9 +3,8 @@ package com.atk.atk_cargo.api
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
-import android.util.Log
 import android.widget.Toast
+import androidx.core.content.edit
 
 /**
  * BroadcastReceiver برای مدیریت اکشن‌های نوتیفیکیشن‌های بارگیری لحظه‌ای
@@ -14,8 +13,7 @@ import android.widget.Toast
 class NotificationActionReceiver : BroadcastReceiver() {
     
     companion object {
-        private const val TAG = "NotificationAction"
-        
+
         // اکشن‌ها
         const val ACTION_MUTE_SHIP = "com.atk.atk_cargo.MUTE_SHIP"
         const val ACTION_UNMUTE_SHIP = "com.atk.atk_cargo.UNMUTE_SHIP"
@@ -28,9 +26,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
     }
     
     override fun onReceive(context: Context, intent: Intent) {
-        val TAG = "NotificationActionReceiver"
-        Log.d(TAG, "Received action: ${intent.action}")
-        
+
         when (intent.action) {
             // غیرفعال کردن نوتیفیکیشن یک کشتی
             ACTION_MUTE_SHIP -> {
@@ -52,12 +48,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     val serviceIntent = Intent(context, LoadingNotificationService::class.java).apply {
                         action = LoadingNotificationService.ACTION_REFRESH
                     }
-                    
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        context.startForegroundService(serviceIntent)
-                    } else {
-                        context.startService(serviceIntent)
-                    }
+
+                    context.startForegroundService(serviceIntent)
                 }
             }
             
@@ -70,12 +62,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 val serviceIntent = Intent(context, LoadingNotificationService::class.java).apply {
                     action = LoadingNotificationService.ACTION_REFRESH
                 }
-                
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(serviceIntent)
-                } else {
-                    context.startService(serviceIntent)
-                }
+
+                context.startForegroundService(serviceIntent)
             }
             
             // غیرفعال کردن نوتیفیکیشن‌ها برای شیفت فعلی
@@ -84,9 +72,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 val shiftInfo = prefs.getString("current_shift_id", "") ?: ""
                 
                 if (shiftInfo.isNotEmpty()) {
-                    prefs.edit().putBoolean("disabled_$shiftInfo", true).apply()
-                    Log.d(TAG, "Disabled notifications for shift: $shiftInfo")
-                    
+                    prefs.edit { putBoolean("disabled_$shiftInfo", true) }
+
                     // نمایش پیام برای اطلاع‌رسانی به کاربر
                     val shiftType = if (shiftInfo.contains("day")) "روز" else if (shiftInfo.contains("night")) "شب" else "فعلی"
                     Toast.makeText(
@@ -106,12 +93,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 val serviceIntent = Intent(context, LoadingNotificationService::class.java).apply {
                     action = LoadingNotificationService.ACTION_REFRESH
                 }
-                
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(serviceIntent)
-                } else {
-                    context.startService(serviceIntent)
-                }
+
+                context.startForegroundService(serviceIntent)
             }
         }
     }

@@ -80,30 +80,6 @@ class UserPreferencesManager(private val context: Context) {
             preferences[HARDWARE_SCORE_KEY] ?: -1
         }
 
-    val deviceSpecs = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[DEVICE_SPECS_KEY] ?: ""
-        }
-
-    val isLoggedIn = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[IS_LOGGED_IN_KEY] ?: false
-        }
-
     suspend fun saveUserCredentials(username: String, userType: String, deviceId: String = "", sessionToken: String = "") {
         dataStore.edit { preferences ->
             preferences[USERNAME_KEY] = username
@@ -121,12 +97,6 @@ class UserPreferencesManager(private val context: Context) {
     suspend fun saveSessionToken(sessionToken: String) {
         dataStore.edit { preferences ->
             preferences[SESSION_TOKEN_KEY] = sessionToken
-        }
-    }
-
-    suspend fun clearSessionToken() {
-        dataStore.edit { preferences ->
-            preferences.remove(SESSION_TOKEN_KEY)
         }
     }
 
@@ -190,14 +160,6 @@ class UserPreferencesManager(private val context: Context) {
             .map { preferences ->
                 preferences[SCORE_TIMESTAMP_KEY] ?: 0L
             }.first()
-    }
-
-    suspend fun clearHardwareScore() {
-        dataStore.edit { preferences ->
-            preferences.remove(HARDWARE_SCORE_KEY)
-            preferences.remove(DEVICE_SPECS_KEY)
-            preferences.remove(SCORE_TIMESTAMP_KEY)
-        }
     }
 
     suspend fun clearUserCredentials() {

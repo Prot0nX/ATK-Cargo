@@ -21,13 +21,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
-/**
- * سرویس دریافت اطلاعات بارگیری لحظه‌ای و نمایش نوتیفیکیشن
- * این سرویس به صورت دوره‌ای اطلاعات بارگیری را از سرور دریافت می‌کند و
- * در صورتی که کاربر سطح دسترسی مدیر داشته باشد، نوتیفیکیشن نمایش می‌دهد
- */
 class LoadingNotificationService : Service() {
-    private val TAG = "LoadingNotificationService"
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private lateinit var notificationManager: LoadingNotificationManager
     private lateinit var userPreferencesManager: UserPreferencesManager
@@ -93,8 +87,8 @@ class LoadingNotificationService : Service() {
                     // بروزرسانی فوری نوتیفیکیشن‌ها
                     try {
                         fetchAndNotify(true)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error refreshing notifications: ${e.message}", e)
+                    } catch (_: Exception) {
+                        ""
                     }
                 } else {
                     // شروع دریافت دوره‌ای اطلاعات
@@ -102,7 +96,6 @@ class LoadingNotificationService : Service() {
                 }
             } else {
                 // کاربر admin نیست، سرویس را متوقف می‌کنیم
-                Log.d(TAG, "User is not admin, stopping service")
                 stopSelf()
                 return@launch
             }
@@ -147,8 +140,8 @@ class LoadingNotificationService : Service() {
             while (isActive) {
                 try {
                     fetchAndNotify(false)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error fetching loading data: ${e.message}", e)
+                } catch (_: Exception) {
+                    ""
                 }
                 
                 // انتظار تا زمان دریافت بعدی
@@ -166,20 +159,17 @@ class LoadingNotificationService : Service() {
         // بررسی سطح دسترسی کاربر
         val userType = userPreferencesManager.userType.first()
         if (userType != "admin") {
-            Log.d(TAG, "User is not admin, skipping notifications")
             return
         }
         
         // بررسی فعال بودن نوتیفیکیشن‌ها
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         if (!isRefresh && !prefs.getBoolean(KEY_ENABLED, true)) {
-            Log.d(TAG, "Notifications are disabled by user")
             return
         }
         
         // بررسی غیرفعال بودن نوتیفیکیشن‌ها برای شیفت فعلی
         if (!isRefresh && isCurrentShiftDisabled()) {
-            Log.d(TAG, "Notifications are disabled for current shift")
             return
         }
         
@@ -204,16 +194,14 @@ class LoadingNotificationService : Service() {
                     if (loadingData.data.isNotEmpty()) {
                         // نمایش نوتیفیکیشن
                         notificationManager.showLoadingNotifications(loadingData.data, isRefresh)
-                        Log.d(TAG, "Showing notifications for ${loadingData.data.size} ships")
                     } else {
-                        Log.d(TAG, "No ships data to show notifications for")
+                        ""
                     }
                 }
             } else {
-                Log.e(TAG, "API request failed: ${response.code()}")
+                ""
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching data: ${e.message}", e)
             throw e
         }
     }
@@ -230,22 +218,16 @@ class LoadingNotificationService : Service() {
         
         // اگر شیفت تغییر کرده باشد، پرچم غیرفعال‌سازی شیفت قبلی را پاک می‌کنیم
         if (previousShiftId.isNotEmpty() && previousShiftId != shiftId) {
-            Log.d(TAG, "Shift changed from $previousShiftId to $shiftId, resetting disabled flags")
-            
+
             // پرچم غیرفعال‌سازی برای شیفت قبلی را پاک می‌کنیم تا شیفت جدید فعال باشد
             prefs.edit {
                 remove("disabled_$previousShiftId")
                 putString("current_shift_id", shiftId)
             }
-            
-            // گزارش تغییر شیفت به لاگ
-            Log.d(TAG, "Notifications enabled for new shift: $shiftId")
         } else {
             // شیفت تغییر نکرده، فقط ذخیره می‌کنیم
             prefs.edit { putString("current_shift_id", shiftId) }
         }
-        
-        Log.d(TAG, "Saved current shift info: $shiftId")
     }
     
     /**
@@ -256,17 +238,10 @@ class LoadingNotificationService : Service() {
         val currentShiftId = prefs.getString("current_shift_id", "") ?: ""
         
         if (currentShiftId.isEmpty()) {
-            Log.d(TAG, "No current shift ID found, notifications are enabled")
             return false
         }
         
         val isDisabled = prefs.getBoolean("disabled_$currentShiftId", false)
-        
-        if (isDisabled) {
-            Log.d(TAG, "Notifications are disabled for current shift: $currentShiftId")
-        } else {
-            Log.d(TAG, "Notifications are enabled for current shift: $currentShiftId")
-        }
         
         return isDisabled
     }
@@ -284,24 +259,8 @@ class LoadingNotificationService : Service() {
                 .edit {
                     putString("cached_data", jsonData)
                 }
-            
-            Log.d(TAG, "Loading data cached successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error caching loading data: ${e.message}", e)
-        }
-    }
-    
-    /**
-     * تنظیم فعال/غیرفعال بودن نوتیفیکیشن‌ها
-     */
-    fun setNotificationsEnabled(enabled: Boolean) {
-        getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            .edit {
-                putBoolean(KEY_ENABLED, enabled)
-            }
-        
-        if (!enabled) {
-            notificationManager.clearNotifications()
+        } catch (_: Exception) {
+            ""
         }
     }
 } 
