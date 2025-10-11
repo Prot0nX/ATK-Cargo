@@ -248,6 +248,9 @@ interface ApiService {
         @Query("enabled") enabled: Int,
         @Query("tonnage") tonnage: Double? = null
     ): Response<SuccessResponse>
+
+    @GET("summaryData.json")
+    suspend fun getSummaryData(): Response<ResponseBody>
 }
 
 data class ApiResponse(
