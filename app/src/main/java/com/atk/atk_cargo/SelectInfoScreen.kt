@@ -174,14 +174,9 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
     val shipColorMap = remember { mutableStateOf<Map<String, Color>>(emptyMap()) }
     var snackbarMessage by remember { mutableStateOf<SnackbarMessage?>(null) }
     var showShipSelectionDialog by remember { mutableStateOf(false) }
-
-    // دریافت کشتی‌های انتخاب شده از ViewModel
     val selectedShipNames by viewModel.selectedShipNames.collectAsState(initial = emptySet())
-
     val filteredShips = activeShips.filter { selectedShipNames.contains(it.shipName) }
     val groupedShips = filteredShips.groupBy { it.shipName }
-
-    // New state for ActiveQuotasDialog
     var showActiveQuotasDialog by remember { mutableStateOf(false) }
 
     fun updateShipColors(ships: List<ActiveShipInfo>) {
@@ -1435,7 +1430,7 @@ private fun ShipGroupWithRealTimeData(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // نمایش آمار با فرمت مشابه MinimalQuotasHeader
+                    // نمایش آمار با فرمت مشابه QuotasHeader
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1757,7 +1752,7 @@ fun ActiveQuotasDialog(
                     .padding(16.dp)
             ) {
                 // سربرگ با دکمه‌ی بروزرسانی
-                MinimalQuotasHeader(
+                QuotasHeader(
                     totalQuotas = totalQuotas,
                     totalVouchers = totalVouchers,
                     completedVouchers = completedVouchers,
@@ -1890,7 +1885,7 @@ enum class ViewMode {
 }
 
 @Composable
-private fun MinimalQuotasHeader(
+private fun QuotasHeader(
     totalQuotas: Int,
     totalVouchers: Int,
     completedVouchers: Int,
@@ -2268,7 +2263,7 @@ private fun GroupedShipsContent(
                     ships.sumOf { it.entryVouchers + it.exitVouchers }  // کل حواله‌ها
                 }
             ).toList()) { (shipName, ships) ->
-                ImprovedShipCard(
+                ShipCard(
                     shipName = shipName,
                     ships = ships,
                     expanded = expandedShipName == shipName,
@@ -2326,7 +2321,7 @@ private fun EmptySearchResult(
 }
 
 @Composable
-private fun ImprovedShipCard(
+private fun ShipCard(
     shipName: String,
     ships: List<ActiveShipInfo>,
     expanded: Boolean,
@@ -2380,7 +2375,7 @@ private fun ImprovedShipCard(
             modifier = Modifier.padding(16.dp)
         ) {
             // سربرگ کشتی با طراحی جدید
-            ImprovedShipHeader(
+            ShipHeader(
                 shipName = shipName,
                 quotaCount = ships.count { it.entryVouchers + it.exitVouchers > 0 },
                 totalVouchers = totalVouchers,
@@ -2426,7 +2421,7 @@ private fun ImprovedShipCard(
                             }
 
                             if (filteredShips.isNotEmpty()) {
-                                ImprovedWarehouseSection(
+                                WarehouseSection(
                                     warehouseName = warehouseName,
                                     ships = filteredShips,
                                     expanded = expandedWarehouse == warehouseName,
@@ -2444,7 +2439,7 @@ private fun ImprovedShipCard(
 }
 
 @Composable
-private fun ImprovedShipHeader(
+private fun ShipHeader(
     shipName: String,
     quotaCount: Int,
     totalVouchers: Int,
@@ -3244,7 +3239,6 @@ private fun ShipSelectionDialog(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
 
-                    // Search field
                     OutlinedTextField(
                         value = searchQuery.value,
                         onValueChange = { searchQuery.value = it },
@@ -3285,7 +3279,6 @@ private fun ShipSelectionDialog(
                         )
                     )
 
-                    // Statistics cards
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -3385,7 +3378,6 @@ private fun ShipSelectionDialog(
                                     .padding(vertical = 12.dp, horizontal = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // آیکون کشتی با رنگ اختصاصی
                                 Box(
                                     contentAlignment = Alignment.Center,
                                     modifier = Modifier
@@ -3410,7 +3402,6 @@ private fun ShipSelectionDialog(
 
                                 Spacer(modifier = Modifier.width(16.dp))
 
-                                // اطلاعات کشتی
                                 Column(
                                     modifier = Modifier.weight(1f)
                                 ) {
@@ -3423,7 +3414,6 @@ private fun ShipSelectionDialog(
 
                                     Spacer(modifier = Modifier.height(4.dp))
 
-                                    // تعداد کوتاژ - فقط این اطلاعات نمایش داده می‌شود
                                     Surface(
                                         color = shipColor.copy(alpha = 0.1f),
                                         shape = RoundedCornerShape(4.dp)
@@ -3438,7 +3428,6 @@ private fun ShipSelectionDialog(
                                     }
                                 }
 
-                                // چک‌باکس انتخاب
                                 Checkbox(
                                     checked = isSelected,
                                     onCheckedChange = {
@@ -3464,22 +3453,6 @@ private fun ShipSelectionDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Cancel Button
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                    ) {
-                        Text(
-                            text = "انصراف",
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
-
-                    // Confirm Button
                     Button(
                         onClick = {
                             onSelectShip(selectedShips.value)
@@ -3513,15 +3486,29 @@ private fun ShipSelectionDialog(
                             fontWeight = FontWeight.SemiBold
                         )
                     }
+
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    ) {
+                        Text(
+                            text = "انصراف",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+                }
                 }
             }
-        }
         }
     }
 }
 
 @Composable
-private fun ImprovedWarehouseSection(
+private fun WarehouseSection(
     warehouseName: String,
     ships: List<ActiveShipInfo>,
     expanded: Boolean,
@@ -3746,7 +3733,7 @@ private fun ImprovedWarehouseSection(
                             }
                         )
                         .forEach { ship ->
-                            ImprovedQuotaItem(
+                            QuotaItem(
                                 quota = ship,
                                 searchQuery = searchQuery
                             )
@@ -3758,7 +3745,7 @@ private fun ImprovedWarehouseSection(
 }
 
 @Composable
-private fun ImprovedQuotaItem(
+private fun QuotaItem(
     quota: ActiveShipInfo,
     searchQuery: String
 ) {
