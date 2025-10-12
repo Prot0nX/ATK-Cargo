@@ -85,18 +85,22 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
@@ -152,7 +156,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -160,6 +163,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -602,10 +606,6 @@ class MainActivity : ComponentActivity() {
 
 
     }
-
-
-
-
 
     private fun checkNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -1915,7 +1915,7 @@ private fun Header(
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Info,
+                    imageVector = Icons.Default.Receipt,
                     contentDescription = "خلاصه آمار",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
@@ -2746,11 +2746,20 @@ private fun WelcomeSection(username: String) {
 data class SummaryData(
     @SerializedName("warehouseStatus")
     val warehouseStatus: WarehouseStatus? = null,
+    @SerializedName("quotaStatus")
+    val quotaStatus: QuotaStatus? = null,
     @SerializedName("overallTrend")
     val overallTrend: String? = null
 )
 
 data class WarehouseStatus(
+    @SerializedName("mostActive")
+    val mostActive: String? = null,
+    @SerializedName("leastActive")
+    val leastActive: String? = null
+)
+
+data class QuotaStatus(
     @SerializedName("mostActive")
     val mostActive: String? = null,
     @SerializedName("leastActive")
@@ -2819,21 +2828,6 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
         }
     }
 
-    // انیمیشن‌های ورود و خروج
-    val dialogEnterTransition = remember {
-        expandIn(
-            expandFrom = Alignment.Center,
-            animationSpec = tween(300, easing = FastOutSlowInEasing)
-        ) + fadeIn(animationSpec = tween(300))
-    }
-
-    val dialogExitTransition = remember {
-        shrinkOut(
-            shrinkTowards = Alignment.Center,
-            animationSpec = tween(300, easing = FastOutSlowInEasing)
-        ) + fadeOut(animationSpec = tween(300))
-    }
-
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -2843,262 +2837,240 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.85f),
-            shape = RoundedCornerShape(28.dp),
+                .fillMaxWidth(0.92f)
+                .fillMaxHeight(0.90f),
+            shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp,
-            shadowElevation = 12.dp
+            tonalElevation = 6.dp
         ) {
-            AnimatedVisibility(
-                visible = true,
-                enter = dialogEnterTransition,
-                exit = dialogExitTransition
+            Column(
+                modifier = Modifier.fillMaxSize()
             ) {
-                Column(
-                    modifier = Modifier.fillMaxSize()
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Header با گرادیانت
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                                        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
-                                    )
-                                )
-                            )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 20.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // آیکن بستن
-                            Surface(
-                                onClick = onDismiss,
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        Icons.Default.Close,
-                                        contentDescription = "بستن",
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            "خلاصه آمار شیفت",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
 
-                            // عنوان با آیکن
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "بستن",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+
+                // محتوا
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    contentAlignment = if (isLoading || errorMessage != null) Alignment.Center else Alignment.TopStart
+                ) {
+                    when {
+                        isLoading -> {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(20.dp)
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(36.dp)
+                                        .size(80.dp)
                                         .background(
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(40.dp),
+                                        strokeWidth = 3.dp
+                                    )
+                                }
+                                Text(
+                                    "در حال دریافت داده...",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        errorMessage != null -> {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                        .background(
+                                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
                                             CircleShape
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        Icons.Default.Info,
+                                        Icons.Default.Error,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(50.dp)
                                     )
                                 }
-                                Text(
-                                    "خلاصه آمار شیفت",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.size(40.dp))
-                        }
-                    }
-
-                    // خط جداکننده با گرادیانت
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(2.dp)
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f),
-                                        Color.Transparent
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
                                     )
-                                )
-                            )
-                    )
-
-                    // محتوا
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .padding(20.dp),
-                        contentAlignment = if (isLoading || errorMessage != null) Alignment.Center else Alignment.TopStart
-                    ) {
-                        when {
-                            isLoading -> {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(20.dp)
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(80.dp)
-                                            .background(
-                                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
-                                                CircleShape
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(40.dp),
-                                            strokeWidth = 3.dp
-                                        )
-                                    }
                                     Text(
-                                        "در حال دریافت داده...",
+                                        errorMessage!!,
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.error,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.padding(16.dp)
                                     )
-                                }
-                            }
-                            errorMessage != null -> {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(100.dp)
-                                            .background(
-                                                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f),
-                                                CircleShape
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Error,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error,
-                                            modifier = Modifier.size(50.dp)
-                                        )
-                                    }
-                                    Surface(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        shape = RoundedCornerShape(16.dp),
-                                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
-                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f))
-                                    ) {
-                                        Text(
-                                            errorMessage!!,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Medium,
-                                            color = MaterialTheme.colorScheme.error,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.padding(16.dp)
-                                        )
-                                    }
-                                }
-                            }
-                            summaryData != null -> {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .verticalScroll(rememberScrollState()),
-                                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        // بخش وضعیت انبارها
-                                        summaryData!!.warehouseStatus?.let { warehouse ->
-                                            ExpandableSection(
-                                                title = "وضعیت انبارها",
-                                                icon = Icons.Default.Info
-                                            ) {
-                                                Column(
-                                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                                ) {
-                                                    // انبار با بیشترین فعالیت
-                                                    warehouse.mostActive?.let { text ->
-                                                        InfoCard(
-                                                            text = text,
-                                                            icon = "📈",
-                                                            color = MaterialTheme.colorScheme.primary
-                                                        )
-                                                    }
-
-                                                    // انبار با کمترین فعالیت
-                                                    warehouse.leastActive?.let { text ->
-                                                        InfoCard(
-                                                            text = text,
-                                                            icon = "📉",
-                                                            color = MaterialTheme.colorScheme.tertiary
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        // بخش روند کلی
-                                        summaryData!!.overallTrend?.let { trend ->
-                                            ExpandableSection(
-                                                title = "روند کلی بارگیری",
-                                                icon = Icons.Default.Check
-                                            ) {
-                                                TrendCard(text = trend)
-                                            }
-                                        }
-                                    }
                                 }
                             }
                         }
 
-                        // دکمه بستن در پایین
-                        if (!isLoading && summaryData != null) {
-                            Surface(
+                        summaryData != null -> {
+                            Column(
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(20.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                                onClick = onDismiss
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 14.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        "متوجه شدم",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onPrimary
-                                    )
+                                // بخش وضعیت انبارها
+                                summaryData!!.warehouseStatus?.let { warehouse ->
+                                    ExpandableSection(
+                                        title = "وضعیت انبارها",
+                                        icon = Icons.Default.HomeWork
+                                    ) {
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            // انبار با بیشترین فعالیت
+                                            warehouse.mostActive?.let { text ->
+                                                InfoCard(
+                                                    text = text,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+
+                                            // انبار با کمترین فعالیت
+                                            warehouse.leastActive?.let { text ->
+                                                InfoCard(
+                                                    text = text,
+                                                    color = MaterialTheme.colorScheme.tertiary
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // بخش وضعیت کوتاژها
+                                summaryData!!.quotaStatus?.let { quota ->
+                                    ExpandableSection(
+                                        title = "وضعیت کوتاژها",
+                                        icon = Icons.Default.Inventory
+                                    ) {
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            // کوتاژ با بیشترین فعالیت
+                                            quota.mostActive?.let { text ->
+                                                InfoCard(
+                                                    text = text,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+
+                                            // کوتاژ با کمترین فعالیت
+                                            quota.leastActive?.let { text ->
+                                                InfoCard(
+                                                    text = text,
+                                                    color = MaterialTheme.colorScheme.tertiary
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // بخش روند کلی
+                                summaryData!!.overallTrend?.let { trend ->
+                                    ExpandableSection(
+                                        title = "روند کلی بارگیری",
+                                        icon = Icons.Default.Checklist
+                                    ) {
+                                        TrendCard(text = trend)
+                                    }
                                 }
                             }
                         }
                     }
                 }
+
+                // دکمه بستن در پایین
+                if (!isLoading && summaryData != null) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        onClick = onDismiss
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 14.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "متوجه شدم",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+                }
             }
-     }
+        }
+    }
 }
 
 @Composable
@@ -3110,154 +3082,66 @@ private fun ExpandableSection(
     var isExpanded by remember { mutableStateOf(true) }
     val rotationAngle by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
+        animationSpec = tween(300),
         label = "rotation"
     )
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 4.dp,
-        tonalElevation = 2.dp
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        tonalElevation = 1.dp
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Header قابل کلیک
-            Surface(
-                onClick = { isExpanded = !isExpanded },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                color = Color.Transparent
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // پس‌زمینه با گرادیانت
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(60.dp)
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-                                        Color.Transparent
-                                    )
-                                ),
-                                shape = RoundedCornerShape(14.dp)
-                            )
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
                     )
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            // آیکن با گرادیانت
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(
-                                        brush = Brush.radialGradient(
-                                            colors = listOf(
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                            )
-                                        ),
-                                        shape = CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    icon,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            // عنوان
-                            Column {
-                                Text(
-                                    text = title,
-                                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .width(50.dp)
-                                        .height(2.dp)
-                                        .background(
-                                            brush = Brush.horizontalGradient(
-                                                colors = listOf(
-                                                    MaterialTheme.colorScheme.primary,
-                                                    MaterialTheme.colorScheme.tertiary,
-                                                    Color.Transparent
-                                                )
-                                            ),
-                                            shape = RoundedCornerShape(1.dp)
-                                        )
-                                )
-                            }
-                        }
-
-                        // آیکن فلش
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                    CircleShape
-                                )
-                                .rotate(rotationAngle),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.ExpandMore,
-                                contentDescription = if (isExpanded) "بستن" else "باز کردن",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
+
+                Icon(
+                    Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "بستن" else "باز کردن",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .rotate(rotationAngle)
+                )
             }
 
             // محتوا با انیمیشن
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = expandVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                ) + fadeIn(),
-                exit = shrinkVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                ) + fadeOut()
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(start = 12.dp, end = 12.dp, bottom = 12.dp, top = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     content()
                 }
@@ -3267,70 +3151,36 @@ private fun ExpandableSection(
 }
 
 @Composable
-private fun InfoCard(text: String, icon: String, color: Color) {
+private fun InfoCard(text: String, color: Color) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = color.copy(alpha = 0.1f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.3f))
+        shape = RoundedCornerShape(8.dp),
+        color = color.copy(alpha = 0.08f),
+        border = BorderStroke(0.5.dp, color.copy(alpha = 0.2f))
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // آیکن
-            Text(
-                text = icon,
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.size(32.dp)
-            )
+        Text(
+            text = buildAnnotatedString {
+                var currentIndex = 0
+                val numberPattern = """[\d,]+""".toRegex()
 
-            // متن با پردازش اعداد و نام انبار
-            Text(
-                text = buildAnnotatedString {
-                    var currentIndex = 0
-
-                    // الگوی ترکیبی برای کلمه "انبار" و اعداد
-                    val pattern = """(انبار(?= )|[\d,]+)""".toRegex()
-
-                    pattern.findAll(text).forEach { match ->
-                        append(text.substring(currentIndex, match.range.first))
-
-                        val matchedText = match.value
-                        when {
-                            matchedText == "انبار" -> {
-                                withStyle(
-                                    style = SpanStyle(
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.tertiary,
-                                        background = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
-                                    )
-                                ) {
-                                    append(matchedText)
-                                }
-                            }
-                            matchedText.matches("""[\d,]+""".toRegex()) -> {
-                                withStyle(
-                                    style = SpanStyle(
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.secondary
-                                    )
-                                ) {
-                                    append(matchedText)
-                                }
-                            }
-                        }
-                        currentIndex = match.range.last + 1
+                numberPattern.findAll(text).forEach { match ->
+                    append(text.substring(currentIndex, match.range.first))
+                    withStyle(
+                        style = SpanStyle(
+                            fontWeight = FontWeight.Bold,
+                            color = color
+                        )
+                    ) {
+                        append(match.value)
                     }
-                    append(text.substring(currentIndex))
-                },
-                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
+                    currentIndex = match.range.last + 1
+                }
+                append(text.substring(currentIndex))
+            },
+            style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(10.dp)
+        )
     }
 }
 
@@ -3338,66 +3188,32 @@ private fun InfoCard(text: String, icon: String, color: Color) {
 private fun TrendCard(text: String) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // آیکن
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f),
-                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                            )
-                        ),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "✓",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.secondary,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            
-            // متن با پردازش اعداد
-            Text(
-                text = buildAnnotatedString {
-                    var currentIndex = 0
-                    
-                    // الگوی اعداد
-                    val numberPattern = """[\d,]+""".toRegex()
-                    
-                    numberPattern.findAll(text).forEach { match ->
-                        append(text.substring(currentIndex, match.range.first))
-                        
-                        withStyle(
-                            style = SpanStyle(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        ) {
-                            append(match.value)
-                        }
-                        currentIndex = match.range.last + 1
+        Text(
+            text = buildAnnotatedString {
+                var currentIndex = 0
+                val numberPattern = """[\d,]+""".toRegex()
+
+                numberPattern.findAll(text).forEach { match ->
+                    append(text.substring(currentIndex, match.range.first))
+                    withStyle(
+                        style = SpanStyle(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    ) {
+                        append(match.value)
                     }
-                    append(text.substring(currentIndex))
-                },
-                style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
+                    currentIndex = match.range.last + 1
+                }
+                append(text.substring(currentIndex))
+            },
+            style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(10.dp)
+        )
     }
 }
 
