@@ -33,11 +33,9 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandIn
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -1905,28 +1903,13 @@ private fun Header(
             .fillMaxWidth()
             .scale(headerScale.value)
             .alpha(headerOpacity.value)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top
     ) {
-        if (username.isNotEmpty() && userType == "admin") {
-            IconButton(
-                onClick = { showSummary = true },
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Receipt,
-                    contentDescription = "خلاصه آمار",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        } else if (username.isNotEmpty()) {
-            Spacer(modifier = Modifier.size(40.dp))
-        }
-
+        // بخش اول: پروفایل
         if (username.isNotEmpty()) {
-            Box(modifier = Modifier.weight(1f, fill = false)) {
+            Box(modifier = Modifier.weight(0.75f)) {
                 ProfileMenu(
                     username = username,
                     userType = userType,
@@ -1969,11 +1952,69 @@ private fun Header(
                 )
             }
         }
+
+        // بخش دوم: خلاصه آمار
+        if (username.isNotEmpty() && userType == "admin") {
+            Box(modifier = Modifier.weight(0.25f)) {
+                SummaryStatsButton(
+                    onClick = { showSummary = true }
+                )
+            }
+        }
     }
     
     // دیالوگ خلاصه آمار
     if (showSummary) {
         SummaryDialog(onDismiss = { showSummary = false })
+    }
+}
+
+@Composable
+private fun SummaryStatsButton(onClick: () -> Unit) {
+    val contentScale = remember { Animatable(0.96f) }
+
+    LaunchedEffect(Unit) {
+        contentScale.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        )
+    }
+
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(contentScale.value),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        tonalElevation = 0.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // آیکون
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Receipt,
+                    contentDescription = "خلاصه آمار",
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
     }
 }
 
@@ -2048,7 +2089,7 @@ fun ProfileMenu(
         tonalElevation = 0.dp
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2864,7 +2905,7 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                             modifier = Modifier.size(24.dp)
                         )
                         Text(
-                            "خلاصه آمار شیفت",
+                            "خلاصه وضعیت بارگیری",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -2967,6 +3008,19 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                         }
 
                         summaryData != null -> {
+                            // محاسبه تاخیرها برای بخش‌های اصلی
+                            val warehouseSectionDelay = 0L
+                            val warehouse1Length = (summaryData!!.warehouseStatus?.mostActive?.length ?: 0) * 40L
+                            val warehouse2Length = (summaryData!!.warehouseStatus?.leastActive?.length ?: 0) * 40L
+                            val warehouseTotalLength = warehouse1Length + warehouse2Length + 200L
+                            
+                            val quotaSectionDelay = warehouseSectionDelay + warehouseTotalLength + 100L
+                            val quota1Length = (summaryData!!.quotaStatus?.mostActive?.length ?: 0) * 40L
+                            val quota2Length = (summaryData!!.quotaStatus?.leastActive?.length ?: 0) * 40L
+                            val quotaTotalLength = quota1Length + quota2Length + 200L
+                            
+                            val trendSectionDelay = quotaSectionDelay + quotaTotalLength + 100L
+                            
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -2977,7 +3031,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                 summaryData!!.warehouseStatus?.let { warehouse ->
                                     ExpandableSection(
                                         title = "وضعیت انبارها",
-                                        icon = Icons.Default.HomeWork
+                                        icon = Icons.Default.HomeWork,
+                                        startDelay = 0L
                                     ) {
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -2986,7 +3041,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                             warehouse.mostActive?.let { text ->
                                                 InfoCard(
                                                     text = text,
-                                                    color = MaterialTheme.colorScheme.primary
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    startDelay = 300L
                                                 )
                                             }
 
@@ -2994,7 +3050,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                             warehouse.leastActive?.let { text ->
                                                 InfoCard(
                                                     text = text,
-                                                    color = MaterialTheme.colorScheme.tertiary
+                                                    color = MaterialTheme.colorScheme.tertiary,
+                                                    startDelay = 300L + warehouse1Length
                                                 )
                                             }
                                         }
@@ -3005,7 +3062,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                 summaryData!!.quotaStatus?.let { quota ->
                                     ExpandableSection(
                                         title = "وضعیت کوتاژها",
-                                        icon = Icons.Default.Inventory
+                                        icon = Icons.Default.Inventory,
+                                        startDelay = quotaSectionDelay
                                     ) {
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -3014,7 +3072,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                             quota.mostActive?.let { text ->
                                                 InfoCard(
                                                     text = text,
-                                                    color = MaterialTheme.colorScheme.primary
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    startDelay = 300L
                                                 )
                                             }
 
@@ -3022,7 +3081,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                             quota.leastActive?.let { text ->
                                                 InfoCard(
                                                     text = text,
-                                                    color = MaterialTheme.colorScheme.tertiary
+                                                    color = MaterialTheme.colorScheme.tertiary,
+                                                    startDelay = 300L + quota1Length
                                                 )
                                             }
                                         }
@@ -3033,7 +3093,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                 summaryData!!.overallTrend?.let { trend ->
                                     ExpandableSection(
                                         title = "روند کلی بارگیری",
-                                        icon = Icons.Default.Checklist
+                                        icon = Icons.Default.Checklist,
+                                        startDelay = trendSectionDelay
                                     ) {
                                         TrendCard(text = trend)
                                     }
@@ -3077,73 +3138,86 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
 private fun ExpandableSection(
     title: String,
     icon: ImageVector,
+    startDelay: Long = 0L,
     content: @Composable () -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(true) }
+    var isVisible by remember { mutableStateOf(false) }
     val rotationAngle by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
         animationSpec = tween(300),
         label = "rotation"
     )
 
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        tonalElevation = 1.dp
+    LaunchedEffect(Unit) {
+        delay(startDelay)
+        isVisible = true
+    }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(animationSpec = tween(400)) + expandVertically(animationSpec = tween(400)),
+        exit = fadeOut() + shrinkVertically()
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth()
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+            tonalElevation = 1.dp
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { isExpanded = !isExpanded }
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { isExpanded = !isExpanded }
+                        .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
                     Icon(
-                        icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        Icons.Default.ExpandMore,
+                        contentDescription = if (isExpanded) "بستن" else "باز کردن",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .rotate(rotationAngle)
                     )
                 }
 
-                Icon(
-                    Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) "بستن" else "باز کردن",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .rotate(rotationAngle)
-                )
-            }
-
-            // محتوا با انیمیشن
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 12.dp, end = 12.dp, bottom = 12.dp, top = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                // محتوا با انیمیشن
+                AnimatedVisibility(
+                    visible = isExpanded,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
                 ) {
-                    content()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 12.dp, end = 12.dp, bottom = 12.dp, top = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        content()
+                    }
                 }
             }
         }
@@ -3151,69 +3225,141 @@ private fun ExpandableSection(
 }
 
 @Composable
-private fun InfoCard(text: String, color: Color) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = color.copy(alpha = 0.08f),
-        border = BorderStroke(0.5.dp, color.copy(alpha = 0.2f))
-    ) {
-        Text(
-            text = buildAnnotatedString {
-                var currentIndex = 0
-                val numberPattern = """[\d,]+""".toRegex()
+private fun InfoCard(text: String, color: Color, startDelay: Long = 0L) {
+    var displayedText by remember { mutableStateOf("") }
+    var isTypingComplete by remember { mutableStateOf(false) }
+    var isVisible by remember { mutableStateOf(false) }
 
-                numberPattern.findAll(text).forEach { match ->
-                    append(text.substring(currentIndex, match.range.first))
-                    withStyle(
-                        style = SpanStyle(
-                            fontWeight = FontWeight.Bold,
-                            color = color
-                        )
-                    ) {
-                        append(match.value)
+    LaunchedEffect(text) {
+        displayedText = ""
+        isTypingComplete = false
+        isVisible = false
+        delay(startDelay)
+        isVisible = true
+        delay(100)
+        val chars = text.toList()
+        chars.forEachIndexed { index, _ ->
+            displayedText = text.substring(0, index + 1)
+            delay(40)
+        }
+        isTypingComplete = true
+    }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(300)),
+        exit = fadeOut() + shrinkVertically()
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            color = color.copy(alpha = 0.08f),
+            border = BorderStroke(0.5.dp, color.copy(alpha = 0.2f))
+        ) {
+            Text(
+                text = buildAnnotatedString {
+                    var currentIndex = 0
+                    val numberPattern = """[\d,]+""".toRegex()
+
+                    numberPattern.findAll(displayedText).forEach { match ->
+                        append(displayedText.substring(currentIndex, match.range.first))
+                        withStyle(
+                            style = SpanStyle(
+                                fontWeight = FontWeight.Bold,
+                                color = color
+                            )
+                        ) {
+                            append(match.value)
+                        }
+                        currentIndex = match.range.last + 1
                     }
-                    currentIndex = match.range.last + 1
-                }
-                append(text.substring(currentIndex))
-            },
-            style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(10.dp)
-        )
+                    append(displayedText.substring(currentIndex))
+                    
+                    if (!isTypingComplete) {
+                        withStyle(
+                            style = SpanStyle(
+                                color = color,
+                                fontWeight = FontWeight.Bold
+                            )
+                        ) {
+                            append("▌")
+                        }
+                    }
+                },
+                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(10.dp)
+            )
+        }
     }
 }
 
 @Composable
 private fun TrendCard(text: String) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
-    ) {
-        Text(
-            text = buildAnnotatedString {
-                var currentIndex = 0
-                val numberPattern = """[\d,]+""".toRegex()
+    var displayedText by remember { mutableStateOf("") }
+    var isTypingComplete by remember { mutableStateOf(false) }
+    var isVisible by remember { mutableStateOf(false) }
 
-                numberPattern.findAll(text).forEach { match ->
-                    append(text.substring(currentIndex, match.range.first))
-                    withStyle(
-                        style = SpanStyle(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    ) {
-                        append(match.value)
+    LaunchedEffect(text) {
+        displayedText = ""
+        isTypingComplete = false
+        isVisible = false
+        delay(300L)
+        isVisible = true
+        delay(100)
+        val chars = text.toList()
+        chars.forEachIndexed { index, _ ->
+            displayedText = text.substring(0, index + 1)
+            delay(40)
+        }
+        isTypingComplete = true
+    }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(300)),
+        exit = fadeOut() + shrinkVertically()
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
+        ) {
+            Text(
+                text = buildAnnotatedString {
+                    var currentIndex = 0
+                    val numberPattern = """[\d,]+""".toRegex()
+
+                    numberPattern.findAll(displayedText).forEach { match ->
+                        append(displayedText.substring(currentIndex, match.range.first))
+                        withStyle(
+                            style = SpanStyle(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        ) {
+                            append(match.value)
+                        }
+                        currentIndex = match.range.last + 1
                     }
-                    currentIndex = match.range.last + 1
-                }
-                append(text.substring(currentIndex))
-            },
-            style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(10.dp)
-        )
+                    append(displayedText.substring(currentIndex))
+                    
+                    if (!isTypingComplete) {
+                        withStyle(
+                            style = SpanStyle(
+                                color = MaterialTheme.colorScheme.secondary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        ) {
+                            append("▌")
+                        }
+                    }
+                },
+                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(10.dp)
+            )
+        }
     }
 }
 
