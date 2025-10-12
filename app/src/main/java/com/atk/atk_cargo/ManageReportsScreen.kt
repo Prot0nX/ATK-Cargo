@@ -170,7 +170,6 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -189,7 +188,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerState
 import androidx.compose.material3.VerticalDivider
@@ -2970,12 +2968,13 @@ private fun QuotaCard(
 
 					Row(
 						modifier = Modifier.fillMaxWidth(),
-						horizontalArrangement = Arrangement.SpaceEvenly
+						horizontalArrangement = Arrangement.spacedBy(8.dp)
 					) {
 						if (isPercentageRestrictionLoading) {
 							LoadingActionButton(
 								label = if (warning.isPercentageRestricted) "آزاد کردن درصد" else "محدود کردن درصد",
-								color = mainColor
+								color = mainColor,
+								modifier = Modifier.weight(1f)
 							)
 						} else {
 							ActionButton(
@@ -2994,14 +2993,16 @@ private fun QuotaCard(
 									) {
 										isPercentageRestrictionLoading = false
 									}
-								}
+								},
+								modifier = Modifier.weight(1f)
 							)
 						}
 
 						if (isStatusToggleLoading) {
 							LoadingActionButton(
 								label = if (warning.isActive) "غیرفعال‌سازی کوتاژ" else "فعال‌سازی کوتاژ",
-								color = mainColor
+								color = mainColor,
+								modifier = Modifier.weight(1f)
 							)
 						} else {
 							ActionButton(
@@ -3018,7 +3019,8 @@ private fun QuotaCard(
 										viewModel.toggleQuotaStatus(warning.quotaNumber)
 										isStatusToggleLoading = false
 									}
-								}
+								},
+								modifier = Modifier.weight(1f)
 							)
 						}
 					}
@@ -4489,11 +4491,12 @@ fun QuotaShipExpansionPanel(
 @Composable
 private fun LoadingActionButton(
 	label: String,
-	color: Color
+	color: Color,
+	modifier: Modifier = Modifier
 ) {
 	Column(
 		horizontalAlignment = Alignment.CenterHorizontally,
-		modifier = Modifier.width(80.dp)
+		modifier = modifier
 	) {
 		Box(
 			modifier = Modifier
@@ -7882,8 +7885,10 @@ fun QuotaCard(
 					)
 
 					Row(
-						modifier = Modifier.fillMaxWidth(),
-						horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(8.dp),
+						horizontalArrangement = Arrangement.SpaceEvenly
 					) {
 						ActionButton(
 							icon = Icons.Default.Edit,
@@ -7970,17 +7975,21 @@ fun ActionButton(
 	icon: ImageVector,
 	label: String,
 	color: Color,
-	onClick: () -> Unit
+	onClick: () -> Unit,
+	modifier: Modifier = Modifier
 ) {
-	Surface(
-		onClick = onClick,
-		shape = RoundedCornerShape(12.dp),
-		color = color.copy(alpha = 0.08f),
-		modifier = Modifier.width(70.dp)
+	Column(
+		horizontalAlignment = Alignment.CenterHorizontally,
+		modifier = modifier.clickable(onClick = onClick)
 	) {
-		Column(
-			horizontalAlignment = Alignment.CenterHorizontally,
-			modifier = Modifier.padding(vertical = 10.dp, horizontal = 6.dp)
+		Box(
+			modifier = Modifier
+				.size(40.dp)
+				.background(
+					color = color.copy(alpha = 0.1f),
+					shape = CircleShape
+				),
+			contentAlignment = Alignment.Center
 		) {
 			Icon(
 				imageVector = icon,
@@ -7988,16 +7997,16 @@ fun ActionButton(
 				tint = color,
 				modifier = Modifier.size(20.dp)
 			)
-			Spacer(modifier = Modifier.height(4.dp))
-			Text(
-				text = label,
-				style = MaterialTheme.typography.labelSmall,
-				color = color,
-				fontWeight = FontWeight.Medium,
-				maxLines = 1,
-				overflow = TextOverflow.Ellipsis
-			)
 		}
+		Spacer(modifier = Modifier.height(4.dp))
+		Text(
+			text = label,
+			style = MaterialTheme.typography.bodySmall,
+			color = color,
+			textAlign = TextAlign.Center,
+			maxLines = 2,
+			overflow = TextOverflow.Ellipsis
+		)
 	}
 }
 
@@ -8163,24 +8172,36 @@ fun EditQuotaDialog(
 		}.filter { it.isDigit() || it.isLetter() || it == ' ' }.joinToString("")
 	}
 
-	Dialog(onDismissRequest = onDismiss) {
+	Dialog(
+		onDismissRequest = onDismiss,
+		properties = DialogProperties(
+			dismissOnBackPress = true,
+			dismissOnClickOutside = false,
+			usePlatformDefaultWidth = false
+		)
+	) {
 		Surface(
-			shape = RoundedCornerShape(16.dp),
+			modifier = Modifier
+				.fillMaxWidth(0.95f)
+				.wrapContentHeight()
+				.heightIn(max = 700.dp)
+				.padding(16.dp)
+				.verticalScroll(rememberScrollState()),
+			shape = RoundedCornerShape(24.dp),
+			tonalElevation = 6.dp,
 			color = MaterialTheme.colorScheme.surface
 		) {
 			Column(
 				modifier = Modifier
 					.fillMaxWidth()
-					.padding(24.dp),
-				horizontalAlignment = Alignment.End
+					.padding(24.dp)
 			) {
-				Text(
-					text = "ویرایش اطلاعات کوتاژ",
-					style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-					modifier = Modifier.fillMaxWidth()
-				)
-				Spacer(modifier = Modifier.height(16.dp))
+				// هدر دیالوگ
+				EditQuotaDialogHeader(quotaData.quotaNumber)
 
+				Spacer(modifier = Modifier.height(24.dp))
+
+				// فیلدهای ورودی
 				OutlinedTextField(
 					value = editedData.quotaNumber,
 					onValueChange = {
@@ -8190,16 +8211,23 @@ fun EditQuotaDialog(
 					singleLine = true,
 					keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
 					isError = !isValidQuotaNumber(editedData.quotaNumber),
-					modifier = Modifier.fillMaxWidth()
+					modifier = Modifier.fillMaxWidth(),
+					shape = RoundedCornerShape(12.dp),
+					colors = OutlinedTextFieldDefaults.colors(
+						focusedBorderColor = MaterialTheme.colorScheme.primary,
+						unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+					)
 				)
 				if (!isValidQuotaNumber(editedData.quotaNumber)) {
 					Text(
 						"شماره کوتاژ باید حداقل 5 رقم باشد",
 						color = MaterialTheme.colorScheme.error,
-						style = MaterialTheme.typography.bodyMedium
+						style = MaterialTheme.typography.bodySmall,
+						modifier = Modifier.padding(start = 16.dp, top = 4.dp)
 					)
 				}
-				Spacer(modifier = Modifier.height(8.dp))
+				
+				Spacer(modifier = Modifier.height(12.dp))
 
 				OutlinedTextField(
 					value = editedData.shipName,
@@ -8208,9 +8236,15 @@ fun EditQuotaDialog(
 					},
 					label = { Text("نام کشتی") },
 					singleLine = true,
-					modifier = Modifier.fillMaxWidth()
+					modifier = Modifier.fillMaxWidth(),
+					shape = RoundedCornerShape(12.dp),
+					colors = OutlinedTextFieldDefaults.colors(
+						focusedBorderColor = MaterialTheme.colorScheme.primary,
+						unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+					)
 				)
-				Spacer(modifier = Modifier.height(8.dp))
+				
+				Spacer(modifier = Modifier.height(12.dp))
 
 				OutlinedTextField(
 					value = editedData.shippingCompany,
@@ -8219,9 +8253,15 @@ fun EditQuotaDialog(
 					},
 					label = { Text("شرکت باربری") },
 					singleLine = true,
-					modifier = Modifier.fillMaxWidth()
+					modifier = Modifier.fillMaxWidth(),
+					shape = RoundedCornerShape(12.dp),
+					colors = OutlinedTextFieldDefaults.colors(
+						focusedBorderColor = MaterialTheme.colorScheme.primary,
+						unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+					)
 				)
-				Spacer(modifier = Modifier.height(8.dp))
+				
+				Spacer(modifier = Modifier.height(12.dp))
 
 				OutlinedTextField(
 					value = editedData.warehouse,
@@ -8230,9 +8270,15 @@ fun EditQuotaDialog(
 					},
 					label = { Text("انبار") },
 					singleLine = true,
-					modifier = Modifier.fillMaxWidth()
+					modifier = Modifier.fillMaxWidth(),
+					shape = RoundedCornerShape(12.dp),
+					colors = OutlinedTextFieldDefaults.colors(
+						focusedBorderColor = MaterialTheme.colorScheme.primary,
+						unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+					)
 				)
-				Spacer(modifier = Modifier.height(8.dp))
+				
+				Spacer(modifier = Modifier.height(12.dp))
 
 				ExposedDropdownMenuBox(
 					expanded = expanded,
@@ -8246,7 +8292,12 @@ fun EditQuotaDialog(
 						trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
 						modifier = Modifier
 							.fillMaxWidth()
-							.menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true)
+							.menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
+						shape = RoundedCornerShape(12.dp),
+						colors = OutlinedTextFieldDefaults.colors(
+							focusedBorderColor = MaterialTheme.colorScheme.primary,
+							unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+						)
 					)
 					ExposedDropdownMenu(
 						expanded = expanded,
@@ -8263,7 +8314,8 @@ fun EditQuotaDialog(
 						}
 					}
 				}
-				Spacer(modifier = Modifier.height(8.dp))
+				
+				Spacer(modifier = Modifier.height(12.dp))
 
 				OutlinedTextField(
 					value = formatNumber(editedData.totalTonnage.toInt().toString()),
@@ -8274,57 +8326,271 @@ fun EditQuotaDialog(
 					label = { Text("تناژ کل") },
 					keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
 					singleLine = true,
-					modifier = Modifier.fillMaxWidth()
+					modifier = Modifier.fillMaxWidth(),
+					shape = RoundedCornerShape(12.dp),
+					colors = OutlinedTextFieldDefaults.colors(
+						focusedBorderColor = MaterialTheme.colorScheme.primary,
+						unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+					)
 				)
 
 				Spacer(modifier = Modifier.height(24.dp))
+
+				// دکمه‌های عملیات
 				Row(
 					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start)
+					horizontalArrangement = Arrangement.spacedBy(16.dp)
 				) {
 					Button(
 						onClick = {
-							// نمایش دیالوگ تأییدیه
 							if (isValidQuotaNumber(editedData.quotaNumber)) {
 								showConfirmationDialog = true
 							}
 						},
+						modifier = Modifier.weight(1f),
 						enabled = editedData != quotaData && isValidQuotaNumber(editedData.quotaNumber),
-						colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+						shape = RoundedCornerShape(12.dp)
 					) {
-						Text("ذخیره", color = MaterialTheme.colorScheme.onPrimary)
+						Row(
+							horizontalArrangement = Arrangement.spacedBy(8.dp),
+							verticalAlignment = Alignment.CenterVertically
+						) {
+							Icon(
+								imageVector = Icons.Default.Check,
+								contentDescription = null,
+								modifier = Modifier.size(20.dp)
+							)
+							Text("تایید و ذخیره")
+						}
 					}
-					Button(
+
+					OutlinedButton(
 						onClick = onDismiss,
-						colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+						modifier = Modifier.weight(1f),
+						shape = RoundedCornerShape(12.dp),
+						border = BorderStroke(
+							width = 1.dp,
+							color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+						)
 					) {
-						Text("انصراف", color = MaterialTheme.colorScheme.onSecondary)
+						Row(
+							horizontalArrangement = Arrangement.spacedBy(8.dp),
+							verticalAlignment = Alignment.CenterVertically
+						) {
+							Icon(
+								imageVector = Icons.Default.Close,
+								contentDescription = null,
+								modifier = Modifier.size(20.dp)
+							)
+							Text("انصراف")
+						}
 					}
 				}
 			}
 		}
 	}
 
-	// دیالوگ تأییدیه برای ذخیره‌سازی
+	// دیالوگ تأییدیه
 	if (showConfirmationDialog) {
-		AlertDialog(
+		Dialog(
 			onDismissRequest = { showConfirmationDialog = false },
-			confirmButton = {
-				TextButton(onClick = {
-					onConfirm(editedData)
-					showConfirmationDialog = false
-				}) {
-					Text("بله")
+			properties = DialogProperties(
+				dismissOnBackPress = true,
+				dismissOnClickOutside = false,
+				usePlatformDefaultWidth = false
+			)
+		) {
+			Surface(
+				modifier = Modifier
+					.fillMaxWidth(0.9f)
+					.wrapContentHeight()
+					.padding(16.dp),
+				shape = RoundedCornerShape(24.dp),
+				tonalElevation = 6.dp,
+				color = MaterialTheme.colorScheme.surface
+			) {
+				Column(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(24.dp)
+				) {
+					// هدر دیالوگ تأییدیه
+					ConfirmationDialogHeader()
+
+					Spacer(modifier = Modifier.height(24.dp))
+
+					// متن توضیحات
+					Text(
+						text = "آیا از تغییرات انجام شده مطمئن هستید",
+						style = MaterialTheme.typography.bodyLarge,
+						color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+						textAlign = TextAlign.Center,
+						modifier = Modifier.fillMaxWidth()
+					)
+
+					Spacer(modifier = Modifier.height(24.dp))
+
+					// دکمه‌های عملیات
+					Row(
+						modifier = Modifier.fillMaxWidth(),
+						horizontalArrangement = Arrangement.spacedBy(16.dp)
+					) {
+						Button(
+							onClick = {
+								onConfirm(editedData)
+								showConfirmationDialog = false
+								onDismiss()
+							},
+							modifier = Modifier.weight(1f),
+							shape = RoundedCornerShape(12.dp)
+						) {
+							Row(
+								horizontalArrangement = Arrangement.spacedBy(8.dp),
+								verticalAlignment = Alignment.CenterVertically
+							) {
+								Icon(
+									imageVector = Icons.Default.Check,
+									contentDescription = null,
+									modifier = Modifier.size(20.dp)
+								)
+								Text("ذخیره")
+							}
+						}
+
+						OutlinedButton(
+							onClick = { showConfirmationDialog = false },
+							modifier = Modifier.weight(1f),
+							shape = RoundedCornerShape(12.dp),
+							border = BorderStroke(
+								width = 1.dp,
+								color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+							)
+						) {
+							Row(
+								horizontalArrangement = Arrangement.spacedBy(8.dp),
+								verticalAlignment = Alignment.CenterVertically
+							) {
+								Icon(
+									imageVector = Icons.Default.Close,
+									contentDescription = null,
+									modifier = Modifier.size(20.dp)
+								)
+								Text("انصراف")
+							}
+						}
+					}
 				}
-			},
-			dismissButton = {
-				TextButton(onClick = { showConfirmationDialog = false }) {
-					Text("خیر")
-				}
-			},
-			title = { Text("تأیید ذخیره‌سازی") },
-			text = { Text("آیا مطمئن هستید که می‌خواهید اطلاعات را ذخیره کنید؟") }
-		)
+			}
+		}
+	}
+}
+
+@Composable
+private fun ConfirmationDialogHeader() {
+	Row(
+		modifier = Modifier.fillMaxWidth(),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.Center
+	) {
+		// آیکون انیمیشن‌دار
+		Box(
+			modifier = Modifier
+				.size(56.dp)
+				.background(
+					color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+					shape = CircleShape
+				),
+			contentAlignment = Alignment.Center
+		) {
+			val infiniteTransition = rememberInfiniteTransition(label = "")
+			val scale by infiniteTransition.animateFloat(
+				initialValue = 1f,
+				targetValue = 1.2f,
+				animationSpec = infiniteRepeatable(
+					animation = tween(800),
+					repeatMode = RepeatMode.Reverse
+				),
+				label = ""
+			)
+
+			Icon(
+				imageVector = Icons.Default.Warning,
+				contentDescription = null,
+				tint = MaterialTheme.colorScheme.primary,
+				modifier = Modifier
+					.size(32.dp)
+					.scale(scale)
+			)
+		}
+
+		Spacer(modifier = Modifier.width(16.dp))
+
+		Column {
+			Text(
+				text = "تأیید ذخیره‌سازی",
+				style = MaterialTheme.typography.titleLarge,
+				fontWeight = FontWeight.Bold
+			)
+			Text(
+				text = "لطفاً تصمیم خود را تأیید کنید",
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+			)
+		}
+	}
+}
+
+@Composable
+private fun EditQuotaDialogHeader(quotaNumber: String) {
+	Row(
+		modifier = Modifier.fillMaxWidth(),
+		verticalAlignment = Alignment.CenterVertically
+	) {
+		// آیکون انیمیشن‌دار
+		Box(
+			modifier = Modifier
+				.size(56.dp)
+				.background(
+					color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+					shape = CircleShape
+				),
+			contentAlignment = Alignment.Center
+		) {
+			val infiniteTransition = rememberInfiniteTransition(label = "")
+			val scale by infiniteTransition.animateFloat(
+				initialValue = 1f,
+				targetValue = 1.2f,
+				animationSpec = infiniteRepeatable(
+					animation = tween(800),
+					repeatMode = RepeatMode.Reverse
+				),
+				label = ""
+			)
+
+			Icon(
+				imageVector = Icons.Default.Edit,
+				contentDescription = null,
+				tint = MaterialTheme.colorScheme.primary,
+				modifier = Modifier
+					.size(32.dp)
+					.scale(scale)
+			)
+		}
+
+		Spacer(modifier = Modifier.width(16.dp))
+
+		Column {
+			Text(
+				text = "ویرایش اطلاعات کوتاژ",
+				style = MaterialTheme.typography.titleLarge,
+				fontWeight = FontWeight.Bold
+			)
+			Text(
+				text = "شماره کوتاژ: $quotaNumber",
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+			)
+		}
 	}
 }
 
@@ -9809,7 +10075,6 @@ fun AdvancedSearchDialog(
 ) {
 	var searchNumber by remember { mutableStateOf("") }
 	var selectedSearchType by remember { mutableStateOf(SearchType.RECEIPT_NUMBER) }
-	val mainColor = MaterialTheme.colorScheme.primary
 
 	if (isOpen) {
 		Dialog(
@@ -9820,232 +10085,132 @@ fun AdvancedSearchDialog(
 				usePlatformDefaultWidth = false
 			)
 		) {
-			Card(
+			Surface(
 				modifier = Modifier
-					.fillMaxWidth(0.9f)
-					.padding(16.dp)
-					.animateContentSize(
-						animationSpec = spring(
-							dampingRatio = Spring.DampingRatioMediumBouncy,
-							stiffness = Spring.StiffnessLow
-						)
-					),
-				colors = CardDefaults.cardColors(
-					containerColor = MaterialTheme.colorScheme.primaryContainer
-				),
+					.fillMaxWidth(0.92f)
+					.fillMaxHeight(0.42f),
 				shape = RoundedCornerShape(16.dp),
-				border = BorderStroke(
-					width = 1.dp,
-					color = mainColor
-				)
+				color = MaterialTheme.colorScheme.surface,
+				tonalElevation = 6.dp
 			) {
 				Column(
-					modifier = Modifier.padding(16.dp)
+					modifier = Modifier
+						.fillMaxSize()
+						.background(MaterialTheme.colorScheme.background)
 				) {
-					// Header
-					Row(
-						modifier = Modifier.fillMaxWidth(),
-						horizontalArrangement = Arrangement.SpaceBetween,
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						Row(
-							verticalAlignment = Alignment.CenterVertically,
-							horizontalArrangement = Arrangement.spacedBy(12.dp)
-						) {
-							Box(
-								modifier = Modifier
-									.size(48.dp)
-									.background(mainColor.copy(alpha = 0.2f), CircleShape),
-								contentAlignment = Alignment.Center
-							) {
-								Icon(
-									imageVector = Icons.Default.Search,
-									contentDescription = null,
-									tint = mainColor,
-									modifier = Modifier.size(28.dp)
-								)
-							}
-							Column {
-								Text(
-									text = "جستجوی پیشرفته",
-									style = MaterialTheme.typography.titleLarge,
-									fontWeight = FontWeight.Bold,
-									color = MaterialTheme.colorScheme.onPrimaryContainer
-								)
-								Text(
-									text = when (selectedSearchType) {
-										SearchType.RECEIPT_NUMBER -> "جستجو بر اساس شماره قبض باسکول"
-										SearchType.TRACKING_NUMBER -> "جستجو بر اساس شماره حواله"
-									},
-									style = MaterialTheme.typography.bodyMedium,
-									color = MaterialTheme.colorScheme.onPrimaryContainer
-								)
-							}
-						}
-
-						IconButton(
-							onClick = onDismiss,
-							modifier = Modifier
-								.size(32.dp)
-								.background(
-									color = mainColor.copy(alpha = 0.2f),
-									shape = CircleShape
-								)
-						) {
-							Icon(
-								imageVector = Icons.Default.Close,
-								contentDescription = "بستن",
-								tint = MaterialTheme.colorScheme.onPrimaryContainer,
-								modifier = Modifier.size(16.dp)
-							)
-						}
-					}
-
-					Spacer(modifier = Modifier.height(24.dp))
-
-					// Search Type Selection
-					Row(
-						modifier = Modifier.fillMaxWidth(),
-						horizontalArrangement = Arrangement.spacedBy(8.dp)
-					) {
-						FilterChip(
-							onClick = {
-								selectedSearchType = SearchType.RECEIPT_NUMBER
-								searchNumber = ""
-							},
-							label = {
-								Text(
-									"شماره قبض",
-									style = MaterialTheme.typography.bodyMedium,
-									maxLines = 1
-								)
-							},
-							selected = selectedSearchType == SearchType.RECEIPT_NUMBER,
-							leadingIcon = {
-								Icon(
-									imageVector = Icons.Default.Receipt,
-									contentDescription = null,
-									modifier = Modifier.size(18.dp)
-								)
-							},
-							modifier = Modifier.weight(1f),
-							colors = FilterChipDefaults.filterChipColors(
-								selectedContainerColor = mainColor.copy(alpha = 0.2f),
-								selectedLabelColor = mainColor,
-								selectedLeadingIconColor = mainColor
-							)
-						)
-
-						FilterChip(
-							onClick = {
-								selectedSearchType = SearchType.TRACKING_NUMBER
-								searchNumber = ""
-							},
-							label = {
-								Text(
-									"شماره حواله",
-									style = MaterialTheme.typography.bodyMedium,
-									maxLines = 1
-								)
-							},
-							selected = selectedSearchType == SearchType.TRACKING_NUMBER,
-							leadingIcon = {
-								Icon(
-									imageVector = Icons.Default.Numbers,
-									contentDescription = null,
-									modifier = Modifier.size(18.dp)
-								)
-							},
-							modifier = Modifier.weight(1f),
-							colors = FilterChipDefaults.filterChipColors(
-								selectedContainerColor = mainColor.copy(alpha = 0.2f),
-								selectedLabelColor = mainColor,
-								selectedLeadingIconColor = mainColor
-							)
-						)
-					}
-
-					Spacer(modifier = Modifier.height(16.dp))
-
-					// Search Input
-					OutlinedTextField(
-						value = searchNumber,
-						onValueChange = {
-							if (it.all { char -> char.isDigit() }) {
-								searchNumber = it
-							}
-						},
-						modifier = Modifier.fillMaxWidth(),
-						shape = RoundedCornerShape(12.dp),
-						colors = OutlinedTextFieldDefaults.colors(
-							focusedBorderColor = mainColor,
-							unfocusedBorderColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f),
-							focusedContainerColor = MaterialTheme.colorScheme.surface,
-							unfocusedContainerColor = MaterialTheme.colorScheme.surface
-						),
-						leadingIcon = {
-							Icon(
-								imageVector = when (selectedSearchType) {
-									SearchType.RECEIPT_NUMBER -> Icons.Default.Receipt
-									SearchType.TRACKING_NUMBER -> Icons.Default.Numbers
-								},
-								contentDescription = null,
-								tint = mainColor
-							)
-						},
-						label = {
-							Text(
-								when (selectedSearchType) {
-									SearchType.RECEIPT_NUMBER -> "شماره قبض باسکول"
-									SearchType.TRACKING_NUMBER -> "شماره حواله"
-								},
-								color = MaterialTheme.colorScheme.onPrimaryContainer
-							)
-						},
-						keyboardOptions = KeyboardOptions(
-							keyboardType = KeyboardType.Number,
-							imeAction = ImeAction.Search
-						),
-						keyboardActions = KeyboardActions(
-							onSearch = {
-								if (searchNumber.isNotBlank()) {
-									when (selectedSearchType) {
-										SearchType.RECEIPT_NUMBER -> onSearchReceipt(searchNumber)
-										SearchType.TRACKING_NUMBER -> onSearchTracking(searchNumber)
-									}
-								}
-							}
-						),
-						singleLine = true
+					// هدر دیالوگ
+					SearchHeaderCard(
+						onClose = onDismiss,
+						selectedSearchType = selectedSearchType
 					)
 
-					Spacer(modifier = Modifier.height(24.dp))
-
-					// Action Buttons
-					Row(
-						modifier = Modifier.fillMaxWidth(),
-						horizontalArrangement = Arrangement.spacedBy(8.dp)
+					// محتوای اصلی
+					Column(
+						modifier = Modifier
+							.fillMaxSize()
+							.padding(16.dp)
 					) {
-						Button(
-							onClick = {
-								if (searchNumber.isNotBlank()) {
-									when (selectedSearchType) {
-										SearchType.RECEIPT_NUMBER -> onSearchReceipt(searchNumber)
-										SearchType.TRACKING_NUMBER -> onSearchTracking(searchNumber)
-									}
+						Spacer(modifier = Modifier.height(8.dp))
+
+						// نوار تب‌های نوع جستجو
+						SearchTypeTabRow(
+							selectedSearchType = selectedSearchType,
+							onSearchTypeSelected = { 
+								selectedSearchType = it
+								searchNumber = ""
+							}
+						)
+
+						Spacer(modifier = Modifier.height(24.dp))
+
+						// فیلد جستجو
+						OutlinedTextField(
+							value = searchNumber,
+							onValueChange = {
+								if (it.all { char -> char.isDigit() }) {
+									searchNumber = it
 								}
 							},
-							modifier = Modifier.weight(1f),
-							enabled = searchNumber.isNotBlank(),
+							modifier = Modifier.fillMaxWidth(),
 							shape = RoundedCornerShape(12.dp),
-							colors = ButtonDefaults.buttonColors(
-								containerColor = mainColor,
-								disabledContainerColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)
-							)
+							colors = OutlinedTextFieldDefaults.colors(
+								focusedBorderColor = MaterialTheme.colorScheme.primary,
+								unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+								focusedContainerColor = MaterialTheme.colorScheme.surface,
+								unfocusedContainerColor = MaterialTheme.colorScheme.surface
+							),
+							leadingIcon = {
+								Icon(
+									imageVector = when (selectedSearchType) {
+										SearchType.RECEIPT_NUMBER -> Icons.Default.Receipt
+										SearchType.TRACKING_NUMBER -> Icons.Default.Numbers
+									},
+									contentDescription = null,
+									tint = MaterialTheme.colorScheme.primary
+								)
+							},
+							label = {
+								Text(
+									when (selectedSearchType) {
+										SearchType.RECEIPT_NUMBER -> "شماره قبض باسکول"
+										SearchType.TRACKING_NUMBER -> "شماره حواله"
+									}
+								)
+							},
+							keyboardOptions = KeyboardOptions(
+								keyboardType = KeyboardType.Number,
+								imeAction = ImeAction.Search
+							),
+							keyboardActions = KeyboardActions(
+								onSearch = {
+									if (searchNumber.isNotBlank()) {
+										when (selectedSearchType) {
+											SearchType.RECEIPT_NUMBER -> onSearchReceipt(searchNumber)
+											SearchType.TRACKING_NUMBER -> onSearchTracking(searchNumber)
+										}
+									}
+								}
+							),
+							singleLine = true
+						)
+
+						Spacer(modifier = Modifier.weight(1f))
+
+						// دکمه‌های عملیات
+						Row(
+							modifier = Modifier.fillMaxWidth(),
+							horizontalArrangement = Arrangement.spacedBy(12.dp)
 						) {
-							Row(
-								horizontalArrangement = Arrangement.Center,
-								verticalAlignment = Alignment.CenterVertically
+							OutlinedButton(
+								onClick = onDismiss,
+								modifier = Modifier.weight(1f),
+								shape = RoundedCornerShape(12.dp),
+								border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+							) {
+								Icon(
+									imageVector = Icons.Default.Close,
+									contentDescription = null,
+									modifier = Modifier.size(18.dp)
+								)
+								Spacer(modifier = Modifier.width(8.dp))
+								Text("انصراف")
+							}
+
+							Button(
+								onClick = {
+									if (searchNumber.isNotBlank()) {
+										when (selectedSearchType) {
+											SearchType.RECEIPT_NUMBER -> onSearchReceipt(searchNumber)
+											SearchType.TRACKING_NUMBER -> onSearchTracking(searchNumber)
+										}
+									}
+								},
+								modifier = Modifier.weight(1f),
+								enabled = searchNumber.isNotBlank(),
+								shape = RoundedCornerShape(12.dp),
+								colors = ButtonDefaults.buttonColors(
+									containerColor = MaterialTheme.colorScheme.primary
+								)
 							) {
 								Icon(
 									imageVector = Icons.Default.Search,
@@ -10057,31 +10222,168 @@ fun AdvancedSearchDialog(
 							}
 						}
 
-						OutlinedButton(
-							onClick = onDismiss,
-							modifier = Modifier.weight(1f),
-							shape = RoundedCornerShape(12.dp),
-							border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f))
-						) {
-							Row(
-								horizontalArrangement = Arrangement.Center,
-								verticalAlignment = Alignment.CenterVertically
-							) {
-								Icon(
-									imageVector = Icons.Default.Close,
-									contentDescription = null,
-									modifier = Modifier.size(18.dp)
-								)
-								Spacer(modifier = Modifier.width(8.dp))
-								Text("انصراف")
-							}
-						}
+						Spacer(modifier = Modifier.height(8.dp))
 					}
 				}
 			}
 		}
 	}
 }
+
+@Composable
+private fun SearchHeaderCard(
+	onClose: () -> Unit,
+	selectedSearchType: SearchType
+) {
+	Surface(
+		modifier = Modifier.fillMaxWidth(),
+		color = MaterialTheme.colorScheme.primary
+	) {
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(horizontal = 16.dp, vertical = 12.dp),
+			horizontalArrangement = Arrangement.SpaceBetween,
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			// نام دیالوگ و آیکون
+			Row(
+				horizontalArrangement = Arrangement.spacedBy(12.dp),
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				// آیکون جستجو
+				Surface(
+					shape = CircleShape,
+					color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f),
+					modifier = Modifier.size(48.dp)
+				) {
+					Box(contentAlignment = Alignment.Center) {
+						Icon(
+							imageVector = Icons.Default.Search,
+							contentDescription = null,
+							tint = MaterialTheme.colorScheme.onPrimary,
+							modifier = Modifier.size(24.dp)
+						)
+					}
+				}
+
+				// نام دیالوگ و توضیحات
+				Column {
+					Text(
+						text = "جستجوی پیشرفته",
+						style = MaterialTheme.typography.headlineSmall,
+						color = MaterialTheme.colorScheme.onPrimary,
+						fontWeight = FontWeight.Bold
+					)
+
+					Text(
+						text = when (selectedSearchType) {
+							SearchType.RECEIPT_NUMBER -> "جستجو بر اساس شماره قبض"
+							SearchType.TRACKING_NUMBER -> "جستجو بر اساس شماره حواله"
+						},
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+					)
+				}
+			}
+
+			// دکمه بستن
+			Surface(
+				shape = CircleShape,
+				color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f),
+				modifier = Modifier.size(40.dp)
+			) {
+				IconButton(
+					onClick = onClose,
+					modifier = Modifier.fillMaxSize()
+				) {
+					Icon(
+						imageVector = Icons.Default.Close,
+						contentDescription = "بستن",
+						tint = MaterialTheme.colorScheme.onPrimary,
+						modifier = Modifier.size(20.dp)
+					)
+				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun SearchTypeTabRow(
+	selectedSearchType: SearchType,
+	onSearchTypeSelected: (SearchType) -> Unit,
+	modifier: Modifier = Modifier
+) {
+	val tabs = remember {
+		listOf(
+			SearchTabInfo(SearchType.RECEIPT_NUMBER, "شماره قبض", Icons.Default.Receipt),
+			SearchTabInfo(SearchType.TRACKING_NUMBER, "شماره حواله", Icons.Default.Numbers)
+		)
+	}
+
+	Surface(
+		modifier = modifier.fillMaxWidth(),
+		shape = RoundedCornerShape(8.dp),
+		color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+		border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+	) {
+		Row(
+			modifier = Modifier.padding(2.dp),
+			horizontalArrangement = Arrangement.spacedBy(2.dp)
+		) {
+			tabs.forEach { tab ->
+				val isSelected = selectedSearchType == tab.type
+
+				Surface(
+					onClick = { onSearchTypeSelected(tab.type) },
+					modifier = Modifier.weight(1f),
+					shape = RoundedCornerShape(6.dp),
+					color = if (isSelected) {
+						MaterialTheme.colorScheme.primary
+					} else {
+						Color.Transparent
+					}
+				) {
+					Row(
+						modifier = Modifier
+							.padding(horizontal = 12.dp, vertical = 10.dp),
+						horizontalArrangement = Arrangement.Center,
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						Icon(
+							imageVector = tab.icon,
+							contentDescription = null,
+							tint = if (isSelected) {
+								MaterialTheme.colorScheme.onPrimary
+							} else {
+								MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+							},
+							modifier = Modifier.size(18.dp)
+						)
+						Spacer(modifier = Modifier.width(6.dp))
+						Text(
+							text = tab.label,
+							style = MaterialTheme.typography.bodyMedium,
+							color = if (isSelected) {
+								MaterialTheme.colorScheme.onPrimary
+							} else {
+								MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+							},
+							fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+						)
+					}
+				}
+			}
+		}
+	}
+}
+
+private data class SearchTabInfo(
+	val type: SearchType,
+	val label: String,
+	val icon: ImageVector
+)
 
 @Composable
 fun MultipleSearchResultDialog(
