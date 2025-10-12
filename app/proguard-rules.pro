@@ -142,6 +142,22 @@
 -keepclassmembers,allowobfuscation class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
+
+# حفظ همه data class ها برای Gson
+-keep class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# حفظ data class های Kotlin
+-keep class kotlin.Metadata { *; }
+-keep class kotlin.reflect.** { *; }
+-keepclassmembers class * {
+    @kotlin.Metadata <fields>;
+}
+
 -dontwarn sun.misc.**
 
 # =======================================================================
@@ -151,6 +167,12 @@
 -keep class com.atk.atk_cargo.api.** { *; }
 -keep class com.atk.atk_cargo.models.** { *; }
 -keep class com.atk.atk_cargo.network.** { *; }
+
+# حفظ data class های Summary برای Gson
+-keep class com.atk.atk_cargo.SummaryData { *; }
+-keep class com.atk.atk_cargo.WarehouseStatus { *; }
+-keepclassmembers class com.atk.atk_cargo.SummaryData { *; }
+-keepclassmembers class com.atk.atk_cargo.WarehouseStatus { *; }
 
 # =======================================================================
 # 6. تنظیمات Kotlin (اولویت متوسط)
