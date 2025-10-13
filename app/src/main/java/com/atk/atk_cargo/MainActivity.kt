@@ -3260,7 +3260,7 @@ private fun InfoCard(text: String, color: Color, startDelay: Long = 0L, scrollSt
             scrollState?.let {
                 scope.launch {
                     it.animateScrollTo(
-                        it.value + 2,
+                        it.value + 5,
                         animationSpec = tween(40, easing = LinearEasing)
                     )
                 }
@@ -3340,7 +3340,7 @@ private fun TrendCard(text: String, scrollState: ScrollState? = null) {
             scrollState?.let {
                 scope.launch {
                     it.animateScrollTo(
-                        it.value + 2,
+                        it.value + 5,
                         animationSpec = tween(40, easing = LinearEasing)
                     )
                 }
