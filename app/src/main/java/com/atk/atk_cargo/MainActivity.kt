@@ -71,6 +71,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -2813,6 +2814,7 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
 
     LaunchedEffect(Unit) {
         scope.launch {
@@ -3024,7 +3026,7 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .verticalScroll(rememberScrollState()),
+                                    .verticalScroll(scrollState),
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 // بخش وضعیت انبارها
@@ -3032,7 +3034,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                     ExpandableSection(
                                         title = "وضعیت انبارها",
                                         icon = Icons.Default.HomeWork,
-                                        startDelay = 0L
+                                        startDelay = 0L,
+                                        scrollState = scrollState
                                     ) {
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -3042,7 +3045,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                                 InfoCard(
                                                     text = text,
                                                     color = MaterialTheme.colorScheme.primary,
-                                                    startDelay = 300L
+                                                    startDelay = 300L,
+                                                    scrollState = scrollState
                                                 )
                                             }
 
@@ -3051,7 +3055,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                                 InfoCard(
                                                     text = text,
                                                     color = MaterialTheme.colorScheme.tertiary,
-                                                    startDelay = 300L + warehouse1Length
+                                                    startDelay = 300L + warehouse1Length,
+                                                    scrollState = scrollState
                                                 )
                                             }
                                         }
@@ -3063,7 +3068,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                     ExpandableSection(
                                         title = "وضعیت کوتاژها",
                                         icon = Icons.Default.Inventory,
-                                        startDelay = quotaSectionDelay
+                                        startDelay = quotaSectionDelay,
+                                        scrollState = scrollState
                                     ) {
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -3073,7 +3079,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                                 InfoCard(
                                                     text = text,
                                                     color = MaterialTheme.colorScheme.primary,
-                                                    startDelay = 300L
+                                                    startDelay = 300L,
+                                                    scrollState = scrollState
                                                 )
                                             }
 
@@ -3082,7 +3089,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                                 InfoCard(
                                                     text = text,
                                                     color = MaterialTheme.colorScheme.tertiary,
-                                                    startDelay = 300L + quota1Length
+                                                    startDelay = 300L + quota1Length,
+                                                    scrollState = scrollState
                                                 )
                                             }
                                         }
@@ -3094,9 +3102,13 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                     ExpandableSection(
                                         title = "روند کلی بارگیری",
                                         icon = Icons.Default.Checklist,
-                                        startDelay = trendSectionDelay
+                                        startDelay = trendSectionDelay,
+                                        scrollState = scrollState
                                     ) {
-                                        TrendCard(text = trend)
+                                        TrendCard(
+                                            text = trend,
+                                            scrollState = scrollState
+                                        )
                                     }
                                 }
                             }
@@ -3139,6 +3151,7 @@ private fun ExpandableSection(
     title: String,
     icon: ImageVector,
     startDelay: Long = 0L,
+    scrollState: ScrollState? = null,
     content: @Composable () -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(true) }
@@ -3148,6 +3161,7 @@ private fun ExpandableSection(
         animationSpec = tween(300),
         label = "rotation"
     )
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         delay(startDelay)
@@ -3225,10 +3239,11 @@ private fun ExpandableSection(
 }
 
 @Composable
-private fun InfoCard(text: String, color: Color, startDelay: Long = 0L) {
+private fun InfoCard(text: String, color: Color, startDelay: Long = 0L, scrollState: ScrollState? = null) {
     var displayedText by remember { mutableStateOf("") }
     var isTypingComplete by remember { mutableStateOf(false) }
     var isVisible by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(text) {
         displayedText = ""
@@ -3241,6 +3256,15 @@ private fun InfoCard(text: String, color: Color, startDelay: Long = 0L) {
         chars.forEachIndexed { index, _ ->
             displayedText = text.substring(0, index + 1)
             delay(40)
+            // اسکرول نرم در حین تایپ
+            scrollState?.let {
+                scope.launch {
+                    it.animateScrollTo(
+                        it.value + 2,
+                        animationSpec = tween(40, easing = LinearEasing)
+                    )
+                }
+            }
         }
         isTypingComplete = true
     }
@@ -3295,10 +3319,11 @@ private fun InfoCard(text: String, color: Color, startDelay: Long = 0L) {
 }
 
 @Composable
-private fun TrendCard(text: String) {
+private fun TrendCard(text: String, scrollState: ScrollState? = null) {
     var displayedText by remember { mutableStateOf("") }
     var isTypingComplete by remember { mutableStateOf(false) }
     var isVisible by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(text) {
         displayedText = ""
@@ -3311,6 +3336,15 @@ private fun TrendCard(text: String) {
         chars.forEachIndexed { index, _ ->
             displayedText = text.substring(0, index + 1)
             delay(40)
+            // اسکرول نرم در حین تایپ
+            scrollState?.let {
+                scope.launch {
+                    it.animateScrollTo(
+                        it.value + 2,
+                        animationSpec = tween(40, easing = LinearEasing)
+                    )
+                }
+            }
         }
         isTypingComplete = true
     }
