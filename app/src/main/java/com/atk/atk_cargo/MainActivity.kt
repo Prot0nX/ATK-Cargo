@@ -42,6 +42,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -71,7 +72,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -103,11 +103,11 @@ import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -189,7 +189,6 @@ import androidx.navigation.navArgument
 import com.atk.atk_cargo.api.ApiService
 import com.atk.atk_cargo.api.CargoViewModel
 import com.atk.atk_cargo.api.CargoViewModelFactory
-import com.atk.atk_cargo.api.ChangeLogInfo
 import com.atk.atk_cargo.api.Constants
 import com.atk.atk_cargo.api.CreateUserRequest
 import com.atk.atk_cargo.api.DeleteUserRequest
@@ -656,13 +655,13 @@ fun UpdateDialog(
             Card(
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
-                    .fillMaxHeight(0.75f)
+                    .wrapContentHeight()
                     .alpha(dialogAlpha),
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
                         .padding(16.dp)
                 ) {
                     UpdateHeader(
@@ -671,13 +670,7 @@ fun UpdateDialog(
                         releaseDate = updateInfo.releaseDate
                     )
 
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    ) {
-                        ChangeLogSection(updateInfo.changeLog)
-                    }
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     UpdateActionSection(
                         downloadState = downloadState,
@@ -695,471 +688,56 @@ fun UpdateDialog(
 }
 
 @Composable
-private fun DownloadingState(
-    progress: UpdateManager.DownloadProgress,
-    onPauseClick: () -> Unit,
-    onCancelClick: () -> Unit
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // نمایش اطلاعات پیشرفت با انیمیشن
-        val progressAnimation by animateFloatAsState(
-            targetValue = progress.progress / 100,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            label = ""
-        )
-
-        DownloadProgressInfo(progress = progress)
-
-        LinearProgressIndicator(
-            progress = { progressAnimation },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp))
-        )
-
-        DownloadActionButtons(
-            onPauseClick = onPauseClick,
-            onCancelClick = onCancelClick
-        )
-    }
-}
-
-@Composable
-private fun DownloadProgressInfo(progress: UpdateManager.DownloadProgress) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        // سایز دانلود شده و کل
-        DownloadSizeInfo(
-            downloadedSize = progress.downloadedSize,
-            totalSize = progress.totalSize
-        )
-
-        // سرعت دانلود
-        DownloadSpeedInfo(speed = progress.speed)
-    }
-}
-
-@Composable
-private fun DownloadSizeInfo(
-    downloadedSize: Pair<String, String>,
-    totalSize: Pair<String, String>
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = downloadedSize.first,
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = downloadedSize.second,
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = "/",
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = totalSize.first,
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = totalSize.second,
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}
-
-@Composable
-private fun DownloadSpeedInfo(speed: Pair<String, String>) {
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = speed.first,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
-        Text(
-            text = speed.second,
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}
-
-@Composable
-private fun DownloadActionButtons(
-    onPauseClick: () -> Unit,
-    onCancelClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        OutlinedButton(
-            onClick = onCancelClick,
-            modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.error
-            )
-        ) {
-            Icon(
-                Icons.Default.Close,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("لغو")
-        }
-        Button(
-            onClick = onPauseClick,
-            modifier = Modifier.weight(1f)
-        ) {
-            Icon(
-                Icons.Default.Pause,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("توقف")
-        }
-    }
-}
-
-@Composable
-private fun PausedState(
-    progress: UpdateManager.DownloadProgress,
-    onResumeClick: () -> Unit,
-    onCancelClick: () -> Unit
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    Icons.Default.Pause,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(16.dp)
-                )
-                Text(
-                    text = "دانلود متوقف شده",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-            DownloadSizeInfo(
-                downloadedSize = progress.downloadedSize,
-                totalSize = progress.totalSize
-            )
-        }
-
-        // نمایش پیشرفت با انیمیشن
-        val progressAnimation by animateFloatAsState(
-            targetValue = progress.progress / 100,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            label = ""
-        )
-
-        LinearProgressIndicator(
-            progress = { progressAnimation },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp))
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(
-                onClick = onCancelClick,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("لغو")
-            }
-            Button(
-                onClick = onResumeClick,
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("ادامه")
-            }
-        }
-    }
-}
-
-@Composable
 private fun UpdateHeader(
     version: String,
     message: String,
     releaseDate: String
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 16.dp)
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "به‌روزرسانی جدید",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Badge(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            ) {
-                Text(
-                    text = version,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
+        Icon(
+            imageVector = Icons.Default.SystemUpdate,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "نسخه جدید موجود است",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "نسخه $version",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold
+        )
 
         if (message.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp)
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
         if (releaseDate.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "تاریخ انتشار: $releaseDate",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-    }
-}
-
-@Composable
-private fun ChangeLogSection(changeLog: ChangeLogInfo) {
-    // ذخیره وضعیت باز/بسته بودن هر دسته
-    var expandedCategory by remember { mutableStateOf<String?>(null) }
-
-    // تعیین اولین دسته موجود به عنوان پیش‌فرض
-    LaunchedEffect(Unit) {
-        expandedCategory = when {
-            changeLog.newFeatures.isNotEmpty() -> "new"
-            changeLog.improvements.isNotEmpty() -> "improvements"
-            changeLog.fixes.isNotEmpty() -> "fixes"
-            else -> null
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(vertical = 8.dp)
-    ) {
-        Text(
-            text = "تغییرات این نسخه:",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // قابلیت‌های جدید
-        changeLog.newFeatures.takeIf { it.isNotEmpty() }?.let {
-            ExpandableChangeLogCategory(
-                title = "قابلیت‌های جدید",
-                icon = Icons.Default.Add,
-                color = MaterialTheme.colorScheme.primary,
-                items = it,
-                isExpanded = expandedCategory == "new",
-                onExpandChange = { expanded ->
-                    expandedCategory = if (expanded) "new" else null
-                }
-            )
-        }
-
-        // بهبودها
-        changeLog.improvements.takeIf { it.isNotEmpty() }?.let {
-            ExpandableChangeLogCategory(
-                title = "بهبودها",
-                icon = Icons.Default.Check,
-                color = MaterialTheme.colorScheme.secondary,
-                items = it,
-                isExpanded = expandedCategory == "improvements",
-                onExpandChange = { expanded ->
-                    expandedCategory = if (expanded) "improvements" else null
-                }
-            )
-        }
-
-        // رفع اشکالات
-        changeLog.fixes.takeIf { it.isNotEmpty() }?.let {
-            ExpandableChangeLogCategory(
-                title = "رفع اشکالات",
-                icon = Icons.Default.Info,
-                color = MaterialTheme.colorScheme.tertiary,
-                items = it,
-                isExpanded = expandedCategory == "fixes",
-                onExpandChange = { expanded ->
-                    expandedCategory = if (expanded) "fixes" else null
-                }
-            )
-        }
-    }
-}
-
-@Composable
-private fun ExpandableChangeLogCategory(
-    title: String,
-    icon: ImageVector,
-    color: Color,
-    items: List<String>,
-    isExpanded: Boolean,
-    onExpandChange: (Boolean) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            )
-            .clickable { onExpandChange(!isExpanded) },
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.1f)
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = color,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = color,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Badge(
-                        containerColor = color.copy(alpha = 0.2f),
-                    ) {
-                        Text(
-                            text = items.size.toString(),
-                            color = color
-                        )
-                    }
-                }
-
-                val rotation by animateFloatAsState(
-                    targetValue = if (isExpanded) 180f else 0f,
-                    animationSpec = tween(
-                        durationMillis = 300,
-                        easing = FastOutSlowInEasing
-                    ),
-                    label = ""
-                )
-
-                Icon(
-                    imageVector = Icons.Default.ExpandMore,
-                    contentDescription = if (isExpanded) "بستن" else "باز کردن",
-                    tint = color,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .rotate(rotation)
-                )
-            }
-
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                ) + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(top = 12.dp)
-                        .fillMaxWidth()
-                ) {
-                    items.forEach { item ->
-                        Row(
-                            modifier = Modifier
-                                .padding(start = 28.dp, top = 4.dp)
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .offset(y = 8.dp)
-                                    .background(color.copy(alpha = 0.5f), CircleShape)
-                            )
-                            Text(
-                                text = item,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -1239,6 +817,134 @@ private fun UpdateActionSection(
 
                 else -> {}
             }
+        }
+    }
+}
+
+@Composable
+private fun DownloadingState(
+    progress: UpdateManager.DownloadProgress,
+    onPauseClick: () -> Unit,
+    onCancelClick: () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        val progressAnimation by animateFloatAsState(
+            targetValue = progress.progress / 100,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            label = ""
+        )
+
+        DownloadProgressInfo(progress = progress)
+
+        LinearProgressIndicator(
+            progress = { progressAnimation },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+        )
+
+        DownloadActionButtons(
+            onPauseClick = onPauseClick,
+            onCancelClick = onCancelClick
+        )
+    }
+}
+
+@Composable
+private fun PausedState(
+    progress: UpdateManager.DownloadProgress,
+    onResumeClick: () -> Unit,
+    onCancelClick: () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        DownloadProgressInfo(progress = progress)
+
+        LinearProgressIndicator(
+            progress = { progress.progress / 100 },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
+                onClick = onCancelClick,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("لغو")
+            }
+            Button(
+                onClick = onResumeClick,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("ادامه")
+            }
+        }
+    }
+}
+
+@Composable
+private fun DownloadProgressInfo(progress: UpdateManager.DownloadProgress) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = "${progress.downloadedSize} / ${progress.totalSize} مگابایت",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = "${progress.progress.toInt()}%",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun DownloadActionButtons(
+    onPauseClick: () -> Unit,
+    onCancelClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OutlinedButton(
+            onClick = onCancelClick,
+            modifier = Modifier.weight(1f)
+        ) {
+            Text("لغو")
+        }
+        Button(
+            onClick = onPauseClick,
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(
+                Icons.Default.Pause,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("توقف")
         }
     }
 }
