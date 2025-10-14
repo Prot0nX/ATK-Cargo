@@ -251,6 +251,14 @@ interface ApiService {
 
     @GET("summaryData.json")
     suspend fun getSummaryData(): Response<ResponseBody>
+
+    @GET("quota_remaining_api.php")
+    suspend fun getActiveQuotasRemaining(
+        @Query("action") action: String = "getActiveQuotasRemaining"
+    ): Response<ResponseBody>
+
+    @GET("ActiveQuota.json")
+    suspend fun getActiveQuotaReport(): Response<ResponseBody>
 }
 
 data class ApiResponse(
