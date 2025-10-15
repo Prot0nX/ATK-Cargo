@@ -129,76 +129,141 @@ class UpdateManager(
 
         return withContext(Dispatchers.IO) {
             try {
-                val currentVersion = appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
-                val encodedVersion = URLEncoder.encode(currentVersion, "UTF-8")
+                val currentAppVersion = getCurrentAppVersion()
+                val encodedVersion = URLEncoder.encode(currentAppVersion, "UTF-8")
                 val encodedApiKey = URLEncoder.encode(Constants.API_KEY, "UTF-8")
 
                 val request = Request.Builder()
                     .url("${Constants.BASE_URL}/check_update.php?current_version=$encodedVersion&api_key=$encodedApiKey")
                     .build()
 
+                android.util.Log.d("UpdateManager", "بررسی بروزرسانی - نسخه فعلی: $currentAppVersion")
+
                 client.newCall(request).execute().use { response ->
                     val responseBody = response.body.string()
+                    android.util.Log.d("UpdateManager", "پاسخ سرور: $responseBody")
+                    
                     when {
                         response.code == 426 -> {
                             val error = JSONObject(responseBody).optString("error", "نسخه برنامه منسوخ شده است")
                             _downloadState.value = DownloadState.Error(error)
+                            android.util.Log.e("UpdateManager", "خطا 426: $error")
                             false
                         }
                         response.isSuccessful -> {
                             val jsonResponse = JSONObject(responseBody)
-                            val hasUpdate = jsonResponse.getBoolean("hasUpdate")
+                            
+                            // بررسی وجود نسخه جدید - پشتیبانی از هر دو فرمت (snake_case و camelCase)
+                            val latestVersion = jsonResponse.optString("latest_version", "").ifEmpty {
+                                jsonResponse.optString("latestVersion", "")
+                            }
+                            android.util.Log.d("UpdateManager", "نسخه جدید از سرور: $latestVersion")
+                            
+                            val hasUpdate = if (latestVersion.isNotEmpty()) {
+                                val comparisonResult = compareVersions(latestVersion, currentAppVersion)
+                                android.util.Log.d("UpdateManager", "مقایسه نسخه‌ها: $latestVersion vs $currentAppVersion = $comparisonResult")
+                                comparisonResult > 0
+                            } else {
+                                android.util.Log.w("UpdateManager", "نسخه جدید خالی است!")
+                                false
+                            }
+                            
+                            android.util.Log.d("UpdateManager", "آیا بروزرسانی موجود است؟ $hasUpdate")
+                            
                             if (hasUpdate) {
-                                val updateInfo = jsonResponse.optJSONObject("updateInfo")
+                                // پارس کردن version_constraints
+                                val versionConstraints = jsonResponse.optJSONObject("version_constraints")
+                                val excludedVersionsList = versionConstraints?.optJSONArray("excluded_versions")?.let { array ->
+                                    List(array.length()) { array.getString(it) }
+                                } ?: emptyList()
+                                
+                                // پشتیبانی از هر دو فرمت برای تمام فیلدها
+                                val downloadUrl = jsonResponse.optString("download_url", "").ifEmpty {
+                                    jsonResponse.optString("downloadUrl", "")
+                                }
+                                val minRequiredVersion = jsonResponse.optString("min_required_version", "").ifEmpty {
+                                    jsonResponse.optString("minRequiredVersion", "1.0")
+                                }
+                                val updatePriority = jsonResponse.optString("update_priority", "").ifEmpty {
+                                    jsonResponse.optString("updatePriority", "normal")
+                                }
+                                val updateMessage = jsonResponse.optString("update_message", "").ifEmpty {
+                                    jsonResponse.optString("updateMessage", "")
+                                }
+                                val forceUpdate = jsonResponse.optBoolean("force_update", 
+                                    jsonResponse.optBoolean("forceUpdate", false))
+                                val updateSize = jsonResponse.optString("update_size", "").ifEmpty {
+                                    jsonResponse.optString("updateSize", "0")
+                                }
+                                val releaseDate = jsonResponse.optString("release_date", "").ifEmpty {
+                                    jsonResponse.optString("releaseDate", "")
+                                }
+                                
                                 _updateInfo.value = UpdateInfo(
-                                    latestVersion = jsonResponse.getString("latestVersion"),
-                                    downloadUrl = jsonResponse.getString("downloadUrl"),
-                                    changeLog = parseChangeLog(jsonResponse.getJSONObject("changeLog")
-                                        .toString()),
-                                    updatePriority = updateInfo?.optString("priority", "normal") ?: "normal",
-                                    updateMessage = updateInfo?.optString("message", "") ?: "",
-                                    forceUpdate = updateInfo?.optBoolean("forceUpdate", false) ?: false,
-                                    updateSize = updateInfo?.optString("size", "0") ?: "0",
-                                    releaseDate = updateInfo?.optString("releaseDate", "") ?: "",
-                                    minAndroidVersion = updateInfo?.optInt("minAndroidVersion", 21) ?: 21
+                                    latestVersion = latestVersion,
+                                    downloadUrl = downloadUrl,
+                                    minRequiredVersion = minRequiredVersion,
+                                    updatePriority = updatePriority,
+                                    updateMessage = updateMessage,
+                                    forceUpdate = forceUpdate,
+                                    updateSize = updateSize,
+                                    releaseDate = releaseDate,
+                                    minAndroidVersion = versionConstraints?.optInt("min_android_version", 21) ?: 21,
+                                    minAppVersion = versionConstraints?.optString("min_app_version", "1.0") ?: "1.0",
+                                    excludedVersions = excludedVersionsList
                                 )
+                                android.util.Log.d("UpdateManager", "اطلاعات بروزرسانی ذخیره شد: $downloadUrl")
                             }
                             hasUpdate
                         }
                         else -> {
-                            _downloadState.value = DownloadState.Error("خطا در بررسی بروزرسانی: ${response.code}")
+                            val errorMsg = "خطا در بررسی بروزرسانی: ${response.code}"
+                            _downloadState.value = DownloadState.Error(errorMsg)
+                            android.util.Log.e("UpdateManager", errorMsg)
                             false
                         }
                     }
                 }
             } catch (e: Exception) {
-                _downloadState.value = DownloadState.Error("خطا در بررسی بروزرسانی: ${e.localizedMessage}")
+                val errorMsg = "خطا در بررسی بروزرسانی: ${e.localizedMessage}"
+                _downloadState.value = DownloadState.Error(errorMsg)
+                android.util.Log.e("UpdateManager", errorMsg, e)
                 false
             }
         }
     }
 
-    private suspend fun parseChangeLog(jsonString: String): ChangeLogInfo {
-        return withContext(Dispatchers.Default) {
-            try {
-                val jsonObject = JSONObject(jsonString)
-                ChangeLogInfo(
-                    newFeatures = jsonObject.optJSONArray("newFeatures")?.let { array ->
-                        List(array.length()) { array.getString(it) }
-                    } ?: emptyList(),
-                    improvements = jsonObject.optJSONArray("improvements")?.let { array ->
-                        List(array.length()) { array.getString(it) }
-                    } ?: emptyList(),
-                    fixes = jsonObject.optJSONArray("fixes")?.let { array ->
-                        List(array.length()) { array.getString(it) }
-                    } ?: emptyList(),
-                    others = jsonObject.optJSONArray("others")?.let { array ->
-                        List(array.length()) { array.getString(it) }
-                    } ?: emptyList()
-                )
-            } catch (_: Exception) {
-                ChangeLogInfo()
+    /**
+     * مقایسه دو نسخه
+     * @return مقدار مثبت اگر version1 > version2، منفی اگر version1 < version2، صفر اگر برابر باشند
+     */
+    private fun compareVersions(version1: String, version2: String): Int {
+        val v1Parts = version1.split(".").map { it.toIntOrNull() ?: 0 }
+        val v2Parts = version2.split(".").map { it.toIntOrNull() ?: 0 }
+        
+        val maxLength = maxOf(v1Parts.size, v2Parts.size)
+        
+        for (i in 0 until maxLength) {
+            val v1 = v1Parts.getOrNull(i) ?: 0
+            val v2 = v2Parts.getOrNull(i) ?: 0
+            
+            if (v1 != v2) {
+                return v1 - v2
             }
+        }
+        
+        return 0
+    }
+    
+    /**
+     * دریافت نسخه فعلی برنامه
+     */
+    private fun getCurrentAppVersion(): String {
+        return try {
+            val packageInfo = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
+            packageInfo.versionName ?: "1.0"
+        } catch (e: Exception) {
+            "1.0"
         }
     }
 

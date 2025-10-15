@@ -3831,13 +3831,15 @@ data class ChangeLogInfo(
 data class UpdateInfo(
     val latestVersion: String,
     val downloadUrl: String,
-    val changeLog: ChangeLogInfo,
+    val minRequiredVersion: String = "1.0",
     val updatePriority: String = "normal",
     val updateMessage: String = "",
     val forceUpdate: Boolean = false,
     val updateSize: String = "0",
     val releaseDate: String = "",
-    val minAndroidVersion: Int = 21
+    val minAndroidVersion: Int = 21,
+    val minAppVersion: String = "1.0",
+    val excludedVersions: List<String> = emptyList()
 )
 class ColorSelector(private val colors: List<Color>) {
     // تمام رنگ‌های اختصاص داده شده به هر شناسه
