@@ -198,6 +198,8 @@ import com.atk.atk_cargo.api.CreateUserRequest
 import com.atk.atk_cargo.api.DeleteUserRequest
 import com.atk.atk_cargo.api.LoadingNotificationService
 import com.atk.atk_cargo.api.LoginRequest
+import com.atk.atk_cargo.api.TonnageWarningService
+import com.atk.atk_cargo.api.TonnageNotificationManager
 import com.atk.atk_cargo.api.LogoutRequest
 import com.atk.atk_cargo.api.MenuItem
 import com.atk.atk_cargo.api.ReportsRepository
@@ -233,6 +235,16 @@ import java.net.URLDecoder
 import java.security.MessageDigest
 import java.util.UUID
 
+data class QuotaTonnageWarning(
+    val shipName: String,
+    val cargoOwner: String,
+    val quotaNumber: String,
+    val currentRemaining: String,
+    val voucherCount: String,
+    val remainingAfterExit: String,
+    val isNegative: Boolean
+)
+
 class MainActivity : ComponentActivity() {
     private var updateInfo by mutableStateOf<UpdateInfo?>(null)
     private var downloadProgress by mutableStateOf(UpdateManager.DownloadProgress.Initial)
@@ -247,8 +259,7 @@ class MainActivity : ComponentActivity() {
     private var isSecurityCheckPassed by mutableStateOf(false)
     private var isSecurityCheckLoading by mutableStateOf(true)
     private var securityErrorType by mutableStateOf<SecurityErrorType?>(null)
-    var tonnageWarningsCount by mutableIntStateOf(0)
-        private set
+    var shouldOpenWarningsDialog by mutableStateOf(false)
     val isSessionValid: StateFlow<Boolean> = _isSessionValid.asStateFlow()
 
     @SuppressLint("CoroutineCreationDuringComposition", "BatteryLife")
@@ -257,6 +268,9 @@ class MainActivity : ComponentActivity() {
 
         try {
             initializeDependencies()
+            
+            // بررسی intent برای باز کردن دیالوگ هشدار تناژ کوتاژ
+            handleIntent(intent)
 
             setContent {
                 ATKCargoTheme {
@@ -525,24 +539,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun checkTonnageWarnings() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val response = RetrofitClient.apiService.getActiveQuotaReport()
-                if (response.isSuccessful) {
-                    response.body()?.use { responseBody ->
-                        val body = responseBody.string()
-                        if (body.isNotEmpty()) {
-                            val parsedWarnings = parseQuotaTonnageData(body)
-                            withContext(Dispatchers.Main) {
-                                tonnageWarningsCount = parsedWarnings.size
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("TonnageWarnings", "خطا در بررسی هشدارها: ${e.message}")
-            }
-        }
+        // راه‌اندازی سرویس بررسی دوره‌ای هشدارها
+        TonnageWarningService.startService(this)
     }
 
     private fun startUpdateDownload() {
@@ -561,6 +559,10 @@ class MainActivity : ComponentActivity() {
             "com.atk.atk_cargo.NEW_LOADING" -> {
                 intent.getStringExtra("kotazh") ?: return
                 // Add logic for new loading here
+            }
+            TonnageNotificationManager.ACTION_OPEN_WARNINGS -> {
+                // علامت‌گذاری برای باز کردن دیالوگ هشدار تناژ کوتاژ
+                shouldOpenWarningsDialog = true
             }
         }
     }
@@ -1143,6 +1145,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
     val snackbarHostState = remember { SnackbarHostState() }
     val mainActivity = LocalContext.current as MainActivity
     val isSessionValid by mainActivity.isSessionValid.collectAsState()
+    val tonnageWarningsCount by TonnageWarningService.warningsCount.collectAsState()
 
     LaunchedEffect(key1 = true) {
         delay(4500)
@@ -1233,7 +1236,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                                 }
                                             },
                                             onManageUsersClick = { showUserManagement = true },
-                                            warningsCount = mainActivity.tonnageWarningsCount
+                                            warningsCount = tonnageWarningsCount
                                         )
                                     }
                                     composable(
@@ -1732,6 +1735,18 @@ private fun Header(
                 targetValue = 1f,
                 animationSpec = tween(durationMillis = 400)
             )
+        }
+    }
+    
+    // بررسی برای باز کردن دیالوگ هشدار تناژ کوتاژ از طریق نوتیفیکیشن
+    LaunchedEffect(mainActivity.shouldOpenWarningsDialog) {
+        if (mainActivity.shouldOpenWarningsDialog) {
+            showQuotaTonnage = true
+            mainActivity.shouldOpenWarningsDialog = false
+            
+            // حذف نوتیفیکیشن هشدار بعد از باز شدن دیالوگ
+            val tonnageNotificationManager = TonnageNotificationManager(mainActivity)
+            tonnageNotificationManager.cancelWarningNotification()
         }
     }
 
@@ -3022,6 +3037,12 @@ private fun ActiveQuotasDialog(onDismiss: () -> Unit) {
                             ownerQuotas.sortedBy { it.remainingTonnage }
                         }
                 }
+                // مرتب‌سازی کشتی‌ها براساس مجموع تناژ مانده (از کمترین به بیشترین)
+                .toList()
+                .sortedBy { (_, cargoOwnerMap) ->
+                    cargoOwnerMap.values.flatten().sumOf { it.remainingTonnage }
+                }
+                .toMap()
         } ?: emptyMap()
     }
 
@@ -3421,16 +3442,6 @@ private fun QuotaItemCard(quota: QuotaData) {
     }
 }
 
-data class QuotaTonnageWarning(
-    val shipName: String,
-    val cargoOwner: String,
-    val quotaNumber: String,
-    val currentRemaining: String,
-    val voucherCount: String,
-    val remainingAfterExit: String,
-    val isNegative: Boolean
-)
-
 @Composable
 private fun QuotaTonnageDialog(onDismiss: () -> Unit) {
     var warnings by remember { mutableStateOf<List<QuotaTonnageWarning>>(emptyList()) }
@@ -3528,7 +3539,7 @@ private fun QuotaTonnageDialog(onDismiss: () -> Unit) {
                             modifier = Modifier.size(24.dp)
                         )
                         Text(
-                            "گزارش تناژ کوتاژ",
+                            "گزارش هشدار تناژ کوتاژ",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
