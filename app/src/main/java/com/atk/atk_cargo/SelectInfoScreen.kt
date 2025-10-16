@@ -1639,7 +1639,7 @@ private fun DialogContent(
 }
 
 @Composable
-fun ActiveQuotasDialog(
+private fun ActiveQuotasDialog(
     onDismiss: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
