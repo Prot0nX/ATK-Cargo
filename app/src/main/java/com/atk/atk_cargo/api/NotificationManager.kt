@@ -557,3 +557,142 @@ class LoadingNotificationManager(private val context: Context) {
         notificationManager.notify(notificationId + 3000, notification)
     }
 }
+
+/**
+ * کلاس مدیریت نوتیفیکیشن‌های هشدار تناژ کوتاژ
+ */
+class TonnageNotificationManager(private val context: Context) {
+    
+    private val notificationManager = NotificationManagerCompat.from(context)
+    
+    companion object {
+        const val CHANNEL_ID = "tonnage_warnings_channel"
+        const val NOTIFICATION_ID = 1001
+        const val ACTION_OPEN_WARNINGS = "com.atk.atk_cargo.OPEN_WARNINGS"
+    }
+    
+    /**
+     * ایجاد کانال نوتیفیکیشن
+     */
+    fun createNotificationChannel() {
+        val name = "هشدارهای تناژ کوتاژ"
+        val descriptionText = "اطلاع‌رسانی هشدارهای مربوط به تناژ کوتاژها"
+        val importance = NotificationManager.IMPORTANCE_HIGH
+        val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
+            description = descriptionText
+            enableVibration(true)
+            enableLights(true)
+            lightColor = Color.RED
+        }
+
+        val systemNotificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        systemNotificationManager.createNotificationChannel(channel)
+    }
+    
+    /**
+     * نمایش نوتیفیکیشن هشدار تناژ کوتاژ
+     */
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+    fun showWarningNotification(count: Int, firstWarningShipName: String?, firstWarningQuotaNumber: String?) {
+        // بررسی اینکه آیا نوتیفیکیشن قبلی هنوز فعال است
+        if (hasActiveWarningNotification()) {
+            android.util.Log.d("TonnageNotification", "نوتیفیکیشن قبلی هنوز فعال است، به‌روزرسانی می‌شود")
+        }
+        
+        val intent = Intent(context, MainActivity::class.java).apply {
+            action = ACTION_OPEN_WARNINGS
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        val title = "⚠️ هشدار تناژ کوتاژ"
+        val text = if (count == 1 && firstWarningShipName != null && firstWarningQuotaNumber != null) {
+            "کشتی $firstWarningShipName - کوتاژ $firstWarningQuotaNumber"
+        } else {
+            "$count هشدار تناژ کوتاژ وجود دارد"
+        }
+        
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setVibrate(longArrayOf(0, 500, 200, 500))
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .build()
+        
+        notificationManager.notify(NOTIFICATION_ID, notification)
+        android.util.Log.d("TonnageNotification", "نوتیفیکیشن هشدار با $count هشدار نمایش داده شد")
+    }
+    
+    /**
+     * حذف نوتیفیکیشن هشدار
+     */
+    fun cancelWarningNotification() {
+        try {
+            // حذف نوتیفیکیشن با استفاده از NotificationManagerCompat
+            notificationManager.cancel(NOTIFICATION_ID)
+            
+            // همچنین از طریق system notification manager هم حذف می‌کنیم
+            // برای اطمینان از حذف کامل در تمام سناریوها
+            val systemNotificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            systemNotificationManager?.cancel(NOTIFICATION_ID)
+            
+            android.util.Log.d("TonnageNotification", "نوتیفیکیشن هشدار تناژ کوتاژ با موفقیت حذف شد")
+        } catch (e: SecurityException) {
+            // خطای مجوز - نوتیفیکیشن‌ها غیرفعال است
+            android.util.Log.w("TonnageNotification", "عدم دسترسی به حذف نوتیفیکیشن: ${e.message}")
+        } catch (e: Exception) {
+            // خطای عمومی
+            android.util.Log.e("TonnageNotification", "خطا در حذف نوتیفیکیشن هشدار: ${e.message}")
+        }
+    }
+    
+    /**
+     * حذف تمام نوتیفیکیشن‌های هشدار تناژ کوتاژ
+     * این تابع تمام نوتیفیکیشن‌های مرتبط را حذف می‌کند
+     */
+    fun cancelAllWarningNotifications() {
+        try {
+            // حذف تمام نوتیفیکیشن‌ها با tag مشخص
+            notificationManager.cancel(NOTIFICATION_ID)
+            
+            // استفاده از system notification manager برای پاکسازی کامل
+            val systemNotificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            systemNotificationManager?.activeNotifications?.forEach { notification ->
+                if (notification.id == NOTIFICATION_ID) {
+                    systemNotificationManager.cancel(notification.id)
+                    android.util.Log.d("TonnageNotification", "نوتیفیکیشن فعال با ID ${notification.id} حذف شد")
+                }
+            }
+
+            android.util.Log.d("TonnageNotification", "تمام نوتیفیکیشن‌های هشدار تناژ کوتاژ حذف شدند")
+        } catch (e: SecurityException) {
+            android.util.Log.w("TonnageNotification", "عدم دسترسی به حذف نوتیفیکیشن‌ها: ${e.message}")
+        } catch (e: Exception) {
+            android.util.Log.e("TonnageNotification", "خطا در حذف نوتیفیکیشن‌های هشدار: ${e.message}")
+        }
+    }
+    
+    /**
+     * بررسی وجود نوتیفیکیشن هشدار فعال
+     */
+    fun hasActiveWarningNotification(): Boolean {
+        return try {
+            val systemNotificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            val activeNotifications = systemNotificationManager?.activeNotifications ?: emptyArray()
+            activeNotifications.any { it.id == NOTIFICATION_ID }
+        } catch (e: Exception) {
+            android.util.Log.e("TonnageNotification", "خطا در بررسی نوتیفیکیشن فعال: ${e.message}")
+            false
+        }
+    }
+}
