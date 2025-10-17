@@ -137,17 +137,13 @@ class UpdateManager(
                     .url("${Constants.BASE_URL}/check_update.php?current_version=$encodedVersion&api_key=$encodedApiKey")
                     .build()
 
-                android.util.Log.d("UpdateManager", "بررسی بروزرسانی - نسخه فعلی: $currentAppVersion")
-
                 client.newCall(request).execute().use { response ->
                     val responseBody = response.body.string()
-                    android.util.Log.d("UpdateManager", "پاسخ سرور: $responseBody")
-                    
+
                     when {
                         response.code == 426 -> {
                             val error = JSONObject(responseBody).optString("error", "نسخه برنامه منسوخ شده است")
                             _downloadState.value = DownloadState.Error(error)
-                            android.util.Log.e("UpdateManager", "خطا 426: $error")
                             false
                         }
                         response.isSuccessful -> {
@@ -157,19 +153,15 @@ class UpdateManager(
                             val latestVersion = jsonResponse.optString("latest_version", "").ifEmpty {
                                 jsonResponse.optString("latestVersion", "")
                             }
-                            android.util.Log.d("UpdateManager", "نسخه جدید از سرور: $latestVersion")
-                            
+
                             val hasUpdate = if (latestVersion.isNotEmpty()) {
+                                // مقایسه نسخه سرور با نسخه فعلی
                                 val comparisonResult = compareVersions(latestVersion, currentAppVersion)
-                                android.util.Log.d("UpdateManager", "مقایسه نسخه‌ها: $latestVersion vs $currentAppVersion = $comparisonResult")
                                 comparisonResult > 0
                             } else {
-                                android.util.Log.w("UpdateManager", "نسخه جدید خالی است!")
                                 false
                             }
-                            
-                            android.util.Log.d("UpdateManager", "آیا بروزرسانی موجود است؟ $hasUpdate")
-                            
+
                             if (hasUpdate) {
                                 // پارس کردن version_constraints
                                 val versionConstraints = jsonResponse.optJSONObject("version_constraints")
@@ -212,14 +204,12 @@ class UpdateManager(
                                     minAppVersion = versionConstraints?.optString("min_app_version", "1.0") ?: "1.0",
                                     excludedVersions = excludedVersionsList
                                 )
-                                android.util.Log.d("UpdateManager", "اطلاعات بروزرسانی ذخیره شد: $downloadUrl")
                             }
                             hasUpdate
                         }
                         else -> {
                             val errorMsg = "خطا در بررسی بروزرسانی: ${response.code}"
                             _downloadState.value = DownloadState.Error(errorMsg)
-                            android.util.Log.e("UpdateManager", errorMsg)
                             false
                         }
                     }
@@ -227,19 +217,29 @@ class UpdateManager(
             } catch (e: Exception) {
                 val errorMsg = "خطا در بررسی بروزرسانی: ${e.localizedMessage}"
                 _downloadState.value = DownloadState.Error(errorMsg)
-                android.util.Log.e("UpdateManager", errorMsg, e)
                 false
             }
         }
     }
 
-    /**
-     * مقایسه دو نسخه
-     * @return مقدار مثبت اگر version1 > version2، منفی اگر version1 < version2، صفر اگر برابر باشند
-     */
     private fun compareVersions(version1: String, version2: String): Int {
-        val v1Parts = version1.split(".").map { it.toIntOrNull() ?: 0 }
-        val v2Parts = version2.split(".").map { it.toIntOrNull() ?: 0 }
+        // پاک‌سازی و نرمال‌سازی ورودی‌ها
+        val v1Clean = version1.trim().replace(Regex("[^0-9.]"), "")
+        val v2Clean = version2.trim().replace(Regex("[^0-9.]"), "")
+        
+        // تبدیل به لیست اعداد صحیح
+        val v1Parts = v1Clean.split(".").mapNotNull { 
+            it.toIntOrNull()?.takeIf { num -> num >= 0 }
+        }
+        val v2Parts = v2Clean.split(".").mapNotNull { 
+            it.toIntOrNull()?.takeIf { num -> num >= 0 }
+        }
+        
+        // اگر هر دو خالی باشند، برابرند
+        if (v1Parts.isEmpty() && v2Parts.isEmpty()) return 0
+        // اگر یکی خالی باشد، دیگری بزرگتر است
+        if (v1Parts.isEmpty()) return -1
+        if (v2Parts.isEmpty()) return 1
         
         val maxLength = maxOf(v1Parts.size, v2Parts.size)
         
@@ -538,7 +538,7 @@ class UpdateManager(
                 else -> "خطا در نصب بروزرسانی: ${e.message}"
             }
             _downloadState.value = DownloadState.Error(errorMessage)
-            Log.e("UpdateManager", "Install error", e)
+            Log.e("UpdateManager_Log", "Install error", e)
         }
     }
 
@@ -570,7 +570,7 @@ class UpdateManager(
                 }
             }
         } catch (e: Exception) {
-            Log.e("UpdateManager", "Error cleaning up download files", e)
+            Log.e("UpdateManager_Log", "Error cleaning up download files", e)
         }
     }
 
