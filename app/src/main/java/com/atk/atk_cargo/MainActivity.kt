@@ -106,6 +106,8 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.ToggleOn
+import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
@@ -242,7 +244,8 @@ data class QuotaTonnageWarning(
     val currentRemaining: String,
     val voucherCount: String,
     val remainingAfterExit: String,
-    val isNegative: Boolean
+    val isNegative: Boolean,
+    val isActive: Boolean = false
 )
 
 class MainActivity : ComponentActivity() {
@@ -3261,12 +3264,12 @@ private fun ShipAccordionCard(
     
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         color = if (isExpanded) 
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
         else 
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        tonalElevation = if (isExpanded) 2.dp else 1.dp
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+        tonalElevation = if (isExpanded) 2.dp else 0.5.dp
     ) {
         Column(
             modifier = Modifier
@@ -3287,50 +3290,57 @@ private fun ShipAccordionCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Inventory,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(20.dp)
                         )
-                        Text(
-                            text = shipName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = shipName,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                     
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                text = "مانده:",
+                                text = "مانده",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 10.sp
                             )
                             Text(
                                 text = String.format("%,.0f", totalRemaining),
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error
+                                color = if (totalRemaining < 50000) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                             )
                         }
                         
                         Icon(
                             imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = if (isExpanded) "بستن" else "باز کردن",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -3339,27 +3349,27 @@ private fun ShipAccordionCard(
             // محتوای گسترش‌یافته
             if (isExpanded) {
                 HorizontalDivider(
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                    modifier = Modifier.padding(horizontal = 12.dp)
                 )
                 
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // نمایش براساس صاحب کالا
                     cargoOwnerMap.forEach { (cargoOwner, quotas) ->
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             // عنوان صاحب کالا
                             Text(
                                 text = "📦 $cargoOwner",
-                                style = MaterialTheme.typography.titleSmall,
+                                style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.padding(bottom = 4.dp)
+                                modifier = Modifier.padding(bottom = 2.dp)
                             )
                             
                             // کوتاژهای مرتب شده براساس تناژ مانده
@@ -3377,49 +3387,66 @@ private fun ShipAccordionCard(
 @SuppressLint("DefaultLocale")
 @Composable
 private fun QuotaItemCard(quota: QuotaData) {
+    val scope = rememberCoroutineScope()
+    var isToggling by remember { mutableStateOf(false) }
+    var isActive by remember { mutableStateOf(quota.status != "فعال" && quota.status != "active") }
+    
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        tonalElevation = 0.5.dp
+        shape = RoundedCornerShape(8.dp),
+        color = if (isActive) 
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
+        else 
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
+        tonalElevation = 0.25.dp,
+        border = if (!isActive) BorderStroke(0.5.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f)) else null
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             // بخش راست: شماره کوتاژ و انبار
             Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                modifier = Modifier.weight(0.8f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "#${quota.quotaNumber}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
                 Text(
-                    text = "کوتاژ: ${quota.quotaNumber}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "انبار: ${quota.warehouse}",
+                    text = quota.warehouse,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             
             // بخش وسط: مانده و درصد
             Column(
                 horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.weight(0.7f)
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = String.format("%,.0f", quota.remainingTonnage),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (quota.remainingTonnage < 50000) 
                             MaterialTheme.colorScheme.error 
@@ -3428,7 +3455,7 @@ private fun QuotaItemCard(quota: QuotaData) {
                     )
                     Text(
                         text = "(${String.format("%.1f", quota.percentage)}%)",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.tertiary
                     )
                 }
@@ -3438,6 +3465,105 @@ private fun QuotaItemCard(quota: QuotaData) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            
+            // دکمه عمل: فعال/غیرفعال کردن کوتاژ
+            if (isToggling) {
+                LoadingActionButton(
+                    label = "تغییر",
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.width(36.dp)
+                )
+            } else {
+                CompactActionButton(
+                    icon = if (isActive) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
+                    label = if (isActive) "فعال" else "غیرفعال",
+                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    onClick = {
+                        isToggling = true
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val response = RetrofitClient.apiService.toggleQuotaStatus(
+                                    action = "toggleQuotaStatus",
+                                    quotaNumber = quota.quotaNumber.toString()
+                                )
+                                if (response.isSuccessful) {
+                                    withContext(Dispatchers.Main) {
+                                        isActive = !isActive
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                // Handle error if needed
+                            } finally {
+                                isToggling = false
+                            }
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactActionButton(
+    icon: ImageVector,
+    label: String,
+    color: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .clip(RoundedCornerShape(8.dp))
+            .padding(4.dp),
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .background(
+                    color = color.copy(alpha = 0.1f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = color,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoadingActionButton(
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .background(
+                    color = color.copy(alpha = 0.1f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                color = color,
+                strokeWidth = 1.5.dp
+            )
         }
     }
 }
@@ -3692,15 +3818,25 @@ fun parseQuotaTonnageData(rawData: String): List<QuotaTonnageWarning> {
 
 @Composable
 private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
+    val scope = rememberCoroutineScope()
+    var isToggling by remember { mutableStateOf(false) }
+    var isActive by remember { mutableStateOf(warning.isActive) }
+    
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f),
+        color = if (isActive) 
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)
+        else 
+            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.05f),
         border = BorderStroke(
             1.5.dp,
-            MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+            if (isActive)
+                MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+            else
+                MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
         ),
-        tonalElevation = 2.dp
+        tonalElevation = if (isActive) 2.dp else 0.5.dp
     ) {
         Column(
             modifier = Modifier
@@ -3732,14 +3868,31 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
                     )
                 }
                 
-                Badge(
-                    containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        "کوتاژ ${warning.quotaNumber}",
-                        color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Badge(
+                        containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                    ) {
+                        Text(
+                            "کوتاژ ${warning.quotaNumber}",
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    if (!isActive) {
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+                        ) {
+                            Text(
+                                "غیرفعال",
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
                 }
             }
             
@@ -3757,13 +3910,15 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
                     icon = "🛳",
                     label = "کشتی",
                     value = warning.shipName,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    valueColor = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
                 InfoItem(
                     icon = "👤",
                     label = "صاحب کالا",
                     value = warning.cargoOwner,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    valueColor = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
             }
             
@@ -3777,13 +3932,14 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
                     label = "مانده فعلی",
                     value = "${warning.currentRemaining} کیلوگرم",
                     modifier = Modifier.weight(1f),
-                    valueColor = MaterialTheme.colorScheme.primary
+                    valueColor = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                 )
                 InfoItem(
                     icon = "📝",
                     label = "حواله‌های ورود",
                     value = "${warning.voucherCount} عدد",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    valueColor = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
             }
             
@@ -3792,9 +3948,9 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 color = if (warning.isNegative)
-                    MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+                    MaterialTheme.colorScheme.error.copy(alpha = if (isActive) 0.15f else 0.05f)
                 else
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (isActive) 0.3f else 0.1f)
             ) {
                 Row(
                     modifier = Modifier
@@ -3822,10 +3978,77 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                         color = if (warning.isNegative)
-                            MaterialTheme.colorScheme.error
+                            MaterialTheme.colorScheme.error.copy(alpha = if (isActive) 1f else 0.5f)
                         else
-                            MaterialTheme.colorScheme.primary
+                            MaterialTheme.colorScheme.primary.copy(alpha = if (isActive) 1f else 0.5f)
                     )
+                }
+            }
+            
+            // دکمهٔ غیرفعال‌سازی کوتاژ
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+            
+            if (isToggling) {
+                LoadingActionButton(
+                    label = "در حال تغییر...",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                )
+            } else {
+                Button(
+                    onClick = {
+                        isToggling = true
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val response = RetrofitClient.apiService.toggleQuotaStatus(
+                                    action = "toggleQuotaStatus",
+                                    quotaNumber = warning.quotaNumber
+                                )
+                                if (response.isSuccessful) {
+                                    withContext(Dispatchers.Main) {
+                                        isActive = !isActive
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                // Handle error if needed
+                            } finally {
+                                isToggling = false
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isActive)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        else
+                            MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                    )
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (isActive) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
+                            contentDescription = null,
+                            tint = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            if (isActive) "فعال" else "غیرفعال",
+                            color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
@@ -4265,7 +4488,6 @@ private fun ExpandableSection(
         animationSpec = tween(300),
         label = "rotation"
     )
-    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         delay(startDelay)
