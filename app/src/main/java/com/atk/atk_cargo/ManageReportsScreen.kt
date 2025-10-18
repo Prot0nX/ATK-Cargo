@@ -1911,20 +1911,25 @@ fun QuotasList(
 			// ابتدا کوتاژها را فیلتر و گروه‌بندی می‌کنیم
 			val groupedMap = quotas
 				.filter { quota ->
-					quota.number.contains(searchQuery, ignoreCase = true) ||
+					val matches = quota.number.contains(searchQuery, ignoreCase = true) ||
 							quota.shippingCompany.contains(searchQuery, ignoreCase = true) ||
 							(quota.cargoOwner?.contains(searchQuery, ignoreCase = true) == true)
+					matches
 				}
 				.groupBy {
 					when (currentGroupingMode) {
 						WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY -> it.shippingCompany
-						WarehouseQuotaGroupingMode.BY_CARGO_OWNER -> it.cargoOwner
-						WarehouseQuotaGroupingMode.BY_WAREHOUSE -> "${it.warehouse} | ${it.cargoOwner}"
+						WarehouseQuotaGroupingMode.BY_CARGO_OWNER -> {
+							it.cargoOwner
+						}
+						WarehouseQuotaGroupingMode.BY_WAREHOUSE -> {
+							"${it.warehouse} | ${it.cargoOwner}"
+						}
 					}
 				}
-				.mapValues { (_, groupQuotas) ->
+				.mapValues { (groupName, groupQuotas) ->
 					// مرتب‌سازی کوتاژها در هر گروه بر اساس مقدار دقیق وزن (کیلوگرم)
-					groupQuotas.sortedWith(
+					val sorted = groupQuotas.sortedWith(
 						compareByDescending<Quota> { it.isActive }
 							.thenBy { quota ->
 								val remainingAfterPercentage = calculateRemainingAfterPercentage(quota)
@@ -1935,33 +1940,48 @@ fun QuotasList(
 								}
 							}
 					)
+					sorted
 				}
 
 			// مرتب‌سازی گروه‌ها بر اساس حالت انتخابی با استفاده از مقدار دقیق وزن
-			when (currentGroupSortingMode) {
+			val sortedEntries = when (currentGroupSortingMode) {
 				// مرتب‌سازی بر اساس نام گروه (پیش‌فرض)
 				GroupSortingMode.ALPHABETICAL -> {
-					groupedMap.toSortedMap(compareBy { it })
+					groupedMap.entries.sortedBy { it.key }
 				}
 				// مرتب‌سازی بر اساس مجموع تناژ مانده گروه‌ها با دقت بالا
 				GroupSortingMode.REMAINING_TONNAGE_ASC -> {
-					groupedMap.toSortedMap(compareBy { groupName ->
+					groupedMap.entries.sortedBy { (groupName, _) ->
 						val totalRemainingKg = groupedMap[groupName]?.sumOf { quota ->
 							val remainingAfterPercentage = calculateRemainingAfterPercentage(quota)
 							getWeightInKg(remainingAfterPercentage).toDouble()
 						} ?: 0.0
 						totalRemainingKg
-					})
+					}
 				}
 				GroupSortingMode.REMAINING_TONNAGE_DESC -> {
-					groupedMap.toSortedMap(compareByDescending { groupName ->
+					groupedMap.entries.sortedByDescending { (groupName, _) ->
 						val totalRemainingKg = groupedMap[groupName]?.sumOf { quota ->
 							val remainingAfterPercentage = calculateRemainingAfterPercentage(quota)
 							getWeightInKg(remainingAfterPercentage).toDouble()
 						} ?: 0.0
 						totalRemainingKg
-					})
+					}
 				}
+			}
+		
+			LinkedHashMap<String?, List<Quota>>().apply {
+				sortedEntries.forEach { (key, value) ->
+					put(key, value)
+				}
+			}
+		}.also { result ->
+			result.forEach { (groupName, items) ->
+				Log.d("atkcargo", "  Group '$groupName': ${items.size} items - ${
+                    items.joinToString(
+                        ", "
+                    ) { it.number }
+                }")
 			}
 		}
 
@@ -4100,13 +4120,13 @@ fun TempTonnageSection(
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			// شرکت باربری
-			MinimalInfoChip(
+			InfoChip(
 				icon = Icons.Default.LocalShipping,
 				value = quota.shippingCompany
 			)
 
 			// وضعیت کوتاژ
-			MinimalStatusButton(
+			StatusButton(
 				isActive = quota.isActive,
 				isLoading = isStatusToggling,
 				onToggle = onStatusToggle
@@ -4240,7 +4260,7 @@ fun TempTonnageSection(
 }
 
 @Composable
-fun MinimalInfoChip(
+fun InfoChip(
 	icon: ImageVector,
 	value: String,
 	modifier: Modifier = Modifier
@@ -4274,7 +4294,7 @@ fun MinimalInfoChip(
 }
 
 @Composable
-fun MinimalStatusButton(
+fun StatusButton(
 	isActive: Boolean,
 	isLoading: Boolean,
 	onToggle: () -> Unit,
@@ -4988,7 +5008,7 @@ private fun PercentageInputTab(
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			// Decrease Button
-			EnhancedIconButton(
+			IconButton(
 				onClick = { onPercentageChange(percentage - adjustmentStep) },
 				enabled = percentage > 0.00,
 				icon = Icons.Default.Remove
@@ -4998,7 +5018,7 @@ private fun PercentageInputTab(
 			PercentageDisplay(percentage)
 
 			// Increase Button
-			EnhancedIconButton(
+			IconButton(
 				onClick = { onPercentageChange(percentage + adjustmentStep) },
 				enabled = percentage < 2.00,
 				icon = Icons.Default.Add
@@ -5021,7 +5041,7 @@ private fun PercentageInputTab(
 }
 
 @Composable
-private fun EnhancedIconButton(
+private fun IconButton(
 	onClick: () -> Unit,
 	enabled: Boolean,
 	icon: ImageVector
