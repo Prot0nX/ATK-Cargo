@@ -91,13 +91,14 @@ function sanitizeInput(string $input): string {
  * بهینه‌سازی‌های پیشرفته:
  * 1. محاسبات کامل در SQL (حذف محاسبات PHP)
  * 2. استفاده از CTE برای خوانایی و بهینه‌سازی بهتر
- * 3. محاسبه مانده و درصد بارگیری در SQL
+ * 3. محاسبه مانده و درصد و status در SQL
  * 4. کاهش تعداد عملیات JOIN
  * 5. استفاده از عملگرهای ریاضی بهینه
+ * 6. Type casting در SQL برای کاهش بار PHP
  */
 function getActiveQuotasRemaining(DatabaseManager $db): array {
     try {
-        // کوئری فوق‌بهینه با CTE و محاسبات کامل در SQL + آمار کلی
+        // کوئری فوق‌بهینه با CTE و محاسبات کامل در SQL + آمار کلی + status
         $query = "
         WITH ExitSummary AS (
             SELECT 
@@ -120,28 +121,36 @@ function getActiveQuotasRemaining(DatabaseManager $db): array {
                 i.cargoOwner,
                 i.loadingWarehouse as warehouse,
                 i.cargoType,
-                i.cargoWeight as totalTonnage,
-                i.percentage,
-                i.is_enabled as isPercentageEnabled,
-                COALESCE(e.loadedTonnage, 0) as loadedTonnage,
-                COALESCE(e.voucherCount, 0) as voucherCount,
-                IF(i.is_enabled AND i.percentage > 0, 
+                CAST(i.cargoWeight AS DECIMAL(15,2)) as totalTonnage,
+                CAST(i.percentage AS DECIMAL(5,2)) as percentage,
+                CAST(i.is_enabled AS UNSIGNED) as isPercentageEnabled,
+                CAST(COALESCE(e.loadedTonnage, 0) AS DECIMAL(15,2)) as loadedTonnage,
+                CAST(COALESCE(e.voucherCount, 0) AS UNSIGNED) as voucherCount,
+                CAST(IF(i.is_enabled AND i.percentage > 0, 
                    i.cargoWeight * i.percentage * 0.01, 
-                   0) as percentageAmount,
-                IF(i.is_enabled AND i.percentage > 0,
+                   0) AS DECIMAL(15,2)) as percentageAmount,
+                CAST(IF(i.is_enabled AND i.percentage > 0,
                    i.cargoWeight * (1 - i.percentage * 0.01),
-                   i.cargoWeight) as adjustedTonnage,
-                GREATEST(0,
+                   i.cargoWeight) AS DECIMAL(15,2)) as adjustedTonnage,
+                CAST(GREATEST(0,
                     IF(i.is_enabled AND i.percentage > 0,
                        i.cargoWeight * (1 - i.percentage * 0.01),
                        i.cargoWeight) - COALESCE(e.loadedTonnage, 0)
-                ) as remainingTonnage,
-                IF(i.cargoWeight > 0,
+                ) AS DECIMAL(15,2)) as remainingTonnage,
+                CAST(IF(i.cargoWeight > 0,
                    ROUND((COALESCE(e.loadedTonnage, 0) / 
                           IF(i.is_enabled AND i.percentage > 0,
                              i.cargoWeight * (1 - i.percentage * 0.01),
                              i.cargoWeight)) * 100, 2),
-                   0) as percentageLoaded
+                   0) AS DECIMAL(5,2)) as percentageLoaded,
+                CASE 
+                    WHEN GREATEST(0,
+                        IF(i.is_enabled AND i.percentage > 0,
+                           i.cargoWeight * (1 - i.percentage * 0.01),
+                           i.cargoWeight) - COALESCE(e.loadedTonnage, 0)
+                    ) > 0 THEN 'دارای مانده'
+                    ELSE 'تکمیل شده'
+                END as status
             FROM InitialInfo i
             LEFT JOIN ExitSummary e ON 
                 e.loadingQuotaNumber = i.loadingQuotaNumber
@@ -153,11 +162,10 @@ function getActiveQuotasRemaining(DatabaseManager $db): array {
         )
         SELECT 
             q.*,
-            -- محاسبه آمار کلی در SQL
             (SELECT COUNT(*) FROM QuotaData) as totalQuotas,
-            (SELECT SUM(totalTonnage) FROM QuotaData) as totalOriginalTonnage,
-            (SELECT SUM(loadedTonnage) FROM QuotaData) as totalLoadedTonnage,
-            (SELECT SUM(remainingTonnage) FROM QuotaData) as totalRemainingTonnage
+            (SELECT CAST(SUM(totalTonnage) AS DECIMAL(15,2)) FROM QuotaData) as totalOriginalTonnage,
+            (SELECT CAST(SUM(loadedTonnage) AS DECIMAL(15,2)) FROM QuotaData) as totalLoadedTonnage,
+            (SELECT CAST(SUM(remainingTonnage) AS DECIMAL(15,2)) FROM QuotaData) as totalRemainingTonnage
         FROM QuotaData q
         ORDER BY q.shipName, q.quotaNumber
         ";
@@ -187,8 +195,7 @@ function getActiveQuotasRemaining(DatabaseManager $db): array {
                 ];
             }
             
-            // ساخت آرایه خروجی - فقط type casting
-            $remainingTonnage = (float)$row['remainingTonnage'];
+            // ساخت آرایه خروجی - فقط type casting ساده
             $quotasData[] = [
                 'shipName' => $row['shipName'],
                 'quotaNumber' => (int)$row['quotaNumber'],
@@ -202,10 +209,10 @@ function getActiveQuotasRemaining(DatabaseManager $db): array {
                 'isPercentageEnabled' => (bool)$row['isPercentageEnabled'],
                 'adjustedTotalTonnage' => (float)$row['adjustedTonnage'],
                 'loadedTonnage' => (float)$row['loadedTonnage'],
-                'remainingTonnage' => $remainingTonnage,
+                'remainingTonnage' => (float)$row['remainingTonnage'],
                 'percentageLoaded' => (float)$row['percentageLoaded'],
                 'voucherCount' => (int)$row['voucherCount'],
-                'status' => $remainingTonnage > 0 ? 'دارای مانده' : 'تکمیل شده'
+                'status' => $row['status']
             ];
         }
         
@@ -237,7 +244,7 @@ function getShipQuotasRemaining(DatabaseManager $db, string $shipName): array {
     try {
         $shipName = sanitizeInput($shipName);
         
-        // کوئری فوق‌بهینه با CTE و محاسبات کامل در SQL + آمار کلی
+        // کوئری فوق‌بهینه با CTE و محاسبات کامل در SQL + آمار کلی + status
         $query = "
         WITH ExitSummary AS (
             SELECT 
@@ -260,28 +267,36 @@ function getShipQuotasRemaining(DatabaseManager $db, string $shipName): array {
                 i.cargoOwner,
                 i.loadingWarehouse as warehouse,
                 i.cargoType,
-                i.cargoWeight as totalTonnage,
-                i.percentage,
-                i.is_enabled as isPercentageEnabled,
-                COALESCE(e.loadedTonnage, 0) as loadedTonnage,
-                COALESCE(e.voucherCount, 0) as voucherCount,
-                IF(i.is_enabled AND i.percentage > 0, 
+                CAST(i.cargoWeight AS DECIMAL(15,2)) as totalTonnage,
+                CAST(i.percentage AS DECIMAL(5,2)) as percentage,
+                CAST(i.is_enabled AS UNSIGNED) as isPercentageEnabled,
+                CAST(COALESCE(e.loadedTonnage, 0) AS DECIMAL(15,2)) as loadedTonnage,
+                CAST(COALESCE(e.voucherCount, 0) AS UNSIGNED) as voucherCount,
+                CAST(IF(i.is_enabled AND i.percentage > 0, 
                    i.cargoWeight * i.percentage * 0.01, 
-                   0) as percentageAmount,
-                IF(i.is_enabled AND i.percentage > 0,
+                   0) AS DECIMAL(15,2)) as percentageAmount,
+                CAST(IF(i.is_enabled AND i.percentage > 0,
                    i.cargoWeight * (1 - i.percentage * 0.01),
-                   i.cargoWeight) as adjustedTonnage,
-                GREATEST(0,
+                   i.cargoWeight) AS DECIMAL(15,2)) as adjustedTonnage,
+                CAST(GREATEST(0,
                     IF(i.is_enabled AND i.percentage > 0,
                        i.cargoWeight * (1 - i.percentage * 0.01),
                        i.cargoWeight) - COALESCE(e.loadedTonnage, 0)
-                ) as remainingTonnage,
-                IF(i.cargoWeight > 0,
+                ) AS DECIMAL(15,2)) as remainingTonnage,
+                CAST(IF(i.cargoWeight > 0,
                    ROUND((COALESCE(e.loadedTonnage, 0) / 
                           IF(i.is_enabled AND i.percentage > 0,
                              i.cargoWeight * (1 - i.percentage * 0.01),
                              i.cargoWeight)) * 100, 2),
-                   0) as percentageLoaded
+                   0) AS DECIMAL(5,2)) as percentageLoaded,
+                CASE 
+                    WHEN GREATEST(0,
+                        IF(i.is_enabled AND i.percentage > 0,
+                           i.cargoWeight * (1 - i.percentage * 0.01),
+                           i.cargoWeight) - COALESCE(e.loadedTonnage, 0)
+                    ) > 0 THEN 'دارای مانده'
+                    ELSE 'تکمیل شده'
+                END as status
             FROM InitialInfo i
             LEFT JOIN ExitSummary e ON 
                 e.loadingQuotaNumber = i.loadingQuotaNumber
@@ -294,9 +309,9 @@ function getShipQuotasRemaining(DatabaseManager $db, string $shipName): array {
         SELECT 
             q.*,
             (SELECT COUNT(*) FROM QuotaData) as totalQuotas,
-            (SELECT SUM(totalTonnage) FROM QuotaData) as totalOriginalTonnage,
-            (SELECT SUM(loadedTonnage) FROM QuotaData) as totalLoadedTonnage,
-            (SELECT SUM(remainingTonnage) FROM QuotaData) as totalRemainingTonnage
+            (SELECT CAST(SUM(totalTonnage) AS DECIMAL(15,2)) FROM QuotaData) as totalOriginalTonnage,
+            (SELECT CAST(SUM(loadedTonnage) AS DECIMAL(15,2)) FROM QuotaData) as totalLoadedTonnage,
+            (SELECT CAST(SUM(remainingTonnage) AS DECIMAL(15,2)) FROM QuotaData) as totalRemainingTonnage
         FROM QuotaData q
         ORDER BY q.quotaNumber
         ";
@@ -325,7 +340,6 @@ function getShipQuotasRemaining(DatabaseManager $db, string $shipName): array {
                 ];
             }
             
-            $remainingTonnage = (float)$row['remainingTonnage'];
             $quotasData[] = [
                 'shipName' => $row['shipName'],
                 'quotaNumber' => (int)$row['quotaNumber'],
@@ -339,10 +353,10 @@ function getShipQuotasRemaining(DatabaseManager $db, string $shipName): array {
                 'isPercentageEnabled' => (bool)$row['isPercentageEnabled'],
                 'adjustedTotalTonnage' => (float)$row['adjustedTonnage'],
                 'loadedTonnage' => (float)$row['loadedTonnage'],
-                'remainingTonnage' => $remainingTonnage,
+                'remainingTonnage' => (float)$row['remainingTonnage'],
                 'percentageLoaded' => (float)$row['percentageLoaded'],
                 'voucherCount' => (int)$row['voucherCount'],
-                'status' => $remainingTonnage > 0 ? 'دارای مانده' : 'تکمیل شده'
+                'status' => $row['status']
             ];
         }
         
