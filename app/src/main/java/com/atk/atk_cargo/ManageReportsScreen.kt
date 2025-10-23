@@ -1822,6 +1822,8 @@ fun QuotasList(
 		)
 
 		// دکمه‌های مرتب‌سازی کوتاژها و گروه‌ها
+		var shareGroupedQuotas by remember { mutableStateOf<LinkedHashMap<String?, List<Quota>>?>(null) }
+		val context = LocalContext.current
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1837,6 +1839,22 @@ fun QuotasList(
 				onModeChange = viewModel::setGroupSortingMode,
 				modifier = Modifier.weight(1f)
 			)
+
+			IconButton(
+				onClick = {
+					shareGroupedQuotas?.let { quotas ->
+						val shareText = buildQuotasShareText(quotas)
+						shareQuotasData(context, shareText)
+					}
+				},
+				modifier = Modifier.size(36.dp)
+			) {
+				Icon(
+					imageVector = Icons.Default.Share,
+					contentDescription = "اشتراک‌گذاری اطلاعات",
+					tint = MaterialTheme.colorScheme.primary
+				)
+			}
 		}
 
 		// نمایش بازه زمانی انتخاب شده
@@ -1983,6 +2001,7 @@ fun QuotasList(
                     ) { it.number }
                 }")
 			}
+			shareGroupedQuotas = result
 		}
 
 		LazyColumn(
@@ -14289,17 +14308,51 @@ fun formatWeightWithDetail(weightInKg: Float): String {
 }
 
 fun calculateProgress(value: Float, total: Float): Float {
-	return if (total > 0f) (value / total).coerceIn(0f, 1f) else 0f
+    return if (total > 0f) (value / total).coerceIn(0f, 1f) else 0f
+}
+
+@SuppressLint("DefaultLocale")
+fun buildQuotasShareText(groupedQuotas: LinkedHashMap<String?, List<Quota>>): String {
+    val shareText = StringBuilder()
+    shareText.append("اطلاعات کوتاژها\n")
+    shareText.append("=".repeat(10)).append("\n\n")
+
+    groupedQuotas.forEach { (groupName, quotas) ->
+        if (groupName != null) {
+            shareText.append(groupName).append("\n")
+            shareText.append("-".repeat(10)).append("\n")
+
+            quotas.forEach { quota ->
+                shareText.append("شماره کوتاژ: ").append(quota.number).append("\n")
+                shareText.append("بارگیری: ").append(formatNumber(quota.loadedTonnage.toInt()))
+                    .append(" | مانده: ").append(formatNumber(quota.remainingTonnage.toInt()))
+                    .append("\n\n")
+            }
+
+            shareText.append("\n")
+        }
+    }
+
+    return shareText.toString()
+}
+
+fun shareQuotasData(context: Context, shareText: String) {
+    val intent = Intent().apply {
+        action = Intent.ACTION_SEND
+        putExtra(Intent.EXTRA_TEXT, shareText)
+        type = "text/plain"
+    }
+    context.startActivity(Intent.createChooser(intent, "اشتراک‌گذاری اطلاعات"))
 }
 
 fun calculatePercentage(value: Float, total: Float): Int {
-	return if (total > 0f) ((value / total) * 100).toInt().coerceIn(0, 100) else 0
+    return if (total > 0f) ((value / total) * 100).toInt().coerceIn(0, 100) else 0
 }
 
 fun Double.format(digits: Int) = "%.${digits}f".format(this)
 
 fun formatNumber(number: Int): String {
-	return NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
+    return NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
 }
 
 fun formatHoursToPersian(hours: Float): String {
