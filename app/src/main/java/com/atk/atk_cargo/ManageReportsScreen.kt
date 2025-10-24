@@ -447,7 +447,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
 		onAnalyticsClick = {
 			showAnalyticsDialog = true
 		},
-		onDateRangeClick = if (currentSelectedSection == 1) {
+		onDateRangeClick = if (currentSelectedSection == 0) {
 			{ showDateRangeDialog = true }
 		} else null,
 		onQuotaManagementClick = {
@@ -1799,6 +1799,7 @@ private fun SegmentedTabs(
 	}
 }
 
+@SuppressLint("MutableCollectionMutableState")
 @Composable
 fun QuotasList(
 	quotas: List<Quota>,
@@ -1843,7 +1844,8 @@ fun QuotasList(
 			IconButton(
 				onClick = {
 					shareGroupedQuotas?.let { quotas ->
-						val shareText = buildQuotasShareText(quotas)
+						val shipName = viewModel.selectedShip.value?.name ?: ""
+						val shareText = buildQuotasShareText(quotas, shipName)
 						shareQuotasData(context, shareText)
 					}
 				},
@@ -14311,25 +14313,27 @@ fun calculateProgress(value: Float, total: Float): Float {
     return if (total > 0f) (value / total).coerceIn(0f, 1f) else 0f
 }
 
-@SuppressLint("DefaultLocale")
-fun buildQuotasShareText(groupedQuotas: LinkedHashMap<String?, List<Quota>>): String {
+@SuppressLint("DefaultLocale", "SimpleDateFormat")
+fun buildQuotasShareText(groupedQuotas: LinkedHashMap<String?, List<Quota>>, shipName: String = ""): String {
     val shareText = StringBuilder()
-    shareText.append("اطلاعات کوتاژها\n")
-    shareText.append("=".repeat(10)).append("\n\n")
+    shareText.append("📄 *اطلاعات کشتی*")
+    if (shipName.isNotEmpty()) {
+        shareText.append(": ").append(shipName)
+    }
+    shareText.append("\n\n")
 
     groupedQuotas.forEach { (groupName, quotas) ->
         if (groupName != null) {
-            shareText.append(groupName).append("\n")
-            shareText.append("-".repeat(10)).append("\n")
+            shareText.append("🏛️ *صاحب کالا*: ").append(groupName).append("\n\n")
 
             quotas.forEach { quota ->
-                shareText.append("شماره کوتاژ: ").append(quota.number).append("\n")
-                shareText.append("بارگیری: ").append(formatNumber(quota.loadedTonnage.toInt()))
-                    .append(" | مانده: ").append(formatNumber(quota.remainingTonnage.toInt()))
-                    .append("\n\n")
+                shareText.append("📋 *شماره کوتاژ*: ").append(quota.number).append("\n")
+                shareText.append("🚚 *بارگیری*: ").append(formatNumber(quota.loadedTonnage.toInt())).append(" تن\n")
+                shareText.append("⚖️ *مانده*: ").append(formatNumber(quota.remainingTonnage.toInt())).append(" تن\n")
+                shareText.append("\n")
             }
 
-            shareText.append("\n")
+            shareText.append("=".repeat(35)).append("\n\n")
         }
     }
 
