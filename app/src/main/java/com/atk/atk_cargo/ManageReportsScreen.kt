@@ -339,6 +339,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
 	var showDateRangeDialog by remember { mutableStateOf(false) }
 	var showQuotaManagementDialog by remember { mutableStateOf(false) }
 	var currentSelectedSection by remember { mutableIntStateOf(0) }
+	var isInShipDetailsScreen by remember { mutableStateOf(false) }
 	val realTimeLoadingData by viewModel.realTimeLoadingData.collectAsState()
 	val shiftInfo by viewModel.shiftInfo.collectAsState()
 	var searchResult by remember { mutableStateOf<CargoInfo?>(null) }
@@ -362,6 +363,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
 					composable("shipsList") {
 						LaunchedEffect(Unit) {
 							currentSelectedSection = 0
+							isInShipDetailsScreen = false
 							viewModel.clearSelectedDateRange()
 						}
 
@@ -376,6 +378,9 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
 					}
 					composable("shipDetails/{shipName}") { backStackEntry ->
 						val shipName = backStackEntry.arguments?.getString("shipName") ?: return@composable
+						LaunchedEffect(Unit) {
+							isInShipDetailsScreen = true
+						}
 						ShipDetails(
 							initialShipName = shipName,
 							viewModel = viewModel,
@@ -392,6 +397,9 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
 					composable("warehouseDetails/{shipName}/{warehouseName}") { backStackEntry ->
 						val shipName = backStackEntry.arguments?.getString("shipName") ?: return@composable
 						val warehouseName = backStackEntry.arguments?.getString("warehouseName") ?: return@composable
+						LaunchedEffect(Unit) {
+							isInShipDetailsScreen = false
+						}
 						WarehouseDetails(
 							shipName = shipName,
 							warehouseName = warehouseName,
@@ -400,6 +408,9 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
 					}
 					composable("quotaDetails/{quotaNumber}") { backStackEntry ->
 						val quotaNumber = backStackEntry.arguments?.getString("quotaNumber") ?: return@composable
+						LaunchedEffect(Unit) {
+							isInShipDetailsScreen = false
+						}
 						QuotaDetails(
 							quotaNumber = quotaNumber,
 							viewModel = viewModel
@@ -447,7 +458,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
 		onAnalyticsClick = {
 			showAnalyticsDialog = true
 		},
-		onDateRangeClick = if (currentSelectedSection == 0) {
+		onDateRangeClick = if (isInShipDetailsScreen && currentSelectedSection == 0) {
 			{ showDateRangeDialog = true }
 		} else null,
 		onQuotaManagementClick = {
