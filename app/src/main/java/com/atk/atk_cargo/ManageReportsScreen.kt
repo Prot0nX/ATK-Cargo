@@ -1117,12 +1117,12 @@ fun ShipDetails(
 	val selectedShipQuotas by viewModel.selectedShipQuotas.collectAsState()
 	var showWarningDialog by remember { mutableStateOf(false) }
 	val uiState by viewModel.uiState.collectAsState()
-	
+
 	// متغیرهای StateFlow جدید برای مدیریت بهتر وضعیت بارگذاری
 	val isLoadingShipDetails by viewModel.isLoadingShipDetails.collectAsState()
 	val isLoadingShipQuotas by viewModel.isLoadingShipQuotas.collectAsState()
 	val shipDetailsLoadingState by viewModel.shipDetailsLoadingState.collectAsState()
-	
+
 	var selectedTabIndex by remember { mutableIntStateOf(0) }
 	val pagerState = rememberPagerState(pageCount = { 1 })
 	val coroutineScope = rememberCoroutineScope()
@@ -1348,7 +1348,7 @@ fun WarehousesAndQuotasTab(
 	var selectedSection by remember { mutableIntStateOf(0) }
 	val sections = listOf("کوتاژها", "انبارها")
 	var searchQuery by remember { mutableStateOf("") }
-	
+
 	// مشاهده وضعیت‌های بارگذاری جداگانه
 	val isLoadingShipQuotas by viewModel.isLoadingShipQuotas.collectAsState()
 	val shipQuotasLoadingState by viewModel.shipQuotasLoadingState.collectAsState()
@@ -1406,7 +1406,7 @@ fun WarehousesAndQuotasTab(
 							onDelete = viewModel::deleteQuota,
 							viewModel = viewModel
 						)
-						
+
 						// نمایش اندیکاتور بارگذاری برای کوتاژها
 						if (isLoadingShipQuotas) {
 							Surface(
@@ -1435,7 +1435,7 @@ fun WarehousesAndQuotasTab(
 								}
 							}
 						}
-						
+
 						// نمایش خطا در صورت وجود
 						if (shipQuotasLoadingState is ReportsViewModel.LoadingState.Error && selectedShipQuotas.isNotEmpty()) {
 							Surface(
@@ -1511,13 +1511,13 @@ private fun ShipHeaderCard(shipDetails: Ship) {
 					val composition by rememberLottieComposition(
 						LottieCompositionSpec.RawRes(R.raw.ship)
 					)
-					
+
 					LottieAnimation(
 						composition = composition,
 						iterations = LottieConstants.IterateForever,
 						modifier = Modifier.size(36.dp)
 					)
-					
+
 					Text(
 						text = shipDetails.name,
 						style = MaterialTheme.typography.titleMedium,
@@ -1581,14 +1581,14 @@ private fun ShipHeaderCard(shipDetails: Ship) {
 					color = MaterialTheme.colorScheme.primary,
 					label = "کل"
 				)
-				
+
 				StatChip(
 					icon = Icons.Default.ArrowDownward,
 					value = formatNumber(shipDetails.remainingTonnage.toInt()),
 					color = MaterialTheme.colorScheme.tertiary,
 					label = "مانده"
 				)
-				
+
 				ProgressIndicator(progress = progress)
 			}
 		}
@@ -2000,7 +2000,7 @@ fun QuotasList(
 					}
 				}
 			}
-		
+
 			LinkedHashMap<String?, List<Quota>>().apply {
 				sortedEntries.forEach { (key, value) ->
 					put(key, value)
@@ -2214,7 +2214,7 @@ private fun ProgressIndicator(
 					)
 			)
 		}
-		
+
 		Text(
 			text = "${(progress * 100).roundToInt()}%",
 			style = MaterialTheme.typography.bodySmall,
@@ -2814,7 +2814,7 @@ private fun PageNavigation(
 	pageCount: Int
 ) {
 	if (pageCount <= 1) return
-	
+
 	val coroutineScope = rememberCoroutineScope()
 
 	Column(
@@ -2831,7 +2831,7 @@ private fun PageNavigation(
 			repeat(pageCount) { page ->
 				PageIndicatorDot(
 					isSelected = page == pagerState.currentPage,
-					onClick = { 
+					onClick = {
 						coroutineScope.launch {
 							pagerState.animateScrollToPage(page)
 						}
@@ -2852,7 +2852,7 @@ private fun PageNavigation(
 				text = "قبلی",
 				icon = Icons.AutoMirrored.Filled.ArrowBack,
 				enabled = pagerState.currentPage > 0,
-				onClick = { 
+				onClick = {
 					pagerState.animateScrollToPage(pagerState.currentPage - 1)
 				}
 			)
@@ -2861,7 +2861,7 @@ private fun PageNavigation(
 				text = "بعدی",
 				icon = Icons.AutoMirrored.Filled.ArrowForward,
 				enabled = pagerState.currentPage < pageCount - 1,
-				onClick = { 
+				onClick = {
 					pagerState.animateScrollToPage(pagerState.currentPage + 1)
 				}
 			)
@@ -2912,9 +2912,9 @@ private fun NavigationButton(
 	onClick: suspend () -> Unit
 ) {
 	val coroutineScope = rememberCoroutineScope()
-	
+
 	OutlinedButton(
-		onClick = { 
+		onClick = {
 			coroutineScope.launch {
 				onClick()
 			}
@@ -4739,19 +4739,33 @@ private fun calculateWarningStatus(quota: Quota): WarningStatus? {
 		return null
 	}
 
+	val remainingTonnage = quota.remainingTonnage
+
+	if (quota.percentage != null && quota.percentage == 0.0 && remainingTonnage < 1000f) {
+		val totalTonnage = quota.totalTonnage
+		val percentageAmount = totalTonnage * (quota.percentage / 100)
+		return WarningStatus(
+			show = true,
+			quotaNumber = quota.number,
+			percentage = quota.percentage,
+			remainingTonnage = remainingTonnage,
+			percentageAmount = percentageAmount,
+			isActive = true,
+			isPercentageRestricted = quota.isPercentageRestricted ?: false
+		)
+	}
+
 	if (!quota.isPercentageRestricted!! || quota.percentage == null) {
 		return null
 	}
 
 	val totalTonnage = quota.totalTonnage
 	val percentageAmount = totalTonnage * (quota.percentage / 100)
-	val remainingTonnage = quota.remainingTonnage
-	val warningThreshold = 5000f
+	val warningThreshold = 9000f
 
 	val diff = abs(remainingTonnage - percentageAmount)
-
-	return if (diff <= warningThreshold) {
-		WarningStatus(
+	if (diff <= warningThreshold) {
+		return WarningStatus(
 			show = true,
 			quotaNumber = quota.number,
 			percentage = quota.percentage,
@@ -4760,7 +4774,9 @@ private fun calculateWarningStatus(quota: Quota): WarningStatus? {
 			isActive = true,
 			isPercentageRestricted = true
 		)
-	} else null
+	}
+
+	return null
 }
 
 @Composable
@@ -8278,7 +8294,7 @@ fun EditQuotaDialog(
 						modifier = Modifier.padding(start = 16.dp, top = 4.dp)
 					)
 				}
-				
+
 				Spacer(modifier = Modifier.height(12.dp))
 
 				OutlinedTextField(
@@ -8295,7 +8311,7 @@ fun EditQuotaDialog(
 						unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
 					)
 				)
-				
+
 				Spacer(modifier = Modifier.height(12.dp))
 
 				OutlinedTextField(
@@ -8312,7 +8328,7 @@ fun EditQuotaDialog(
 						unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
 					)
 				)
-				
+
 				Spacer(modifier = Modifier.height(12.dp))
 
 				OutlinedTextField(
@@ -8329,7 +8345,7 @@ fun EditQuotaDialog(
 						unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
 					)
 				)
-				
+
 				Spacer(modifier = Modifier.height(12.dp))
 
 				ExposedDropdownMenuBox(
@@ -8366,7 +8382,7 @@ fun EditQuotaDialog(
 						}
 					}
 				}
-				
+
 				Spacer(modifier = Modifier.height(12.dp))
 
 				OutlinedTextField(
@@ -10167,7 +10183,7 @@ fun AdvancedSearchDialog(
 						// نوار تب‌های نوع جستجو
 						SearchTypeTabRow(
 							selectedSearchType = selectedSearchType,
-							onSearchTypeSelected = { 
+							onSearchTypeSelected = {
 								selectedSearchType = it
 								searchNumber = ""
 							}
@@ -10822,11 +10838,11 @@ fun SearchResultDialog(
 	val mainColor = MaterialTheme.colorScheme.primary
 	val snackbarHostState = remember { SnackbarHostState() }
 	val scope = rememberCoroutineScope()
-	
+
 	var isEditMode by remember { mutableStateOf(false) }
 	var isSaving by remember { mutableStateOf(false) }
 	var showConfirmDialog by remember { mutableStateOf(false) }
-	
+
 	// Editable fields
 	var editedTrackingNumber by remember { mutableStateOf(cargoInfo.trackingNumber) }
 	var editedNumberOfPeople by remember { mutableStateOf(cargoInfo.numberOfPeople) }
@@ -11086,7 +11102,7 @@ fun SearchResultDialog(
 			}
 		}
 	}
-	
+
 	// دیالوگ تأیید قبل از ذخیره
 	if (showConfirmDialog) {
 		CargoEditConfirmDialog(
@@ -11106,7 +11122,7 @@ fun SearchResultDialog(
 			onConfirm = {
 				showConfirmDialog = false
 				isSaving = true
-				
+
 				val updatedCargo = cargoInfo.copy(
 					trackingNumber = editedTrackingNumber,
 					numberOfPeople = editedNumberOfPeople,
@@ -11120,10 +11136,10 @@ fun SearchResultDialog(
 					status = editedStatus,
 					loadingQuotaNumber = editedLoadingQuotaNumber
 				)
-				
+
 				Log.d("CargoEdit", "🔄 شروع بروزرسانی - ID: ${updatedCargo.id}")
 				Log.d("CargoEdit", "📦 داده‌های ویرایش شده: $updatedCargo")
-				
+
 				viewModel.updateCargoInfo(updatedCargo) { result ->
 					isSaving = false
 					result.fold(
@@ -11131,7 +11147,7 @@ fun SearchResultDialog(
 							Log.d("CargoEdit", "✅ پاسخ موفق: $response")
 							if (response.error == false) {
 								isEditMode = false
-								
+
 								// بروزرسانی خودکار از سرور
 								if (searchType != null && searchValue != null) {
 									when (searchType) {
@@ -11389,7 +11405,7 @@ private fun CargoChangesPreview(
 	editedLoadingQuotaNumber: String
 ) {
 	val changes = mutableListOf<Triple<String, String, String>>()
-	
+
 	// بررسی تغییرات
 	if (cargoInfo.trackingNumber != editedTrackingNumber) {
 		changes.add(Triple("شماره حواله", cargoInfo.trackingNumber, editedTrackingNumber))
@@ -11515,7 +11531,7 @@ private fun ChangeItem(
 			fontWeight = FontWeight.Bold,
 			color = MaterialTheme.colorScheme.onSurface
 		)
-		
+
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -11535,14 +11551,14 @@ private fun ChangeItem(
 				maxLines = 1,
 				overflow = TextOverflow.Ellipsis
 			)
-			
+
 			Icon(
 				imageVector = Icons.AutoMirrored.Filled.ArrowForward,
 				contentDescription = null,
 				tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
 				modifier = Modifier.size(16.dp)
 			)
-			
+
 			// مقدار جدید
 			Text(
 				text = newValue.ifEmpty { "خالی" },
@@ -11706,10 +11722,10 @@ private fun EditableCargoMainInfo(
 					singleLine = true,
 					shape = RoundedCornerShape(12.dp)
 				)
-				
+
 				OutlinedTextField(
 					value = scaleReceiptNumber,
-					onValueChange = { 
+					onValueChange = {
 						if (it.all { char -> char.isDigit() }) {
 							onScaleReceiptNumberChange(it)
 						}
@@ -11723,7 +11739,7 @@ private fun EditableCargoMainInfo(
 					keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
 					shape = RoundedCornerShape(12.dp)
 				)
-				
+
 				OutlinedTextField(
 					value = loadingQuotaNumber,
 					onValueChange = onLoadingQuotaNumberChange,
@@ -11735,7 +11751,7 @@ private fun EditableCargoMainInfo(
 					singleLine = true,
 					shape = RoundedCornerShape(12.dp)
 				)
-				
+
 				OutlinedTextField(
 					value = numberOfPeople,
 					onValueChange = onNumberOfPeopleChange,
@@ -11769,7 +11785,7 @@ private fun EditableCargoWeightInfo(
 			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 				OutlinedTextField(
 					value = netWeight,
-					onValueChange = { 
+					onValueChange = {
 						if (it.all { char -> char.isDigit() }) {
 							onNetWeightChange(it)
 						}
@@ -11783,10 +11799,10 @@ private fun EditableCargoWeightInfo(
 					keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
 					shape = RoundedCornerShape(12.dp)
 				)
-				
+
 				OutlinedTextField(
 					value = shortageWeight,
-					onValueChange = { 
+					onValueChange = {
 						if (it.all { char -> char.isDigit() }) {
 							onShortageWeightChange(it)
 						}
@@ -11800,10 +11816,10 @@ private fun EditableCargoWeightInfo(
 					keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
 					shape = RoundedCornerShape(12.dp)
 				)
-				
+
 				OutlinedTextField(
 					value = excessWeight,
-					onValueChange = { 
+					onValueChange = {
 						if (it.all { char -> char.isDigit() }) {
 							onExcessWeightChange(it)
 						}
@@ -11850,7 +11866,7 @@ private fun EditableCargoTimeInfo(
 					singleLine = true,
 					shape = RoundedCornerShape(12.dp)
 				)
-				
+
 				OutlinedTextField(
 					value = exitTime,
 					onValueChange = onExitTimeChange,
@@ -11862,7 +11878,7 @@ private fun EditableCargoTimeInfo(
 					singleLine = true,
 					shape = RoundedCornerShape(12.dp)
 				)
-				
+
 				OutlinedTextField(
 					value = exitDate,
 					onValueChange = onExitDateChange,
@@ -11874,7 +11890,7 @@ private fun EditableCargoTimeInfo(
 					singleLine = true,
 					shape = RoundedCornerShape(12.dp)
 				)
-				
+
 				OutlinedTextField(
 					value = status,
 					onValueChange = onStatusChange,
