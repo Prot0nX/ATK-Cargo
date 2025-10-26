@@ -127,7 +127,13 @@ fun SecurityBlockScreen(
                         Spacer(modifier = Modifier.height(24.dp))
 
                         Text(
-                            text = "خطای امنیتی",
+                            text = when (errorType) {
+                                SecurityErrorType.TAMPERED -> "خطای امنیتی"
+                                SecurityErrorType.LICENSE_NOT_FOUND -> "خطای احراز هویت"
+                                SecurityErrorType.LICENSE_INACTIVE -> "خطای مجوز دسترسی"
+                                SecurityErrorType.NETWORK_ERROR -> "خطای ارتباط"
+                                SecurityErrorType.UNKNOWN_ERROR -> "خطای سیستم"
+                            },
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 textAlign = TextAlign.Center
@@ -142,21 +148,41 @@ fun SecurityBlockScreen(
                             color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text(
-                                text = when (errorType) {
-                                    SecurityErrorType.TAMPERED -> "فایل و کدهای برنامه دستکاری شده است!"
-                                    SecurityErrorType.LICENSE_NOT_FOUND -> "لایسنس برنامه یافت نشد!"
-                                    SecurityErrorType.LICENSE_INACTIVE -> "لایسنس برنامه غیرفعال است!"
-                                    SecurityErrorType.NETWORK_ERROR -> "خطا در اتصال به سرور!"
-                                    SecurityErrorType.UNKNOWN_ERROR -> "خطای نامشخص رخ داده است!"
-                                },
-                                style = MaterialTheme.typography.titleMedium,
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.error,
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 12.dp, horizontal = 16.dp)
-                            )
+                                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = when (errorType) {
+                                        SecurityErrorType.TAMPERED -> "فایل‌های برنامه دستکاری شده است!"
+                                        SecurityErrorType.LICENSE_NOT_FOUND -> "لایسنس برنامه یافت نشد!"
+                                        SecurityErrorType.LICENSE_INACTIVE -> "لایسنس برنامه غیرفعال است!"
+                                        SecurityErrorType.NETWORK_ERROR -> "خطا در اتصال به سرور!"
+                                        SecurityErrorType.UNKNOWN_ERROR -> "خطای نامشخص رخ داده است!"
+                                    },
+                                    style = MaterialTheme.typography.titleMedium,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Text(
+                                    text = when (errorType) {
+                                        SecurityErrorType.TAMPERED -> "برنامه از منبع غیرمعتبر نصب شده یا تغییر یافته است."
+                                        SecurityErrorType.LICENSE_NOT_FOUND -> "اطلاعات مجوز استفاده در سرور یافت نشد."
+                                        SecurityErrorType.LICENSE_INACTIVE -> "مجوز استفاده شما منقضی شده یا غیرفعال است."
+                                        SecurityErrorType.NETWORK_ERROR -> "امکان برقراری ارتباط با سرور وجود ندارد."
+                                        SecurityErrorType.UNKNOWN_ERROR -> "یک مشکل غیرمنتظره رخ داده است."
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -173,40 +199,155 @@ fun SecurityBlockScreen(
                                 horizontalAlignment = Alignment.End
                             ) {
                                 Text(
-                                    text = "نسخه اصلی برنامه را از طریق:",
+                                    text = when (errorType) {
+                                        SecurityErrorType.TAMPERED -> "برای رفع مشکل:"
+                                        SecurityErrorType.LICENSE_NOT_FOUND -> "برای فعال‌سازی:"
+                                        SecurityErrorType.LICENSE_INACTIVE -> "برای تمدید مجوز:"
+                                        SecurityErrorType.NETWORK_ERROR -> "برای رفع مشکل:"
+                                        SecurityErrorType.UNKNOWN_ERROR -> "برای دریافت پشتیبانی:"
+                                    },
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Right,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                Text(
-                                    text = "سایت نیاکوزرین",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.primary,
                                     textAlign = TextAlign.Right,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.fillMaxWidth()
                                 )
 
-                                Text(
-                                    text = "شرکت امین تجار خوزستان",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    textAlign = TextAlign.Right,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
+                                Spacer(modifier = Modifier.height(12.dp))
 
-                                Text(
-                                    text = "واقع در بندر امام خمینی (ره) تهیه نمایید!",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Right,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
+                                when (errorType) {
+                                    SecurityErrorType.TAMPERED -> {
+                                        Text(
+                                            text = "• نسخه اصلی برنامه را از منابع معتبر دریافت کنید",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Right,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "• برنامه را حذف و مجدداً نصب کنید",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Right,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                    SecurityErrorType.LICENSE_NOT_FOUND -> {
+                                        Text(
+                                            text = "• با واحد فروش تماس بگیرید",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Right,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "• درخواست فعال‌سازی مجوز دهید",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Right,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                    SecurityErrorType.LICENSE_INACTIVE -> {
+                                        Text(
+                                            text = "• با واحد فروش تماس بگیرید",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Right,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "• درخواست تمدید مجوز دهید",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Right,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                    SecurityErrorType.NETWORK_ERROR -> {
+                                        Text(
+                                            text = "• اتصال اینترنت خود را بررسی کنید",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Right,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "• مجدداً تلاش کنید",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Right,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "• در صورت ادامه مشکل با پشتیبانی تماس بگیرید",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Right,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                    SecurityErrorType.UNKNOWN_ERROR -> {
+                                        Text(
+                                            text = "• برنامه را مجدداً باز کنید",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Right,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "• در صورت تکرار با پشتیبانی تماس بگیرید",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Right,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(12.dp),
+                                        horizontalAlignment = Alignment.End
+                                    ) {
+                                        Text(
+                                            text = "سایت نیاکوزرین",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            textAlign = TextAlign.Right,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        Text(
+                                            text = "شرکت امین تجار خوزستان",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            textAlign = TextAlign.Right,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        Text(
+                                            text = "بندر امام خمینی (ره)",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            textAlign = TextAlign.Right,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                }
                             }
                         }
 
