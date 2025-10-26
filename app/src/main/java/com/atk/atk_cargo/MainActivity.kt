@@ -3817,7 +3817,7 @@ fun parseQuotaTonnageData(rawData: String): List<QuotaTonnageWarning> {
 }
 
 @Composable
-private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
+    private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
     val scope = rememberCoroutineScope()
     var isToggling by remember { mutableStateOf(false) }
     var isActive by remember { mutableStateOf(warning.isActive) }
@@ -3883,11 +3883,11 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
                     }
                     if (!isActive) {
                         Badge(
-                            containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
                         ) {
                             Text(
-                                "غیرفعال",
-                                color = MaterialTheme.colorScheme.error,
+                                "فعال",
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelSmall
                             )
@@ -4044,7 +4044,7 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            if (isActive) "فعال" else "غیرفعال",
+                            if (isActive) "فعال کردن" else "غیرفعال کردن",
                             color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.SemiBold
                         )
