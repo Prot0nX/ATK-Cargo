@@ -1151,7 +1151,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
     val tonnageWarningsCount by TonnageWarningService.warningsCount.collectAsState()
 
     LaunchedEffect(key1 = true) {
-        delay(4500)
+        delay(7500)
         showSplash = false
     }
 
