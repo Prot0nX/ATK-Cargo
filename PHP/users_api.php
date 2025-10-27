@@ -83,6 +83,17 @@ class UserManager {
         $params = [];
         $types = '';
 
+        // دریافت نام کاربری فعلی برای خروج از جلسه
+        $getUserQuery = "SELECT username FROM Users WHERE id = ?";
+        $userStmt = $this->prepareAndExecute($getUserQuery, 'i', $id);
+        $userResult = $userStmt->get_result();
+        
+        if ($userResult->num_rows === 0) {
+            return ['success' => false, 'message' => 'کاربری با این شناسه یافت نشد'];
+        }
+        
+        $currentUsername = $userResult->fetch_assoc()['username'];
+
         // بررسی تکراری نبودن نام کاربری در صورت تغییر
         if (isset($data['username'])) {
             $checkQuery = "SELECT id FROM Users WHERE username = ? AND id != ?";
@@ -135,11 +146,32 @@ class UserManager {
         try {
             $stmt = $this->prepareAndExecute($query, $types, ...$params);
             if ($stmt->affected_rows > 0) {
+                // خروج کاربر از تمام جلسات فعال بعد از ویرایش موفق
+                $this->logoutUserSessions($currentUsername);
+                
                 return ['success' => true, 'message' => 'اطلاعات کاربر با موفقیت به‌روزرسانی شد'];
             }
             return ['success' => false, 'message' => 'کاربری با این شناسه یافت نشد'];
         } catch (Exception $e) {
             return ['success' => false, 'message' => 'خطا در به‌روزرسانی اطلاعات کاربر: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * خروج کاربر از تمام جلسات فعال
+     */
+    private function logoutUserSessions(string $username): void {
+        try {
+            $query = "UPDATE user_sessions SET is_active = 0, logout_time = NOW() WHERE username = ? AND is_active = 1";
+            $stmt = $this->conn->prepare($query);
+            if ($stmt) {
+                $stmt->bind_param('s', $username);
+                $stmt->execute();
+                $stmt->close();
+            }
+        } catch (Exception $e) {
+            // لاگ خطا اما عدم توقف فرآیند اصلی
+            error_log("خطا در خروج خودکار کاربر: " . $e->getMessage());
         }
     }
 
