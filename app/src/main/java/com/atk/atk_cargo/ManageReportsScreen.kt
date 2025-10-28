@@ -1117,12 +1117,9 @@ fun ShipDetails(
 	val selectedShipQuotas by viewModel.selectedShipQuotas.collectAsState()
 	var showWarningDialog by remember { mutableStateOf(false) }
 	val uiState by viewModel.uiState.collectAsState()
-
-	// متغیرهای StateFlow جدید برای مدیریت بهتر وضعیت بارگذاری
 	val isLoadingShipDetails by viewModel.isLoadingShipDetails.collectAsState()
 	val isLoadingShipQuotas by viewModel.isLoadingShipQuotas.collectAsState()
 	val shipDetailsLoadingState by viewModel.shipDetailsLoadingState.collectAsState()
-
 	var selectedTabIndex by remember { mutableIntStateOf(0) }
 	val pagerState = rememberPagerState(pageCount = { 1 })
 	val coroutineScope = rememberCoroutineScope()
@@ -1138,7 +1135,6 @@ fun ShipDetails(
 
 	LaunchedEffect(initialShipName) {
 		viewModel.clearCurrentShipData()
-		// استفاده از تابع بهینه‌شده برای بارگذاری موازی
 		viewModel.loadShipDataAsync(initialShipName)
 	}
 
@@ -1156,6 +1152,7 @@ fun ShipDetails(
 		Column(modifier = Modifier.fillMaxSize()) {
 
 			when {
+				// 1. بررسی خطای سیستمی - بالاترین اولویت
 				uiState is ReportsViewModel.UiState.Error -> {
 					Box(
 						modifier = Modifier.fillMaxSize(),
@@ -1193,8 +1190,9 @@ fun ShipDetails(
 						}
 					}
 				}
-				// اگر هر دو در حال بارگذاری هستند و هیچ داده‌ای موجود نیست
-				(isLoadingShipDetails && isLoadingShipQuotas) && ship == null -> {
+
+				// 2. بررسی وضعیت بارگذاری - اگر هر یک از فرآیندهای بارگذاری در حال انجام است
+				isLoadingShipDetails || isLoadingShipQuotas -> {
 					Box(
 						modifier = Modifier.fillMaxSize(),
 						contentAlignment = Alignment.Center
@@ -1205,15 +1203,20 @@ fun ShipDetails(
 						) {
 							CircularProgressIndicator()
 							Text(
-								text = "در حال بارگذاری اطلاعات کشتی...",
+								text = when {
+									isLoadingShipDetails && isLoadingShipQuotas -> "در حال بارگذاری اطلاعات کشتی..."
+									isLoadingShipDetails -> "در حال بارگذاری جزئیات کشتی..."
+									else -> "در حال بارگذاری سهمیه‌های کشتی..."
+								},
 								style = MaterialTheme.typography.bodyMedium,
 								color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
 							)
 						}
 					}
 				}
-				// اگر خطا در بارگذاری اطلاعات کشتی رخ داده و هیچ داده‌ای موجود نیست
-				shipDetailsLoadingState is ReportsViewModel.LoadingState.Error && ship == null -> {
+
+				// 3. بررسی خطا در بارگذاری - اگر خطایی در دریافت اطلاعات رخ داده
+				shipDetailsLoadingState is ReportsViewModel.LoadingState.Error -> {
 					Box(
 						modifier = Modifier.fillMaxSize(),
 						contentAlignment = Alignment.Center
@@ -1242,7 +1245,8 @@ fun ShipDetails(
 								fontWeight = FontWeight.Bold
 							)
 							Text(
-								text = (shipDetailsLoadingState as? ReportsViewModel.LoadingState.Error)?.message ?: "خطای نامشخص",
+								text = (shipDetailsLoadingState as? ReportsViewModel.LoadingState.Error)?.message 
+									?: "خطا در دریافت اطلاعات از سرور",
 								style = MaterialTheme.typography.bodyMedium,
 								color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
 								textAlign = TextAlign.Center
@@ -1250,7 +1254,8 @@ fun ShipDetails(
 						}
 					}
 				}
-				// نمایش اطلاعات موجود حتی اگر برخی قسمت‌ها در حال بارگذاری باشند
+
+				// 4. نمایش اطلاعات کشتی - اگر داده موجود باشد
 				ship != null -> {
 					HorizontalPager(
 						state = pagerState,
@@ -1284,7 +1289,8 @@ fun ShipDetails(
 						}
 					}
 				}
-				// حالت پیش‌فرض برای مواردی که هیچ داده‌ای موجود نیست
+
+				// 5. حالت پیش‌فرض - هیچ داده‌ای موجود نیست و بارگذاری هم انجام نشده
 				else -> {
 					Box(
 						modifier = Modifier
@@ -1297,28 +1303,33 @@ fun ShipDetails(
 								.fillMaxWidth(0.8f)
 								.wrapContentHeight()
 								.clip(RoundedCornerShape(16.dp))
-								.background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f))
+								.background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
+								.border(
+									width = 1.dp,
+									color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+									shape = RoundedCornerShape(16.dp)
+								)
 								.padding(24.dp),
 							horizontalAlignment = Alignment.CenterHorizontally,
 							verticalArrangement = Arrangement.spacedBy(16.dp)
 						) {
 							Icon(
-								imageVector = Icons.Default.Error,
+								imageVector = Icons.Default.Info,
 								contentDescription = null,
-								tint = MaterialTheme.colorScheme.error,
+								tint = MaterialTheme.colorScheme.onSurfaceVariant,
 								modifier = Modifier.size(48.dp)
 							)
 							Text(
 								text = "اطلاعات کشتی در دسترس نیست",
 								style = MaterialTheme.typography.titleMedium,
-								color = MaterialTheme.colorScheme.onErrorContainer,
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
 								textAlign = TextAlign.Center,
 								fontWeight = FontWeight.Bold
 							)
 							Text(
-								text = "اطلاعات مورد نظر یافت نشد. لطفاً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.",
+								text = "هیچ اطلاعاتی برای نمایش موجود نیست. لطفاً از صحت نام کشتی اطمینان حاصل کنید.",
 								style = MaterialTheme.typography.bodyMedium,
-								color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
+								color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
 								textAlign = TextAlign.Center
 							)
 						}
@@ -1575,15 +1586,13 @@ private fun ShipHeaderCard(shipDetails: Ship) {
 				horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
 				verticalAlignment = Alignment.CenterVertically
 			) {
-				StatChip(
-					icon = Icons.Default.ArrowUpward,
+				StatChipShip(
 					value = formatNumber(shipDetails.totalTonnage.toInt()),
 					color = MaterialTheme.colorScheme.primary,
 					label = "کل"
 				)
 
-				StatChip(
-					icon = Icons.Default.ArrowDownward,
+				StatChipShip(
 					value = formatNumber(shipDetails.remainingTonnage.toInt()),
 					color = MaterialTheme.colorScheme.tertiary,
 					label = "مانده"
@@ -2221,6 +2230,46 @@ private fun ProgressIndicator(
 			fontWeight = FontWeight.Medium,
 			color = getCompletionColor(progress * 100, isSystemInDarkTheme())
 		)
+	}
+}
+
+@Composable
+private fun StatChipShip(value: String, color: Color, label: String? = null) {
+	Surface(
+		shape = RoundedCornerShape(16.dp),
+		color = color.copy(alpha = 0.1f)
+	) {
+		Row(
+			modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+			horizontalArrangement = Arrangement.spacedBy(4.dp),
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			if (label != null) {
+				Row(
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					Text(
+						text = "$label: ",
+						style = MaterialTheme.typography.labelSmall,
+						color = color.copy(alpha = 0.7f),
+						fontWeight = FontWeight.Bold
+					)
+					Text(
+						text = value,
+						style = MaterialTheme.typography.bodySmall,
+						color = color,
+						fontWeight = FontWeight.Bold
+					)
+				}
+			} else {
+				Text(
+					text = value,
+					style = MaterialTheme.typography.bodySmall,
+					color = color
+				)
+			}
+		}
 	}
 }
 
