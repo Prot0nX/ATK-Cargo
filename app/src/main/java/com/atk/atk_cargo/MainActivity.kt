@@ -150,6 +150,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -202,6 +203,7 @@ import com.atk.atk_cargo.api.LoadingNotificationService
 import com.atk.atk_cargo.api.LoginRequest
 import com.atk.atk_cargo.api.LogoutRequest
 import com.atk.atk_cargo.api.MenuItem
+import com.atk.atk_cargo.api.QuotaTonnageWarning
 import com.atk.atk_cargo.api.ReportsRepository
 import com.atk.atk_cargo.api.ReportsViewModel
 import com.atk.atk_cargo.api.RetrofitClient
@@ -236,17 +238,6 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.net.URLDecoder
 import java.security.MessageDigest
 import java.util.UUID
-
-data class QuotaTonnageWarning(
-    val shipName: String,
-    val cargoOwner: String,
-    val quotaNumber: String,
-    val currentRemaining: String,
-    val voucherCount: String,
-    val remainingAfterExit: String,
-    val isNegative: Boolean,
-    val isActive: Boolean = false
-)
 
 class MainActivity : ComponentActivity() {
     private var updateInfo by mutableStateOf<UpdateInfo?>(null)
@@ -660,6 +651,12 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 100
     }
+}
+
+private object SplashScreenConstants {
+    const val APP_TITLE = "سیستم مدیریت هوشمند بارگیری"
+    const val COMPANY_NAME = "شرکت امین تجار خوزستان"
+    const val VERSION_PREFIX = "نسخه"
 }
 
 @Composable
@@ -1499,45 +1496,152 @@ fun SplashScreen() {
                 )
         )
 
-        // متن‌ها در پایین صفحه
+        // متن‌ها در پایین صفحه با طراحی حرفه‌ای
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
+                .padding(bottom = 48.dp, start = 24.dp, end = 24.dp),
             verticalArrangement = Arrangement.Bottom,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // عنوان برنامه
-            Text(
-                text = "سیستم مدیریت هوشمند بارگیری",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                textAlign = TextAlign.Center,
+            // کارت اطلاعات با پس‌زمینه شیشه‌ای
+            Surface(
                 modifier = Modifier
-                    .alpha(textAlpha.value)
-                    .padding(bottom = 8.dp)
-            )
+                    .fillMaxWidth()
+                    .alpha(textAlpha.value),
+                shape = RoundedCornerShape(24.dp),
+                color = Color.Black.copy(alpha = 0.4f),
+                border = BorderStroke(
+                    width = 1.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.3f),
+                            Color.White.copy(alpha = 0.1f)
+                        )
+                    )
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.05f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                        .padding(vertical = 28.dp, horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // عنوان برنامه با افکت درخشان
+                    Text(
+                        text = SplashScreenConstants.APP_TITLE,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        letterSpacing = 0.5.sp,
+                        modifier = Modifier
+                            .shadow(
+                                elevation = 8.dp,
+                                shape = RoundedCornerShape(8.dp),
+                                ambientColor = Color.White.copy(alpha = 0.5f),
+                                spotColor = Color.White.copy(alpha = 0.5f)
+                            )
+                    )
 
-            // نام شرکت
-            Text(
-                text = "شرکت امین تجار خوزستان",
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White.copy(alpha = 0.9f),
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier
-                    .alpha(textAlpha.value)
-                    .padding(bottom = 16.dp)
-            )
+                    // خط جداکننده زیبا
+                    Box(
+                        modifier = Modifier
+                            .width(80.dp)
+                            .height(3.dp)
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color.White.copy(alpha = 0.8f),
+                                        Color.Transparent
+                                    )
+                                ),
+                                shape = RoundedCornerShape(2.dp)
+                            )
+                    )
 
-            // نسخه برنامه
-            Text(
-                text = "نسخه $appVersion",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.7f),
-                modifier = Modifier.alpha(textAlpha.value)
-            )
+                    // نام شرکت با استایل مدرن
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    shape = CircleShape
+                                )
+                        )
+                        
+                        Text(
+                            text = SplashScreenConstants.COMPANY_NAME,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White.copy(alpha = 0.95f),
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.3.sp
+                        )
+                        
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    shape = CircleShape
+                                )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // نسخه برنامه با بج مدرن
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.White.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(
+                                        color = Color(0xFF4CAF50),
+                                        shape = CircleShape
+                                    )
+                                    .shadow(
+                                        elevation = 4.dp,
+                                        shape = CircleShape,
+                                        ambientColor = Color(0xFF4CAF50),
+                                        spotColor = Color(0xFF4CAF50)
+                                    )
+                            )
+                            
+                            Text(
+                                text = "${SplashScreenConstants.VERSION_PREFIX} $appVersion",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.9f),
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 0.2.sp
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -3491,7 +3595,7 @@ private fun QuotaItemCard(quota: QuotaData) {
                                         isActive = !isActive
                                     }
                                 }
-                            } catch (e: Exception) {
+                            } catch (_: Exception) {
                                 // Handle error if needed
                             } finally {
                                 isToggling = false
@@ -3817,7 +3921,7 @@ fun parseQuotaTonnageData(rawData: String): List<QuotaTonnageWarning> {
 }
 
 @Composable
-    private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
+private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
     val scope = rememberCoroutineScope()
     var isToggling by remember { mutableStateOf(false) }
     var isActive by remember { mutableStateOf(warning.isActive) }
@@ -4015,7 +4119,7 @@ fun parseQuotaTonnageData(rawData: String): List<QuotaTonnageWarning> {
                                         isActive = !isActive
                                     }
                                 }
-                            } catch (e: Exception) {
+                            } catch (_: Exception) {
                                 // Handle error if needed
                             } finally {
                                 isToggling = false

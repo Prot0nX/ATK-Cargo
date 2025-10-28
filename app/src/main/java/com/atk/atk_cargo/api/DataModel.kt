@@ -3462,6 +3462,7 @@ data class CargoStats(
     val averageNetWeight: Float,
     val remainingServices: Int
 )
+
 enum class MessageType {
     SUCCESS, WARNING, ERROR
 }
@@ -3483,6 +3484,7 @@ data class CheckExistenceResponse(
     val status: String,
     val message: String
 )
+
 @Parcelize
 data class InitialInfo(
     val shipName: String,
@@ -3600,6 +3602,7 @@ data class SessionCheckRequest(
     val deviceId: String = "",
     val sessionToken: String? = null
 )
+
 data class SessionResponse(val success: Boolean, val message: String, val userType: String?)
 
 data class RealTimeDataResponse(
@@ -3821,13 +3824,6 @@ data class FabItem(
     val onClick: () -> Unit
 )
 
-data class ChangeLogInfo(
-    val newFeatures: List<String> = emptyList(),
-    val improvements: List<String> = emptyList(),
-    val fixes: List<String> = emptyList(),
-    val others: List<String> = emptyList()
-)
-
 data class UpdateInfo(
     val latestVersion: String,
     val downloadUrl: String,
@@ -3841,6 +3837,7 @@ data class UpdateInfo(
     val minAppVersion: String = "1.0",
     val excludedVersions: List<String> = emptyList()
 )
+
 class ColorSelector(private val colors: List<Color>) {
     // تمام رنگ‌های اختصاص داده شده به هر شناسه
     private val assignedColors = mutableMapOf<String, Color>()
@@ -3951,6 +3948,7 @@ class ColorSelector(private val colors: List<Color>) {
         colors.forEach { usedColors[it] = false }
     }
 }
+
 fun adjustColorForTheme(color: Color, isDarkTheme: Boolean): Color {
     val hsl = FloatArray(7)
     ColorUtils.colorToHSL(color.toArgb(), hsl)
@@ -3965,6 +3963,7 @@ fun adjustColorForTheme(color: Color, isDarkTheme: Boolean): Color {
 
     return Color(ColorUtils.HSLToColor(hsl))
 }
+
 val cardColors = listOf(
     // رنگ‌های بهینه شده برای تم روشن و تیره
     Color(0xFFEF5350), // Red 400 - ملایم‌تر از قرمز تند
@@ -4014,7 +4013,9 @@ val cardColors = listOf(
     Color(0xFFB2EBF2), // Cyan 100 - فیروزه‌ای خیلی ملایم
     Color(0xFFE1BEE7)  // Purple 100 - بنفش خیلی ملایم
 )
+
 fun Float.toTon(): Int = (this / 1000).toInt()
+
 sealed class LoadingState {
     object Idle : LoadingState()
     data class Error(val message: String) : LoadingState()
@@ -4259,24 +4260,29 @@ data class WarehousePeakAnalysis(
     val period_percentage: Float,
     val activity_level: String
 )
+
 enum class QuotaGroupingMode {
     BY_SHIP,
     BY_CARRIER
 }
+
 enum class WarehouseQuotaGroupingMode {
     BY_SHIPPING_COMPANY,
     BY_CARGO_OWNER,
     BY_WAREHOUSE
 }
+
 enum class QuotaSortingMode {
     REMAINING_TONNAGE_ASC,
     REMAINING_TONNAGE_DESC
 }
+
 enum class GroupSortingMode {
     ALPHABETICAL,
     REMAINING_TONNAGE_ASC,
     REMAINING_TONNAGE_DESC
 }
+
 enum class ShipSortingMode {
     REMAINING_TONNAGE_ASC,
     REMAINING_TONNAGE_DESC,
@@ -4334,6 +4340,18 @@ data class QuotaItem(
     val temporaryTonnageValue: Float?,
     val quotaKey: String
 )
+
+data class QuotaTonnageWarning(
+    val shipName: String,
+    val cargoOwner: String,
+    val quotaNumber: String,
+    val currentRemaining: String,
+    val voucherCount: String,
+    val remainingAfterExit: String,
+    val isNegative: Boolean,
+    val isActive: Boolean = false
+)
+
 fun formatNumber(number: Number): String {
     return NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
 }
