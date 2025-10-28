@@ -3204,15 +3204,6 @@ private fun ShipSelectionDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = "انتخاب کشتی‌ها",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
