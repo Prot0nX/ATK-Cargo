@@ -717,7 +717,7 @@ fun UpdateDialog(
         }
     }
 }
-
+ 
 @Composable
 private fun DownloadingState(
     progress: UpdateManager.DownloadProgress,
