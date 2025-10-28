@@ -4790,7 +4790,7 @@ private fun calculateWarningStatus(quota: Quota): WarningStatus? {
 
 	val remainingTonnage = quota.remainingTonnage
 
-	if (quota.percentage != null && quota.percentage == 0.0 && remainingTonnage < 1000f) {
+	if (quota.percentage != null && quota.percentage == 0.0 && remainingTonnage < 5000f) {
 		val totalTonnage = quota.totalTonnage
 		val percentageAmount = totalTonnage * (quota.percentage / 100)
 		return WarningStatus(
