@@ -12,20 +12,6 @@ function getFileSize($filePath): string {
 return [
     'latest_version' => '3.0.7', 
     'download_url' => 'https://atk-nk.ir/Cargo/downloads/app-release.apk',
-    'change_log' => [
-        'newFeatures' => [
-			
-		],
-        'improvements' => [
-			'بهینه سازی سیستم ثبت حواله جدید'
-        ],
-        'fixes' => [
-			
-        ],
-        'others' => [
-			
-        ]
-    ],
     'min_required_version' => '1.9',
     'update_priority' => 'normal',
     'update_message' => 'نسخه جدید با امکانات جدید در دسترس است',
@@ -40,3 +26,4 @@ return [
     ]
 ];
 ?>
+ 

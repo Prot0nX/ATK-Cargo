@@ -15,13 +15,20 @@ require_once __DIR__ . '/config/config.php';
 function sendJsonResponse($data, int $statusCode = 200): never
 {
     http_response_code($statusCode);
-    echo json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+    $json = json_encode($data, JSON_UNESCAPED_UNICODE);
+    if ($json === false) {
+        error_log("JSON encode error: " . json_last_error_msg());
+        http_response_code(500);
+        echo json_encode(['error' => 'JSON encoding failed: ' . json_last_error_msg()]);
+        exit;
+    }
+    echo $json;
     exit;
 }
 
 function validateAndSanitizeInput(?string $input): string
 {
-    $sanitized = filter_var(trim($input ?? ''), FILTER_SANITIZE_STRING);
+    $sanitized = htmlspecialchars(trim($input ?? ''), ENT_QUOTES, 'UTF-8');
     if (empty($sanitized)) {
         throw new InvalidArgumentException('لطفاً شماره حواله را وارد کنید.');
     }
@@ -34,27 +41,30 @@ try {
         throw new Exception('روش درخواست نامعتبر است');
     }
 
+    // لاگ درخواست
+    error_log("🔍 Search Tracking Request - Tracking: " . ($_GET['tracking'] ?? 'NULL'));
+
     // برقراری اتصال به پایگاه داده
     $conn = getDbConnection();
+    error_log("✅ Database connection established");
 
     // بررسی و پاکسازی پارامتر جستجو
     $trackingNumber = validateAndSanitizeInput($_GET['tracking'] ?? null);
+    error_log("📝 Sanitized tracking number: $trackingNumber");
 
     // ساخت پرس و جو برای جستجوی دقیق شماره حواله
     $query = "
         SELECT 
-            c.trackingNumber, c.numberOfPeople, c.username, c.userType, c.entryTime, 
-            c.netWeight, c.scaleReceiptNumber, c.shortageWeight, c.excessWeight, 
-            c.exitTime, c.exitDate, c.status, c.confirm, c.confirmation,
-            i.shipName, i.loadingWarehouse, i.cargoType, i.shippingCompany,
-            i.loadingQuotaNumber
+            id, trackingNumber, numberOfPeople, username, userType, entryTime, 
+            netWeight, scaleReceiptNumber, shortageWeight, excessWeight, 
+            exitTime, exitDate, status, confirm, confirmation,
+            shipName, loadingWarehouse, cargoType, shippingCompany,
+            loadingQuotaNumber
         FROM 
-            CargoInfo c
-        JOIN 
-            InitialInfo i ON c.loadingQuotaNumber = i.loadingQuotaNumber
+            CargoInfo
         WHERE 
-            c.trackingNumber = ?
-        ORDER BY c.entryTime DESC
+            trackingNumber = ?
+        ORDER BY entryTime DESC
     ";
 
     // آماده‌سازی و اجرای پرس و جو
@@ -70,30 +80,34 @@ try {
 
     $result = $stmt->get_result();
     $cargoInfoList = [];
+    
+    error_log("📊 Query executed, fetching results...");
 
     while ($row = $result->fetch_assoc()) {
+        error_log("✅ Found cargo info with ID: " . $row['id']);
         // فرمت‌بندی داده‌ها برای خروجی با ساختار مورد انتظار Android
-        $cargoInfo = array_map('htmlspecialchars', [
-            'trackingNumber' => $row['trackingNumber'],
-            'numberOfPeople' => $row['numberOfPeople'] ?? '',
-            'username' => $row['username'] ?? '',
-            'userType' => $row['userType'] ?? '',
-            'entryTime' => $row['entryTime'],
-            'netWeight' => $row['netWeight'],
-            'scaleReceiptNumber' => $row['scaleReceiptNumber'],
-            'shortageWeight' => $row['shortageWeight'],
-            'excessWeight' => $row['excessWeight'],
-            'exitTime' => $row['exitTime'],
-            'exitDate' => $row['exitDate'],
-            'status' => $row['status'],
-            'shipName' => $row['shipName'],
-            'loadingWarehouse' => $row['loadingWarehouse'],
-            'cargoType' => $row['cargoType'],
-            'shippingCompany' => $row['shippingCompany'],
-            'loadingQuotaNumber' => $row['loadingQuotaNumber'],
-            'confirm' => $row['confirm'] ?? '',
-            'confirmation' => $row['confirmation'] ?? 'no'
-        ]);
+        $cargoInfo = [
+            'id' => (int)$row['id'],
+            'trackingNumber' => htmlspecialchars((string)$row['trackingNumber']),
+            'numberOfPeople' => htmlspecialchars((string)($row['numberOfPeople'] ?? '')),
+            'username' => htmlspecialchars((string)($row['username'] ?? '')),
+            'userType' => htmlspecialchars((string)($row['userType'] ?? '')),
+            'entryTime' => htmlspecialchars((string)$row['entryTime']),
+            'netWeight' => htmlspecialchars((string)$row['netWeight']),
+            'scaleReceiptNumber' => htmlspecialchars((string)$row['scaleReceiptNumber']),
+            'shortageWeight' => htmlspecialchars((string)$row['shortageWeight']),
+            'excessWeight' => htmlspecialchars((string)$row['excessWeight']),
+            'exitTime' => htmlspecialchars((string)($row['exitTime'] ?? '')),
+            'exitDate' => htmlspecialchars((string)($row['exitDate'] ?? '')),
+            'status' => htmlspecialchars((string)$row['status']),
+            'shipName' => htmlspecialchars((string)$row['shipName']),
+            'loadingWarehouse' => htmlspecialchars((string)$row['loadingWarehouse']),
+            'cargoType' => htmlspecialchars((string)$row['cargoType']),
+            'shippingCompany' => htmlspecialchars((string)$row['shippingCompany']),
+            'loadingQuotaNumber' => htmlspecialchars((string)$row['loadingQuotaNumber']),
+            'confirm' => htmlspecialchars((string)($row['confirm'] ?? '')),
+            'confirmation' => htmlspecialchars((string)($row['confirmation'] ?? 'no'))
+        ];
         
         // ایجاد ساختار مطابق با مدل Android CargoInfoSearch
         $cargoInfoList[] = [
@@ -101,12 +115,16 @@ try {
         ];
     }
 
+    error_log("📋 Total results found: " . count($cargoInfoList));
+    
     if (!empty($cargoInfoList)) {
+        error_log("📤 Sending success response with " . count($cargoInfoList) . " items");
         sendJsonResponse([
             'cargoInfoList' => $cargoInfoList,
             'totalCount' => count($cargoInfoList)
         ]);
     } else {
+        error_log("❌ No results found for tracking: $trackingNumber");
         sendJsonResponse(['error' => 'هیچ نتیجه‌ای برای این شماره حواله یافت نشد.'], 404);
     }
 } catch (InvalidArgumentException $e) {
@@ -114,7 +132,13 @@ try {
     sendJsonResponse(['error' => $e->getMessage()], 400);
 } catch (Exception $e) {
     error_log("API Error: " . $e->getMessage());
-    sendJsonResponse(['error' => 'خطای داخلی سرور رخ داده است.'], 500);
+    error_log("Stack trace: " . $e->getTraceAsString());
+    sendJsonResponse([
+        'error' => 'خطای داخلی سرور رخ داده است.',
+        'message' => $e->getMessage(),
+        'file' => basename($e->getFile()),
+        'line' => $e->getLine()
+    ], 500);
 } finally {
     if (isset($stmt)) {
         $stmt->close();

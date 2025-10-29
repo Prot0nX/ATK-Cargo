@@ -5339,12 +5339,7 @@ fun CargoInfoDetailsDialog(
             onConfirm = {
                 coroutineScope.launch {
                     val request = CargoInfoRequest(
-                        trackingNumber = info.trackingNumber,
-                        shipName = info.shipName,
-                        loadingWarehouse = info.loadingWarehouse,
-                        cargoType = info.cargoType,
-                        shippingCompany = info.shippingCompany,
-                        loadingQuotaNumber = info.loadingQuotaNumber
+                        id = info.id ?: 0
                     )
                     viewModel.deleteCargo(request, password)
                     onUpdateTypeChange("cargo_delete")

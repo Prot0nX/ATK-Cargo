@@ -42,13 +42,13 @@ interface ApiService {
     @GET("getActiveShips.php")
     suspend fun getActiveShips(): Response<List<ActiveShipInfo>>
 
-    @POST("saveOrUpdateCargoInfo.php")
+    @POST("saveOrUpdateCargoInfo2.php")
     suspend fun saveOrUpdateCargoInfo(@Body cargoInfo: CargoInfo): Response<SaveOrUpdateResponse>
 
     @POST("updateCargoInfo.php")
     suspend fun updateCargoInfo(@Body cargoInfo: CargoInfo): Response<SaveOrUpdateResponse>
 
-    @POST("deleteCargoInfo2.php")
+    @POST("deleteCargoInfo.php")
     suspend fun deleteCargo(@Body cargoInfoRequest: CargoInfoRequest): Response<Void>
 
     @FormUrlEncoded
@@ -97,14 +97,14 @@ interface ApiService {
 
     @GET("protected_proxy.php")
     suspend fun getShipQuotas(
-        @Query("target") target: String = "app_api.php",
+        @Query("target") target: String = "app_api2.php",
         @Query("action") action: String = "getQuotasList",
         @Query("shipName") shipName: String
     ): Response<List<Quota>>
 
     @GET("protected_proxy.php")
     suspend fun getFilteredQuotas(
-        @Query("target") target: String = "app_api.php",
+        @Query("target") target: String = "app_api2.php",
         @Query("action") action: String = "getFilteredQuotas",
         @Query("shipName") shipName: String,
         @Query("startDateTime") startDateTime: String,
@@ -124,8 +124,9 @@ interface ApiService {
 
     @GET("protected_proxy.php")
     suspend fun editQuota(
-        @Query("target") target: String = "app_api.php",
+        @Query("target") target: String = "app_api2.php",
         @Query("action") action: String = "editQuota",
+        @Query("id") id: Int,
         @Query("oldQuotaNumber") oldQuotaNumber: String,
         @Query("newQuotaNumber") newQuotaNumber: String,
         @Query("shipName") shipName: String,
@@ -230,7 +231,7 @@ interface ApiService {
     @POST("check_logout.php")
     suspend fun logout(@Body logoutRequest: LogoutRequest): Response<LogoutResponse>
 
-    @POST("confirm_cargo.php")
+    @POST("confirm_cargo2.php")
     suspend fun confirmCargo(@Body request: Map<String, String>): Response<Map<String, JsonElement>>
 
     @GET("protected_proxy.php")

@@ -1670,11 +1670,7 @@ private fun refreshData(
 suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): Result<String> {
     return try {
         val requestBody = mapOf(
-            "trackingNumber" to info.trackingNumber,
-            "loadingQuotaNumber" to info.loadingQuotaNumber,
-            "loadingWarehouse" to info.loadingWarehouse,
-            "shippingCompany" to info.shippingCompany,
-            "cargoType" to info.cargoType,
+            "id" to (info.id?.toString() ?: "0"),
             "username" to username,
             "userType" to userType
         )
@@ -1708,7 +1704,7 @@ suspend fun handleCargoConfirmation(
         val result = confirmCargo(info, username, userType)
         result.fold(
             onSuccess = { message ->
-                viewModel.updateCargoConfirmation(info.trackingNumber)
+                viewModel.updateCargoConfirmation(info.id)
                 viewModel.loadCargoInfoList(
                     quotaNumber = quotaNumber,
                     shippingCompany = shippingCompany,

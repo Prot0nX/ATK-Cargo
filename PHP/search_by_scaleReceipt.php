@@ -15,13 +15,20 @@ require_once __DIR__ . '/config/config.php';
 function sendJsonResponse($data, int $statusCode = 200): never
 {
     http_response_code($statusCode);
-    echo json_encode($data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+    $json = json_encode($data, JSON_UNESCAPED_UNICODE);
+    if ($json === false) {
+        error_log("JSON encode error: " . json_last_error_msg());
+        http_response_code(500);
+        echo json_encode(['error' => 'JSON encoding failed: ' . json_last_error_msg()]);
+        exit;
+    }
+    echo $json;
     exit;
 }
 
 function validateAndSanitizeInput(?string $input): string
 {
-    $sanitized = filter_var(trim($input ?? ''), FILTER_SANITIZE_STRING);
+    $sanitized = htmlspecialchars(trim($input ?? ''), ENT_QUOTES, 'UTF-8');
     if (empty($sanitized)) {
         throw new InvalidArgumentException('لطفاً شماره قبض باسکول را وارد کنید.');
     }
@@ -34,25 +41,30 @@ try {
         throw new Exception('روش درخواست نامعتبر است');
     }
 
+    // لاگ درخواست
+    error_log("🔍 Search Receipt Request - Receipt: " . ($_GET['receipt'] ?? 'NULL'));
+
     // برقراری اتصال به پایگاه داده
     $conn = getDbConnection();
+    error_log("✅ Database connection established");
 
     // بررسی و پاکسازی پارامتر جستجو
     $receiptNumber = validateAndSanitizeInput($_GET['receipt'] ?? null);
+    error_log("📝 Sanitized receipt number: $receiptNumber");
 
     // ساخت پرس و جو
     $query = "
         SELECT 
-            c.trackingNumber, c.entryTime, c.netWeight, c.scaleReceiptNumber,
-            c.shortageWeight, c.excessWeight, c.exitTime, c.exitDate, c.status,
-            i.shipName, i.loadingWarehouse, i.cargoType, i.shippingCompany,
-            i.loadingQuotaNumber
+            id, trackingNumber, numberOfPeople, username, userType,
+            entryTime, netWeight, scaleReceiptNumber,
+            shortageWeight, excessWeight, exitTime, exitDate, status,
+            confirm, confirmation,
+            shipName, loadingWarehouse, cargoType, shippingCompany,
+            loadingQuotaNumber
         FROM 
-            CargoInfo c
-        JOIN 
-            InitialInfo i ON c.loadingQuotaNumber = i.loadingQuotaNumber
+            CargoInfo
         WHERE 
-            c.scaleReceiptNumber = ?
+            scaleReceiptNumber = ?
         LIMIT 1
     ";
 
@@ -69,27 +81,38 @@ try {
 
     $result = $stmt->get_result();
     $cargoInfo = $result->fetch_assoc();
+    
+    error_log("📊 Query result count: " . ($cargoInfo ? "1" : "0"));
 
     if ($cargoInfo) {
+        error_log("✅ Found cargo info with ID: " . $cargoInfo['id']);
         // فرمت‌بندی داده‌ها برای خروجی
-        $formattedCargoInfo = array_map('htmlspecialchars', [
-            'trackingNumber' => $cargoInfo['trackingNumber'],
-            'entryTime' => $cargoInfo['entryTime'],
-            'netWeight' => $cargoInfo['netWeight'],
-            'scaleReceiptNumber' => $cargoInfo['scaleReceiptNumber'],
-            'shortageWeight' => $cargoInfo['shortageWeight'],
-            'excessWeight' => $cargoInfo['excessWeight'],
-            'exitTime' => $cargoInfo['exitTime'],
-            'exitDate' => $cargoInfo['exitDate'],
-            'status' => $cargoInfo['status'],
-            'shipName' => $cargoInfo['shipName'],
-            'loadingWarehouse' => $cargoInfo['loadingWarehouse'],
-            'cargoType' => $cargoInfo['cargoType'],
-            'shippingCompany' => $cargoInfo['shippingCompany'],
-            'loadingQuotaNumber' => $cargoInfo['loadingQuotaNumber']
-        ]);
+        $formattedCargoInfo = [
+            'id' => (int)$cargoInfo['id'],
+            'trackingNumber' => htmlspecialchars((string)$cargoInfo['trackingNumber']),
+            'numberOfPeople' => htmlspecialchars((string)($cargoInfo['numberOfPeople'] ?? '')),
+            'username' => htmlspecialchars((string)($cargoInfo['username'] ?? '')),
+            'userType' => htmlspecialchars((string)($cargoInfo['userType'] ?? '')),
+            'entryTime' => htmlspecialchars((string)$cargoInfo['entryTime']),
+            'netWeight' => htmlspecialchars((string)$cargoInfo['netWeight']),
+            'scaleReceiptNumber' => htmlspecialchars((string)$cargoInfo['scaleReceiptNumber']),
+            'shortageWeight' => htmlspecialchars((string)$cargoInfo['shortageWeight']),
+            'excessWeight' => htmlspecialchars((string)$cargoInfo['excessWeight']),
+            'exitTime' => htmlspecialchars((string)($cargoInfo['exitTime'] ?? '')),
+            'exitDate' => htmlspecialchars((string)($cargoInfo['exitDate'] ?? '')),
+            'status' => htmlspecialchars((string)$cargoInfo['status']),
+            'shipName' => htmlspecialchars((string)$cargoInfo['shipName']),
+            'loadingWarehouse' => htmlspecialchars((string)$cargoInfo['loadingWarehouse']),
+            'cargoType' => htmlspecialchars((string)$cargoInfo['cargoType']),
+            'shippingCompany' => htmlspecialchars((string)$cargoInfo['shippingCompany']),
+            'loadingQuotaNumber' => htmlspecialchars((string)$cargoInfo['loadingQuotaNumber']),
+            'confirm' => htmlspecialchars((string)($cargoInfo['confirm'] ?? '')),
+            'confirmation' => htmlspecialchars((string)($cargoInfo['confirmation'] ?? 'no'))
+        ];
+        error_log("📤 Sending success response");
         sendJsonResponse(['cargoInfo' => $formattedCargoInfo]);
     } else {
+        error_log("❌ No results found for receipt: $receiptNumber");
         sendJsonResponse(['error' => 'هیچ نتیجه‌ای یافت نشد.'], 404);
     }
 } catch (InvalidArgumentException $e) {
@@ -97,7 +120,13 @@ try {
     sendJsonResponse(['error' => $e->getMessage()], 400);
 } catch (Exception $e) {
     error_log("API Error: " . $e->getMessage());
-    sendJsonResponse(['error' => 'خطای داخلی سرور رخ داده است.'], 500);
+    error_log("Stack trace: " . $e->getTraceAsString());
+    sendJsonResponse([
+        'error' => 'خطای داخلی سرور رخ داده است.',
+        'message' => $e->getMessage(),
+        'file' => basename($e->getFile()),
+        'line' => $e->getLine()
+    ], 500);
 } finally {
     if (isset($stmt)) {
         $stmt->close();
