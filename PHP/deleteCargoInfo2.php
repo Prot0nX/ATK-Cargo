@@ -28,19 +28,20 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 
 log_debug("Received data: " . json_encode($data, JSON_UNESCAPED_UNICODE));
 
-$requiredFields = ['trackingNumber', 'shipName', 'loadingWarehouse', 'cargoType', 'shippingCompany', 'loadingQuotaNumber'];
-foreach ($requiredFields as $field) {
-    if (empty($data[$field])) {
-        log_debug("Missing required field: $field");
-        send_json_response("error", "فیلد ضروری وجود ندارد: $field", 400);
-    }
+// بررسی فیلد id
+if (!isset($data['id']) || empty($data['id'])) {
+    log_debug("Missing required field: id");
+    send_json_response("error", "فیلد ضروری وجود ندارد: id", 400);
 }
 
-$sanitizedData = array_map(function($value) {
-    return htmlspecialchars(trim($value), ENT_QUOTES, 'UTF-8');
-}, $data);
+$cargoId = intval($data['id']);
 
-log_debug("Sanitized input: " . json_encode($sanitizedData, JSON_UNESCAPED_UNICODE));
+if ($cargoId <= 0) {
+    log_debug("Invalid cargo id: " . $data['id']);
+    send_json_response("error", "شناسه حواله نامعتبر است", 400);
+}
+
+log_debug("Cargo ID: " . $cargoId);
 
 try {
     $conn = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
@@ -51,12 +52,12 @@ try {
     log_debug("Database connection successful");
 
     // ابتدا اطلاعات حواله را برای بازگردانی تناژ موقت دریافت می‌کنیم
-    $selectStmt = $conn->prepare("SELECT netWeight, status FROM CargoInfo WHERE trackingNumber = ? AND shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND shippingCompany = ? AND loadingQuotaNumber = ?");
+    $selectStmt = $conn->prepare("SELECT netWeight, status, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber FROM CargoInfo WHERE id = ?");
     if (!$selectStmt) {
         throw new Exception("خطا در آماده‌سازی دستور انتخاب: " . $conn->error);
     }
     
-    $selectStmt->bind_param("ssssss", $sanitizedData['trackingNumber'], $sanitizedData['shipName'], $sanitizedData['loadingWarehouse'], $sanitizedData['cargoType'], $sanitizedData['shippingCompany'], $sanitizedData['loadingQuotaNumber']);
+    $selectStmt->bind_param("i", $cargoId);
     $selectStmt->execute();
     $selectResult = $selectStmt->get_result();
     $cargoData = $selectResult->fetch_assoc();
@@ -67,13 +68,13 @@ try {
         send_json_response("error", "حواله یافت نشد یا قبلاً حذف شده است", 404);
     }
 
-    $stmt = $conn->prepare("DELETE FROM CargoInfo WHERE trackingNumber = ? AND shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND shippingCompany = ? AND loadingQuotaNumber = ?");
+    $stmt = $conn->prepare("DELETE FROM CargoInfo WHERE id = ?");
     if (!$stmt) {
         throw new Exception("خطا در آماده‌سازی دستور SQL: " . $conn->error);
     }
     log_debug("SQL statement prepared successfully");
 
-    $stmt->bind_param("ssssss", $sanitizedData['trackingNumber'], $sanitizedData['shipName'], $sanitizedData['loadingWarehouse'], $sanitizedData['cargoType'], $sanitizedData['shippingCompany'], $sanitizedData['loadingQuotaNumber']);
+    $stmt->bind_param("i", $cargoId);
     
     if (!$stmt->execute()) {
         throw new Exception("خطا در اجرای دستور SQL: " . $stmt->error);
@@ -90,11 +91,11 @@ try {
                                  shippingCompany = ? AND loadingQuotaNumber = ? LIMIT 1";
         $tempTonnageStmt = $conn->prepare($tempTonnageQuery);
         $tempTonnageStmt->bind_param("sssss", 
-            $sanitizedData['shipName'], 
-            $sanitizedData['loadingWarehouse'], 
-            $sanitizedData['cargoType'], 
-            $sanitizedData['shippingCompany'], 
-            $sanitizedData['loadingQuotaNumber']
+            $cargoData['shipName'], 
+            $cargoData['loadingWarehouse'], 
+            $cargoData['cargoType'], 
+            $cargoData['shippingCompany'], 
+            $cargoData['loadingQuotaNumber']
         );
         $tempTonnageStmt->execute();
         $tempTonnageResult = $tempTonnageStmt->get_result();
@@ -110,11 +111,11 @@ try {
             $updateTempTonnageStmt = $conn->prepare($updateTempTonnageQuery);
             $updateTempTonnageStmt->bind_param("dsssss", 
                 $newTempTonnage, 
-                $sanitizedData['shipName'], 
-                $sanitizedData['loadingWarehouse'], 
-                $sanitizedData['cargoType'], 
-                $sanitizedData['shippingCompany'], 
-                $sanitizedData['loadingQuotaNumber']
+                $cargoData['shipName'], 
+                $cargoData['loadingWarehouse'], 
+                $cargoData['cargoType'], 
+                $cargoData['shippingCompany'], 
+                $cargoData['loadingQuotaNumber']
             );
             $updateTempTonnageStmt->execute();
             $updateTempTonnageStmt->close();

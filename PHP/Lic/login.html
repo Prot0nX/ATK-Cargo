@@ -3,112 +3,428 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ورود به پنل مدیریت</title>
+    <title>ورود به پنل مدیریت - ATK Cargo</title>
     
-    <!-- استایل‌های خارجی -->
-    <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <link rel="preload" href="https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/Vazirmatn-font-face.css" as="style">
-    <link rel="preload" href="assets/css/styles.css" as="style">
+    <!-- فونت‌ها -->
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
+    <!-- CSS فریمورک‌ها -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/Vazirmatn-font-face.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
-    <link rel="stylesheet" href="assets/css/styles.css">
     
+    <!-- CSS سفارشی -->
+    <link rel="stylesheet" href="license-manager.css">
+    
+    <!-- MD5 Library -->
     <script src="https://cdn.jsdelivr.net/npm/js-md5@0.8.3/src/md5.min.js"></script>
     
+    <!-- تنظیمات Tailwind CSS -->
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
-                        'vazir': ['Vazirmatn', 'sans-serif'],
+                        'vazir': ['Vazirmatn', 'sans-serif']
                     },
-                    colors: {
-                        primary: {
-                            DEFAULT: '#2563eb',
-                            light: '#3b82f6',
-                            dark: '#1d4ed8'
-                        }
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 3s ease-in-out infinite',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                        'slide-down': 'slideDown 0.5s ease-out',
+                        'shimmer': 'shimmer 2s linear infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'bounce-slow': 'bounce 2s infinite',
+                        'rotate-slow': 'rotate 8s linear infinite',
+                        'fade-in': 'fadeIn 0.6s ease-out',
+                        'scale-in': 'scaleIn 0.4s ease-out',
+                        'wiggle': 'wiggle 1s ease-in-out infinite',
+                        'gradient': 'gradient 15s ease infinite',
+                        'blob': 'blob 7s infinite',
+                        'tilt': 'tilt 10s infinite linear',
+                        'backdrop-show': 'backdropShow 0.3s ease-out',
+                        'modal-show': 'modalShow 0.4s ease-out'
                     }
                 }
             }
         }
     </script>
 </head>
-<body class="gradient-bg font-vazir transition-colors duration-300 custom-scrollbar min-h-screen theme-transition">
-    <div class="min-h-screen flex flex-col items-center justify-center p-4">
-        <h1 class="text-4xl font-bold text-white mb-8 text-center relative z-10 text-shadow-lg backdrop-blur-none">سیستم مدیریت لایسنس بارگیری</h1>
-        <div class="glass rounded-2xl w-full max-w-md animate-modal-show theme-transition">
-            <div class="p-8">
-                <div class="text-center mb-8">
-                    <div class="w-20 h-20 rounded-full bg-primary-light/10 dark:bg-primary-dark/10 flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-key text-4xl text-primary dark:text-primary-light"></i>
+<body class="font-vazir min-h-screen relative overflow-hidden transition-all duration-500 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    
+    <!-- Background Elements -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <!-- Animated Background Shapes -->
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl animate-blob"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-600/20 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-gradient-to-br from-cyan-400/10 to-blue-600/10 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+        
+        <!-- Floating Particles -->
+        <div class="floating-particles">
+            <div class="particle w-2 h-2" style="left: 10%; animation-delay: 0s;"></div>
+            <div class="particle w-1 h-1" style="left: 20%; animation-delay: 3s;"></div>
+            <div class="particle w-3 h-3" style="left: 30%; animation-delay: 6s;"></div>
+            <div class="particle w-1 h-1" style="left: 40%; animation-delay: 9s;"></div>
+            <div class="particle w-2 h-2" style="left: 50%; animation-delay: 12s;"></div>
+            <div class="particle w-1 h-1" style="left: 60%; animation-delay: 15s;"></div>
+            <div class="particle w-2 h-2" style="left: 70%; animation-delay: 18s;"></div>
+            <div class="particle w-1 h-1" style="left: 80%; animation-delay: 21s;"></div>
+            <div class="particle w-3 h-3" style="left: 90%; animation-delay: 24s;"></div>
+        </div>
+        
+        <!-- Grid Pattern -->
+        <div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="min-h-screen flex flex-col items-center justify-center p-4 relative z-10">
+        
+        <!-- Header Section -->
+        <div class="text-center mb-12 animate-fade-in-up">
+            <div class="mb-8">
+                <!-- Logo Container -->
+                <div class="relative inline-block mb-6">
+                    <div class="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-600/20 rounded-full blur-xl animate-pulse-slow"></div>
+                    <div class="relative glass-morphism rounded-full p-6 inline-block">
+                        <i class="fas fa-shipping-fast text-5xl text-white animate-float"></i>
                     </div>
-                    <p class="text-gray-300 mt-2">لطفاً رمز عبور خود را وارد کنید</p>
                 </div>
                 
-                <form id="loginForm" class="space-y-6">
-                    <div>
-                        <div class="relative">
-                            <input type="password" id="password" 
-                                   class="glass w-full rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent text-white transition-all pr-12 form-control-animate"
-                                   placeholder="رمز عبور">
-                            <button type="button" id="togglePassword" 
-                                    class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
-                                <i class="fas fa-eye"></i>
-                            </button>
+                <!-- Title -->
+                <h1 class="text-6xl md:text-7xl font-black mb-4 animate-glow">
+                    <span class="bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 bg-clip-text text-transparent">
+                        ATK CARGO
+                    </span>
+                </h1>
+                
+                <!-- Subtitle -->
+                <div class="relative">
+                    <div class="w-32 h-1 bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400 mx-auto rounded-full mb-6 animate-shimmer"></div>
+                    <p class="text-xl md:text-2xl text-white/90 font-medium">
+                        سیستم مدیریت لایسنس بارگیری
+                    </p>
+                    <p class="text-sm text-white/60 mt-2">
+                        ورود امن به پنل مدیریت
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Login Card -->
+        <div class="glass-morphism rounded-3xl w-full max-w-md animate-scale-in shadow-2xl border border-white/10">
+            <div class="p-8 md:p-10">
+                
+                <!-- Card Header -->
+                <div class="text-center mb-8">
+                    <div class="relative inline-block mb-6">
+                        <!-- Pulse Rings -->
+                        <div class="absolute inset-0 rounded-full border-2 border-blue-400/30 animate-ping"></div>
+                        <div class="absolute inset-0 rounded-full border-2 border-purple-400/30 animate-ping animation-delay-1000"></div>
+                        
+                        <!-- Icon Container -->
+                        <div class="relative w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center animate-float shadow-lg">
+                            <i class="fas fa-key text-3xl text-white"></i>
                         </div>
                     </div>
                     
+                    <h2 class="text-2xl font-bold text-white mb-2">ورود به پنل مدیریت</h2>
+                    <p class="text-gray-300/80">لطفاً رمز عبور خود را وارد کنید</p>
+                </div>
+                
+                <!-- Login Form -->
+                <form id="loginForm" class="space-y-6">
+                    
+                    <!-- Password Field -->
+                    <div class="space-y-2">
+                        <label for="password" class="block text-sm font-medium text-gray-300 mb-3">
+                            <i class="fas fa-lock ml-2 text-blue-400"></i>
+                            رمز عبور
+                        </label>
+                        <div class="relative group">
+                            <input type="password" 
+                                   id="password" 
+                                   name="password"
+                                   class="glass-morphism w-full rounded-xl px-4 py-4 text-white placeholder-gray-400 border border-white/10 focus:outline-none focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/20 transition-all duration-300 pr-12 hover-lift"
+                                   placeholder="رمز عبور خود را وارد کنید"
+                                   required
+                                   autocomplete="current-password">
+                            
+                            <!-- Toggle Password Visibility -->
+                            <button type="button" 
+                                    id="togglePassword" 
+                                    class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-200 focus:outline-none hover-glow">
+                                <i class="fas fa-eye text-lg"></i>
+                            </button>
+                            
+                            <!-- Input Glow Effect -->
+                            <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-400/0 via-purple-400/0 to-cyan-400/0 group-focus-within:from-blue-400/10 group-focus-within:via-purple-400/10 group-focus-within:to-cyan-400/10 transition-all duration-300 pointer-events-none"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Button -->
                     <button type="submit" 
-                            class="glass-button w-full px-6 py-3 rounded-xl flex items-center justify-center gap-2">
+                            id="submitBtn"
+                            class="w-full bg-gradient-to-r from-blue-500 via-purple-600 to-cyan-500 hover:from-blue-600 hover:via-purple-700 hover:to-cyan-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 hover-lift focus:outline-none focus:ring-4 focus:ring-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 text-lg shadow-lg btn-ripple">
                         <i class="fas fa-sign-in-alt"></i>
-                        ورود به پنل
+                        <span id="submitText">ورود به پنل</span>
                     </button>
+                    
+
                 </form>
+                
+                <!-- Security Info -->
+                <div class="mt-8 pt-6 border-t border-white/10">
+                    <div class="flex items-center justify-center text-sm text-gray-400">
+                        <i class="fas fa-shield-alt ml-2 text-green-400 animate-pulse-slow"></i>
+                        <span>محافظت شده با رمزگذاری SSL</span>
+                    </div>
+                    
+                    <!-- Additional Security Features -->
+                    <div class="grid grid-cols-2 gap-4 mt-4 text-xs text-gray-500">
+                        <div class="flex items-center">
+                            <i class="fas fa-lock ml-1 text-blue-400"></i>
+                            <span>رمزگذاری 256-bit</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-user-shield ml-1 text-green-400"></i>
+                            <span>احراز هویت دو مرحله‌ای</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+        
+        <!-- Footer -->
+        <div class="mt-8 text-center animate-fade-in">
+            <p class="text-sm text-white/60">
+                © 2024 ATK Cargo. تمامی حقوق محفوظ است.
+            </p>
+        </div>
     </div>
-
-    <!-- دکمه تغییر تم -->
-    <button id="themeToggle" class="fixed top-4 left-4 glass-button p-2 rounded-xl transition-colors group relative text-gray-300 focus-ring theme-transition">
-        <i class="fas fa-sun text-lg"></i>
-        <span class="tooltip">تغییر تم</span>
+    
+    <!-- Theme Toggle Button -->
+    <button id="themeToggle" 
+            class="fixed top-6 left-6 glass-morphism p-4 rounded-2xl text-white/90 hover:text-white transition-all duration-500 hover-lift focus:outline-none focus:ring-4 focus:ring-blue-500/30 z-20 border border-white/20 hover:border-white/40 group shadow-xl">
+        <div class="relative">
+            <!-- Sun Icon -->
+            <i id="sunIcon" class="fas fa-sun text-xl transition-all duration-500 transform group-hover:scale-110 group-hover:rotate-180"></i>
+            <!-- Moon Icon (hidden by default) -->
+            <i id="moonIcon" class="fas fa-moon text-xl absolute inset-0 transition-all duration-500 transform opacity-0 scale-0 group-hover:scale-110"></i>
+        </div>
+        <!-- Tooltip -->
+        <div class="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs px-3 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none whitespace-nowrap">
+            <span id="tooltipText">حالت تاریک</span>
+            <div class="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-black/80 rotate-45"></div>
+        </div>
     </button>
-
+    
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden animate-backdrop-show">
+        <div class="glass-morphism rounded-2xl p-8 text-center animate-modal-show border border-white/10">
+            <div class="loading-spinner w-16 h-16 mx-auto mb-4"></div>
+            <p class="text-white text-lg font-medium">در حال ورود<span class="loading-dots"></span></p>
+            <p class="text-white/60 text-sm mt-2">لطفاً صبر کنید...</p>
+        </div>
+    </div>
+    
+    <!-- Success Animation -->
+    <div id="successAnimation" class="fixed inset-0 bg-green-500/20 backdrop-blur-sm flex items-center justify-center z-50 hidden animate-backdrop-show">
+        <div class="glass-morphism rounded-2xl p-8 text-center animate-modal-show border border-green-400/20">
+            <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce-slow">
+                <i class="fas fa-check text-2xl text-white"></i>
+            </div>
+            <p class="text-white text-lg font-medium">ورود موفقیت‌آمیز!</p>
+            <p class="text-white/60 text-sm mt-2">در حال انتقال به داشبورد...</p>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
     <script src="login.js"></script>
-
-    <style>
-        /* استایل تولتیپ‌ها */
-        .tooltip {
-            @apply invisible absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 text-xs text-white bg-black/80 dark:bg-white/80 dark:text-gray-900 rounded whitespace-nowrap opacity-0 transition-all group-hover:visible group-hover:opacity-100 theme-transition;
-        }
-
-        .tooltip::before {
-            content: '';
-            @apply absolute -top-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-b-black/80 dark:border-b-white/80 theme-transition;
-        }
-
-        /* سایه متن برای عنوان */
-        .text-shadow-lg {
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        /* استایل جستجو */
-        #searchInput:focus + .fa-search {
-            @apply text-primary dark:text-primary-light;
-        }
-
-        /* حالت موبایل */
-        @media (max-width: 768px) {
-            .nav-title {
-                @apply text-base;
+    
+    <script>
+        // Enhanced Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        const sunIcon = document.getElementById('sunIcon');
+        const moonIcon = document.getElementById('moonIcon');
+        const tooltipText = document.getElementById('tooltipText');
+        const body = document.body;
+        
+        // Initialize theme state
+        function updateThemeIcons(isDark) {
+            if (isDark) {
+                sunIcon.style.opacity = '0';
+                sunIcon.style.transform = 'scale(0) rotate(180deg)';
+                moonIcon.style.opacity = '1';
+                moonIcon.style.transform = 'scale(1) rotate(0deg)';
+                tooltipText.textContent = 'حالت روشن';
+                body.style.background = 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)';
+            } else {
+                sunIcon.style.opacity = '1';
+                sunIcon.style.transform = 'scale(1) rotate(0deg)';
+                moonIcon.style.opacity = '0';
+                moonIcon.style.transform = 'scale(0) rotate(-180deg)';
+                tooltipText.textContent = 'حالت تاریک';
+                body.style.background = 'linear-gradient(135deg, #0f172a 0%, #581c87 50%, #0f172a 100%)';
             }
         }
-    </style>
+        
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('theme');
+        const isDarkMode = savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        
+        if (isDarkMode) {
+            body.classList.add('dark');
+        }
+        updateThemeIcons(isDarkMode);
+        
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark');
+            const isDark = body.classList.contains('dark');
+            
+            updateThemeIcons(isDark);
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            
+            // Add enhanced ripple effect
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple';
+            ripple.style.background = isDark ? 'rgba(59, 130, 246, 0.5)' : 'rgba(251, 191, 36, 0.5)';
+            themeToggle.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+            
+            // Add theme transition effect
+            body.style.transition = 'background 0.5s ease-in-out';
+            setTimeout(() => {
+                body.style.transition = '';
+            }, 500);
+        });
+        
+        // Enhanced Password Toggle
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('password');
+        
+        togglePassword.addEventListener('click', () => {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            const icon = togglePassword.querySelector('i');
+            icon.className = type === 'password' ? 'fas fa-eye text-lg' : 'fas fa-eye-slash text-lg';
+            
+            // Add ripple effect
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple';
+            togglePassword.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        });
+        
+        // Enhanced Form Interactions
+        passwordInput.addEventListener('focus', () => {
+            passwordInput.parentElement.classList.add('focused');
+        });
+        
+        passwordInput.addEventListener('blur', () => {
+            passwordInput.parentElement.classList.remove('focused');
+        });
+        
+        // Particle System
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.width = particle.style.height = Math.random() * 4 + 1 + 'px';
+            particle.style.animationDuration = Math.random() * 15 + 20 + 's';
+            particle.style.animationDelay = Math.random() * 5 + 's';
+            
+            const particlesContainer = document.querySelector('.floating-particles');
+            if (particlesContainer) {
+                particlesContainer.appendChild(particle);
+                
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.remove();
+                    }
+                }, 30000);
+            }
+        }
+        
+        // Generate particles periodically
+        setInterval(createParticle, 4000);
+        
+        // Initialize particles
+        for (let i = 0; i < 5; i++) {
+            setTimeout(createParticle, i * 1000);
+        }
+        
+        // Enhanced Loading States
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+        
+        function showSuccess() {
+            hideLoading();
+            document.getElementById('successAnimation').classList.remove('hidden');
+            
+            setTimeout(() => {
+                document.getElementById('successAnimation').classList.add('hidden');
+            }, 2000);
+        }
+        
+        // Add entrance animations on load
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                document.body.classList.add('loaded');
+            }, 100);
+            
+            // Add staggered animations to form elements
+            const formElements = document.querySelectorAll('#loginForm > *');
+            formElements.forEach((element, index) => {
+                element.style.animationDelay = `${index * 0.1}s`;
+                element.classList.add('animate-fade-in-up');
+            });
+        });
+        
+        // Enhanced Ripple Effect for Buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('btn-ripple') || e.target.closest('.btn-ripple')) {
+                const button = e.target.classList.contains('btn-ripple') ? e.target : e.target.closest('.btn-ripple');
+                const rect = button.getBoundingClientRect();
+                const ripple = document.createElement('div');
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = x + 'px';
+                ripple.style.top = y + 'px';
+                ripple.className = 'ripple';
+                
+                button.appendChild(ripple);
+                
+                setTimeout(() => {
+                    if (ripple.parentNode) {
+                        ripple.remove();
+                    }
+                }, 600);
+            }
+        });
+        
+        // Keyboard Navigation Enhancement
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.target.id === 'password') {
+                e.preventDefault();
+                document.getElementById('submitBtn').click();
+            }
+        });
+        
+        // Auto-focus password field
+        setTimeout(() => {
+            passwordInput.focus();
+        }, 500);
+    </script>
 </body>
-</html> 
+</html>

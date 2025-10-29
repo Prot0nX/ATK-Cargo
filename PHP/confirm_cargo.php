@@ -39,11 +39,11 @@ if (json_last_error() !== JSON_ERROR_NONE) {
     send_json_response("error", "فرمت JSON نامعتبر است", [], 400);
 }
 
-// بررسی همه پارامترهای مورد نیاز (4 پارامتر اصلی + اطلاعات کاربر)
-$requiredFields = ['trackingNumber', 'loadingQuotaNumber', 'loadingWarehouse', 'shippingCompany', 'cargoType', 'username', 'userType'];
+// بررسی پارامترهای مورد نیاز (فقط id و اطلاعات کاربر)
+$requiredFields = ['id', 'username', 'userType'];
 $missingFields = [];
 foreach ($requiredFields as $field) {
-    if (empty($data[$field])) {
+    if (!isset($data[$field]) || (is_string($data[$field]) && trim($data[$field]) === '')) {
         $missingFields[] = $field;
     }
 }
@@ -53,10 +53,14 @@ if (!empty($missingFields)) {
     send_json_response("error", "فیلدهای ضروری وجود ندارند: " . implode(', ', $missingFields), [], 400);
 }
 
-// پاکسازی داده‌های ورودی - فقط برای فیلدهایی که نیاز داریم
-$sanitizedData = [];
-foreach ($requiredFields as $field) {
-    $sanitizedData[$field] = htmlspecialchars(trim($data[$field]), ENT_QUOTES, 'UTF-8');
+// پاکسازی داده‌های ورودی
+$cargoId = intval($data['id']);
+$username = htmlspecialchars(trim($data['username']), ENT_QUOTES, 'UTF-8');
+$userType = htmlspecialchars(trim($data['userType']), ENT_QUOTES, 'UTF-8');
+
+if ($cargoId <= 0) {
+    ob_end_clean();
+    send_json_response("error", "شناسه حواله نامعتبر است", [], 400);
 }
 
 try {
@@ -77,17 +81,13 @@ try {
     // تراکنش برای اطمینان از یکپارچگی داده‌ها و بهبود کارایی
     $conn->begin_transaction();
 
-    // استفاده از یک کوئری ترکیبی برای بررسی و به‌روزرسانی همزمان
+    // استفاده از id برای بروزرسانی
     $query = "UPDATE CargoInfo 
              SET confirm = 'تائید شده', 
                  confirm_username = ?, 
                  confirm_usertype = ?, 
                  updated_at = NOW() 
-             WHERE trackingNumber = ? 
-               AND loadingQuotaNumber = ? 
-               AND loadingWarehouse = ? 
-               AND shippingCompany = ? 
-               AND cargoType = ?
+             WHERE id = ?
                AND (confirm IS NULL OR confirm != 'تائید شده')";
 
     $stmt = $conn->prepare($query);
@@ -95,14 +95,10 @@ try {
         throw new Exception("خطا در آماده‌سازی دستور SQL: " . $conn->error);
     }
     
-    $stmt->bind_param("sssssss", 
-        $sanitizedData['username'], 
-        $sanitizedData['userType'], 
-        $sanitizedData['trackingNumber'], 
-        $sanitizedData['loadingQuotaNumber'], 
-        $sanitizedData['loadingWarehouse'], 
-        $sanitizedData['shippingCompany'], 
-        $sanitizedData['cargoType']
+    $stmt->bind_param("ssi", 
+        $username, 
+        $userType, 
+        $cargoId
     );
     
     // اجرای کوئری بهینه‌سازی شده
@@ -112,6 +108,15 @@ try {
     
     // بررسی تعداد رکوردهای تأثیرپذیر
     if ($stmt->affected_rows > 0) {
+        // دریافت اطلاعات حواله برای پاسخ
+        $infoQuery = "SELECT trackingNumber, loadingQuotaNumber FROM CargoInfo WHERE id = ?";
+        $infoStmt = $conn->prepare($infoQuery);
+        $infoStmt->bind_param("i", $cargoId);
+        $infoStmt->execute();
+        $infoResult = $infoStmt->get_result();
+        $cargoData = $infoResult->fetch_assoc();
+        $infoStmt->close();
+        
         // تأیید تراکنش
         $conn->commit();
         
@@ -120,40 +125,27 @@ try {
         $confirmDate = date('Y/m/d');
         
         $responseData = [
-            'trackingNumber' => $sanitizedData['trackingNumber'],
-            'loadingQuotaNumber' => $sanitizedData['loadingQuotaNumber'],
-            'loadingWarehouse' => $sanitizedData['loadingWarehouse'],
-            'shippingCompany' => $sanitizedData['shippingCompany'],
-            'cargoType' => $sanitizedData['cargoType'],
+            'id' => $cargoId,
+            'trackingNumber' => $cargoData['trackingNumber'] ?? '',
+            'loadingQuotaNumber' => $cargoData['loadingQuotaNumber'] ?? '',
             'confirmTime' => $confirmTime,
             'confirmDate' => $confirmDate,
-            'confirmUsername' => $sanitizedData['username'],
-            'confirmUserType' => $sanitizedData['userType']
+            'confirmUsername' => $username,
+            'confirmUserType' => $userType
         ];
         
         ob_end_clean();
         send_json_response(
             "success", 
-            "حواله شماره {$sanitizedData['trackingNumber']} با کوتاژ {$sanitizedData['loadingQuotaNumber']} در ساعت {$confirmTime} توسط {$sanitizedData['username']} با موفقیت تأیید شد", 
+            "حواله شماره {$cargoData['trackingNumber']} با کوتاژ {$cargoData['loadingQuotaNumber']} در ساعت {$confirmTime} توسط {$username} با موفقیت تأیید شد", 
             $responseData
         );
     } else {
         // بررسی وجود رکورد برای پیام خطای مناسب
-        $checkQuery = "SELECT id FROM CargoInfo 
-                      WHERE trackingNumber = ? 
-                        AND loadingQuotaNumber = ? 
-                        AND loadingWarehouse = ? 
-                        AND shippingCompany = ? 
-                        AND cargoType = ?";
+        $checkQuery = "SELECT id, confirm FROM CargoInfo WHERE id = ?";
         
         $checkStmt = $conn->prepare($checkQuery);
-        $checkStmt->bind_param("sssss", 
-            $sanitizedData['trackingNumber'], 
-            $sanitizedData['loadingQuotaNumber'], 
-            $sanitizedData['loadingWarehouse'], 
-            $sanitizedData['shippingCompany'], 
-            $sanitizedData['cargoType']
-        );
+        $checkStmt->bind_param("i", $cargoId);
         
         $checkStmt->execute();
         $checkResult = $checkStmt->get_result();
@@ -164,7 +156,7 @@ try {
         if ($checkResult->num_rows > 0) {
             send_json_response("error", "حواله قبلاً تأیید شده است یا تغییری اعمال نشد", [], 200);
         } else {
-            send_json_response("error", "حواله با مشخصات ارسالی یافت نشد. لطفاً همه پارامترها را بررسی کنید.", [], 404);
+            send_json_response("error", "حواله با شناسه ارسالی یافت نشد", [], 404);
         }
     }
 } catch (Exception $e) {
@@ -178,6 +170,7 @@ try {
 } finally {
     // آزادسازی منابع
     if (isset($stmt)) $stmt->close();
+    if (isset($infoStmt)) $infoStmt->close();
     if (isset($checkStmt)) $checkStmt->close();
     if (isset($conn)) $conn->close();
 }

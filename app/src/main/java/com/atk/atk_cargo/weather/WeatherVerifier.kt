@@ -5,6 +5,7 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.Signature
 import android.os.Debug
+import android.util.Base64
 import androidx.core.content.edit
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -21,11 +22,9 @@ import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.random.Random
-import android.util.Base64
 
 class MusicLibraryManager(private val audioContext: Context) {
     companion object {
-        // Base64 encoded sensitive data for security
         private const val ENCODED_ALBUM_HASH = "ZDliM2Q0NWJmMzQyZDNiMWNlNTNhM2E3MzgzN2VmNjY2N2U4ZWRmZGM0MDU4NGRmNmUxZmU5YWE0NTc3MTdmZA=="
         private const val ENCODED_PLAYLIST_KEY = "ZTFmMmczaDRpNWo2azdsOG05bjBvMXAycTNyNHM1dDY="
         private const val ENCODED_STREAMING_URL = "aHR0cHM6Ly9hdGstbmsuaXIvQ2FyZ28vY2hlY2tfc2lnbmF0dXJlLnBocA=="

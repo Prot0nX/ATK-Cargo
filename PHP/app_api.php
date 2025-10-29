@@ -989,6 +989,7 @@
 		// کوئری بهینه‌سازی شده با فیلتر زمانی بر اساس exitDate و exitTime
 		$query = "
 		SELECT 
+			i.id,
 			i.loadingQuotaNumber as number,
 			i.shipName,
 			i.loadingWarehouse,
@@ -1117,6 +1118,7 @@
 				customLog("Filtered Quota: {$row['number']}, Warehouse: {$row['loadingWarehouse']}, Type: {$row['cargoType']}, Exit Vouchers: $exitVoucherCount, Loaded: $loadedTonnage");
 				
 				$quotas[] = [
+					'id' => (int)$row['id'],
 					'number' => $row['number'],
 					'shipName' => $row['shipName'] ?? '',
 					'warehouse' => $row['loadingWarehouse'] ?? '',
@@ -1158,6 +1160,7 @@
 		// کوئری بهینه‌سازی شده - فقط داده‌های InitialInfo
 		$query = "
 		SELECT 
+			i.id,
 			i.loadingQuotaNumber as number,
 			i.shipName,
 			i.loadingWarehouse,
@@ -1199,6 +1202,7 @@
 				customLog("Quota: {$row['number']}, Ship: {$row['shipName']}, Warehouse: {$row['loadingWarehouse']}, Type: {$row['cargoType']}");
 				
 				$quotas[] = [
+					'id' => (int)$row['id'],
 					'number' => $row['number'],
 					'shipName' => $row['shipName'] ?? '',
 					'warehouse' => $row['loadingWarehouse'] ?? '',
@@ -1244,6 +1248,7 @@
 		// بهینه‌سازی کوئری با استفاده از JOIN به جای subquery‌های متعدد
 		$query = "
 		SELECT 
+			i.id,
 			i.loadingQuotaNumber as number,
 			i.shipName,
 			i.loadingWarehouse,
@@ -1348,6 +1353,7 @@
 				customLog("Quota: {$row['number']}, Warehouse: {$row['loadingWarehouse']}, Type: {$row['cargoType']}, Exit Vouchers: $exitVoucherCount, Loaded: $loadedTonnage");
 				
 				$quotas[] = [
+					'id' => (int)$row['id'],
 					'number' => $row['number'],
 					'shipName' => $row['shipName'] ?? '',
 					'warehouse' => $row['loadingWarehouse'] ?? '',
@@ -1509,30 +1515,50 @@
 		}
 	}
 	
-	function editQuota(DatabaseManager $db, string $oldQuotaNumber, string $newQuotaNumber, string $shipName, string $shippingCompany, string $warehouse, string $cargoType, float $totalTonnage): bool {
+	function editQuota(DatabaseManager $db, int $id, string $oldQuotaNumber, string $newQuotaNumber, string $shipName, string $shippingCompany, string $warehouse, string $cargoType, float $totalTonnage): bool {
 		try {
 			$db->beginTransaction();
 			
-			// Update InitialInfo table
-			$queryInitialInfo = "UPDATE InitialInfo SET loadingQuotaNumber = ?, shipName = ?, shippingCompany = ?, loadingWarehouse = ?, cargoType = ?, cargoWeight = ? WHERE loadingQuotaNumber = ?";
+			// ابتدا اطلاعات قبلی کوتاژ را دریافت می‌کنیم
+			$selectQuery = "SELECT loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType FROM InitialInfo WHERE id = ?";
+			$selectStmt = $db->prepare($selectQuery);
+			$selectStmt->bind_param("i", $id);
+			$selectStmt->execute();
+			$result = $selectStmt->get_result();
+			$oldData = $result->fetch_assoc();
+			
+			if (!$oldData) {
+				throw new Exception("کوتاژ با شناسه مشخص شده یافت نشد");
+			}
+			
+			// Update InitialInfo table با استفاده از id
+			$queryInitialInfo = "UPDATE InitialInfo SET loadingQuotaNumber = ?, shipName = ?, shippingCompany = ?, loadingWarehouse = ?, cargoType = ?, cargoWeight = ? WHERE id = ?";
 			$stmtInitialInfo = $db->prepare($queryInitialInfo);
-			$stmtInitialInfo->bind_param("sssssds", $newQuotaNumber, $shipName, $shippingCompany, $warehouse, $cargoType, $totalTonnage, $oldQuotaNumber);
+			$stmtInitialInfo->bind_param("sssssdi", $newQuotaNumber, $shipName, $shippingCompany, $warehouse, $cargoType, $totalTonnage, $id);
 			$stmtInitialInfo->execute();
 			
-			// Update CargoInfo table - بروزرسانی تمام حواله های مرتبط با همه فیلدها
+			// Update CargoInfo table - بروزرسانی تمام حواله های مرتبط با اطلاعات قبلی
 			$queryCargoInfo = "UPDATE CargoInfo SET 
 				loadingQuotaNumber = ?, 
 				shipName = ?, 
 				loadingWarehouse = ?,
 				shippingCompany = ?,
 				cargoType = ?
-				WHERE loadingQuotaNumber = ?";
+				WHERE loadingQuotaNumber = ? 
+				AND shipName = ? 
+				AND loadingWarehouse = ? 
+				AND shippingCompany = ? 
+				AND cargoType = ?";
 			$stmtCargoInfo = $db->prepare($queryCargoInfo);
-			$stmtCargoInfo->bind_param("ssssss", $newQuotaNumber, $shipName, $warehouse, $shippingCompany, $cargoType, $oldQuotaNumber);
+			$stmtCargoInfo->bind_param("ssssssssss", 
+				$newQuotaNumber, $shipName, $warehouse, $shippingCompany, $cargoType,
+				$oldData['loadingQuotaNumber'], $oldData['shipName'], $oldData['loadingWarehouse'], 
+				$oldData['shippingCompany'], $oldData['cargoType']
+			);
 			$stmtCargoInfo->execute();
 			
 			// لاگ کردن عملیات برای بررسی
-			customLog("Quota edit successful - Old: $oldQuotaNumber, New: $newQuotaNumber, ShippingCompany: $shippingCompany, CargoType: $cargoType");
+			customLog("Quota edit successful - ID: $id, Old: {$oldData['loadingQuotaNumber']}, New: $newQuotaNumber, ShippingCompany: $shippingCompany, CargoType: $cargoType");
 			
 			$db->commit();
 			return true;
@@ -1885,11 +1911,12 @@ break;
             exit;
 			
 	case 'editQuota':
-	if (!isset($_GET['oldQuotaNumber']) || !isset($_GET['newQuotaNumber']) || !isset($_GET['shipName']) || !isset($_GET['shippingCompany']) || !isset($_GET['warehouse']) || !isset($_GET['cargoType']) || !isset($_GET['totalTonnage'])) {
+	if (!isset($_GET['id']) || !isset($_GET['oldQuotaNumber']) || !isset($_GET['newQuotaNumber']) || !isset($_GET['shipName']) || !isset($_GET['shippingCompany']) || !isset($_GET['warehouse']) || !isset($_GET['cargoType']) || !isset($_GET['totalTonnage'])) {
 		throw new Exception('پارامترهای ورودی ناقص هستند');
 	}
 	$result = editQuota(
 	$db,
+	intval($_GET['id']),
 	$_GET['oldQuotaNumber'],
 	$_GET['newQuotaNumber'],
 	$_GET['shipName'],

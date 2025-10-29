@@ -20,14 +20,40 @@ require_once __DIR__ . '/config/config.php';
 
 date_default_timezone_set('Asia/Tehran');
 
+/**
+ * کلاس Logger مینیمال برای performance monitoring
+ */
+class PerformanceLogger {
+    private bool $debugMode;
+    
+    public function __construct(bool $debugMode = false) {
+        $this->debugMode = $debugMode;
+    }
+    
+    public function log(string $message, string $level = 'INFO'): void {
+        if ($this->debugMode) {
+            $timestamp = date('[Y-m-d H:i:s]');
+            error_log("$timestamp [$level] $message");
+        }
+    }
+    
+    public function logExecutionTime(string $context, float $executionTime): void {
+        if ($this->debugMode) {
+            $this->log("$context completed in " . number_format($executionTime, 4) . " seconds", 'PERFORMANCE');
+        }
+    }
+}
+
 class DatabaseManager {
     private mysqli $conn;
     private static ?self $instance = null;
+    private array $cache = []; // کش حافظه داخلی
+    private PerformanceLogger $logger;
     
     private function __construct() {
+        $this->logger = new PerformanceLogger(false); // تغییر به true برای فعال‌سازی debug
         $this->conn = $this->getDbConnection();
-        // بهینه‌سازی تنظیمات MySQL
-        $this->conn->query("SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION'");
+        $this->setupOptimizedConnection();
     }
     
     // الگوی Singleton برای جلوگیری از اتصالات متعدد
@@ -36,6 +62,29 @@ class DatabaseManager {
             self::$instance = new self();
         }
         return self::$instance;
+    }
+    
+    /**
+     * تنظیم اتصال بهینه‌شده MySQL برای سرعت بیشتر
+     */
+    private function setupOptimizedConnection(): void {
+        try {
+            // تنظیمات بهینه‌سازی MySQL مشابه realTimeLoadingData.php
+            $this->conn->query("SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION'");
+            $this->conn->query("SET time_zone = '+03:30'");
+            
+            // تنظیمات بهینه‌سازی برای کوئری‌های پیچیده
+            $this->conn->query("SET SESSION SQL_BIG_SELECTS=1");
+            $this->conn->query("SET SESSION group_concat_max_len=1000000");
+            $this->conn->query("SET SESSION optimizer_search_depth=0");
+            $this->conn->query("SET SESSION max_execution_time=30000");
+            $this->conn->query("SET SESSION sort_buffer_size=1048576");
+            
+            $this->logger->log("MySQL connection optimized successfully", 'INFO');
+        } catch (Exception $e) {
+            $this->logger->log("Failed to optimize MySQL connection: " . $e->getMessage(), 'ERROR');
+            throw new Exception("Database connection optimization failed: " . $e->getMessage());
+        }
     }
     
     private function getDbConnection(): mysqli {
@@ -50,6 +99,62 @@ class DatabaseManager {
         $conn->options(MYSQLI_OPT_READ_TIMEOUT, 10);
         
         return $conn;
+    }
+    
+    /**
+     * اجرای کوئری با performance monitoring و کش
+     */
+    public function executeQuery(string $query, string $context, array $params = []): array {
+        $cacheKey = md5($query . serialize($params));
+        
+        // بررسی کش حافظه
+        if (isset($this->cache[$cacheKey])) {
+            $this->logger->log("Cache hit for $context", 'DEBUG');
+            return $this->cache[$cacheKey];
+        }
+        
+        $startTime = microtime(true);
+        $this->logger->log("Executing query for $context", 'DEBUG');
+        
+        try {
+            $stmt = $this->conn->prepare($query);
+            if (!$stmt) {
+                throw new Exception("Error preparing statement: " . $this->conn->error);
+            }
+            
+            if (!empty($params)) {
+                $types = str_repeat('s', count($params));
+                $stmt->bind_param($types, ...$params);
+            }
+            
+            if (!$stmt->execute()) {
+                throw new Exception("Error executing statement: " . $stmt->error);
+            }
+            
+            $result = $stmt->get_result();
+            if (!$result) {
+                throw new Exception("Error getting results: " . $stmt->error);
+            }
+            
+            $data = [];
+            while ($row = $result->fetch_assoc()) {
+                $data[] = $row;
+            }
+            
+            $stmt->close();
+            
+            // ذخیره در کش
+            $this->cache[$cacheKey] = $data;
+            
+            $executionTime = microtime(true) - $startTime;
+            $this->logger->logExecutionTime($context, $executionTime);
+            
+            return $data;
+            
+        } catch (Exception $e) {
+            $this->logger->log("Error in $context: " . $e->getMessage(), 'ERROR');
+            throw new Exception("Query execution failed in $context: " . $e->getMessage());
+        }
     }
     
     public function prepare(string $query): mysqli_stmt {
@@ -87,115 +192,113 @@ function sanitizeInput(string $input): string {
 }
 
 /**
- * محاسبه مانده تناژ کوتاژهای فعال - نسخه فوق‌بهینه
+ * محاسبه مانده تناژ کوتاژهای فعال - نسخه فوق‌بهینه (تقسیم کوئری)
  * بهینه‌سازی‌های پیشرفته:
- * 1. محاسبات کامل در SQL (حذف محاسبات PHP)
- * 2. استفاده از CTE برای خوانایی و بهینه‌سازی بهتر
- * 3. محاسبه مانده و درصد و status در SQL
- * 4. کاهش تعداد عملیات JOIN
- * 5. استفاده از عملگرهای ریاضی بهینه
- * 6. Type casting در SQL برای کاهش بار PHP
+ * 1. تقسیم کوئری پیچیده به کوئری‌های ساده‌تر (کاهش CPU بیشتر)
+ * 2. محاسبات در PHP به جای SQL
+ * 3. کاهش JOIN های زیادی
+ * 4. استفاده از indexed lookups در PHP
+ * 5. Streaming نتایج برای کاهش حافظه
  */
 function getActiveQuotasRemaining(DatabaseManager $db): array {
     try {
-        // کوئری فوق‌بهینه با CTE و محاسبات کامل در SQL + آمار کلی + status
-        $query = "
-        WITH ExitSummary AS (
-            SELECT 
-                loadingQuotaNumber,
-                shipName,
-                loadingWarehouse,
-                shippingCompany,
-                cargoType,
-                SUM(netWeight) as loadedTonnage,
-                COUNT(DISTINCT trackingNumber) as voucherCount
-            FROM CargoInfo
-            WHERE status = 'خروج'
-            GROUP BY loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType
-        ),
-        QuotaData AS (
-            SELECT 
-                i.shipName,
-                i.loadingQuotaNumber as quotaNumber,
-                i.shippingCompany,
-                i.cargoOwner,
-                i.loadingWarehouse as warehouse,
-                i.cargoType,
-                CAST(i.cargoWeight AS DECIMAL(15,2)) as totalTonnage,
-                CAST(i.percentage AS DECIMAL(5,2)) as percentage,
-                CAST(i.is_enabled AS UNSIGNED) as isPercentageEnabled,
-                CAST(COALESCE(e.loadedTonnage, 0) AS DECIMAL(15,2)) as loadedTonnage,
-                CAST(COALESCE(e.voucherCount, 0) AS UNSIGNED) as voucherCount,
-                CAST(IF(i.is_enabled AND i.percentage > 0, 
-                   i.cargoWeight * i.percentage * 0.01, 
-                   0) AS DECIMAL(15,2)) as percentageAmount,
-                CAST(IF(i.is_enabled AND i.percentage > 0,
-                   i.cargoWeight * (1 - i.percentage * 0.01),
-                   i.cargoWeight) AS DECIMAL(15,2)) as adjustedTonnage,
-                CAST(GREATEST(0,
-                    IF(i.is_enabled AND i.percentage > 0,
-                       i.cargoWeight * (1 - i.percentage * 0.01),
-                       i.cargoWeight) - COALESCE(e.loadedTonnage, 0)
-                ) AS DECIMAL(15,2)) as remainingTonnage,
-                CAST(IF(i.cargoWeight > 0,
-                   ROUND((COALESCE(e.loadedTonnage, 0) / 
-                          IF(i.is_enabled AND i.percentage > 0,
-                             i.cargoWeight * (1 - i.percentage * 0.01),
-                             i.cargoWeight)) * 100, 2),
-                   0) AS DECIMAL(5,2)) as percentageLoaded,
-                CASE 
-                    WHEN GREATEST(0,
-                        IF(i.is_enabled AND i.percentage > 0,
-                           i.cargoWeight * (1 - i.percentage * 0.01),
-                           i.cargoWeight) - COALESCE(e.loadedTonnage, 0)
-                    ) > 0 THEN 'دارای مانده'
-                    ELSE 'تکمیل شده'
-                END as status
-            FROM InitialInfo i
-            LEFT JOIN ExitSummary e ON 
-                e.loadingQuotaNumber = i.loadingQuotaNumber
-                AND e.shipName = i.shipName
-                AND e.loadingWarehouse = i.loadingWarehouse
-                AND e.shippingCompany = i.shippingCompany
-                AND e.cargoType = i.cargoType
-            WHERE i.isActive = 1
-        )
+        $startTime = microtime(true);
+        
+        // کوئری 1: دریافت اطلاعات فعال کوتاژها - ساده و سریع
+        $baseQuery = "
         SELECT 
-            q.*,
-            (SELECT COUNT(*) FROM QuotaData) as totalQuotas,
-            (SELECT CAST(SUM(totalTonnage) AS DECIMAL(15,2)) FROM QuotaData) as totalOriginalTonnage,
-            (SELECT CAST(SUM(loadedTonnage) AS DECIMAL(15,2)) FROM QuotaData) as totalLoadedTonnage,
-            (SELECT CAST(SUM(remainingTonnage) AS DECIMAL(15,2)) FROM QuotaData) as totalRemainingTonnage
-        FROM QuotaData q
-        ORDER BY q.shipName, q.quotaNumber
+            i.shipName,
+            i.loadingQuotaNumber as quotaNumber,
+            i.shippingCompany,
+            i.cargoOwner,
+            i.loadingWarehouse as warehouse,
+            i.cargoType,
+            CAST(i.cargoWeight AS DECIMAL(15,2)) as totalTonnage,
+            CAST(i.percentage AS DECIMAL(5,2)) as percentage,
+            CAST(i.is_enabled AS UNSIGNED) as isPercentageEnabled
+        FROM InitialInfo i
+        WHERE i.isActive = 1
+        ORDER BY i.shipName, i.loadingQuotaNumber
         ";
         
-        $stmt = $db->prepare($query);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $baseData = $db->executeQuery($baseQuery, 'Active Quotas Base Data', []);
         
-        // پردازش بدون محاسبات - همه چیز از SQL آماده است
+        if (empty($baseData)) {
+            return [
+                'success' => true,
+                'data' => [],
+                'summary' => [
+                    'totalQuotas' => 0,
+                    'totalOriginalTonnage' => 0,
+                    'totalLoadedTonnage' => 0,
+                    'totalRemainingTonnage' => 0,
+                    'overallPercentageLoaded' => 0
+                ],
+                'timestamp' => date('Y-m-d H:i:s')
+            ];
+        }
+        
+        // کوئری 2: دریافت خروج‌ها - ساده و سریع
+        $exitQuery = "
+        SELECT 
+            loadingQuotaNumber,
+            shipName,
+            loadingWarehouse,
+            shippingCompany,
+            cargoType,
+            SUM(netWeight) as loadedTonnage,
+            COUNT(DISTINCT trackingNumber) as voucherCount
+        FROM CargoInfo
+        WHERE status = 'خروج'
+        GROUP BY loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType
+        ";
+        
+        $exitData = $db->executeQuery($exitQuery, 'Active Quotas Exit Summary', []);
+        
+        // ساخت indexed array برای جستجوی سریع
+        $exitMap = [];
+        foreach ($exitData as $row) {
+            $key = $row['loadingQuotaNumber'] . '|' . $row['shipName'] . '|' . $row['loadingWarehouse'] . '|' . $row['shippingCompany'] . '|' . $row['cargoType'];
+            $exitMap[$key] = [
+                'loadedTonnage' => (float)$row['loadedTonnage'],
+                'voucherCount' => (int)$row['voucherCount']
+            ];
+        }
+        
+        // محاسبات در PHP - خیلی سریعتر از SQL برای این نوع محاسبات
         $quotasData = [];
-        $summary = null;
+        $totalOriginal = 0;
+        $totalLoaded = 0;
+        $totalRemaining = 0;
         
-        while ($row = $result->fetch_assoc()) {
-            // ذخیره آمار کلی از اولین ردیف (یکسان برای همه)
-            if ($summary === null) {
-                $totalOriginal = (float)$row['totalOriginalTonnage'];
-                $totalLoaded = (float)$row['totalLoadedTonnage'];
-                
-                $summary = [
-                    'totalQuotas' => (int)$row['totalQuotas'],
-                    'totalOriginalTonnage' => $totalOriginal,
-                    'totalLoadedTonnage' => $totalLoaded,
-                    'totalRemainingTonnage' => (float)$row['totalRemainingTonnage'],
-                    'overallPercentageLoaded' => $totalOriginal > 0 
-                        ? round($totalLoaded / $totalOriginal * 100, 2) 
-                        : 0
-                ];
+        foreach ($baseData as $row) {
+            $totalTonnage = (float)$row['totalTonnage'];
+            $percentage = (float)$row['percentage'];
+            $isEnabled = (bool)$row['isPercentageEnabled'];
+            
+            // محاسبه adjusted tonnage
+            if ($isEnabled && $percentage > 0) {
+                $percentageAmount = $totalTonnage * $percentage * 0.01;
+                $adjustedTonnage = $totalTonnage * (1 - $percentage * 0.01);
+            } else {
+                $percentageAmount = 0;
+                $adjustedTonnage = $totalTonnage;
             }
             
-            // ساخت آرایه خروجی - فقط type casting ساده
+            // جستجو در exit map
+            $key = $row['quotaNumber'] . '|' . $row['shipName'] . '|' . $row['warehouse'] . '|' . $row['shippingCompany'] . '|' . $row['cargoType'];
+            $exitInfo = $exitMap[$key] ?? ['loadedTonnage' => 0, 'voucherCount' => 0];
+            
+            $loadedTonnage = $exitInfo['loadedTonnage'];
+            $remainingTonnage = max(0, $adjustedTonnage - $loadedTonnage);
+            $percentageLoaded = $adjustedTonnage > 0 ? round($loadedTonnage / $adjustedTonnage * 100, 2) : 0;
+            $status = $remainingTonnage > 0 ? 'دارای مانده' : 'تکمیل شده';
+            
+            // تجمیع برای خلاصه
+            $totalOriginal += $totalTonnage;
+            $totalLoaded += $loadedTonnage;
+            $totalRemaining += $remainingTonnage;
+            
             $quotasData[] = [
                 'shipName' => $row['shipName'],
                 'quotaNumber' => (int)$row['quotaNumber'],
@@ -203,33 +306,33 @@ function getActiveQuotasRemaining(DatabaseManager $db): array {
                 'cargoOwner' => $row['cargoOwner'] ?? '',
                 'warehouse' => $row['warehouse'],
                 'cargoType' => $row['cargoType'],
-                'totalTonnage' => (float)$row['totalTonnage'],
-                'percentageAmount' => (float)$row['percentageAmount'],
-                'percentage' => (float)$row['percentage'],
-                'isPercentageEnabled' => (bool)$row['isPercentageEnabled'],
-                'adjustedTotalTonnage' => (float)$row['adjustedTonnage'],
-                'loadedTonnage' => (float)$row['loadedTonnage'],
-                'remainingTonnage' => (float)$row['remainingTonnage'],
-                'percentageLoaded' => (float)$row['percentageLoaded'],
-                'voucherCount' => (int)$row['voucherCount'],
-                'status' => $row['status']
+                'totalTonnage' => $totalTonnage,
+                'percentageAmount' => $percentageAmount,
+                'percentage' => $percentage,
+                'isPercentageEnabled' => $isEnabled,
+                'adjustedTotalTonnage' => $adjustedTonnage,
+                'loadedTonnage' => $loadedTonnage,
+                'remainingTonnage' => $remainingTonnage,
+                'percentageLoaded' => $percentageLoaded,
+                'voucherCount' => $exitInfo['voucherCount'],
+                'status' => $status
             ];
         }
         
-        $stmt->close();
+        $executionTime = microtime(true) - $startTime;
         
-        // خروجی نهایی - بدون محاسبات PHP
         return [
             'success' => true,
             'data' => $quotasData,
-            'summary' => $summary ?? [
-                'totalQuotas' => 0,
-                'totalOriginalTonnage' => 0,
-                'totalLoadedTonnage' => 0,
-                'totalRemainingTonnage' => 0,
-                'overallPercentageLoaded' => 0
+            'summary' => [
+                'totalQuotas' => count($quotasData),
+                'totalOriginalTonnage' => round($totalOriginal, 2),
+                'totalLoadedTonnage' => round($totalLoaded, 2),
+                'totalRemainingTonnage' => round($totalRemaining, 2),
+                'overallPercentageLoaded' => $totalOriginal > 0 ? round($totalLoaded / $totalOriginal * 100, 2) : 0
             ],
-            'timestamp' => date('Y-m-d H:i:s')
+            'timestamp' => date('Y-m-d H:i:s'),
+            'executionTime' => round($executionTime, 4)
         ];
         
     } catch (Exception $e) {
@@ -238,107 +341,107 @@ function getActiveQuotasRemaining(DatabaseManager $db): array {
 }
 
 /**
- * محاسبه مانده تناژ برای یک کشتی خاص - نسخه فوق‌بهینه
+ * محاسبه مانده تناژ برای یک کشتی خاص - نسخه فوق‌بهینه (تقسیم کوئری)
  */
 function getShipQuotasRemaining(DatabaseManager $db, string $shipName): array {
     try {
         $shipName = sanitizeInput($shipName);
         
-        // کوئری فوق‌بهینه با CTE و محاسبات کامل در SQL + آمار کلی + status
-        $query = "
-        WITH ExitSummary AS (
-            SELECT 
-                loadingQuotaNumber,
-                shipName,
-                loadingWarehouse,
-                shippingCompany,
-                cargoType,
-                SUM(netWeight) as loadedTonnage,
-                COUNT(DISTINCT trackingNumber) as voucherCount
-            FROM CargoInfo
-            WHERE status = 'خروج' AND shipName = ?
-            GROUP BY loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType
-        ),
-        QuotaData AS (
-            SELECT 
-                i.shipName,
-                i.loadingQuotaNumber as quotaNumber,
-                i.shippingCompany,
-                i.cargoOwner,
-                i.loadingWarehouse as warehouse,
-                i.cargoType,
-                CAST(i.cargoWeight AS DECIMAL(15,2)) as totalTonnage,
-                CAST(i.percentage AS DECIMAL(5,2)) as percentage,
-                CAST(i.is_enabled AS UNSIGNED) as isPercentageEnabled,
-                CAST(COALESCE(e.loadedTonnage, 0) AS DECIMAL(15,2)) as loadedTonnage,
-                CAST(COALESCE(e.voucherCount, 0) AS UNSIGNED) as voucherCount,
-                CAST(IF(i.is_enabled AND i.percentage > 0, 
-                   i.cargoWeight * i.percentage * 0.01, 
-                   0) AS DECIMAL(15,2)) as percentageAmount,
-                CAST(IF(i.is_enabled AND i.percentage > 0,
-                   i.cargoWeight * (1 - i.percentage * 0.01),
-                   i.cargoWeight) AS DECIMAL(15,2)) as adjustedTonnage,
-                CAST(GREATEST(0,
-                    IF(i.is_enabled AND i.percentage > 0,
-                       i.cargoWeight * (1 - i.percentage * 0.01),
-                       i.cargoWeight) - COALESCE(e.loadedTonnage, 0)
-                ) AS DECIMAL(15,2)) as remainingTonnage,
-                CAST(IF(i.cargoWeight > 0,
-                   ROUND((COALESCE(e.loadedTonnage, 0) / 
-                          IF(i.is_enabled AND i.percentage > 0,
-                             i.cargoWeight * (1 - i.percentage * 0.01),
-                             i.cargoWeight)) * 100, 2),
-                   0) AS DECIMAL(5,2)) as percentageLoaded,
-                CASE 
-                    WHEN GREATEST(0,
-                        IF(i.is_enabled AND i.percentage > 0,
-                           i.cargoWeight * (1 - i.percentage * 0.01),
-                           i.cargoWeight) - COALESCE(e.loadedTonnage, 0)
-                    ) > 0 THEN 'دارای مانده'
-                    ELSE 'تکمیل شده'
-                END as status
-            FROM InitialInfo i
-            LEFT JOIN ExitSummary e ON 
-                e.loadingQuotaNumber = i.loadingQuotaNumber
-                AND e.shipName = i.shipName
-                AND e.loadingWarehouse = i.loadingWarehouse
-                AND e.shippingCompany = i.shippingCompany
-                AND e.cargoType = i.cargoType
-            WHERE i.isActive = 1 AND i.shipName = ?
-        )
+        // کوئری 1: اطلاعات کوتاژهای کشتی - ساده و سریع
+        $baseQuery = "
         SELECT 
-            q.*,
-            (SELECT COUNT(*) FROM QuotaData) as totalQuotas,
-            (SELECT CAST(SUM(totalTonnage) AS DECIMAL(15,2)) FROM QuotaData) as totalOriginalTonnage,
-            (SELECT CAST(SUM(loadedTonnage) AS DECIMAL(15,2)) FROM QuotaData) as totalLoadedTonnage,
-            (SELECT CAST(SUM(remainingTonnage) AS DECIMAL(15,2)) FROM QuotaData) as totalRemainingTonnage
-        FROM QuotaData q
-        ORDER BY q.quotaNumber
+            i.shipName,
+            i.loadingQuotaNumber as quotaNumber,
+            i.shippingCompany,
+            i.cargoOwner,
+            i.loadingWarehouse as warehouse,
+            i.cargoType,
+            CAST(i.cargoWeight AS DECIMAL(15,2)) as totalTonnage,
+            CAST(i.percentage AS DECIMAL(5,2)) as percentage,
+            CAST(i.is_enabled AS UNSIGNED) as isPercentageEnabled
+        FROM InitialInfo i
+        WHERE i.isActive = 1 AND i.shipName = ?
+        ORDER BY i.loadingQuotaNumber
         ";
         
-        $stmt = $db->prepare($query);
-        $stmt->bind_param("ss", $shipName, $shipName);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $baseData = $db->executeQuery($baseQuery, 'Ship Quotas Base Data', [$shipName]);
         
+        if (empty($baseData)) {
+            return [
+                'success' => true,
+                'shipName' => $shipName,
+                'data' => [],
+                'summary' => [
+                    'totalQuotas' => 0,
+                    'totalOriginalTonnage' => 0,
+                    'totalLoadedTonnage' => 0,
+                    'totalRemainingTonnage' => 0,
+                    'overallPercentageLoaded' => 0
+                ],
+                'timestamp' => date('Y-m-d H:i:s')
+            ];
+        }
+        
+        // کوئری 2: خروج‌های کشتی - ساده و سریع
+        $exitQuery = "
+        SELECT 
+            loadingQuotaNumber,
+            shipName,
+            loadingWarehouse,
+            shippingCompany,
+            cargoType,
+            SUM(netWeight) as loadedTonnage,
+            COUNT(DISTINCT trackingNumber) as voucherCount
+        FROM CargoInfo
+        WHERE status = 'خروج' AND shipName = ?
+        GROUP BY loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType
+        ";
+        
+        $exitData = $db->executeQuery($exitQuery, 'Ship Quotas Exit Summary', [$shipName]);
+        
+        // ساخت indexed array برای جستجوی سریع
+        $exitMap = [];
+        foreach ($exitData as $row) {
+            $key = $row['loadingQuotaNumber'] . '|' . $row['shipName'] . '|' . $row['loadingWarehouse'] . '|' . $row['shippingCompany'] . '|' . $row['cargoType'];
+            $exitMap[$key] = [
+                'loadedTonnage' => (float)$row['loadedTonnage'],
+                'voucherCount' => (int)$row['voucherCount']
+            ];
+        }
+        
+        // محاسبات در PHP
         $quotasData = [];
-        $summary = null;
+        $totalOriginal = 0;
+        $totalLoaded = 0;
+        $totalRemaining = 0;
         
-        while ($row = $result->fetch_assoc()) {
-            if ($summary === null) {
-                $totalOriginal = (float)$row['totalOriginalTonnage'];
-                $totalLoaded = (float)$row['totalLoadedTonnage'];
-                
-                $summary = [
-                    'totalQuotas' => (int)$row['totalQuotas'],
-                    'totalOriginalTonnage' => $totalOriginal,
-                    'totalLoadedTonnage' => $totalLoaded,
-                    'totalRemainingTonnage' => (float)$row['totalRemainingTonnage'],
-                    'overallPercentageLoaded' => $totalOriginal > 0 
-                        ? round($totalLoaded / $totalOriginal * 100, 2) 
-                        : 0
-                ];
+        foreach ($baseData as $row) {
+            $totalTonnage = (float)$row['totalTonnage'];
+            $percentage = (float)$row['percentage'];
+            $isEnabled = (bool)$row['isPercentageEnabled'];
+            
+            // محاسبه adjusted tonnage
+            if ($isEnabled && $percentage > 0) {
+                $percentageAmount = $totalTonnage * $percentage * 0.01;
+                $adjustedTonnage = $totalTonnage * (1 - $percentage * 0.01);
+            } else {
+                $percentageAmount = 0;
+                $adjustedTonnage = $totalTonnage;
             }
+            
+            // جستجو در exit map
+            $key = $row['quotaNumber'] . '|' . $row['shipName'] . '|' . $row['warehouse'] . '|' . $row['shippingCompany'] . '|' . $row['cargoType'];
+            $exitInfo = $exitMap[$key] ?? ['loadedTonnage' => 0, 'voucherCount' => 0];
+            
+            $loadedTonnage = $exitInfo['loadedTonnage'];
+            $remainingTonnage = max(0, $adjustedTonnage - $loadedTonnage);
+            $percentageLoaded = $adjustedTonnage > 0 ? round($loadedTonnage / $adjustedTonnage * 100, 2) : 0;
+            $status = $remainingTonnage > 0 ? 'دارای مانده' : 'تکمیل شده';
+            
+            // تجمیع برای خلاصه
+            $totalOriginal += $totalTonnage;
+            $totalLoaded += $loadedTonnage;
+            $totalRemaining += $remainingTonnage;
             
             $quotasData[] = [
                 'shipName' => $row['shipName'],
@@ -347,31 +450,29 @@ function getShipQuotasRemaining(DatabaseManager $db, string $shipName): array {
                 'cargoOwner' => $row['cargoOwner'] ?? '',
                 'warehouse' => $row['warehouse'],
                 'cargoType' => $row['cargoType'],
-                'totalTonnage' => (float)$row['totalTonnage'],
-                'percentageAmount' => (float)$row['percentageAmount'],
-                'percentage' => (float)$row['percentage'],
-                'isPercentageEnabled' => (bool)$row['isPercentageEnabled'],
-                'adjustedTotalTonnage' => (float)$row['adjustedTonnage'],
-                'loadedTonnage' => (float)$row['loadedTonnage'],
-                'remainingTonnage' => (float)$row['remainingTonnage'],
-                'percentageLoaded' => (float)$row['percentageLoaded'],
-                'voucherCount' => (int)$row['voucherCount'],
-                'status' => $row['status']
+                'totalTonnage' => $totalTonnage,
+                'percentageAmount' => $percentageAmount,
+                'percentage' => $percentage,
+                'isPercentageEnabled' => $isEnabled,
+                'adjustedTotalTonnage' => $adjustedTonnage,
+                'loadedTonnage' => $loadedTonnage,
+                'remainingTonnage' => $remainingTonnage,
+                'percentageLoaded' => $percentageLoaded,
+                'voucherCount' => $exitInfo['voucherCount'],
+                'status' => $status
             ];
         }
-        
-        $stmt->close();
         
         return [
             'success' => true,
             'shipName' => $shipName,
             'data' => $quotasData,
-            'summary' => $summary ?? [
-                'totalQuotas' => 0,
-                'totalOriginalTonnage' => 0,
-                'totalLoadedTonnage' => 0,
-                'totalRemainingTonnage' => 0,
-                'overallPercentageLoaded' => 0
+            'summary' => [
+                'totalQuotas' => count($quotasData),
+                'totalOriginalTonnage' => round($totalOriginal, 2),
+                'totalLoadedTonnage' => round($totalLoaded, 2),
+                'totalRemainingTonnage' => round($totalRemaining, 2),
+                'overallPercentageLoaded' => $totalOriginal > 0 ? round($totalLoaded / $totalOriginal * 100, 2) : 0
             ],
             'timestamp' => date('Y-m-d H:i:s')
         ];

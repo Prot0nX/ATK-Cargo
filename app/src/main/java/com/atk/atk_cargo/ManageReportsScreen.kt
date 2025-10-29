@@ -8071,6 +8071,7 @@ fun QuotaCard(
 	if (showEditDialog) {
 		EditQuotaDialog(
 			quotaData = QuotaEditData(
+				id = quota.id ?: 0,
 				quotaNumber = quota.number,
 				shipName = quota.shipName ?: "",
 				shippingCompany = quota.shippingCompany,

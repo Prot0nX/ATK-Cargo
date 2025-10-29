@@ -205,7 +205,7 @@ class CargoViewModel(
     suspend fun checkQuotaExistenceCargo(quotaNumber: String, shipName: String): QuotaExistenceMultipleResponse {
         return withContext(Dispatchers.IO) {
             try {
-                Log.d("CargoViewModel", "Checking quota existence: $quotaNumber for ship: $shipName")
+                Log.d("CargoViewModel_Log", "Checking quota existence: $quotaNumber for ship: $shipName")
                 val response = apiService.checkQuotaExistenceCargo(quotaNumber = quotaNumber, shipName = shipName)
                 if (response.isSuccessful) {
                     val quotaResponse = response.body() ?: throw Exception("پاسخ خالی از سرور")
@@ -276,9 +276,9 @@ class CargoViewModel(
         }
     }
 
-    fun updateCargoConfirmation(trackingNumber: String) {
+    fun updateCargoConfirmation(cargoId: Int?) {
         _cargoInfoList.value = _cargoInfoList.value.map { cargoInfo ->
-            if (cargoInfo.trackingNumber == trackingNumber) {
+            if (cargoInfo.id == cargoId) {
                 cargoInfo.copy(
                     confirm = "تائید شده",
                     // Only update exitTime and exitDate if they're null
@@ -342,7 +342,7 @@ class CargoViewModel(
                     // اطمینان از اعتبار اطلاعات جاری
                     if (info.loadingQuotaNumber.toString().isBlank() || info.shippingCompany.isBlank() ||
                         info.loadingWarehouse.isBlank() || info.cargoType.isBlank()) {
-                        Log.e("CargoViewModel", "Invalid initial info for refresh: $info")
+                        Log.e("CargoViewModel_Log", "Invalid initial info for refresh: $info")
                         return@launch
                     }
 
@@ -354,7 +354,7 @@ class CargoViewModel(
                     }
 
                     // لاگ قبل از بروزرسانی
-                    Log.d("CargoViewModel", "قبل از بروزرسانی - حواله‌های خروج: ${_cargoInfoList.value.count { it.status == "خروج" }}")
+                    Log.d("CargoViewModel_Log", "قبل از بروزرسانی - حواله‌های خروج: ${_cargoInfoList.value.count { it.status == "خروج" }}")
 
                     // نگهداری آخرین لیست برای مقایسه
                     val oldCargoList = _cargoInfoList.value
@@ -389,13 +389,13 @@ class CargoViewModel(
                         }
                     )
                 } catch (e: Exception) {
-                    Log.e("CargoViewModel", "Error in refreshCargoInfo: ${e.message}", e)
+                    Log.e("CargoViewModel_Log", "Error in refreshCargoInfo: ${e.message}", e)
                     _resultMessage.value = "خطا در به‌روزرسانی اطلاعات: ${e.message}"
                     _showAnimatedMessage.value = true
                     _messageType.value = MessageType.ERROR
                 }
             } ?: run {
-                Log.e("CargoViewModel", "Attempted to refresh with null or empty initial info")
+                Log.e("CargoViewModel_Log", "Attempted to refresh with null or empty initial info")
             }
         }
     }
@@ -447,7 +447,7 @@ class CargoViewModel(
                     lastQuotaStatusCheck = currentTime
                 } else {
                     _isQuotaActive.value = quotaActive
-                    Log.d("CargoViewModel", "Using cached quota status: $quotaActive")
+                    Log.d("CargoViewModel_Log", "Using cached quota status: $quotaActive")
                 }
 
                 if (_isQuotaActive.value != true) {
@@ -498,7 +498,7 @@ class CargoViewModel(
                     scaleReceiptNumber, shortageWeight, excessWeight
                 )
             } catch (e: Exception) {
-                Log.e("CargoViewModel", "خطا در submitCargoInfo: ${e.message}", e)
+                Log.e("CargoViewModel_Log", "خطا در submitCargoInfo: ${e.message}", e)
                 showErrorMessage("خطا در ثبت اطلاعات بار: ${e.message}")
             } finally {
                 // تنظیم وضعیت ثبت به false
@@ -653,7 +653,7 @@ class CargoViewModel(
                 handleErrorHttpResponse(response)
             }
         } catch (e: Exception) {
-            Log.e("CargoViewModel", "خطا در ارسال به سرور: ${e.message}", e)
+            Log.e("CargoViewModel_Log", "خطا در ارسال به سرور: ${e.message}", e)
             showErrorMessage("خطا در ارتباط با سرور: ${e.message}")
         }
     }
@@ -751,8 +751,8 @@ class CargoViewModel(
         _filteredCargoInfoList.value = updatedList
 
         // لاگ برای دیباگ
-        Log.d("CargoViewModel", "حواله با شماره $trackingNumber به وضعیت خروج تغییر یافت")
-        Log.d("CargoViewModel", "تعداد کل حواله‌ها: ${updatedList.size}, تعداد حواله‌های خروج: ${updatedList.count { it.status == "خروج" }}")
+        Log.d("CargoViewModel_Log", "حواله با شماره $trackingNumber به وضعیت خروج تغییر یافت")
+        Log.d("CargoViewModel_Log", "تعداد کل حواله‌ها: ${updatedList.size}, تعداد حواله‌های خروج: ${updatedList.count { it.status == "خروج" }}")
     }
 
     private fun parseErrorResponse(errorBody: String?): SaveOrUpdateResponse? {
@@ -796,7 +796,7 @@ class CargoViewModel(
                         handleErrorHttpResponse(response)
                     }
                 } catch (e: Exception) {
-                    Log.e("CargoViewModel", "خطا در ارسال مجدد حواله: ${e.message}", e)
+                    Log.e("CargoViewModel_Log", "خطا در ارسال مجدد حواله: ${e.message}", e)
                     showErrorMessage("خطا در ارتباط با سرور: ${e.message}")
                 }
             }
@@ -831,7 +831,7 @@ class CargoViewModel(
                 showMessage(status.message, MessageType.WARNING)
             }
         } catch (e: Exception) {
-            Log.e("CargoViewModel", "Error in checkQuotaStatus", e)
+            Log.e("CargoViewModel_Log", "Error in checkQuotaStatus", e)
             _resultMessage.value = "خطا در بررسی وضعیت کوتاژ: ${e.message ?: "خطای ناشناخته"}"
             _messageType.value = MessageType.ERROR
             _showAnimatedMessage.value = true
@@ -951,18 +951,18 @@ class CargoViewModel(
                                     _loadableTrucks10Wheeler.value = count.toString()
                                 }
 
-                                Log.d("CargoViewModel", "Initial loadable tonnage updated via API: ${_loadableTonnage.value}")
+                                Log.d("CargoViewModel_Log", "Initial loadable tonnage updated via API: ${_loadableTonnage.value}")
                             }
                         } else {
                             // در صورت خطا، فقط لاگ می‌کنیم و از محاسبه محلی خودداری می‌کنیم
-                            Log.e("CargoViewModel", "Error in API call for initial loadable tonnage")
+                            Log.e("CargoViewModel_Log", "Error in API call for initial loadable tonnage")
                         }
                     } catch (e: Exception) {
-                        Log.e("CargoViewModel", "Error in API call for loadable tonnage", e)
+                        Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage", e)
                     }
                 }
             } catch (e: Exception) {
-                Log.e("CargoViewModel", "Error in pre-loading tonnage data", e)
+                Log.e("CargoViewModel_Log", "Error in pre-loading tonnage data", e)
             }
         }
 
@@ -982,7 +982,7 @@ class CargoViewModel(
                     withContext(Dispatchers.Main.immediate) {
                         _duplicateTrackingNumbers.value = duplicateTrackingNumbers
                         _showDuplicateDialog.value = true
-                        Log.w("CargoViewModel", "حواله‌های تکراری شناسایی شدند: ${duplicateTrackingNumbers.joinToString(", ")}")
+                        Log.w("CargoViewModel_Log", "حواله‌های تکراری شناسایی شدند: ${duplicateTrackingNumbers.joinToString(", ")}")
                     }
                 }
 
@@ -992,7 +992,7 @@ class CargoViewModel(
                 _filteredCargoInfoList.value = result.cargoInfoList
 
                 // لاگ برای دیباگ بعد از بارگذاری
-                Log.d("CargoViewModel", "بارگذاری داده‌ها - تعداد کل: ${result.cargoInfoList.size}, حواله‌های خروج: ${result.cargoInfoList.count { it.status == "خروج" }}")
+                Log.d("CargoViewModel_Log", "بارگذاری داده‌ها - تعداد کل: ${result.cargoInfoList.size}, حواله‌های خروج: ${result.cargoInfoList.count { it.status == "خروج" }}")
 
                 // ذخیره شماره‌های حواله در کش
                 val allTrackingNumbers = result.allTrackingNumbers?.toSet() ?: emptySet()
@@ -1043,10 +1043,10 @@ class CargoViewModel(
                                 }
                             }
                         } else {
-                            Log.e("CargoViewModel", "Error in API call for loadable tonnage during initial load")
+                            Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage during initial load")
                         }
                     } catch (e: Exception) {
-                        Log.e("CargoViewModel", "Error calculating loadable tonnage", e)
+                        Log.e("CargoViewModel_Log", "Error calculating loadable tonnage", e)
                     }
                 }
 
@@ -1066,7 +1066,7 @@ class CargoViewModel(
                             }
                         }
                     } catch (e: Exception) {
-                        Log.e("CargoViewModel", "Error checking quota percentages", e)
+                        Log.e("CargoViewModel_Log", "Error checking quota percentages", e)
                     }
                 }
 
@@ -1076,7 +1076,7 @@ class CargoViewModel(
                 // اعلام اتمام بارگذاری
                 onComplete()
             } catch (e: Exception) {
-                Log.e("CargoViewModel", "Error loading cargo info", e)
+                Log.e("CargoViewModel_Log", "Error loading cargo info", e)
                 showMessage("خطا در ارتباط با سرور: ${e.localizedMessage}", MessageType.ERROR)
                 onComplete()
             }
@@ -1188,6 +1188,7 @@ class CargoViewModel(
     fun updateCargoInfo(cargoInfo: CargoInfo, netWeight: String) {
         viewModelScope.launch {
             try {
+                // فقط id و اطلاعات مورد نیاز برای خروج ارسال می‌شود
                 val updatedCargoInfo = cargoInfo.copy(
                     netWeight = netWeight,
                     exitTime = getCurrentTime(),
@@ -1199,7 +1200,7 @@ class CargoViewModel(
                 if (response.isSuccessful) {
                     // بروزرسانی مستقیم در لیست محلی
                     val updatedList = _cargoInfoList.value.map { cargo ->
-                        if (cargo.trackingNumber == cargoInfo.trackingNumber) {
+                        if (cargo.id == cargoInfo.id) {
                             updatedCargoInfo
                         } else {
                             cargo
@@ -1266,7 +1267,7 @@ class CargoViewModel(
                     }
                 }
             } catch (e: Exception) {
-                Log.e("CargoViewModel", "Error updating info values", e)
+                Log.e("CargoViewModel_Log", "Error updating info values", e)
             }
         }
     }
@@ -1325,7 +1326,7 @@ class CargoViewModel(
 
         // بررسی نیاز به بروزرسانی بر اساس کش
         if (!forceUpdate && currentTime - lastLoadableTonnageUpdate < loadableTonnageCacheTimeout && cachedLoadableTonnage != null) {
-            Log.d("CargoViewModel", "Using cached loadable tonnage: $cachedLoadableTonnage")
+            Log.d("CargoViewModel_Log", "Using cached loadable tonnage: $cachedLoadableTonnage")
             return
         }
 
@@ -1364,15 +1365,15 @@ class CargoViewModel(
                                 _loadableTrucks10Wheeler.value = count.toString()
                             }
 
-                            Log.d("CargoViewModel", "Loadable tonnage updated via API: ${_loadableTonnage.value}")
+                            Log.d("CargoViewModel_Log", "Loadable tonnage updated via API: ${_loadableTonnage.value}")
                         }
                     } else {
                         // در صورت خطا، فقط لاگ می‌کنیم و از محاسبه سمت کلاینت خودداری می‌کنیم
-                        Log.e("CargoViewModel", "Error in API call for loadable tonnage: ${response.errorBody()?.string()}")
+                        Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage: ${response.errorBody()?.string()}")
                     }
                 }
             } catch (e: Exception) {
-                Log.e("CargoViewModel", "Error updating loadable tonnage", e)
+                Log.e("CargoViewModel_Log", "Error updating loadable tonnage", e)
             }
         }
     }
@@ -1818,6 +1819,7 @@ class ReportsViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.editQuota(
+                    id = newQuotaData.id,
                     oldQuotaNumber = oldQuotaNumber,
                     newQuotaNumber = newQuotaData.quotaNumber,
                     shipName = newQuotaData.shipName,
@@ -2804,7 +2806,6 @@ class ReportsViewModel(
         return shareText.toString()
     }
 }
-
 class ReportsRepository(private val apiService: ApiService) {
     suspend fun getCargoInfo(
         quotaNumber: String,
@@ -3022,6 +3023,7 @@ class ReportsRepository(private val apiService: ApiService) {
     )
 
     suspend fun editQuota(
+        id: Int,
         oldQuotaNumber: String,
         newQuotaNumber: String,
         shipName: String,
@@ -3032,6 +3034,7 @@ class ReportsRepository(private val apiService: ApiService) {
     ): Boolean = withContext(Dispatchers.IO) {
         try {
             val response = apiService.editQuota(
+                id = id,
                 oldQuotaNumber = oldQuotaNumber,
                 newQuotaNumber = newQuotaNumber,
                 shipName = shipName,
@@ -3358,7 +3361,6 @@ class ReportsRepository(private val apiService: ApiService) {
         }
     }
 }
-
 @SuppressLint("DefaultLocale")
 fun gregorianToJalali(gregorian: Calendar): String {
     val gy = gregorian.get(Calendar.YEAR)
@@ -3462,7 +3464,6 @@ data class CargoStats(
     val averageNetWeight: Float,
     val remainingServices: Int
 )
-
 enum class MessageType {
     SUCCESS, WARNING, ERROR
 }
@@ -3484,7 +3485,6 @@ data class CheckExistenceResponse(
     val status: String,
     val message: String
 )
-
 @Parcelize
 data class InitialInfo(
     val shipName: String,
@@ -3551,12 +3551,7 @@ data class ExistingCargo(
 )
 
 data class CargoInfoRequest(
-    val trackingNumber: String,
-    val shipName: String,
-    val loadingWarehouse: String,
-    val cargoType: String,
-    val shippingCompany: String,
-    val loadingQuotaNumber: String
+    val id: Int
 )
 
 data class ShipInfo(
@@ -3602,7 +3597,6 @@ data class SessionCheckRequest(
     val deviceId: String = "",
     val sessionToken: String? = null
 )
-
 data class SessionResponse(val success: Boolean, val message: String, val userType: String?)
 
 data class RealTimeDataResponse(
@@ -3667,6 +3661,7 @@ data class Ship(
 )
 
 data class Quota(
+    val id: Int? = null,
     val number: String,
     val shipName: String?,
     val warehouse: String?,
@@ -3689,6 +3684,7 @@ data class ExitDateInfo(
 )
 
 data class QuotaEditData(
+    val id: Int,
     val quotaNumber: String,
     val shipName: String,
     val shippingCompany: String,
@@ -3837,7 +3833,6 @@ data class UpdateInfo(
     val minAppVersion: String = "1.0",
     val excludedVersions: List<String> = emptyList()
 )
-
 class ColorSelector(private val colors: List<Color>) {
     // تمام رنگ‌های اختصاص داده شده به هر شناسه
     private val assignedColors = mutableMapOf<String, Color>()
@@ -3948,7 +3943,6 @@ class ColorSelector(private val colors: List<Color>) {
         colors.forEach { usedColors[it] = false }
     }
 }
-
 fun adjustColorForTheme(color: Color, isDarkTheme: Boolean): Color {
     val hsl = FloatArray(7)
     ColorUtils.colorToHSL(color.toArgb(), hsl)
@@ -3963,7 +3957,6 @@ fun adjustColorForTheme(color: Color, isDarkTheme: Boolean): Color {
 
     return Color(ColorUtils.HSLToColor(hsl))
 }
-
 val cardColors = listOf(
     // رنگ‌های بهینه شده برای تم روشن و تیره
     Color(0xFFEF5350), // Red 400 - ملایم‌تر از قرمز تند
@@ -4013,9 +4006,7 @@ val cardColors = listOf(
     Color(0xFFB2EBF2), // Cyan 100 - فیروزه‌ای خیلی ملایم
     Color(0xFFE1BEE7)  // Purple 100 - بنفش خیلی ملایم
 )
-
 fun Float.toTon(): Int = (this / 1000).toInt()
-
 sealed class LoadingState {
     object Idle : LoadingState()
     data class Error(val message: String) : LoadingState()
@@ -4260,29 +4251,24 @@ data class WarehousePeakAnalysis(
     val period_percentage: Float,
     val activity_level: String
 )
-
 enum class QuotaGroupingMode {
     BY_SHIP,
     BY_CARRIER
 }
-
 enum class WarehouseQuotaGroupingMode {
     BY_SHIPPING_COMPANY,
     BY_CARGO_OWNER,
     BY_WAREHOUSE
 }
-
 enum class QuotaSortingMode {
     REMAINING_TONNAGE_ASC,
     REMAINING_TONNAGE_DESC
 }
-
 enum class GroupSortingMode {
     ALPHABETICAL,
     REMAINING_TONNAGE_ASC,
     REMAINING_TONNAGE_DESC
 }
-
 enum class ShipSortingMode {
     REMAINING_TONNAGE_ASC,
     REMAINING_TONNAGE_DESC,
@@ -4351,7 +4337,6 @@ data class QuotaTonnageWarning(
     val isNegative: Boolean,
     val isActive: Boolean = false
 )
-
 fun formatNumber(number: Number): String {
     return NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
 }
