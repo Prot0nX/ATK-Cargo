@@ -62,6 +62,9 @@ class UpdateManager(
     private val _downloadState = MutableStateFlow<DownloadState>(DownloadState.Idle)
     val downloadState: StateFlow<DownloadState> = _downloadState
 
+    private val _minAllowedVersion = MutableStateFlow<String?>(null)
+    val minAllowedVersion: StateFlow<String?> = _minAllowedVersion
+
     private var downloadTimestamp: Long = 0
     private var downloadJob: Job? = null
     private var downloadedBytes: Long = 0
@@ -184,12 +187,28 @@ class UpdateManager(
                                 }
                                 val forceUpdate = jsonResponse.optBoolean("force_update", 
                                     jsonResponse.optBoolean("forceUpdate", false))
-                                val updateSize = jsonResponse.optString("update_size", "").ifEmpty {
+                                var updateSize = jsonResponse.optString("update_size", "").ifEmpty {
                                     jsonResponse.optString("updateSize", "0")
                                 }
                                 val releaseDate = jsonResponse.optString("release_date", "").ifEmpty {
                                     jsonResponse.optString("releaseDate", "")
                                 }
+                                // تلاش برای دریافت اندازه دقیق فایل از سرآیندهای سرور
+                                try {
+                                    if (downloadUrl.isNotEmpty()) {
+                                        val headRequest = Request.Builder()
+                                            .url(downloadUrl)
+                                            .head()
+                                            .build()
+                                        client.newCall(headRequest).execute().use { headResp ->
+                                            val contentLength = headResp.header("Content-Length")?.toLongOrNull()
+                                            if (contentLength != null && contentLength > 0L) {
+                                                val mb = (contentLength.toDouble() / (1024.0 * 1024.0))
+                                                updateSize = String.format("%.1f", mb)
+                                            }
+                                        }
+                                    }
+                                } catch (_: Exception) { /* در صورت خطا، مقدار قبلی حفظ می‌شود */ }
                                 
                                 _updateInfo.value = UpdateInfo(
                                     latestVersion = latestVersion,
@@ -218,6 +237,43 @@ class UpdateManager(
                 val errorMsg = "خطا در بررسی بروزرسانی: ${e.localizedMessage}"
                 _downloadState.value = DownloadState.Error(errorMsg)
                 false
+            }
+        }
+    }
+
+    suspend fun isCurrentVersionAllowed(): Boolean {
+        if (!isInternetAvailable()) {
+            return true
+        }
+        return withContext(Dispatchers.IO) {
+            try {
+                val currentAppVersion = getCurrentAppVersion()
+                val encodedVersion = URLEncoder.encode(currentAppVersion, "UTF-8")
+                val encodedApiKey = URLEncoder.encode(Constants.API_KEY, "UTF-8")
+
+                val request = Request.Builder()
+                    .url("${Constants.BASE_URL}/check_update.php?current_version=$encodedVersion&api_key=$encodedApiKey")
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    val responseBody = response.body.string()
+                    if (!response.isSuccessful) return@withContext true
+
+                    val jsonResponse = JSONObject(responseBody)
+                    val minAllowed = jsonResponse.optString("min_allowed_version", "").ifEmpty {
+                        jsonResponse.optString("minAllowedVersion", "")
+                    }
+                    _minAllowedVersion.value = minAllowed.ifEmpty { null }
+
+                    if (minAllowed.isNotEmpty()) {
+                        val compare = compareVersions(currentAppVersion, minAllowed)
+                        // compare > 0 => current newer; ==0 => equal; <0 => current older
+                        return@withContext compare >= 0
+                    }
+                    true
+                }
+            } catch (_: Exception) {
+                true
             }
         }
     }
