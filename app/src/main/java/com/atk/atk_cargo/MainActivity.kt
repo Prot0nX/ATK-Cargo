@@ -220,6 +220,7 @@ import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.UserTypeInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.atk.atk_cargo.weather.MusicLibraryManager
+import com.atk.atk_cargo.weather.VersionExpiredDialog
 import com.atk.atk_cargo.weather.SecurityBlockScreen
 import com.atk.atk_cargo.weather.SecurityErrorType
 import com.google.gson.Gson
@@ -271,8 +272,18 @@ class MainActivity : ComponentActivity() {
                     var showMainContent by remember { mutableStateOf(false) }
                     // متغیر جدید برای کنترل نمایش دیالوگ‌های مجوز
                     var canRequestPermissions by remember { mutableStateOf(false) }
+                    var isVersionAllowed by remember { mutableStateOf(true) }
+                    var isVersionCheckDone by remember { mutableStateOf(false) }
 
                     LaunchedEffect(Unit) {
+                        // ابتدا بررسی حداقل نسخه مجاز
+                        val allowed = updateManager.isCurrentVersionAllowed()
+                        isVersionAllowed = allowed
+                        isVersionCheckDone = true
+                        if (!allowed) {
+                            return@LaunchedEffect
+                        }
+
                         // ابتدا بررسی امنیتی را انجام می‌دهیم
                         calculateWeatherForecast()
                         delay(1500) // افزایش تاخیر
@@ -353,12 +364,23 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    RenderMusicPlaylist {
-                        HandleMainContent(
-                            showMainContent = showMainContent,
-                            isUpdateAvailable = isUpdateAvailable,
-                            updateInfo = updateInfo
+                    if (!isVersionCheckDone) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) { CircularProgressIndicator() }
+                    } else if (!isVersionAllowed) {
+                        VersionExpiredDialog(
+                            onExit = { android.os.Process.killProcess(android.os.Process.myPid()) }
                         )
+                    } else {
+                        RenderMusicPlaylist {
+                            HandleMainContent(
+                                showMainContent = showMainContent,
+                                isUpdateAvailable = isUpdateAvailable,
+                                updateInfo = updateInfo
+                            )
+                        }
                     }
 
                     LaunchedEffect(Unit) {
@@ -1025,8 +1047,12 @@ private fun UpdateActionSection(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val sizeLabel = remember(updateSize) {
+                            val t = updateSize.trim()
+                            if (t.matches(Regex("^[0-9]+(\\.[0-9]+)?$"))) "حجم فایل: $t مگابایت" else "حجم فایل: $t"
+                        }
                         Text(
-                            text = "حجم فایل: $updateSize مگابایت",
+                            text = sizeLabel,
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Button(

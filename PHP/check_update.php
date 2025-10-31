@@ -18,16 +18,7 @@ if (empty($currentVersion)) {
 
 // Check version compatibility
 $hasUpdate = version_compare($currentVersion, $config['latest_version'], '<');
-$isCompatible = version_compare($currentVersion, $config['min_required_version'], '>=');
 
-if ($hasUpdate && !$isCompatible) {
-    http_response_code(426);
-    echo json_encode([
-        'error' => 'نسخه برنامه شما قدیمی است. لطفاً برنامه را از طریق مارکت به‌روزرسانی کنید.',
-        'forceUpdate' => true
-    ]);
-    exit;
-}
 
 // Build response with additional update info
 $response = [
@@ -36,6 +27,7 @@ $response = [
     'downloadUrl' => $hasUpdate ? $config['download_url'] : '',
     'changeLog' => $hasUpdate ? $config['change_log'] : [],
     'minRequiredVersion' => $config['min_required_version'],
+    'minAllowedVersion' => $config['min_allowed_version'] ?? $config['min_required_version'],
     'updateInfo' => $hasUpdate ? [
         'priority' => $config['update_priority'] ?? 'normal',
         'message' => $config['update_message'] ?? '',
