@@ -6,6 +6,8 @@ import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Canvas
+import android.hardware.display.DisplayManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
@@ -14,6 +16,7 @@ import android.os.PowerManager
 import android.os.StatFs
 import android.provider.Settings
 import android.util.Log
+import android.view.Display
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -23,6 +26,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.EaseInCubic
+import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -36,6 +41,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -106,8 +113,8 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material.icons.filled.ToggleOff
+import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
@@ -150,7 +157,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -178,6 +184,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -220,9 +227,9 @@ import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.UserTypeInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.atk.atk_cargo.weather.MusicLibraryManager
-import com.atk.atk_cargo.weather.VersionExpiredDialog
 import com.atk.atk_cargo.weather.SecurityBlockScreen
 import com.atk.atk_cargo.weather.SecurityErrorType
+import com.atk.atk_cargo.weather.VersionExpiredDialog
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.CoroutineScope
@@ -436,10 +443,6 @@ class MainActivity : ComponentActivity() {
 
                 // تنظیم امتیاز عملکرد در مدیر انیمیشن‌ها
                 AnimationManager.setPerformanceScore(performanceScore)
-
-                Log.d("HardwarePerformance", "امتیاز عملکرد دستگاه: $performanceScore")
-                Log.d("AnimationManager", "وضعیت انیمیشن‌ها: ${if (AnimationManager.areAnimationsEnabled()) "فعال" else "غیرفعال"}")
-
             } catch (e: Exception) {
                 Log.e("HardwarePerformance", "خطا در ارزیابی عملکرد سخت‌افزار: ${e.message}")
                 // در صورت خطا، امتیاز متوسط تنظیم می‌شود
@@ -1174,7 +1177,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
     val tonnageWarningsCount by TonnageWarningService.warningsCount.collectAsState()
 
     LaunchedEffect(key1 = true) {
-        delay(5800)
+        delay(7000)
         showSplash = false
     }
 
@@ -1267,12 +1270,50 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                     }
                                     composable(
                                         route = "initial_info",
-                                        // اضافه کردن انیمیشن برای انتقال بین صفحات
+                                        // انیمیشن‌های حرفه‌ای برای تعریف کشتی
                                         enterTransition = {
-                                            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                            fadeIn(
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + slideIntoContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + scaleIn(
+                                                initialScale = 0.90f,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            )
                                         },
                                         exitTransition = {
-                                            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                            fadeOut(
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + slideOutOfContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Right,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + scaleOut(
+                                                targetScale = 1.06f,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            )
+                                        },
+                                        popEnterTransition = {
+                                            fadeIn(
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + slideIntoContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Right,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + scaleIn(
+                                                initialScale = 0.90f,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            )
+                                        },
+                                        popExitTransition = {
+                                            fadeOut(
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + slideOutOfContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + scaleOut(
+                                                targetScale = 1.06f,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            )
                                         }
                                     ) {
                                         Log.d("Navigation", "Composing InitialInfoScreen")
@@ -1280,11 +1321,50 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                     }
                                     composable(
                                         route = "select_info",
+                                        // انیمیشن‌های حرفه‌ای برای ثبت حواله
                                         enterTransition = {
-                                            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                            fadeIn(
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + slideIntoContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + scaleIn(
+                                                initialScale = 0.88f,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            )
                                         },
                                         exitTransition = {
-                                            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                            fadeOut(
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + slideOutOfContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Right,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + scaleOut(
+                                                targetScale = 1.08f,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            )
+                                        },
+                                        popEnterTransition = {
+                                            fadeIn(
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + slideIntoContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Right,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + scaleIn(
+                                                initialScale = 0.88f,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            )
+                                        },
+                                        popExitTransition = {
+                                            fadeOut(
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + slideOutOfContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + scaleOut(
+                                                targetScale = 1.08f,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            )
                                         }
                                     ) {
                                         Log.d("Navigation", "Composing SelectInfoScreen")
@@ -1293,11 +1373,50 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                     }
                                     composable(
                                         route = "cargo_counter",
+                                        // انیمیشن‌های حرفه‌ای برای نظارت بارشمار
                                         enterTransition = {
-                                            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                            fadeIn(
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + slideIntoContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + scaleIn(
+                                                initialScale = 0.90f,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            )
                                         },
                                         exitTransition = {
-                                            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                            fadeOut(
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + slideOutOfContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Right,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + scaleOut(
+                                                targetScale = 1.06f,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            )
+                                        },
+                                        popEnterTransition = {
+                                            fadeIn(
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + slideIntoContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Right,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + scaleIn(
+                                                initialScale = 0.90f,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            )
+                                        },
+                                        popExitTransition = {
+                                            fadeOut(
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + slideOutOfContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + scaleOut(
+                                                targetScale = 1.06f,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            )
                                         }
                                     ) {
                                         Log.d("Navigation", "Composing CargoCounterScreen")
@@ -1305,11 +1424,50 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                     }
                                     composable(
                                         route = "manage_ships",
+                                        // انیمیشن‌های حرفه‌ای برای مدیریت کشتی‌ها
                                         enterTransition = {
-                                            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left)
+                                            fadeIn(
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + slideIntoContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + scaleIn(
+                                                initialScale = 0.86f,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            )
                                         },
                                         exitTransition = {
-                                            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right)
+                                            fadeOut(
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + slideOutOfContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Right,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + scaleOut(
+                                                targetScale = 1.10f,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            )
+                                        },
+                                        popEnterTransition = {
+                                            fadeIn(
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + slideIntoContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Right,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            ) + scaleIn(
+                                                initialScale = 0.86f,
+                                                animationSpec = tween(425, easing = EaseOutCubic)
+                                            )
+                                        },
+                                        popExitTransition = {
+                                            fadeOut(
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + slideOutOfContainer(
+                                                AnimatedContentTransitionScope.SlideDirection.Left,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            ) + scaleOut(
+                                                targetScale = 1.10f,
+                                                animationSpec = tween(275, easing = EaseInCubic)
+                                            )
                                         }
                                     ) {
                                         Log.d("Navigation", "Composing ManageReportsScreen")
@@ -1462,6 +1620,10 @@ fun SplashScreen() {
         }
     }
 
+    // متغیرهای مربوط به skip کردن صفحه
+    var lastClickTime by remember { mutableStateOf(0L) }
+    val shouldSkip = remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         // انیمیشن متن با تاخیر
         delay(800)
@@ -1472,7 +1634,17 @@ fun SplashScreen() {
     }
 
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures { _ ->
+                    val currentTime = System.currentTimeMillis()
+                    if (lastClickTime > 0 && currentTime - lastClickTime <= 500) {
+                        shouldSkip.value = true
+                    }
+                    lastClickTime = currentTime
+                }
+            }
     ) {
         // ویدیو پس‌زمینه تمام صفحه
         val exoPlayer = remember {
@@ -1484,7 +1656,7 @@ fun SplashScreen() {
                     prepare()
                     playWhenReady = true
                     repeatMode = Player.REPEAT_MODE_ONE
-                    volume = 0f // بی‌صدا کردن ویدیو
+                    volume = 0f
                 }
         }
 
@@ -1498,9 +1670,9 @@ fun SplashScreen() {
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     player = exoPlayer
-                    useController = false // مخفی کردن کنترل‌های پخش
+                    useController = false
                     setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM // پر کردن تمام صفحه
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 }
             },
             modifier = Modifier.fillMaxSize()
@@ -1522,154 +1694,83 @@ fun SplashScreen() {
                 )
         )
 
-        // متن‌ها در پایین صفحه با طراحی حرفه‌ای
+        // بخش متن‌ها در پایین صفحه
+        SplashScreenContent(
+            textAlpha = textAlpha.value,
+            appVersion = appVersion ?: "نامشخص",
+            shouldSkip = shouldSkip.value
+        )
+    }
+}
+
+@Composable
+private fun SplashScreenContent(
+    textAlpha: Float,
+    appVersion: String,
+    shouldSkip: Boolean
+) {
+    if (shouldSkip) {
+        return
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 32.dp, start = 16.dp, end = 16.dp),
+        verticalArrangement = Arrangement.Bottom,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 48.dp, start = 24.dp, end = 24.dp),
-            verticalArrangement = Arrangement.Bottom,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .alpha(textAlpha),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // کارت اطلاعات با پس‌زمینه شیشه‌ای
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .alpha(textAlpha.value),
-                shape = RoundedCornerShape(24.dp),
-                color = Color.Black.copy(alpha = 0.4f),
-                border = BorderStroke(
-                    width = 1.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.3f),
-                            Color.White.copy(alpha = 0.1f)
-                        )
-                    )
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.05f),
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                        .padding(vertical = 28.dp, horizontal = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // عنوان برنامه با افکت درخشان
-                    Text(
-                        text = SplashScreenConstants.APP_TITLE,
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White,
-                        textAlign = TextAlign.Center,
-                        letterSpacing = 0.5.sp,
-                        modifier = Modifier
-                            .shadow(
-                                elevation = 8.dp,
-                                shape = RoundedCornerShape(8.dp),
-                                ambientColor = Color.White.copy(alpha = 0.5f),
-                                spotColor = Color.White.copy(alpha = 0.5f)
-                            )
-                    )
+            // عنوان برنامه
+            SplashAppTitle()
 
-                    // خط جداکننده زیبا
-                    Box(
-                        modifier = Modifier
-                            .width(80.dp)
-                            .height(3.dp)
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        Color.White.copy(alpha = 0.8f),
-                                        Color.Transparent
-                                    )
-                                ),
-                                shape = RoundedCornerShape(2.dp)
-                            )
-                    )
+            // نام شرکت
+            SplashCompanyName()
 
-                    // نام شرکت با استایل مدرن
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .background(
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    shape = CircleShape
-                                )
-                        )
-                        
-                        Text(
-                            text = SplashScreenConstants.COMPANY_NAME,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.White.copy(alpha = 0.95f),
-                            textAlign = TextAlign.Center,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.3.sp
-                        )
-                        
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .background(
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    shape = CircleShape
-                                )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // نسخه برنامه با بج مدرن
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color.White.copy(alpha = 0.15f),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .background(
-                                        color = Color(0xFF4CAF50),
-                                        shape = CircleShape
-                                    )
-                                    .shadow(
-                                        elevation = 4.dp,
-                                        shape = CircleShape,
-                                        ambientColor = Color(0xFF4CAF50),
-                                        spotColor = Color(0xFF4CAF50)
-                                    )
-                            )
-                            
-                            Text(
-                                text = "${SplashScreenConstants.VERSION_PREFIX} $appVersion",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.9f),
-                                fontWeight = FontWeight.Medium,
-                                letterSpacing = 0.2.sp
-                            )
-                        }
-                    }
-                }
-            }
+            // نسخه برنامه
+            SplashVersionBadge(appVersion)
         }
     }
+}
+
+@Composable
+private fun SplashAppTitle() {
+    Text(
+        text = SplashScreenConstants.APP_TITLE,
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = Color.White,
+        textAlign = TextAlign.Center,
+        letterSpacing = 0.3.sp
+    )
+}
+
+@Composable
+private fun SplashCompanyName() {
+    Text(
+        text = SplashScreenConstants.COMPANY_NAME,
+        style = MaterialTheme.typography.bodyLarge,
+        color = Color.White.copy(alpha = 0.9f),
+        textAlign = TextAlign.Center,
+        fontWeight = FontWeight.Medium,
+        letterSpacing = 0.2.sp
+    )
+}
+
+@Composable
+private fun SplashVersionBadge(appVersion: String) {
+    Text(
+        text = "${SplashScreenConstants.VERSION_PREFIX} $appVersion",
+        style = MaterialTheme.typography.bodySmall,
+        color = Color.White.copy(alpha = 0.7f),
+        fontWeight = FontWeight.Normal,
+        letterSpacing = 0.1.sp
+    )
 }
 
 @SuppressLint("HardwareIds")
@@ -1784,7 +1885,7 @@ fun HomeScreen(
 
                 if (isLoggedIn) {
                     LaunchedEffect(Unit) {
-                        delay(300)
+                        delay(200)
                         showGridAnimation = true
                     }
                     AnimatedMenuGrid(
@@ -2688,7 +2789,7 @@ private fun WelcomeSection(username: String) {
     )
 
     LaunchedEffect(Unit) {
-        delay(500)
+        delay(100)
         textVisible = true
         textScale.animateTo(
             targetValue = 1f,
@@ -3160,17 +3261,16 @@ private fun ActiveQuotasDialog(onDismiss: () -> Unit) {
             if (filtered.isEmpty()) return@let emptyMap()
             
             // گروه‌بندی بهینه با asSequence
-            filtered.asSequence()
+            filtered
                 .groupBy { it.shipName }
                 .mapValues { (_, shipQuotas) ->
-                    shipQuotas.asSequence()
+                    shipQuotas
                         .groupBy { it.cargoOwner }
                         .mapValues { (_, ownerQuotas) ->
                             // مرتب‌سازی براساس تناژ مانده
                             ownerQuotas.sortedBy { it.remainingTonnage }
                         }
                 }
-                // مرتب‌سازی کشتی‌ها براساس مجموع تناژ مانده (از کمترین به بیشترین)
                 .toList()
                 .sortedBy { (_, cargoOwnerMap) ->
                     cargoOwnerMap.values.flatten().sumOf { it.remainingTonnage }
@@ -5654,7 +5754,8 @@ fun UserManagementDialog(
                                         user = user,
                                         onEditClick = { showEditDialog = user },
                                         onDeleteClick = { showDeleteConfirmation = user },
-                                        isMainAdmin = isMainAdmin
+                                        isMainAdmin = isMainAdmin,
+                                        currentUserType = currentUserType
                                     )
                                 }
                             }
@@ -5682,7 +5783,8 @@ fun UserManagementDialog(
                         ).show()
                     }
                 }
-            }
+            },
+            isMainAdmin = isMainAdmin
         )
     }
 
@@ -5744,7 +5846,8 @@ private fun UserListItem(
     user: User,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
-    isMainAdmin: Boolean
+    isMainAdmin: Boolean,
+    currentUserType: String
 ) {
     val userTypeColor = when (user.userType) {
         "admin" -> MaterialTheme.colorScheme.primary
@@ -5842,7 +5945,7 @@ private fun UserListItem(
             }
 
             // Action buttons - minimal design
-            if (isMainAdmin) {
+            if (isMainAdmin || currentUserType == "admin") {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -5850,12 +5953,15 @@ private fun UserListItem(
                     // Edit button
                     IconButton(
                         onClick = onEditClick,
+                        enabled = user.username != "Prot0nX",
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
                             Icons.Default.Edit,
                             contentDescription = "ویرایش",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = if (user.username == "Prot0nX")
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -5884,7 +5990,8 @@ private fun UserListItem(
 @Composable
 fun AddUserDialog(
     onDismiss: () -> Unit,
-    onUserAdded: () -> Unit
+    onUserAdded: () -> Unit,
+    isMainAdmin: Boolean
 ) {
     var username by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
@@ -5947,7 +6054,18 @@ fun AddUserDialog(
 
                 OutlinedTextField(
                     value = fullName,
-                    onValueChange = { fullName = it.trim() },
+                    onValueChange = { input ->
+                        // فقط حروف فارسی و فاصله مجاز است
+                        val newValue = input.filter { char ->
+                            char == ' ' || // فاصله معمولی
+                            char == '\u200C' || // نیم‌فاصله (ZWNJ)
+                            (char.code in 0x0600..0x06FF) || // حروف فارسی
+                            (char.code in 0xFB50..0xFDFF) || // اشکال متصل فارسی
+                            (char.code in 0xFE70..0xFEFF) // اشکال دیگر فارسی
+                        }
+                        fullName = newValue
+                        errorMessage = ""
+                    },
                     label = { Text("نام و نام خانوادگی") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -5971,7 +6089,8 @@ fun AddUserDialog(
 
                 UserTypeSelection(
                     selectedUserType = selectedUserType,
-                    onUserTypeSelected = { selectedUserType = it }
+                    onUserTypeSelected = { selectedUserType = it },
+                    isMainAdmin = isMainAdmin
                 )
 
                 if (errorMessage.isNotEmpty()) {
@@ -6024,6 +6143,13 @@ fun AddUserDialog(
                         }
                     }
 
+                    // تابع برای اعتبارسنجی نام و نام خانوادگی
+                    fun isValidFullName(name: String): Boolean {
+                        val trimmedName = name.trim()
+                        // باید حداقل دو کلمه داشته باشد
+                        return trimmedName.split(" ").filter { it.isNotEmpty() }.size >= 2
+                    }
+
                     // Submit button
                     Button(
                         onClick = {
@@ -6040,6 +6166,10 @@ fun AddUserDialog(
                                     errorMessage = "لطفاً نام و نام خانوادگی را وارد کنید"
                                     return@Button
                                 }
+                                !isValidFullName(fullName) -> {
+                                    errorMessage = "نام و نام خانوادگی باید به صورت صحیح ثبت شود"
+                                    return@Button
+                                }
                                 password.isEmpty() -> {
                                     errorMessage = "لطفاً رمز عبور را وارد کنید"
                                     return@Button
@@ -6053,7 +6183,7 @@ fun AddUserDialog(
                                 }
                             }
                         },
-                        enabled = !isLoading,
+                        enabled = !isLoading && username.length >= 4 && isValidFullName(fullName) && password.length >= 4,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -6125,7 +6255,8 @@ fun AddUserDialog(
 @Composable
 private fun UserTypeSelection(
     selectedUserType: String,
-    onUserTypeSelected: (String) -> Unit
+    onUserTypeSelected: (String) -> Unit,
+    isMainAdmin: Boolean
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -6138,12 +6269,19 @@ private fun UserTypeSelection(
             fontWeight = FontWeight.SemiBold
         )
 
+        // فیلتر کردن انواع کاربر بر اساس سطح دسترسی
+        val availableUserTypes = if (isMainAdmin) {
+            userTypes // مدیر اصلی می‌تواند همه را ایجاد کند
+        } else {
+            userTypes.filter { it.value != "admin" } // ادمین‌های معمولی نمی‌توانند ادمین ایجاد کنند
+        }
+
         // Horizontal arrangement of user type options
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            userTypes.forEach { userType ->
+            availableUserTypes.forEach { userType ->
                 UserTypeOptionHorizontal(
                     userType = userType,
                     isSelected = selectedUserType == userType.value,
@@ -6291,10 +6429,25 @@ private fun EditUserDialog(
     val isLoading by remember { mutableStateOf(false) }
     var showConfirmation by remember { mutableStateOf(false) }
 
+    // تابع برای اعتبارسنجی نام و نام خانوادگی
+    fun isValidFullName(name: String): Boolean {
+        val trimmedName = name.trim()
+        // باید حداقل دو کلمه داشته باشد
+        return trimmedName.split(" ").filter { it.isNotEmpty() }.size >= 2
+    }
+
     // تابع برای آماده‌سازی درخواست آپدیت
     fun prepareUpdateRequest(): UpdateUserRequest? {
-        if (username.isEmpty() || fullName.isEmpty()) {
-            errorMessage = "نام کاربری و مشخصات کاربر نمی‌تواند خالی باشد"
+        if (username.isEmpty()) {
+            errorMessage = "نام کاربری نمی‌تواند خالی باشد"
+            return null
+        }
+        if (fullName.isEmpty()) {
+            errorMessage = "نام و نام خانوادگی نمی‌تواند خالی باشد"
+            return null
+        }
+        if (!isValidFullName(fullName)) {
+            errorMessage = "نام و نام خانوادگی باید به صورت صحیح ثبت شود"
             return null
         }
         return UpdateUserRequest(
@@ -6346,8 +6499,16 @@ private fun EditUserDialog(
 
                 OutlinedTextField(
                     value = fullName,
-                    onValueChange = {
-                        fullName = it.trim()
+                    onValueChange = { input ->
+                        // فقط حروف فارسی و فاصله مجاز است
+                        val newValue = input.filter { char ->
+                            char == ' ' || // فاصله معمولی
+                            char == '\u200C' || // نیم‌فاصله (ZWNJ)
+                            (char.code in 0x0600..0x06FF) || // حروف فارسی
+                            (char.code in 0xFB50..0xFDFF) || // اشکال متصل فارسی
+                            (char.code in 0xFE70..0xFEFF) // اشکال دیگر فارسی
+                        }
+                        fullName = newValue
                         errorMessage = ""
                     },
                     label = { Text("نام و نام خانوادگی") },
@@ -6428,7 +6589,7 @@ private fun EditUserDialog(
                                 showConfirmation = true
                             }
                         },
-                        enabled = !isLoading,
+                        enabled = !isLoading && username.isNotEmpty() && isValidFullName(fullName),
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -7323,13 +7484,13 @@ class HardwarePerformanceEvaluator(
     private val context: Context,
     private val userPreferencesManager: UserPreferencesManager
 ) {
-
     companion object {
         private const val EVALUATION_VALIDITY_HOURS = 24 // ارزیابی مجدد هر 24 ساعت
     }
 
     /**
-     * ارزیابی عملکرد سخت‌افزار و تعیین امتیاز
+     * ارزیابی جامع عملکرد سخت‌افزار با استفاده از رویکرد ترکیبی
+     * شامل بنچمارک‌های سبک و اطلاعات سخت‌افزاری
      * @return امتیاز عملکرد از 0 تا 100
      */
     suspend fun evaluatePerformance(): Int {
@@ -7339,7 +7500,7 @@ class HardwarePerformanceEvaluator(
         val validityDuration = EVALUATION_VALIDITY_HOURS * 60 * 60 * 1000L
 
         // بررسی تغییر مشخصات دستگاه
-        val currentDeviceSpecs = generateDeviceSpecs()
+        val currentDeviceSpecs = generateAdvancedDeviceSpecs()
         val cachedDeviceSpecs = userPreferencesManager.getDeviceSpecs()
 
         // اگر ارزیابی قبلی معتبر است و مشخصات تغییر نکرده، امتیاز کش شده را برگردان
@@ -7352,51 +7513,45 @@ class HardwarePerformanceEvaluator(
             }
         }
 
-        Log.d("HardwarePerformance", "محاسبه مجدد امتیاز سخت‌افزار...")
+        Log.d("HardwarePerformance", "شروع ارزیابی جامع سخت‌افزار...")
 
-        var totalScore = 0
-        var maxScore = 0
+        // اجرای بنچمارک‌ها و جمع‌آوری اطلاعات سخت‌افزاری
+        val performanceMetrics = withContext(Dispatchers.Default) {
+            val metrics = mutableMapOf<String, Float>()
+            
+            // بنچمارک‌های سبک (زیر 100ms)
+            metrics["cpu_benchmark"] = runCPUBenchmark()
+            metrics["gpu_benchmark"] = runGPUBenchmark()
+            metrics["memory_benchmark"] = runMemoryBenchmark()
+            
+            // اطلاعات سخت‌افزاری
+            metrics["ram_performance"] = evaluateAdvancedRAM()
+            metrics["cpu_performance"] = evaluateAdvancedCPU()
+            metrics["gpu_performance"] = evaluateGPU()
+            metrics["display_performance"] = evaluateDisplay()
+            metrics["storage_performance"] = evaluateAdvancedStorage()
+            metrics["thermal_performance"] = evaluateThermal()
+            metrics["android_performance"] = evaluateAndroidVersion()
+            
+            metrics
+        }
 
-        // ارزیابی RAM
-        val ramScore = evaluateRAM()
-        totalScore += ramScore
-        maxScore += 30
-
-        // ارزیابی CPU
-        val cpuScore = evaluateCPU()
-        totalScore += cpuScore
-        maxScore += 25
-
-        // ارزیابی نسخه اندروید
-        val androidScore = evaluateAndroidVersion()
-        totalScore += androidScore
-        maxScore += 20
-
-        // ارزیابی فضای ذخیره‌سازی
-        val storageScore = evaluateStorage()
-        totalScore += storageScore
-        maxScore += 15
-
-        // ارزیابی وضعیت باتری
-        val batteryScore = evaluateBattery()
-        totalScore += batteryScore
-        maxScore += 10
-
-        // محاسبه امتیاز نهایی
-        val finalScore = ((totalScore.toFloat() / maxScore) * 100).toInt().coerceIn(0, 100)
+        // محاسبه امتیاز نهایی با وزن‌دهی هوشمند
+        val finalScore = calculateWeightedScore(performanceMetrics)
 
         // ذخیره نتیجه در UserPreferencesManager
         userPreferencesManager.saveHardwareScore(finalScore, currentDeviceSpecs)
 
         Log.d("HardwarePerformance", "امتیاز جدید محاسبه و ذخیره شد: $finalScore")
+        Log.d("HardwarePerformance", "جزئیات امتیازدهی: $performanceMetrics")
 
         return finalScore
     }
 
     /**
-     * تولید رشته مشخصات دستگاه برای مقایسه تغییرات
+     * تولید رشته مشخصات پیشرفته دستگاه برای مقایسه تغییرات
      */
-    private fun generateDeviceSpecs(): String {
+    private fun generateAdvancedDeviceSpecs(): String {
         return try {
             val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             val memoryInfo = ActivityManager.MemoryInfo()
@@ -7405,100 +7560,296 @@ class HardwarePerformanceEvaluator(
             val totalRAM = memoryInfo.totalMem / (1024 * 1024 * 1024)
             val coreCount = Runtime.getRuntime().availableProcessors()
             val androidVersion = Build.VERSION.SDK_INT
+            val architecture = Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"
+            val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+            val refreshRate = displayManager.getDisplay(Display.DEFAULT_DISPLAY)?.refreshRate ?: 60f
 
             val statFs = StatFs(Environment.getDataDirectory().path)
             val totalStorage = statFs.totalBytes / (1024 * 1024 * 1024)
 
-            "RAM:${totalRAM}GB|CPU:${coreCount}cores|Android:${androidVersion}|Storage:${totalStorage}GB"
+            "RAM:${totalRAM}GB|CPU:${coreCount}cores|Android:${androidVersion}|Arch:${architecture}|Refresh:${refreshRate}Hz|Storage:${totalStorage}GB"
         } catch (_: Exception) {
             "UNKNOWN_SPECS"
         }
     }
 
-    private fun evaluateRAM(): Int {
+    /**
+     * بنچمارک سبک CPU برای ارزیابی عملکرد پردازنده
+     */
+    private fun runCPUBenchmark(): Float {
+        return try {
+            val startTime = System.nanoTime()
+            var result = 0.0
+            
+            // محاسبات ریاضی سبک برای تست CPU
+            repeat(100000) {
+                result += kotlin.math.sin(it.toDouble()) * kotlin.math.cos(it.toDouble())
+            }
+            
+            val duration = (System.nanoTime() - startTime) / 1_000_000f // تبدیل به میلی‌ثانیه
+            
+            // امتیازدهی معکوس (زمان کمتر = امتیاز بیشتر)
+            when {
+                duration < 50f -> 100f
+                duration < 100f -> 80f
+                duration < 200f -> 60f
+                duration < 400f -> 40f
+                else -> 20f
+            }
+        } catch (_: Exception) {
+            50f
+        }
+    }
+
+    /**
+     * بنچمارک سبک GPU برای ارزیابی عملکرد گرافیکی
+     */
+    private fun runGPUBenchmark(): Float {
+        return try {
+            val startTime = System.nanoTime()
+            
+            // شبیه‌سازی عملیات گرافیکی سبک
+            val bitmap = createBitmap(100, 100)
+            val canvas = Canvas(bitmap)
+            
+            repeat(1000) {
+                canvas.drawColor(android.graphics.Color.rgb(it % 255, (it * 2) % 255, (it * 3) % 255))
+            }
+            
+            val duration = (System.nanoTime() - startTime) / 1_000_000f
+            
+            when {
+                duration < 30f -> 100f
+                duration < 60f -> 80f
+                duration < 120f -> 60f
+                duration < 250f -> 40f
+                else -> 20f
+            }
+        } catch (_: Exception) {
+            50f
+        }
+    }
+
+    /**
+     * بنچمارک سبک حافظه برای ارزیابی عملکرد RAM
+     */
+    private fun runMemoryBenchmark(): Float {
+        return try {
+            val startTime = System.nanoTime()
+            
+            // تست تخصیص و آزادسازی حافظه
+            val arrays = mutableListOf<IntArray>()
+            repeat(100) {
+                arrays.add(IntArray(1000) { it })
+            }
+            arrays.clear()
+            
+            System.gc() // فراخوانی garbage collector
+            
+            val duration = (System.nanoTime() - startTime) / 1_000_000f
+            
+            when {
+                duration < 20f -> 100f
+                duration < 40f -> 80f
+                duration < 80f -> 60f
+                duration < 160f -> 40f
+                else -> 20f
+            }
+        } catch (_: Exception) {
+            50f
+        }
+    }
+
+    /**
+     * ارزیابی پیشرفته RAM با در نظر گرفتن اندازه و نوع
+     */
+    private fun evaluateAdvancedRAM(): Float {
         return try {
             val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
             val memoryInfo = ActivityManager.MemoryInfo()
             activityManager.getMemoryInfo(memoryInfo)
 
             val totalRAM = memoryInfo.totalMem / (1024 * 1024 * 1024) // تبدیل به گیگابایت
+            val availableRAM = memoryInfo.availMem / (1024 * 1024 * 1024)
+            val ramUsagePercent = 1f - (availableRAM.toFloat() / totalRAM.toFloat())
 
             when {
-                totalRAM >= 8 -> 30 // 8GB یا بیشتر
-                totalRAM >= 6 -> 25 // 6-8GB
-                totalRAM >= 4 -> 20 // 4-6GB
-                totalRAM >= 3 -> 15 // 3-4GB
-                totalRAM >= 2 -> 10 // 2-3GB
-                else -> 5 // کمتر از 2GB
-            }
+                totalRAM >= 12 -> 100f
+                totalRAM >= 8 -> 85f
+                totalRAM >= 6 -> 70f
+                totalRAM >= 4 -> 55f
+                totalRAM >= 3 -> 40f
+                totalRAM >= 2 -> 25f
+                else -> 10f
+            } * (1f - ramUsagePercent * 0.3f) // کاهش امتیاز بر اساس استفاده فعلی
         } catch (_: Exception) {
-            15 // امتیاز متوسط در صورت خطا
+            50f
         }
     }
 
-    private fun evaluateCPU(): Int {
+    /**
+     * ارزیابی پیشرفته CPU با در نظر گرفتن معماری و تعداد هسته‌ها
+     */
+    private fun evaluateAdvancedCPU(): Float {
         return try {
             val coreCount = Runtime.getRuntime().availableProcessors()
+            val architecture = Build.SUPPORTED_ABIS.firstOrNull() ?: ""
+            
+            val coreScore = when {
+                coreCount >= 8 -> 100f
+                coreCount >= 6 -> 85f
+                coreCount >= 4 -> 70f
+                coreCount >= 2 -> 50f
+                else -> 25f
+            }
+            
+            val archScore = when {
+                architecture.contains("arm64-v8a") -> 100f
+                architecture.contains("armeabi-v7a") -> 80f
+                architecture.contains("x86_64") -> 70f
+                architecture.contains("x86") -> 50f
+                else -> 30f
+            }
+            
+            (coreScore * 0.7f + archScore * 0.3f)
+        } catch (_: Exception) {
+            50f
+        }
+    }
 
+    /**
+     * ارزیابی GPU و قابلیت‌های گرافیکی
+     */
+    private fun evaluateGPU(): Float {
+        return try {
+            val packageManager = context.packageManager
+            
+            // استفاده از ثابت‌های معتبر OpenGL ES
+            val hasOpenGLES3 = packageManager.hasSystemFeature("android.hardware.opengles.es_version_3_0")
+            val hasOpenGLES31 = packageManager.hasSystemFeature("android.hardware.opengles.es_version_3_1")
+            val hasOpenGLES32 = packageManager.hasSystemFeature("android.hardware.opengles.es_version_3_2")
+            
             when {
-                coreCount >= 8 -> 25 // 8 هسته یا بیشتر
-                coreCount >= 6 -> 20 // 6-8 هسته
-                coreCount >= 4 -> 15 // 4-6 هسته
-                coreCount >= 2 -> 10 // 2-4 هسته
-                else -> 5 // تک هسته
+                hasOpenGLES32 -> 100f
+                hasOpenGLES31 -> 85f
+                hasOpenGLES3 -> 70f
+                else -> 40f
             }
         } catch (_: Exception) {
-            12 // امتیاز متوسط در صورت خطا
+            50f
         }
     }
 
-    @SuppressLint("ObsoleteSdkInt")
-    private fun evaluateAndroidVersion(): Int {
-        return when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> 20 // Android 13+
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> 18 // Android 12
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> 16 // Android 11
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> 14 // Android 10
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.P -> 12 // Android 9
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> 10 // Android 8
-            else -> 5 // نسخه‌های قدیمی‌تر
+    /**
+     * ارزیابی نمایشگر (نرخ تازه‌سازی و رزولوشن)
+     */
+    private fun evaluateDisplay(): Float {
+        return try {
+            val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+            val display = displayManager.getDisplay(Display.DEFAULT_DISPLAY)
+            val refreshRate = display?.refreshRate ?: 60f
+            
+            when {
+                refreshRate >= 120f -> 100f
+                refreshRate >= 90f -> 85f
+                refreshRate >= 60f -> 70f
+                else -> 40f
+            }
+        } catch (_: Exception) {
+            50f
         }
     }
 
-    private fun evaluateStorage(): Int {
+    /**
+     * ارزیابی پیشرفته حافظه ذخیره‌سازی
+     */
+    private fun evaluateAdvancedStorage(): Float {
         return try {
             val statFs = StatFs(Environment.getDataDirectory().path)
             val availableBytes = statFs.availableBytes
             val availableGB = availableBytes / (1024 * 1024 * 1024)
 
             when {
-                availableGB >= 32 -> 15 // 32GB یا بیشتر فضای آزاد
-                availableGB >= 16 -> 12 // 16-32GB
-                availableGB >= 8 -> 10 // 8-16GB
-                availableGB >= 4 -> 7 // 4-8GB
-                availableGB >= 2 -> 5 // 2-4GB
-                else -> 2 // کمتر از 2GB
+                availableGB >= 64 -> 100f
+                availableGB >= 32 -> 85f
+                availableGB >= 16 -> 70f
+                availableGB >= 8 -> 55f
+                availableGB >= 4 -> 40f
+                availableGB >= 2 -> 25f
+                else -> 10f
             }
         } catch (_: Exception) {
-            8 // امتیاز متوسط در صورت خطا
+            50f
         }
     }
 
-    private fun evaluateBattery(): Int {
+    /**
+     * ارزیابی وضعیت حرارتی و عملکرد پایدار
+     */
+    private fun evaluateThermal(): Float {
         return try {
             val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
             val batteryLevel = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-
+            
+            // امتیازدهی بر اساس سطح باتری (نشان‌دهنده احتمال داغی دستگاه)
             when {
-                batteryLevel >= 80 -> 10 // باتری بالای 80%
-                batteryLevel >= 60 -> 8 // باتری 60-80%
-                batteryLevel >= 40 -> 6 // باتری 40-60%
-                batteryLevel >= 20 -> 4 // باتری 20-40%
-                else -> 2 // باتری کمتر از 20%
+                batteryLevel >= 80 -> 100f
+                batteryLevel >= 60 -> 85f
+                batteryLevel >= 40 -> 70f
+                batteryLevel >= 20 -> 50f
+                else -> 30f
             }
         } catch (_: Exception) {
-            6 // امتیاز متوسط در صورت خطا
+            70f
         }
+    }
+
+    /**
+     * ارزیابی نسخه اندروید
+     */
+    @SuppressLint("ObsoleteSdkInt")
+    private fun evaluateAndroidVersion(): Float {
+        return when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> 100f // Android 13+
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> 90f // Android 12
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> 80f // Android 11
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> 70f // Android 10
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.P -> 60f // Android 9
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> 50f // Android 8
+            else -> 30f // نسخه‌های قدیمی‌تر
+        }
+    }
+
+    /**
+     * محاسبه امتیاز نهایی با وزن‌دهی هوشمند بر اساس اهمیت برای انیمیشن‌ها
+     */
+    private fun calculateWeightedScore(metrics: Map<String, Float>): Int {
+        // وزن‌دهی بر اساس اهمیت برای عملکرد انیمیشن
+        val weights = mapOf(
+            "cpu_benchmark" to 0.15f,
+            "gpu_benchmark" to 0.20f,
+            "memory_benchmark" to 0.15f,
+            "ram_performance" to 0.15f,
+            "cpu_performance" to 0.10f,
+            "gpu_performance" to 0.10f,
+            "display_performance" to 0.08f,
+            "storage_performance" to 0.03f,
+            "thermal_performance" to 0.02f,
+            "android_performance" to 0.02f
+        )
+        
+        var weightedSum = 0f
+        var totalWeight = 0f
+        
+        metrics.forEach { (metric, value) ->
+            val weight = weights[metric] ?: 0f
+            weightedSum += value * weight
+            totalWeight += weight
+        }
+        
+        val finalScore = if (totalWeight > 0) (weightedSum / totalWeight).coerceIn(0f, 100f) else 50f
+        
+        return finalScore.toInt()
     }
 
 }
@@ -7512,7 +7863,7 @@ object AnimationManager {
      */
     fun setPerformanceScore(score: Int) {
         performanceScore = score
-        animationsEnabled = score >= 60 // انیمیشن‌ها فقط برای دستگاه‌های با امتیاز 60 یا بالاتر فعال می‌شوند
+        animationsEnabled = score >= 70 // انیمیشن‌ها فقط برای دستگاه‌های با امتیاز 70 یا بالاتر فعال می‌شوند
     }
 
     /**
