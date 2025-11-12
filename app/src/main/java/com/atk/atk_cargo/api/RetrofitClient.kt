@@ -98,3 +98,52 @@ object RetrofitClient {
         retrofit.create(ApiService::class.java)
     }
 }
+
+// Retrofit client for Third Party API
+object ThirdPartyRetrofitClient {
+    private const val TIMEOUT_SECONDS = 30L
+    private const val BASE_URL = "https://pishrodarya.ir/WorknetWebSite/service/api/"
+
+    // Headers interceptor for Third Party API
+    private val headersInterceptor = Interceptor { chain ->
+        val original = chain.request()
+        val request = original.newBuilder()
+            .addHeader("webUserName", "AminTojarKhozestan")
+            .addHeader("webUserPass", "Njg4MDZlYzU0M2Ji")
+            .addHeader("AuthUser", "Amin_Tojar_Khozestan")
+            .addHeader("AuthenticationX365", "c521ed219e0d4f5f9da78b6f7c7366f3a2dcb1a8451547c382c23548ebcdac53")
+            .addHeader("Content-Type", "application/json")
+            .method(original.method, original.body)
+            .build()
+        chain.proceed(request)
+    }
+
+    // Configure OkHttpClient
+    private val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(headersInterceptor)
+        .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
+        .build()
+
+    // Configure Gson
+    private val gson = GsonBuilder()
+        .setLenient()
+        .serializeNulls()
+        .create()
+
+    // Configure and create Retrofit instance
+    private val retrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+    }
+
+    // Create Third Party API Service instance
+    val thirdPartyApiService: ThirdPartyApiService by lazy {
+        retrofit.create(ThirdPartyApiService::class.java)
+    }
+}

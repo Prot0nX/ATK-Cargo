@@ -187,6 +187,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerState
@@ -260,6 +262,7 @@ import com.atk.atk_cargo.api.QuotaPercentageData
 import com.atk.atk_cargo.api.QuotaSortingMode
 import com.atk.atk_cargo.api.RealTimeLoadingData
 import com.atk.atk_cargo.api.ReportsViewModel
+import com.atk.atk_cargo.api.ThirdPartyOrder
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.ShiftInfo
 import com.atk.atk_cargo.api.ShiftPerformanceData
@@ -8816,13 +8819,17 @@ fun RealTimeLoadingBottomSheet(
 	viewModel: ReportsViewModel
 ) {
 	val shipColorMap by viewModel.shipColorMap.collectAsState()
+	val thirdPartyOrders by viewModel.thirdPartyOrders.collectAsState()
+	val thirdPartyLoadingError by viewModel.thirdPartyLoadingError.collectAsState()
 	val isDarkTheme = isSystemInDarkTheme()
 	val defaultColor = MaterialTheme.colorScheme.primary
+	var selectedTabIndex by remember { mutableIntStateOf(0) }
 	var remainingSeconds by remember { mutableIntStateOf(30) }
 	var lastUpdateTime by remember { mutableStateOf("") }
 	var isRefreshing by remember { mutableStateOf(false) }
 	var expandedShip by remember { mutableStateOf<String?>(null) }
 	var searchQuery by remember { mutableStateOf("") }
+	var thirdPartySearchQuery by remember { mutableStateOf("") }
 	val context = LocalContext.current
 	val totalEntryVouchers = remember(loadingData) { loadingData.sumOf { it.entryVouchers } }
 	val totalExitVouchers = remember(loadingData) { loadingData.sumOf { it.exitVouchers } }
@@ -8845,9 +8852,30 @@ fun RealTimeLoadingBottomSheet(
 		}
 	}
 
+	// فیلتر کردن داده‌های Third Party بر اساس جستجو و orderStatus
+	val filteredThirdPartyOrders = remember(thirdPartyOrders, thirdPartySearchQuery) {
+		// ابتدا فیلتر بر اساس orderStatus (فقط "فعال")
+		val activeOrders = thirdPartyOrders.filter { order ->
+			order.orderStatus == "فعال"
+		}
+		
+		// سپس فیلتر بر اساس جستجو
+		if (thirdPartySearchQuery.isBlank()) {
+			activeOrders
+		} else {
+			activeOrders.filter { order ->
+				order.orderId.contains(thirdPartySearchQuery, ignoreCase = true) ||
+						(order.orderGoodDescreption?.contains(thirdPartySearchQuery, ignoreCase = true) == true) ||
+						(order.truckLicensePlate?.contains(thirdPartySearchQuery, ignoreCase = true) == true) ||
+						(order.ctName?.contains(thirdPartySearchQuery, ignoreCase = true) == true)
+			}
+		}
+	}
+
 	LaunchedEffect(isOpen) {
 		if (isOpen) {
 			viewModel.loadRealTimeData(isDarkTheme, defaultColor)
+			viewModel.loadThirdPartyOrders()
 			lastUpdateTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
 			while (true) {
 				delay(1000)
@@ -8855,6 +8883,7 @@ fun RealTimeLoadingBottomSheet(
 				if (remainingSeconds <= 0) {
 					isRefreshing = true
 					viewModel.loadRealTimeData(isDarkTheme, defaultColor)
+					viewModel.loadThirdPartyOrders()
 					onRefresh()
 					remainingSeconds = 30
 					lastUpdateTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
@@ -8882,121 +8911,260 @@ fun RealTimeLoadingBottomSheet(
 							lastUpdateTime = lastUpdateTime,
 							shiftInfo = shiftInfo,
 							onShareClick = {
-								// تهیه متن اشتراک‌گذاری
-								val shareText = viewModel.shareRealTimeLoadingData(filteredLoadingData, shiftInfo)
+								if (selectedTabIndex == 0) {
+									// تهیه متن اشتراک‌گذاری
+									val shareText = viewModel.shareRealTimeLoadingData(filteredLoadingData, shiftInfo)
 
-								// ایجاد Intent اشتراک‌گذاری
-								val sendIntent = Intent().apply {
-									action = Intent.ACTION_SEND
-									putExtra(Intent.EXTRA_TEXT, shareText)
-									type = "text/plain"
+									// ایجاد Intent اشتراک‌گذاری
+									val sendIntent = Intent().apply {
+										action = Intent.ACTION_SEND
+										putExtra(Intent.EXTRA_TEXT, shareText)
+										type = "text/plain"
+									}
+
+									// نمایش دیالوگ انتخاب برنامه برای اشتراک‌گذاری
+									val shareIntent = Intent.createChooser(sendIntent, "اشتراک‌گذاری")
+									context.startActivity(shareIntent)
 								}
-
-								// نمایش دیالوگ انتخاب برنامه برای اشتراک‌گذاری
-								val shareIntent = Intent.createChooser(sendIntent, "اشتراک‌گذاری")
-								context.startActivity(shareIntent)
 							}
 						)
 						Spacer(modifier = Modifier.height(8.dp))
 
-						// فیلد جستجو - طراحی مینیمال و بهینه
-						SearchField(
-							searchQuery = searchQuery,
-							onSearchQueryChange = { searchQuery = it },
-							modifier = Modifier.fillMaxWidth()
-						)
-
+						// TabRow برای انتخاب بین تب‌ها
+						TabRow(selectedTabIndex = selectedTabIndex) {
+							Tab(
+								selected = selectedTabIndex == 0,
+								onClick = { selectedTabIndex = 0 },
+								text = { Text("اطلاعات فعلی بارگیری") }
+							)
+							Tab(
+								selected = selectedTabIndex == 1,
+								onClick = { selectedTabIndex = 1 },
+								text = { Text("اطلاعات در جریان باربری") }
+							)
+						}
 						Spacer(modifier = Modifier.height(8.dp))
 
-						StatisticItem(
-							totalVouchers = totalEntryVouchers + totalExitVouchers,
-							totalEntryVouchers = totalEntryVouchers,
-							totalExitVouchers = totalExitVouchers,
-							totalNetWeight = totalNetWeight,
-							onWeightDetailsClick = { }
-						)
-						Spacer(modifier = Modifier.height(8.dp))
+						// محتوای تب‌ها
+						when (selectedTabIndex) {
+							0 -> {
+								// تب اول: اطلاعات فعلی بارگیری
+								// فیلد جستجو
+								SearchField(
+									searchQuery = searchQuery,
+									onSearchQueryChange = { searchQuery = it },
+									modifier = Modifier.fillMaxWidth()
+								)
 
-						AnimatedContent(
-							targetState = filteredLoadingData,
-							transitionSpec = {
-								fadeIn(animationSpec = tween(durationMillis = 300)) togetherWith
-										fadeOut(animationSpec = tween(durationMillis = 300))
-							},
-							modifier = Modifier.weight(1f),
-							label = "LoadingDataContent"
-						) { targetLoadingData ->
-							LazyColumn(
-								verticalArrangement = Arrangement.spacedBy(8.dp),
-								contentPadding = PaddingValues(bottom = 16.dp)
-							) {
-								items(targetLoadingData.groupBy { it.shipName }.toList(), key = { it.first }) { (shipName, shipData) ->
-									val shipColor = shipColorMap[shipName] ?: MaterialTheme.colorScheme.primary
-									ShipCard(
-										shipName = shipName,
-										isExpanded = expandedShip == shipName,
-										onExpandToggle = {
-											expandedShip = if (expandedShip == shipName) null else shipName
-										},
-										entryVouchers = shipData.sumOf { it.entryVouchers },
-										exitVouchers = shipData.sumOf { it.exitVouchers },
-										color = shipColor,
-										content = {
-											// گروه‌بندی کوتاژها بر اساس انبار
-											val warehouseGroups = shipData.groupBy { it.loadingWarehouse }
+								Spacer(modifier = Modifier.height(8.dp))
 
-											Column(
-												modifier = Modifier
-													.fillMaxWidth()
-													.padding(top = 8.dp)
-											) {
-												warehouseGroups.forEach { (warehouse, quotas) ->
-													// نمایش نام انبار
-													Row(
+								StatisticItem(
+									totalVouchers = totalEntryVouchers + totalExitVouchers,
+									totalEntryVouchers = totalEntryVouchers,
+									totalExitVouchers = totalExitVouchers,
+									totalNetWeight = totalNetWeight,
+									onWeightDetailsClick = { }
+								)
+								Spacer(modifier = Modifier.height(8.dp))
+
+								AnimatedContent(
+									targetState = filteredLoadingData,
+									transitionSpec = {
+										fadeIn(animationSpec = tween(durationMillis = 300)) togetherWith
+												fadeOut(animationSpec = tween(durationMillis = 300))
+									},
+									modifier = Modifier.weight(1f),
+									label = "LoadingDataContent"
+								) { targetLoadingData ->
+									LazyColumn(
+										verticalArrangement = Arrangement.spacedBy(8.dp),
+										contentPadding = PaddingValues(bottom = 16.dp)
+									) {
+										items(targetLoadingData.groupBy { it.shipName }.toList(), key = { it.first }) { (shipName, shipData) ->
+											val shipColor = shipColorMap[shipName] ?: MaterialTheme.colorScheme.primary
+											ShipCard(
+												shipName = shipName,
+												isExpanded = expandedShip == shipName,
+												onExpandToggle = {
+													expandedShip = if (expandedShip == shipName) null else shipName
+												},
+												entryVouchers = shipData.sumOf { it.entryVouchers },
+												exitVouchers = shipData.sumOf { it.exitVouchers },
+												color = shipColor,
+												content = {
+													// گروه‌بندی کوتاژها بر اساس انبار
+													val warehouseGroups = shipData.groupBy { it.loadingWarehouse }
+
+													Column(
 														modifier = Modifier
 															.fillMaxWidth()
-															.padding(vertical = 4.dp),
-														verticalAlignment = Alignment.CenterVertically
+															.padding(top = 8.dp)
 													) {
-														Icon(
-															imageVector = Icons.Default.Warehouse,
-															contentDescription = null,
-															tint = shipColor,
-															modifier = Modifier.size(16.dp)
-														)
-														Spacer(modifier = Modifier.width(4.dp))
-														Text(
-															text = "انبار: $warehouse",
-															style = MaterialTheme.typography.titleSmall,
-															fontWeight = FontWeight.Bold,
-															color = shipColor
-														)
-													}
+														warehouseGroups.forEach { (warehouse, quotas) ->
+															// نمایش نام انبار
+															Row(
+																modifier = Modifier
+																	.fillMaxWidth()
+																	.padding(vertical = 4.dp),
+																verticalAlignment = Alignment.CenterVertically
+															) {
+																Icon(
+																	imageVector = Icons.Default.Warehouse,
+																	contentDescription = null,
+																	tint = shipColor,
+																	modifier = Modifier.size(16.dp)
+																)
+																Spacer(modifier = Modifier.width(4.dp))
+																Text(
+																	text = "انبار: $warehouse",
+																	style = MaterialTheme.typography.titleSmall,
+																	fontWeight = FontWeight.Bold,
+																	color = shipColor
+																)
+															}
 
-													// نمایش کوتاژهای این انبار
-													quotas.sortedWith(
-														compareBy<RealTimeLoadingData> { it.shippingCompany }
-															.thenByDescending { it.entryVouchers }
-													).forEach { quota ->
-														RealTimeLoadingCard(
-															data = quota,
-															color = shipColor
-														)
-														Spacer(modifier = Modifier.height(8.dp))
-													}
+															// نمایش کوتاژهای این انبار
+															quotas.sortedWith(
+																compareBy<RealTimeLoadingData> { it.shippingCompany }
+																	.thenByDescending { it.entryVouchers }
+															).forEach { quota ->
+																RealTimeLoadingCard(
+																	data = quota,
+																	color = shipColor
+																)
+																Spacer(modifier = Modifier.height(8.dp))
+															}
 
-													if (warehouse != warehouseGroups.keys.last()) {
-														HorizontalDivider(
-															modifier = Modifier.padding(vertical = 8.dp),
-															color = shipColor.copy(alpha = 0.1f)
-														)
+															if (warehouse != warehouseGroups.keys.last()) {
+																HorizontalDivider(
+																	modifier = Modifier.padding(vertical = 8.dp),
+																	color = shipColor.copy(alpha = 0.1f)
+																)
+															}
+														}
 													}
 												}
-											}
+											)
 										}
+									}
+								}
+							}
+						1 -> {
+							// تب دوم: اطلاعات در جریان باربری
+							// فیلد جستجو
+							SearchField(
+								searchQuery = thirdPartySearchQuery,
+								onSearchQueryChange = { thirdPartySearchQuery = it },
+								modifier = Modifier.fillMaxWidth()
+							)
+
+							Spacer(modifier = Modifier.height(8.dp))
+
+							// نمایش تعداد کل شناسه‌ها
+							Card(
+								modifier = Modifier.fillMaxWidth(),
+								colors = CardDefaults.cardColors(
+									containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+								)
+							) {
+								Row(
+									modifier = Modifier
+										.fillMaxWidth()
+										.padding(12.dp),
+									horizontalArrangement = Arrangement.SpaceBetween,
+									verticalAlignment = Alignment.CenterVertically
+								) {
+									Row(
+										verticalAlignment = Alignment.CenterVertically,
+										horizontalArrangement = Arrangement.spacedBy(8.dp)
+									) {
+										Icon(
+											imageVector = Icons.Default.List,
+											contentDescription = null,
+											tint = MaterialTheme.colorScheme.primary,
+											modifier = Modifier.size(20.dp)
+										)
+										Text(
+											text = "تعداد کل:",
+											style = MaterialTheme.typography.bodyMedium,
+											fontWeight = FontWeight.Bold,
+											color = MaterialTheme.colorScheme.onSurface
+										)
+									}
+									Text(
+										text = "${filteredThirdPartyOrders.size}",
+										style = MaterialTheme.typography.titleMedium,
+										fontWeight = FontWeight.Bold,
+										color = MaterialTheme.colorScheme.primary
 									)
 								}
 							}
+
+							Spacer(modifier = Modifier.height(8.dp))
+
+							// نمایش خطا در صورت وجود
+							if (thirdPartyLoadingError != null) {
+								Card(
+									modifier = Modifier.fillMaxWidth(),
+									colors = CardDefaults.cardColors(
+										containerColor = MaterialTheme.colorScheme.errorContainer
+									)
+								) {
+									Row(
+										modifier = Modifier.padding(16.dp),
+										verticalAlignment = Alignment.CenterVertically
+									) {
+										Icon(
+											imageVector = Icons.Default.Error,
+											contentDescription = null,
+											tint = MaterialTheme.colorScheme.onErrorContainer
+										)
+										Spacer(modifier = Modifier.width(8.dp))
+										Text(
+											text = thirdPartyLoadingError ?: "",
+											color = MaterialTheme.colorScheme.onErrorContainer
+										)
+									}
+								}
+								Spacer(modifier = Modifier.height(8.dp))
+							}
+
+							AnimatedContent(
+								targetState = filteredThirdPartyOrders,
+								transitionSpec = {
+									fadeIn(animationSpec = tween(durationMillis = 300)) togetherWith
+											fadeOut(animationSpec = tween(durationMillis = 300))
+								},
+								modifier = Modifier.weight(1f),
+								label = "ThirdPartyOrdersContent"
+							) { targetOrders ->
+								LazyColumn(
+									verticalArrangement = Arrangement.spacedBy(8.dp),
+									contentPadding = PaddingValues(bottom = 16.dp)
+								) {
+									if (targetOrders.isEmpty()) {
+										item {
+											Box(
+												modifier = Modifier
+													.fillMaxWidth()
+													.padding(32.dp),
+												contentAlignment = Alignment.Center
+											) {
+												Text(
+													text = if (thirdPartySearchQuery.isBlank()) "اطلاعاتی یافت نشد" else "نتیجه‌ای برای جستجو یافت نشد",
+													style = MaterialTheme.typography.bodyLarge,
+													color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+												)
+											}
+										}
+									} else {
+										items(targetOrders) { order ->
+											ThirdPartyOrderCard(order = order)
+										}
+									}
+								}
+							}
+						}
 						}
 					}
 
@@ -9015,6 +9183,182 @@ fun RealTimeLoadingBottomSheet(
 						isRefreshing = isRefreshing,
 						remainingSeconds = remainingSeconds
 					)
+				}
+			}
+		}
+	}
+}
+
+@Composable
+fun ThirdPartyOrderCard(order: ThirdPartyOrder) {
+	val context = LocalContext.current
+	val primaryColor = MaterialTheme.colorScheme.primary
+	var expandedInfo by remember { mutableStateOf(false) }
+	val rotationState by animateFloatAsState(
+		targetValue = if (expandedInfo) 180f else 0f,
+		label = "expand icon rotation"
+	)
+	val scaleState by animateFloatAsState(
+		targetValue = if (expandedInfo) 1.01f else 1f,
+		animationSpec = spring(
+			dampingRatio = Spring.DampingRatioLowBouncy,
+			stiffness = Spring.StiffnessLow
+		),
+		label = "card scale"
+	)
+
+	Surface(
+		modifier = Modifier
+			.fillMaxWidth()
+			.graphicsLayer {
+				scaleX = scaleState
+				scaleY = scaleState
+			}
+			.animateContentSize(),
+		shape = RoundedCornerShape(12.dp),
+		color = MaterialTheme.colorScheme.surface,
+		tonalElevation = if (expandedInfo) 2.dp else 0.dp,
+		border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.12f))
+	) {
+		Column {
+			// Header Row
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.background(primaryColor.copy(alpha = 0.05f))
+					.padding(horizontal = 12.dp, vertical = 10.dp)
+					.clickable { expandedInfo = !expandedInfo },
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				// شناسه منفرد و نوع کالا در یک ردیف
+				Row(
+					modifier = Modifier.weight(1f),
+					horizontalArrangement = Arrangement.spacedBy(8.dp),
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					// شناسه منفرد (قابل کپی)
+					Row(
+						horizontalArrangement = Arrangement.spacedBy(6.dp),
+						verticalAlignment = Alignment.CenterVertically,
+						modifier = Modifier.clickable {
+							val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+							val clip = ClipData.newPlainText("شناسه منفرد", order.orderId)
+							clipboard.setPrimaryClip(clip)
+							Toast.makeText(context, "شناسه منفرد کپی شد", Toast.LENGTH_SHORT).show()
+						}
+					) {
+						Surface(
+							shape = RoundedCornerShape(8.dp),
+							color = primaryColor.copy(alpha = 0.1f),
+							modifier = Modifier.wrapContentWidth()
+						) {
+							Row(
+								modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+								verticalAlignment = Alignment.CenterVertically,
+								horizontalArrangement = Arrangement.spacedBy(6.dp)
+							) {
+								Text(
+									text = order.orderId,
+									style = MaterialTheme.typography.bodyMedium,
+									fontWeight = FontWeight.Bold,
+									color = primaryColor
+								)
+								Icon(
+									imageVector = Icons.Default.ContentCopy,
+									contentDescription = "کپی کردن",
+									tint = primaryColor.copy(alpha = 0.7f),
+									modifier = Modifier.size(14.dp)
+								)
+							}
+						}
+					}
+					
+					// نوع کالا
+					if (!order.orderGoodDescreption.isNullOrBlank()) {
+						Text(
+							text = order.orderGoodDescreption ?: "",
+							style = MaterialTheme.typography.bodySmall,
+							color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+							maxLines = 1,
+							overflow = TextOverflow.Ellipsis,
+							modifier = Modifier.weight(1f)
+						)
+					}
+				}
+
+				// Expand button
+				Box(
+					modifier = Modifier
+						.size(24.dp)
+						.background(primaryColor.copy(alpha = 0.05f), CircleShape)
+						.clickable { expandedInfo = !expandedInfo },
+					contentAlignment = Alignment.Center
+				) {
+					Icon(
+						imageVector = Icons.Default.ExpandMore,
+						contentDescription = if (expandedInfo) "بستن" else "باز کردن",
+						tint = primaryColor.copy(alpha = 0.7f),
+						modifier = Modifier
+							.size(16.dp)
+							.rotate(rotationState)
+					)
+				}
+			}
+
+			// Expanded Content
+			AnimatedVisibility(
+				visible = expandedInfo,
+				enter = expandVertically() + fadeIn(),
+				exit = shrinkVertically() + fadeOut()
+			) {
+				Column(
+					modifier = Modifier
+						.fillMaxWidth()
+						.background(MaterialTheme.colorScheme.surface)
+						.padding(horizontal = 12.dp, vertical = 10.dp)
+				) {
+					Spacer(modifier = Modifier.height(4.dp))
+
+					// Detail grid
+					Row(
+						modifier = Modifier.fillMaxWidth(),
+						horizontalArrangement = Arrangement.spacedBy(4.dp)
+					) {
+						// نوع کالا
+						if (!order.orderGoodDescreption.isNullOrBlank()) {
+							CompactInfo(
+								icon = Icons.Default.Inventory,
+								label = "نوع کالا",
+								value = order.orderGoodDescreption ?: "",
+								color = primaryColor,
+								modifier = Modifier.weight(1.3f)
+							)
+						}
+
+						// شهر
+						if (!order.ctName.isNullOrBlank()) {
+							CompactInfo(
+								icon = Icons.Default.Store,
+								label = "شهر",
+								value = order.ctName ?: "",
+								color = primaryColor,
+								modifier = Modifier.weight(1f)
+							)
+						}
+
+						// پلاک
+						if (!order.truckLicensePlate.isNullOrBlank()) {
+							CompactInfo(
+								icon = Icons.Default.LocalShipping,
+								label = "پلاک",
+								value = order.truckLicensePlate ?: "",
+								color = primaryColor,
+								modifier = Modifier.weight(1f)
+							)
+						}
+					}
+
 				}
 			}
 		}
