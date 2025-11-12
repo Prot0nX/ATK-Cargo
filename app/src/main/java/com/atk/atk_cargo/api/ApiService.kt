@@ -262,6 +262,12 @@ interface ApiService {
     suspend fun getActiveQuotaReport(): Response<ResponseBody>
 }
 
+// Third Party API Service
+interface ThirdPartyApiService {
+    @POST("Report/thirdparty")
+    suspend fun getThirdPartyOrders(@Body request: ThirdPartyOrderRequest): Response<ThirdPartyOrderResponse>
+}
+
 data class ApiResponse(
     val success: Boolean,
     val message: String

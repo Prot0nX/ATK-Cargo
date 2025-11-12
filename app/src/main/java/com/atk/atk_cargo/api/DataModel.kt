@@ -1401,6 +1401,10 @@ class ReportsViewModel(
 ) : AndroidViewModel(application) {
     private val _realTimeLoadingData = MutableStateFlow<List<RealTimeLoadingData>>(emptyList())
     val realTimeLoadingData: StateFlow<List<RealTimeLoadingData>> = _realTimeLoadingData
+    private val _thirdPartyOrders = MutableStateFlow<List<ThirdPartyOrder>>(emptyList())
+    val thirdPartyOrders: StateFlow<List<ThirdPartyOrder>> = _thirdPartyOrders
+    private val _thirdPartyLoadingError = MutableStateFlow<String?>(null)
+    val thirdPartyLoadingError: StateFlow<String?> = _thirdPartyLoadingError
     private val _loadingError = MutableStateFlow<String?>(null)
     val loadingError: StateFlow<String?> = _loadingError
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
@@ -1609,6 +1613,58 @@ class ReportsViewModel(
 
             } catch (e: Exception) {
                 _loadingError.value = "خطا در دریافت اطلاعات: ${e.message}"
+            }
+        }
+    }
+
+    fun loadThirdPartyOrders() {
+        viewModelScope.launch {
+            try {
+                _thirdPartyLoadingError.value = null
+                
+                // تولید تاریخ‌های شمسی بر اساس ساعت فعلی
+                val calendar = Calendar.getInstance()
+                val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+                
+                val todayShamsi = gregorianToJalali(calendar)
+                val date1Formatted: String
+                val date2Formatted: String
+
+                if (currentHour >= 7) {
+                    date1Formatted = todayShamsi
+                    date2Formatted = todayShamsi
+                } else {
+                    calendar.add(Calendar.DAY_OF_MONTH, -1)
+                    val yesterdayShamsi = gregorianToJalali(calendar)
+                    date1Formatted = yesterdayShamsi
+                    date2Formatted = todayShamsi
+                }
+                
+                val requestBody = ThirdPartyOrderRequest(
+                    companyCode = "36429",
+                    date1 = date1Formatted,
+                    date2 = date2Formatted,
+                    reportName = "گزارش درجريان تفصيلي - 4"
+                )
+                
+                val response = withContext(Dispatchers.IO) {
+                    ThirdPartyRetrofitClient.thirdPartyApiService.getThirdPartyOrders(requestBody)
+                }
+                
+                if (response.isSuccessful) {
+                    val orders = response.body()?.value ?: emptyList()
+                    _thirdPartyOrders.value = orders
+                    if (orders.isEmpty()) {
+                        _thirdPartyLoadingError.value = "اطلاعاتی یافت نشد"
+                    }
+                } else {
+                    val errorBody = response.errorBody()?.string() ?: "بدون پیام خطا"
+                    _thirdPartyLoadingError.value = "خطا در دریافت اطلاعات: کد ${response.code()}\n$errorBody"
+                    Log.e("ReportsViewModel", "API Error ${response.code()}: $errorBody")
+                }
+            } catch (e: Exception) {
+                _thirdPartyLoadingError.value = "خطا در دریافت اطلاعات: ${e.message}"
+                Log.e("ReportsViewModel", "Error loading third party orders", e)
             }
         }
     }
@@ -4337,6 +4393,40 @@ data class QuotaTonnageWarning(
     val isNegative: Boolean,
     val isActive: Boolean = false
 )
+
+// Data classes for Third Party API
+data class ThirdPartyOrderRequest(
+    val companyCode: String,
+    val date1: String,
+    val date2: String,
+    val reportName: String
+)
+
+data class ThirdPartyOrderResponse(
+    val value: List<ThirdPartyOrder>,
+    val formatters: List<Any>,
+    val contentTypes: List<Any>,
+    val declaredType: String?,
+    val statusCode: Int
+)
+
+data class ThirdPartyOrder(
+    val orderId: String,
+    val companyInternalContractCode: String?,
+    val orderGoodDescreption: String?,
+    val orderIssueDate: String?,
+    val orderIssueTime: String?,
+    val ctName: String?,
+    val truckLicensePlate: String?,
+    val driverFullName: String?,
+    val orderGoodCount: Int?,
+    val orderStatus: String?,
+    val ladingStatus: String?,
+    val scaleEmpty: Double?,
+    val scaleFull: Double?,
+    val orderWeight: Int?
+)
+
 fun formatNumber(number: Number): String {
     return NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
 }
