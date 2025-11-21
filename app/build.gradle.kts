@@ -263,7 +263,7 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.play.services.mlkit.barcode.scanning)
-    implementation(libs.text.recognition)
+    implementation("com.google.mlkit:text-recognition:16.0.0")
 
     // ==================== Data Storage ====================
     implementation(libs.androidx.datastore.preferences)
