@@ -107,7 +107,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Refresh
@@ -203,19 +202,14 @@ import com.atk.atk_cargo.api.ShipInfo
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.WarningStatus
 import com.atk.atk_cargo.api.validateServerSession
-import com.atk.atk_cargo.ml.LocalOCRProcessor
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.text.NumberFormat
@@ -228,8 +222,7 @@ import androidx.compose.material3.Surface as Surface3
 import androidx.compose.material3.Text as Text3
 
 enum class ScanMode {
-    LOCAL_AI_SCAN,  // پردازش پیشرفته با ML Kit
-    ML_KIT_SCAN     // ML Kit ساده
+    ML_KIT_SCAN     // ML Kit Text Recognition v2
 }
 
 suspend fun handleQuotaEntry(
@@ -853,7 +846,7 @@ class RegisterCargoActivity : ComponentActivity() {
 }
 
 private suspend fun recognizeTextFromImage(image: InputImage): String = suspendCancellableCoroutine { continuation ->
-    val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    val recognizer = TextRecognition.getClient(com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS)
     
     recognizer.process(image)
         .addOnSuccessListener { visionText ->
@@ -1153,8 +1146,8 @@ fun RegisterCargoScreen(
                                 }
 
                                 val netWeightValue = netWeight.toIntOrNull()
-                                if (netWeight.isNotBlank() && (netWeightValue == null || netWeightValue !in 5000..45000)) {
-                                    snackbarHostState.showSnackbar("وزن خالص باید بین 5000 تا 45000 کیلوگرم باشد.")
+                                if (netWeight.isNotBlank() && (netWeightValue == null || netWeightValue !in 1000..60000)) {
+                                    snackbarHostState.showSnackbar("وزن خالص باید بین 1000 تا 60000 کیلوگرم باشد.")
                                     return@launch
                                 }
 
@@ -2403,7 +2396,7 @@ fun NetWeightDialog(
     var netWeight by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
     var showCamera by remember { mutableStateOf(true) } // تغییر به true برای باز شدن خودکار دوربین
-    var scanMode by remember { mutableStateOf(ScanMode.LOCAL_AI_SCAN) } // پیش‌فرض: اسکن سریع
+    var scanMode by remember { mutableStateOf(ScanMode.ML_KIT_SCAN) } // پیش‌فرض: اسکن سریع
     val focusManager = LocalFocusManager.current
     var recognizedWeight by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
@@ -2423,7 +2416,7 @@ fun NetWeightDialog(
 
     fun validateAndConfirm() {
         val weight = netWeight.toIntOrNull()
-        if (weight != null && weight in 5000..45000) {
+        if (weight != null && weight in 1000..60000) {
             onConfirm(netWeight)
         } else {
             isError = true
@@ -2606,7 +2599,7 @@ fun NetWeightDialog(
 
                         if (isError) {
                             Text(
-                                "وزن خالص باید بین 5000 تا 45000 کیلوگرم باشد",
+                                "وزن خالص باید بین 1000 تا 60000 کیلوگرم باشد",
                                 color = MaterialTheme.colorScheme.error,
                                 style = MaterialTheme.typography.bodySmall,
                                 textAlign = TextAlign.Center,
@@ -2640,20 +2633,12 @@ fun NetWeightDialog(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        "انتخاب حالت اسکن",
+                                        "اسکن هوشمند تناژ خالص",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
-
-                                // استفاده از کامپوننت ScanModeSelector جدید
-                                ScanModeSelector(
-                                    currentMode = scanMode,
-                                    onModeChanged = { selectedMode ->
-                                        scanMode = selectedMode
-                                    }
-                                )
                                 
                                 Spacer(modifier = Modifier.height(8.dp))
                                 
@@ -2685,7 +2670,7 @@ fun NetWeightDialog(
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Text(
-                                            "شروع اسکن قبض باسکول",
+                                            "اسکن تناژ خالص",
                                             color = Color.White,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 13.sp
@@ -2744,7 +2729,7 @@ fun NetWeightDialog(
             showCamera = false
         }) {
             EnhancedCameraPreview(
-                selectedScanMode = scanMode,
+                selectedScanMode = ScanMode.ML_KIT_SCAN, // همیشه ML_KIT
                 onImageCaptured = { image, detectedWeight ->
                     showCamera = false
                     coroutineScope.launch {
@@ -2753,7 +2738,7 @@ fun NetWeightDialog(
                             if (!detectedWeight.isNullOrEmpty()) {
                                 // Check if within valid range
                                 val weightValue = detectedWeight.toDoubleOrNull()
-                                if (weightValue != null && weightValue in 5000.0..45000.0) {
+                                if (weightValue != null && weightValue in 1000.0..60000.0) {
                                     netWeight = detectedWeight
                                 } else {
                                     // Fallback to image processing if weight is invalid
@@ -2832,8 +2817,8 @@ fun extractNumber(text: String): String {
                 null 
             }
         }.filter { 
-            // فیلتر کردن اعداد در محدوده منطقی وزن (بین 5000 و 45000 کیلوگرم)
-            it in 5000.0..45000.0
+            // فیلتر کردن اعداد در محدوده منطقی وزن (بین 1000 و 60000 کیلوگرم)
+            it in 1000.0..60000.0
         }.toList()
         
         if (candidates.isNotEmpty()) {
@@ -2866,7 +2851,7 @@ fun extractNumber(text: String): String {
         } catch (_: Exception) {
             null
         }
-    }.filter { it in 5000.0..45000.0 }.toList()
+    }.filter { it in 1000.0..60000.0 }.toList()
     
     // اگر اعدادی پیدا شدند، محتمل‌ترین را انتخاب کن
     return weightCandidates.maxOrNull()?.let {
@@ -3120,18 +3105,14 @@ fun ScannerGuideOverlay(
 class EnhancedNumberAnalyzer(
     private val context: Context,
     private val onNumbersDetected: (List<String>, String) -> Unit,
-    private val onAnalysisStateChanged: ((Boolean) -> Unit)? = null,
-    private val scanMode: ScanMode = ScanMode.LOCAL_AI_SCAN // پیش‌فرض: مدل لوکال
+    private val onAnalysisStateChanged: ((Boolean) -> Unit)? = null
 ) : ImageAnalysis.Analyzer {
     
-    private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    private val textRecognizer = TextRecognition.getClient(com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS)
     private var lastDetectionTime = 0L
     private val detectionCooldown = 1500L // کاهش زمان انتظار برای سرعت بیشتر
     private var isProcessingWithAI = false
     
-    // پردازشگر لوکال OCR
-    private val localOCRProcessor by lazy { LocalOCRProcessor(context) }
-
     @OptIn(ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
         val currentTime = System.currentTimeMillis()
@@ -3145,43 +3126,11 @@ class EnhancedNumberAnalyzer(
         isProcessingWithAI = true
         onAnalysisStateChanged?.invoke(true)
         
-        val bitmap = imageProxy.toBitmap()
-        
-        when (scanMode) {
-            ScanMode.LOCAL_AI_SCAN -> {
-                // استفاده از پردازش پیشرفته ML Kit
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        val result = localOCRProcessor.processImage(bitmap)
-                        
-                        withContext(Dispatchers.Main) {
-                            isProcessingWithAI = false
-                            onAnalysisStateChanged?.invoke(false)
-                            
-                            if (!result.isNullOrBlank() && isValidWeight(result)) {
-                                onNumbersDetected(listOf(result), result)
-                            } else {
-                                // fallback به ML Kit در صورت عدم موفقیت
-                                fallbackToMLKit(imageProxy)
-                                return@withContext
-                            }
-                            imageProxy.close()
-                        }
-                    } catch (_: Exception) {
-                        withContext(Dispatchers.Main) {
-                            fallbackToMLKit(imageProxy)
-                        }
-                    }
-                }
-            }
-            ScanMode.ML_KIT_SCAN -> {
-                fallbackToMLKit(imageProxy)
-            }
-        }
+        processImage(imageProxy)
     }
 
     @OptIn(ExperimentalGetImage::class)
-    private fun fallbackToMLKit(imageProxy: ImageProxy) {
+    private fun processImage(imageProxy: ImageProxy) {
         val inputImage = InputImage.fromMediaImage(
             imageProxy.image!!,
             imageProxy.imageInfo.rotationDegrees
@@ -3215,7 +3164,7 @@ class EnhancedNumberAnalyzer(
     
     private fun isValidWeight(weight: String): Boolean {
         val weightValue = weight.toDoubleOrNull()
-        return weightValue != null && weightValue in 5000.0..45000.0
+        return weightValue != null && weightValue in 1000.0..60000.0
     }
     
     private fun extractNetWeights(text: String): List<String> {
@@ -3233,7 +3182,7 @@ class EnhancedNumberAnalyzer(
             matches.forEach { matchResult ->
                 val numberStr = matchResult.groupValues[1].replace(Regex("[,.]"), "")
                 val number = numberStr.toIntOrNull()
-                if (number != null && number in 5000..45000) {
+                if (number != null && number in 1000..60000) {
                     result.add(number.toString())
                 }
             }
@@ -5844,13 +5793,10 @@ fun EnhancedCameraPreview(
                                         if (bestEstimate.isNotEmpty()) {
                                             detectedNumber = bestEstimate
                                             val weight = bestEstimate.toDoubleOrNull()
-                                            isValidWeight = weight != null && weight in 5000.0..45000.0
+                                            isValidWeight = weight != null && weight in 1000.0..60000.0
 
-                                            // تنظیم منبع تحلیل بر اساس حالت انتخاب شده
-                                            analysisSource = when (selectedScanMode) {
-                                                ScanMode.ML_KIT_SCAN -> "ML_KIT"
-                                                ScanMode.LOCAL_AI_SCAN -> "LOCAL_AI"
-                                            }
+                                            // تنظیم منبع تحلیل
+                                            analysisSource = "ML_KIT"
                                         } else {
                                             // اگر نتیجه‌ای نیست، state ها را پاک کن
                                             detectedNumber = null
@@ -5860,9 +5806,8 @@ fun EnhancedCameraPreview(
                                 },
                                 onAnalysisStateChanged = { isAnalyzing ->
                                     // Callback برای وضعیت تحلیل AI
-                                    isAIAnalyzing = isAnalyzing && selectedScanMode == ScanMode.ML_KIT_SCAN
-                                },
-                                scanMode = selectedScanMode // ارسال حالت اسکن انتخاب شده
+                                    isAIAnalyzing = isAnalyzing
+                                }
                             ))
                         }
 
@@ -5912,10 +5857,7 @@ fun EnhancedCameraPreview(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val (icon, title, color) = when (selectedScanMode) {
-                        ScanMode.ML_KIT_SCAN -> Triple("📱", "اسکن داخلی", Color(0xFF4CAF50))
-                        ScanMode.LOCAL_AI_SCAN -> Triple("🤖", "اسکن هوشمند", Color(0xFF2196F3))
-                    }
+                    val (icon, title, color) = Triple("📱", "اسکن داخلی", Color(0xFF4CAF50))
 
                     Text(
                         text = icon,
@@ -5929,7 +5871,7 @@ fun EnhancedCameraPreview(
                     )
 
                     // نمایش وضعیت تحلیل
-                    if (isAIAnalyzing && selectedScanMode == ScanMode.ML_KIT_SCAN) {
+                    if (isAIAnalyzing) {
                         androidx.compose.material3.CircularProgressIndicator(
                             color = color,
                             modifier = Modifier.size(16.dp),
@@ -5940,10 +5882,7 @@ fun EnhancedCameraPreview(
 
                 // راهنمای کاربر
                 Text(
-                    text = when (selectedScanMode) {
-                        ScanMode.ML_KIT_SCAN -> "قبض باسکول را در کادر قرار دهید - پردازش سریع"
-                        ScanMode.LOCAL_AI_SCAN -> "قبض باسکول را در کادر قرار دهید - تحلیل هوشمند"
-                    },
+                    text = "قبض باسکول را در کادر قرار دهید - پردازش سریع",
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
@@ -5989,11 +5928,7 @@ fun EnhancedCameraPreview(
                                 color = Color.White.copy(alpha = 0.2f)
                             ) {
                                 Text(
-                                    text = when (analysisSource) {
-                                        "ML_KIT" -> "📱 ML"
-                                        "LOCAL_AI" -> "🤖 LOCAL_AI"
-                                        else -> "🔍"
-                                    },
+                                    text = "📱 ML",
                                     color = Color.White,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
@@ -6021,7 +5956,7 @@ fun EnhancedCameraPreview(
 
                         if (!isValidWeight && number.isNotEmpty()) {
                             Text(
-                                text = "وزن باید بین 5,000 تا 45,000 کیلوگرم باشد",
+                                text = "وزن باید بین 1,000 تا 60,000 کیلوگرم باشد",
                                 color = Color.White,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Normal,
@@ -6036,7 +5971,7 @@ fun EnhancedCameraPreview(
 
         // نمایش وضعیت تحلیل AI
         AnimatedVisibility(
-            visible = isAIAnalyzing && selectedScanMode == ScanMode.ML_KIT_SCAN,
+            visible = isAIAnalyzing,
             enter = fadeIn(animationSpec = tween(300)) + expandIn(
                 expandFrom = Alignment.Center,
                 animationSpec = tween(300)
@@ -6083,6 +6018,13 @@ fun EnhancedCameraPreview(
                 .padding(bottom = 24.dp)
                 .size(72.dp)
                 .clickable(enabled = !isCapturing) {
+                    // بررسی اینکه آیا عددی تشخیص داده شده است یا خیر
+                    if (detectedNumber == null) {
+                        // نمایش پیام خطا با استفاده از Toast
+                        Toast.makeText(context, "هنوز عددی تشخیص داده نشده است!", Toast.LENGTH_SHORT).show()
+                        return@clickable
+                    }
+
                     processingActive = false
                     isCapturing = true
 
@@ -6102,7 +6044,7 @@ fun EnhancedCameraPreview(
                     )
                 },
             shape = CircleShape,
-            color = Color.White.copy(alpha = 0.9f),
+            color = if (detectedNumber != null) Color.White.copy(alpha = 0.9f) else Color.Gray.copy(alpha = 0.5f), // تغییر رنگ دکمه
         ) {
             Box(
                 contentAlignment = Alignment.Center,
@@ -6158,96 +6100,6 @@ fun EnhancedCameraPreview(
     DisposableEffect(lifecycleOwner) {
         onDispose {
             processingActive = false
-        }
-    }
-}
-
-@Composable
-fun ScanModeSelector(
-    currentMode: ScanMode,
-    onModeChanged: (ScanMode) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        ScanModeButton(
-            text = "اسکن سریع",
-            icon = Icons.Default.Psychology,
-            description = "سریع و دقیق",
-            isSelected = currentMode == ScanMode.LOCAL_AI_SCAN,
-            onClick = { onModeChanged(ScanMode.LOCAL_AI_SCAN) },
-            modifier = Modifier.weight(1f)
-        )
-        
-        ScanModeButton(
-            text = "اسکن ساده",
-            icon = Icons.Default.QrCodeScanner,
-            description = "پایه و سریع",
-            isSelected = currentMode == ScanMode.ML_KIT_SCAN,
-            onClick = { onModeChanged(ScanMode.ML_KIT_SCAN) },
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-fun ScanModeButton(
-    text: String,
-    icon: ImageVector,
-    description: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.height(64.dp),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = if (isSelected) 
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) 
-            else 
-                Color.Transparent,
-            contentColor = if (isSelected) 
-                MaterialTheme.colorScheme.primary 
-            else 
-                MaterialTheme.colorScheme.onSurface
-        ),
-        border = BorderStroke(
-            width = if (isSelected) 2.dp else 1.dp,
-            color = if (isSelected) 
-                MaterialTheme.colorScheme.primary 
-            else 
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-        ),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Text(
-                text = text,
-                fontSize = 10.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = description,
-                fontSize = 8.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
