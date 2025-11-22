@@ -31,7 +31,7 @@ interface ApiService {
         @Query("shipName") shipName: String
     ): Response<QuotaExistenceMultipleResponse>
 
-    @GET("getInitialInfo2.php")
+    @GET("getInitialInfo.php")
     suspend fun getCargoInfo(
         @Query("quotaNumber") quotaNumber: String,
         @Query("shippingCompany") shippingCompany: String,
@@ -42,7 +42,7 @@ interface ApiService {
     @GET("getActiveShips.php")
     suspend fun getActiveShips(): Response<List<ActiveShipInfo>>
 
-    @POST("saveOrUpdateCargoInfo2.php")
+    @POST("saveOrUpdateCargoInfo.php")
     suspend fun saveOrUpdateCargoInfo(@Body cargoInfo: CargoInfo): Response<SaveOrUpdateResponse>
 
     @POST("updateCargoInfo.php")
@@ -97,14 +97,14 @@ interface ApiService {
 
     @GET("protected_proxy.php")
     suspend fun getShipQuotas(
-        @Query("target") target: String = "app_api2.php",
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "getQuotasList",
         @Query("shipName") shipName: String
     ): Response<List<Quota>>
 
     @GET("protected_proxy.php")
     suspend fun getFilteredQuotas(
-        @Query("target") target: String = "app_api2.php",
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "getFilteredQuotas",
         @Query("shipName") shipName: String,
         @Query("startDateTime") startDateTime: String,
@@ -124,7 +124,7 @@ interface ApiService {
 
     @GET("protected_proxy.php")
     suspend fun editQuota(
-        @Query("target") target: String = "app_api2.php",
+        @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "editQuota",
         @Query("id") id: Int,
         @Query("oldQuotaNumber") oldQuotaNumber: String,
@@ -231,7 +231,7 @@ interface ApiService {
     @POST("check_logout.php")
     suspend fun logout(@Body logoutRequest: LogoutRequest): Response<LogoutResponse>
 
-    @POST("confirm_cargo2.php")
+    @POST("confirm_cargo.php")
     suspend fun confirmCargo(@Body request: Map<String, String>): Response<Map<String, JsonElement>>
 
     @GET("protected_proxy.php")

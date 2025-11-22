@@ -349,7 +349,7 @@ class CargoViewModel(
                     // بررسی وضعیت کوتاژ با کش (فقط در صورت نیاز)
                     val currentTime = System.currentTimeMillis()
                     if (currentTime - lastQuotaStatusCheck > quotaStatusCacheTimeout || cachedQuotaStatus == null) {
-                        checkQuotaStatus(info)
+                        checkQuotaStatusAsync(info)
                         lastQuotaStatusCheck = currentTime
                     }
 
@@ -414,85 +414,56 @@ class CargoViewModel(
         numberOfPeople: String
     ) {
         viewModelScope.launch {
+            // استفاده از try-finally برای تضمین ریست _isSubmitting
             try {
                 // بررسی وضعیت ارسال فعلی برای جلوگیری از درخواست‌های تکراری
                 if (_isSubmitting.value) {
                     return@launch
                 }
 
-                // تنظیم وضعیت ثبت به true
                 _isSubmitting.value = true
 
-                // اعتبارسنجی سریع اولیه برای جلوگیری از ارسال‌های غیرضروری به سرور
-                if (trackingNumber.isBlank()) {
-                    showErrorMessage("شماره حواله نمی‌تواند خالی باشد.")
+                // مرحله 1: اعتبارسنجی‌های سریع اولیه
+                if (!performBasicValidation(trackingNumber)) {
                     return@launch
                 }
 
-                // بررسی اطلاعات اولیه
+                // مرحله 2: دریافت اطلاعات اولیه
                 val initialInfo = _initialInfo.value ?: run {
                     showErrorMessage("اطلاعات اولیه در دسترس نیست")
                     return@launch
                 }
 
-                // بررسی کش وضعیت کوتاژ (فقط در صورت نیاز)
-                val currentTime = System.currentTimeMillis()
-                val quotaActive = cachedQuotaStatus
-
-                if (currentTime - lastQuotaStatusCheck > quotaStatusCacheTimeout || quotaActive == null) {
-                    // بررسی وضعیت کوتاژ (درصد و فعال بودن)
-                    checkAndHandleQuotaPercentage(initialInfo.loadingQuotaNumber.toString())
-                    checkQuotaStatus(initialInfo)
-                    cachedQuotaStatus = _isQuotaActive.value
-                    lastQuotaStatusCheck = currentTime
-                } else {
-                    _isQuotaActive.value = quotaActive
-                    Log.d("CargoViewModel_Log", "Using cached quota status: $quotaActive")
-                }
-
-                if (_isQuotaActive.value != true) {
-                    val message = if (_messageType.value == MessageType.WARNING) {
-                        "امکان ثبت حواله برای این کوتاژ وجود ندارد. لطفاً وضعیت کوتاژ را بررسی کنید."
-                    } else {
-                        "کوتاژ غیرفعال است و امکان ثبت حواله جدید وجود ندارد"
-                    }
-                    showErrorMessage(message)
+                // مرحله 3: بررسی وضعیت کوتاژ (اجرای موازی برای بهبود عملکرد)
+                if (!validateQuotaStatus(initialInfo)) {
                     return@launch
                 }
 
-                // بررسی تناژ موقت - اگر فعال است و مقدار آن صفر یا منفی است، امکان ثبت حواله جدید یا خروج وجود ندارد
-                if (initialInfo.tempTonnageStatus && initialInfo.tempTonnageAmount != null) {
-                    if (initialInfo.tempTonnageAmount <= 0) {
-                        showErrorMessage("تناژ موقت به پایان رسیده است. امکان ثبت حواله جدید یا خروج وجود ندارد. لطفاً با مسئول خود بررسی کنید.")
-                        return@launch
-                    }
+                // مرحله 4: بررسی تناژ موقت
+                if (!validateTempTonnage(initialInfo)) {
+                    return@launch
                 }
 
-                // بررسی تکراری نبودن حواله
+                // مرحله 5: بررسی تکراری نبودن و اعتبارسنجی داده‌های ورودی
                 val isNewCargo = !isTrackingNumberDuplicate(trackingNumber)
-
-                // بررسی جامع اعتبار داده‌های ورودی
                 if (!validateInputData(trackingNumber, netWeight, numberOfPeople, shortageWeight, excessWeight, isNewCargo, scaleReceiptNumber)) {
                     return@launch
                 }
 
-                // دریافت اطلاعات کاربری
-                val username = userPreferencesManager.username.first()
-                val userType = userPreferencesManager.userType.first()
-
-                if (username.isBlank() || userType.isBlank()) {
+                // مرحله 6: دریافت اطلاعات کاربری
+                val userInfo = getUserInfo()
+                if (userInfo == null) {
                     showErrorMessage("اطلاعات کاربری در دسترس نیست. لطفاً دوباره وارد شوید.")
                     return@launch
                 }
 
-                // آماده‌سازی مدل داده برای ارسال
+                // مرحله 7: آماده‌سازی و ارسال
                 val cargoInfo = prepareCargoInfoForSubmission(
-                    trackingNumber, numberOfPeople, username, userType,
+                    trackingNumber, numberOfPeople, userInfo.first, userInfo.second,
                     netWeight, scaleReceiptNumber, shortageWeight, excessWeight,
                     initialInfo
                 )
 
-                // ارسال اطلاعات به سرور با مدیریت خطا
                 sendCargoInfoToServer(
                     cargoInfo, trackingNumber, netWeight,
                     scaleReceiptNumber, shortageWeight, excessWeight
@@ -501,9 +472,165 @@ class CargoViewModel(
                 Log.e("CargoViewModel_Log", "خطا در submitCargoInfo: ${e.message}", e)
                 showErrorMessage("خطا در ثبت اطلاعات بار: ${e.message}")
             } finally {
-                // تنظیم وضعیت ثبت به false
+                // تضمین ریست _isSubmitting در تمام حالات
                 _isSubmitting.value = false
             }
+        }
+    }
+
+    /**
+     * اعتبارسنجی‌های سریع اولیه (بدون نیاز به API)
+     */
+    private fun performBasicValidation(trackingNumber: String): Boolean {
+        if (trackingNumber.isBlank()) {
+            showErrorMessage("شماره حواله نمی‌تواند خالی باشد.")
+            return false
+        }
+        return true
+    }
+
+    /**
+     * بررسی وضعیت کوتاژ با اجرای موازی برای بهبود عملکرد
+     */
+    private suspend fun validateQuotaStatus(initialInfo: InitialInfo): Boolean {
+        val currentTime = System.currentTimeMillis()
+        val quotaActive = cachedQuotaStatus
+
+        // اگر کش معتبر است، از آن استفاده کن
+        if (currentTime - lastQuotaStatusCheck <= quotaStatusCacheTimeout && quotaActive != null) {
+            _isQuotaActive.value = quotaActive
+            Log.d("CargoViewModel_Log", "استفاده از کش وضعیت کوتاژ: $quotaActive")
+        } else {
+            // اجرای موازی بررسی‌های کوتاژ برای بهبود سرعت
+            try {
+                kotlinx.coroutines.coroutineScope {
+                    val quotaStatusDeferred = async { checkQuotaStatusAsync(initialInfo) }
+                    val quotaPercentageDeferred = async { checkQuotaPercentageAsync(initialInfo.loadingQuotaNumber.toString()) }
+
+                    // منتظر نتایج هر دو بررسی
+                    val quotaStatusValid = quotaStatusDeferred.await()
+                    val percentageCheckPassed = quotaPercentageDeferred.await()
+
+                    cachedQuotaStatus = _isQuotaActive.value
+                    lastQuotaStatusCheck = currentTime
+
+                    // اگر هر یک از بررسی‌ها ناموفق باشد، خروج کن
+                    if (!quotaStatusValid || !percentageCheckPassed) {
+                        return@coroutineScope
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("CargoViewModel_Log", "خطا در بررسی وضعیت کوتاژ: ${e.message}", e)
+                _isQuotaActive.value = false
+                cachedQuotaStatus = false
+            }
+        }
+
+        // بررسی نهایی فعال بودن کوتاژ
+        if (_isQuotaActive.value != true) {
+            val message = if (_messageType.value == MessageType.WARNING) {
+                "امکان ثبت حواله برای این کوتاژ وجود ندارد. لطفاً وضعیت کوتاژ را بررسی کنید."
+            } else {
+                "کوتاژ غیرفعال است و امکان ثبت حواله جدید وجود ندارد"
+            }
+            showErrorMessage(message)
+            return false
+        }
+
+        return true
+    }
+
+    /**
+     * بررسی وضعیت کوتاژ به صورت async
+     */
+    private suspend fun checkQuotaStatusAsync(initialInfo: InitialInfo): Boolean {
+        return try {
+            val status = repository.checkQuotaStatus(
+                quotaNumber = initialInfo.loadingQuotaNumber.toString(),
+                shipName = initialInfo.shipName,
+                cargoType = initialInfo.cargoType,
+                shippingCompany = initialInfo.shippingCompany
+            )
+
+            cachedQuotaStatus = status.isActive
+            _isQuotaActive.value = status.isActive
+
+            if (!status.isActive) {
+                delay(2000)
+                showMessage(status.message, MessageType.WARNING)
+            }
+            status.isActive
+        } catch (e: Exception) {
+            Log.e("CargoViewModel_Log", "خطا در checkQuotaStatusAsync: ${e.message}", e)
+            _isQuotaActive.value = false
+            cachedQuotaStatus = false
+            false
+        }
+    }
+
+    /**
+     * بررسی درصد کوتاژ به صورت async
+     */
+    private suspend fun checkQuotaPercentageAsync(quotaNumber: String): Boolean {
+        return try {
+            val response = apiService.getShipQuotas(shipName = _initialInfo.value?.shipName ?: "")
+            if (response.isSuccessful) {
+                val quotas = response.body()
+                quotas?.find { it.number == quotaNumber }?.let { quota ->
+                    if (quota.isPercentageRestricted == true && quota.percentage != null) {
+                        if (!_shownWarningForQuotas.contains(quota.number)) {
+                            val percentageAmount = quota.totalTonnage * (quota.percentage / 100)
+                            val remainingTonnage = quota.remainingTonnage
+
+                            if (remainingTonnage <= percentageAmount) {
+                                _shownWarningForQuotas.add(quota.number)
+                                _resultMessage.value = "کوتاژ ${quota.number} به حد نصاب ${quota.percentage}% رسیده است و غیرفعال خواهد شد"
+                                _showAnimatedMessage.value = true
+                                _messageType.value = MessageType.WARNING
+
+                                delay(2000)
+                                toggleQuotaStatus(quotaNumber)
+                                return false
+                            }
+                        }
+                    }
+                }
+            }
+            true
+        } catch (e: Exception) {
+            Log.e("CargoViewModel_Log", "خطا در checkQuotaPercentageAsync: ${e.message}", e)
+            true // ادامه دهید حتی اگر بررسی درصد ناموفق باشد
+        }
+    }
+
+    /**
+     * بررسی تناژ موقت
+     */
+    private fun validateTempTonnage(initialInfo: InitialInfo): Boolean {
+        if (initialInfo.tempTonnageStatus && initialInfo.tempTonnageAmount != null) {
+            if (initialInfo.tempTonnageAmount <= 0) {
+                showErrorMessage("تناژ موقت به پایان رسیده است. امکان ثبت حواله جدید یا خروج وجود ندارد. لطفاً با مسئول خود بررسی کنید.")
+                return false
+            }
+        }
+        return true
+    }
+
+    /**
+     * دریافت اطلاعات کاربری
+     */
+    private suspend fun getUserInfo(): Pair<String, String>? {
+        return try {
+            val username = userPreferencesManager.username.first()
+            val userType = userPreferencesManager.userType.first()
+            if (username.isNotBlank() && userType.isNotBlank()) {
+                Pair(username, userType)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("CargoViewModel_Log", "خطا در دریافت اطلاعات کاربری: ${e.message}", e)
+            null
         }
     }
 
@@ -545,8 +672,8 @@ class CargoViewModel(
                 return false
             }
 
-            if (weight < 5000 || weight > 45000) {
-                showErrorMessage("وزن خالص باید بین 5000 تا 45000 کیلوگرم باشد.")
+            if (weight !in 1000.0..45000.0) {
+                showErrorMessage("وزن خالص باید بین 1000 تا 45000 کیلوگرم باشد.")
                 return false
             }
 
@@ -556,7 +683,7 @@ class CargoViewModel(
                 return false
             }
 
-            if (scaleReceiptNumber.length < 8 || scaleReceiptNumber.length > 10) {
+            if (scaleReceiptNumber.length !in 8..10) {
                 showErrorMessage("شماره قبض باسکول باید بین 8 تا 10 رقم باشد.")
                 return false
             }
@@ -809,36 +936,6 @@ class CargoViewModel(
         showMessage("ثبت حواله لغو شد.", MessageType.ERROR)
     }
 
-    private suspend fun checkQuotaStatus(initialInfo: InitialInfo) {
-        try {
-            val status = repository.checkQuotaStatus(
-                quotaNumber = initialInfo.loadingQuotaNumber.toString(),
-                shipName = initialInfo.shipName,
-                cargoType = initialInfo.cargoType,
-                shippingCompany = initialInfo.shippingCompany
-            )
-
-            // کش کردن نتیجه
-            cachedQuotaStatus = status.isActive
-            _isQuotaActive.value = status.isActive
-
-            if (status.isActive) {
-                // اگر کوتاژ فعال است، بررسی وضعیت درصد
-                checkAndHandleQuotaPercentage(initialInfo.loadingQuotaNumber.toString())
-            } else {
-                // پیام غیرفعال بودن بعد از هشدار درصدی نمایش داده می‌شود
-                delay(5000) // تاخیر بیشتر از هشدار درصدی
-                showMessage(status.message, MessageType.WARNING)
-            }
-        } catch (e: Exception) {
-            Log.e("CargoViewModel_Log", "Error in checkQuotaStatus", e)
-            _resultMessage.value = "خطا در بررسی وضعیت کوتاژ: ${e.message ?: "خطای ناشناخته"}"
-            _messageType.value = MessageType.ERROR
-            _showAnimatedMessage.value = true
-            _isQuotaActive.value = false
-            cachedQuotaStatus = false
-        }
-    }
 
     fun resetClearInputFields() {
         _clearInputFields.value = false
@@ -1151,39 +1248,6 @@ class CargoViewModel(
         }
     }
 
-    private suspend fun checkAndHandleQuotaPercentage(quotaNumber: String) {
-        try {
-            val response = apiService.getShipQuotas(shipName = _initialInfo.value?.shipName ?: "")
-            if (response.isSuccessful) {
-                val quotas = response.body()
-                quotas?.find { it.number == quotaNumber }?.let { quota ->
-                    if (quota.isPercentageRestricted == true && quota.percentage != null) {
-                        if (!_shownWarningForQuotas.contains(quota.number)) {
-                            val percentageAmount = quota.totalTonnage * (quota.percentage / 100)
-                            val remainingTonnage = quota.remainingTonnage
-
-                            if (remainingTonnage <= percentageAmount) {
-                                _shownWarningForQuotas.add(quota.number)
-
-                                // اول نمایش هشدار درصدی
-                                _resultMessage.value = "کوتاژ ${quota.number} به حد نصاب ${quota.percentage}% رسیده است و غیرفعال خواهد شد"
-                                _showAnimatedMessage.value = true
-                                _messageType.value = MessageType.WARNING
-
-                                // تاخیر کوتاه قبل از غیرفعال کردن
-                                delay(3000)
-
-                                toggleQuotaStatus(quotaNumber)
-                                throw Exception("امکان ثبت حواله جدید وجود ندارد")
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            throw e
-        }
-    }
 
     fun updateCargoInfo(cargoInfo: CargoInfo, netWeight: String) {
         viewModelScope.launch {
@@ -2862,6 +2926,7 @@ class ReportsViewModel(
         return shareText.toString()
     }
 }
+
 class ReportsRepository(private val apiService: ApiService) {
     suspend fun getCargoInfo(
         quotaNumber: String,
@@ -3417,6 +3482,7 @@ class ReportsRepository(private val apiService: ApiService) {
         }
     }
 }
+
 @SuppressLint("DefaultLocale")
 fun gregorianToJalali(gregorian: Calendar): String {
     val gy = gregorian.get(Calendar.YEAR)
@@ -3520,6 +3586,7 @@ data class CargoStats(
     val averageNetWeight: Float,
     val remainingServices: Int
 )
+
 enum class MessageType {
     SUCCESS, WARNING, ERROR
 }
@@ -3541,6 +3608,7 @@ data class CheckExistenceResponse(
     val status: String,
     val message: String
 )
+
 @Parcelize
 data class InitialInfo(
     val shipName: String,
@@ -3653,6 +3721,7 @@ data class SessionCheckRequest(
     val deviceId: String = "",
     val sessionToken: String? = null
 )
+
 data class SessionResponse(val success: Boolean, val message: String, val userType: String?)
 
 data class RealTimeDataResponse(
@@ -3889,6 +3958,7 @@ data class UpdateInfo(
     val minAppVersion: String = "1.0",
     val excludedVersions: List<String> = emptyList()
 )
+
 class ColorSelector(private val colors: List<Color>) {
     // تمام رنگ‌های اختصاص داده شده به هر شناسه
     private val assignedColors = mutableMapOf<String, Color>()
@@ -3999,6 +4069,7 @@ class ColorSelector(private val colors: List<Color>) {
         colors.forEach { usedColors[it] = false }
     }
 }
+
 fun adjustColorForTheme(color: Color, isDarkTheme: Boolean): Color {
     val hsl = FloatArray(7)
     ColorUtils.colorToHSL(color.toArgb(), hsl)
@@ -4013,6 +4084,7 @@ fun adjustColorForTheme(color: Color, isDarkTheme: Boolean): Color {
 
     return Color(ColorUtils.HSLToColor(hsl))
 }
+
 val cardColors = listOf(
     // رنگ‌های بهینه شده برای تم روشن و تیره
     Color(0xFFEF5350), // Red 400 - ملایم‌تر از قرمز تند
@@ -4062,7 +4134,9 @@ val cardColors = listOf(
     Color(0xFFB2EBF2), // Cyan 100 - فیروزه‌ای خیلی ملایم
     Color(0xFFE1BEE7)  // Purple 100 - بنفش خیلی ملایم
 )
+
 fun Float.toTon(): Int = (this / 1000).toInt()
+
 sealed class LoadingState {
     object Idle : LoadingState()
     data class Error(val message: String) : LoadingState()
@@ -4307,24 +4381,29 @@ data class WarehousePeakAnalysis(
     val period_percentage: Float,
     val activity_level: String
 )
+
 enum class QuotaGroupingMode {
     BY_SHIP,
     BY_CARRIER
 }
+
 enum class WarehouseQuotaGroupingMode {
     BY_SHIPPING_COMPANY,
     BY_CARGO_OWNER,
     BY_WAREHOUSE
 }
+
 enum class QuotaSortingMode {
     REMAINING_TONNAGE_ASC,
     REMAINING_TONNAGE_DESC
 }
+
 enum class GroupSortingMode {
     ALPHABETICAL,
     REMAINING_TONNAGE_ASC,
     REMAINING_TONNAGE_DESC
 }
+
 enum class ShipSortingMode {
     REMAINING_TONNAGE_ASC,
     REMAINING_TONNAGE_DESC,
@@ -4394,7 +4473,6 @@ data class QuotaTonnageWarning(
     val isActive: Boolean = false
 )
 
-// Data classes for Third Party API
 data class ThirdPartyOrderRequest(
     val companyCode: String,
     val date1: String,
