@@ -299,11 +299,8 @@ class CargoViewModel(
     }
 
     // کش برای نتایج API با زمان انقضا
-    private var lastQuotaStatusCheck: Long = 0
     private var lastLoadableTonnageUpdate: Long = 0
-    private var cachedQuotaStatus: Boolean? = null
     private var cachedLoadableTonnage: String? = null
-    private val quotaStatusCacheTimeout = 15_000L // 15 ثانیه
     private val loadableTonnageCacheTimeout = 30_000L // 30 ثانیه
 
     /**
@@ -311,9 +308,7 @@ class CargoViewModel(
      * این تابع زمانی استفاده می‌شود که تغییری در وضعیت حواله‌ها رخ داده است
      */
     private fun clearApiCache() {
-        cachedQuotaStatus = null
         cachedLoadableTonnage = null
-        lastQuotaStatusCheck = 0
         lastLoadableTonnageUpdate = 0
     }
 
@@ -346,12 +341,8 @@ class CargoViewModel(
                         return@launch
                     }
 
-                    // بررسی وضعیت کوتاژ با کش (فقط در صورت نیاز)
-                    val currentTime = System.currentTimeMillis()
-                    if (currentTime - lastQuotaStatusCheck > quotaStatusCacheTimeout || cachedQuotaStatus == null) {
-                        checkQuotaStatusAsync(info)
-                        lastQuotaStatusCheck = currentTime
-                    }
+                    // بررسی وضعیت کوتاژ
+                    checkQuotaStatusAsync(info)
 
                     // لاگ قبل از بروزرسانی
                     Log.d("CargoViewModel_Log", "قبل از بروزرسانی - حواله‌های خروج: ${_cargoInfoList.value.count { it.status == "خروج" }}")
@@ -493,37 +484,24 @@ class CargoViewModel(
      * بررسی وضعیت کوتاژ با اجرای موازی برای بهبود عملکرد
      */
     private suspend fun validateQuotaStatus(initialInfo: InitialInfo): Boolean {
-        val currentTime = System.currentTimeMillis()
-        val quotaActive = cachedQuotaStatus
+        // اجرای موازی بررسی‌های کوتاژ برای بهبود سرعت
+        try {
+            kotlinx.coroutines.coroutineScope {
+                val quotaStatusDeferred = async { checkQuotaStatusAsync(initialInfo) }
+                val quotaPercentageDeferred = async { checkQuotaPercentageAsync(initialInfo.loadingQuotaNumber.toString()) }
 
-        // اگر کش معتبر است، از آن استفاده کن
-        if (currentTime - lastQuotaStatusCheck <= quotaStatusCacheTimeout && quotaActive != null) {
-            _isQuotaActive.value = quotaActive
-            Log.d("CargoViewModel_Log", "استفاده از کش وضعیت کوتاژ: $quotaActive")
-        } else {
-            // اجرای موازی بررسی‌های کوتاژ برای بهبود سرعت
-            try {
-                kotlinx.coroutines.coroutineScope {
-                    val quotaStatusDeferred = async { checkQuotaStatusAsync(initialInfo) }
-                    val quotaPercentageDeferred = async { checkQuotaPercentageAsync(initialInfo.loadingQuotaNumber.toString()) }
+                // منتظر نتایج هر دو بررسی
+                val quotaStatusValid = quotaStatusDeferred.await()
+                val percentageCheckPassed = quotaPercentageDeferred.await()
 
-                    // منتظر نتایج هر دو بررسی
-                    val quotaStatusValid = quotaStatusDeferred.await()
-                    val percentageCheckPassed = quotaPercentageDeferred.await()
-
-                    cachedQuotaStatus = _isQuotaActive.value
-                    lastQuotaStatusCheck = currentTime
-
-                    // اگر هر یک از بررسی‌ها ناموفق باشد، خروج کن
-                    if (!quotaStatusValid || !percentageCheckPassed) {
-                        return@coroutineScope
-                    }
+                // اگر هر یک از بررسی‌ها ناموفق باشد، خروج کن
+                if (!quotaStatusValid || !percentageCheckPassed) {
+                    return@coroutineScope
                 }
-            } catch (e: Exception) {
-                Log.e("CargoViewModel_Log", "خطا در بررسی وضعیت کوتاژ: ${e.message}", e)
-                _isQuotaActive.value = false
-                cachedQuotaStatus = false
             }
+        } catch (e: Exception) {
+            Log.e("CargoViewModel_Log", "خطا در بررسی وضعیت کوتاژ: ${e.message}", e)
+            _isQuotaActive.value = false
         }
 
         // بررسی نهایی فعال بودن کوتاژ
@@ -552,7 +530,6 @@ class CargoViewModel(
                 shippingCompany = initialInfo.shippingCompany
             )
 
-            cachedQuotaStatus = status.isActive
             _isQuotaActive.value = status.isActive
 
             if (!status.isActive) {
@@ -563,7 +540,6 @@ class CargoViewModel(
         } catch (e: Exception) {
             Log.e("CargoViewModel_Log", "خطا در checkQuotaStatusAsync: ${e.message}", e)
             _isQuotaActive.value = false
-            cachedQuotaStatus = false
             false
         }
     }

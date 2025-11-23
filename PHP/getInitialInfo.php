@@ -51,7 +51,7 @@ try {
     
     // OPTIMIZATION 1: Use EXISTS for more efficient record checking
     $initialInfoSql = $conn->prepare(
-        "SELECT * FROM InitialInfo 
+        "SELECT *, temp_tonnage_status, temp_tonnage_amount FROM InitialInfo 
          WHERE loadingQuotaNumber = ? 
          AND shippingCompany = ? 
          AND loadingWarehouse = ? 
@@ -107,6 +107,10 @@ try {
     $initialInfo['remainingServices'] = (int)$remainingServices;
     $initialInfo['totalVoucherCount'] = $totalVouchers;
     $initialInfo['totalNetWeight'] = $totalNetWeight;
+    
+    // Add temporary tonnage information
+    $initialInfo['tempTonnageStatus'] = isset($initialInfo['temp_tonnage_status']) ? (bool)$initialInfo['temp_tonnage_status'] : false;
+    $initialInfo['tempTonnageAmount'] = isset($initialInfo['temp_tonnage_amount']) ? (float)$initialInfo['temp_tonnage_amount'] : null;
     
     // OPTIMIZATION 3: More efficient date filtering with BETWEEN and prepared statements
     $cargoInfoSql = $conn->prepare(
