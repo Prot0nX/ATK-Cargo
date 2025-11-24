@@ -178,6 +178,7 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
     val filteredShips = activeShips.filter { selectedShipNames.contains(it.shipName) }
     val groupedShips = filteredShips.groupBy { it.shipName }
     var showActiveQuotasDialog by remember { mutableStateOf(false) }
+    var isQuotaEntryDialogOpen by remember { mutableStateOf(false) }
 
     fun updateShipColors(ships: List<ActiveShipInfo>) {
         colorSelector.reset()
@@ -365,7 +366,10 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
     LaunchedEffect(Unit) {
         while (true) {
             delay(30000)
-            refreshData()
+            // اگر دیالوگ ورود کوتاژ باز است، بروزرسانی نکن
+            if (!isQuotaEntryDialogOpen) {
+                refreshData()
+            }
         }
     }
 
@@ -440,7 +444,10 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                         onEnter = { ship, enteredQuota ->
                             handleQuotaEntry(ship, enteredQuota)
                         },
-                        shipColorMap = shipColorMap.value
+                        shipColorMap = shipColorMap.value,
+                        onDialogStateChange = { isOpen ->
+                            isQuotaEntryDialogOpen = isOpen
+                        }
                     )
                 }
             }
@@ -1319,7 +1326,8 @@ private fun QuotaDetails(
 private fun GroupedShipList(
     groupedShips: Map<String, List<ActiveShipInfo>>,
     onEnter: (ActiveShipInfo, String) -> Unit,
-    shipColorMap: Map<String, Color>
+    shipColorMap: Map<String, Color>,
+    onDialogStateChange: (Boolean) -> Unit
 ) {
     // لود داده‌های لحظه‌ای برای هر کشتی
     val coroutineScope = rememberCoroutineScope()
@@ -1346,10 +1354,14 @@ private fun GroupedShipList(
     }
 
     // برای به‌روزرسانی خودکار داده‌ها
+    var isDialogOpen by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         while (true) {
             delay(30000)
-            updateCounter++
+            // اگر دیالوگ ورود کوتاژ باز است، بروزرسانی نکن
+            if (!isDialogOpen) {
+                updateCounter++
+            }
         }
     }
 
@@ -1368,7 +1380,11 @@ private fun GroupedShipList(
                         realTimeData = shipRealTimeData,
                         ships = ships, // برای ارسال به دیالوگ
                         onEnter = onEnter,
-                        color = shipColorMap[shipName] ?: MaterialTheme.colorScheme.primary
+                        color = shipColorMap[shipName] ?: MaterialTheme.colorScheme.primary,
+                        onDialogStateChange = { isOpen ->
+                            isDialogOpen = isOpen
+                            onDialogStateChange(isOpen)
+                        }
                     )
                 } else {
                     // استفاده از داده‌های معمولی
@@ -1376,7 +1392,11 @@ private fun GroupedShipList(
                         shipName = shipName,
                         ships = ships,
                         onEnter = onEnter,
-                        color = shipColorMap[shipName] ?: MaterialTheme.colorScheme.primary
+                        color = shipColorMap[shipName] ?: MaterialTheme.colorScheme.primary,
+                        onDialogStateChange = { isOpen ->
+                            isDialogOpen = isOpen
+                            onDialogStateChange(isOpen)
+                        }
                     )
                 }
             }
@@ -1390,9 +1410,15 @@ private fun ShipGroupWithRealTimeData(
     realTimeData: List<RealTimeLoadingData>,
     ships: List<ActiveShipInfo>,
     onEnter: (ActiveShipInfo, String) -> Unit,
-    color: Color
+    color: Color,
+    onDialogStateChange: (Boolean) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    
+    // به‌روزرسانی state دیالوگ در کامپوننت والد
+    LaunchedEffect(showDialog) {
+        onDialogStateChange(showDialog)
+    }
 
     // محاسبه آمار از داده‌های لحظه‌ای
     val totalVouchers = realTimeData.sumOf { it.entryVouchers + it.exitVouchers }
@@ -3965,9 +3991,15 @@ private fun ShipGroup(
     shipName: String,
     ships: List<ActiveShipInfo>,
     onEnter: (ActiveShipInfo, String) -> Unit,
-    color: Color
+    color: Color,
+    onDialogStateChange: (Boolean) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    
+    // به‌روزرسانی state دیالوگ در کامپوننت والد
+    LaunchedEffect(showDialog) {
+        onDialogStateChange(showDialog)
+    }
 
     // محاسبه آمار
     val totalVouchers = ships.sumOf { it.entryVouchers + it.exitVouchers }

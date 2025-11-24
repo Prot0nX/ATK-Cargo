@@ -347,7 +347,9 @@ class SessionManager {
             
             $stmt = $this->pdo->prepare("
                 SELECT us.id, us.username, u.userType, us.device_model, us.device_id, 
+                       us.android_version, us.app_version,
                        us.login_time, us.last_activity, us.logout_time, us.ip_address, us.is_active,
+                       COALESCE(us.updated_at, us.last_activity, us.login_time) as updated_at,
                        TIMESTAMPDIFF(SECOND, us.login_time, COALESCE(us.logout_time, NOW())) as session_duration,
                        0 as idle_time
                 FROM user_sessions us

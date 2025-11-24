@@ -210,6 +210,7 @@ try {
                 $loginTimeJalali = '';
                 $lastActivityJalali = '';
                 $logoutTimeJalali = '';
+                $updatedAtJalali = '';
                 
                 if ($session['login_time']) {
                     $loginTimestamp = strtotime($session['login_time']);
@@ -224,6 +225,11 @@ try {
                 if ($session['logout_time']) {
                     $logoutTimestamp = strtotime($session['logout_time']);
                     $logoutTimeJalali = jdate('Y/m/d H:i:s', $logoutTimestamp);
+                }
+                
+                if ($session['updated_at']) {
+                    $updatedAtTimestamp = strtotime($session['updated_at']);
+                    $updatedAtJalali = jdate('Y/m/d H:i:s', $updatedAtTimestamp);
                 }
                 
                 // تعیین وضعیت جلسه
@@ -241,6 +247,8 @@ try {
                     'userType' => $session['userType'],
                     'device_model' => $session['device_model'],
                     'device_id' => $session['device_id'],
+                    'android_version' => $session['android_version'] ?? null,
+                    'app_version' => $session['app_version'] ?? null,
                     'ip_address' => $session['ip_address'],
                     'is_active' => $session['is_active'],
                     'login_time' => $session['login_time'],
@@ -249,6 +257,8 @@ try {
                     'last_activity_jalali' => $lastActivityJalali,
                     'logout_time' => $session['logout_time'],
                     'logout_time_jalali' => $logoutTimeJalali,
+                    'updated_at' => $session['updated_at'],
+                    'updated_at_jalali' => $updatedAtJalali,
                     'session_duration' => $session['session_duration'],
                     'status' => $status,
                     'status_text' => $statusText
