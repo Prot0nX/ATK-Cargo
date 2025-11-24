@@ -2,10 +2,13 @@ package com.atk.atk_cargo.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 
 private val DarkColorScheme = darkColorScheme(
     primary = Green200,
@@ -80,9 +83,74 @@ fun ATKCargoTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val vazirmatnFontFamily = VazirmatnFontFamily.create()
+
+    val typography = Typography(
+        displayLarge = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(400)
+        ),
+        displayMedium = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(400)
+        ),
+        displaySmall = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(400)
+        ),
+        headlineLarge = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(500)
+        ),
+        headlineMedium = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(500)
+        ),
+        headlineSmall = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(500)
+        ),
+        titleLarge = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(500)
+        ),
+        titleMedium = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(500)
+        ),
+        titleSmall = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(500)
+        ),
+        bodyLarge = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(400)
+        ),
+        bodyMedium = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(400)
+        ),
+        bodySmall = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(400)
+        ),
+        labelLarge = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(500)
+        ),
+        labelMedium = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(500)
+        ),
+        labelSmall = TextStyle(
+            fontFamily = vazirmatnFontFamily,
+            fontWeight = FontWeight(500)
+        )
+    )
 
     MaterialTheme(
         colorScheme = colorScheme,
+        typography = typography,
         content = content
     )
 }

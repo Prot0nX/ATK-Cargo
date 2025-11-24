@@ -1193,7 +1193,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                 }, label = ""
             ) { isSplashScreen ->
                 if (isSplashScreen) {
-                    SplashScreen()
+                    SplashScreen(onSkip = { showSplash = false })
                 } else {
                     Box(
                         modifier = Modifier
@@ -1609,8 +1609,9 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
 
 @SuppressLint("UnsafeOptInUsageError")
 @Composable
-fun SplashScreen() {
+fun SplashScreen(onSkip: () -> Unit) {
     val textAlpha = remember { Animatable(0f) }
+    val screenAlpha = remember { Animatable(1f) }
     val context = LocalContext.current
     val appVersion = remember {
         try {
@@ -1622,7 +1623,7 @@ fun SplashScreen() {
 
     // متغیرهای مربوط به skip کردن صفحه
     var lastClickTime by remember { mutableStateOf(0L) }
-    val shouldSkip = remember { mutableStateOf(false) }
+    var isSkipped by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         // انیمیشن متن با تاخیر
@@ -1633,16 +1634,35 @@ fun SplashScreen() {
         )
     }
 
+    // انیمیشن fade out نرم هنگام skip
+    LaunchedEffect(isSkipped) {
+        if (isSkipped) {
+            screenAlpha.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(
+                    durationMillis = 400,
+                    easing = FastOutSlowInEasing
+                )
+            )
+            // بعد از اتمام fade out، skip را اعمال کن
+            delay(50)
+            onSkip()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .alpha(screenAlpha.value)
             .pointerInput(Unit) {
                 detectTapGestures { _ ->
-                    val currentTime = System.currentTimeMillis()
-                    if (lastClickTime > 0 && currentTime - lastClickTime <= 500) {
-                        shouldSkip.value = true
+                    if (!isSkipped) {
+                        val currentTime = System.currentTimeMillis()
+                        if (lastClickTime > 0 && currentTime - lastClickTime <= 500) {
+                            isSkipped = true
+                        }
+                        lastClickTime = currentTime
                     }
-                    lastClickTime = currentTime
                 }
             }
     ) {
@@ -1658,6 +1678,16 @@ fun SplashScreen() {
                     repeatMode = Player.REPEAT_MODE_ONE
                     volume = 0f
                 }
+        }
+
+        // توقف نرم ویدیو وقتی skip شد
+        LaunchedEffect(isSkipped) {
+            if (isSkipped) {
+                // fade out تدریجی صدا (اگر صدا داشت)
+                // سپس pause
+                kotlinx.coroutines.delay(200)
+                exoPlayer.pause()
+            }
         }
 
         DisposableEffect(Unit) {
@@ -1697,8 +1727,7 @@ fun SplashScreen() {
         // بخش متن‌ها در پایین صفحه
         SplashScreenContent(
             textAlpha = textAlpha.value,
-            appVersion = appVersion ?: "نامشخص",
-            shouldSkip = shouldSkip.value
+            appVersion = appVersion ?: "نامشخص"
         )
     }
 }
@@ -1706,13 +1735,8 @@ fun SplashScreen() {
 @Composable
 private fun SplashScreenContent(
     textAlpha: Float,
-    appVersion: String,
-    shouldSkip: Boolean
+    appVersion: String
 ) {
-    if (shouldSkip) {
-        return
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
