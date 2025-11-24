@@ -2477,20 +2477,23 @@ class ReportsViewModel(
     private inner class PersianFontManager {
         fun loadFonts(): PdfFonts {
             return try {
-                val baseFont = createFont("assets/fonts/B NAZANIN.TTF", IDENTITY_H, true)
+                // استفاده از فونت Vazirmatn-Regular برای متن عادی
+                val regularFont = createFont("assets/fonts/main/Vazirmatn-Regular.ttf", IDENTITY_H, true)
+                // استفاده از فونت Vazirmatn-Bold برای متن‌های Bold
+                val boldFontBase = createFont("assets/fonts/main/Vazirmatn-Bold.ttf", IDENTITY_H, true)
                 val fallbackFont = Font(Font.FontFamily.HELVETICA, 11f, Font.NORMAL)
 
                 PdfFonts(
-                    normalFont = Font(baseFont, 11f, Font.NORMAL),
-                    boldFont = Font(baseFont, 12f, Font.BOLD),
-                    headerFont = Font(baseFont, 20f, Font.BOLD),
-                    titleFont = Font(baseFont, 16f, Font.BOLD),
-                    subtitleFont = Font(baseFont, 14f, Font.BOLD),
+                    normalFont = Font(regularFont, 11f, Font.NORMAL),
+                    boldFont = Font(boldFontBase, 12f, Font.BOLD),
+                    headerFont = Font(boldFontBase, 20f, Font.BOLD),
+                    titleFont = Font(boldFontBase, 16f, Font.BOLD),
+                    subtitleFont = Font(boldFontBase, 14f, Font.BOLD),
                     fallbackFont = fallbackFont
                 )
             } catch (e: Exception) {
-                Log.w("PersianFontManager", "Failed to load Persian font, using fallback", e)
-                // در صورت عدم موفقیت در بارگیری فونت فارسی، از فونت پیش‌فرض استفاده می‌کنیم
+                Log.w("PersianFontManager", "Failed to load Vazirmatn font, using fallback", e)
+                // در صورت عدم موفقیت در بارگیری فونت Vazirmatn، از فونت پیش‌فرض استفاده می‌کنیم
                 val fallback = Font(Font.FontFamily.HELVETICA, 11f, Font.NORMAL)
                 PdfFonts(
                     normalFont = Font(Font.FontFamily.HELVETICA, 11f, Font.NORMAL),
