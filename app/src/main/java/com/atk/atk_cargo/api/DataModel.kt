@@ -3577,7 +3577,8 @@ data class LoginRequest(
     val userType: String,
     val deviceModel: String = "",
     val deviceId: String = "",
-    val androidVersion: String = ""
+    val androidVersion: String = "",
+    val appVersion: String = ""
 )
 
 data class LoginResponse(

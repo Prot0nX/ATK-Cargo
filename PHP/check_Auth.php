@@ -45,6 +45,7 @@ $userType = isset($data['userType']) ? htmlspecialchars(trim($data['userType']),
 $deviceModel = isset($data['deviceModel']) ? htmlspecialchars(trim($data['deviceModel']), ENT_QUOTES, 'UTF-8') : '';
 $deviceId = isset($data['deviceId']) ? htmlspecialchars(trim($data['deviceId']), ENT_QUOTES, 'UTF-8') : '';
 $androidVersion = isset($data['androidVersion']) ? htmlspecialchars(trim($data['androidVersion']), ENT_QUOTES, 'UTF-8') : '';
+$appVersion = isset($data['appVersion']) ? htmlspecialchars(trim($data['appVersion']), ENT_QUOTES, 'UTF-8') : '';
 
 if (empty($username) || empty($password)) {
     send_json_response(false, "نام کاربری و رمز عبور الزامی است.", 400);
@@ -130,7 +131,8 @@ try {
                     $deviceModel, 
                     $androidVersion, 
                     $ipAddress,
-                    $user['userType'] // ارسال نوع کاربر
+                    $user['userType'], // ارسال نوع کاربر
+                    $appVersion // ارسال نسخه برنامه
                 );
                 
                 if ($sessionResult['success']) {

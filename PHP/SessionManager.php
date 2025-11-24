@@ -38,9 +38,10 @@ class SessionManager {
      * @param string $androidVersion نسخه اندروید
      * @param string $ipAddress آدرس آی‌پی
      * @param string $userType نوع کاربر (admin, operator, verifier)
+     * @param string $appVersion نسخه برنامه
      * @return array نتیجه عملیات
      */
-    public function createSession($username, $deviceId, $deviceModel, $androidVersion, $ipAddress, $userType = null) {
+    public function createSession($username, $deviceId, $deviceModel, $androidVersion, $ipAddress, $userType = null, $appVersion = null) {
         try {
             // بررسی وجود جلسه فعال برای کاربر (هر دستگاهی)
             $stmt = $this->pdo->prepare("
@@ -93,11 +94,11 @@ class SessionManager {
             // ایجاد جلسه جدید با ثبت نوع کاربر و توکن جلسه
             $stmt = $this->pdo->prepare("
                 INSERT INTO user_sessions 
-                (username, device_id, device_model, android_version, login_time, last_activity, is_active, ip_address, userType, session_token) 
-                VALUES (?, ?, ?, ?, NOW(), NOW(), 1, ?, ?, ?)
+                (username, device_id, device_model, android_version, app_version, login_time, last_activity, is_active, ip_address, userType, session_token) 
+                VALUES (?, ?, ?, ?, ?, NOW(), NOW(), 1, ?, ?, ?)
             ");
             
-            $result = $stmt->execute([$username, $deviceId, $deviceModel, $androidVersion, $ipAddress, $userType, $sessionToken]);
+            $result = $stmt->execute([$username, $deviceId, $deviceModel, $androidVersion, $appVersion, $ipAddress, $userType, $sessionToken]);
             
             if ($result) {
                 $this->logActivity($username, 'LOGIN', $deviceId, $ipAddress, $userType);

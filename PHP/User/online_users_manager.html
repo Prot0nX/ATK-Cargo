@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="fa" dir="rtl" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مدیریت کاربران آنلاین - سیستم ATK Cargo</title>
+    <link rel="icon" type="image/x-icon" href="assets/img/fav.ico">
     
     <!-- Vazirmatn Font -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
@@ -11,116 +12,99 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Font Awesome Icons -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="online_users_styles.css">
     <link rel="stylesheet" href="date_section_styles.css">
     
-    <style>
-        .modal-btn:disabled {
-            @apply opacity-50 cursor-not-allowed;
-        }
-        
-        .modal-btn:disabled:hover {
-            @apply transform-none shadow-none;
-        }
-        
-        /* استایل‌های وضعیت آنلاین/آفلاین */
-        .status-online {
-            @apply text-green-600 dark:text-green-400;
-        }
-        
-        .status-offline {
-            @apply text-red-600 dark:text-red-400;
-        }
-        
-        .status-indicator {
-            @apply w-3 h-3 rounded-full;
-        }
-        
-        .status-indicator.online {
-            @apply bg-green-500 animate-pulse;
-        }
-        
-        .status-indicator.offline {
-            @apply bg-red-500;
-        }
-    </style>
-    
-    <!-- Tailwind Config -->
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
-                        'vazirmatn': ['Vazirmatn', 'Vazir', 'Tahoma', 'Arial', 'sans-serif'],
-                        'vazir': ['Vazir', 'Tahoma', 'Arial', 'sans-serif']
+                        sans: ['Vazirmatn', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
                     },
                     animation: {
-                        'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'spin-slow': 'spin 3s linear infinite',
-                        'bounce-slow': 'bounce 2s infinite',
                         'fade-in': 'fadeIn 0.5s ease-out',
-                        'slide-up': 'slideUp 0.6s ease-out',
-                        'scale-in': 'scaleIn 0.3s ease-out'
+                        'slide-up': 'slideUp 0.5s ease-out',
+                        'slide-in': 'slideIn 0.3s ease-out',
                     },
-                    spacing: {
-                        '18': '4.5rem',
-                        '88': '22rem'
-                    },
-                    borderRadius: {
-                        '2xl': '1rem',
-                        '3xl': '1.5rem'
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        slideIn: {
+                            '0%': { transform: 'translateX(-20px)', opacity: '0' },
+                            '100%': { transform: 'translateX(0)', opacity: '1' },
+                        }
                     }
                 }
             }
         }
     </script>
 </head>
-<body class="bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 font-vazirmatn transition-all duration-500 min-h-screen">
-    <!-- Header -->
-    <header class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-xl border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-40">
-        <div class="container mx-auto px-4 lg:px-8 py-6">
-            <div class="flex items-center justify-between flex-wrap gap-4">
-                <div class="flex items-center space-x-4 space-x-reverse">
-                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                        <i class="fas fa-users text-white text-2xl"></i>
+<body class="bg-gray-50 dark:bg-gray-900 font-sans transition-colors duration-300 min-h-screen flex flex-col">
+
+    <!-- Glassmorphism Header -->
+    <header class="sticky top-0 z-40 w-full backdrop-blur-md bg-white/70 dark:bg-gray-900/70 border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm transition-all duration-300">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between gap-4">
+                <!-- Brand -->
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-br from-blue-600 to-cyan-500 text-white p-2.5 rounded-xl shadow-lg shadow-blue-500/20 transform hover:scale-105 transition-transform duration-300">
+                        <i class="fas fa-users text-xl"></i>
                     </div>
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-1">مدیریت کاربران آنلاین</h1>
-                        <p class="text-gray-600 dark:text-gray-400 flex items-center space-x-2 space-x-reverse">
-                            <i class="fas fa-cube text-blue-500 text-sm"></i>
-                            <span>سیستم ATK Cargo</span>
-                        </p>
+                    <div class="hidden sm:block">
+                        <h1 class="text-lg font-bold text-gray-900 dark:text-white leading-tight">مدیریت کاربران</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">سیستم مانیتورینگ ATK Cargo</p>
                     </div>
                 </div>
-                
-                <div class="flex items-center space-x-3 space-x-reverse flex-wrap gap-2">
-                    <!-- Live Status -->
-                    <div class="flex items-center space-x-2 space-x-reverse bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/50 dark:to-emerald-900/50 px-4 py-2 rounded-full border border-green-200 dark:border-green-700 shadow-sm">
-                        <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse-slow shadow-lg"></div>
-                        <span class="text-green-700 dark:text-green-300 text-sm font-medium">زنده</span>
+
+                <!-- Controls -->
+                <div class="flex items-center gap-3">
+                    <!-- Status Badge -->
+                    <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-full border border-green-200/50 dark:border-green-800/50 text-xs font-medium shadow-sm">
+                        <span class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </span>
+                        سیستم فعال
                     </div>
-                    
+
                     <!-- Auto Refresh -->
-                    <div class="flex items-center space-x-2 space-x-reverse bg-gradient-to-r from-purple-100 to-purple-200 dark:from-purple-900/50 dark:to-purple-800/50 px-4 py-2 rounded-full border border-purple-200 dark:border-purple-700 shadow-sm">
-                        <input type="checkbox" id="autoRefresh" class="w-4 h-4 rounded border-2 border-purple-300 dark:border-purple-600 text-purple-600 focus:ring-purple-500 focus:ring-1 transition-all">
-                        <label for="autoRefresh" class="text-sm font-medium text-purple-700 dark:text-purple-300 cursor-pointer">بروزرسانی خودکار</label>
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-300">
+                        <input type="checkbox" id="autoRefresh" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 cursor-pointer">
+                        <label for="autoRefresh" class="text-xs font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                            بروزرسانی خودکار <span id="refreshTimer" class="text-blue-500 font-bold hidden text-[10px]">(30)</span>
+                        </label>
                     </div>
-                    
+
                     <!-- Theme Toggle -->
-                    <button id="themeToggle" class="p-3 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 hover:scale-105 shadow-sm">
-                        <i class="fas fa-moon dark:hidden text-gray-600 text-lg"></i>
-                        <i class="fas fa-sun hidden dark:inline text-yellow-400 text-lg"></i>
+                    <button id="themeToggle" class="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50" aria-label="تغییر تم">
+                        <i class="fas fa-moon dark:hidden text-lg"></i>
+                        <i class="fas fa-sun hidden dark:inline text-lg text-yellow-400"></i>
                     </button>
-                    
+
                     <!-- Refresh Button -->
-                    <button id="refreshBtn" class="flex items-center space-x-2 space-x-reverse bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-5 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl">
-                        <i class="fas fa-sync-alt text-lg" id="refreshIcon"></i>
-                        <span class="font-medium">بروزرسانی</span>
+                    <button id="refreshBtn" class="p-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500/50 group" aria-label="بروزرسانی">
+                        <i class="fas fa-sync-alt group-hover:rotate-180 transition-transform duration-500"></i>
                     </button>
                 </div>
             </div>
@@ -128,374 +112,298 @@
     </header>
 
     <!-- Main Content -->
-    <main class="container mx-auto px-4 lg:px-8 py-8">
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <!-- جلسات فعال -->
-            <div class="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <p class="text-gray-600 dark:text-gray-400 text-sm font-medium mb-2">کاربران فعال</p>
-                        <p class="text-3xl font-bold text-green-600 dark:text-green-400 mb-1" id="activeSessionsCount">0</p>
-                        <div class="w-full bg-green-100 dark:bg-green-900/30 rounded-full h-1.5">
-                            <div class="bg-gradient-to-r from-green-500 to-emerald-600 h-1.5 rounded-full transition-all duration-500" style="width: 60%"></div>
+    <main class="flex-grow container mx-auto px-4 py-6 space-y-6">
+        
+        <!-- Stats Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+            <!-- Active Users Card -->
+            <div class="group relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-bl-[50px] -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                <div class="flex justify-between items-start relative z-10">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">کاربران فعال</p>
+                        <h3 class="text-3xl font-bold text-gray-900 dark:text-white" id="activeSessionsCount">0</h3>
+                        <div class="mt-2 flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>آنلاین</span>
                         </div>
                     </div>
-                    <div class="bg-gradient-to-br from-green-100 to-emerald-200 dark:from-green-900/50 dark:to-emerald-800/50 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                        <i class="fas fa-users text-green-600 dark:text-green-400 text-xl"></i>
+                    <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl text-green-600 dark:text-green-400 shadow-sm group-hover:scale-110 transition-transform">
+                        <i class="fas fa-user-check text-xl"></i>
                     </div>
                 </div>
             </div>
-            
-            <!-- ورودی‌های امروز -->
-            <div class="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <p class="text-gray-600 dark:text-gray-400 text-sm font-medium mb-2">ورودی‌های امروز</p>
-                        <p class="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-1" id="todayLoginsCount">0</p>
-                        <div class="w-full bg-purple-100 dark:bg-purple-900/30 rounded-full h-1.5">
-                            <div class="bg-gradient-to-r from-purple-500 to-violet-600 h-1.5 rounded-full transition-all duration-500" style="width: 85%"></div>
-                        </div>
-                    </div>
-                    <div class="bg-gradient-to-br from-purple-100 to-violet-200 dark:from-purple-900/50 dark:to-violet-800/50 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                        <i class="fas fa-sign-in-alt text-purple-600 dark:text-purple-400 text-xl"></i>
-                    </div>
-                </div>
-            </div>
-            
 
-            <!-- آخرین بروزرسانی -->
-            <div class="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <p class="text-gray-600 dark:text-gray-400 text-sm font-medium mb-2">آخرین بروزرسانی</p>
-                        <p class="text-lg font-bold text-orange-600 dark:text-orange-400 mb-1" id="lastUpdate">-</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">به‌روزرسانی خودکار</p>
+            <!-- Today Logins Card -->
+            <div class="group relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-bl-[50px] -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                <div class="flex justify-between items-start relative z-10">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">ورودی‌های امروز</p>
+                        <h3 class="text-3xl font-bold text-gray-900 dark:text-white" id="todayLoginsCount">0</h3>
+                        <div class="mt-2 flex items-center gap-1 text-xs font-medium text-purple-600 dark:text-purple-400">
+                            <i class="fas fa-calendar-day"></i>
+                            <span>مجموع</span>
+                        </div>
                     </div>
-                    <div class="bg-gradient-to-br from-orange-100 to-amber-200 dark:from-orange-900/50 dark:to-amber-800/50 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                        <i class="fas fa-clock text-orange-600 dark:text-orange-400 text-xl animate-spin-slow" id="updateIcon"></i>
+                    <div class="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl text-purple-600 dark:text-purple-400 shadow-sm group-hover:scale-110 transition-transform">
+                        <i class="fas fa-sign-in-alt text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Last Update Card -->
+            <div class="group relative overflow-hidden bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-orange-500/10 to-amber-500/10 rounded-bl-[50px] -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                <div class="flex justify-between items-start relative z-10">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">آخرین بروزرسانی</p>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white dir-ltr" id="lastUpdate">-</h3>
+                        <div class="mt-2 flex items-center gap-1 text-xs font-medium text-orange-600 dark:text-orange-400">
+                            <i class="fas fa-clock"></i>
+                            <span>دقیق</span>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-xl text-orange-600 dark:text-orange-400 shadow-sm group-hover:scale-110 transition-transform">
+                        <i class="fas fa-history text-xl"></i>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Search and Advanced Filters -->
-        <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-xl shadow-md border border-gray-200/50 dark:border-gray-700/50 mb-6 overflow-hidden">
-            <!-- Compact Header -->
-            <div class="px-4 py-3 border-b border-gray-200/30 dark:border-gray-700/30">
-                <div class="flex items-center justify-between">
-                    <!-- Title & Toggle -->
-                    <button id="filtersToggle" class="flex items-center space-x-3 space-x-reverse group hover:bg-gray-50 dark:hover:bg-gray-700/50 px-3 py-2 rounded-lg transition-all duration-200">
-                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-2 rounded-lg group-hover:scale-105 transition-transform">
-                            <i class="fas fa-search text-white text-sm"></i>
-                        </div>
-                        <div class="text-right">
-                            <h2 class="text-lg font-bold text-gray-900 dark:text-white">جستجو و فیلترها</h2>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">کلیک برای باز/بسته کردن</p>
-                        </div>
-                        <i id="toggleIcon" class="fas fa-chevron-down text-gray-400 text-sm transition-transform duration-200"></i>
+        <!-- Action Bar & Filters -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <!-- Top Bar -->
+            <div class="p-4 flex flex-col md:flex-row items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-700">
+                
+                <!-- Search -->
+                <div class="relative w-full md:w-96 group">
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <i class="fas fa-search text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                    </div>
+                    <input type="text" id="searchInput" 
+                        class="w-full pr-10 pl-10 py-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all outline-none" 
+                        placeholder="جستجو در کاربران (نام، دستگاه، IP)...">
+                    <button id="clearSearch" class="hidden absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-red-500 transition-colors">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+                    <button id="filtersToggle" class="flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium">
+                        <i class="fas fa-filter"></i>
+                        <span>فیلترها</span>
+                        <i class="fas fa-chevron-down text-xs transition-transform duration-300" id="toggleIcon"></i>
                     </button>
                     
-                    <!-- Quick Actions -->
-                    <div class="flex items-center space-x-2 space-x-reverse">
-
-                        
-                        <button id="exportCSV" class="flex items-center space-x-1 space-x-reverse bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 rounded-lg transition-all duration-200 text-xs font-medium">
-                            <i class="fas fa-download text-xs"></i>
-                            <span>CSV</span>
-                        </button>
-                        
-                        <button id="showAdvancedStats" class="flex items-center space-x-1 space-x-reverse bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-lg transition-all duration-200 text-xs font-medium">
-                            <i class="fas fa-chart-bar text-xs"></i>
-                            <span>آمار</span>
-                        </button>
-                        
-                        <!-- Logout Users Dropdown -->
-                        <div class="relative" id="logoutDropdown">
-                            <button id="logoutUsersBtn" class="flex items-center space-x-1 space-x-reverse bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-all duration-200 text-xs font-medium">
-                                <i class="fas fa-sign-out-alt text-xs"></i>
-                                <span>خروج کاربران</span>
-                                <i class="fas fa-chevron-down text-xs mr-1"></i>
-                            </button>
-                            
-                            <!-- Dropdown Menu -->
-                            <div id="logoutDropdownMenu" class="absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 hidden">
-                                <div class="py-2">
-                                    <button class="logout-option w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors" data-type="all">
-                                        <i class="fas fa-users text-xs ml-2"></i>
-                                        همه کاربران
-                                    </button>
-                                    <button class="logout-option w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors" data-type="except-admin">
-                                        <i class="fas fa-user-shield text-xs ml-2"></i>
-                                        به جز مدیران
-                                    </button>
-                                    <button class="logout-option w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors" data-type="operators">
-                                        <i class="fas fa-cog text-xs ml-2"></i>
-                                        اپراتورها
-                                    </button>
-                                    <button class="logout-option w-full text-right px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors" data-type="verifiers">
-                                        <i class="fas fa-check-circle text-xs ml-2"></i>
-                                        تأیید کننده‌ها
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <button id="clearAllFilters" class="flex items-center space-x-1 space-x-reverse bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg transition-all duration-200 text-xs font-medium">
-                            <i class="fas fa-eraser text-xs"></i>
-                            <span>پاک</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Search Bar (Always Visible) -->
-            <div class="px-4 py-3 bg-gray-50/50 dark:bg-gray-700/20">
-                <div class="relative">
-                    <div class="absolute inset-y-0 right-0 flex items-center pr-3">
-                        <i class="fas fa-search text-gray-400 text-sm"></i>
-                    </div>
-                    <input type="text" id="searchInput" placeholder="جستجو نام کاربری، IP، دستگاه..." 
-                           class="w-full px-3 py-2.5 pr-10 pl-10 rounded-lg border border-gray-200 dark:border-gray-600 
-                                  bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400
-                                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm">
-                    <button id="clearSearch" class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-red-500 transition-colors duration-200 hidden">
-                        <i class="fas fa-times text-sm"></i>
+                    <!-- Export CSV -->
+                    <button onclick="exportToCSV()" class="p-2.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/40 rounded-xl transition-colors" title="دانلود CSV">
+                        <i class="fas fa-file-csv text-lg"></i>
                     </button>
+                    
+                    <!-- Advanced Stats -->
+                    <button onclick="showAdvancedStats()" class="p-2.5 bg-purple-50 text-purple-600 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/40 rounded-xl transition-colors" title="آمار پیشرفته">
+                        <i class="fas fa-chart-pie text-lg"></i>
+                    </button>
+
+                    <!-- Logout Dropdown -->
+                    <div class="relative" id="logoutDropdown">
+                        <button id="logoutUsersBtn" class="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 rounded-xl transition-colors" title="مدیریت خروج">
+                            <i class="fas fa-sign-out-alt text-lg"></i>
+                        </button>
+                        <div id="logoutDropdownMenu" class="hidden absolute left-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden transform origin-top-left transition-all">
+                            <div class="p-1">
+                                <button class="logout-option w-full text-right px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-2" data-type="all">
+                                    <i class="fas fa-users"></i> خروج همه کاربران
+                                </button>
+                                <button class="logout-option w-full text-right px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2" data-type="except-admin">
+                                    <i class="fas fa-user-shield"></i> همه به جز مدیران
+                                </button>
+                                <button class="logout-option w-full text-right px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2" data-type="operators">
+                                    <i class="fas fa-headset"></i> فقط اپراتورها
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Collapsible Filters Section -->
-            <div id="filtersSection" class="hidden">
-                <!-- Filter Categories in One Row -->
-                <div class="px-4 py-4">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        <!-- Time Filter -->
-                        <div class="bg-blue-50/50 dark:bg-blue-900/10 rounded-lg p-3 border border-blue-200/30 dark:border-blue-700/30">
-                            <div class="flex items-center space-x-2 space-x-reverse mb-3">
-                                <div class="bg-blue-500 p-1.5 rounded">
-                                    <i class="fas fa-clock text-white text-xs"></i>
-                                </div>
-                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">زمان</h3>
-                            </div>
-                            <div class="flex flex-wrap gap-2">
-                                <button class="filter-btn time-filter active text-xs px-3 py-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-all" data-filter="all">
-                                    همه
-                                </button>
-                                <button class="filter-btn time-filter text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all" data-filter="today">
-                                    امروز
-                                </button>
-                                <button class="filter-btn time-filter text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all" data-filter="24h">
-                                    24 ساعت
-                                </button>
-                                <button class="filter-btn time-filter text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all" data-filter="7d">
-                                    7 روز
-                                </button>
-                                <button class="filter-btn time-filter text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all" data-filter="30d">
-                                    30 روز
-                                </button>
-                            </div>
+
+            <!-- Expandable Filters Section -->
+            <div id="filtersSection" class="hidden border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+                <div class="p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Time Filter -->
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fas fa-clock text-blue-500"></i>
+                            بازه زمانی
+                        </h4>
+                        <div class="flex flex-wrap gap-2 bg-white dark:bg-gray-900/50 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <button class="filter-btn time-filter flex-1 py-1.5 px-3 text-sm rounded-lg transition-all duration-200 active" data-filter="all">همه</button>
+                            <button class="filter-btn time-filter flex-1 py-1.5 px-3 text-sm rounded-lg transition-all duration-200" data-filter="today">امروز</button>
+                            <button class="filter-btn time-filter flex-1 py-1.5 px-3 text-sm rounded-lg transition-all duration-200" data-filter="24h">۲۴ ساعت</button>
                         </div>
-                        
-                        <!-- Status Filter -->
-                        <div class="bg-green-50/50 dark:bg-green-900/10 rounded-lg p-3 border border-green-200/30 dark:border-green-700/30">
-                            <div class="flex items-center space-x-2 space-x-reverse mb-3">
-                                <div class="bg-green-500 p-1.5 rounded">
-                                    <i class="fas fa-user-check text-white text-xs"></i>
-                                </div>
-                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">وضعیت</h3>
-                            </div>
-                            <div class="flex flex-wrap gap-2">
-                                <button class="filter-btn status-filter active text-xs px-3 py-1.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700 hover:bg-green-200 dark:hover:bg-green-800/50 transition-all" data-status="all">
-                                    همه
-                                </button>
-                                <button class="filter-btn status-filter text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all" data-status="online">
-                                    <i class="fas fa-circle text-green-500 text-xs ml-1"></i>
-                                    فعال
-                                </button>
-                                <button class="filter-btn status-filter text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all" data-status="offline">
-                                    <i class="fas fa-circle text-red-500 text-xs ml-1"></i>
-                                    آفلاین
-                                </button>
-                            </div>
+                    </div>
+
+                    <!-- Status Filter -->
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fas fa-toggle-on text-green-500"></i>
+                            وضعیت اتصال
+                        </h4>
+                        <div class="flex flex-wrap gap-2 bg-white dark:bg-gray-900/50 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <button class="filter-btn status-filter flex-1 py-1.5 px-3 text-sm rounded-lg transition-all duration-200 active" data-status="all">همه</button>
+                            <button class="filter-btn status-filter flex-1 py-1.5 px-3 text-sm rounded-lg transition-all duration-200 flex items-center justify-center gap-1" data-status="online">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> آنلاین
+                            </button>
+                            <button class="filter-btn status-filter flex-1 py-1.5 px-3 text-sm rounded-lg transition-all duration-200 flex items-center justify-center gap-1" data-status="offline">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> آفلاین
+                            </button>
                         </div>
-                        
-                        <!-- User Type Filter -->
-                        <div class="bg-purple-50/50 dark:bg-purple-900/10 rounded-lg p-3 border border-purple-200/30 dark:border-purple-700/30">
-                            <div class="flex items-center space-x-2 space-x-reverse mb-3">
-                                <div class="bg-purple-500 p-1.5 rounded">
-                                    <i class="fas fa-user-tag text-white text-xs"></i>
-                                </div>
-                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">نوع کاربر</h3>
-                            </div>
-                            <div class="flex flex-wrap gap-2">
-                                <button class="filter-btn user-type-filter active text-xs px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700 hover:bg-purple-200 dark:hover:bg-purple-800/50 transition-all" data-usertype="all">
-                                    همه
-                                </button>
-                                <button class="filter-btn user-type-filter text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all" data-usertype="admin">
-                                    <i class="fas fa-crown text-yellow-500 text-xs ml-1"></i>
-                                    مدیر
-                                </button>
-                                <button class="filter-btn user-type-filter text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all" data-usertype="operator">
-                                    <i class="fas fa-cog text-blue-500 text-xs ml-1"></i>
-                                    اپراتور
-                                </button>
-                                <button class="filter-btn user-type-filter text-xs px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all" data-usertype="verifier">
-                                    <i class="fas fa-check-circle text-green-500 text-xs ml-1"></i>
-                                    تائید کننده
-                                </button>
-                            </div>
+                    </div>
+
+                    <!-- User Type Filter -->
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fas fa-user-tag text-purple-500"></i>
+                            نقش کاربری
+                        </h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button class="filter-btn user-type-filter py-1.5 px-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 active" data-usertype="all">همه</button>
+                            <button class="filter-btn user-type-filter py-1.5 px-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200" data-usertype="admin">مدیر</button>
+                            <button class="filter-btn user-type-filter py-1.5 px-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200" data-usertype="operator">اپراتور</button>
+                            <button class="filter-btn user-type-filter py-1.5 px-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200" data-usertype="verifier">تأیید کننده</button>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Bottom Section -->
-                <div class="px-4 py-3 bg-gray-50/50 dark:bg-gray-700/20 border-t border-gray-200/30 dark:border-gray-700/30">
-                    <div class="flex items-center justify-between">
-                        <!-- Active Filters Count -->
-                        <div id="activeFiltersDisplay" class="flex items-center space-x-2 space-x-reverse">
-                            <span class="text-xs text-gray-500 dark:text-gray-400">فیلترهای فعال:</span>
-                            <span id="activeFiltersCount" class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full text-xs font-medium">0</span>
-                        </div>
+                <!-- Active Filters Bar -->
+                <div class="px-4 py-2 bg-blue-50/50 dark:bg-blue-900/10 border-t border-blue-100 dark:border-blue-800 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                        <i class="fas fa-info-circle"></i>
+                        <span id="activeFiltersDisplay">فیلترهای فعال: <span id="activeFiltersCount" class="font-bold">0</span></span>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Search Results Info -->
-            <div id="searchResults" class="hidden px-4 py-2 bg-blue-50/50 dark:bg-blue-900/20 border-t border-blue-200/30 dark:border-blue-700/30">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-2 space-x-reverse">
-                        <i class="fas fa-search text-blue-600 dark:text-blue-400 text-xs"></i>
-                        <span class="text-blue-800 dark:text-blue-300 font-medium text-xs" id="searchResultsText"></span>
-                    </div>
-                    <button id="clearAllFiltersBtn" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 text-xs font-medium">
-                        پاک کردن
+                    <button onclick="clearAllFilters()" class="text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline cursor-pointer">
+                        پاک کردن همه
                     </button>
                 </div>
             </div>
         </div>
 
         <!-- Users Grid -->
-        <div class="flex flex-col gap-1 w-full" id="usersGrid">
-            <!-- Users will be loaded here -->
+        <div id="usersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 min-h-[300px]">
+            <!-- Users will be injected here -->
+            
+            <!-- Loading Skeleton (Hidden by default) -->
+            <div id="skeletonLoader" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-pulse">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 h-48"></div>
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 h-48"></div>
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 h-48"></div>
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 h-48"></div>
+            </div>
         </div>
 
-        <!-- Loading State -->
-        <div id="loadingState" class="text-center py-16">
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-8 border border-gray-200/50 dark:border-gray-700/50 inline-block">
-                <div class="flex flex-col items-center space-y-4">
-                    <div class="relative">
-                        <div class="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 rounded-full animate-spin"></div>
-                        <div class="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-blue-500 rounded-full animate-spin"></div>
-                    </div>
-                    <div class="text-center">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">در حال بارگذاری</h3>
-                        <p class="text-gray-600 dark:text-gray-400">لطفاً صبر کنید...</p>
-                    </div>
-                </div>
+        <!-- Loading State Overlay -->
+        <div id="loadingState" class="hidden fixed inset-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm z-30 flex items-center justify-center">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
+                <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <span class="text-gray-700 dark:text-gray-300 font-medium">در حال بارگذاری...</span>
             </div>
         </div>
 
         <!-- Empty State -->
-        <div id="emptyState" class="text-center py-16 hidden">
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-12 border border-gray-200/50 dark:border-gray-700/50 max-w-md mx-auto">
-                <div class="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <i class="fas fa-users-slash text-gray-400 dark:text-gray-500 text-3xl"></i>
-                </div>
-                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-3">هیچ جلسه‌ای یافت نشد</h3>
-                <p class="text-gray-600 dark:text-gray-400 leading-relaxed">با فیلترهای انتخاب شده هیچ جلسه‌ای یافت نشد. فیلترها را تغییر دهید یا مجدداً تلاش کنید.</p>
-                <button onclick="usersManager.loadUsers()" class="mt-6 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg">
-                    <i class="fas fa-refresh ml-2"></i>
-                    تلاش مجدد
-                </button>
+        <div id="emptyState" class="hidden flex flex-col items-center justify-center py-16 text-center">
+            <div class="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                <i class="fas fa-users-slash text-4xl text-gray-400"></i>
             </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">هیچ کاربری یافت نشد</h3>
+            <p class="text-gray-500 dark:text-gray-400 max-w-md mx-auto">با فیلترهای انتخاب شده هیچ کاربری پیدا نشد. لطفا فیلترها را تغییر دهید.</p>
+            <button onclick="clearAllFilters()" class="mt-6 px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
+                پاک کردن فیلترها
+            </button>
         </div>
+
     </main>
 
     <!-- User Details Modal -->
-    <div id="userModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 animate-fade-in">
-        <div class="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto border border-gray-200/50 dark:border-gray-700/50 animate-scale-in">
-            <div class="p-8">
-                <div class="flex items-center justify-between mb-8">
-                    <div class="flex items-center space-x-4 space-x-reverse">
-                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-2xl">
-                            <i class="fas fa-user text-white text-xl"></i>
-                        </div>
-                        <h3 class="text-3xl font-bold text-gray-900 dark:text-white">جزئیات کاربر</h3>
+    <div id="userModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity opacity-0" id="modalBackdrop"></div>
+
+        <!-- Modal Panel -->
+        <div class="fixed inset-0 z-10 overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 text-right shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-3xl opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" id="modalPanel">
+                    
+                    <!-- Header -->
+                    <div class="bg-gray-50 dark:bg-gray-700/50 px-4 py-4 sm:px-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="text-lg font-bold leading-6 text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="fas fa-id-card text-blue-500"></i>
+                            جزئیات کاربر
+                        </h3>
+                        <button onclick="ModalManager.hide()" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
                     </div>
-                    <button id="closeModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300 hover:scale-105">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
-                </div>
-                
-                <div id="modalContent">
-                    <!-- Modal content will be loaded here -->
+
+                    <!-- Content -->
+                    <div id="modalContent" class="px-4 py-5 sm:p-6">
+                        <!-- Dynamic Content -->
+                    </div>
+
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Advanced Stats Modal -->
-    <div id="statsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 animate-fade-in">
-        <div class="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto border border-gray-200/50 dark:border-gray-700/50 animate-scale-in">
-            <div class="p-8">
-                <div class="flex items-center justify-between mb-8">
-                    <div class="flex items-center space-x-4 space-x-reverse">
-                        <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-3 rounded-2xl">
-                            <i class="fas fa-chart-bar text-white text-xl"></i>
-                        </div>
-                        <h3 class="text-3xl font-bold text-gray-900 dark:text-white">آمار پیشرفته سیستم</h3>
+    <!-- Stats Modal -->
+    <div id="statsModal" class="fixed inset-0 z-50 hidden">
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onclick="closeModal('statsModal')"></div>
+        <div class="fixed inset-0 z-10 overflow-y-auto pointer-events-none">
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="pointer-events-auto relative w-full max-w-5xl bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden transform transition-all">
+                    <div class="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-700">
+                        <h3 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                            <span class="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-purple-600"><i class="fas fa-chart-pie"></i></span>
+                            آمار پیشرفته سیستم
+                        </h3>
+                        <button onclick="closeModal('statsModal')" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                            <i class="fas fa-times text-xl text-gray-500"></i>
+                        </button>
                     </div>
-                    <button id="closeStatsModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300 hover:scale-105">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
-                </div>
-                
-                <div id="statsModalContent">
-                    <!-- Stats content will be loaded here -->
+                    <div id="statsModalContent" class="p-6 max-h-[80vh] overflow-y-auto">
+                        <!-- Stats Content -->
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Logout Confirmation Modal -->
-    <div id="logoutConfirmModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 animate-fade-in">
-        <div class="bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg rounded-3xl shadow-2xl max-w-md w-full border border-gray-200/50 dark:border-gray-700/50 animate-scale-in">
-            <div class="p-8">
-                <div class="flex items-center justify-center mb-6">
-                    <div class="bg-gradient-to-br from-red-500 to-red-600 p-4 rounded-full">
-                        <i class="fas fa-exclamation-triangle text-white text-2xl"></i>
+    <!-- Confirmation Modal -->
+    <div id="logoutConfirmModal" class="fixed inset-0 z-[60] hidden">
+        <div class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm"></div>
+        <div class="fixed inset-0 z-10 overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 text-center transform transition-all scale-100">
+                    <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600 dark:text-red-500 text-2xl">
+                        <i class="fas fa-exclamation-triangle"></i>
                     </div>
-                </div>
-                
-                <div class="text-center mb-8">
-                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">تأیید خروج کاربران</h3>
-                    <p class="text-gray-600 dark:text-gray-400 leading-relaxed" id="logoutConfirmText">
-                        آیا مطمئن هستید که می‌خواهید کاربران انتخاب شده را از سیستم خارج کنید؟
-                    </p>
-                    <div class="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
-                        <div class="flex items-center space-x-2 space-x-reverse text-yellow-800 dark:text-yellow-300">
-                            <i class="fas fa-info-circle text-sm"></i>
-                            <span class="text-sm font-medium">این عملیات قابل بازگشت نیست</span>
-                        </div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">تأیید خروج</h3>
+                    <p id="logoutConfirmText" class="text-gray-500 dark:text-gray-400 mb-6">آیا مطمئن هستید؟</p>
+                    <div class="flex gap-3 justify-center">
+                        <button id="cancelLogout" class="px-5 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 font-medium transition-colors">
+                            انصراف
+                        </button>
+                        <button id="confirmLogout" class="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 font-medium shadow-lg shadow-red-500/30 transition-colors">
+                            تأیید خروج
+                        </button>
                     </div>
-                </div>
-                
-                <div class="flex items-center justify-center space-x-4 space-x-reverse">
-                    <button id="cancelLogout" class="flex items-center space-x-2 space-x-reverse bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg">
-                        <i class="fas fa-times text-sm"></i>
-                        <span>انصراف</span>
-                    </button>
-                    <button id="confirmLogout" class="flex items-center space-x-2 space-x-reverse bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg">
-                        <i class="fas fa-sign-out-alt text-sm"></i>
-                        <span>تأیید خروج</span>
-                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Scripts -->
-    <script src="online_users_script.js?v=2.0"></script>
+    <script src="online_users_script.js?v=3.0"></script>
 </body>
 </html>

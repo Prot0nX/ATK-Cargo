@@ -7126,6 +7126,7 @@ fun LoginDialog(
     updateSessionValidity: (Boolean) -> Unit,
     userPreferencesManager: UserPreferencesManager
 ) {
+    val context = LocalContext.current
     // State variables - مینیمال
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -7355,6 +7356,11 @@ fun LoginDialog(
                                     val deviceModel = Build.MODEL ?: "Unknown"
                                     val androidVersion = Build.VERSION.RELEASE ?: "Unknown"
                                     val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+                                    val appVersion = try {
+                                        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
+                                    } catch (e: Exception) {
+                                        "Unknown"
+                                    }
 
                                     val loginRequest = LoginRequest(
                                         username = username,
@@ -7362,7 +7368,8 @@ fun LoginDialog(
                                         userType = "",
                                         deviceModel = deviceModel,
                                         deviceId = deviceId,
-                                        androidVersion = androidVersion
+                                        androidVersion = androidVersion,
+                                        appVersion = appVersion
                                     )
 
                                     val response = apiService.checkLogin(loginRequest)
