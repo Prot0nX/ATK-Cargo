@@ -1,5 +1,3 @@
-@file:Suppress("DEPRECATION")
-
 package com.atk.atk_cargo
 
 import android.annotation.SuppressLint
@@ -232,7 +230,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
@@ -10095,7 +10095,11 @@ private fun StatCounter(
 			Text(
 				text = "${formatNumber(value)}${if (suffix.isNotEmpty()) " $suffix" else ""}",
 				style = MaterialTheme.typography.bodyMedium.copy(
-					fontSize = MaterialTheme.typography.bodyMedium.fontSize * 1.15
+					fontSize = if (MaterialTheme.typography.bodyMedium.fontSize == TextUnit.Unspecified) {
+						14.sp * 1.15f
+					} else {
+						MaterialTheme.typography.bodyMedium.fontSize * 1.15f
+					}
 				),
 				fontWeight = FontWeight.Bold,
 				color = color
