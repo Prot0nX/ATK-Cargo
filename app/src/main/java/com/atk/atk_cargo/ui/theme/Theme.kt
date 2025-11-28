@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 
 private val DarkColorScheme = darkColorScheme(
     primary = Green200,
@@ -88,63 +89,78 @@ fun ATKCargoTheme(
     val typography = Typography(
         displayLarge = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(400)
+            fontWeight = FontWeight(400),
+            fontSize = 57.sp
         ),
         displayMedium = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(400)
+            fontWeight = FontWeight(400),
+            fontSize = 45.sp
         ),
         displaySmall = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(400)
+            fontWeight = FontWeight(400),
+            fontSize = 36.sp
         ),
         headlineLarge = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500)
+            fontWeight = FontWeight(500),
+            fontSize = 32.sp
         ),
         headlineMedium = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500)
+            fontWeight = FontWeight(500),
+            fontSize = 28.sp
         ),
         headlineSmall = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500)
+            fontWeight = FontWeight(500),
+            fontSize = 20.sp
         ),
         titleLarge = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500)
+            fontWeight = FontWeight(500),
+            fontSize = 22.sp
         ),
         titleMedium = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500)
+            fontWeight = FontWeight(500),
+            fontSize = 15.sp
         ),
         titleSmall = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500)
+            fontWeight = FontWeight(500),
+            fontSize = 13.sp
         ),
         bodyLarge = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(400)
+            fontWeight = FontWeight(400),
+            fontSize = 16.sp
         ),
         bodyMedium = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(400)
+            fontWeight = FontWeight(400),
+            fontSize = 13.sp
         ),
         bodySmall = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(400)
+            fontWeight = FontWeight(400),
+            fontSize = 11.sp
         ),
         labelLarge = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500)
+            fontWeight = FontWeight(500),
+            fontSize = 14.sp
         ),
         labelMedium = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500)
+            fontWeight = FontWeight(500),
+            fontSize = 11.sp
         ),
         labelSmall = TextStyle(
             fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500)
+            fontWeight = FontWeight(500),
+            fontSize = 10.sp
         )
     )
 
