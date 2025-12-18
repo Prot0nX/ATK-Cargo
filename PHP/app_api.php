@@ -63,14 +63,14 @@
 	}
 	
 	function customLog(string $message): void {
-  		$logDir = __DIR__ . '/logs';
-		if (!is_dir($logDir) && !mkdir($logDir, 0755, true) && !is_dir($logDir)) {
-			error_log("Failed to create log directory: " . error_get_last()['message']);
-			return;
-		}
-		$logFile = $logDir . '/custom.log';
-		$logMessage = date('[Y-m-d H:i:s] ') . $message . PHP_EOL;
-		file_put_contents($logFile, $logMessage, FILE_APPEND);
+  		// $logDir = __DIR__ . '/logs';
+		// if (!is_dir($logDir) && !mkdir($logDir, 0755, true) && !is_dir($logDir)) {
+			// error_log("Failed to create log directory: " . error_get_last()['message']);
+			// return;
+		// }
+		// $logFile = $logDir . '/custom.log';
+		// $logMessage = date('[Y-m-d H:i:s] ') . $message . PHP_EOL;
+		// file_put_contents($logFile, $logMessage, FILE_APPEND);
 	}
 	
 	function sendJsonResponse($data, int $statusCode = 200): void {
@@ -85,7 +85,7 @@
 	
 	function checkQuotaStatus(DatabaseManager $db, array $params): array {
 		try {
-			customLog("checkQuotaStatus شروع - پارامترهای دریافتی: " . json_encode($params));
+			// customLog("checkQuotaStatus شروع - پارامترهای دریافتی: " . json_encode($params));
 			
 			// اعتبارسنجی سریع‌تر با استفاده از array_diff_key
 			$requiredParams = ['quotaNumber', 'shipName', 'cargoType', 'shippingCompany'];
@@ -108,7 +108,7 @@
 			$cargoType = sanitizeInput($params['cargoType']);
 			$shippingCompany = sanitizeInput($params['shippingCompany']);
 			
-			customLog("پارامترهای پاک‌سازی شده - quotaNumber: $quotaNumber, shipName: $shipName, cargoType: $cargoType, shippingCompany: $shippingCompany");
+			// customLog("پارامترهای پاک‌سازی شده - quotaNumber: $quotaNumber, shipName: $shipName, cargoType: $cargoType, shippingCompany: $shippingCompany");
 			
 			// بهینه‌سازی کوئری با استفاده از LEFT JOIN به جای subquery های تکراری
 			// این روش بسیار سریع‌تر است چون فقط یک بار محاسبه می‌شود
@@ -168,13 +168,13 @@
 					$cargoType
 				);
 				
-				customLog("checkQuotaStatus نتیجه:");
-				customLog("  - isActive (DB): " . ($isActiveDb ? 'true' : 'false'));
-				customLog("  - loadedWeight: " . $loadedWeight);
-				customLog("  - totalWeight: " . $totalWeight);
-				customLog("  - percentageLoaded: " . $percentageLoaded);
-				customLog("  - isActiveStatus (نهایی): " . ($isActiveStatus ? 'true' : 'false'));
-				customLog("  - status_message: " . $statusMessage);
+				// customLog("checkQuotaStatus نتیجه:");
+				// customLog("  - isActive (DB): " . ($isActiveDb ? 'true' : 'false'));
+				// customLog("  - loadedWeight: " . $loadedWeight);
+				// customLog("  - totalWeight: " . $totalWeight);
+				// customLog("  - percentageLoaded: " . $percentageLoaded);
+				// customLog("  - isActiveStatus (نهایی): " . ($isActiveStatus ? 'true' : 'false'));
+				// customLog("  - status_message: " . $statusMessage);
 				
 				return [
 					'isActive' => $isActiveStatus,
@@ -194,7 +194,7 @@
 			}
 			
 			// هیچ کوتاژی با مشخصات دقیق یافت نشد
-			customLog("checkQuotaStatus: کوتاژ $quotaNumber با مشخصات درخواستی یافت نشد");
+			// customLog("checkQuotaStatus: کوتاژ $quotaNumber با مشخصات درخواستی یافت نشد");
 			return [
 				'isActive' => false,
 				'status' => false,

@@ -322,7 +322,7 @@ fun SecurityBlockScreen(
                                         horizontalAlignment = Alignment.End
                                     ) {
                                         Text(
-                                            text = "سایت نیاکوزرین",
+                                            text = "سایت هانگار",
                                             style = MaterialTheme.typography.titleSmall,
                                             color = MaterialTheme.colorScheme.primary,
                                             textAlign = TextAlign.Right,

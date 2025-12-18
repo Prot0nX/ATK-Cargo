@@ -42,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             
             while ($row = $result->fetch_assoc()) {
                 $licenses[] = [
+                    'id' => (int)$row['id'],
                     'license_key' => htmlspecialchars($row['license_key']),
                     'company_name' => htmlspecialchars($row['company_name']),
                     'is_active' => (bool)$row['is_active'],
