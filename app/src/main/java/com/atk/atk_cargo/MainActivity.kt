@@ -1558,7 +1558,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                         )
 
                                         Text(
-                                            "سایت نیاکوزرین",
+                                            "سایت هانگار",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
