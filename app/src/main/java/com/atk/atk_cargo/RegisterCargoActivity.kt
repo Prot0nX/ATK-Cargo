@@ -817,25 +817,8 @@ class RegisterCargoActivity : ComponentActivity() {
 
     private fun updateScaleReceiptNumber(barcode: String) {
         val cleanedBarcode = barcode.replace(Regex("[^0-9]"), "")
-        
-        // بررسی اعتبار قبض باسکول با پیام‌های خطای مناسب
-        if (cleanedBarcode.length != 8) {
-            showErrorMessage("قبض باسکول باید 8 رقمی باشد. لطفاً قبض باسکول صحیح را اسکن کنید!")
-            return
-        }
-        
-        val firstTwoDigits = cleanedBarcode.substring(0, 2)
-        if (firstTwoDigits != "42" && firstTwoDigits != "43" && firstTwoDigits != "44") {
-            showErrorMessage("قبض باسکول باید با 42، 43 یا 44 شروع شود. لطفاً قبض باسکول صحیح را اسکن کنید!")
-            return
-        }
-        
-        // اگر به اینجا برسیم، قبض باسکول معتبر است
-        viewModel.updateScaleReceiptNumber(cleanedBarcode)
-    }
 
-    private fun showErrorMessage(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        viewModel.updateScaleReceiptNumber(cleanedBarcode)
     }
 
     // متد بروزرسانی اطلاعات اولیه برای تغییر کوتاژ
