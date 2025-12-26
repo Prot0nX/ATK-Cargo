@@ -1,16 +1,13 @@
 package com.atk.atk_cargo
 
-import android.annotation.SuppressLint
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,20 +16,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -46,6 +40,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -55,12 +50,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -70,18 +63,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.em
-import androidx.compose.ui.unit.sp
 import com.atk.atk_cargo.api.ApiService
 import com.atk.atk_cargo.api.Constants
 import com.atk.atk_cargo.api.LoginRequest
 import com.atk.atk_cargo.api.SessionResponse
 import com.atk.atk_cargo.api.UserPreferencesManager
-import com.atk.atk_cargo.ui.theme.BackgroundDark
-import com.atk.atk_cargo.ui.theme.BackgroundLight
-import com.atk.atk_cargo.ui.theme.BorderDark
-import com.atk.atk_cargo.ui.theme.SurfaceDark
-import com.atk.atk_cargo.ui.theme.SurfaceLight
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
@@ -89,32 +75,18 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.security.MessageDigest
 import java.util.UUID
 
-@SuppressLint("HardwareIds")
 @Composable
 fun LoginScreen(
-    onLoginChecked: (Boolean, String, String, String) -> Unit,
-    updateSessionValidity: (Boolean) -> Unit,
-    userPreferencesManager: UserPreferencesManager
+    userPreferencesManager: UserPreferencesManager,
+    onLoginSuccess: () -> Unit
 ) {
     val context = LocalContext.current
-    val isDarkTheme = isSystemInDarkTheme()
-    
-    // State variables
+    val coroutineScope = rememberCoroutineScope()
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var showPassword by remember { mutableStateOf(false) }
-    var isUsernameFocused by remember { mutableStateOf(false) }
-    var isPasswordFocused by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
-    
-    // Responsive values based on screen size
-    val configuration = LocalConfiguration.current
-    val screenHeight = configuration.screenHeightDp.dp
-    val isSmallScreen = screenHeight < 600.dp
-    val dynamicPadding = if (isSmallScreen) 16.dp else 24.dp
-    val fieldHeight = 56.dp
 
     val apiService = remember {
         Retrofit.Builder()
@@ -124,551 +96,289 @@ fun LoginScreen(
             .create(ApiService::class.java)
     }
 
-    // Main container with full screen design
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(if (isDarkTheme) BackgroundDark else BackgroundLight)
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-        // Full screen column layout
+        val scrollState = rememberScrollState()
+        
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .imePadding()
-                .navigationBarsPadding()
         ) {
-            // Header Section with Background Image
+            // Header Section
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(256.dp)
+                    .height(260.dp)
             ) {
-                // Background image
-                androidx.compose.foundation.Image(
-                    painter = painterResource(id = R.drawable.login_bg),
-                    contentDescription = "Login Background",
+                // Background Image
+                Image(
+                    painter = painterResource(R.drawable.login_bg),
+                    contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
 
-                // Gradient overlay
+                // Overlay Gradient
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
-                            Brush.verticalGradient(
+                            brush = Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    if (isDarkTheme) BackgroundDark.copy(alpha = 0.8f) else BackgroundLight.copy(
-                                        alpha = 0.8f
-                                    ),
-                                    if (isDarkTheme) BackgroundDark else BackgroundLight
+                                    MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                                    MaterialTheme.colorScheme.background
                                 )
                             )
                         )
                 )
 
-                // Header content with statusBarsPadding
+                // App Branding
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .statusBarsPadding()
-                        .padding(horizontal = dynamicPadding, vertical = 16.dp),
-                    verticalArrangement = Arrangement.Bottom,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(bottom = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
                 ) {
-                    // Icon container
                     Box(
                         modifier = Modifier
                             .size(64.dp)
-                            .background(
-                                MaterialTheme.colorScheme.primary,
-                                RoundedCornerShape(12.dp)
-                            )
-                            .shadow(
-                                elevation = 16.dp,
-                                shape = RoundedCornerShape(12.dp),
-                                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                            ),
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.primary)
+                            .padding(8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            Icons.Default.LocalShipping,
+                            imageVector = Icons.Default.LocalShipping,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(36.dp)
+                            tint = Color.White,
+                            modifier = Modifier.size(40.dp)
                         )
                     }
-
+                    
                     Spacer(modifier = Modifier.height(12.dp))
-
+                    
                     Text(
                         text = "ATK Cargo",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 28.sp
-                        ),
-                        color = if (isDarkTheme) Color.White else Color(0xFF1F2937)
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
-
+                    
                     Text(
                         text = "مدیریت هوشمند فرآیند بارگیری",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = if (isDarkTheme) Color(0xFF9CA3AF) else Color(0xFF6B7280)
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        modifier = Modifier
+                            .background(
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                shape = CircleShape
+                            )
+                            .padding(horizontal = 12.dp, vertical = 2.dp)
                     )
                 }
             }
 
-            // Form Section
+            // Login Form Section
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = dynamicPadding)
-                    .padding(top = 16.dp),
-                verticalArrangement = Arrangement.SpaceBetween
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Form content
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "ورود به حساب کاربری",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black
+                    )
+                    Text(
+                        text = "خوش آمدید! لطفاً اطلاعات خود را وارد کنید.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Username Field
+                LoginInputField(
+                    value = username,
+                    onValueChange = { 
+                        username = it.trim()
+                        errorMessage = null 
+                    },
+                    label = "نام کاربری",
+                    placeholder = "نام کاربری خودرا وارد کنید",
+                    leadingIcon = Icons.Default.Person,
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                )
+
+                // Password Field
+                LoginInputField(
+                    value = password,
+                    onValueChange = { 
+                        password = it.filter { char -> char.isDigit() }
+                        errorMessage = null 
+                    },
+                    label = "رمز عبور",
+                    placeholder = "رمز عبور خودرا وارد کنید",
+                    leadingIcon = Icons.Default.Lock,
+                    isPassword = true,
+                    passwordVisible = showPassword,
+                    onPasswordToggle = { showPassword = !showPassword },
+                    keyboardType = KeyboardType.NumberPassword,
+                    imeAction = ImeAction.Done
+                )
+
+                // Error Message
+                AnimatedVisibility(
+                    visible = errorMessage != null,
+                    enter = slideInVertically() + fadeIn(),
+                    exit = slideOutVertically() + fadeOut()
                 ) {
-                    // Username field
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
+                    errorMessage?.let {
                         Text(
-                            text = "نام کاربری",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = if (isDarkTheme) Color(0xFF9CA3AF) else Color(0xFF374151)
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .padding(12.dp),
+                            textAlign = TextAlign.Center
                         )
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isUsernameFocused)
-                                        MaterialTheme.colorScheme.primary
-                                    else
-                                        if (isDarkTheme) BorderDark else Color(0xFFE5E7EB),
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .background(
-                                    if (isDarkTheme) SurfaceDark else SurfaceLight,
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .shadow(
-                                    elevation = 1.dp,
-                                    shape = RoundedCornerShape(12.dp),
-                                    ambientColor = Color.Black.copy(alpha = 0.05f),
-                                    spotColor = Color.Black.copy(alpha = 0.05f)
-                                ),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Icon container
-                            Box(
-                                modifier = Modifier
-                                    .padding(start = 12.dp, end = 8.dp)
-                                    .background(
-                                        if (isDarkTheme) Color(0xFF1E293B) else Color(0xFFF8FAFC),
-                                        RoundedCornerShape(8.dp)
-                                    )
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = if (isUsernameFocused)
-                                        MaterialTheme.colorScheme.primary
-                                    else
-                                        if (isDarkTheme) Color(0xFF6B7280) else Color(0xFF9CA3AF),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            OutlinedTextField(
-                                value = username,
-                                onValueChange = {
-                                    username = it.trim()
-                                    if (errorMessage != null) errorMessage = null
-                                },
-                                placeholder = {
-                                    Text(
-                                        text = "atk...",
-                                        color = if (isDarkTheme) Color(0xFF9DA6B9) else Color(
-                                            0xFF9CA3AF
-                                        )
-                                    )
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(min = fieldHeight)
-                                    .onFocusChanged { focusState ->
-                                        isUsernameFocused = focusState.isFocused
-                                    },
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    unfocusedBorderColor = Color.Transparent,
-                                    focusedBorderColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
-                                    focusedContainerColor = Color.Transparent,
-                                    cursorColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedTextColor = if (isDarkTheme) Color.White else Color(
-                                        0xFF1F2937
-                                    ),
-                                    focusedTextColor = if (isDarkTheme) Color.White else Color(
-                                        0xFF1F2937
-                                    )
-                                ),
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Text,
-                                    imeAction = ImeAction.Next
-                                ),
-                                singleLine = true,
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                    textAlign = TextAlign.Start,
-                                    color = if (isDarkTheme) Color.White else Color(0xFF1F2937)
-                                ),
-                                interactionSource = remember { MutableInteractionSource() }
-                            )
-                        }
                     }
+                }
 
-                    // Password field
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = "رمز عبور",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = if (isDarkTheme) Color(0xFF9CA3AF) else Color(0xFF374151)
-                        )
+                Spacer(modifier = Modifier.height(8.dp))
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .border(
-                                    width = 1.dp,
-                                    color = if (isPasswordFocused)
-                                        MaterialTheme.colorScheme.primary
-                                    else
-                                        if (isDarkTheme) BorderDark else Color(0xFFE5E7EB),
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .background(
-                                    if (isDarkTheme) SurfaceDark else SurfaceLight,
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .shadow(
-                                    elevation = 1.dp,
-                                    shape = RoundedCornerShape(12.dp),
-                                    ambientColor = Color.Black.copy(alpha = 0.05f),
-                                    spotColor = Color.Black.copy(alpha = 0.05f)
-                                ),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Icon container
-                            Box(
-                                modifier = Modifier
-                                    .padding(start = 12.dp, end = 8.dp)
-                                    .background(
-                                        if (isDarkTheme) Color(0xFF1E293B) else Color(0xFFF8FAFC),
-                                        RoundedCornerShape(8.dp)
+                // Login Button
+                Button(
+                    onClick = {
+                        if (username.isNotBlank() && password.isNotBlank() && !isLoading) {
+                            coroutineScope.launch {
+                                isLoading = true
+                                errorMessage = null
+
+                                try {
+                                    val hashedPassword = hashPassword(password)
+                                    val deviceModel = Build.MODEL ?: "Unknown"
+                                    val androidVersion = Build.VERSION.RELEASE ?: "Unknown"
+                                    val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+                                    val appVersion = try {
+                                        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
+                                    } catch (_: Exception) {
+                                        "Unknown"
+                                    }
+
+                                    val loginRequest = LoginRequest(
+                                        username = username,
+                                        password = hashedPassword,
+                                        userType = "",
+                                        deviceModel = deviceModel,
+                                        deviceId = deviceId,
+                                        androidVersion = androidVersion,
+                                        appVersion = appVersion
                                     )
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Lock,
-                                    contentDescription = null,
-                                    tint = if (isPasswordFocused)
-                                        MaterialTheme.colorScheme.primary
-                                    else
-                                        if (isDarkTheme) Color(0xFF6B7280) else Color(0xFF9CA3AF),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
 
-                            OutlinedTextField(
-                                value = password,
-                                onValueChange = {
-                                    password = it.filter { char -> char.isDigit() }
-                                    if (errorMessage != null) errorMessage = null
-                                },
-                                placeholder = {
-                                    Text(
-                                        text = "••••••••",
-                                        color = if (isDarkTheme) Color(0xFF9DA6B9) else Color(
-                                            0xFF9CA3AF
-                                        )
-                                    )
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(min = fieldHeight)
-                                    .onFocusChanged { focusState ->
-                                        isPasswordFocused = focusState.isFocused
-                                    },
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    unfocusedBorderColor = Color.Transparent,
-                                    focusedBorderColor = Color.Transparent,
-                                    unfocusedContainerColor = Color.Transparent,
-                                    focusedContainerColor = Color.Transparent,
-                                    cursorColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedTextColor = if (isDarkTheme) Color.White else Color(
-                                        0xFF1F2937
-                                    ),
-                                    focusedTextColor = if (isDarkTheme) Color.White else Color(
-                                        0xFF1F2937
-                                    )
-                                ),
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.NumberPassword,
-                                    imeAction = ImeAction.Done
-                                ),
-                                singleLine = true,
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                    textAlign = TextAlign.Start,
-                                    color = if (isDarkTheme) Color.White else Color(0xFF1F2937),
-                                    letterSpacing = (0.1).em
-                                ),
-                                visualTransformation = if (showPassword) VisualTransformation.None
-                                else PasswordVisualTransformation(),
-                                interactionSource = remember { MutableInteractionSource() }
-                            )
+                                    val response = apiService.checkLogin(loginRequest)
 
-                            // Visibility toggle button
-                            IconButton(
-                                onClick = { showPassword = !showPassword },
-                                modifier = Modifier
-                                    .padding(end = 4.dp)
-                                    .size(48.dp)
-                            ) {
-                                Icon(
-                                    if (showPassword) Icons.Default.Visibility
-                                    else Icons.Default.VisibilityOff,
-                                    contentDescription = if (showPassword) "پنهان کردن رمز" else "نمایش رمز",
-                                    tint = if (isDarkTheme) Color(0xFF6B7280) else Color(0xFF9CA3AF),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Error message
-                    AnimatedVisibility(
-                        visible = errorMessage != null,
-                        enter = slideInVertically() + fadeIn(),
-                        exit = slideOutVertically() + fadeOut()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    MaterialTheme.colorScheme.errorContainer,
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Error,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = errorMessage ?: "",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Login button
-                    Button(
-                        onClick = {
-                            if (username.isNotBlank() && password.isNotBlank() && !isLoading) {
-                                coroutineScope.launch {
-                                    isLoading = true
-                                    errorMessage = null
-
-                                    try {
-                                        val hashedPassword = hashPassword(password)
-                                        val deviceModel = Build.MODEL ?: "Unknown"
-                                        val androidVersion = Build.VERSION.RELEASE ?: "Unknown"
-                                        val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
-                                        val appVersion = try {
-                                            context.packageManager.getPackageInfo(
-                                                context.packageName,
-                                                0
-                                            ).versionName ?: "Unknown"
-                                        } catch (_: Exception) {
-                                            "Unknown"
+                                    if (response.isSuccessful) {
+                                        val responseBody = response.body()
+                                        if (responseBody != null && responseBody.success) {
+                                            responseBody.sessionToken?.let { sessionToken ->
+                                                userPreferencesManager.saveSessionToken(sessionToken)
+                                            }
+                                            
+                                            userPreferencesManager.saveUserCredentials(
+                                                username,
+                                                responseBody.userType ?: "",
+                                                deviceId,
+                                                responseBody.sessionToken ?: ""
+                                            )
+                                            userPreferencesManager.setLoginState(true)
+                                            
+                                            onLoginSuccess()
+                                        } else {
+                                            errorMessage = responseBody?.message ?: "خطا در ورود"
                                         }
-
-                                        val loginRequest = LoginRequest(
-                                            username = username,
-                                            password = hashedPassword,
-                                            userType = "",
-                                            deviceModel = deviceModel,
-                                            deviceId = deviceId,
-                                            androidVersion = androidVersion,
-                                            appVersion = appVersion
-                                        )
-
-                                        val response = apiService.checkLogin(loginRequest)
-
-                                        if (response.isSuccessful) {
-                                            val responseBody = response.body()
-                                            if (responseBody != null && responseBody.success) {
-                                                responseBody.sessionToken?.let { sessionToken ->
-                                                    launch {
-                                                        userPreferencesManager.saveSessionToken(
-                                                            sessionToken
-                                                        )
-                                                    }
-                                                }
-
-                                                onLoginChecked(
-                                                    true,
-                                                    responseBody.message,
-                                                    responseBody.userType ?: "",
-                                                    username
-                                                )
-                                                updateSessionValidity(true)
-                                            } else {
-                                                errorMessage =
-                                                    responseBody?.message ?: "خطا در ورود"
+                                    } else {
+                                        if (response.code() == 409) {
+                                            try {
+                                                val errorBody = response.errorBody()?.string()
+                                                val gson = Gson()
+                                                val errorResponse = gson.fromJson(errorBody, SessionResponse::class.java)
+                                                errorMessage = errorResponse?.message ?: "شما در حال حاضر از دستگاه دیگری وارد شده‌اید."
+                                            } catch (_: Exception) {
+                                                errorMessage = "شما در حال حاضر از دستگاه دیگری وارد شده‌اید."
                                             }
                                         } else {
-                                            // برای کد 409، سعی می‌کنیم پیام سرور را دریافت کنیم
-                                            if (response.code() == 409) {
-                                                try {
-                                                    val errorBody = response.errorBody()?.string()
-                                                    val gson = Gson()
-                                                    val errorResponse = gson.fromJson(
-                                                        errorBody,
-                                                        SessionResponse::class.java
-                                                    )
-                                                    errorMessage = errorResponse?.message
-                                                        ?: "شما در حال حاضر از دستگاه دیگری وارد شده‌اید. لطفاً ابتدا از آن دستگاه خارج شوید."
-                                                } catch (_: Exception) {
-                                                    errorMessage =
-                                                        "شما در حال حاضر از دستگاه دیگری وارد شده‌اید. لطفاً ابتدا از دستگاه اولی خارج شوید."
-                                                }
-                                            } else {
-                                                errorMessage = when (response.code()) {
-                                                    401 -> "نام کاربری یا رمز عبور اشتباه است"
-                                                    403 -> "دسترسی مجاز نیست"
-                                                    500 -> "خطای سرور"
-                                                    else -> "خطا در اتصال"
-                                                }
+                                            errorMessage = when (response.code()) {
+                                                401 -> "نام کاربری یا رمز عبور اشتباه است"
+                                                403 -> "دسترسی مجاز نیست"
+                                                500 -> "خطای سرور"
+                                                else -> "خطا در اتصال"
                                             }
                                         }
-                                    } catch (e: Exception) {
-                                        errorMessage = when (e) {
-                                            is java.net.UnknownHostException -> "عدم دسترسی به اینترنت"
-                                            is java.net.SocketTimeoutException -> "زمان اتصال به پایان رسید"
-                                            else -> "خطا در اتصال"
-                                        }
-                                    } finally {
-                                        isLoading = false
                                     }
+                                } catch (e: Exception) {
+                                    errorMessage = when (e) {
+                                        is java.net.UnknownHostException -> "عدم دسترسی به اینترنت"
+                                        is java.net.SocketTimeoutException -> "زمان اتصال به پایان رسید"
+                                        else -> "خطا در اتصال"
+                                    }
+                                } finally {
+                                    isLoading = false
                                 }
                             }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .shadow(
-                                elevation = 8.dp,
-                                shape = RoundedCornerShape(12.dp),
-                                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                            ),
-                        enabled = username.isNotBlank() && password.isNotBlank() && !isLoading,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            disabledContainerColor = if (isDarkTheme) Color(0xFF374151) else Color(
-                                0xFFE5E7EB
-                            )
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    enabled = username.isNotBlank() && password.isNotBlank() && !isLoading,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
                         )
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    strokeWidth = 2.5.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                            } else {
-                                Row(
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = if (isDarkTheme) "ورود" else "ورود به سامانه",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 16.sp
-                                        ),
-                                        color = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.Login,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // Footer at bottom
-                    Column {
-                        val appVersion = remember {
-                            try {
-                                context.packageManager.getPackageInfo(
-                                    context.packageName,
-                                    0
-                                ).versionName ?: "2.4.0"
-                            } catch (_: Exception) {
-                                "2.4.0"
-                            }
-                        }
-
-                        Text(
-                            text = "v$appVersion",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = if (isDarkTheme) Color(0xFF6B7280) else Color(0xFF9CA3AF),
-                            textAlign = TextAlign.Center,
+                    } else {
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
-                        )
-
-                        // Fixed bottom spacing
-                        Spacer(modifier = Modifier.height(16.dp))
+                        ) {
+                            Text(
+                                "ورود به سامانه",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Login,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -676,8 +386,78 @@ fun LoginScreen(
     }
 }
 
+@Composable
+fun LoginInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    leadingIcon: androidx.compose.ui.graphics.vector.ImageVector,
+    isPassword: Boolean = false,
+    passwordVisible: Boolean = false,
+    onPasswordToggle: () -> Unit = {},
+    keyboardType: KeyboardType = KeyboardType.Text,
+    imeAction: ImeAction = ImeAction.Default
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text(placeholder) },
+            leadingIcon = {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            },
+            trailingIcon = if (isPassword) {
+                {
+                    IconButton(onClick = onPasswordToggle) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = if (passwordVisible) "پنهان کردن" else "نمایش",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            } else null,
+            modifier = Modifier
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = keyboardType,
+                imeAction = imeAction
+            ),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+            )
+        )
+    }
+}
+
 fun hashPassword(password: String): String {
-    return MessageDigest.getInstance("SHA-256")
-        .digest(password.toByteArray())
-        .fold("") { str, it -> str + "%02x".format(it) }
+    return try {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val bytes = digest.digest(password.toByteArray())
+        bytes.fold("") { str, it -> str + "%02x".format(it) }
+    } catch (_: Exception) {
+        password
+    }
 }
