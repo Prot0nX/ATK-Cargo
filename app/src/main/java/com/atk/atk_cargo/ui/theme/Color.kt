@@ -73,3 +73,39 @@ val Red900 = Color(0xFFB71C1C)
 // رنگ‌های اضافی برای تم تاریک
 val DarkBackground = Color(0xFF121212)
 val DarkSurface = Color(0xFF1E1E1E)
+
+// رنگ‌های جدید برای تم‌های Light و Dark (ATK-Cargo)
+// رنگ اصلی آبی
+val PrimaryBlue = Color(0xFF137fec)
+val PrimaryBlueDark = Color(0xFF0D47A1)
+val PrimaryBlueLight = Color(0xFF64B5F6)
+
+// رنگ‌های پس‌زمینه
+val BackgroundLight = Color(0xFFf6f7f8)
+val BackgroundDark = Color(0xFF101922)
+
+// رنگ‌های سطح (Surface)
+val SurfaceLight = Color(0xFFFFFFFF)
+val SurfaceDark = Color(0xFF1C2936)
+
+// رنگ‌های حاشیه و جزئیات
+val BorderLight = Color(0xFFE5E7EB)
+val BorderDark = Color(0xFF3B4354)
+
+// رنگ‌های متن
+val TextPrimaryLight = Color(0xFF1F2937)
+val TextPrimaryDark = Color(0xFFFFFFFF)
+val TextSecondaryLight = Color(0xFF6B7280)
+val TextSecondaryDark = Color(0xFF9CA3AF)
+val TextTertiaryLight = Color(0xFF9CA3AF)
+val TextTertiaryDark = Color(0xFF6B7280)
+
+// رنگ‌های Placeholder
+val PlaceholderLight = Color(0xFF9CA3AF)
+val PlaceholderDark = Color(0xFF9DA6B9)
+
+// رنگ‌های خطا
+val ErrorLight = Color(0xFFEF4444)
+val ErrorDark = Color(0xFFEF4444)
+val ErrorContainerLight = Color(0xFFFEE2E2)
+val ErrorContainerDark = Color(0xFF7F1D1D)

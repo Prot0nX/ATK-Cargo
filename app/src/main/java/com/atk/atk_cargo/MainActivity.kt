@@ -86,8 +86,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Check
@@ -115,8 +113,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
@@ -171,7 +167,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -200,14 +195,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.atk.atk_cargo.api.ApiService
 import com.atk.atk_cargo.api.CargoViewModel
 import com.atk.atk_cargo.api.CargoViewModelFactory
-import com.atk.atk_cargo.api.Constants
 import com.atk.atk_cargo.api.CreateUserRequest
 import com.atk.atk_cargo.api.DeleteUserRequest
 import com.atk.atk_cargo.api.LoadingNotificationService
-import com.atk.atk_cargo.api.LoginRequest
 import com.atk.atk_cargo.api.LogoutRequest
 import com.atk.atk_cargo.api.MenuItem
 import com.atk.atk_cargo.api.QuotaTonnageWarning
@@ -215,7 +207,6 @@ import com.atk.atk_cargo.api.ReportsRepository
 import com.atk.atk_cargo.api.ReportsViewModel
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.SessionCheckRequest
-import com.atk.atk_cargo.api.SessionResponse
 import com.atk.atk_cargo.api.TonnageNotificationManager
 import com.atk.atk_cargo.api.TonnageWarningService
 import com.atk.atk_cargo.api.UpdateInfo
@@ -241,10 +232,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import java.net.URLDecoder
-import java.security.MessageDigest
 import java.util.UUID
 
 class MainActivity : ComponentActivity() {
@@ -270,7 +258,7 @@ class MainActivity : ComponentActivity() {
 
         try {
             initializeDependencies()
-            
+
             // بررسی intent برای باز کردن دیالوگ هشدار تناژ کوتاژ
             handleIntent(intent)
 
@@ -742,7 +730,7 @@ fun UpdateDialog(
         }
     }
 }
- 
+
 @Composable
 private fun DownloadingState(
     progress: UpdateManager.DownloadProgress,
@@ -1168,7 +1156,6 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
     val userPreferencesManager = remember { UserPreferencesManager(context) }
     val username by userPreferencesManager.username.collectAsState(initial = "")
     val userType by userPreferencesManager.userType.collectAsState(initial = "")
-    var showLoginDialog by remember { mutableStateOf(false) }
     var showUserManagement by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -1219,7 +1206,6 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                             username = username,
                                             userType = userType,
                                             isSessionValid = isSessionValid,
-                                            onLoginClick = { showLoginDialog = true },
                                             onLogoutClick = {
                                                 coroutineScope.launch {
                                                     try {
@@ -1558,7 +1544,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                         )
 
                                         Text(
-                                            "سایت نیاکوزرین",
+                                            "سایت هانگار",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -1570,35 +1556,6 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                 }
             }
         }
-
-        if (showLoginDialog) {
-            LoginDialog(
-                onDismiss = { showLoginDialog = false },
-                onLoginChecked = { success, message, loggedInUserType, loggedInUsername ->
-                    if (success) {
-                        showLoginDialog = false
-                        coroutineScope.launch {
-                            val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
-                            // دریافت session_token از UserPreferencesManager
-                            val sessionToken = userPreferencesManager.sessionToken.first()
-                            userPreferencesManager.saveUserCredentials(loggedInUsername, loggedInUserType, deviceId, sessionToken)
-                            // ذخیره وضعیت ورود کاربر
-                            userPreferencesManager.setLoginState(true)
-                            mainActivity.updateSessionValidity(true)
-                            // شروع بررسی دوره‌ای جلسه پس از ورود موفق
-                            mainActivity.startLoadingNotificationService()
-                        }
-                    } else {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar(message)
-                        }
-                    }
-                },
-                updateSessionValidity = mainActivity::updateSessionValidity,
-                userPreferencesManager = userPreferencesManager
-            )
-        }
-
         if (showUserManagement) {
             UserManagementDialog(
                 onDismiss = { showUserManagement = false }
@@ -1685,7 +1642,7 @@ fun SplashScreen(onSkip: () -> Unit) {
             if (isSkipped) {
                 // fade out تدریجی صدا (اگر صدا داشت)
                 // سپس pause
-                kotlinx.coroutines.delay(200)
+                delay(200)
                 exoPlayer.pause()
             }
         }
@@ -1804,7 +1761,6 @@ fun HomeScreen(
     username: String,
     userType: String,
     isSessionValid: Boolean,
-    onLoginClick: () -> Unit,
     onLogoutClick: () -> Unit,
     onManageUsersClick: () -> Unit,
     warningsCount: Int = 0
@@ -1905,7 +1861,9 @@ fun HomeScreen(
                     warningsCount = warningsCount
                 )
 
-                WelcomeSection(username)
+                if (isLoggedIn) {
+                    WelcomeSection(username)
+                }
 
                 if (isLoggedIn) {
                     LaunchedEffect(Unit) {
@@ -1930,17 +1888,25 @@ fun HomeScreen(
                         }
                     )
                 } else {
-                    AnimatedVisibility(
-                        visible = true,
-                        enter = fadeIn(animationSpec = tween(600)) + expandVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            )
-                        )
-                    ) {
-                        LoginPrompt(onLoginClick = onLoginClick)
-                    }
+                    LoginScreen(
+                        onLoginChecked = { success, message, loggedInUserType, loggedInUsername ->
+                            if (success) {
+                                coroutineScope.launch {
+                                    val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+                                    // دریافت session_token از UserPreferencesManager
+                                    val sessionToken = userPreferencesManager.sessionToken.first()
+                                    userPreferencesManager.saveUserCredentials(loggedInUsername, loggedInUserType, deviceId, sessionToken)
+                                    // ذخیره وضعیت ورود کاربر
+                                    userPreferencesManager.setLoginState(true)
+                                    mainActivity.updateSessionValidity(true)
+                                    // شروع بررسی دوره‌ای جلسه پس از ورود موفق
+                                    mainActivity.startLoadingNotificationService()
+                                }
+                            }
+                        },
+                        updateSessionValidity = mainActivity::updateSessionValidity,
+                        userPreferencesManager = userPreferencesManager
+                    )
                 }
             }
         }
@@ -1995,13 +1961,13 @@ private fun Header(
             )
         }
     }
-    
+
     // بررسی برای باز کردن دیالوگ هشدار تناژ کوتاژ از طریق نوتیفیکیشن
     LaunchedEffect(mainActivity.shouldOpenWarningsDialog) {
         if (mainActivity.shouldOpenWarningsDialog) {
             showQuotaTonnage = true
             mainActivity.shouldOpenWarningsDialog = false
-            
+
             // حذف نوتیفیکیشن هشدار بعد از باز شدن دیالوگ
             val tonnageNotificationManager = TonnageNotificationManager(mainActivity)
             tonnageNotificationManager.cancelWarningNotification()
@@ -2073,7 +2039,7 @@ private fun Header(
             }
         }
     }
-    
+
     // دیالوگ منوی گزارشات
     if (showReportsMenu) {
         ReportsMenuDialog(
@@ -2093,17 +2059,17 @@ private fun Header(
             warningsCount = warningsCount
         )
     }
-    
+
     // دیالوگ خلاصه آمار
     if (showSummary) {
         SummaryDialog(onDismiss = { showSummary = false })
     }
-    
+
     // دیالوگ کوتاژهای فعال
     if (showActiveQuotas) {
         ActiveQuotasDialog(onDismiss = { showActiveQuotas = false })
     }
-    
+
     // دیالوگ تناژ کوتاژ
     if (showQuotaTonnage) {
         QuotaTonnageDialog(onDismiss = { showQuotaTonnage = false })
@@ -2158,7 +2124,7 @@ private fun SummaryStatsButton(onClick: () -> Unit, warningsCount: Int = 0) {
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
-                
+
                 // نمایش Badge در صورت وجود هشدار
                 if (warningsCount > 0) {
                     Badge(
@@ -2311,72 +2277,72 @@ fun ProfileMenu(
                     }
                 }
 
-                    // آیکون باز/بسته کردن منو
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (expanded)
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                else
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ExpandMore,
-                            contentDescription = if (expanded) "بستن منو" else "باز کردن منو",
-                            modifier = Modifier
-                                .size(20.dp)
-                                .rotate(rotationState),
-                            tint = if (expanded)
-                                MaterialTheme.colorScheme.primary
+                // آیکون باز/بسته کردن منو
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (expanded)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                             else
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                // بخش گسترش‌یافته منو
-                AnimatedVisibility(
-                    visible = expanded,
-                    enter = expandVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    ) + fadeIn(),
-                    exit = shrinkVertically() + fadeOut()
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(
+                    Icon(
+                        imageVector = Icons.Default.ExpandMore,
+                        contentDescription = if (expanded) "بستن منو" else "باز کردن منو",
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp)
-                    ) {
-                        // خط جداکننده
-                        HorizontalDivider(
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                        )
+                            .size(20.dp)
+                            .rotate(rotationState),
+                        tint = if (expanded)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+            // بخش گسترش‌یافته منو
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                ) + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                ) {
+                    // خط جداکننده
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                    )
 
-                        // دکمه‌های عملیات
-                        ActionButtons(
-                            onSettingsClick = {
-                                showSettings = true
-                                expanded = false
-                            },
-                            onLogoutClick = {
-                                expanded = false
-                                onLogoutClick()
-                            }
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // دکمه‌های عملیات
+                    ActionButtons(
+                        onSettingsClick = {
+                            showSettings = true
+                            expanded = false
+                        },
+                        onLogoutClick = {
+                            expanded = false
+                            onLogoutClick()
+                        }
+                    )
                 }
             }
         }
+    }
 
     // دیالوگ تنظیمات پروفایل
     if (showSettings && currentUser != null) {
@@ -3077,7 +3043,7 @@ private fun ReportsMenuDialog(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    
+
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier.size(32.dp)
@@ -3089,12 +3055,12 @@ private fun ReportsMenuDialog(
                         )
                     }
                 }
-                
+
                 HorizontalDivider(
                     thickness = 1.dp,
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                 )
-                
+
                 // گزینه‌ها
                 ReportMenuItem(
                     icon = Icons.Default.Info,
@@ -3102,14 +3068,14 @@ private fun ReportsMenuDialog(
                     description = "نمایش آمار کلی و روند بارگیری",
                     onClick = onSummaryClick
                 )
-                
+
                 ReportMenuItem(
                     icon = Icons.Default.Inventory,
                     title = "گزارش کوتاژهای فعال",
                     description = "مانده تناژ کوتاژهای در حال بارگیری",
                     onClick = onActiveQuotasClick
                 )
-                
+
                 ReportMenuItem(
                     icon = Icons.Default.Checklist,
                     title = "گزارش هشدار تناژ کوتاژ",
@@ -3160,7 +3126,7 @@ private fun ReportMenuItem(
                         modifier = Modifier.size(24.dp)
                     )
                 }
-                
+
                 // نمایش Badge در صورت وجود هشدار
                 if (badgeCount > 0) {
                     Badge(
@@ -3178,7 +3144,7 @@ private fun ReportMenuItem(
                     }
                 }
             }
-            
+
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -3195,7 +3161,7 @@ private fun ReportMenuItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = null,
@@ -3223,7 +3189,7 @@ private fun ActiveQuotasDialog(onDismiss: () -> Unit) {
                 isLoading = true
                 errorMessage = null
             }
-            
+
             try {
                 val response = RetrofitClient.apiService.getActiveQuotasRemaining()
                 if (response.isSuccessful) {
@@ -3232,7 +3198,7 @@ private fun ActiveQuotasDialog(onDismiss: () -> Unit) {
                         if (body.isNotEmpty()) {
                             val gson = Gson()
                             val parsedData = gson.fromJson(body, ActiveQuotasResponse::class.java)
-                            
+
                             withContext(Dispatchers.Main) {
                                 quotasResponse = parsedData
                             }
@@ -3262,12 +3228,12 @@ private fun ActiveQuotasDialog(onDismiss: () -> Unit) {
     LaunchedEffect(refreshTrigger) {
         loadData()
     }
-    
+
     // گروه‌بندی و فیلتر داده‌ها - بهینه‌شده
     val groupedAndFilteredData = remember(quotasResponse, searchQuery) {
         quotasResponse?.data?.let { quotas ->
             if (quotas.isEmpty()) return@let emptyMap()
-            
+
             // فیلتر براساس جستجو (فقط عددی) - بهینه با asSequence
             val filtered = if (searchQuery.isNotEmpty()) {
                 val searchLong = searchQuery.toLongOrNull()
@@ -3281,9 +3247,9 @@ private fun ActiveQuotasDialog(onDismiss: () -> Unit) {
             } else {
                 quotas
             }
-            
+
             if (filtered.isEmpty()) return@let emptyMap()
-            
+
             // گروه‌بندی بهینه با asSequence
             filtered
                 .groupBy { it.shipName }
@@ -3359,13 +3325,13 @@ private fun ActiveQuotasDialog(onDismiss: () -> Unit) {
                                 Icons.Default.Refresh,
                                 contentDescription = "بروزرسانی",
                                 modifier = Modifier.size(20.dp),
-                                tint = if (isLoading) 
+                                tint = if (isLoading)
                                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                else 
+                                else
                                     MaterialTheme.colorScheme.primary
                             )
                         }
-                        
+
                         IconButton(
                             onClick = onDismiss,
                             modifier = Modifier.size(32.dp)
@@ -3383,7 +3349,7 @@ private fun ActiveQuotasDialog(onDismiss: () -> Unit) {
                     thickness = 1.dp,
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                 )
-                
+
                 // فیلد جستجو
                 if (!isLoading && errorMessage == null && quotasResponse != null) {
                     OutlinedTextField(
@@ -3479,7 +3445,7 @@ private fun ActiveQuotasDialog(onDismiss: () -> Unit) {
                                 }
                             }
                         }
-                        
+
                         else -> {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -3515,13 +3481,13 @@ private fun ShipAccordionCard(
 ) {
     // محاسبه مانده کل کشتی
     val totalRemaining = cargoOwnerMap.values.flatten().sumOf { it.remainingTonnage }
-    
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = if (isExpanded) 
+        color = if (isExpanded)
             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
-        else 
+        else
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         tonalElevation = if (isExpanded) 2.dp else 0.5.dp
     ) {
@@ -3570,7 +3536,7 @@ private fun ShipAccordionCard(
                             )
                         }
                     }
-                    
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -3589,7 +3555,7 @@ private fun ShipAccordionCard(
                                 color = if (totalRemaining < 50000) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        
+
                         Icon(
                             imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = if (isExpanded) "بستن" else "باز کردن",
@@ -3599,7 +3565,7 @@ private fun ShipAccordionCard(
                     }
                 }
             }
-            
+
             // محتوای گسترش‌یافته
             if (isExpanded) {
                 HorizontalDivider(
@@ -3607,7 +3573,7 @@ private fun ShipAccordionCard(
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
-                
+
                 Column(
                     modifier = Modifier.padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -3625,7 +3591,7 @@ private fun ShipAccordionCard(
                                 color = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.padding(bottom = 2.dp)
                             )
-                            
+
                             // کوتاژهای مرتب شده براساس تناژ مانده
                             quotas.forEach { quota ->
                                 QuotaItemCard(quota = quota)
@@ -3644,13 +3610,13 @@ private fun QuotaItemCard(quota: QuotaData) {
     val scope = rememberCoroutineScope()
     var isToggling by remember { mutableStateOf(false) }
     var isActive by remember { mutableStateOf(quota.status != "فعال" && quota.status != "active") }
-    
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        color = if (isActive) 
+        color = if (isActive)
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-        else 
+        else
             MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
         tonalElevation = 0.25.dp,
         border = if (!isActive) BorderStroke(0.5.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f)) else null
@@ -3686,7 +3652,7 @@ private fun QuotaItemCard(quota: QuotaData) {
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            
+
             // بخش وسط: مانده و درصد
             Column(
                 horizontalAlignment = Alignment.End,
@@ -3702,9 +3668,9 @@ private fun QuotaItemCard(quota: QuotaData) {
                         text = String.format("%,.0f", quota.remainingTonnage),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (quota.remainingTonnage < 50000) 
-                            MaterialTheme.colorScheme.error 
-                        else 
+                        color = if (quota.remainingTonnage < 50000)
+                            MaterialTheme.colorScheme.error
+                        else
                             MaterialTheme.colorScheme.onSurface
                     )
                     Text(
@@ -3719,11 +3685,10 @@ private fun QuotaItemCard(quota: QuotaData) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             // دکمه عمل: فعال/غیرفعال کردن کوتاژ
             if (isToggling) {
                 LoadingActionButton(
-                    label = "تغییر",
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.width(36.dp)
                 )
@@ -3795,7 +3760,6 @@ private fun CompactActionButton(
 
 @Composable
 private fun LoadingActionButton(
-    label: String,
     color: Color,
     modifier: Modifier = Modifier
 ) {
@@ -3840,7 +3804,7 @@ private fun QuotaTonnageDialog(onDismiss: () -> Unit) {
                 warnings = emptyList()
                 isAllClear = false
             }
-            
+
             try {
                 val response = RetrofitClient.apiService.getActiveQuotaReport()
                 if (response.isSuccessful) {
@@ -3848,7 +3812,7 @@ private fun QuotaTonnageDialog(onDismiss: () -> Unit) {
                         val body = responseBody.string()
                         if (body.isNotEmpty()) {
                             val parsedWarnings = parseQuotaTonnageData(body)
-                            
+
                             withContext(Dispatchers.Main) {
                                 if (parsedWarnings.isEmpty() && body.contains("در حد مجاز")) {
                                     isAllClear = true
@@ -3939,13 +3903,13 @@ private fun QuotaTonnageDialog(onDismiss: () -> Unit) {
                                 Icons.Default.Refresh,
                                 contentDescription = "بروزرسانی",
                                 modifier = Modifier.size(20.dp),
-                                tint = if (isLoading) 
+                                tint = if (isLoading)
                                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                else 
+                                else
                                     MaterialTheme.colorScheme.primary
                             )
                         }
-                        
+
                         IconButton(
                             onClick = onDismiss,
                             modifier = Modifier.size(32.dp)
@@ -4013,7 +3977,7 @@ private fun QuotaTonnageDialog(onDismiss: () -> Unit) {
                             // نمایش پیام همه چیز خوب است
                             AllClearMessage()
                         }
-                        
+
                         warnings.isNotEmpty() -> {
                             // نمایش لیست هشدارها
                             LazyColumn(
@@ -4034,10 +3998,10 @@ private fun QuotaTonnageDialog(onDismiss: () -> Unit) {
 
 fun parseQuotaTonnageData(rawData: String): List<QuotaTonnageWarning> {
     val warnings = mutableListOf<QuotaTonnageWarning>()
-    
+
     // تقسیم به بلوک‌های جداگانه
     val blocks = rawData.split("━━━━━━━━━━━━━━━━")
-    
+
     for (block in blocks) {
         if (block.contains("کشتی") && block.contains("کوتاژ")) {
             try {
@@ -4047,9 +4011,9 @@ fun parseQuotaTonnageData(rawData: String): List<QuotaTonnageWarning> {
                 val currentRemaining = block.substringAfter("مانده فعلی: ").substringBefore(" کیلوگرم").trim()
                 val voucherCount = block.substringAfter("حواله‌های ورود شده: ").substringBefore(" عدد").trim()
                 val remainingAfterExit = block.substringAfter("مانده بعداز خروج: ").substringBefore(" کیلوگرم").trim()
-                
+
                 val isNegative = remainingAfterExit.contains("−") || remainingAfterExit.contains("-")
-                
+
                 warnings.add(
                     QuotaTonnageWarning(
                         shipName = shipName,
@@ -4066,7 +4030,7 @@ fun parseQuotaTonnageData(rawData: String): List<QuotaTonnageWarning> {
             }
         }
     }
-    
+
     return warnings
 }
 
@@ -4075,13 +4039,13 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
     val scope = rememberCoroutineScope()
     var isToggling by remember { mutableStateOf(false) }
     var isActive by remember { mutableStateOf(warning.isActive) }
-    
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = if (isActive) 
+        color = if (isActive)
             MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)
-        else 
+        else
             MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.05f),
         border = BorderStroke(
             1.5.dp,
@@ -4121,7 +4085,7 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
                         color = MaterialTheme.colorScheme.error
                     )
                 }
-                
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -4149,12 +4113,12 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
                     }
                 }
             }
-            
+
             HorizontalDivider(
                 thickness = 1.dp,
                 color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
             )
-            
+
             // اطلاعات کشتی و صاحب کالا
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -4175,7 +4139,7 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
                     valueColor = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
             }
-            
+
             // مانده فعلی و تعداد حواله
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -4196,7 +4160,7 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
                     valueColor = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
             }
-            
+
             // مانده بعد از خروج (برجسته)
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -4238,17 +4202,16 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
                     )
                 }
             }
-            
+
             // دکمهٔ غیرفعال‌سازی کوتاژ
             HorizontalDivider(
                 thickness = 1.dp,
                 color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
                 modifier = Modifier.padding(vertical = 8.dp)
             )
-            
+
             if (isToggling) {
                 LoadingActionButton(
-                    label = "در حال تغییر...",
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -4367,18 +4330,18 @@ private fun AllClearMessage() {
                 modifier = Modifier.size(50.dp)
             )
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
-        
+
         Text(
             "همه چیز در حد مجاز است!",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         )
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         Text(
             "تناژ کوتاژها در حد مجاز هستند و مشکلی برای بارگیری وجود ندارد",
             style = MaterialTheme.typography.bodyMedium,
@@ -4413,7 +4376,7 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                         if (jsonString.endsWith("```")) {
                             jsonString = jsonString.removeSuffix("```").trim()
                         }
-                        
+
                         if (jsonString.startsWith("\"") && jsonString.endsWith("\"")) {
                             jsonString = jsonString.substring(1, jsonString.length - 1)
                                 .replace("\\\"", "\"")
@@ -4423,7 +4386,7 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
 
                         val gson = Gson()
                         val jsonElement = gson.fromJson(jsonString, com.google.gson.JsonElement::class.java)
-                        
+
                         if (jsonElement.isJsonPrimitive && jsonElement.asJsonPrimitive.isString) {
                             // اگر هنوز String است، دوباره پارس می‌کنیم
                             val innerJson = jsonElement.asString
@@ -4434,7 +4397,7 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                         } else {
                             errorMessage = "فرمت داده نامعتبر است"
                         }
-                        
+
                         if (summaryData == null) {
                             errorMessage = "خطا در پردازش داده"
                         }
@@ -4596,14 +4559,14 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                             val warehouse1Length = (summaryData!!.warehouseStatus?.mostActive?.length ?: 0) * 40L
                             val warehouse2Length = (summaryData!!.warehouseStatus?.leastActive?.length ?: 0) * 40L
                             val warehouseTotalLength = warehouse1Length + warehouse2Length + 200L
-                            
+
                             val quotaSectionDelay = warehouseSectionDelay + warehouseTotalLength + 100L
                             val quota1Length = (summaryData!!.quotaStatus?.mostActive?.length ?: 0) * 40L
                             val quota2Length = (summaryData!!.quotaStatus?.leastActive?.length ?: 0) * 40L
                             val quotaTotalLength = quota1Length + quota2Length + 200L
-                            
+
                             val trendSectionDelay = quotaSectionDelay + quotaTotalLength + 100L
-                            
+
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -4615,8 +4578,7 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                     ExpandableSection(
                                         title = "وضعیت انبارها",
                                         icon = Icons.Default.HomeWork,
-                                        startDelay = 0L,
-                                        scrollState = scrollState
+                                        startDelay = 0L
                                     ) {
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -4649,8 +4611,7 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                     ExpandableSection(
                                         title = "وضعیت کوتاژها",
                                         icon = Icons.Default.Inventory,
-                                        startDelay = quotaSectionDelay,
-                                        scrollState = scrollState
+                                        startDelay = quotaSectionDelay
                                     ) {
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -4683,8 +4644,7 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                     ExpandableSection(
                                         title = "روند کلی بارگیری",
                                         icon = Icons.Default.Checklist,
-                                        startDelay = trendSectionDelay,
-                                        scrollState = scrollState
+                                        startDelay = trendSectionDelay
                                     ) {
                                         TrendCard(
                                             text = trend,
@@ -4732,7 +4692,6 @@ private fun ExpandableSection(
     title: String,
     icon: ImageVector,
     startDelay: Long = 0L,
-    scrollState: ScrollState? = null,
     content: @Composable () -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(true) }
@@ -4834,7 +4793,7 @@ private fun InfoCard(text: String, color: Color, startDelay: Long = 0L, scrollSt
         delay(100)
         val chars = text.toList()
         chars.forEachIndexed { index, _ ->
-            displayedText = text.substring(0, index + 1)
+            displayedText = text.take(index + 1)
             delay(40)
             // اسکرول نرم در حین تایپ
             scrollState?.let {
@@ -4878,7 +4837,7 @@ private fun InfoCard(text: String, color: Color, startDelay: Long = 0L, scrollSt
                         currentIndex = match.range.last + 1
                     }
                     append(displayedText.substring(currentIndex))
-                    
+
                     if (!isTypingComplete) {
                         withStyle(
                             style = SpanStyle(
@@ -4914,7 +4873,7 @@ private fun TrendCard(text: String, scrollState: ScrollState? = null) {
         delay(100)
         val chars = text.toList()
         chars.forEachIndexed { index, _ ->
-            displayedText = text.substring(0, index + 1)
+            displayedText = text.take(index + 1)
             delay(40)
             // اسکرول نرم در حین تایپ
             scrollState?.let {
@@ -4957,7 +4916,7 @@ private fun TrendCard(text: String, scrollState: ScrollState? = null) {
                         currentIndex = match.range.last + 1
                     }
                     append(displayedText.substring(currentIndex))
-                    
+
                     if (!isTypingComplete) {
                         withStyle(
                             style = SpanStyle(
@@ -5362,153 +5321,6 @@ private fun getMenuDescription(route: String): String {
         "manage_ships" -> "گزارش‌های مدیریتی"
         "manage_users" -> "مدیریت کاربران سیستم"
         else -> ""
-    }
-}
-
-@Composable
-private fun LoginPrompt(onLoginClick: () -> Unit) {
-    val scale = remember { Animatable(0.95f) }
-    val shadowElevation = remember { Animatable(0f) }
-
-    LaunchedEffect(Unit) {
-        delay(300)
-        launch {
-            scale.animateTo(
-                targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            )
-        }
-        shadowElevation.animateTo(
-            targetValue = 10f,
-            animationSpec = tween(durationMillis = 500)
-        )
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(32.dp)
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .scale(scale.value),
-            shape = RoundedCornerShape(28.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = shadowElevation.value.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.05f)
-                            )
-                        )
-                    )
-            ) {
-                // دایره تزئینی پشت آیکون
-                Box(
-                    modifier = Modifier
-                        .size(140.dp)
-                        .offset(x = (-20).dp, y = (-20).dp)
-                        .background(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                    Color.Transparent
-                                )
-                            ),
-                            shape = CircleShape
-                        )
-                )
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // آیکون قفل در دایره
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-                                    )
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = null,
-                            modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Text(
-                        "برای دسترسی به منوها وارد شوید",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        "دسترسی به تمامی امکانات سیستم تنها با ورود به حساب کاربری امکان‌پذیر است",
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    Button(
-                        onClick = onLoginClick,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Login,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "ورود به سیستم",
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -6082,10 +5894,10 @@ fun AddUserDialog(
                         // فقط حروف فارسی و فاصله مجاز است
                         val newValue = input.filter { char ->
                             char == ' ' || // فاصله معمولی
-                            char == '\u200C' || // نیم‌فاصله (ZWNJ)
-                            (char.code in 0x0600..0x06FF) || // حروف فارسی
-                            (char.code in 0xFB50..0xFDFF) || // اشکال متصل فارسی
-                            (char.code in 0xFE70..0xFEFF) // اشکال دیگر فارسی
+                                    char == '\u200C' || // نیم‌فاصله (ZWNJ)
+                                    (char.code in 0x0600..0x06FF) || // حروف فارسی
+                                    (char.code in 0xFB50..0xFDFF) || // اشکال متصل فارسی
+                                    (char.code in 0xFE70..0xFEFF) // اشکال دیگر فارسی
                         }
                         fullName = newValue
                         errorMessage = ""
@@ -6527,10 +6339,10 @@ private fun EditUserDialog(
                         // فقط حروف فارسی و فاصله مجاز است
                         val newValue = input.filter { char ->
                             char == ' ' || // فاصله معمولی
-                            char == '\u200C' || // نیم‌فاصله (ZWNJ)
-                            (char.code in 0x0600..0x06FF) || // حروف فارسی
-                            (char.code in 0xFB50..0xFDFF) || // اشکال متصل فارسی
-                            (char.code in 0xFE70..0xFEFF) // اشکال دیگر فارسی
+                                    char == '\u200C' || // نیم‌فاصله (ZWNJ)
+                                    (char.code in 0x0600..0x06FF) || // حروف فارسی
+                                    (char.code in 0xFB50..0xFDFF) || // اشکال متصل فارسی
+                                    (char.code in 0xFE70..0xFEFF) // اشکال دیگر فارسی
                         }
                         fullName = newValue
                         errorMessage = ""
@@ -7142,350 +6954,6 @@ fun getUserTypeDisplay(userType: String): String {
     }
 }
 
-@SuppressLint("HardwareIds")
-@Composable
-fun LoginDialog(
-    onDismiss: () -> Unit,
-    onLoginChecked: (Boolean, String, String, String) -> Unit,
-    updateSessionValidity: (Boolean) -> Unit,
-    userPreferencesManager: UserPreferencesManager
-) {
-    val context = LocalContext.current
-    // State variables - مینیمال
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
-    var showPassword by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
-
-    // انیمیشن ساده
-    val dialogScale by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "dialog_scale"
-    )
-
-    val apiService = remember {
-        Retrofit.Builder()
-            .baseUrl(Constants.getBaseUrl())
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(ApiService::class.java)
-    }
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            dismissOnBackPress = true,
-            dismissOnClickOutside = true,
-            usePlatformDefaultWidth = false
-        )
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(0.88f)
-                .heightIn(max = 400.dp)
-                .scale(dialogScale),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 12.dp
-            )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // هدر مینیمال
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // آیکون ساده
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(
-                                MaterialTheme.colorScheme.primaryContainer,
-                                CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.AccountCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    // عنوان
-                    Text(
-                        text = "ورود",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    // دکمه بستن
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "بستن",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-
-                // فرم ورود کامپکت
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // فیلد نام کاربری کامپکت
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = {
-                            username = it.trim()
-                            if (errorMessage != null) errorMessage = null
-                        },
-                        label = { Text("نام کاربری") },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Person,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
-                        ),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text,
-                            imeAction = ImeAction.Next
-                        ),
-                        singleLine = true
-                    )
-
-                    // فیلد رمز عبور کامپکت
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = {
-                            password = it.filter { char -> char.isDigit() }
-                            if (errorMessage != null) errorMessage = null
-                        },
-                        label = { Text("رمز عبور") },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Lock,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        },
-                        trailingIcon = {
-                            IconButton(
-                                onClick = { showPassword = !showPassword },
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(
-                                    if (showPassword) Icons.Default.Visibility
-                                    else Icons.Default.VisibilityOff,
-                                    contentDescription = if (showPassword) "پنهان کردن رمز" else "نمایش رمز",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        },
-                        visualTransformation = if (showPassword) VisualTransformation.None
-                        else PasswordVisualTransformation(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(64.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
-                        ),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.NumberPassword,
-                            imeAction = ImeAction.Done
-                        ),
-                        singleLine = true
-                    )
-                }
-
-                // نمایش خطا کامپکت
-                AnimatedVisibility(
-                    visible = errorMessage != null,
-                    enter = slideInVertically() + fadeIn(),
-                    exit = slideOutVertically() + fadeOut()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
-                                RoundedCornerShape(8.dp)
-                            )
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Error,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = errorMessage ?: "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-
-                // دکمه ورود کامپکت
-                Button(
-                    onClick = {
-                        if (username.isNotBlank() && password.isNotBlank() && !isLoading) {
-                            coroutineScope.launch {
-                                isLoading = true
-                                errorMessage = null
-
-                                try {
-                                    val hashedPassword = hashPassword(password)
-                                    val deviceModel = Build.MODEL ?: "Unknown"
-                                    val androidVersion = Build.VERSION.RELEASE ?: "Unknown"
-                                    val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
-                                    val appVersion = try {
-                                        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
-                                    } catch (e: Exception) {
-                                        "Unknown"
-                                    }
-
-                                    val loginRequest = LoginRequest(
-                                        username = username,
-                                        password = hashedPassword,
-                                        userType = "",
-                                        deviceModel = deviceModel,
-                                        deviceId = deviceId,
-                                        androidVersion = androidVersion,
-                                        appVersion = appVersion
-                                    )
-
-                                    val response = apiService.checkLogin(loginRequest)
-
-                                    if (response.isSuccessful) {
-                                        val responseBody = response.body()
-                                        if (responseBody != null && responseBody.success) {
-                                            responseBody.sessionToken?.let { sessionToken ->
-                                                launch {
-                                                    userPreferencesManager.saveSessionToken(sessionToken)
-                                                }
-                                            }
-
-                                            onLoginChecked(
-                                                true,
-                                                responseBody.message,
-                                                responseBody.userType ?: "",
-                                                username
-                                            )
-                                            updateSessionValidity(true)
-                                            onDismiss()
-                                        } else {
-                                            errorMessage = responseBody?.message ?: "خطا در ورود"
-                                        }
-                                    } else {
-                                        // برای کد 409، سعی می‌کنیم پیام سرور را دریافت کنیم
-                                        if (response.code() == 409) {
-                                            try {
-                                                 val errorBody = response.errorBody()?.string()
-                                                 val gson = Gson()
-                                                 val errorResponse = gson.fromJson(errorBody, SessionResponse::class.java)
-                                                 errorMessage = errorResponse?.message ?: "شما در حال حاضر از دستگاه دیگری وارد شده‌اید. لطفاً ابتدا از آن دستگاه خارج شوید."
-                                            } catch (_: Exception) {
-                                                errorMessage = "شما در حال حاضر از دستگاه دیگری وارد شده‌اید. لطفاً ابتدا از دستگاه اولی خارج شوید."
-                                            }
-                                        } else {
-                                            errorMessage = when (response.code()) {
-                                                401 -> "نام کاربری یا رمز عبور اشتباه است"
-                                                403 -> "دسترسی مجاز نیست"
-                                                500 -> "خطای سرور"
-                                                else -> "خطا در اتصال"
-                                            }
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                    errorMessage = when (e) {
-                                        is java.net.UnknownHostException -> "عدم دسترسی به اینترنت"
-                                        is java.net.SocketTimeoutException -> "زمان اتصال به پایان رسید"
-                                        else -> "خطا در اتصال"
-                                    }
-                                } finally {
-                                    isLoading = false
-                                }
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    enabled = username.isNotBlank() && password.isNotBlank() && !isLoading,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text(
-                            text = "ورود",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Medium
-                            ),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-fun hashPassword(password: String): String {
-    return MessageDigest.getInstance("SHA-256")
-        .digest(password.toByteArray())
-        .fold("") { str, it -> str + "%02x".format(it) }
-}
-
 fun getMenuItemsForUserType(userType: String): List<MenuItem> {
     return when (userType) {
         "admin" -> listOf(
@@ -7549,12 +7017,12 @@ class HardwarePerformanceEvaluator(
         // اجرای بنچمارک‌ها و جمع‌آوری اطلاعات سخت‌افزاری
         val performanceMetrics = withContext(Dispatchers.Default) {
             val metrics = mutableMapOf<String, Float>()
-            
+
             // بنچمارک‌های سبک (زیر 100ms)
             metrics["cpu_benchmark"] = runCPUBenchmark()
             metrics["gpu_benchmark"] = runGPUBenchmark()
             metrics["memory_benchmark"] = runMemoryBenchmark()
-            
+
             // اطلاعات سخت‌افزاری
             metrics["ram_performance"] = evaluateAdvancedRAM()
             metrics["cpu_performance"] = evaluateAdvancedCPU()
@@ -7563,7 +7031,7 @@ class HardwarePerformanceEvaluator(
             metrics["storage_performance"] = evaluateAdvancedStorage()
             metrics["thermal_performance"] = evaluateThermal()
             metrics["android_performance"] = evaluateAndroidVersion()
-            
+
             metrics
         }
 
@@ -7611,14 +7079,14 @@ class HardwarePerformanceEvaluator(
         return try {
             val startTime = System.nanoTime()
             var result = 0.0
-            
+
             // محاسبات ریاضی سبک برای تست CPU
             repeat(100000) {
                 result += kotlin.math.sin(it.toDouble()) * kotlin.math.cos(it.toDouble())
             }
-            
+
             val duration = (System.nanoTime() - startTime) / 1_000_000f // تبدیل به میلی‌ثانیه
-            
+
             // امتیازدهی معکوس (زمان کمتر = امتیاز بیشتر)
             when {
                 duration < 50f -> 100f
@@ -7638,17 +7106,17 @@ class HardwarePerformanceEvaluator(
     private fun runGPUBenchmark(): Float {
         return try {
             val startTime = System.nanoTime()
-            
+
             // شبیه‌سازی عملیات گرافیکی سبک
             val bitmap = createBitmap(100, 100)
             val canvas = Canvas(bitmap)
-            
+
             repeat(1000) {
                 canvas.drawColor(android.graphics.Color.rgb(it % 255, (it * 2) % 255, (it * 3) % 255))
             }
-            
+
             val duration = (System.nanoTime() - startTime) / 1_000_000f
-            
+
             when {
                 duration < 30f -> 100f
                 duration < 60f -> 80f
@@ -7667,18 +7135,18 @@ class HardwarePerformanceEvaluator(
     private fun runMemoryBenchmark(): Float {
         return try {
             val startTime = System.nanoTime()
-            
+
             // تست تخصیص و آزادسازی حافظه
             val arrays = mutableListOf<IntArray>()
             repeat(100) {
                 arrays.add(IntArray(1000) { it })
             }
             arrays.clear()
-            
+
             System.gc() // فراخوانی garbage collector
-            
+
             val duration = (System.nanoTime() - startTime) / 1_000_000f
-            
+
             when {
                 duration < 20f -> 100f
                 duration < 40f -> 80f
@@ -7725,7 +7193,7 @@ class HardwarePerformanceEvaluator(
         return try {
             val coreCount = Runtime.getRuntime().availableProcessors()
             val architecture = Build.SUPPORTED_ABIS.firstOrNull() ?: ""
-            
+
             val coreScore = when {
                 coreCount >= 8 -> 100f
                 coreCount >= 6 -> 85f
@@ -7733,7 +7201,7 @@ class HardwarePerformanceEvaluator(
                 coreCount >= 2 -> 50f
                 else -> 25f
             }
-            
+
             val archScore = when {
                 architecture.contains("arm64-v8a") -> 100f
                 architecture.contains("armeabi-v7a") -> 80f
@@ -7741,7 +7209,7 @@ class HardwarePerformanceEvaluator(
                 architecture.contains("x86") -> 50f
                 else -> 30f
             }
-            
+
             (coreScore * 0.7f + archScore * 0.3f)
         } catch (_: Exception) {
             50f
@@ -7754,12 +7222,12 @@ class HardwarePerformanceEvaluator(
     private fun evaluateGPU(): Float {
         return try {
             val packageManager = context.packageManager
-            
+
             // استفاده از ثابت‌های معتبر OpenGL ES
             val hasOpenGLES3 = packageManager.hasSystemFeature("android.hardware.opengles.es_version_3_0")
             val hasOpenGLES31 = packageManager.hasSystemFeature("android.hardware.opengles.es_version_3_1")
             val hasOpenGLES32 = packageManager.hasSystemFeature("android.hardware.opengles.es_version_3_2")
-            
+
             when {
                 hasOpenGLES32 -> 100f
                 hasOpenGLES31 -> 85f
@@ -7779,7 +7247,7 @@ class HardwarePerformanceEvaluator(
             val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
             val display = displayManager.getDisplay(Display.DEFAULT_DISPLAY)
             val refreshRate = display?.refreshRate ?: 60f
-            
+
             when {
                 refreshRate >= 120f -> 100f
                 refreshRate >= 90f -> 85f
@@ -7821,7 +7289,7 @@ class HardwarePerformanceEvaluator(
         return try {
             val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
             val batteryLevel = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-            
+
             // امتیازدهی بر اساس سطح باتری (نشان‌دهنده احتمال داغی دستگاه)
             when {
                 batteryLevel >= 80 -> 100f
@@ -7868,18 +7336,18 @@ class HardwarePerformanceEvaluator(
             "thermal_performance" to 0.02f,
             "android_performance" to 0.02f
         )
-        
+
         var weightedSum = 0f
         var totalWeight = 0f
-        
+
         metrics.forEach { (metric, value) ->
             val weight = weights[metric] ?: 0f
             weightedSum += value * weight
             totalWeight += weight
         }
-        
+
         val finalScore = if (totalWeight > 0) (weightedSum / totalWeight).coerceIn(0f, 100f) else 50f
-        
+
         return finalScore.toInt()
     }
 

@@ -9,23 +9,23 @@
 -optimizations !code/simplification/arithmetic,!field/*,!class/merging/*  # بهینه‌سازی‌های خاص
 
 # تنظیمات اضافی برای کاهش حجم APK
--repackageclasses 'obfuscated'         # بسته‌بندی مجدد کلاس‌ها
--allowaccessmodification               # اجازه تغییر سطح دسترسی
--mergeinterfacesaggressively           # ادغام تهاجمی رابط‌ها
--overloadaggressively                  # بارگذاری مجدد تهاجمی
--renamesourcefileattribute SourceFile # تغییر نام فایل منبع
--adaptresourcefilenames **.properties  # تطبیق نام فایل‌های منابع
--adaptresourcefilecontents **.properties,META-INF/MANIFEST.MF  # تطبیق محتوای فایل‌های منابع
+-repackageclasses 'obfuscated'         # کلاس‌ها را با هم بسته‌بندی می‌کند (بهینه‌سازی حجم)
+-allowaccessmodification               # اجازه تغییر سطح دسترسی کلاس‌ها برای بهینه‌سازی
+-mergeinterfacesaggressively           # ادغام تهاجمی رابط‌های مشابه
+-overloadaggressively                  # استفاده مجدد از نام متدها با پارامترهای متفاوت
+-renamesourcefileattribute SourceFile # تغییر نام فایل منبع در استک‌تریس
+-adaptresourcefilenames **.properties  # تطبیق نام فایل‌های منابع با کلاس‌های مبهم شده
+-adaptresourcefilecontents **.properties,META-INF/MANIFEST.MF  # بروزرسانی محتوای فایل‌ها
 
 # =======================================================================
 # 2. تنظیمات حفظ ویژگی‌ها (اولویت بالا - برای عملکرد صحیح)
 # =======================================================================
--keepattributes *Annotation*           # حفظ همه آنوتیشن‌ها
--keepattributes Signature              # حفظ اطلاعات امضا
+-keepattributes *Annotation*           # حفظ آنوتیشن‌ها (برای رتروفیت و گسون ضروری است)
+-keepattributes Signature              # حفظ اطلاعات Generic Signature
 -keepattributes Exceptions             # حفظ اطلاعات استثناها
--keepattributes InnerClasses,EnclosingMethod  # حفظ کلاس‌های داخلی
--keepattributes SourceFile,LineNumberTable    # حفظ اطلاعات خط برای دیباگ
--keepattributes RuntimeVisibleAnnotations,AnnotationDefault  # برای کامپوز
+-keepattributes InnerClasses,EnclosingMethod  # حفظ ساختار کلاس‌های داخلی
+-keepattributes !SourceFile,!LineNumberTable    # حذف اطلاعات خط در تولید نهایی برای امنیت
+-keepattributes RuntimeVisibleAnnotations,AnnotationDefault  # مورد نیاز برای Jetpack Compose
 
 # =======================================================================
 # 3. تنظیمات امنیتی برای محافظت از توابع امنیتی (اولویت بالا)
@@ -33,44 +33,39 @@
 # حفظ کلاس امضاپژیر با سازنده (نام واقعی کلاس: MusicLibraryManager)
 -keep class com.atk.atk_cargo.weather.MusicLibraryManager {
     <init>(android.content.Context);
+    public Pair validateMusicLibrary();
 }
 
-# حفظ متغیرهای حساس در Companion Object
--keepclassmembers,allowobfuscation class com.atk.atk_cargo.weather.MusicLibraryManager$Companion {
-    private static final <fields>;
+# حفظ متغیرهای حساس در Companion Object (فقط فیلدها)
+-keepclassmembers class com.atk.atk_cargo.weather.MusicLibraryManager$Companion {
+    private static final java.lang.String ENCODED_*;
 }
 
-# حفظ enum SecurityErrorType
--keep enum com.atk.atk_cargo.weather.SecurityErrorType
+# حفظ enum SecurityErrorType (رعایت استانداردهای پروگارد برای انوم)
+-keepclassmembers enum com.atk.atk_cargo.weather.SecurityErrorType {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
 
-# محافظت از کلاس‌های مربوط به امنیت
--keep class com.atk.atk_cargo.weather.** { *; }
-
-# محافظت از MainActivity با حفظ ساختار اصلی
+# محافظت از MainActivity با حفظ ساختار اصلی (فقط موارد ضروری)
 -keep class com.atk.atk_cargo.MainActivity {
-    public <init>();  # سازنده عمومی
-    protected void onCreate(android.os.Bundle);  # متد اصلی چرخه حیات
+    public <init>();
+    protected void onCreate(android.os.Bundle);
 }
 
-# محافظت از توابع و فیلدهای امنیتی MainActivity
--keepclassmembers,allowobfuscation class com.atk.atk_cargo.MainActivity {
+# مبهم‌سازی توابع و فیلدهای امنیتی MainActivity (اجازه تغییر نام)
+-keepclassmembernames class com.atk.atk_cargo.MainActivity {
     private void calculateWeatherForecast();
-    private *** isSecurityCheck*;
+    private boolean isSecurityCheckPassed;
     private *** signatureVerifier;
 }
 
 # =======================================================================
 # 4. تنظیمات API و ارتباطات شبکه (اولویت متوسط)
 # =======================================================================
-# محافظت خاص از ApiService و کلاس‌های مرتبط
--keep class com.atk.atk_cargo.api.ApiService { *; }
--keepnames class com.atk.atk_cargo.api.** { *; }
+# رتروفیت و سرویس‌های API
 -keepattributes Signature, RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
 
-# جلوگیری از بهینه‌سازی مضر برای ApiService
--keepclassmembers class com.atk.atk_cargo.api.ApiService {
-    <methods>;
-}
 -keepclassmembers interface com.atk.atk_cargo.api.ApiService {
     <methods>;
 }
@@ -127,15 +122,12 @@
     @retrofit2.http.* <methods>;
 }
 
-# OkHttp
--keep class okhttp3.** { *; }
--keep interface okhttp3.** { *; }
+# OkHttp و Okio (قوانین در خود کتابخانه وجود دارد)
 -dontwarn okhttp3.**
--keep class okio.** { *; }
 -dontwarn okio.**
 
-# Gson
--keep class com.google.gson.** { *; }
+# Gson (قوانین در خود کتابخانه وجود دارد)
+-dontwarn com.google.gson.**
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
@@ -153,7 +145,6 @@
 
 # حفظ data class های Kotlin
 -keep class kotlin.Metadata { *; }
--keep class kotlin.reflect.** { *; }
 -keepclassmembers class * {
     @kotlin.Metadata <fields>;
 }
@@ -165,19 +156,13 @@
 # =======================================================================
 # حفظ مدل‌های داده برای سریالیزیشن/دیسریالیزیشن
 -keep class com.atk.atk_cargo.api.** { *; }
--keep class com.atk.atk_cargo.models.** { *; }
 -keep class com.atk.atk_cargo.network.** { *; }
+# حفظ data class هایSummary برای Gson (فقط کلاس‌های مورد نیاز)
+-keep class com.atk.atk_cargo.api.SummaryData { *; }
+-keep class com.atk.atk_cargo.api.WarehouseStatus { *; }
+-keep class com.atk.atk_cargo.models.** { *; }
 
-# حفظ data class های Summary برای Gson
--keep class com.atk.atk_cargo.SummaryData { *; }
--keep class com.atk.atk_cargo.WarehouseStatus { *; }
--keepclassmembers class com.atk.atk_cargo.SummaryData { *; }
--keepclassmembers class com.atk.atk_cargo.WarehouseStatus { *; }
-
-# =======================================================================
-# 6. تنظیمات Kotlin (اولویت متوسط)
-# =======================================================================
--keep class kotlin.** { *; }
+# تنظیمات پایه Kotlin (بسیاری از این موارد خودکار هستند)
 -keep class kotlin.Metadata { *; }
 -dontwarn kotlin.**
 -keepclassmembers class **$WhenMappings {
@@ -229,68 +214,20 @@
 # =======================================================================
 # 10. تنظیمات Compose (اولویت بالا)
 # =======================================================================
--keep class androidx.compose.** { *; }
--keep class androidx.compose.runtime.** { *; }
--keep class androidx.compose.ui.** { *; }
--keep class androidx.compose.material3.** { *; }
--keep class androidx.compose.foundation.** { *; }
--keepclassmembers class androidx.compose.** {
-    <fields>;
-    <methods>;
-}
+# بخش Jetpack Compose به طور خودکار توسط کتابخانه مدیریت می‌شود
+# در اینجا فقط موارد ضروری یا تداخلی اضافه شود
+-dontwarn androidx.compose.**
 
-# =======================================================================
-# 11. تنظیمات Navigation Compose (اولویت متوسط)
-# =======================================================================
--keep class androidx.navigation.** { *; }
+# Navigation Compose (در کتابخانه موجود است)
 -keepclassmembers class * {
     @androidx.navigation.** <methods>;
 }
 
-# =======================================================================
-# 12. تنظیمات Camera & ML Kit (اولویت متوسط)
-# =======================================================================
--keep class androidx.camera.** { *; }
--keep class com.google.mlkit.** { *; }
--keep class com.google.android.gms.** { *; }
--dontwarn com.google.android.gms.**
-
-# =======================================================================
-# 13. تنظیمات Serialization (اولویت متوسط)
-# =======================================================================
--keep class kotlinx.serialization.** { *; }
--keepclassmembers class * {
-    @kotlinx.serialization.** <fields>;
-}
--keepclassmembers @kotlinx.serialization.Serializable class * {
-    <fields>;
-    <methods>;
-}
-
-# =======================================================================
-# 14. تنظیمات Coil (اولویت پایین)
-# =======================================================================
--keep class coil.** { *; }
--keep class io.coil.** { *; }
+# Coil, Lottie, iText, Charts (عموماً خودکار هستند)
 -dontwarn coil.**
 -dontwarn io.coil.**
-
-# =======================================================================
-# 15. تنظیمات Lottie (اولویت پایین)
-# =======================================================================
--keep class com.airbnb.lottie.** { *; }
 -dontwarn com.airbnb.lottie.**
-
-# =======================================================================
-# 16. تنظیمات iText PDF (اولویت پایین)
-# =======================================================================
--keep class com.itextpdf.** { *; }
 -dontwarn com.itextpdf.**
-
-# =======================================================================
-# 17. تنظیمات Charts (Vico) (اولویت پایین)
-# =======================================================================
--keep class com.patrykandpatrick.vico.** { *; }
 -dontwarn com.patrykandpatrick.vico.**
 
 # =======================================================================
