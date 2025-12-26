@@ -874,15 +874,8 @@ class CargoViewModel(
         if (!scaleReceipt.all { it.isDigit() }) {
             return false
         }
-
-        // بررسی طول (8 رقمی بودن)
-        if (scaleReceipt.length != 8) {
-            return false
-        }
-
-        // بررسی دو رقم اول
-        val firstTwoDigits = scaleReceipt.substring(0, 2)
-        return !(firstTwoDigits != "43" && firstTwoDigits != "44" && firstTwoDigits != "45" && firstTwoDigits != "46")
+        
+        return true
     }
 
     private suspend fun checkScaleReceiptNumber(scaleReceiptNumber: String): Boolean {
