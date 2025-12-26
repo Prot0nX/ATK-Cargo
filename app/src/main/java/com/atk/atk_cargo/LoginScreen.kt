@@ -215,7 +215,7 @@ fun LoginScreen(
                         errorMessage = null 
                     },
                     label = "نام کاربری",
-                    placeholder = "نام کاربری خودرا وارد کنید",
+                    placeholder = "نام کاربری خود را وارد کنید",
                     leadingIcon = Icons.Default.Person,
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Next
@@ -229,7 +229,7 @@ fun LoginScreen(
                         errorMessage = null 
                     },
                     label = "رمز عبور",
-                    placeholder = "رمز عبور خودرا وارد کنید",
+                    placeholder = "رمز عبور خود را وارد کنید",
                     leadingIcon = Icons.Default.Lock,
                     isPassword = true,
                     passwordVisible = showPassword,
