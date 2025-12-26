@@ -14,7 +14,7 @@ android {
         minSdk = 28
         targetSdk = 33
         versionCode = 1
-        versionName = "3.0.23"
+        versionName = "3.0.24"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -42,14 +42,14 @@ android {
             versionNameSuffix = "-debug"
             isMinifyEnabled = false
             isShrinkResources = false
-            
+
             // تنظیمات NDK برای دیباگ - شامل تمام معماری‌ها
             ndk {
                 //noinspection ChromeOsAbiSupport
                 abiFilters += listOf("arm64-v8a", "x86_64")
             }
         }
-        
+
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -58,99 +58,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            
+
             // تنظیمات NDK برای ریلیز - فقط ARM
             ndk {
                 //noinspection ChromeOsAbiSupport
                 abiFilters += listOf("arm64-v8a", "armeabi-v7a")
             }
-            
+
             // بهینه‌سازی APK
             multiDexEnabled = true
-            
-            // تنظیمات بهینه‌سازی کد
-            packaging {
-                resources {
-                    excludes += setOf(
-                        "**/kotlin/**",
-                        "META-INF/**.version",
-                        "META-INF/**.kotlin_module",
-                        "META-INF/DEPENDENCIES",
-                        "META-INF/LICENSE*",
-                        "META-INF/NOTICE*",
-                        "META-INF/ASL2.0",
-                        "META-INF/*.SF",
-                        "META-INF/*.DSA",
-                        "META-INF/*.RSA",
-                        "META-INF/services/**",
-                        "**/*.proto",
-                        "**/*.properties",
-                        "DebugProbesKt.bin",
-                        "kotlin-tooling-metadata.json",
-                        "**/*.txt",
-                        "**/*.md",
-                        "**/*.html",
-                        "**/*.css",
-                        "**/*.js",
-                        "**/*.map",
-                        "**/*.bin",
-                        "**/*.dat",
-                        "**/*.cfg",
-                        "**/*.ini",
-                        "**/*.log",
-                        "**/*.tmp",
-                        "**/*.bak",
-                        "**/*.orig",
-                        "**/*.rej",
-                        "**/*.patch",
-                        "**/*.diff",
-                        "**/*.swp",
-                        "**/*.swo",
-                        "**/*.DS_Store",
-                        "**/*.gitignore",
-                        "**/*.gitkeep",
-                        "**/*.gradle",
-                        "**/*.pro",
-                        "**/*.iml",
-                        "**/*.idea/**",
-                        "**/.git/**",
-                        "**/.svn/**",
-                        "**/.hg/**",
-                        "**/.bzr/**",
-                        "**/CVS/**",
-                        "**/Thumbs.db",
-                        "**/*.pyc",
-                        "**/*.pyo",
-                        "**/*.class",
-                        "**/*.jar",
-                        "**/*.war",
-                        "**/*.ear",
-                        "**/*.zip",
-                        "**/*.tar",
-                        "**/*.gz",
-                        "**/*.bz2",
-                        "**/*.7z",
-                        "**/*.rar",
-                        "**/*.iso",
-                        "**/*.dmg",
-                        "**/*.exe",
-                        "**/*.msi",
-                        "**/*.deb",
-                        "**/*.rpm",
-                        "**/*.pkg",
-                        "**/*.apk",
-                        "**/*.ipa",
-                        "**/*.aab"
-                    )
-                }
-                jniLibs {
-                    useLegacyPackaging = false
-                    pickFirsts += setOf(
-                        "**/libc++_shared.so",
-                        "**/libjsc.so"
-                    )
-                }
-            }
         }
     }
 
@@ -159,7 +75,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
         isCoreLibraryDesugaringEnabled = true
     }
-    
+
     kotlin {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
@@ -170,12 +86,12 @@ android {
             )
         }
     }
-    
+
     buildFeatures {
         compose = true
         viewBinding = true
         buildConfig = true
-        
+
         aidl = false
         renderScript = false
         resValues = false
@@ -184,22 +100,17 @@ android {
         mlModelBinding = false
         prefab = false
     }
-    
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-        isCoreLibraryDesugaringEnabled = true
-    }
-    
+
     lint {
         disable += setOf("NullSafeMutableLiveData")
         abortOnError = false
         checkReleaseBuilds = false
     }
+
     packaging {
         resources {
             excludes += setOf(
-                "/META-INF/{AL2.0,LGPL2.1}",
+                "META-INF/{AL2.0,LGPL2.1}",
                 "META-INF/DEPENDENCIES",
                 "META-INF/LICENSE*",
                 "META-INF/license*",
@@ -209,15 +120,77 @@ android {
                 "META-INF/*.kotlin_module",
                 "META-INF/*.version",
                 "**/attach_hotspot_windows.dll",
-                "META-INF/services/javax.annotation.processing.Processor"
+                "META-INF/services/javax.annotation.processing.Processor",
+                "**/kotlin/**",
+                "**/*.proto",
+                "**/*.properties",
+                "DebugProbesKt.bin",
+                "kotlin-tooling-metadata.json",
+                "**/*.txt",
+                "**/*.md",
+                "**/*.html",
+                "**/*.css",
+                "**/*.js",
+                "**/*.map",
+                "**/*.bin",
+                "**/*.dat",
+                "**/*.cfg",
+                "**/*.ini",
+                "**/*.log",
+                "**/*.tmp",
+                "**/*.bak",
+                "**/*.orig",
+                "**/*.rej",
+                "**/*.patch",
+                "**/*.diff",
+                "**/*.swp",
+                "**/*.swo",
+                "**/*.DS_Store",
+                "**/*.gitignore",
+                "**/*.gitkeep",
+                "**/*.gradle",
+                "**/*.pro",
+                "**/*.iml",
+                "**/*.idea/**",
+                "**/.git/**",
+                "**/.svn/**",
+                "**/.hg/**",
+                "**/.bzr/**",
+                "**/CVS/**",
+                "**/Thumbs.db",
+                "**/*.pyc",
+                "**/*.pyo",
+                "**/*.class",
+                "**/*.jar",
+                "**/*.war",
+                "**/*.ear",
+                "**/*.zip",
+                "**/*.tar",
+                "**/*.gz",
+                "**/*.bz2",
+                "**/*.7z",
+                "**/*.rar",
+                "**/*.iso",
+                "**/*.dmg",
+                "**/*.exe",
+                "**/*.msi",
+                "**/*.deb",
+                "**/*.rpm",
+                "**/*.pkg",
+                "**/*.apk",
+                "**/*.ipa",
+                "**/*.aab"
             )
         }
-        
-        // بهینه‌سازی JNI libraries
         jniLibs {
             useLegacyPackaging = false
+            pickFirsts += setOf(
+                "**/libc++_shared.so",
+                "**/libjsc.so"
+            )
         }
     }
+
     ndkVersion = "26.1.10909125"
     buildToolsVersion = "34.0.0"
 }
@@ -226,7 +199,7 @@ dependencies {
     implementation(libs.androidx.foundation.layout)
     // ==================== Core Library Desugaring ====================
     coreLibraryDesugaring(libs.desugar.jdk.libs.v215)
-    
+
     // ==================== Compose BOM (باید اول باشد) ====================
     implementation(platform(libs.compose.bom))
 
@@ -290,7 +263,7 @@ dependencies {
 
     // ==================== Animation & UI Effects ====================
     implementation(libs.lottie.compose)
-    
+
     // ==================== Video Player ====================
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
