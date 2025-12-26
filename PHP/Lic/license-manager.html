@@ -1,22 +1,409 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مدیریت لایسنس‌ها - ATK Cargo</title>
-    
-    <!-- فونت‌ها -->
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    
-    <!-- CSS فریمورک‌ها -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/x-icon" href="assets/img/fav.ico">
+
+    <!-- Fonts & Icons -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
-    
-    <!-- CSS سفارشی -->
+
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="license-manager.css">
-    
-    <!-- تنظیمات Tailwind CSS -->
+</head>
+
+<body>
+    <div class="layout-wrapper">
+        <!-- Mobile Overlay -->
+        <div class="mobile-overlay" id="mobileOverlay"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-lg">
+                        <i class="fas fa-key"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-gray-900 dark:text-white">ATK License</h1>
+                        <p class="text-xs text-gray-500">پنل مدیریت</p>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav custom-scrollbar">
+                <div class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-th-large"></i>
+                    <span>داشبورد</span>
+                </div>
+                <div class="nav-item" data-page="reports">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>گزارش‌ها</span>
+                </div>
+                <div class="nav-item" data-page="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>تنظیمات</span>
+                </div>
+
+                <div class="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div class="nav-item text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10"
+                        onclick="handleLogout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>خروج</span>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="flex items-center gap-4">
+                    <button class="btn btn-outline md:hidden" id="mobileMenuToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h2 class="text-xl font-bold hidden md:block" id="pageTitle">داشبورد مدیریت</h2>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button class="btn btn-outline w-10 h-10 p-0 rounded-full" id="themeToggle">
+                        <i class="fas fa-moon dark:hidden"></i>
+                        <i class="fas fa-sun hidden dark:inline text-yellow-400"></i>
+                    </button>
+                    <div class="flex items-center gap-3 pr-4 border-r border-gray-200 dark:border-gray-700">
+                        <div class="text-left hidden sm:block">
+                            <p class="text-sm font-bold">مدیر سیستم</p>
+                            <p class="text-xs text-gray-500">admin@atk-nk.ir</p>
+                        </div>
+                        <div
+                            class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                            <i class="fas fa-user text-gray-500 dark:text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Page -->
+            <div id="dashboardPage" class="page-content active">
+                <div class="p-6 lg:p-8">
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <!-- Active Licenses -->
+                        <div class="stat-card animate-fade-in delay-100">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm text-gray-500 mb-1">لایسنس‌های فعال</p>
+                                    <h3 class="text-3xl font-bold text-gray-900 dark:text-white" id="activeLicenses">0
+                                    </h3>
+                                </div>
+                                <div class="stat-icon-wrapper bg-green-50 text-green-500 dark:bg-green-900/20">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-center text-sm" id="activeLicensesTrend">
+                                <i class="fas fa-minus ml-1 text-gray-400"></i>
+                                <span class="font-medium text-gray-400">-</span>
+                                <span class="text-gray-400 mr-2">در حال محاسبه...</span>
+                            </div>
+                        </div>
+
+                        <!-- Inactive Licenses -->
+                        <div class="stat-card animate-fade-in delay-200">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm text-gray-500 mb-1">لایسنس‌های غیرفعال</p>
+                                    <h3 class="text-3xl font-bold text-gray-900 dark:text-white" id="inactiveLicenses">0
+                                    </h3>
+                                </div>
+                                <div class="stat-icon-wrapper bg-red-50 text-red-500 dark:bg-red-900/20">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-center text-sm" id="inactiveLicensesTrend">
+                                <i class="fas fa-minus ml-1 text-gray-400"></i>
+                                <span class="font-medium text-gray-400">-</span>
+                                <span class="text-gray-400 mr-2">در حال محاسبه...</span>
+                            </div>
+                        </div>
+
+                        <!-- Total Companies -->
+                        <div class="stat-card animate-fade-in delay-300">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-sm text-gray-500 mb-1">کل شرکت‌ها</p>
+                                    <h3 class="text-3xl font-bold text-gray-900 dark:text-white" id="totalCompanies">0
+                                    </h3>
+                                </div>
+                                <div class="stat-icon-wrapper bg-blue-50 text-blue-500 dark:bg-blue-900/20">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex items-center text-sm" id="totalCompaniesTrend">
+                                <i class="fas fa-minus ml-1 text-gray-400"></i>
+                                <span class="font-medium text-gray-400">-</span>
+                                <span class="text-gray-400 mr-2">در حال محاسبه...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions Bar -->
+                    <div
+                        class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 animate-fade-in delay-300">
+                        <div class="relative w-full sm:w-96">
+                            <input type="text" id="searchInput" placeholder="جستجو در لایسنس‌ها..."
+                                class="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all">
+                            <i
+                                class="fas fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        </div>
+
+                        <div class="flex gap-3 w-full sm:w-auto">
+                            <button class="btn btn-outline flex-1 sm:flex-none" onclick="refreshData()">
+                                <i class="fas fa-sync-alt"></i>
+                                بروزرسانی
+                            </button>
+                            <button class="btn btn-primary flex-1 sm:flex-none"
+                                onclick="document.getElementById('companyName').focus()">
+                                <i class="fas fa-plus"></i>
+                                لایسنس جدید
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Create License Form -->
+                    <div
+                        class="bg-white dark:bg-gray-800 rounded-2xl p-6 mb-8 border border-gray-200 dark:border-gray-700 shadow-sm animate-fade-in delay-300">
+                        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-magic text-blue-500"></i>
+                            ایجاد لایسنس سریع
+                        </h3>
+                        <form id="createLicenseForm" class="flex flex-col sm:flex-row gap-4 items-end">
+                            <input type="hidden" name="csrf_token" id="csrf_token">
+                            <div class="w-full flex-1">
+                                <label for="companyName"
+                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">نام
+                                    شرکت</label>
+                                <input type="text" id="companyName" required
+                                    class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                    placeholder="نام شرکت را وارد کنید...">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-full sm:w-auto py-3">
+                                <i class="fas fa-check"></i>
+                                ساخت لایسنس
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Data Table -->
+                    <div class="table-container animate-fade-in delay-300">
+                        <div class="overflow-x-auto">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>کلید لایسنس</th>
+                                        <th>نام شرکت</th>
+                                        <th>آخرین استفاده</th>
+                                        <th>وضعیت</th>
+                                        <th>اعتبار</th>
+                                        <th>عملیات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="licensesTableBody">
+                                    <!-- Rows will be populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div id="loadingState" class="flex flex-col items-center justify-center py-12">
+                            <div
+                                class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4">
+                            </div>
+                            <p class="text-gray-500">در حال بارگذاری...</p>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div id="emptyState" class="hidden flex-col items-center justify-center py-12 text-center">
+                            <div
+                                class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                                <i class="fas fa-inbox text-2xl text-gray-400"></i>
+                            </div>
+                            <h4 class="text-lg font-bold text-gray-700 dark:text-gray-300">داده‌ای یافت نشد</h4>
+                            <p class="text-gray-500 text-sm mt-1">هیچ لایسنسی برای نمایش وجود ندارد.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Page -->
+            <div id="reportsPage" class="page-content">
+                <div class="p-6 lg:p-8">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- License Summary -->
+                        <div
+                            class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                <i class="fas fa-chart-bar text-blue-500"></i>
+                                خلاصه لایسنس‌ها
+                            </h3>
+                            <div class="space-y-4" id="licenseSummary">
+                                <div
+                                    class="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                                    <span class="text-gray-600 dark:text-gray-300">کل لایسنس‌ها</span>
+                                    <span class="font-bold text-xl" id="reportTotalLicenses">0</span>
+                                </div>
+                                <div
+                                    class="flex justify-between items-center p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                                    <span class="text-gray-600 dark:text-gray-300">فعال</span>
+                                    <span class="font-bold text-xl text-green-600" id="reportActiveLicenses">0</span>
+                                </div>
+                                <div
+                                    class="flex justify-between items-center p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
+                                    <span class="text-gray-600 dark:text-gray-300">غیرفعال</span>
+                                    <span class="font-bold text-xl text-red-600" id="reportInactiveLicenses">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Activity -->
+                        <div
+                            class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                <i class="fas fa-calendar-alt text-purple-500"></i>
+                                فعالیت ماهانه
+                            </h3>
+                            <div class="space-y-4" id="monthlyActivity">
+                                <div
+                                    class="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                                    <span class="text-gray-600 dark:text-gray-300">لایسنس‌های ایجاد شده این ماه</span>
+                                    <span class="font-bold text-xl" id="reportThisMonthCreated">0</span>
+                                </div>
+                                <div
+                                    class="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                                    <span class="text-gray-600 dark:text-gray-300">لایسنس‌های ایجاد شده ماه قبل</span>
+                                    <span class="font-bold text-xl" id="reportLastMonthCreated">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Export Options -->
+                        <div
+                            class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm lg:col-span-2">
+                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                <i class="fas fa-file-export text-green-500"></i>
+                                خروجی گزارش
+                            </h3>
+                            <div class="flex gap-4">
+                                <button onclick="exportData()" class="btn btn-primary">
+                                    <i class="fas fa-file-excel"></i>
+                                    خروجی Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settingsPage" class="page-content">
+                <div class="p-6 lg:p-8">
+                    <div class="max-w-4xl mx-auto space-y-6">
+                        <!-- Theme Settings -->
+                        <div
+                            class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                <i class="fas fa-palette text-blue-500"></i>
+                                تنظیمات ظاهری
+                            </h3>
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <p class="font-medium">حالت تاریک</p>
+                                        <p class="text-sm text-gray-500">تغییر به حالت تاریک یا روشن</p>
+                                    </div>
+                                    <button id="settingsThemeToggle" class="btn btn-outline">
+                                        <i class="fas fa-moon dark:hidden"></i>
+                                        <i class="fas fa-sun hidden dark:inline"></i>
+                                        تغییر تم
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Settings -->
+                        <div
+                            class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                <i class="fas fa-database text-purple-500"></i>
+                                تنظیمات داده
+                            </h3>
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <p class="font-medium">بروزرسانی خودکار</p>
+                                        <p class="text-sm text-gray-500">بروزرسانی خودکار داده‌ها هر 60 ثانیه</p>
+                                    </div>
+                                    <div class="text-green-500 flex items-center gap-2">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>فعال</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- About -->
+                        <div
+                            class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                                <i class="fas fa-info-circle text-gray-500"></i>
+                                درباره سیستم
+                            </h3>
+                            <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                                <p><strong>نام سیستم:</strong> ATK License Manager</p>
+                                <p><strong>نسخه:</strong> 2.0.0</p>
+                                <p><strong>توسعه‌دهنده:</strong> ATK Cargo</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- License Details Modal -->
+    <div id="licenseModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="closeLicenseModal()">
+        </div>
+        <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl pointer-events-auto transform transition-all scale-95 opacity-0"
+                id="licenseModalContent">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                    <h3 class="text-xl font-bold">جزئیات لایسنس</h3>
+                    <button onclick="closeLicenseModal()"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-6 max-h-[70vh] overflow-y-auto" id="licenseModalBody">
+                    <!-- Content populated by JS -->
+                </div>
+                <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                    <button onclick="closeLicenseModal()" class="btn btn-outline">بستن</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -24,1029 +411,12 @@
                 extend: {
                     fontFamily: {
                         'vazir': ['Vazirmatn', 'sans-serif']
-                    },
-                    animation: {
-                        'float': 'float 6s ease-in-out infinite',
-                        'pulse-slow': 'pulse 3s ease-in-out infinite',
-                        'slide-up': 'slideUp 0.5s ease-out',
-                        'slide-down': 'slideDown 0.5s ease-out',
-                        'shimmer': 'shimmer 2s linear infinite',
-                        'glow': 'glow 2s ease-in-out infinite alternate',
-                        'bounce-slow': 'bounce 2s infinite',
-                        'rotate-slow': 'rotate 8s linear infinite',
-                        'fade-in': 'fadeIn 0.6s ease-out',
-                        'scale-in': 'scaleIn 0.4s ease-out',
-                        'wiggle': 'wiggle 1s ease-in-out infinite',
-                        'gradient': 'gradient 15s ease infinite',
-                        'blob': 'blob 7s infinite',
-                        'tilt': 'tilt 10s infinite linear'
-                    },
-                    keyframes: {
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0px)' },
-                            '50%': { transform: 'translateY(-20px)' }
-                        },
-                        slideUp: {
-                            '0%': { transform: 'translateY(100%)', opacity: '0' },
-                            '100%': { transform: 'translateY(0)', opacity: '1' }
-                        },
-                        slideDown: {
-                            '0%': { transform: 'translateY(-100%)', opacity: '0' },
-                            '100%': { transform: 'translateY(0)', opacity: '1' }
-                        },
-                        shimmer: {
-                            '0%': { backgroundPosition: '-200% 0' },
-                            '100%': { backgroundPosition: '200% 0' }
-                        },
-                        glow: {
-                            '0%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)' },
-                            '100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.8)' }
-                        },
-                        fadeIn: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' }
-                        },
-                        scaleIn: {
-                            '0%': { opacity: '0', transform: 'scale(0.9)' },
-                            '100%': { opacity: '1', transform: 'scale(1)' }
-                        },
-                        wiggle: {
-                            '0%, 100%': { transform: 'rotate(-3deg)' },
-                            '50%': { transform: 'rotate(3deg)' }
-                        },
-                        gradient: {
-                            '0%, 100%': { backgroundPosition: '0% 50%' },
-                            '50%': { backgroundPosition: '100% 50%' }
-                        },
-                        blob: {
-                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
-                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
-                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
-                            '100%': { transform: 'translate(0px, 0px) scale(1)' }
-                        },
-                        tilt: {
-                            '0%, 50%, 100%': { transform: 'rotate(0deg)' },
-                            '25%': { transform: 'rotate(1deg)' },
-                            '75%': { transform: 'rotate(-1deg)' }
-                        }
-                    },
-                    spacing: {
-                        '18': '4.5rem',
-                        '88': '22rem'
-                    },
-                    backdropBlur: {
-                        'xs': '2px'
                     }
                 }
             }
         }
     </script>
-    
-    <style>
-        /* Glass Morphism Effects */
-        .glass {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .glass-dark {
-            background: rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        /* Gradient Backgrounds */
-        .bg-gradient-mesh {
-            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
-        }
-        
-        /* Custom Scrollbar */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 0, 0, 0.5);
-        }
-        
-        /* Floating Elements */
-        .floating-element {
-            position: absolute;
-            pointer-events: none;
-            opacity: 0.1;
-        }
-        
-        /* Card Hover Effects */
-        .card-hover {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .card-hover:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        }
-        
-        /* Button Ripple Effect */
-        .btn-ripple {
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .btn-ripple::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transition: width 0.6s, height 0.6s;
-            transform: translate(-50%, -50%);
-        }
-        
-        .btn-ripple:active::before {
-            width: 300px;
-            height: 300px;
-        }
-        
-        /* Loading Skeleton */
-        .skeleton {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-        }
-        
-        /* Theme Transition */
-        .theme-transition {
-            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-        }
-    </style>
-</head>
-<body class="font-vazir min-h-screen transition-all duration-500 relative overflow-x-hidden" style="background-image: url('assets/img/bg.jpg'); background-size: cover; background-position: center; background-attachment: fixed; background-repeat: no-repeat;">
-    <!-- Background Overlay for better readability -->
-    <div class="fixed inset-0 bg-white/70 dark:bg-black/70 backdrop-blur-sm transition-all duration-500 pointer-events-none z-0"></div>
-
-    <!-- Floating Background Elements -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none">
-        <div class="floating-element w-72 h-72 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full blur-3xl animate-blob top-10 left-10"></div>
-        <div class="floating-element w-96 h-96 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full blur-3xl animate-blob animation-delay-2000 top-1/2 right-10"></div>
-        <div class="floating-element w-80 h-80 bg-gradient-to-r from-green-400 to-blue-500 rounded-full blur-3xl animate-blob animation-delay-4000 bottom-10 left-1/3"></div>
-    </div>
-    <!-- Mobile Header -->
-    <header class="md:hidden bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-xl border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-50">
-        <div class="px-4 py-4">
-            <div class="flex items-center justify-between">
-                <!-- Mobile Menu Button -->
-                <button id="mobileMenuToggle" class="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300">
-                    <i class="fas fa-bars text-gray-600 dark:text-gray-300 text-xl"></i>
-                </button>
-                
-                <!-- Mobile Title -->
-                <div class="flex items-center space-x-2 space-x-reverse">
-                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-2 rounded-xl shadow-lg">
-                        <i class="fas fa-key text-white text-lg"></i>
-                    </div>
-                    <h1 class="text-lg font-bold text-gray-900 dark:text-white">مدیریت لایسنس‌ها</h1>
-                </div>
-                
-                <!-- Mobile Theme Toggle -->
-                <button id="mobileThemeToggle" class="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300">
-                    <i class="fas fa-moon dark:hidden text-gray-600 text-lg"></i>
-                    <i class="fas fa-sun hidden dark:inline text-yellow-400 text-lg"></i>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Mobile Sidebar -->
-    <div id="mobileSidebar" class="md:hidden fixed inset-0 z-40 transform translate-x-full transition-transform duration-300 ease-in-out">
-        <!-- Backdrop -->
-        <div id="sidebarBackdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-        
-        <!-- Sidebar Content -->
-        <div class="relative w-80 max-w-[85vw] h-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg shadow-2xl overflow-y-auto ml-auto">
-            <!-- Sidebar Header -->
-            <div class="p-6 border-b border-gray-200/50 dark:border-gray-700/50">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center space-x-3 space-x-reverse">
-                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-xl shadow-lg">
-                            <i class="fas fa-key text-white text-xl"></i>
-                        </div>
-                        <div>
-                            <h2 class="text-xl font-bold text-gray-900 dark:text-white">مدیریت لایسنس‌ها</h2>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">سیستم ATK Cargo</p>
-                        </div>
-                    </div>
-                    <button id="closeSidebar" class="p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300">
-                        <i class="fas fa-times text-gray-600 dark:text-gray-300 text-lg"></i>
-                    </button>
-                </div>
-                
-                <!-- Live Status in Sidebar -->
-                <div class="flex items-center space-x-2 space-x-reverse bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/50 dark:to-emerald-900/50 px-3 py-2 rounded-full border border-green-200 dark:border-green-700">
-                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse-slow"></div>
-                    <span class="text-green-700 dark:text-green-300 text-sm font-medium">زنده</span>
-                </div>
-            </div>
-            
-            <!-- Stats Cards in Sidebar -->
-            <div class="p-4 space-y-3">
-                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">آمار سیستم</h3>
-                <div class="space-y-3">
-                    <!-- لایسنس‌های فعال -->
-                    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50">
-                        <div class="flex items-center space-x-3 space-x-reverse">
-                            <div class="bg-gradient-to-br from-green-500 to-emerald-600 p-2 rounded-lg">
-                                <i class="fas fa-check-circle text-white text-sm"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="text-xs font-medium text-gray-600 dark:text-gray-400">فعال</h4>
-                                <p class="text-lg font-bold text-gray-900 dark:text-white" id="activeLicensesMobile">0</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- لایسنس‌های غیرفعال -->
-                    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50">
-                        <div class="flex items-center space-x-3 space-x-reverse">
-                            <div class="bg-gradient-to-br from-red-500 to-red-600 p-2 rounded-lg">
-                                <i class="fas fa-times-circle text-white text-sm"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="text-xs font-medium text-gray-600 dark:text-gray-400">غیرفعال</h4>
-                                <p class="text-lg font-bold text-gray-900 dark:text-white" id="inactiveLicensesMobile">0</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- اخیراً استفاده شده -->
-                    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50">
-                        <div class="flex items-center space-x-3 space-x-reverse">
-                            <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-2 rounded-lg">
-                                <i class="fas fa-clock text-white text-sm"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="text-xs font-medium text-gray-600 dark:text-gray-400">اخیراً استفاده شده</h4>
-                                <p class="text-lg font-bold text-gray-900 dark:text-white" id="recentlyUsedLicensesMobile">0</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- کل شرکت‌ها -->
-                    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50">
-                        <div class="flex items-center space-x-3 space-x-reverse">
-                            <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-2 rounded-lg">
-                                <i class="fas fa-building text-white text-sm"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="text-xs font-medium text-gray-600 dark:text-gray-400">کل شرکت‌ها</h4>
-                                <p class="text-lg font-bold text-gray-900 dark:text-white" id="totalCompaniesMobile">0</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- نیاز به بررسی -->
-                    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50">
-                        <div class="flex items-center space-x-3 space-x-reverse">
-                            <div class="bg-gradient-to-br from-yellow-500 to-orange-500 p-2 rounded-lg">
-                                <i class="fas fa-exclamation-triangle text-white text-sm"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="text-xs font-medium text-gray-600 dark:text-gray-400">نیاز به بررسی</h4>
-                                <p class="text-lg font-bold text-gray-900 dark:text-white" id="needsReviewLicensesMobile">0</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Sidebar Actions -->
-            <div class="p-4 border-t border-gray-200/50 dark:border-gray-700/50">
-                <button onclick="showModal('logoutModal')" class="w-full flex items-center justify-center space-x-2 space-x-reverse bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-3 rounded-xl transition-all duration-300 shadow-lg">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span class="font-medium">خروج</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Desktop Header with Stats Cards -->
-    <header class="hidden md:block bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg shadow-xl border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-40">
-        <div class="container mx-auto px-4 lg:px-8 py-6">
-            <!-- Header Top Section -->
-            <div class="flex items-center justify-between flex-wrap gap-4 mb-6">
-                <div class="flex items-center space-x-4 space-x-reverse">
-                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                        <i class="fas fa-key text-white text-2xl"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-1">مدیریت لایسنس‌ها</h1>
-                        <p class="text-gray-600 dark:text-gray-400 flex items-center space-x-2 space-x-reverse">
-                            <i class="fas fa-cube text-blue-500 text-sm"></i>
-                            <span>سیستم ATK Cargo</span>
-                        </p>
-                    </div>
-                </div>
-                
-                <div class="flex items-center space-x-3 space-x-reverse flex-wrap gap-2">
-                    <!-- Live Status -->
-                    <div class="flex items-center space-x-2 space-x-reverse bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/50 dark:to-emerald-900/50 px-4 py-2 rounded-full border border-green-200 dark:border-green-700 shadow-sm">
-                        <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse-slow shadow-lg"></div>
-                        <span class="text-green-700 dark:text-green-300 text-sm font-medium">زنده</span>
-                    </div>
-                    
-                    <!-- Theme Toggle -->
-                    <button id="themeToggle" class="p-3 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-300 hover:scale-105 shadow-sm">
-                        <i class="fas fa-moon dark:hidden text-gray-600 text-lg"></i>
-                        <i class="fas fa-sun hidden dark:inline text-yellow-400 text-lg"></i>
-                    </button>
-                    
-                    <!-- Logout Button -->
-                    <button onclick="showModal('logoutModal')" class="flex items-center space-x-2 space-x-reverse bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-5 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl">
-                        <i class="fas fa-sign-out-alt text-lg"></i>
-                        <span class="font-medium">خروج</span>
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                <!-- لایسنس‌های فعال -->
-                <div class="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-3 space-x-reverse">
-                            <div class="bg-gradient-to-br from-green-500 to-emerald-600 p-3 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
-                                <i class="fas fa-check-circle text-white text-xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400">فعال</h3>
-                                <p class="text-2xl font-bold text-gray-900 dark:text-white" id="activeLicenses">0</p>
-                            </div>
-                        </div>
-                        <div class="text-green-500 text-sm font-medium bg-green-100 dark:bg-green-900/30 px-3 py-1 rounded-full">
-                            <i class="fas fa-arrow-up text-xs"></i>
-                            <span>+12%</span>
-                        </div>
-                    </div>
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div class="bg-gradient-to-r from-green-500 to-emerald-600 h-2 rounded-full transition-all duration-1000" style="width: 75%"></div>
-                    </div>
-                </div>
-
-                <!-- لایسنس‌های غیرفعال -->
-                <div class="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-3 space-x-reverse">
-                            <div class="bg-gradient-to-br from-red-500 to-red-600 p-3 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
-                                <i class="fas fa-times-circle text-white text-xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400">غیرفعال</h3>
-                                <p class="text-2xl font-bold text-gray-900 dark:text-white" id="inactiveLicenses">0</p>
-                            </div>
-                        </div>
-                        <div class="text-red-500 text-sm font-medium bg-red-100 dark:bg-red-900/30 px-3 py-1 rounded-full">
-                            <i class="fas fa-arrow-down text-xs"></i>
-                            <span>-5%</span>
-                        </div>
-                    </div>
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div class="bg-gradient-to-r from-red-500 to-red-600 h-2 rounded-full transition-all duration-1000" style="width: 25%"></div>
-                    </div>
-                </div>
-
-                <!-- اخیراً استفاده شده -->
-                <div class="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-3 space-x-reverse">
-                            <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
-                                <i class="fas fa-clock text-white text-xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400">اخیراً استفاده شده</h3>
-                                <p class="text-2xl font-bold text-gray-900 dark:text-white" id="recentlyUsedLicenses">0</p>
-                            </div>
-                        </div>
-                        <div class="text-blue-500 text-sm font-medium bg-blue-100 dark:bg-blue-900/30 px-3 py-1 rounded-full">
-                            <i class="fas fa-arrow-up text-xs"></i>
-                            <span>+8%</span>
-                        </div>
-                    </div>
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-1000" style="width: 60%"></div>
-                    </div>
-                </div>
-
-                <!-- کل شرکت‌ها -->
-                <div class="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-3 space-x-reverse">
-                            <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-3 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
-                                <i class="fas fa-building text-white text-xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400">کل شرکت‌ها</h3>
-                                <p class="text-2xl font-bold text-gray-900 dark:text-white" id="totalCompanies">0</p>
-                            </div>
-                        </div>
-                        <div class="text-purple-500 text-sm font-medium bg-purple-100 dark:bg-purple-900/30 px-3 py-1 rounded-full">
-                            <i class="fas fa-arrow-up text-xs"></i>
-                            <span>+3%</span>
-                        </div>
-                    </div>
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div class="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full transition-all duration-1000" style="width: 90%"></div>
-                    </div>
-                </div>
-
-                <!-- نیاز به بررسی -->
-                <div class="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-3 space-x-reverse">
-                            <div class="bg-gradient-to-br from-yellow-500 to-orange-500 p-3 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
-                                <i class="fas fa-exclamation-triangle text-white text-xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400">نیاز به بررسی</h3>
-                                <p class="text-2xl font-bold text-gray-900 dark:text-white" id="needsReviewLicenses">0</p>
-                            </div>
-                        </div>
-                        <div class="text-orange-500 text-sm font-medium bg-orange-100 dark:bg-orange-900/30 px-3 py-1 rounded-full">
-                            <i class="fas fa-arrow-up text-xs"></i>
-                            <span>+15%</span>
-                        </div>
-                    </div>
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div class="bg-gradient-to-r from-yellow-500 to-orange-500 h-2 rounded-full transition-all duration-1000" style="width: 40%"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 lg:px-8 py-4 md:py-8 relative z-10">
-        <!-- Filters and Create License Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <!-- ایجاد لایسنس -->
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
-                <div class="border-b border-gray-200/50 dark:border-gray-700/50 pb-4 mb-6">
-                    <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center justify-center gap-2">
-                        <i class="fas fa-plus-circle text-blue-500"></i>
-                        ایجاد لایسنس جدید
-                    </h5>
-                </div>
-                <form id="createLicenseForm" class="space-y-4">
-                    <input type="hidden" name="csrf_token" id="csrf_token">
-                    <div>
-                        <label for="companyName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">نام شرکت</label>
-                        <input type="text" id="companyName" required
-                               class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300">
-                    </div>
-                    <button type="submit" 
-                            class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center justify-center gap-2">
-                        <i class="fas fa-plus"></i>
-                        ایجاد لایسنس
-                    </button>
-                </form>
-            </div>
-
-            <!-- Filters Section -->
-            <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
-                <div class="border-b border-gray-200/50 dark:border-gray-700/50 pb-4 mb-6">
-                    <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center justify-center gap-2">
-                        <i class="fas fa-filter text-blue-500"></i>
-                        فیلترها و جستجو
-                    </h5>
-                </div>
-                <div class="space-y-4">
-                    <!-- Search Input -->
-                    <div class="relative group">
-                        <input type="text" id="searchInput" placeholder="جستجو در لایسنس‌ها..." 
-                               class="w-full px-4 py-3 pr-12 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 group-hover:shadow-md">
-                        <i class="fas fa-search absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-blue-500 transition-colors duration-300"></i>
-                    </div>
-                    
-                    <!-- Status Filter -->
-                    <select id="statusFilter" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:shadow-md cursor-pointer">
-                        <option value="all">همه وضعیت‌ها</option>
-                        <option value="active">فعال</option>
-                        <option value="inactive">غیرفعال</option>
-                        <option value="expired">منقضی شده</option>
-                    </select>
-                    
-                    <!-- Action Buttons -->
-                    <div class="flex gap-3">
-                        <button onclick="refreshData()" class="group bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center gap-2 flex-1">
-                            <i class="fas fa-sync-alt group-hover:rotate-180 transition-transform duration-500"></i>
-                            بروزرسانی
-                        </button>
-                        <button onclick="exportData()" class="group bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center gap-2 flex-1">
-                            <i class="fas fa-download group-hover:translate-y-0.5 transition-transform duration-300"></i>
-                            خروجی Excel
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- جدول لایسنس‌ها -->
-        <div class="glass rounded-3xl shadow-2xl border border-white/20 dark:border-gray-700/30 overflow-hidden backdrop-blur-xl">
-            <div class="bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-600/20 dark:to-purple-600/20 border-b border-white/20 dark:border-gray-700/30 p-6">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <div class="bg-gradient-to-br from-blue-500 to-purple-600 p-2 rounded-xl shadow-lg">
-                            <i class="fas fa-list text-white text-lg"></i>
-                        </div>
-                        لیست لایسنس‌ها
-                    </h3>
-                    <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        آنلاین
-                    </div>
-                </div>
-            </div>
-            
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gradient-to-r from-gray-50/80 to-gray-100/80 dark:from-gray-700/80 dark:to-gray-800/80 backdrop-blur-sm">
-                        <tr>
-                            <th class="px-6 py-5 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200/50 dark:border-gray-600/50">
-                                <div class="flex items-center gap-2">
-                                    <i class="fas fa-key text-blue-500"></i>
-                                    کلید لایسنس
-                                </div>
-                            </th>
-                            <th class="px-6 py-5 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200/50 dark:border-gray-600/50">
-                                <div class="flex items-center gap-2">
-                                    <i class="fas fa-building text-purple-500"></i>
-                                    نام شرکت
-                                </div>
-                            </th>
-                            <th class="px-6 py-5 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-white/50 dark:hover:bg-gray-600/50 transition-all duration-300 rounded-lg border-b border-gray-200/50 dark:border-gray-600/50 group sortable" data-sort="last_check">
-                                <div class="flex items-center gap-2">
-                                    <i class="fas fa-clock text-green-500"></i>
-                                    آخرین استفاده
-                                    <i class="fas fa-sort mr-1 group-hover:text-blue-500 transition-colors duration-300"></i>
-                                </div>
-                            </th>
-                            <th class="px-6 py-5 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-white/50 dark:hover:bg-gray-600/50 transition-all duration-300 rounded-lg border-b border-gray-200/50 dark:border-gray-600/50 group sortable" data-sort="status">
-                                <div class="flex items-center gap-2">
-                                    <i class="fas fa-info-circle text-orange-500"></i>
-                                    وضعیت
-                                    <i class="fas fa-sort mr-1 group-hover:text-blue-500 transition-colors duration-300"></i>
-                                </div>
-                            </th>
-                            <th class="px-6 py-5 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200/50 dark:border-gray-600/50">
-                                <div class="flex items-center gap-2">
-                                    <i class="fas fa-cogs text-red-500"></i>
-                                    عملیات
-                                </div>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody id="licensesTableBody" class="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm divide-y divide-gray-200/50 dark:divide-gray-700/50">
-                        <!-- محتوای جدول به صورت پویا اضافه می‌شود -->
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Loading State -->
-            <div id="loadingState" class="flex flex-col items-center justify-center py-20">
-                <div class="relative mb-6">
-                    <div class="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 dark:border-blue-800"></div>
-                    <div class="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent absolute top-0 left-0"></div>
-                </div>
-                <div class="space-y-2 text-center">
-                    <p class="text-lg font-medium text-gray-700 dark:text-gray-300">در حال بارگذاری لایسنس‌ها...</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">لطفاً صبر کنید</p>
-                </div>
-                <!-- Skeleton Loading -->
-                <div class="w-full max-w-md space-y-3 mt-6">
-                    <div class="skeleton h-4 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
-                    <div class="skeleton h-4 bg-gray-200 dark:bg-gray-700 rounded-lg w-3/4 animate-pulse"></div>
-                    <div class="skeleton h-4 bg-gray-200 dark:bg-gray-700 rounded-lg w-1/2 animate-pulse"></div>
-                </div>
-            </div>
-            
-            <!-- Empty State -->
-            <div id="emptyState" class="hidden text-center py-20">
-                <div class="relative mb-6">
-                    <div class="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-full flex items-center justify-center mx-auto">
-                        <i class="fas fa-inbox text-gray-400 dark:text-gray-500 text-3xl"></i>
-                    </div>
-                    <div class="absolute -top-2 -right-2 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mx-auto">
-                        <i class="fas fa-search text-white text-sm"></i>
-                    </div>
-                </div>
-                <div class="space-y-3">
-                    <h4 class="text-xl font-bold text-gray-700 dark:text-gray-300">هیچ لایسنسی یافت نشد</h4>
-                    <p class="text-gray-500 dark:text-gray-400">برای شروع، یک لایسنس جدید ایجاد کنید</p>
-                    <button onclick="document.getElementById('companyName').focus()" 
-                            class="btn-ripple bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center gap-2 mx-auto mt-4">
-                        <i class="fas fa-plus"></i>
-                        ایجاد اولین لایسنس
-                    </button>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- مودال جزئیات لایسنس -->
-    <div id="licenseModal" class="fixed inset-0 z-50 hidden animate-backdrop-show">
-        <div class="fixed inset-0 bg-black/60 backdrop-blur-md"></div>
-        <div class="fixed inset-0 flex items-center justify-center p-4">
-            <div class="glass rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden border border-white/20 dark:border-gray-700/30 animate-modal-show">
-                <!-- Header -->
-                <div class="bg-gradient-to-r from-blue-500/20 to-purple-500/20 dark:from-blue-600/30 dark:to-purple-600/30 border-b border-white/20 dark:border-gray-700/30 p-6">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-gradient-to-br from-blue-500 to-purple-600 p-3 rounded-xl shadow-lg">
-                                <i class="fas fa-info-circle text-white text-xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">جزئیات لایسنس</h3>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">اطلاعات کامل لایسنس</p>
-                            </div>
-                        </div>
-                        <button onclick="closeLicenseModal()" class="group p-2 rounded-xl bg-white/10 hover:bg-white/20 dark:bg-gray-700/50 dark:hover:bg-gray-600/50 transition-all duration-300">
-                            <i class="fas fa-times text-gray-600 dark:text-gray-300 group-hover:text-gray-800 dark:group-hover:text-white text-lg"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Body -->
-                <div class="p-6 overflow-y-auto max-h-[calc(90vh-200px)]" id="licenseModalBody">
-                    <!-- محتوا توسط JavaScript پر می‌شود -->
-                    <div class="space-y-6">
-                        <!-- Skeleton Loading -->
-                        <div class="animate-pulse space-y-4">
-                            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded-lg w-3/4"></div>
-                            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded-lg w-1/2"></div>
-                            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded-lg w-2/3"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Footer -->
-                <div class="bg-gradient-to-r from-gray-50/80 to-gray-100/80 dark:from-gray-700/80 dark:to-gray-800/80 backdrop-blur-sm border-t border-white/20 dark:border-gray-700/30 px-6 py-4">
-                    <div class="flex justify-end gap-3">
-                        <button onclick="closeLicenseModal()" class="btn-ripple px-6 py-3 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white rounded-xl font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center gap-2">
-                            <i class="fas fa-times"></i>
-                            بستن
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- مودال تأیید حذف -->
-    <div id="deleteModal" class="fixed inset-0 z-50 hidden animate-backdrop-show">
-        <div class="fixed inset-0 bg-black/60 backdrop-blur-md"></div>
-        <div class="fixed inset-0 flex items-center justify-center p-4">
-            <div class="glass rounded-3xl shadow-2xl max-w-lg w-full border border-white/20 dark:border-gray-700/30 animate-modal-show">
-                <!-- Header -->
-                <div class="bg-gradient-to-r from-red-500/20 to-orange-500/20 dark:from-red-600/30 dark:to-orange-600/30 border-b border-white/20 dark:border-gray-700/30 p-6">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-gradient-to-br from-red-500 to-orange-600 p-3 rounded-xl shadow-lg">
-                                <i class="fas fa-exclamation-triangle text-white text-xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">تأیید حذف</h3>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">حذف لایسنس</p>
-                            </div>
-                        </div>
-                        <button onclick="closeDeleteModal()" class="group p-2 rounded-xl bg-white/10 hover:bg-white/20 dark:bg-gray-700/50 dark:hover:bg-gray-600/50 transition-all duration-300">
-                            <i class="fas fa-times text-gray-600 dark:text-gray-300 group-hover:text-gray-800 dark:group-hover:text-white text-lg"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Body -->
-                <div class="p-6">
-                    <div class="text-center mb-6">
-                        <div class="mx-auto w-20 h-20 bg-gradient-to-br from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 rounded-full flex items-center justify-center mb-4 shadow-lg">
-                            <i class="fas fa-trash-alt text-red-500 dark:text-red-400 text-3xl"></i>
-                        </div>
-                        <h4 class="text-xl font-bold text-gray-900 dark:text-white mb-2">آیا مطمئن هستید؟</h4>
-                        <p class="text-gray-600 dark:text-gray-400">این عمل قابل بازگشت نیست و تمام اطلاعات مربوط به این لایسنس حذف خواهد شد.</p>
-                    </div>
-                    
-                    <!-- License Info Card -->
-                    <div class="glass rounded-2xl p-5 mb-6 border border-white/20 dark:border-gray-700/30">
-                        <div class="space-y-3">
-                            <div class="flex items-center justify-between p-3 bg-white/30 dark:bg-gray-700/30 rounded-xl">
-                                <div class="flex items-center gap-2">
-                                    <i class="fas fa-building text-blue-500"></i>
-                                    <span class="font-medium text-gray-700 dark:text-gray-300">شرکت:</span>
-                                </div>
-                                <span class="font-bold text-gray-900 dark:text-white" id="deleteCompanyName">-</span>
-                            </div>
-                            <div class="flex items-center justify-between p-3 bg-white/30 dark:bg-gray-700/30 rounded-xl">
-                                <div class="flex items-center gap-2">
-                                    <i class="fas fa-key text-green-500"></i>
-                                    <span class="font-medium text-gray-700 dark:text-gray-300">کلید لایسنس:</span>
-                                </div>
-                                <span class="font-mono text-sm text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg" id="deleteLicenseKey">-</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Warning -->
-                    <div class="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border border-red-200 dark:border-red-700/30 rounded-xl p-4">
-                        <div class="flex items-start gap-3">
-                            <i class="fas fa-exclamation-circle text-red-500 mt-1"></i>
-                            <div>
-                                <h5 class="font-semibold text-red-800 dark:text-red-300 mb-1">هشدار مهم</h5>
-                                <p class="text-sm text-red-700 dark:text-red-400">پس از حذف، امکان بازیابی این لایسنس وجود نخواهد داشت.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Footer -->
-                <div class="bg-gradient-to-r from-gray-50/80 to-gray-100/80 dark:from-gray-700/80 dark:to-gray-800/80 backdrop-blur-sm border-t border-white/20 dark:border-gray-700/30 px-6 py-4">
-                    <div class="flex justify-end gap-3">
-                        <button onclick="closeDeleteModal()" class="btn-ripple px-6 py-3 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white rounded-xl font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center gap-2">
-                            <i class="fas fa-times"></i>
-                            انصراف
-                        </button>
-                        <button onclick="confirmDelete()" class="btn-ripple px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center gap-2">
-                            <i class="fas fa-trash-alt"></i>
-                            حذف
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- مدال ویرایش -->
-    <div id="editLicenseModal" class="fixed inset-0 z-50 hidden animate-backdrop-show">
-        <div class="fixed inset-0 bg-black/60 backdrop-blur-md"></div>
-        <div class="fixed inset-0 flex items-center justify-center p-4">
-            <div class="glass rounded-3xl shadow-2xl max-w-2xl w-full border border-white/20 dark:border-gray-700/30 animate-modal-show">
-                <!-- Header -->
-                <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 dark:from-green-600/30 dark:to-emerald-600/30 border-b border-white/20 dark:border-gray-700/30 p-6">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-gradient-to-br from-green-500 to-emerald-600 p-3 rounded-xl shadow-lg">
-                                <i class="fas fa-edit text-white text-xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">ویرایش لایسنس</h3>
-                                <p class="text-sm text-gray-600 dark:text-gray-400">ویرایش اطلاعات لایسنس</p>
-                            </div>
-                        </div>
-                        <button onclick="hideModal('editLicenseModal')" class="group p-2 rounded-xl bg-white/10 hover:bg-white/20 dark:bg-gray-700/50 dark:hover:bg-gray-600/50 transition-all duration-300">
-                            <i class="fas fa-times text-gray-600 dark:text-gray-300 group-hover:text-gray-800 dark:group-hover:text-white text-lg"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Body -->
-                <div class="p-6">
-                    <div class="space-y-6">
-                        <input type="hidden" name="csrf_token" id="edit_csrf_token">
-                        
-                        <!-- License Key Field -->
-                        <div class="space-y-2">
-                            <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                                <div class="bg-gradient-to-br from-blue-500 to-purple-600 p-1.5 rounded-lg">
-                                    <i class="fas fa-key text-white text-xs"></i>
-                                </div>
-                                کلید لایسنس
-                            </label>
-                            <div class="glass rounded-xl p-4 border border-white/20 dark:border-gray-700/30">
-                                <div class="flex items-center justify-between">
-                                    <span id="editLicenseKey" class="font-mono text-sm text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-3 py-2 rounded-lg flex-1 mr-3"></span>
-                                    <button onclick="copyLicenseKey(document.getElementById('editLicenseKey').textContent)"
-                                            class="btn-ripple p-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-lg">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
-                                </div>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">کلید لایسنس قابل تغییر نیست</p>
-                            </div>
-                        </div>
-                        
-                        <!-- Company Name Field -->
-                        <div class="space-y-2">
-                            <label class="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                                <div class="bg-gradient-to-br from-green-500 to-emerald-600 p-1.5 rounded-lg">
-                                    <i class="fas fa-building text-white text-xs"></i>
-                                </div>
-                                نام شرکت
-                            </label>
-                            <div class="relative">
-                                <input type="text" id="editCompanyName" 
-                                       class="w-full glass rounded-xl px-4 py-4 border border-white/20 dark:border-gray-700/30 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-300"
-                                       placeholder="نام شرکت را وارد کنید">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i class="fas fa-building text-gray-400"></i>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Additional Info -->
-                        <div class="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border border-blue-200 dark:border-blue-700/30 rounded-xl p-4">
-                            <div class="flex items-start gap-3">
-                                <i class="fas fa-info-circle text-blue-500 mt-1"></i>
-                                <div>
-                                    <h5 class="font-semibold text-blue-800 dark:text-blue-300 mb-1">نکته مهم</h5>
-                                    <p class="text-sm text-blue-700 dark:text-blue-400">تغییر نام شرکت بر روی کلید لایسنس تأثیری نخواهد داشت.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Footer -->
-                <div class="bg-gradient-to-r from-gray-50/80 to-gray-100/80 dark:from-gray-700/80 dark:to-gray-800/80 backdrop-blur-sm border-t border-white/20 dark:border-gray-700/30 px-6 py-4">
-                    <div class="flex justify-end gap-3">
-                        <button type="button" onclick="hideModal('editLicenseModal')"
-                                class="btn-ripple px-6 py-3 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white rounded-xl font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center gap-2">
-                            <i class="fas fa-times"></i>
-                            انصراف
-                        </button>
-                        <button type="button" id="saveEditBtn" 
-                                class="btn-ripple px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center gap-2">
-                            <i class="fas fa-save"></i>
-                            ذخیره تغییرات
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- مدال حذف -->
-    <div id="deleteLicenseModal" class="fixed inset-0 z-50 hidden">
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm animate-backdrop-show theme-transition"></div>
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="glass rounded-xl w-full max-w-lg relative animate-modal-show theme-transition">
-                <div class="border-b border-white/10 p-4">
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-exclamation-triangle text-danger dark:text-danger-light"></i>
-                        <h5 class="text-lg font-semibold text-white">حذف لایسنس</h5>
-                    </div>
-                    <button type="button" onclick="hideModal('deleteLicenseModal')" 
-                            class="absolute top-4 left-4 text-gray-300 hover:text-white transition-colors">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="p-6 text-center">
-                    <p class="text-lg text-white mb-4">آیا از حذف این لایسنس اطمینان دارید؟</p>
-                    <div class="glass rounded-lg p-4 mb-4">
-                        <div class="mb-2">
-                            <span class="text-sm text-gray-300">شرکت:</span>
-                            <span class="text-white company-name mr-2"></span>
-                        </div>
-                        <div>
-                            <span class="text-sm text-gray-300">کلید لایسنس:</span>
-                            <span class="text-white license-key font-mono mr-2"></span>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-center gap-1 text-danger dark:text-danger-light">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <span class="text-sm">این عملیات غیرقابل بازگشت است!</span>
-                    </div>
-                </div>
-                <div class="border-t border-white/10 p-4 flex justify-end gap-2">
-                    <button type="button" onclick="hideModal('deleteLicenseModal')"
-                            class="glass-button px-4 py-2 text-white rounded-lg">
-                        <i class="fas fa-times mr-1"></i>
-                        انصراف
-                    </button>
-                    <button type="button" id="confirmDeleteBtn"
-                            class="glass-button px-4 py-2 text-white rounded-lg bg-danger-light/20">
-                        <i class="fas fa-trash mr-1"></i>
-                        حذف
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- مدال جزئیات لایسنس -->
-    <div id="licenseDetailsModal" class="fixed inset-0 z-50 hidden">
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm animate-backdrop-show theme-transition"></div>
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="glass rounded-xl w-full max-w-lg relative animate-modal-show theme-transition">
-                <div class="border-b border-white/10 p-4">
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-info-circle text-primary dark:text-primary-light"></i>
-                        <h5 class="text-lg font-semibold text-white">جزئیات لایسنس</h5>
-                    </div>
-                    <button type="button" onclick="hideModal('licenseDetailsModal')" 
-                            class="absolute top-4 left-4 text-gray-300 hover:text-white transition-colors">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="p-6">
-                    <div class="license-details-content">
-                        <!-- محتوای جزئیات اینجا به صورت پویا اضافه می‌شود -->
-                    </div>
-                </div>
-                <div class="border-t border-white/10 p-4 flex justify-end">
-                    <button type="button" onclick="hideModal('licenseDetailsModal')"
-                            class="glass-button px-4 py-2 text-white rounded-lg">
-                        <i class="fas fa-times mr-1"></i>
-                        بستن
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- مدال خروج از حساب -->
-    <div id="logoutModal" class="fixed inset-0 z-50 hidden">
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm animate-backdrop-show theme-transition"></div>
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="glass rounded-xl w-full max-w-md relative animate-modal-show theme-transition">
-                <div class="border-b border-white/10 p-4">
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-sign-out-alt text-danger dark:text-danger-light"></i>
-                        <h5 class="text-lg font-semibold text-white">خروج از حساب</h5>
-                    </div>
-                    <button type="button" onclick="hideModal('logoutModal')" 
-                            class="absolute top-4 left-4 text-gray-300 hover:text-white transition-colors">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="p-6 text-center">
-                    <div class="w-16 h-16 rounded-full bg-danger-light/10 dark:bg-danger-dark/10 flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-sign-out-alt text-3xl text-danger dark:text-danger-light"></i>
-                    </div>
-                    <p class="text-lg text-white mb-4">آیا مطمئن هستید که می‌خواهید از حساب خود خارج شوید؟</p>
-                </div>
-                <div class="border-t border-white/10 p-4 flex justify-end gap-2">
-                    <button type="button" onclick="hideModal('logoutModal')"
-                            class="glass-button px-4 py-2 text-white rounded-lg">
-                        <i class="fas fa-times mr-1"></i>
-                        انصراف
-                    </button>
-                    <button type="button" onclick="confirmLogout()"
-                            class="glass-button px-4 py-2 text-white rounded-lg bg-danger-light/20">
-                        <i class="fas fa-sign-out-alt mr-1"></i>
-                        خروج
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- اسکریپت‌ها -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js" defer></script>
-    <script src="assets/js/performance.js" defer></script>
-    <script src="license-manager.js" defer></script>
-
-    <style>
-    /* استایل تولتیپ‌ها */
-    .tooltip {
-        @apply invisible absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 text-xs text-white bg-black/80 dark:bg-white/80 dark:text-gray-900 rounded whitespace-nowrap opacity-0 transition-all group-hover:visible group-hover:opacity-100 theme-transition;
-    }
-
-    .tooltip::before {
-        content: '';
-        @apply absolute -top-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-b-black/80 dark:border-b-white/80 theme-transition;
-    }
-
-    /* استایل جستجو */
-    #searchInput:focus + .fa-search {
-        @apply text-primary dark:text-primary-light;
-    }
-
-    /* حالت موبایل */
-    @media (max-width: 768px) {
-        .nav-title {
-            @apply text-base;
-        }
-    }
-    </style>
-
-    <script>
-        // اضافه کردن کلاس table-row-animate به ردیف‌های جدول هنگام اضافه شدن
-        function addTableRow(data) {
-            const row = document.createElement('tr');
-            row.className = 'table-row table-row-animate';
-            // ... rest of the row creation code ...
-        }
-    </script>
+    <script src="license-manager.js"></script>
 </body>
+
 </html>

@@ -10,10 +10,10 @@ function getFileSize($filePath): string {
 }
 
 return [
-    'latest_version' => '3.0.20', 
+    'latest_version' => '3.0.23', 
     'download_url' => 'https://atk-nk.ir/Cargo/downloads/app-release.apk',
     'min_required_version' => '1.9',
-    'min_allowed_version' => '3.0.18',
+    'min_allowed_version' => '3.0.19',
     'update_priority' => 'normal',
     'update_message' => 'نسخه جدید با امکانات جدید در دسترس است',
     'force_update' => false,
