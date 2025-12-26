@@ -23,19 +23,14 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColor
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -1192,23 +1187,48 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                         ) {
                             // Main Content Area
                             Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f)
-                            ) {
-                                NavHost(
-                                    navController = navController,
-                                    startDestination = "home"
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f)
                                 ) {
-                                    composable("home") {
-                                        HomeScreen(
+                                    if (!isSessionValid) {
+                                        LoginScreen(
+                                            userPreferencesManager = userPreferencesManager,
+                                            onLoginSuccess = {
+                                                mainActivity.updateSessionValidity(true)
+                                                mainActivity.startLoadingNotificationService()
+                                                navController.navigate("home") {
+                                                    popUpTo("home") { inclusive = true }
+                                                }
+                                            }
+                                        )
+                                    } else {
+                                        NavHost(
                                             navController = navController,
-                                            username = username,
-                                            userType = userType,
-                                            isSessionValid = isSessionValid,
-                                            onLogoutClick = {
-                                                coroutineScope.launch {
-                                                    try {
+                                            startDestination = "home"
+                                        ) {
+                                            composable("login") {
+                                                LoginScreen(
+                                                    userPreferencesManager = userPreferencesManager,
+                                                    onLoginSuccess = {
+                                                        mainActivity.updateSessionValidity(true)
+                                                        mainActivity.startLoadingNotificationService()
+                                                        navController.navigate("home") {
+                                                            popUpTo("home") { inclusive = true }
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                            composable("home") {
+                                                HomeScreen(
+                                                    navController = navController,
+                                                    username = username,
+                                                    userType = userType,
+                                                    isSessionValid = isSessionValid,
+                                                    onLoginClick = { navController.navigate("login") },
+                                                    onLogoutClick = {
+                                                        coroutineScope.launch {
+                                                            try {
                                                         // دریافت اطلاعات دستگاه
                                                         val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
 
@@ -1497,8 +1517,9 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                     }
                                 }
                             }
+                        }
 
-                            // Signature Section
+                        // Signature Section
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 color = MaterialTheme.colorScheme.surface,
@@ -1556,6 +1577,8 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                 }
             }
         }
+
+
         if (showUserManagement) {
             UserManagementDialog(
                 onDismiss = { showUserManagement = false }
@@ -1642,7 +1665,7 @@ fun SplashScreen(onSkip: () -> Unit) {
             if (isSkipped) {
                 // fade out تدریجی صدا (اگر صدا داشت)
                 // سپس pause
-                delay(200)
+                kotlinx.coroutines.delay(200)
                 exoPlayer.pause()
             }
         }
@@ -1761,6 +1784,7 @@ fun HomeScreen(
     username: String,
     userType: String,
     isSessionValid: Boolean,
+    onLoginClick: () -> Unit,
     onLogoutClick: () -> Unit,
     onManageUsersClick: () -> Unit,
     warningsCount: Int = 0
@@ -1861,9 +1885,6 @@ fun HomeScreen(
                     warningsCount = warningsCount
                 )
 
-                if (isLoggedIn) {
-                    WelcomeSection(username)
-                }
 
                 if (isLoggedIn) {
                     LaunchedEffect(Unit) {
@@ -1886,26 +1907,6 @@ fun HomeScreen(
                                 }
                             }
                         }
-                    )
-                } else {
-                    LoginScreen(
-                        onLoginChecked = { success, message, loggedInUserType, loggedInUsername ->
-                            if (success) {
-                                coroutineScope.launch {
-                                    val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
-                                    // دریافت session_token از UserPreferencesManager
-                                    val sessionToken = userPreferencesManager.sessionToken.first()
-                                    userPreferencesManager.saveUserCredentials(loggedInUsername, loggedInUserType, deviceId, sessionToken)
-                                    // ذخیره وضعیت ورود کاربر
-                                    userPreferencesManager.setLoginState(true)
-                                    mainActivity.updateSessionValidity(true)
-                                    // شروع بررسی دوره‌ای جلسه پس از ورود موفق
-                                    mainActivity.startLoadingNotificationService()
-                                }
-                            }
-                        },
-                        updateSessionValidity = mainActivity::updateSessionValidity,
-                        userPreferencesManager = userPreferencesManager
                     )
                 }
             }
@@ -2746,171 +2747,6 @@ private fun getIconForUserType(userType: String): ImageVector {
     }
 }
 
-@Composable
-private fun WelcomeSection(username: String) {
-    var textVisible by remember { mutableStateOf(false) }
-    val textScale = remember { Animatable(0.9f) }
-
-    val hintText = if (username.isNotEmpty())
-        "لطفاً گزینه مورد نظر خود را انتخاب کنید"
-    else
-        "برای دسترسی به امکانات سیستم لطفاً وارد شوید"
-
-    // انیمیشن رنگ برای نام کاربر
-    val usernameColorAnimation = rememberInfiniteTransition()
-    val usernameColor by usernameColorAnimation.animateColor(
-        initialValue = MaterialTheme.colorScheme.primary,
-        targetValue = MaterialTheme.colorScheme.tertiary,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
-
-    // انیمیشن مقیاس برای نام کاربر
-    val usernameScaleAnimation = rememberInfiniteTransition()
-    val usernameScale by usernameScaleAnimation.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
-
-    LaunchedEffect(Unit) {
-        delay(100)
-        textVisible = true
-        textScale.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        )
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-                        MaterialTheme.colorScheme.surface
-                    )
-                )
-            )
-    ) {
-        // دایره‌های تزئینی با اندازه کوچکتر
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .offset(x = (-25).dp, y = (-25).dp)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                            Color.Transparent
-                        ),
-                        radius = 80f
-                    ),
-                    shape = CircleShape
-                )
-        )
-
-        Box(
-            modifier = Modifier
-                .size(60.dp)
-                .align(Alignment.BottomEnd)
-                .offset(x = 15.dp, y = 15.dp)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
-                            Color.Transparent
-                        ),
-                        radius = 60f
-                    ),
-                    shape = CircleShape
-                )
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            AnimatedVisibility(
-                visible = textVisible,
-                enter = fadeIn(animationSpec = tween(1000)) +
-                        slideInVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            ),
-                            initialOffsetY = { it / 2 }
-                        )
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .scale(textScale.value)
-                ) {
-                    // متن خوش‌آمدگویی با انیمیشن فقط برای نام کاربر
-                    if (username.isNotEmpty()) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            // بخش ثابت متن خوش‌آمدگویی
-                            Text(
-                                text = "خوش آمدید، ",
-                                style = MaterialTheme.typography.titleLarge,
-                                textAlign = TextAlign.Center,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-
-                            // فقط نام کاربر با انیمیشن (بدون حالت تایپ کردن)
-                            Text(
-                                text = username,
-                                style = MaterialTheme.typography.titleLarge,
-                                textAlign = TextAlign.Center,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = usernameColor,
-                                modifier = Modifier.scale(usernameScale)
-                            )
-                        }
-                    } else {
-                        // حالت بدون نام کاربر
-                        Text(
-                            text = "به سیستم مدیریت هوشمند بارگیری خوش آمدید",
-                            style = MaterialTheme.typography.titleLarge,
-                            textAlign = TextAlign.Center,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // متن راهنما بدون انیمیشن
-                    Text(
-                        text = hintText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        }
-    }
-}
 
 data class SummaryData(
     @SerializedName("warehouseStatus")
@@ -3689,6 +3525,7 @@ private fun QuotaItemCard(quota: QuotaData) {
             // دکمه عمل: فعال/غیرفعال کردن کوتاژ
             if (isToggling) {
                 LoadingActionButton(
+                    label = "تغییر",
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.width(36.dp)
                 )
@@ -3760,6 +3597,7 @@ private fun CompactActionButton(
 
 @Composable
 private fun LoadingActionButton(
+    label: String,
     color: Color,
     modifier: Modifier = Modifier
 ) {
@@ -4212,6 +4050,7 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
 
             if (isToggling) {
                 LoadingActionButton(
+                    label = "در حال تغییر...",
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -4578,7 +4417,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                     ExpandableSection(
                                         title = "وضعیت انبارها",
                                         icon = Icons.Default.HomeWork,
-                                        startDelay = 0L
+                                        startDelay = 0L,
+                                        scrollState = scrollState
                                     ) {
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -4611,7 +4451,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                     ExpandableSection(
                                         title = "وضعیت کوتاژها",
                                         icon = Icons.Default.Inventory,
-                                        startDelay = quotaSectionDelay
+                                        startDelay = quotaSectionDelay,
+                                        scrollState = scrollState
                                     ) {
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -4644,7 +4485,8 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                     ExpandableSection(
                                         title = "روند کلی بارگیری",
                                         icon = Icons.Default.Checklist,
-                                        startDelay = trendSectionDelay
+                                        startDelay = trendSectionDelay,
+                                        scrollState = scrollState
                                     ) {
                                         TrendCard(
                                             text = trend,
@@ -4692,6 +4534,7 @@ private fun ExpandableSection(
     title: String,
     icon: ImageVector,
     startDelay: Long = 0L,
+    scrollState: ScrollState? = null,
     content: @Composable () -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(true) }
@@ -4793,7 +4636,7 @@ private fun InfoCard(text: String, color: Color, startDelay: Long = 0L, scrollSt
         delay(100)
         val chars = text.toList()
         chars.forEachIndexed { index, _ ->
-            displayedText = text.take(index + 1)
+            displayedText = text.substring(0, index + 1)
             delay(40)
             // اسکرول نرم در حین تایپ
             scrollState?.let {
@@ -4873,7 +4716,7 @@ private fun TrendCard(text: String, scrollState: ScrollState? = null) {
         delay(100)
         val chars = text.toList()
         chars.forEachIndexed { index, _ ->
-            displayedText = text.take(index + 1)
+            displayedText = text.substring(0, index + 1)
             delay(40)
             // اسکرول نرم در حین تایپ
             scrollState?.let {
@@ -5323,6 +5166,7 @@ private fun getMenuDescription(route: String): String {
         else -> ""
     }
 }
+
 
 @Composable
 fun UserManagementDialog(
