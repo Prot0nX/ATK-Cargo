@@ -96,6 +96,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
@@ -138,6 +139,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -663,7 +665,6 @@ class MainActivity : ComponentActivity() {
 
 private object SplashScreenConstants {
     const val APP_TITLE = "سیستم مدیریت هوشمند بارگیری"
-    const val COMPANY_NAME = "شرکت امین تجار خوزستان"
     const val VERSION_PREFIX = "نسخه"
 }
 
@@ -697,7 +698,7 @@ fun UpdateDialog(
                     .fillMaxWidth(0.9f)
                     .wrapContentHeight()
                     .alpha(dialogAlpha),
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -1159,7 +1160,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
     val tonnageWarningsCount by TonnageWarningService.warningsCount.collectAsState()
 
     LaunchedEffect(key1 = true) {
-        delay(7000)
+        delay(5000)
         showSplash = false
     }
 
@@ -1224,8 +1225,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                                     navController = navController,
                                                     username = username,
                                                     userType = userType,
-                                                    isSessionValid = isSessionValid,
-                                                    onLoginClick = { navController.navigate("login") },
+                                                    isSessionValid = true,
                                                     onLogoutClick = {
                                                         coroutineScope.launch {
                                                             try {
@@ -1274,247 +1274,243 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                             warningsCount = tonnageWarningsCount
                                         )
                                     }
-                                    composable(
-                                        route = "initial_info",
-                                        // انیمیشن‌های حرفه‌ای برای تعریف کشتی
-                                        enterTransition = {
-                                            fadeIn(
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + slideIntoContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Left,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + scaleIn(
-                                                initialScale = 0.90f,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            )
-                                        },
-                                        exitTransition = {
-                                            fadeOut(
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + slideOutOfContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Right,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + scaleOut(
-                                                targetScale = 1.06f,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            )
-                                        },
-                                        popEnterTransition = {
-                                            fadeIn(
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + slideIntoContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Right,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + scaleIn(
-                                                initialScale = 0.90f,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            )
-                                        },
-                                        popExitTransition = {
-                                            fadeOut(
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + slideOutOfContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Left,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + scaleOut(
-                                                targetScale = 1.06f,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            )
-                                        }
-                                    ) {
-                                        Log.d("Navigation", "Composing InitialInfoScreen")
-                                        InitialInfoScreen()
-                                    }
-                                    composable(
-                                        route = "select_info",
-                                        // انیمیشن‌های حرفه‌ای برای ثبت حواله
-                                        enterTransition = {
-                                            fadeIn(
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + slideIntoContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Left,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + scaleIn(
-                                                initialScale = 0.88f,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            )
-                                        },
-                                        exitTransition = {
-                                            fadeOut(
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + slideOutOfContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Right,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + scaleOut(
-                                                targetScale = 1.08f,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            )
-                                        },
-                                        popEnterTransition = {
-                                            fadeIn(
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + slideIntoContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Right,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + scaleIn(
-                                                initialScale = 0.88f,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            )
-                                        },
-                                        popExitTransition = {
-                                            fadeOut(
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + slideOutOfContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Left,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + scaleOut(
-                                                targetScale = 1.08f,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            )
-                                        }
-                                    ) {
-                                        Log.d("Navigation", "Composing SelectInfoScreen")
-                                        val cargoViewModel: CargoViewModel = viewModel(factory = cargoViewModelFactory)
-                                        SelectInfoScreenContent(navController = navController, viewModel = cargoViewModel)
-                                    }
-                                    composable(
-                                        route = "cargo_counter",
-                                        // انیمیشن‌های حرفه‌ای برای نظارت بارشمار
-                                        enterTransition = {
-                                            fadeIn(
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + slideIntoContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Left,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + scaleIn(
-                                                initialScale = 0.90f,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            )
-                                        },
-                                        exitTransition = {
-                                            fadeOut(
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + slideOutOfContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Right,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + scaleOut(
-                                                targetScale = 1.06f,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            )
-                                        },
-                                        popEnterTransition = {
-                                            fadeIn(
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + slideIntoContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Right,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + scaleIn(
-                                                initialScale = 0.90f,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            )
-                                        },
-                                        popExitTransition = {
-                                            fadeOut(
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + slideOutOfContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Left,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + scaleOut(
-                                                targetScale = 1.06f,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            )
-                                        }
-                                    ) {
-                                        Log.d("Navigation", "Composing CargoCounterScreen")
-                                        CargoCounterScreen(navController = navController)
-                                    }
-                                    composable(
-                                        route = "manage_ships",
-                                        // انیمیشن‌های حرفه‌ای برای مدیریت کشتی‌ها
-                                        enterTransition = {
-                                            fadeIn(
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + slideIntoContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Left,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + scaleIn(
-                                                initialScale = 0.86f,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            )
-                                        },
-                                        exitTransition = {
-                                            fadeOut(
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + slideOutOfContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Right,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + scaleOut(
-                                                targetScale = 1.10f,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            )
-                                        },
-                                        popEnterTransition = {
-                                            fadeIn(
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + slideIntoContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Right,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            ) + scaleIn(
-                                                initialScale = 0.86f,
-                                                animationSpec = tween(425, easing = EaseOutCubic)
-                                            )
-                                        },
-                                        popExitTransition = {
-                                            fadeOut(
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + slideOutOfContainer(
-                                                AnimatedContentTransitionScope.SlideDirection.Left,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            ) + scaleOut(
-                                                targetScale = 1.10f,
-                                                animationSpec = tween(275, easing = EaseInCubic)
-                                            )
-                                        }
-                                    ) {
-                                        Log.d("Navigation", "Composing ManageReportsScreen")
-                                        val reportsViewModel: ReportsViewModel = viewModel(
-                                            factory = ReportsViewModel.Factory
-                                        )
-                                        ManageReportsScreen(viewModel = reportsViewModel, navController = navController)
-                                    }
-                                    composable(
-                                        route = "cargoDetailsScreen/{quotaNumber}/{shippingCompany}/{warehouse}/{cargoType}",
-                                        arguments = listOf(
-                                            navArgument("quotaNumber") { type = NavType.StringType },
-                                            navArgument("shippingCompany") {
-                                                type = NavType.StringType
-                                                nullable = true
-                                            },
-                                            navArgument("warehouse") {
-                                                type = NavType.StringType
-                                                nullable = true
-                                            },
-                                            navArgument("cargoType") {
-                                                type = NavType.StringType
-                                                nullable = true
+                                            composable(
+                                                route = "initial_info",
+                                                // انیمیشن‌های حرفه‌ای برای تعریف کشتی
+                                                enterTransition = {
+                                                    fadeIn(
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + slideIntoContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Left,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + scaleIn(
+                                                        initialScale = 0.90f,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    )
+                                                },
+                                                exitTransition = {
+                                                    fadeOut(
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + slideOutOfContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Right,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + scaleOut(
+                                                        targetScale = 1.06f,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    )
+                                                },
+                                                popEnterTransition = {
+                                                    fadeIn(
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + slideIntoContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Right,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + scaleIn(
+                                                        initialScale = 0.90f,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    )
+                                                },
+                                                popExitTransition = {
+                                                    fadeOut(
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + slideOutOfContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Left,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + scaleOut(
+                                                        targetScale = 1.06f,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    )
+                                                }
+                                            ) {
+                                                InitialInfoScreen()
                                             }
-                                        )
-                                    ) { backStackEntry ->
-                                        val quotaNumber = backStackEntry.arguments?.getString("quotaNumber") ?: ""
-                                        val shippingCompany = backStackEntry.arguments?.getString("shippingCompany") ?: ""
-                                        val warehouse = backStackEntry.arguments?.getString("warehouse") ?: ""
-                                        val cargoType = backStackEntry.arguments?.getString("cargoType") ?: ""
+                                            composable(
+                                                route = "select_info",
+                                                // انیمیشن‌های حرفه‌ای برای ثبت حواله
+                                                enterTransition = {
+                                                    fadeIn(
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + slideIntoContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Left,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + scaleIn(
+                                                        initialScale = 0.88f,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    )
+                                                },
+                                                exitTransition = {
+                                                    fadeOut(
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + slideOutOfContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Right,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + scaleOut(
+                                                        targetScale = 1.08f,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    )
+                                                },
+                                                popEnterTransition = {
+                                                    fadeIn(
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + slideIntoContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Right,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + scaleIn(
+                                                        initialScale = 0.88f,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    )
+                                                },
+                                                popExitTransition = {
+                                                    fadeOut(
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + slideOutOfContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Left,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + scaleOut(
+                                                        targetScale = 1.08f,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    )
+                                                }
+                                            ) {
+                                                val cargoViewModel: CargoViewModel = viewModel(factory = cargoViewModelFactory)
+                                                SelectInfoScreenContent(navController = navController, viewModel = cargoViewModel)
+                                            }
+                                            composable(
+                                                route = "cargo_counter",
+                                                // انیمیشن‌های حرفه‌ای برای نظارت بارشمار
+                                                enterTransition = {
+                                                    fadeIn(
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + slideIntoContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Left,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + scaleIn(
+                                                        initialScale = 0.90f,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    )
+                                                },
+                                                exitTransition = {
+                                                    fadeOut(
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + slideOutOfContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Right,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + scaleOut(
+                                                        targetScale = 1.06f,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    )
+                                                },
+                                                popEnterTransition = {
+                                                    fadeIn(
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + slideIntoContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Right,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + scaleIn(
+                                                        initialScale = 0.90f,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    )
+                                                },
+                                                popExitTransition = {
+                                                    fadeOut(
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + slideOutOfContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Left,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + scaleOut(
+                                                        targetScale = 1.06f,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    )
+                                                }
+                                            ) {
+                                                CargoCounterScreen(navController = navController)
+                                            }
+                                            composable(
+                                                route = "manage_ships",
+                                                // انیمیشن‌های حرفه‌ای برای مدیریت کشتی‌ها
+                                                enterTransition = {
+                                                    fadeIn(
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + slideIntoContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Left,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + scaleIn(
+                                                        initialScale = 0.86f,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    )
+                                                },
+                                                exitTransition = {
+                                                    fadeOut(
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + slideOutOfContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Right,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + scaleOut(
+                                                        targetScale = 1.10f,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    )
+                                                },
+                                                popEnterTransition = {
+                                                    fadeIn(
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + slideIntoContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Right,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + scaleIn(
+                                                        initialScale = 0.86f,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    )
+                                                },
+                                                popExitTransition = {
+                                                    fadeOut(
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + slideOutOfContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Left,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + scaleOut(
+                                                        targetScale = 1.10f,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    )
+                                                }
+                                            ) {
+                                                val reportsViewModel: ReportsViewModel = viewModel(
+                                                    factory = ReportsViewModel.Factory
+                                                )
+                                                ManageReportsScreen(viewModel = reportsViewModel, navController = navController)
+                                            }
+                                            composable(
+                                                route = "cargoDetailsScreen/{quotaNumber}/{shippingCompany}/{warehouse}/{cargoType}",
+                                                arguments = listOf(
+                                                    navArgument("quotaNumber") { type = NavType.StringType },
+                                                    navArgument("shippingCompany") {
+                                                        type = NavType.StringType
+                                                        nullable = true
+                                                    },
+                                                    navArgument("warehouse") {
+                                                        type = NavType.StringType
+                                                        nullable = true
+                                                    },
+                                                    navArgument("cargoType") {
+                                                        type = NavType.StringType
+                                                        nullable = true
+                                                    }
+                                                )
+                                            ) { backStackEntry ->
+                                                val quotaNumber = backStackEntry.arguments?.getString("quotaNumber") ?: ""
+                                                val shippingCompany = backStackEntry.arguments?.getString("shippingCompany") ?: ""
+                                                val warehouse = backStackEntry.arguments?.getString("warehouse") ?: ""
+                                                val cargoType = backStackEntry.arguments?.getString("cargoType") ?: ""
 
-                                        val repository = ReportsRepository(RetrofitClient.apiService)
-                                        CargoDetailsScreen(
-                                            navController = navController,
-                                            quotaNumber = quotaNumber,
-                                            shippingCompany = URLDecoder.decode(shippingCompany, "UTF-8"),
-                                            warehouse = URLDecoder.decode(warehouse, "UTF-8"),
-                                            cargoType = URLDecoder.decode(cargoType, "UTF-8"),
-                                            repository = repository
-                                        )
-                                    }
+                                                val repository = ReportsRepository(RetrofitClient.apiService)
+                                                CargoDetailsScreen(
+                                                    navController = navController,
+                                                    quotaNumber = quotaNumber,
+                                                    shippingCompany = URLDecoder.decode(shippingCompany, "UTF-8"),
+                                                    warehouse = URLDecoder.decode(warehouse, "UTF-8"),
+                                                    cargoType = URLDecoder.decode(cargoType, "UTF-8"),
+                                                    repository = repository
+                                                )
+                                            }
                                 }
                             }
                         }
@@ -1602,7 +1598,7 @@ fun SplashScreen(onSkip: () -> Unit) {
     }
 
     // متغیرهای مربوط به skip کردن صفحه
-    var lastClickTime by remember { mutableStateOf(0L) }
+    var lastClickTime by remember { mutableLongStateOf(0L) }
     var isSkipped by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -1663,9 +1659,7 @@ fun SplashScreen(onSkip: () -> Unit) {
         // توقف نرم ویدیو وقتی skip شد
         LaunchedEffect(isSkipped) {
             if (isSkipped) {
-                // fade out تدریجی صدا (اگر صدا داشت)
-                // سپس pause
-                kotlinx.coroutines.delay(200)
+                delay(200)
                 exoPlayer.pause()
             }
         }
@@ -1720,7 +1714,7 @@ private fun SplashScreenContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(bottom = 32.dp, start = 16.dp, end = 16.dp),
+            .padding(bottom = 48.dp, start = 24.dp, end = 24.dp),
         verticalArrangement = Arrangement.Bottom,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -1728,13 +1722,15 @@ private fun SplashScreenContent(
             modifier = Modifier
                 .alpha(textAlpha),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // عنوان برنامه
             SplashAppTitle()
 
-            // نام شرکت
-            SplashCompanyName()
+            // عنوان فرعی (توضیحات) مشابه صفحه ورود
+            SplashSubtitleBadge()
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             // نسخه برنامه
             SplashVersionBadge(appVersion)
@@ -1745,24 +1741,27 @@ private fun SplashScreenContent(
 @Composable
 private fun SplashAppTitle() {
     Text(
-        text = SplashScreenConstants.APP_TITLE,
-        style = MaterialTheme.typography.titleLarge,
+        text = "ATK Cargo",
+        style = MaterialTheme.typography.headlineLarge,
         fontWeight = FontWeight.Bold,
         color = Color.White,
-        textAlign = TextAlign.Center,
-        letterSpacing = 0.3.sp
+        textAlign = TextAlign.Center
     )
 }
 
 @Composable
-private fun SplashCompanyName() {
+private fun SplashSubtitleBadge() {
     Text(
-        text = SplashScreenConstants.COMPANY_NAME,
-        style = MaterialTheme.typography.bodyLarge,
+        text = SplashScreenConstants.APP_TITLE,
+        style = MaterialTheme.typography.bodyMedium,
         color = Color.White.copy(alpha = 0.9f),
-        textAlign = TextAlign.Center,
-        fontWeight = FontWeight.Medium,
-        letterSpacing = 0.2.sp
+        modifier = Modifier
+            .background(
+                color = Color.White.copy(alpha = 0.15f),
+                shape = CircleShape
+            )
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        textAlign = TextAlign.Center
     )
 }
 
@@ -1770,10 +1769,10 @@ private fun SplashCompanyName() {
 private fun SplashVersionBadge(appVersion: String) {
     Text(
         text = "${SplashScreenConstants.VERSION_PREFIX} $appVersion",
-        style = MaterialTheme.typography.bodySmall,
-        color = Color.White.copy(alpha = 0.7f),
+        style = MaterialTheme.typography.labelMedium,
+        color = Color.White.copy(alpha = 0.5f),
         fontWeight = FontWeight.Normal,
-        letterSpacing = 0.1.sp
+        letterSpacing = 0.5.sp
     )
 }
 
@@ -1784,7 +1783,6 @@ fun HomeScreen(
     username: String,
     userType: String,
     isSessionValid: Boolean,
-    onLoginClick: () -> Unit,
     onLogoutClick: () -> Unit,
     onManageUsersClick: () -> Unit,
     warningsCount: Int = 0
@@ -1961,7 +1959,7 @@ private fun Header(
                 animationSpec = tween(durationMillis = 400)
             )
         }
-    }
+        }
 
     // بررسی برای باز کردن دیالوگ هشدار تناژ کوتاژ از طریق نوتیفیکیشن
     LaunchedEffect(mainActivity.shouldOpenWarningsDialog) {
@@ -2096,7 +2094,7 @@ private fun SummaryStatsButton(onClick: () -> Unit, warningsCount: Int = 0) {
         modifier = Modifier
             .fillMaxWidth()
             .scale(contentScale.value),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
         tonalElevation = 0.dp
     ) {
@@ -2213,7 +2211,7 @@ fun ProfileMenu(
                     stiffness = Spring.StiffnessMedium
                 )
             ),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
         tonalElevation = 0.dp
     ) {
@@ -2747,7 +2745,6 @@ private fun getIconForUserType(userType: String): ImageVector {
     }
 }
 
-
 data class SummaryData(
     @SerializedName("warehouseStatus")
     val warehouseStatus: WarehouseStatus? = null,
@@ -3116,7 +3113,7 @@ private fun ActiveQuotasDialog(onDismiss: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .fillMaxHeight(0.90f),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp
         ) {
@@ -3525,7 +3522,6 @@ private fun QuotaItemCard(quota: QuotaData) {
             // دکمه عمل: فعال/غیرفعال کردن کوتاژ
             if (isToggling) {
                 LoadingActionButton(
-                    label = "تغییر",
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.width(36.dp)
                 )
@@ -3597,7 +3593,6 @@ private fun CompactActionButton(
 
 @Composable
 private fun LoadingActionButton(
-    label: String,
     color: Color,
     modifier: Modifier = Modifier
 ) {
@@ -3696,7 +3691,7 @@ private fun QuotaTonnageDialog(onDismiss: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .fillMaxHeight(0.90f),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp
         ) {
@@ -4050,7 +4045,6 @@ private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
 
             if (isToggling) {
                 LoadingActionButton(
-                    label = "در حال تغییر...",
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -4265,7 +4259,7 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .fillMaxHeight(0.90f),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp
         ) {
@@ -4417,8 +4411,7 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                     ExpandableSection(
                                         title = "وضعیت انبارها",
                                         icon = Icons.Default.HomeWork,
-                                        startDelay = 0L,
-                                        scrollState = scrollState
+                                        startDelay = 0L
                                     ) {
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -4451,8 +4444,7 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                     ExpandableSection(
                                         title = "وضعیت کوتاژها",
                                         icon = Icons.Default.Inventory,
-                                        startDelay = quotaSectionDelay,
-                                        scrollState = scrollState
+                                        startDelay = quotaSectionDelay
                                     ) {
                                         Column(
                                             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -4485,8 +4477,7 @@ private fun SummaryDialog(onDismiss: () -> Unit) {
                                     ExpandableSection(
                                         title = "روند کلی بارگیری",
                                         icon = Icons.Default.Checklist,
-                                        startDelay = trendSectionDelay,
-                                        scrollState = scrollState
+                                        startDelay = trendSectionDelay
                                     ) {
                                         TrendCard(
                                             text = trend,
@@ -4534,7 +4525,6 @@ private fun ExpandableSection(
     title: String,
     icon: ImageVector,
     startDelay: Long = 0L,
-    scrollState: ScrollState? = null,
     content: @Composable () -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(true) }
@@ -5263,7 +5253,7 @@ fun UserManagementDialog(
         )
     ) {
         Surface(
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp,
             modifier = Modifier
