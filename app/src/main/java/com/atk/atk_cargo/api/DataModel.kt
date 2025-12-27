@@ -402,23 +402,30 @@ class CargoViewModel(
             try {
                 // بررسی وضعیت ارسال فعلی برای جلوگیری از درخواست‌های تکراری
                 if (_isSubmitting.value) {
+                    Log.d("ATK-Log", "CargoViewModel: Already submitting, ignoring request for tracking: $trackingNumber")
                     return@launch
                 }
 
                 _isSubmitting.value = true
+                Log.d("ATK-Log", "CargoViewModel: submitCargoInfo started for tracking: $trackingNumber")
 
                 // مرحله 1: اعتبارسنجی‌های سریع اولیه
                 if (!performBasicValidation(trackingNumber)) {
+                    Log.d("ATK-Log", "CargoViewModel: Basic validation failed for tracking: $trackingNumber")
                     return@launch
                 }
+                Log.d("ATK-Log", "CargoViewModel: Basic validation passed")
 
                 // مرحله 2: دریافت اطلاعات اولیه
                 val initialInfo = _initialInfo.value ?: run {
+                    Log.e("ATK-Log", "CargoViewModel: Initial info is NULL")
                     showErrorMessage("اطلاعات اولیه در دسترس نیست")
                     return@launch
                 }
+                Log.d("ATK-Log", "CargoViewModel: Initial info retrieved: Quota=${initialInfo.loadingQuotaNumber}")
 
                 // مرحله 3: بررسی وضعیت کوتاژ (درصد و فعال بودن) - 
+                Log.d("ATK-Log", "CargoViewModel: Checking quota percentage and status...")
                 checkAndHandleQuotaPercentage(initialInfo.loadingQuotaNumber.toString())
                 checkQuotaStatus(initialInfo)
 
@@ -428,27 +435,36 @@ class CargoViewModel(
                     } else {
                         "کوتاژ غیرفعال است و امکان ثبت حواله جدید وجود ندارد"
                     }
+                    Log.e("ATK-Log", "CargoViewModel: Quota is INACTIVE: $message")
                     showErrorMessage(message)
                     return@launch
                 }
+                Log.d("ATK-Log", "CargoViewModel: Quota is active")
 
                 // مرحله 4: بررسی تناژ موقت
                 if (!validateTempTonnage(initialInfo)) {
+                    Log.e("ATK-Log", "CargoViewModel: Temp tonnage validation failed")
                     return@launch
                 }
+                Log.d("ATK-Log", "CargoViewModel: Temp tonnage validation passed")
 
                 // مرحله 5: بررسی تکراری نبودن و اعتبارسنجی داده‌های ورودی
                 val isNewCargo = !isTrackingNumberDuplicate(trackingNumber)
+                Log.d("ATK-Log", "CargoViewModel: Is new cargo: $isNewCargo")
                 if (!validateInputData(trackingNumber, netWeight, numberOfPeople, shortageWeight, excessWeight, isNewCargo, scaleReceiptNumber)) {
+                    Log.e("ATK-Log", "CargoViewModel: Input data validation failed")
                     return@launch
                 }
+                Log.d("ATK-Log", "CargoViewModel: Input data validation passed")
 
                 // مرحله 6: دریافت اطلاعات کاربری
                 val userInfo = getUserInfo()
                 if (userInfo == null) {
+                    Log.e("ATK-Log", "CargoViewModel: User info is NULL")
                     showErrorMessage("اطلاعات کاربری در دسترس نیست. لطفاً دوباره وارد شوید.")
                     return@launch
                 }
+                Log.d("ATK-Log", "CargoViewModel: User info retrieved: ${userInfo.first}")
 
                 // مرحله 7: آماده‌سازی و ارسال
                 val cargoInfo = prepareCargoInfoForSubmission(
@@ -462,6 +478,7 @@ class CargoViewModel(
                     scaleReceiptNumber, shortageWeight, excessWeight
                 )
             } catch (e: Exception) {
+                Log.e("ATK-Log", "CargoViewModel: Exception in submitCargoInfo: ${e.message}", e)
                 showErrorMessage("خطا در ثبت اطلاعات بار: ${e.message}")
             } finally {
                 // تضمین ریست _isSubmitting در تمام حالات
@@ -480,12 +497,14 @@ class CargoViewModel(
 
     private suspend fun checkQuotaStatus(initialInfo: InitialInfo) {
         try {
+            Log.d("ATK-Log", "CargoViewModel: checkQuotaStatus started for Quota: ${initialInfo.loadingQuotaNumber}")
             val status = repository.checkQuotaStatus(
                 quotaNumber = initialInfo.loadingQuotaNumber.toString(),
                 shipName = initialInfo.shipName,
                 cargoType = initialInfo.cargoType,
                 shippingCompany = initialInfo.shippingCompany
             )
+            Log.d("ATK-Log", "CargoViewModel: checkQuotaStatus result: isActive=${status.isActive}, status=${status.status}, message=${status.message}")
 
             if (status.isActive) {
                 // اگر کوتاژ فعال است، بررسی وضعیت درصد
@@ -501,7 +520,7 @@ class CargoViewModel(
                 return
             }
         } catch (e: Exception) {
-            Log.e("CargoViewModel_Log", "Error in checkQuotaStatus", e)
+            Log.e("ATK-Log", "CargoViewModel: Error in checkQuotaStatus: ${e.message}", e)
             _resultMessage.value = "خطا در بررسی وضعیت کوتاژ: ${e.message ?: "خطای ناشناخته"}"
             _messageType.value = MessageType.ERROR
             _showAnimatedMessage.value = true
@@ -511,14 +530,17 @@ class CargoViewModel(
 
     private suspend fun checkAndHandleQuotaPercentage(quotaNumber: String) {
         try {
+            Log.d("ATK-Log", "CargoViewModel: checkAndHandleQuotaPercentage started for Quota: $quotaNumber")
             val response = apiService.getShipQuotas(shipName = _initialInfo.value?.shipName ?: "")
             if (response.isSuccessful) {
                 val quotas = response.body()
                 quotas?.find { it.number == quotaNumber }?.let { quota ->
+                    Log.d("ATK-Log", "CargoViewModel: Quota info found: restricted=${quota.isPercentageRestricted}, percentage=${quota.percentage}")
                     if (quota.isPercentageRestricted == true && quota.percentage != null) {
                         if (!_shownWarningForQuotas.contains(quota.number)) {
                             val percentageAmount = quota.totalTonnage * (quota.percentage / 100)
                             val remainingTonnage = quota.remainingTonnage
+                            Log.d("ATK-Log", "CargoViewModel: Percentage Check - Limit: $percentageAmount, Remaining: $remainingTonnage")
 
                             if (remainingTonnage <= percentageAmount) {
                                 _shownWarningForQuotas.add(quota.number)
@@ -527,6 +549,7 @@ class CargoViewModel(
                                 _resultMessage.value = "کوتاژ ${quota.number} به حد نصاب ${quota.percentage}% رسیده است و غیرفعال خواهد شد"
                                 _showAnimatedMessage.value = true
                                 _messageType.value = MessageType.WARNING
+                                Log.d("ATK-Log", "CargoViewModel: Percentage reached! Showing warning and deactivating quota...")
 
                                 // تاخیر کوتاه قبل از غیرفعال کردن
                                 delay(3000)
@@ -537,8 +560,11 @@ class CargoViewModel(
                         }
                     }
                 }
+            } else {
+                Log.e("ATK-Log", "CargoViewModel: Failed to fetch quotas for percentage check: ${response.code()}")
             }
         } catch (e: Exception) {
+            Log.e("ATK-Log", "CargoViewModel: Exception in checkAndHandleQuotaPercentage: ${e.message}")
             throw e
         }
     }
@@ -688,7 +714,9 @@ class CargoViewModel(
         excessWeight: String
     ) {
         try {
+            Log.d("ATK-Log", "CargoViewModel: Sending cargo info to server: $cargoInfo")
             val response = apiService.saveOrUpdateCargoInfo(cargoInfo)
+            Log.d("ATK-Log", "CargoViewModel: Server response code: ${response.code()}")
 
             if (response.isSuccessful) {
                 val responseBody = response.body()
@@ -711,6 +739,7 @@ class CargoViewModel(
             } else {
                 // ذخیره CargoInfo برای استفاده در دیالوگ تأیید
                 _pendingCargoInfo.value = cargoInfo
+                Log.d("ATK-Log", "CargoViewModel: HTTP Error response received")
                 handleErrorHttpResponse(response)
             }
         } catch (e: Exception) {
@@ -722,6 +751,7 @@ class CargoViewModel(
     private fun handleErrorHttpResponse(response: Response<SaveOrUpdateResponse>) {
         val errorBody = response.errorBody()?.string()
         val errorCode = response.code()
+        Log.d("ATK-Log", "CargoViewModel: Handling HTTP Error: code=$errorCode, body=$errorBody")
 
         try {
             val parsedError = parseErrorResponse(errorBody)
@@ -754,6 +784,7 @@ class CargoViewModel(
     }
 
     private fun handleErrorResponse(responseBody: SaveOrUpdateResponse) {
+        Log.d("ATK-Log", "CargoViewModel: Handling business error: status=${responseBody.status}, message=${responseBody.message}")
         _resultMessage.value = when (responseBody.status) {
             "duplicate_voucher" -> {
                 "حواله مورد نظر برای کشتی ${responseBody.shipName ?: ""} در شماره کوتاژ ${responseBody.loadingQuotaNumber ?: ""} قبلا ثبت شده است!"
@@ -772,6 +803,7 @@ class CargoViewModel(
         shortageWeight: String,
         excessWeight: String
     ) {
+        Log.d("ATK-Log", "CargoViewModel: Success response received for tracking: $trackingNumber")
         _resultMessage.value = when {
             netWeight.isNotBlank() -> {
                 "شماره حواله $trackingNumber با شماره قبض باسکول $scaleReceiptNumber در تاریخ ${responseBody?.exitDate ?: "نامشخص"} و ساعت ${responseBody?.exitTime ?: "نامشخص"} و وزن خالص $netWeight خروج آن ثبت و سرویس آن بسته شد."
@@ -829,6 +861,7 @@ class CargoViewModel(
     fun confirmDuplicateCargoRegistration() {
         val cargoInfo = _pendingCargoInfo.value
         if (cargoInfo != null) {
+            Log.d("ATK-Log", "CargoViewModel: User confirmed duplicate, re-sending for tracking: ${cargoInfo.trackingNumber}")
             // ارسال مجدد با تأیید کاربر
             val updatedCargoInfo = cargoInfo.copy(duplicateConfirmation = "proceed")
             viewModelScope.launch {
@@ -892,9 +925,11 @@ class CargoViewModel(
                 val result = response.body()
 
                 if (result?.exists == true) {
+                    Log.d("ATK-Log", "CargoViewModel: Scale receipt exists on server: ${result.message}")
                     showMessage(result.message, MessageType.ERROR)
                     false
                 } else {
+                    Log.d("ATK-Log", "CargoViewModel: Scale receipt is unique")
                     true
                 }
             } else {
@@ -910,8 +945,10 @@ class CargoViewModel(
 
     fun updateScaleReceiptNumber(barcode: String) {
         viewModelScope.launch {
+            Log.d("ATK-Log", "CargoViewModel: Updating scale receipt number: $barcode")
             if (isValidScaleReceipt(barcode)) {
                 if (checkScaleReceiptNumber(barcode)) {
+                    Log.d("ATK-Log", "CargoViewModel: Scale receipt number validated successfully")
                     _scaleReceiptNumber.value = barcode
                     _showNetWeightDialog.value = true
                 }
@@ -1268,11 +1305,19 @@ class CargoViewModel(
                         _showAnimatedMessage.value = true
                         _messageType.value = MessageType.SUCCESS
 
-                        // پاک کردن کش برای اطمینان از دریافت آخرین اطلاعات
-                        clearApiCache()
+                        // فوراً تناژ قابل بارگیری را بروزرسانی می‌کنیم
+                        updateLoadableTonnageIfNeeded()
 
-                        // استفاده از refreshCargoInfo که شامل تمام بهینه‌سازی‌ها است
-                        refreshCargoInfo()
+                        // بارگذاری مجدد اطلاعات پس از حذف
+                        _initialInfo.value?.let { info ->
+                            loadCargoInfoList(
+                                quotaNumber = info.loadingQuotaNumber.toString(),
+                                shippingCompany = info.shippingCompany,
+                                warehouse = info.loadingWarehouse,
+                                cargoType = info.cargoType,
+                                onComplete = {}
+                            )
+                        }
                     } else {
                         _resultMessage.value = "خطا در حذف حواله: ${deleteResponse.errorBody()?.string()}"
                         _showAnimatedMessage.value = true
@@ -3839,10 +3884,10 @@ class ColorSelector(private val colors: List<Color>) {
                 // استفاده از رنگ‌های از پیش تعریف شده
                 colors[index]
             } else {
-                // تولید رنگ جدید با HSL برای اطمینان از تمایز
+                // تولید رنگ جدید با HSL برای اطمینان از تمایز و غلظت بالا
                 val hue = (360f * index / identifiers.size) % 360f
-                val saturation = 0.7f + (random.nextFloat() * 0.3f) // 0.7-1.0
-                val lightness = 0.4f + (random.nextFloat() * 0.3f) // 0.4-0.7
+                val saturation = 0.85f + (random.nextFloat() * 0.15f) // 0.85-1.0 (بسیار پررنگ)
+                val lightness = 0.4f + (random.nextFloat() * 0.15f)   // 0.4-0.55 (غلظت متوسط به بالا)
 
                 val hsl = floatArrayOf(hue, saturation, lightness)
                 Color(ColorUtils.HSLToColor(hsl))
@@ -3883,68 +3928,54 @@ class ColorSelector(private val colors: List<Color>) {
 }
 
 fun adjustColorForTheme(color: Color, isDarkTheme: Boolean): Color {
-    val hsl = FloatArray(7)
+    val hsl = FloatArray(3)
     ColorUtils.colorToHSL(color.toArgb(), hsl)
 
-    hsl[3] = if (isDarkTheme) {
-        0.7f
+    // تنظیم روشنایی برای تم‌های مختلف جهت حفظ غلظت و خوانایی
+    hsl[2] = if (isDarkTheme) {
+        0.65f // رنگ‌های روشن‌تر و درخشان در تم تیره
     } else {
-        0.4f
+        0.45f // رنگ‌های پررنگ و عمیق در تم روشن
     }
 
-    hsl[1] = 0.5f
+    // افزایش غلظت رنگ (Saturation) برای جلوگیری از کمرنگ بودن
+    hsl[1] = 0.85f
 
     return Color(ColorUtils.HSLToColor(hsl))
 }
 
 val cardColors = listOf(
-    // رنگ‌های بهینه شده برای تم روشن و تیره
-    Color(0xFFEF5350), // Red 400 - ملایم‌تر از قرمز تند
-    Color(0xFF66BB6A), // Green 400 - سبز متعادل
-    Color(0xFF42A5F5), // Blue 400 - آبی ملایم
-    Color(0xFFEC407A), // Pink 400 - صورتی متعادل
-    Color(0xFF26C6DA), // Cyan 400 - فیروزه‌ای ملایم
-    Color(0xFFAB47BC), // Purple 400 - بنفش متعادل
-    Color(0xFF26A69A), // Teal 400 - سبز دریایی ملایم
-    Color(0xFF8D6E63), // Brown 400 - قهوه‌ای ملایم
-    Color(0xFF7E57C2), // Deep Purple 400 - بنفش عمیق ملایم
-    Color(0xFF29B6F6), // Light Blue 400 - آبی روشن
-    Color(0xFFFF7043), // Deep Orange 400 - نارنجی ملایم
-    Color(0xFF9CCC65), // Light Green 400 - سبز روشن
-    Color(0xFF5C6BC0), // Indigo 400 - نیلی ملایم
-    Color(0xFFFFCA28), // Amber 400 - زرد کهربایی
-    Color(0xFF78909C), // Blue Grey 400 - خاکستری آبی
-    Color(0xFFA1887F), // Brown 300 - قهوه‌ای روشن
-    Color(0xFFE57373), // Red 300 - قرمز روشن
-    Color(0xFF81C784), // Green 300 - سبز روشن
-    Color(0xFF64B5F6), // Blue 300 - آبی روشن
-    Color(0xFFF06292), // Pink 300 - صورتی روشن
-    Color(0xFF4DD0E1), // Cyan 300 - فیروزه‌ای روشن
-    Color(0xFFBA68C8), // Purple 300 - بنفش روشن
-    Color(0xFF4DB6AC), // Teal 300 - سبز دریایی روشن
-    Color(0xFFA5A5A5), // Grey 400 - خاکستری متعادل
-
-    // رنگ‌های تکمیلی بهینه شده
-    Color(0xFF90CAF9), // Blue 200 - آبی خیلی ملایم
-    Color(0xFFA5D6A7), // Green 200 - سبز خیلی ملایم
-    Color(0xFFFFAB91), // Deep Orange 200 - نارنجی ملایم
-    Color(0xFFCE93D8), // Purple 200 - بنفش ملایم
-    Color(0xFF80DEEA), // Cyan 200 - فیروزه‌ای ملایم
-    Color(0xFFFFF59D), // Yellow 200 - زرد ملایم
-    Color(0xFFBCAAA4), // Brown 200 - قهوه‌ای ملایم
-    Color(0xFFB39DDB), // Deep Purple 200 - بنفش عمیق ملایم
-    Color(0xFF81D4FA), // Light Blue 200 - آبی روشن ملایم
-    Color(0xFFC5E1A5), // Light Green 200 - سبز روشن ملایم
-    Color(0xFF9FA8DA), // Indigo 200 - نیلی ملایم
-    Color(0xFFFFE082), // Amber 200 - کهربایی ملایم
-    Color(0xFFB0BEC5), // Blue Grey 200 - خاکستری آبی ملایم
-    Color(0xFFD7CCC8), // Brown 100 - قهوه‌ای خیلی ملایم
-    Color(0xFFFFCDD2), // Red 100 - قرمز خیلی ملایم
-    Color(0xFFC8E6C9), // Green 100 - سبز خیلی ملایم
-    Color(0xFFBBDEFB), // Blue 100 - آبی خیلی ملایم
-    Color(0xFFF8BBD9), // Pink 100 - صورتی خیلی ملایم
-    Color(0xFFB2EBF2), // Cyan 100 - فیروزه‌ای خیلی ملایم
-    Color(0xFFE1BEE7)  // Purple 100 - بنفش خیلی ملایم
+    // رنگ‌های بهینه شده با غلظت بالا (400-700 series)
+    Color(0xFFEF5350), // Red 400
+    Color(0xFF66BB6A), // Green 400
+    Color(0xFF42A5F5), // Blue 400
+    Color(0xFFEC407A), // Pink 400
+    Color(0xFF26C6DA), // Cyan 400
+    Color(0xFFAB47BC), // Purple 400
+    Color(0xFF26A69A), // Teal 400
+    Color(0xFF8D6E63), // Brown 400
+    Color(0xFF7E57C2), // Deep Purple 400
+    Color(0xFF29B6F6), // Light Blue 400
+    Color(0xFFFF7043), // Deep Orange 400
+    Color(0xFF9CCC65), // Light Green 400
+    Color(0xFF5C6BC0), // Indigo 400
+    Color(0xFFFFCA28), // Amber 400
+    Color(0xFF78909C), // Blue Grey 400
+    Color(0xFFD32F2F), // Red 700
+    Color(0xFF388E3C), // Green 700
+    Color(0xFF1976D2), // Blue 700
+    Color(0xFFC2185B), // Pink 700
+    Color(0xFF0097A7), // Cyan 700
+    Color(0xFF7B1FA2), // Purple 700
+    Color(0xFF00796B), // Teal 700
+    Color(0xFF5D4037), // Brown 700
+    Color(0xFF512DA8), // Deep Purple 700
+    Color(0xFF0288D1), // Light Blue 700
+    Color(0xFFF57C00), // Orange 700
+    Color(0xFFE64A19), // Deep Orange 700
+    Color(0xFF689F38), // Light Green 700
+    Color(0xFF303F9F), // Indigo 700
+    Color(0xFFFBC020)  // Amber 700
 )
 
 fun Float.toTon(): Int = (this / 1000).toInt()

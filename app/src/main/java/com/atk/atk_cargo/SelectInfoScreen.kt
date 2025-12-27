@@ -5,19 +5,15 @@ import android.content.Intent
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.EaseInBack
-import androidx.compose.animation.core.EaseOutBack
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandIn
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -52,7 +48,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsBoat
@@ -105,7 +100,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -131,6 +125,15 @@ import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.api.validateServerSession
+import com.atk.atk_cargo.ui.theme.Blue50
+import com.atk.atk_cargo.ui.theme.Blue500
+import com.atk.atk_cargo.ui.theme.Gray200
+import com.atk.atk_cargo.ui.theme.Gray600
+import com.atk.atk_cargo.ui.theme.Gray800
+import com.atk.atk_cargo.ui.theme.Purple50
+import com.atk.atk_cargo.ui.theme.Purple500
+import com.atk.atk_cargo.ui.theme.Red50
+import com.atk.atk_cargo.ui.theme.Red500
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.delay
@@ -390,6 +393,8 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                     selectedShipsCount = selectedShipNames.size
                 )
 
+                Spacer(modifier = Modifier.height(12.dp))
+
                 if (selectedShipNames.isEmpty()) {
                     Box(
                         modifier = Modifier
@@ -468,7 +473,6 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                 )
             }
 
-            // New ActiveQuotasDialog integration
             if (showActiveQuotasDialog) {
                 ActiveQuotasDialog(
                     onDismiss = { showActiveQuotasDialog = false }
@@ -501,146 +505,148 @@ fun AnimatedHeader(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     onClickCount: () -> Unit,
-    onSelectShips: () -> Unit = {},
-    selectedShipsCount: Int = 0
+    onSelectShips: () -> Unit,
+    selectedShipsCount: Int
 ) {
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         isVisible = true
     }
 
+    val containerColor = MaterialTheme.colorScheme.surface
+    val contentColor = MaterialTheme.colorScheme.onSurface
+    val outlineColor = MaterialTheme.colorScheme.outline
+
     AnimatedVisibility(
         visible = isVisible,
         enter = if (AnimationManager.areAnimationsEnabled()) fadeIn() + slideInVertically() else fadeIn(),
         exit = if (AnimationManager.areAnimationsEnabled()) fadeOut() + slideOutVertically() else fadeOut()
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .background(containerColor.copy(alpha = 0.95f))
+                .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            // بخش سمت چپ - عنوان و اطلاعات
-            Column(
-                modifier = Modifier.weight(1f)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "بارگیری‌های فعال",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
+                // Left Side: Buttons
                 Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.DirectionsBoat,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    // Refresh Button
+                    Surface(
+                        onClick = onRefresh,
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, outlineColor),
+                        shadowElevation = 1.dp,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            if (isRefreshing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "بروزرسانی",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
 
-                    Spacer(modifier = Modifier.width(6.dp))
+                    // Ship Selection Button
+                    Surface(
+                        onClick = onSelectShips,
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.DirectionsBoat,
+                                contentDescription = "انتخاب کشتی",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
 
-                    Text(
-                        text = "$shipCount کوتاژ فعال",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    if (selectedShipsCount > 0) {
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                        ) {
+                    // Count Badge
+                    Surface(
+                        onClick = onClickCount,
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text = "$selectedShipsCount انتخاب شده",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                text = shipCount.toString(),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
-            }
 
-            // بخش سمت راست - دکمه‌ها
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // Badge تعداد کوتاژها (قابل کلیک)
-                Surface(
-                    onClick = onClickCount,
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(36.dp)
+                // Right Side: Title and Subtitle
+                Column(
+                    horizontalAlignment = Alignment.End
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
+                    Text(
+                        text = "بارگیری‌های فعال",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = (-0.5).sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = shipCount.toString(),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-
-                // دکمه انتخاب کشتی
-                Surface(
-                    onClick = onSelectShips,
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
+                        if (selectedShipsCount > 0) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                shape = CircleShape,
+                                modifier = Modifier.padding(top = 4.dp)
+                            ) {
+                                Text(
+                                    text = "$selectedShipsCount انتخاب شده",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        
                         Icon(
                             imageVector = Icons.Default.DirectionsBoat,
-                            contentDescription = "انتخاب کشتی‌ها",
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp)
                         )
-                    }
-                }
-
-                // دکمه بروزرسانی
-                Surface(
-                    onClick = { onRefresh() },
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        if (isRefreshing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "بروزرسانی",
-                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                        
+                        Text(
+                            text = "$shipCount کوتاژ فعال",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
@@ -675,18 +681,18 @@ fun StatusSnackbar(
 ) {
     var animatedVisibility by remember { mutableStateOf(false) }
 
-    val translateX by animateDpAsState(
-        targetValue = if (animatedVisibility) 0.dp else 300.dp,
-        animationSpec = if (AnimationManager.areAnimationsEnabled()) spring(
+    val translateY by animateDpAsState(
+        targetValue = if (animatedVisibility) 0.dp else 100.dp,
+        animationSpec = spring(
             dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessVeryLow
-        ) else tween(0), label = ""
+            stiffness = Spring.StiffnessLow
+        ), label = ""
     )
 
     val alpha by animateFloatAsState(
         targetValue = if (animatedVisibility) 1f else 0f,
         animationSpec = tween(
-            durationMillis = 500,
+            durationMillis = 300,
             easing = FastOutSlowInEasing
         ), label = ""
     )
@@ -696,42 +702,41 @@ fun StatusSnackbar(
             animatedVisibility = true
             delay(3000)
             animatedVisibility = false
-            delay(600)
+            delay(300)
             onDismiss()
         }
     }
 
     if (isVisible || animatedVisibility) {
         Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.BottomEnd
+            modifier = modifier
+                .fillMaxSize()
+                .padding(bottom = 24.dp, start = 16.dp, end = 16.dp),
+            contentAlignment = Alignment.BottomCenter
         ) {
             Surface(
                 modifier = Modifier
-                    .padding(bottom = 34.dp)
-                    .width(290.dp)
+                    .fillMaxWidth()
                     .wrapContentHeight()
-                    .offset(x = translateX)
-                    .alpha(alpha)
-                    .graphicsLayer {
-                        rotationY = (translateX.value / 300f) * -10f
-                    },
-                shape = RoundedCornerShape(
-                    topStart = 12.dp,
-                    bottomStart = 12.dp,
-                    topEnd = 0.dp,
-                    bottomEnd = 0.dp
-                ),
+                    .offset(y = translateY)
+                    .alpha(alpha),
+                shape = RoundedCornerShape(16.dp),
                 color = when (message.type) {
-                    MessageType.SUCCESS -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f)
-                    MessageType.ERROR -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.85f)
-                    MessageType.WARNING -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.85f)
-                }
+                    MessageType.SUCCESS -> Blue50
+                    MessageType.ERROR -> Red50
+                    MessageType.WARNING -> Purple50
+                },
+                border = BorderStroke(1.dp, when (message.type) {
+                    MessageType.SUCCESS -> Blue500.copy(alpha = 0.2f)
+                    MessageType.ERROR -> Red500.copy(alpha = 0.2f)
+                    MessageType.WARNING -> Purple500.copy(alpha = 0.2f)
+                }),
+                shadowElevation = 2.dp
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     Icon(
                         imageVector = when (message.type) {
@@ -741,21 +746,23 @@ fun StatusSnackbar(
                         },
                         contentDescription = null,
                         tint = when (message.type) {
-                            MessageType.SUCCESS -> MaterialTheme.colorScheme.primary
-                            MessageType.ERROR -> MaterialTheme.colorScheme.error
-                            MessageType.WARNING -> MaterialTheme.colorScheme.tertiary
+                            MessageType.SUCCESS -> Blue500
+                            MessageType.ERROR -> Red500
+                            MessageType.WARNING -> Purple500
                         },
                         modifier = Modifier.size(20.dp)
                     )
 
+                    Spacer(modifier = Modifier.width(12.dp))
+
                     Text(
                         text = message.message,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                         color = when (message.type) {
-                            MessageType.SUCCESS -> MaterialTheme.colorScheme.onPrimaryContainer
-                            MessageType.ERROR -> MaterialTheme.colorScheme.onErrorContainer
-                            MessageType.WARNING -> MaterialTheme.colorScheme.onTertiaryContainer
-                        }
+                            MessageType.SUCCESS -> Blue500
+                            MessageType.ERROR -> Red500
+                            MessageType.WARNING -> Purple500
+                        } // HTML used text-blue-700 which is slightly darker than primary, but primary is fine.
                     )
                 }
             }
@@ -1405,77 +1412,32 @@ private fun GroupedShipList(
 }
 
 @Composable
-private fun ShipGroupWithRealTimeData(
+private fun ShipGroup(
     shipName: String,
-    realTimeData: List<RealTimeLoadingData>,
     ships: List<ActiveShipInfo>,
     onEnter: (ActiveShipInfo, String) -> Unit,
     color: Color,
     onDialogStateChange: (Boolean) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
-    
-    // به‌روزرسانی state دیالوگ در کامپوننت والد
+
+    // Update dialog state
     LaunchedEffect(showDialog) {
         onDialogStateChange(showDialog)
     }
 
-    // محاسبه آمار از داده‌های لحظه‌ای
-    val totalVouchers = realTimeData.sumOf { it.entryVouchers + it.exitVouchers }
-    val completedVouchers = realTimeData.sumOf { it.exitVouchers }
-    val remainingVouchers = totalVouchers - completedVouchers
+    val total = ships.sumOf { it.entryVouchers + it.exitVouchers }
+    val completed = ships.sumOf { it.exitVouchers }
+    val remaining = total - completed
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { showDialog = true },
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.1f)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DirectionsBoat,
-                    contentDescription = null,
-                    tint = color
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(
-                        text = shipName,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = color
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // نمایش آمار با فرمت مشابه QuotasHeader
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "کل: $totalVouchers | خروج: $completedVouchers | مانده: $remainingVouchers",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = color.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "اطلاعات بیشتر",
-                    tint = color
-                )
-            }
-        }
-    }
+    ShipCardDesign(
+        shipName = shipName,
+        total = total,
+        completed = completed,
+        remaining = remaining,
+        color = color,
+        onClick = { showDialog = true }
+    )
 
     QuotaEntryDialog(
         showDialog = showDialog,
@@ -1494,6 +1456,161 @@ private fun ShipGroupWithRealTimeData(
         shipName = shipName,
         ships = ships
     )
+}
+
+@Composable
+private fun ShipGroupWithRealTimeData(
+    shipName: String,
+    realTimeData: List<RealTimeLoadingData>,
+    ships: List<ActiveShipInfo>,
+    onEnter: (ActiveShipInfo, String) -> Unit,
+    color: Color,
+    onDialogStateChange: (Boolean) -> Unit
+) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showDialog) {
+        onDialogStateChange(showDialog)
+    }
+
+    val totalVouchers = realTimeData.sumOf { it.entryVouchers + it.exitVouchers }
+    val completedVouchers = realTimeData.sumOf { it.exitVouchers }
+    val remainingVouchers = totalVouchers - completedVouchers
+
+    ShipCardDesign(
+        shipName = shipName,
+        total = totalVouchers,
+        completed = completedVouchers,
+        remaining = remainingVouchers,
+        color = color,
+        onClick = { showDialog = true }
+    )
+
+    QuotaEntryDialog(
+        showDialog = showDialog,
+        onDismiss = { showDialog = false },
+        onConfirm = { enteredQuota ->
+            val matchingShip = ships.find { it.loadingQuotaNumber.endsWith(enteredQuota) }
+            if (matchingShip != null) {
+                onEnter(matchingShip, enteredQuota)
+                showDialog = false
+            }
+        },
+        onScanBarcode = {
+            onEnter(ships.first(), "")
+            showDialog = false
+        },
+        shipName = shipName,
+        ships = ships
+    )
+}
+
+@Composable
+private fun ShipCardDesign(
+    shipName: String,
+    total: Int,
+    completed: Int,
+    remaining: Int,
+    color: Color,
+    onClick: () -> Unit
+) {
+    // HTML Design matching
+    val backgroundColor = color.copy(alpha = 0.08f)
+    val borderColor = color.copy(alpha = 0.15f)
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = backgroundColor,
+        border = BorderStroke(1.dp, borderColor),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            // Top Row: Title and Icon
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = shipName,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Black,
+                        fontSize = 20.sp,
+                        letterSpacing = (-0.5).sp
+                    ),
+                    color = Gray800
+                )
+
+                Icon(
+                    imageVector = Icons.Default.DirectionsBoat,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Stats Row
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White.copy(alpha = 0.6f), // slightly more opaque than 0.4 for better contrast
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StatText("کل", total)
+                    CardVerticalDiv()
+                    StatText("خروج", completed)
+                    CardVerticalDiv()
+                    StatText("مانده", remaining)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatText(label: String, value: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = "$label: ",
+            style = MaterialTheme.typography.bodySmall,
+            color = Gray600
+        )
+        Text(
+            text = "$value",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = 14.sp
+            ),
+            fontWeight = FontWeight.Bold,
+            color = Gray800
+        )
+    }
+}
+
+@Composable
+private fun CardVerticalDiv() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .height(16.dp)
+            .background(Gray200.copy(alpha = 0.5f))
+    )
+}
+
+private fun extractLastDigits(quotaNumber: String): String {
+    return if (quotaNumber.length > 4) {
+        quotaNumber.takeLast(4)
+    } else {
+        quotaNumber
+    }
 }
 
 @Composable
@@ -3134,6 +3251,15 @@ private fun ShipSelectionDialog(
     val groupedShips = ships.groupBy { it.shipName }
     val selectedShips = remember { mutableStateOf(selectedShipNames) }
     val searchQuery = remember { mutableStateOf("") }
+    
+    // Define palette locally since cardColors list was missing
+    val palette = listOf(
+        Blue500, Purple500, Red500, 
+        Color(0xFF10B981), // Emerald 500
+        Color(0xFFF59E0B), // Amber 500
+        Color(0xFFEC4899)  // Pink 500
+    )
+
     val initialSortedShipEntries = remember(groupedShips, searchQuery.value) {
         val filtered = if (searchQuery.value.isEmpty()) {
             groupedShips.entries
@@ -3153,13 +3279,15 @@ private fun ShipSelectionDialog(
             }
         )
     }
+    
     val shipColors = remember {
         initialSortedShipEntries.associate { (shipName, _) ->
             val index = initialSortedShipEntries.indexOfFirst { it.key == shipName }
-            val colorIndex = index % cardColors.size
-            shipName to cardColors[colorIndex]
+            val colorIndex = index % palette.size
+            shipName to palette[colorIndex]
         }
     }
+    
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.ship))
     val lottieAnimatable = rememberLottieAnimatable()
 
@@ -3168,19 +3296,6 @@ private fun ShipSelectionDialog(
             composition = composition,
             iterations = LottieConstants.IterateForever,
         )
-    }
-
-    val dialogEnterTransition = remember {
-        expandIn(
-            expandFrom = Alignment.Center,
-            animationSpec = tween(300, easing = EaseOutBack)
-        ) + fadeIn(animationSpec = tween(300))
-    }
-    val dialogExitTransition = remember {
-        shrinkOut(
-            shrinkTowards = Alignment.Center,
-            animationSpec = tween(300, easing = EaseInBack)
-        ) + fadeOut(animationSpec = tween(300))
     }
 
     Dialog(
@@ -3200,255 +3315,215 @@ private fun ShipSelectionDialog(
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp
         ) {
-            AnimatedVisibility(
-                visible = true,
-                enter = dialogEnterTransition,
-                exit = dialogExitTransition
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                // Header Animation
                 Box(
                     modifier = Modifier
                         .size(80.dp)
-                        .background(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), 
-                            CircleShape
-                        )
-                        .padding(12.dp),
+                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), CircleShape)
+                        .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     LottieAnimation(
                         composition = composition,
                         progress = { lottieAnimatable.progress },
-                        modifier = Modifier.size(60.dp)
+                        modifier = Modifier.size(64.dp)
                     )
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Title Section
+                Text(
+                    text = "انتخاب کشتی‌ها",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Surface(
+                Text(
+                    text = "کشتی‌های مورد نظر خود را برای نمایش انتخاب کنید",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Search Bar
+                OutlinedTextField(
+                    value = searchQuery.value,
+                    onValueChange = { searchQuery.value = it },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                ) {
-                    Text(
-                        text = "کشتی‌های مورد نظر خود را برای نمایش انتخاب کنید",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Medium,
-                            textAlign = TextAlign.Center
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-
-                    OutlinedTextField(
-                        value = searchQuery.value,
-                        onValueChange = { searchQuery.value = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "جستجو",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        trailingIcon = if (searchQuery.value.isNotEmpty()) {
-                            {
-                                IconButton(
-                                    onClick = { searchQuery.value = "" }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Clear,
-                                        contentDescription = "پاک کردن",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        } else null,
-                        placeholder = {
-                            Text("جستجوی نام کشتی...")
-                        },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.None,
-                            keyboardType = KeyboardType.Ascii,
-                            imeAction = ImeAction.Search
-                        ),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = Color.Transparent,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "جستجو",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Surface(
-                            modifier = Modifier.weight(1f),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.DirectionsBoat,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "${initialSortedShipEntries.size} فعال",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                    },
+                    trailingIcon = if (searchQuery.value.isNotEmpty()) {
+                        {
+                            IconButton(onClick = { searchQuery.value = "" }) {
+                                Icon(Icons.Default.Clear, "پاک کردن", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
+                    } else null,
+                    placeholder = {
+                        Text("جستجوی نام کشتی...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                    },
+                    singleLine = true
+                )
 
-                        Surface(
-                            modifier = Modifier.weight(1f),
-                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(12.dp)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Stats Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                     // Active count
+                     Surface(
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.CheckCircle,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.tertiary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "${selectedShips.value.size} انتخاب",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.tertiary
-                                )
-                            }
+                             Icon(
+                                Icons.Default.DirectionsBoat,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "${initialSortedShipEntries.size} فعال",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                    
+                    // Selected count
+                    Surface(
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                             Icon(
+                                Icons.Outlined.CheckCircle,
+                                null,
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "${selectedShips.value.size} انتخاب",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // لیست کشتی‌ها
-                val primaryColor = MaterialTheme.colorScheme.primary
-                val surfaceColor = MaterialTheme.colorScheme.surface
-                val outlineVariantColor = MaterialTheme.colorScheme.outlineVariant
-                val onSurfaceColor = MaterialTheme.colorScheme.onSurface
-
+                // Ship List
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(initialSortedShipEntries.toList()) { (shipName, shipList) ->
                         val isSelected = selectedShips.value.contains(shipName)
-                        val shipColor = shipColors[shipName] ?: primaryColor
-
+                        val shipColor = shipColors[shipName] ?: MaterialTheme.colorScheme.primary
+                        
                         Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedShips.value = if (isSelected) {
-                                        selectedShips.value - shipName
-                                    } else {
-                                        selectedShips.value + shipName
-                                    }
-                                },
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (isSelected) shipColor.copy(alpha = 0.15f) else surfaceColor,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (isSelected) shipColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
                             border = BorderStroke(
-                                width = 1.dp,
-                                color = if (isSelected) shipColor else outlineVariantColor
+                                1.dp,
+                                if (isSelected) shipColor.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
                             ),
-                            tonalElevation = if (isSelected) 3.dp else 0.dp
+                            onClick = {
+                                selectedShips.value = if (isSelected) {
+                                    selectedShips.value - shipName
+                                } else {
+                                    selectedShips.value + shipName
+                                }
+                            }
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 12.dp, horizontal = 12.dp),
+                                modifier = Modifier.padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                // Icon Box
                                 Box(
-                                    contentAlignment = Alignment.Center,
                                     modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(CircleShape)
+                                        .size(44.dp)
                                         .background(
-                                            brush = Brush.radialGradient(
-                                                colors = listOf(
-                                                    shipColor.copy(alpha = 0.5f),
-                                                    shipColor.copy(alpha = 0.2f)
-                                                )
-                                            )
-                                        )
+                                            shipColor.copy(alpha = 0.1f),
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.DirectionsBoat,
-                                        contentDescription = null,
+                                        Icons.Default.DirectionsBoat,
+                                        null,
                                         tint = shipColor,
-                                        modifier = Modifier.size(26.dp)
+                                        modifier = Modifier.size(24.dp)
                                     )
                                 }
-
+                                
                                 Spacer(modifier = Modifier.width(16.dp))
-
-                                Column(
-                                    modifier = Modifier.weight(1f)
-                                ) {
+                                
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = shipName,
+                                        shipName,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) shipColor else onSurfaceColor
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
-
                                     Spacer(modifier = Modifier.height(4.dp))
-
-                                    Surface(
-                                        color = shipColor.copy(alpha = 0.1f),
-                                        shape = RoundedCornerShape(4.dp)
-                                    ) {
-                                        Text(
-                                            text = "${shipList.size} کوتاژ",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.Medium,
-                                            color = shipColor,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
+                                    Text(
+                                        "${shipList.size} کوتاژ",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
-
+                                
                                 Checkbox(
                                     checked = isSelected,
-                                    onCheckedChange = {
-                                        selectedShips.value = if (it) {
+                                    onCheckedChange = { checked ->
+                                        selectedShips.value = if (checked) {
                                             selectedShips.value + shipName
                                         } else {
                                             selectedShips.value - shipName
@@ -3456,7 +3531,7 @@ private fun ShipSelectionDialog(
                                     },
                                     colors = CheckboxDefaults.colors(
                                         checkedColor = shipColor,
-                                        uncheckedColor = outlineVariantColor
+                                        uncheckedColor = MaterialTheme.colorScheme.outline
                                     )
                                 )
                             }
@@ -3464,8 +3539,9 @@ private fun ShipSelectionDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
+                // Action Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -3478,46 +3554,30 @@ private fun ShipSelectionDialog(
                         enabled = selectedShips.value.isNotEmpty(),
                         modifier = Modifier
                             .weight(1f)
-                            .height(48.dp),
+                            .height(52.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = primaryColor,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
                         ),
-                        shape = RoundedCornerShape(12.dp),
-                        elevation = ButtonDefaults.buttonElevation(
-                            defaultElevation = 4.dp,
-                            pressedElevation = 8.dp
-                        )
+                        elevation = ButtonDefaults.buttonElevation(0.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "تایید",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text("تایید", fontWeight = FontWeight.Bold)
                     }
 
                     OutlinedButton(
                         onClick = onDismiss,
                         modifier = Modifier
                             .weight(1f)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                    ) {
-                        Text(
-                            text = "انصراف",
-                            style = MaterialTheme.typography.labelLarge
+                            .height(52.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    ) {
+                        Text("انصراف")
                     }
-                }
                 }
             }
         }
@@ -3932,14 +3992,6 @@ private fun QuotaItem(
     }
 }
 
-private fun extractLastDigits(quotaNumber: String): String {
-    return if (quotaNumber.length > 4) {
-        quotaNumber.takeLast(4)
-    } else {
-        quotaNumber
-    }
-}
-
 @Composable
 private fun FilterChip(
     selected: Boolean,
@@ -3984,95 +4036,4 @@ private fun FilterChip(
             )
         }
     }
-}
-
-@Composable
-private fun ShipGroup(
-    shipName: String,
-    ships: List<ActiveShipInfo>,
-    onEnter: (ActiveShipInfo, String) -> Unit,
-    color: Color,
-    onDialogStateChange: (Boolean) -> Unit
-) {
-    var showDialog by remember { mutableStateOf(false) }
-    
-    // به‌روزرسانی state دیالوگ در کامپوننت والد
-    LaunchedEffect(showDialog) {
-        onDialogStateChange(showDialog)
-    }
-
-    // محاسبه آمار
-    val totalVouchers = ships.sumOf { it.entryVouchers + it.exitVouchers }
-    val completedVouchers = ships.sumOf { it.exitVouchers }
-    val remainingVouchers = totalVouchers - completedVouchers
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { showDialog = true },
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.1f)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DirectionsBoat,
-                    contentDescription = null,
-                    tint = color
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(
-                        text = shipName,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = color
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // نمایش آمار
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "کل: $totalVouchers | خروج: $completedVouchers | مانده: $remainingVouchers",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = color.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "اطلاعات بیشتر",
-                    tint = color
-                )
-            }
-        }
-    }
-
-    QuotaEntryDialog(
-        showDialog = showDialog,
-        onDismiss = { showDialog = false },
-        onConfirm = { enteredQuota ->
-            val matchingShip = ships.find { it.loadingQuotaNumber.endsWith(enteredQuota) }
-            if (matchingShip != null) {
-                onEnter(matchingShip, enteredQuota)
-                showDialog = false
-            }
-        },
-        onScanBarcode = {
-            onEnter(ships.first(), "")
-            showDialog = false
-        },
-        shipName = shipName,
-        ships = ships
-    )
 }

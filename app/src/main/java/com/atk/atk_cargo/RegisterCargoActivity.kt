@@ -721,6 +721,7 @@ class RegisterCargoActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("ATK-Log", "RegisterCargoActivity: onCreate started")
 
         // بررسی وضعیت ورود از سمت سرور
         val userPreferencesManager = UserPreferencesManager(this)
@@ -804,6 +805,7 @@ class RegisterCargoActivity : ComponentActivity() {
     }
 
     fun startBarcodeScanner() {
+        Log.d("ATK-Log", "RegisterCargoActivity: Starting barcode scanner")
         val options = ScanOptions()
             .setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES)
             .setPrompt("اسکن قبض یاسکول")
@@ -817,6 +819,7 @@ class RegisterCargoActivity : ComponentActivity() {
 
     private fun updateScaleReceiptNumber(barcode: String) {
         val cleanedBarcode = barcode.replace(Regex("[^0-9]"), "")
+        Log.d("ATK-Log", "RegisterCargoActivity: Barcode received: $barcode -> Cleaned: $cleanedBarcode")
 
         viewModel.updateScaleReceiptNumber(cleanedBarcode)
     }
@@ -1095,6 +1098,7 @@ fun RegisterCargoScreen(
                             val isCargoExited = existingCargoInfo?.status == "خروج"
 
                             if (isCargoConfirmed && !isCargoExited) {
+                                Log.d("ATK-Log", "RegisterCargoScreen: 'Exit Voucher' clicked for tracking: $trackingNumber")
                                 activity.startBarcodeScanner()
                             } else {
                                 coroutineScope.launch {
@@ -1113,6 +1117,7 @@ fun RegisterCargoScreen(
                         isCargoExited = cargoInfoList.find { it.trackingNumber == trackingNumber }?.status == "خروج",
                         isSubmitting = isSubmitting,
                         onSubmit = {
+                            Log.d("ATK-Log", "RegisterCargoScreen: Submit button clicked for tracking: $trackingNumber")
                             coroutineScope.launch {
                                 if (trackingNumber.isBlank()) {
                                     snackbarHostState.showSnackbar("لطفاً شماره حواله را وارد کنید.")
@@ -1330,6 +1335,7 @@ fun RegisterCargoScreen(
                 NetWeightDialog(
                     scaleReceiptNumber = scaleReceiptNumber,
                     onConfirm = { enteredNetWeight ->
+                        Log.d("ATK-Log", "NetWeightDialog: Weight confirmed: $enteredNetWeight for tracking: $trackingNumber")
                         viewModel.submitCargoInfo(
                             trackingNumber,
                             enteredNetWeight,
