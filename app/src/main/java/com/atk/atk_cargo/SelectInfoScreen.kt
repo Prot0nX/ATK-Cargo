@@ -128,8 +128,6 @@ import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.ui.theme.Blue50
 import com.atk.atk_cargo.ui.theme.Blue500
 import com.atk.atk_cargo.ui.theme.Gray200
-import com.atk.atk_cargo.ui.theme.Gray600
-import com.atk.atk_cargo.ui.theme.Gray800
 import com.atk.atk_cargo.ui.theme.Purple50
 import com.atk.atk_cargo.ui.theme.Purple500
 import com.atk.atk_cargo.ui.theme.Red50
@@ -514,7 +512,6 @@ fun AnimatedHeader(
     }
 
     val containerColor = MaterialTheme.colorScheme.surface
-    val contentColor = MaterialTheme.colorScheme.onSurface
     val outlineColor = MaterialTheme.colorScheme.outline
 
     AnimatedVisibility(
@@ -525,7 +522,7 @@ fun AnimatedHeader(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(containerColor.copy(alpha = 0.95f))
+                .background(containerColor.copy(alpha = 0.05f))
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
             Row(
@@ -1515,7 +1512,7 @@ private fun ShipCardDesign(
     onClick: () -> Unit
 ) {
     // HTML Design matching
-    val backgroundColor = color.copy(alpha = 0.08f)
+    val backgroundColor = color.copy(alpha = 0.1f)
     val borderColor = color.copy(alpha = 0.15f)
 
     Surface(
@@ -1539,7 +1536,7 @@ private fun ShipCardDesign(
                         fontSize = 20.sp,
                         letterSpacing = (-0.5).sp
                     ),
-                    color = Gray800
+                    color = color
                 )
 
                 Icon(
@@ -1555,7 +1552,7 @@ private fun ShipCardDesign(
             // Stats Row
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = Color.White.copy(alpha = 0.6f), // slightly more opaque than 0.4 for better contrast
+                color = color.copy(alpha = 0.15f), // slightly more opaque than 0.4 for better contrast
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -1578,11 +1575,15 @@ private fun ShipCardDesign(
 
 @Composable
 private fun StatText(label: String, value: Int) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val textColor = if (isDarkTheme) Color.White else Color.Black
+    
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = "$label: ",
+            fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.bodySmall,
-            color = Gray600
+            color = textColor.copy(alpha = 0.7f)
         )
         Text(
             text = "$value",
@@ -1590,7 +1591,7 @@ private fun StatText(label: String, value: Int) {
                 fontSize = 14.sp
             ),
             fontWeight = FontWeight.Bold,
-            color = Gray800
+            color = textColor
         )
     }
 }
@@ -3242,7 +3243,7 @@ data class SnackbarMessage(
 )
 
 @Composable
-private fun ShipSelectionDialog(
+fun ShipSelectionDialog(
     ships: List<ActiveShipInfo>,
     selectedShipNames: Set<String>,
     onSelectShip: (Set<String>) -> Unit,

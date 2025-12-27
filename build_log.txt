@@ -1,0 +1,48 @@
+
+[1A[1m<[0;1m-------------> 0% INITIALIZING [47ms][m[38D[1B[1AReusing configuration cache.[0K
+[0K
+
+[2A[1m<[0;1m-------------> 0% INITIALIZING [140ms][m[39D[1B[1m> Loading configuration cache state[m[35D[1B[2A[1m<[0;1m-------------> 0% INITIALIZING [233ms][m[39D[1B[1m> Loading configuration cache state > :app[m[42D[1B[2A[1m<[0;1m-------------> 0% INITIALIZING [343ms][m[39D[1B[1m> Loading configuration cache state[m[0K[35D[1B
+
+
+[5A[1m<[0;32;1m=====[0;39;1m--------> 42% EXECUTING [437ms][m[0K[37D[1B[1m> :app:configureCMakeDebug[arm64-v8a][m[37D[1B[1m> :app:mergeDebugAssets[m[23D[1B[1m> :app:configureCMakeDebug[x86_64][m[34D[1B[1m> :app:checkDebugDuplicateClasses[m[33D[1B[5A[0K
+[1m> Task :app:processDebugResources[m[33m UP-TO-DATE[39m[0K
+WARNING: The specified Android SDK Build Tools version (34.0.0) is ignored, as it is below the minimum supported version (35.0.0) for Android Gradle Plugin 8.13.0.[0K
+Android SDK Build Tools 35.0.0 will be used.[0K
+To suppress this warning, remove "buildToolsVersion '34.0.0'" from your build.gradle file, as each version of the Android Gradle Plugin now has a default version of the build tools.[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+e: file:///C:/Users/MAZESTA/Documents/GitHub/ATK-Cargo/app/src/main/java/com/atk/atk_cargo/CargoCounterScreen.kt:472:21 Overload resolution ambiguity between candidates:
+fun ShipSelectionDialog(ships: List<ActiveShipInfo>, selectedShipNames: Set<String>, onSelectShip: (Set<String>) -> Unit, onDismiss: () -> Unit): Unit
+fun ShipSelectionDialog(ships: List<ActiveShipInfo>, selectedShipNames: Set<String>, onSelectShip: (Set<String>) -> Unit, onDismiss: () -> Unit): Unit
+e: file:///C:/Users/MAZESTA/Documents/GitHub/ATK-Cargo/app/src/main/java/com/atk/atk_cargo/CargoCounterScreen.kt:1753:9 Conflicting overloads:
+fun ShipSelectionDialog(ships: List<ActiveShipInfo>, selectedShipNames: Set<String>, onSelectShip: (Set<String>) -> Unit, onDismiss: () -> Unit): Unit
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin'.
+[5A[1m<[0;32;1m=========[0;39;1m----> 73% EXECUTING [546ms][m[37D[1B[1m> :app:buildCMakeDebug[arm64-v8a][m[33D[1B[1m> :app:compileDebugKotlin[m[25D[1B[1m> :app:buildCMakeDebug[x86_64][m[30D[1B> IDLE[6D[1B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [639ms][m[37D[1B> IDLE[0K[6D[2B> IDLE[0K[6D[2B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [748ms][m[37D[5B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [841ms][m[37D[5B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [935ms][m[37D[5B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [1s][m[0K[34D[5B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [2s][m[34D[5B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [3s][m[34D[5B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [4s][m[34D[5B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [5s][m[34D[5B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [6s][m[34D[5B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [7s][m[34D[5B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [8s][m[34D[5B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [9s][m[34D[5B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [10s][m[35D[5B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [11s][m[35D[5B[5A[1m<[0;32;1m==========[0;39;1m---> 81% EXECUTING [12s][m[35D[5B[5A[0K
+[31;1m> Task :app:compileDebugKotlin[0;39m[31m FAILED[39m[0K
+w: Argument -Xopt-in is deprecated. Please use -opt-in instead[0K
+36 actionable tasks: 5 executed, 31 up-to-date[0K
+Configuration cache entry reused.[0K
+[0K
+[0K
+[0K
+[0K
+[0K
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 13s
+[5A[1m<[0;1m-------------> 0% WAITING[m[26D[1B> IDLE[6D[1B> IDLE[6D[1B> IDLE[6D[1B> IDLE[6D[1B[5A[2K[1B[2K[1B[2K[1B[2K[1B[2K[4A
