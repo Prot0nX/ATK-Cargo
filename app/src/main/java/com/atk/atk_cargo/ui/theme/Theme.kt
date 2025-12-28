@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val DarkColorScheme = darkColorScheme(
@@ -170,3 +171,9 @@ fun ATKCargoTheme(
         content = content
     )
 }
+
+val CornerM = 8.dp
+val CornerL = 12.dp
+val CornerXL = 16.dp
+val Corner2XL = 20.dp
+val Corner3XL = 24.dp
