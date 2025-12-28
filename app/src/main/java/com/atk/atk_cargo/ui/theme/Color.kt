@@ -52,7 +52,6 @@ val Blue100 = Color(0xFFBBDEFB)
 val Blue200 = Color(0xFF90CAF9)
 val Blue500 = Color(0xFF2196F3)
 val Blue700 = Color(0xFF1976D2)
-val Blue900 = Color(0xFF0D47A1)
 
 // رنگ‌های بنفش
 val Purple50 = Color(0xFFF3E5F5)
@@ -80,32 +79,70 @@ val PrimaryBlue = Color(0xFF137fec)
 val PrimaryBlueDark = Color(0xFF0D47A1)
 val PrimaryBlueLight = Color(0xFF64B5F6)
 
-// رنگ‌های پس‌زمینه
-val BackgroundLight = Color(0xFFf6f7f8)
-val BackgroundDark = Color(0xFF101922)
+// رنگ‌های پس‌زمینه (مطابق HTML)
+val BackgroundLight = Color(0xFFf6f7f8) // gray-50
+val BackgroundDark = Color(0xFF020617) // slate-950
 
-// رنگ‌های سطح (Surface)
-val SurfaceLight = Color(0xFFFFFFFF)
-val SurfaceDark = Color(0xFF1C2936)
+// رنگ‌های سطح (Surface) - مطابق HTML
+val SurfaceLight = Color(0xFFFFFFFF) // white
+val SurfaceDark = Color(0xFF0f172a) // slate-900
 
-// رنگ‌های حاشیه و جزئیات
-val BorderLight = Color(0xFFE5E7EB)
-val BorderDark = Color(0xFF3B4354)
+// رنگ‌های سطح variant (مطابق HTML)
+val SurfaceVariantDark = Color(0xFF1e293b) // slate-800
+val SurfaceVariantDark2 = Color(0xFF334155) // slate-700
+val SurfaceVariantDark3 = Color(0xFF475569) // slate-600
 
-// رنگ‌های متن
-val TextPrimaryLight = Color(0xFF1F2937)
-val TextPrimaryDark = Color(0xFFFFFFFF)
-val TextSecondaryLight = Color(0xFF6B7280)
-val TextSecondaryDark = Color(0xFF9CA3AF)
-val TextTertiaryLight = Color(0xFF9CA3AF)
-val TextTertiaryDark = Color(0xFF6B7280)
+// رنگ‌های حاشیه و جزئیات (مطابق HTML)
+val BorderLight = Color(0xFFE5E7EB) // gray-200
+val BorderDark = Color(0xFF1e293b) // slate-800
+val BorderDark2 = Color(0xFF334155) // slate-700
+val BorderDark3 = Color(0xFF475569) // slate-600
 
-// رنگ‌های Placeholder
-val PlaceholderLight = Color(0xFF9CA3AF)
-val PlaceholderDark = Color(0xFF9DA6B9)
+// رنگ‌های متن (مطابق HTML)
+val TextPrimaryLight = Color(0xFF1F2937) // slate-800
+val TextPrimaryDark = Color(0xFFFFFFFF) // white
+val TextSecondaryLight = Color(0xFF6B7280) // gray-500
+val TextSecondaryDark = Color(0xFFe2e8f0) // slate-200
+val TextTertiaryLight = Color(0xFF9CA3AF) // gray-400
+val TextTertiaryDark = Color(0xFF9ca3af) // gray-400
+val TextQuaternaryDark = Color(0xFF6b7280) // gray-500
+
+// رنگ‌های Placeholder (مطابق HTML)
+val PlaceholderLight = Color(0xFF9CA3AF) // gray-400
+val PlaceholderDark = Color(0xFF6b7280) // gray-500
 
 // رنگ‌های خطا
 val ErrorLight = Color(0xFFEF4444)
 val ErrorDark = Color(0xFFEF4444)
 val ErrorContainerLight = Color(0xFFFEE2E2)
 val ErrorContainerDark = Color(0xFF7F1D1D)
+
+// رنگ‌های اضافی برای تم تیره (مطابق HTML)
+val Slate300 = Color(0xFFCBD5E1) // برای مقادیر مانده
+val Slate200 = Color(0xFFe2e8f0) // slate-200
+val Slate600 = Color(0xFF475569) // slate-600
+val Slate700 = Color(0xFF334155) // slate-700
+val Slate800 = Color(0xFF1e293b) // slate-800
+val Slate900 = Color(0xFF0f172a) // slate-900
+val Slate950 = Color(0xFF020617) // slate-950
+
+// رنگ‌های Emerald برای badge خروجی (مطابق HTML)
+val Emerald400 = Color(0xFF34d399) // emerald-400
+val Emerald500 = Color(0xFF10b981) // emerald-500
+val Emerald900 = Color(0xFF064e3b) // emerald-900
+val Emerald950 = Color(0xFF022c22) // emerald-950
+
+// رنگ‌های Rose برای badge ورودی (مطابق HTML)
+val Rose400 = Color(0xFFfb7185) // rose-400
+val Rose500 = Color(0xFFf43f5e) // rose-500
+val Rose900 = Color(0xFF881337) // rose-900
+val Rose950 = Color(0xFF4c0519) // rose-950
+
+// رنگ‌های Blue (مطابق HTML)
+val Blue300 = Color(0xFF93c5fd) // blue-300
+val Blue400 = Color(0xFF60A5FA) // blue-400
+val Blue800 = Color(0xFF1e40af) // blue-800
+val Blue900 = Color(0xFF1e3a8a) // blue-900
+
+// رنگ‌های قرمز (مطابق HTML)
+val Red400 = Color(0xFFF87171) // برای label بارگیری
