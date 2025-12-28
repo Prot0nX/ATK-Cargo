@@ -65,6 +65,7 @@ val Purple900 = Color(0xFF4A148C)
 val Red50 = Color(0xFFFFEBEE)
 val Red100 = Color(0xFFFFCDD2)
 val Red200 = Color(0xFF9A4A4A)
+val Red400 = Color(0xFFF87171)
 val Red500 = Color(0xFFF44336)
 val Red700 = Color(0xFFD32F2F)
 val Red900 = Color(0xFFB71C1C)
@@ -143,6 +144,3 @@ val Blue300 = Color(0xFF93c5fd) // blue-300
 val Blue400 = Color(0xFF60A5FA) // blue-400
 val Blue800 = Color(0xFF1e40af) // blue-800
 val Blue900 = Color(0xFF1e3a8a) // blue-900
-
-// رنگ‌های قرمز (مطابق HTML)
-val Red400 = Color(0xFFF87171) // برای label بارگیری

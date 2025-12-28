@@ -217,12 +217,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -8990,7 +8989,8 @@ fun RealTimeLoadingBottomSheet(
 	if (isOpen) {
 		ModalBottomSheet(
 			onDismissRequest = onDismiss,
-			sheetState = rememberModalBottomSheetState()
+			sheetState = rememberModalBottomSheetState(),
+			containerColor = MaterialTheme.colorScheme.surface
 		) {
 			Box(modifier = Modifier.fillMaxSize()) {
 				Column(
@@ -10210,16 +10210,12 @@ fun StatisticItem(
 		label = "exit animation"
 	)
 
-	LaunchedEffect(Unit) {
-		startAnimation = true
-	}
-
 	Surface(
 		modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
 		shape = RoundedCornerShape(16.dp),
-		color = MaterialTheme.colorScheme.surface,
+		color = MaterialTheme.colorScheme.background,
 		border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
 		shadowElevation = 1.dp
 	) {
@@ -13873,64 +13869,26 @@ fun QuotaAnalysis(
 	Column(
 		modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp)
+            .padding(horizontal = 12.dp)
 	) {
 		// فیلد جستجو
-		OutlinedTextField(
-			value = searchQuery,
-			onValueChange = { viewModel.updateSearchQuery(it) },
+		SearchField(
+			searchQuery = searchQuery,
+			onSearchQueryChange = { viewModel.updateSearchQuery(it) },
 			modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp),
-			placeholder = {
-				Text(
-					text = "جستجو ...",
-					style = MaterialTheme.typography.bodyMedium
-				)
-			},
-			leadingIcon = {
-				Icon(
-					imageVector = Icons.Default.Search,
-					contentDescription = "جستجو",
-					tint = MaterialTheme.colorScheme.onSurfaceVariant
-				)
-			},
-			trailingIcon = {
-				if (searchQuery.isNotEmpty()) {
-					IconButton(
-						onClick = { viewModel.updateSearchQuery("") }
-					) {
-						Icon(
-							imageVector = Icons.Default.Clear,
-							contentDescription = "پاک کردن",
-							tint = MaterialTheme.colorScheme.onSurfaceVariant
-						)
-					}
-				}
-			},
-			singleLine = true,
-			shape = RoundedCornerShape(12.dp),
-			keyboardOptions = KeyboardOptions(
-				keyboardType = KeyboardType.Number
-			),
-			colors = OutlinedTextFieldDefaults.colors(
-				focusedBorderColor = MaterialTheme.colorScheme.primary,
-				unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-			)
+                .padding(top = 12.dp, bottom = 4.dp),
+			placeholder = "جستجو بر اساس شماره کوتاژ...",
+			keyboardType = KeyboardType.Number
 		)
 
 		// انتخابگر نوع گروه‌بندی
 		Row(
 			modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 12.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
-                .border(
-                    BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
-                    RoundedCornerShape(12.dp)
-                ),
-			horizontalArrangement = Arrangement.SpaceEvenly,
+                .padding(top = 12.dp, bottom = 16.dp)
+                .height(48.dp),
+			horizontalArrangement = Arrangement.spacedBy(12.dp),
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			AnalyticsGroupingModeButton(
@@ -13939,11 +13897,6 @@ fun QuotaAnalysis(
 				isSelected = groupingMode == QuotaGroupingMode.BY_SHIP,
 				onClick = { viewModel.setGroupingMode(QuotaGroupingMode.BY_SHIP) },
 				modifier = Modifier.weight(1f)
-			)
-			VerticalDivider(
-				modifier = Modifier.height(28.dp),
-				thickness = 1.dp,
-				color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
 			)
 			AnalyticsGroupingModeButton(
 				text = "باربری",
@@ -13993,8 +13946,8 @@ fun QuotaAnalysis(
 
 			LazyColumn(
 				modifier = Modifier.fillMaxSize(),
-				verticalArrangement = Arrangement.spacedBy(8.dp),
-				// بهینه‌سازی اسکرول
+				verticalArrangement = Arrangement.spacedBy(12.dp),
+				contentPadding = PaddingValues(bottom = 16.dp),
 				flingBehavior = ScrollableDefaults.flingBehavior(),
 				userScrollEnabled = true
 			) {
@@ -14025,57 +13978,62 @@ private fun AnalyticsGroupingModeButton(
 	onClick: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
-	val interactionSource = remember { MutableInteractionSource() }
-	val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent
-	val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+	val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+	val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+	val borderColor = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
 
-	Box(
+	Surface(
 		modifier = modifier
-            .clickable(onClick = onClick, interactionSource = interactionSource, indication = null)
-            .background(backgroundColor)
-            .padding(vertical = 8.dp, horizontal = 6.dp),
-		contentAlignment = Alignment.Center
+            .fillMaxHeight()
+            .clickable { onClick() },
+		shape = RoundedCornerShape(12.dp),
+		color = backgroundColor,
+		border = if (!isSelected) BorderStroke(1.dp, borderColor) else null,
+		tonalElevation = if (isSelected) 4.dp else 1.dp
 	) {
 		Row(
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.Center,
-		) {
-			Icon(
-				imageVector = icon,
-				contentDescription = text,
-				tint = contentColor,
-				modifier = Modifier.size(18.dp)
-			)
-			Spacer(modifier = Modifier.width(6.dp))
-			Text(
-				text = text,
-				style = MaterialTheme.typography.labelMedium,
-				color = contentColor,
-				fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-			)
-		}
-	}
+			modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = text,
+                tint = contentColor,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge,
+                color = contentColor,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+            )
+        }
+    }
 }
 
 @Composable
 private fun AnalyticsQuotaGroupExpansionPanel(
-	groupName: String,
-	quotas: List<QuotaCompletionData>,
-	groupingMode: QuotaGroupingMode,
-	isExpanded: Boolean,
-	onExpandChange: (Boolean) -> Unit,
-	modifier: Modifier = Modifier
+    groupName: String,
+    quotas: List<QuotaCompletionData>,
+    groupingMode: QuotaGroupingMode,
+    isExpanded: Boolean,
+    onExpandChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-	val totalWeight = quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
-	val totalVouchers = quotas.sumOf { it.last_24h_vouchers }
+    val totalWeight = quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
+    val totalVouchers = quotas.sumOf { it.last_24h_vouchers }
 
-	val groupIcon = when (groupingMode) {
-		QuotaGroupingMode.BY_SHIP -> Icons.Default.DirectionsBoat
-		QuotaGroupingMode.BY_CARRIER -> Icons.Default.LocalShipping
-	}
+    val groupIcon = when (groupingMode) {
+        QuotaGroupingMode.BY_SHIP -> Icons.Default.DirectionsBoat
+        QuotaGroupingMode.BY_CARRIER -> Icons.Default.LocalShipping
+    }
 
-	Card(
-		modifier = modifier
+    Card(
+        modifier = modifier
             .fillMaxWidth()
             .animateContentSize(
                 animationSpec = spring(
@@ -14083,282 +14041,321 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                     stiffness = Spring.StiffnessLow
                 )
             ),
-		shape = RoundedCornerShape(12.dp),
-		colors = CardDefaults.cardColors(
-			containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-		),
-		border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-	) {
-		Column {
-			Surface(
-				onClick = { onExpandChange(!isExpanded) },
-				color = Color.Transparent
-			) {
-				Row(
-					modifier = Modifier
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+    ) {
+        Column {
+            Surface(
+                onClick = { onExpandChange(!isExpanded) },
+                color = Color.Transparent
+            ) {
+                Column(
+                    modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-					horizontalArrangement = Arrangement.SpaceBetween,
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					Row(
-						horizontalArrangement = Arrangement.spacedBy(12.dp),
-						verticalAlignment = Alignment.CenterVertically
-					) {
-				Box(
-					modifier = Modifier
-                        .size(40.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            shape = CircleShape
-                        ),
-					contentAlignment = Alignment.Center
-				) {
-					Icon(
-						imageVector = groupIcon,
-						contentDescription = null,
-						tint = MaterialTheme.colorScheme.primary,
-						modifier = Modifier.size(24.dp)
-					)
-				}
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // ردیف اول - آیکون و نام گروه
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = groupName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        
+                        Spacer(modifier = Modifier.width(12.dp))
+                        
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .background(
+                                    color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
+                                        Color(0xFF1e293b) else Color(0xFFEFF6FF),
+                                    shape = RoundedCornerShape(12.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = groupIcon,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
 
-				Column {
-					Text(
-						text = groupName,
-						style = MaterialTheme.typography.titleMedium,
-						fontWeight = FontWeight.Bold,
-						color = MaterialTheme.colorScheme.onSurface
-					)
+                    // ردیف دوم - بج‌های آماری
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Start,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AnalyticsStatChip(
+                            value = formatNumber(totalVouchers),
+                            label = "حواله",
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        AnalyticsStatChip(
+                            value = formatNumber(totalWeight.roundToInt()),
+                            label = "تن",
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        AnalyticsStatChip(
+                            value = "${quotas.size}",
+                            label = "کوتاژ",
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
 
-					Row(
-						horizontalArrangement = Arrangement.spacedBy(8.dp),
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						AnalyticsStatChip(
-							value = "${quotas.size}",
-							label = "کوتاژ",
-							color = MaterialTheme.colorScheme.primary
-						)
-						AnalyticsStatChip(
-							value = formatNumber(totalWeight.roundToInt()),
-							label = "تن",
-							color = MaterialTheme.colorScheme.secondary
-						)
-						AnalyticsStatChip(
-							value = formatNumber(totalVouchers),
-							label = "حواله",
-							color = MaterialTheme.colorScheme.tertiary
-						)
-					}
-				}
-					}
-
-					IconButton(
-						onClick = { onExpandChange(!isExpanded) }
-					) {
-						Icon(
-							imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-							contentDescription = if (isExpanded) "بستن" else "گسترش",
-							tint = MaterialTheme.colorScheme.onSurfaceVariant
-						)
-					}
-				}
-			}
-
-			AnimatedVisibility(
-				visible = isExpanded,
-				enter = expandVertically(
-					animationSpec = spring(
-						dampingRatio = Spring.DampingRatioMediumBouncy,
-						stiffness = Spring.StiffnessLow
-					)
-				) + fadeIn(),
-				exit = shrinkVertically(
-					animationSpec = spring(
-						dampingRatio = Spring.DampingRatioMediumBouncy,
-						stiffness = Spring.StiffnessLow
-					)
-				) + fadeOut()
-			) {
-				Column(
-					modifier = Modifier
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                ) + fadeIn(),
+                exit = shrinkVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                ) + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                         .heightIn(max = 400.dp)
                         .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-					verticalArrangement = Arrangement.spacedBy(8.dp)
-				) {
-					quotas.forEach { quota ->
-						AnalyticsQuotaCard(
-							quota = quota,
-							groupingMode = groupingMode
-						)
-					}
-				}
-			}
-		}
-	}
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    quotas.forEach { quota ->
+                        AnalyticsQuotaCard(
+                            quota = quota,
+                            groupingMode = groupingMode
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
 private fun AnalyticsStatChip(
-	value: String,
-	label: String,
-	color: Color,
-	modifier: Modifier = Modifier
+    value: String,
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier
 ) {
-	Surface(
-		modifier = modifier,
-		shape = RoundedCornerShape(12.dp),
-		color = color.copy(alpha = 0.1f),
-		border = BorderStroke(0.5.dp, color.copy(alpha = 0.3f))
-	) {
-		Row(
-			modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-			horizontalArrangement = Arrangement.spacedBy(4.dp),
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			Text(
-				text = value,
-				style = MaterialTheme.typography.bodySmall,
-				color = color,
-				fontWeight = FontWeight.Bold
-			)
-			Text(
-				text = label,
-				style = MaterialTheme.typography.bodySmall,
-				color = color.copy(alpha = 0.8f)
-			)
-		}
-	}
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
+            Color(0xFF1e293b) else Color(0xFFEFF6FF),
+        border = BorderStroke(0.5.dp, if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
+            Color(0xFF334155) else Color(0xFF93C5FD))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = value,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
+                    Color(0xFF93c5fd) else Color(0xFF1E40AF),
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
+                    Color(0xFF93c5fd) else Color(0xFF1E40AF)
+            )
+        }
+    }
 }
 
 @Composable
 private fun AnalyticsQuotaCard(
-	quota: QuotaCompletionData,
-	groupingMode: QuotaGroupingMode,
-	modifier: Modifier = Modifier
+    quota: QuotaCompletionData,
+    groupingMode: QuotaGroupingMode,
+    modifier: Modifier = Modifier
 ) {
-	val isDarkTheme = isSystemInDarkTheme()
-	val completionColor = getCompletionColor(quota.completion_percentage, isDarkTheme)
-
-	Card(
-		modifier = modifier
-            .fillMaxWidth()
-            .wrapContentHeight(),
-		shape = RoundedCornerShape(8.dp),
-		colors = CardDefaults.cardColors(
-			containerColor = completionColor.copy(alpha = 0.05f)
-		),
-		border = BorderStroke(1.dp, completionColor.copy(alpha = 0.2f))
-	) {
-		Column(
-			modifier = Modifier
+    Card(
+        modifier = modifier
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+    ) {
+        Row(
+            modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
-		) {
-			// هدر کارت
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.spacedBy(12.dp),
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				// آیکون کوتاژ
-				Box(
-					modifier = Modifier
-                        .size(32.dp)
-                        .background(
-                            color = completionColor.copy(alpha = 0.1f),
-                            shape = CircleShape
-                        ),
-					contentAlignment = Alignment.Center
-				) {
-					Icon(
-						imageVector = Icons.Default.Receipt,
-						contentDescription = null,
-						tint = completionColor,
-						modifier = Modifier.size(18.dp)
-					)
-				}
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // آیکون کوتاژ
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(
+                        color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
+                            Color(0xFF334155) else Color(0xFFF3F4F6),
+                        shape = RoundedCornerShape(8.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Receipt,
+                    contentDescription = null,
+                    tint = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
+                        Color(0xFF94a3b8) else Color(0xFF6B7280),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
 
-				// اطلاعات کوتاژ
-				Column {
-					Row(
-						horizontalArrangement = Arrangement.spacedBy(4.dp),
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						Text(
-							text = quota.loadingQuotaNumber,
-							style = MaterialTheme.typography.bodyLarge,
-							fontWeight = FontWeight.Bold,
-							color = MaterialTheme.colorScheme.onSurface
-						)
-						Text(
-							text = "|",
-							style = MaterialTheme.typography.bodyMedium,
-							fontWeight = FontWeight.Bold,
-							color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-						)
-						Text(
-							text = when (groupingMode) {
-								QuotaGroupingMode.BY_SHIP -> quota.shippingCompany
-								QuotaGroupingMode.BY_CARRIER -> quota.shipName
-							},
-							style = MaterialTheme.typography.bodyMedium,
-							fontWeight = FontWeight.Bold,
-							color = MaterialTheme.colorScheme.primary
-						)
-					}
+            // اطلاعات کوتاژ
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // ردیف اول - شماره کوتاژ و نام شرکت/کشتی
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = quota.loadingQuotaNumber,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    
+                    Text(
+                        text = when (groupingMode) {
+                            QuotaGroupingMode.BY_SHIP -> quota.shippingCompany
+                            QuotaGroupingMode.BY_CARRIER -> quota.shipName
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
 
-					Row(
-						horizontalArrangement = Arrangement.spacedBy(6.dp),
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						AnalyticsStatChip(
-							value = formatNumber(quota.last_24h_vouchers),
-							label = "حواله",
-							color = completionColor
-						)
-						AnalyticsStatChip(
-							value = formatNumber(quota.last_24h_weight.roundToInt()),
-							label = "تن",
-							color = completionColor
-						)
-					}
-				}
-			}
-		}
-	}
+                // ردیف دوم - بج‌های آماری
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // بج حواله
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
+                                    Color(0xFF334155) else Color(0xFFF9FAFB),
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
+                                    Color(0xFF475569) else Color(0xFFE5E7EB),
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "${formatNumber(quota.last_24h_vouchers)} حواله",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
+                                Color(0xFF94a3b8) else Color(0xFF6B7280),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    
+                    // بج تناژ
+                    Box(
+                        modifier = Modifier
+                            .background(
+                                color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
+                                    Color(0xFF334155) else Color(0xFFF9FAFB),
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
+                                    Color(0xFF475569) else Color(0xFFE5E7EB),
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "${formatNumber(quota.last_24h_weight.roundToInt())} تن",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
+                                Color(0xFF94a3b8) else Color(0xFF6B7280),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
 fun CarrierAnalysis(
-	carrierPerformanceData: List<CarrierPerformanceAnalysis>
+    carrierPerformanceData: List<CarrierPerformanceAnalysis>
 ) {
-	LazyColumn(
-		modifier = Modifier
+    LazyColumn(
+        modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 8.dp, vertical = 4.dp),
-		verticalArrangement = Arrangement.spacedBy(8.dp)
-	) {
-		items(
-			items = carrierPerformanceData.sortedByDescending { it.quality_score },
-			key = { it.shippingCompany }
-		) { carrier ->
-			CarrierCard(carrier = carrier)
-		}
-	}
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(
+            items = carrierPerformanceData.sortedByDescending { it.quality_score },
+            key = { it.shippingCompany }
+        ) { carrier ->
+            CarrierCard(carrier = carrier)
+        }
+    }
 }
 
 @Composable
 private fun CarrierCard(
-	carrier: CarrierPerformanceAnalysis,
-	modifier: Modifier = Modifier
+    carrier: CarrierPerformanceAnalysis,
+    modifier: Modifier = Modifier
 ) {
-	val color = when {
-		carrier.quality_score >= 80 -> MaterialTheme.colorScheme.primary
-		carrier.quality_score >= 70 -> MaterialTheme.colorScheme.secondary
-		else -> MaterialTheme.colorScheme.error
-	}
+    val color = when {
+        carrier.quality_score >= 80 -> MaterialTheme.colorScheme.primary
+        carrier.quality_score >= 70 -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.error
+    }
 
 	Card(
 		modifier = modifier
