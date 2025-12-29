@@ -43,7 +43,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -98,6 +97,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddTask
+import androidx.compose.material.icons.filled.AllInbox
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -126,7 +126,6 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocalShipping
@@ -155,6 +154,8 @@ import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -282,15 +283,26 @@ import com.atk.atk_cargo.api.toTon
 import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.atk.atk_cargo.ui.theme.BackgroundDark
+import com.atk.atk_cargo.ui.theme.Blue100
+import com.atk.atk_cargo.ui.theme.Blue300
 import com.atk.atk_cargo.ui.theme.Blue400
+import com.atk.atk_cargo.ui.theme.Blue50
 import com.atk.atk_cargo.ui.theme.Blue700
+import com.atk.atk_cargo.ui.theme.Blue900
 import com.atk.atk_cargo.ui.theme.Corner2XL
 import com.atk.atk_cargo.ui.theme.Corner3XL
 import com.atk.atk_cargo.ui.theme.CornerL
+import com.atk.atk_cargo.ui.theme.CornerM
 import com.atk.atk_cargo.ui.theme.CornerXL
+import com.atk.atk_cargo.ui.theme.Gray100
+import com.atk.atk_cargo.ui.theme.Gray200
+import com.atk.atk_cargo.ui.theme.Gray400
+import com.atk.atk_cargo.ui.theme.Gray50
+import com.atk.atk_cargo.ui.theme.Gray500
 import com.atk.atk_cargo.ui.theme.Green300
 import com.atk.atk_cargo.ui.theme.Green50
 import com.atk.atk_cargo.ui.theme.Green700
+import com.atk.atk_cargo.ui.theme.PrimaryBlue
 import com.atk.atk_cargo.ui.theme.PrimaryBlueDark
 import com.atk.atk_cargo.ui.theme.PrimaryBlueLight
 import com.atk.atk_cargo.ui.theme.Purple700
@@ -299,7 +311,12 @@ import com.atk.atk_cargo.ui.theme.Red50
 import com.atk.atk_cargo.ui.theme.Red500
 import com.atk.atk_cargo.ui.theme.Red700
 import com.atk.atk_cargo.ui.theme.Red900
+import com.atk.atk_cargo.ui.theme.Slate200
 import com.atk.atk_cargo.ui.theme.Slate300
+import com.atk.atk_cargo.ui.theme.Slate600
+import com.atk.atk_cargo.ui.theme.Slate700
+import com.atk.atk_cargo.ui.theme.Slate800
+import com.atk.atk_cargo.ui.theme.SurfaceVariantDark
 import com.atk.atk_cargo.ui.theme.TextSecondaryDark
 import com.atk.atk_cargo.ui.theme.getCompletionColor
 import kotlinx.coroutines.delay
@@ -1574,7 +1591,7 @@ private fun ShipHeaderCard(shipDetails: Ship) {
 	Card(
 		modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp),
 		colors = CardDefaults.cardColors(
 			containerColor = MaterialTheme.colorScheme.surface
 		),
@@ -2252,7 +2269,6 @@ fun QuotasList(
 
 		LazyColumn(
 			modifier = Modifier.fillMaxSize(),
-			contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
 			verticalArrangement = Arrangement.spacedBy(8.dp)
 		) {
 			groupedQuotas.forEach { (groupName, sortedQuotas) ->
@@ -2305,14 +2321,14 @@ fun QuotaGroupExpansionPanel(
 		shape = RoundedCornerShape(CornerXL),
 		border = BorderStroke(
 			1.dp,
-			if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+			if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.7f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
 		),
 		elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
 	) {
 		Column(
 			modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
 		) {
 			// Header: Name and Total Badge
 			Row(
@@ -2358,60 +2374,60 @@ fun QuotaGroupExpansionPanel(
 			Spacer(modifier = Modifier.height(12.dp))
 			
 			// Stats: Loading and Remaining
-						Row(
-				modifier = Modifier.fillMaxWidth(),
-							horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				// Loading
-				Row(
-					horizontalArrangement = Arrangement.spacedBy(4.dp),
-							verticalAlignment = Alignment.CenterVertically
-						) {
-							Text(
-						text = "بارگیری:",
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.onSurfaceVariant
-					)
-					Text(
-						text = formatNumber(loadedWeight.toInt()),
-						style = MaterialTheme.typography.bodySmall,
-						color = if (isDarkTheme) Blue400 else MaterialTheme.colorScheme.primary,
-								fontWeight = FontWeight.Bold
-							)
-					Icon(
-						imageVector = Icons.Default.ArrowUpward,
-						contentDescription = null,
-						tint = if (isDarkTheme) Blue400 else MaterialTheme.colorScheme.primary,
-						modifier = Modifier.size(14.dp)
-					)
-				}
-				
-				// Remaining Badge
-								Surface(
-					shape = RoundedCornerShape(8.dp),
-					color = if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer
-								) {
-									Row(
-						modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-						horizontalArrangement = Arrangement.spacedBy(4.dp),
-										verticalAlignment = Alignment.CenterVertically
-									) {
-										Text(
-							text = "مانده: ${formatNumber(remainingWeight.toInt())}",
-											style = MaterialTheme.typography.bodySmall,
-							color = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-											fontWeight = FontWeight.Bold
-										)
-						Icon(
-							imageVector = Icons.Default.ArrowDownward,
-							contentDescription = null,
-							tint = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-							modifier = Modifier.size(14.dp)
-						)
-					}
-				}
-			}
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+            // Loading
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                    text = "بارگیری:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = formatNumber(loadedWeight.toInt()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isDarkTheme) Blue400 else MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                Icon(
+                    imageVector = Icons.Default.ArrowUpward,
+                    contentDescription = null,
+                    tint = if (isDarkTheme) Blue400 else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+
+            // Remaining Badge
+            Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "مانده: ${formatNumber(remainingWeight.toInt())}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ArrowDownward,
+                        contentDescription = null,
+                        tint = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        }
 
 			if (isExpanded) {
 				Spacer(modifier = Modifier.height(8.dp))
@@ -2606,47 +2622,6 @@ private fun GroupingModeButton(
 				style = MaterialTheme.typography.labelMedium,
 				color = contentColor,
 				fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-			)
-		}
-	}
-}
-
-@Composable
-private fun SortingModeButton(
-	text: String,
-	icon: ImageVector,
-	isAscending: Boolean,
-	isSelected: Boolean,
-	onClick: () -> Unit,
-	modifier: Modifier = Modifier
-) {
-	val interactionSource = remember { MutableInteractionSource() }
-	val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent
-	val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-
-	Box(
-		modifier = modifier
-            .clickable(onClick = onClick, interactionSource = interactionSource, indication = null)
-            .background(backgroundColor)
-            .padding(vertical = 6.dp, horizontal = 4.dp),
-		contentAlignment = Alignment.Center
-	) {
-		Row(
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.Center,
-		) {
-			Icon(
-				imageVector = icon,
-				contentDescription = if (isAscending) "صعودی" else "نزولی",
-				tint = contentColor,
-				modifier = Modifier.size(14.dp)
-			)
-			Spacer(modifier = Modifier.width(4.dp))
-			Text(
-				text = text,
-				style = MaterialTheme.typography.labelMedium,
-				color = contentColor,
-				fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
 			)
 		}
 	}
@@ -4631,20 +4606,17 @@ fun QuotaShipExpansionPanel(
 							) {
 								AnalyticsStatChip(
 									value = "$totalQuotas",
-									label = "کوتاژ",
-									color = MaterialTheme.colorScheme.secondary
-								)
+									label = "کوتاژ"
+                                )
 								AnalyticsStatChip(
 									value = "$activeQuotas",
-									label = "فعال",
-									color = MaterialTheme.colorScheme.tertiary
-								)
+									label = "فعال"
+                                )
 								if (totalWeight > 0) {
 									AnalyticsStatChip(
 										value = formatNumber(totalWeight.roundToInt()),
-										label = "تن",
-										color = MaterialTheme.colorScheme.error
-									)
+										label = "تن"
+                                    )
 								}
 							}
 						}
@@ -5876,50 +5848,51 @@ fun WarehouseContent(
 						shipName = shipName
 					)
 
-					Spacer(modifier = Modifier.height(16.dp))
+					Spacer(modifier = Modifier.height(8.dp))
 
-					Card(
+					Surface(
 						modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-						shape = RoundedCornerShape(12.dp)
+							.fillMaxWidth()
+							.padding(horizontal = 16.dp, vertical = 8.dp),
+						shape = RoundedCornerShape(16.dp),
+						color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else Color(0xFFE0E7FF).copy(alpha = 0.8f),
+						border = BorderStroke(1.dp, if (isSystemInDarkTheme()) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else Color(0xFFC7D2FE))
 					) {
 						Row(
 							modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
+								.fillMaxWidth()
+								.padding(8.dp),
 							horizontalArrangement = Arrangement.SpaceBetween,
 							verticalAlignment = Alignment.CenterVertically
 						) {
-							// عنوان با آیکون
 							Row(
 								verticalAlignment = Alignment.CenterVertically,
-								horizontalArrangement = Arrangement.spacedBy(8.dp)
+								horizontalArrangement = Arrangement.spacedBy(12.dp),
+								modifier = Modifier.padding(start = 8.dp)
 							) {
 								Surface(
 									shape = CircleShape,
-									color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+									color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else Color(0xFFEEF2FF),
 									modifier = Modifier.size(32.dp)
 								) {
 									Box(contentAlignment = Alignment.Center) {
 										Icon(
 											imageVector = Icons.Default.Filter,
 											contentDescription = null,
-											tint = MaterialTheme.colorScheme.primary,
-											modifier = Modifier.size(16.dp)
+											tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF4F46E5),
+											modifier = Modifier.size(18.dp)
 										)
 									}
 								}
 
 								Text(
 									text = "فیلتر و جستجو",
-									style = MaterialTheme.typography.titleMedium,
+									style = MaterialTheme.typography.titleSmall,
 									fontWeight = FontWeight.Bold,
-									color = MaterialTheme.colorScheme.onSurface
+									color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onSurface else Color(0xFF374151)
 								)
 							}
 
-							// دکمه خروجی
 							ExportOptions(
 								onExport = { format ->
 									filteredSummary?.let {
@@ -5930,7 +5903,7 @@ fun WarehouseContent(
 						}
 					}
 
-					Spacer(modifier = Modifier.height(8.dp))
+					Spacer(modifier = Modifier.height(4.dp))
 
 					QuotaSelector(
 						quotas = warehouseDetails.quotas,
@@ -5938,10 +5911,12 @@ fun WarehouseContent(
 						onQuotaSelected = onQuotaSelected
 					)
 
-					Spacer(modifier = Modifier.height(8.dp))
+					Spacer(modifier = Modifier.height(4.dp))
 
 					Row(
-						modifier = Modifier.fillMaxWidth(),
+						modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
 						horizontalArrangement = Arrangement.SpaceBetween
 					) {
 						DateTimePicker(
@@ -5981,28 +5956,29 @@ fun WarehouseContent(
 fun ExportOptions(onExport: (String) -> Unit) {
 	Surface(
 		onClick = { onExport("pdf") },
-		shape = RoundedCornerShape(20.dp),
-		color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-		border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f))
+		shape = RoundedCornerShape(12.dp),
+		color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else Color.White,
+		border = BorderStroke(1.dp, if (isSystemInDarkTheme()) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else Color(0xFFF3F4F6)),
+		shadowElevation = 1.dp
 	) {
 		Row(
-			modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+			modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
 			horizontalArrangement = Arrangement.spacedBy(8.dp),
 			verticalAlignment = Alignment.CenterVertically
 		) {
+			Text(
+				text = "خروجی PDF",
+				style = MaterialTheme.typography.labelMedium.copy(
+					fontWeight = FontWeight.Bold
+				),
+				color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else Color(0xFF2563EB)
+			)
+
 			Icon(
 				imageVector = Icons.Default.PictureAsPdf,
 				contentDescription = "خروجی PDF",
-				tint = MaterialTheme.colorScheme.tertiary,
+				tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else Color(0xFF2563EB),
 				modifier = Modifier.size(18.dp)
-			)
-
-			Text(
-				text = "خروجی PDF",
-				style = MaterialTheme.typography.bodyMedium.copy(
-					fontWeight = FontWeight.Medium
-				),
-				color = MaterialTheme.colorScheme.tertiary
 			)
 		}
 	}
@@ -6023,118 +5999,116 @@ fun DateTimePicker(
 	var tempDate by remember { mutableStateOf<String?>(null) }
 	var tempTime by remember { mutableStateOf<String?>(null) }
 
-	val interactionSource = remember { MutableInteractionSource() }
-	val isHovered by interactionSource.collectIsHoveredAsState()
+	val isDark = isSystemInDarkTheme()
+
+	// استخراج تاریخ و زمان از selectedDateTime
+	val dateText = selectedDateTime?.split(" ")?.firstOrNull()
+	val timeText = selectedDateTime?.split(" ")?.getOrNull(1)?.let { "ساعت $it" }
 
 	Column(modifier = modifier) {
-		// عنوان با طراحی مینیمال
+		// لیبل بالای کارت با آیکون
 		Row(
 			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(6.dp),
-			modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+			horizontalArrangement = Arrangement.spacedBy(4.dp),
+			modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
 		) {
 			Icon(
-				imageVector = if (selectedDateTime != null) {
-					Icons.Default.Schedule
-				} else {
-					Icons.Default.DateRange
-				},
+				imageVector = Icons.Rounded.Schedule,
 				contentDescription = null,
-				tint = MaterialTheme.colorScheme.tertiary,
-				modifier = Modifier.size(14.dp)
+				tint = if (isDark) Color(0xFF9CA3AF) else Color(0xFF6B7280),
+				modifier = Modifier.size(16.dp)
 			)
-
 			Text(
 				text = label,
-				style = MaterialTheme.typography.titleSmall.copy(
-					fontWeight = FontWeight.Medium,
-					fontSize = MaterialTheme.typography.bodySmall.fontSize
-				),
-				color = MaterialTheme.colorScheme.onSurfaceVariant
+				style = MaterialTheme.typography.labelSmall,
+				fontWeight = FontWeight.Medium,
+				color = if (isDark) Color(0xFF9CA3AF) else Color(0xFF6B7280)
 			)
 		}
 
-		// کامپوننت تاریخ و زمان مدرن و مینیمال برای فارسی
+		// کارت اصلی با طراحی جدید
 		Surface(
 			onClick = { showDatePicker = true },
 			modifier = Modifier
-                .fillMaxWidth()
-                .hoverable(interactionSource),
-			shape = RoundedCornerShape(12.dp),
-			color = if (isHovered || selectedDateTime != null) {
-				MaterialTheme.colorScheme.tertiary.copy(alpha = 0.05f)
-			} else {
-				MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
-			},
+				.fillMaxWidth()
+				.height(64.dp),
+			shape = RoundedCornerShape(16.dp),
+			color = if (isDark) MaterialTheme.colorScheme.surface else Color(0xFFEFF6FF).copy(alpha = 0.5f),
 			border = BorderStroke(
-				width = if (selectedDateTime != null) 1.5.dp else 1.dp,
-				color = if (selectedDateTime != null) {
-					MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
-				} else if (isHovered) {
-					MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f)
-				} else {
-					MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-				}
+				width = 2.dp,
+				color = if (isDark) Color(0xFF374151) else Color(0xFFDBEAFE)
 			)
 		) {
 			Row(
-				modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-				verticalAlignment = Alignment.CenterVertically,
-				horizontalArrangement = Arrangement.spacedBy(8.dp)
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(horizontal = 12.dp),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically
 			) {
-				// آیکون کوچک‌تر تاریخ/زمان با انیمیشن رنگ
-				val iconTint by animateColorAsState(
-					targetValue = if (selectedDateTime != null) {
-						MaterialTheme.colorScheme.tertiary
-					} else if (isHovered) {
-						MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f)
-					} else {
-						MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-					},
-					label = "icon color"
-				)
-
-				Icon(
-					imageVector = if (selectedDateTime != null) {
-						Icons.Default.Schedule
-					} else {
-						Icons.Default.DateRange
-					},
-					contentDescription = null,
-					tint = iconTint,
-					modifier = Modifier.size(18.dp)
-				)
-
-				// نمایش تاریخ و زمان با فرمت فارسی بهینه‌شده
-				Text(
-					text = selectedDateTime?.let { persianDateTimeFormat(it) }
-						?: "انتخاب ${label.lowercase()}",
-					style = MaterialTheme.typography.bodyMedium,
-					color = if (selectedDateTime != null) {
-						MaterialTheme.colorScheme.onSurface
-					} else {
-						MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-					},
+				// بخش تاریخ و زمان (سمت راست)
+				Column(
+					verticalArrangement = Arrangement.Center,
 					modifier = Modifier.weight(1f)
-				)
-
-				// دکمه پاک کردن مینیمال با انیمیشن
-				if (selectedDateTime != null) {
-					Surface(
-						onClick = { onDateTimeSelected(null) },
-						shape = CircleShape,
-						color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-						modifier = Modifier.size(24.dp)
-					) {
-						Box(contentAlignment = Alignment.Center) {
-							Icon(
-								imageVector = Icons.Default.Close,
-								contentDescription = "پاک کردن",
-								tint = MaterialTheme.colorScheme.tertiary,
-								modifier = Modifier.size(14.dp)
-							)
-						}
+				) {
+					if (selectedDateTime != null) {
+						Text(
+							text = dateText ?: "",
+							style = MaterialTheme.typography.labelMedium,
+							fontWeight = FontWeight.Bold,
+							color = if (isDark) Color(0xFFE5E7EB) else Color(0xFF1F2937)
+						)
+						Spacer(modifier = Modifier.height(2.dp))
+						Text(
+							text = timeText ?: "",
+							style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+							color = if (isDark) Color(0xFF9CA3AF) else Color(0xFF6B7280)
+						)
+					} else {
+						Text(
+							text = "انتخاب کنید",
+							style = MaterialTheme.typography.labelMedium,
+							color = if (isDark) Color(0xFF6B7280) else Color(0xFF9CA3AF)
+						)
 					}
+				}
+
+				// بخش آیکون‌ها (سمت چپ)
+				Column(
+					verticalArrangement = Arrangement.SpaceBetween,
+					horizontalAlignment = Alignment.End,
+					modifier = Modifier
+						.fillMaxHeight()
+						.padding(vertical = 6.dp)
+				) {
+					// دکمه حذف
+					if (selectedDateTime != null) {
+						Surface(
+							onClick = { onDateTimeSelected(null) },
+							shape = CircleShape,
+							color = Color.Transparent,
+							modifier = Modifier.size(20.dp)
+						) {
+							Box(contentAlignment = Alignment.Center) {
+								Icon(
+									imageVector = Icons.Rounded.Close,
+									contentDescription = "پاک کردن",
+									tint = if (isDark) Color(0xFF6B7280) else Color(0xFF93C5FD),
+									modifier = Modifier.size(16.dp)
+								)
+							}
+						}
+					} else {
+						Spacer(modifier = Modifier.size(20.dp))
+					}
+
+					// آیکون ساعت
+					Icon(
+						imageVector = Icons.Rounded.Schedule,
+						contentDescription = null,
+						tint = if (isDark) Color(0xFF60A5FA) else Color(0xFF2563EB),
+						modifier = Modifier.size(20.dp)
+					)
 				}
 			}
 		}
@@ -6454,867 +6428,771 @@ fun persianDateFormat(dateString: String): String {
 	return dateString
 }
 
-fun persianDateTimeFormat(dateTimeString: String): String {
-	// این تابع می‌تواند با کد واقعی تبدیل تاریخ و زمان جایگزین شود
-	val parts = dateTimeString.split(" ")
-	return if (parts.size > 1) {
-		"${persianDateFormat(parts[0])} ساعت ${parts[1]}"
-	} else {
-		dateTimeString
-	}
-}
-
 @Composable
 fun WarehouseMainCard(warehouseName: String, shipName: String) {
-	Card(
-		modifier = Modifier
+    Card(
+        modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-		shape = RoundedCornerShape(20.dp),
-		colors = CardDefaults.cardColors(
-			containerColor = MaterialTheme.colorScheme.surface
-		),
-		elevation = CardDefaults.cardElevation(
-			defaultElevation = 2.dp
-		)
-	) {
-		Column(
-			modifier = Modifier.padding(16.dp),
-			verticalArrangement = Arrangement.spacedBy(16.dp)
-		) {
-			// Header - کامپکت و مینیمال
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				verticalAlignment = Alignment.CenterVertically,
-				horizontalArrangement = Arrangement.SpaceBetween
-			) {
-				// عنوان و نشانگر
-				Row(
-					verticalAlignment = Alignment.CenterVertically,
-					horizontalArrangement = Arrangement.spacedBy(8.dp)
-				) {
-					Surface(
-						shape = CircleShape,
-						color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-						modifier = Modifier.size(32.dp)
-					) {
-						Box(contentAlignment = Alignment.Center) {
-							Icon(
-								imageVector = Icons.Default.Warehouse,
-								contentDescription = null,
-								tint = MaterialTheme.colorScheme.primary,
-								modifier = Modifier.size(18.dp)
-							)
-						}
-					}
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            // کارت‌های اطلاعاتی دوتایی
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // کارت کشتی
+                InfoCard(
+                    icon = Icons.Default.DirectionsBoat,
+                    title = "کشتی",
+                    value = shipName,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
 
-					Text(
-						text = "اطلاعات کشتی و انبار",
-						style = MaterialTheme.typography.titleMedium,
-						fontWeight = FontWeight.Bold
-					)
-				}
-
-				// نشانگر تعداد آیتم‌ها
-				Surface(
-					shape = RoundedCornerShape(12.dp),
-					color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-				) {
-					Text(
-						text = "2 مورد",
-						style = MaterialTheme.typography.labelMedium,
-						color = MaterialTheme.colorScheme.onPrimaryContainer,
-						modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-					)
-				}
-			}
-
-			// کارت‌های اطلاعاتی مینیمال با طراحی افقی
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.spacedBy(12.dp)
-			) {
-				// کارت کشتی - طراحی افقی و مینیمال
-				InfoCard(
-					icon = Icons.Default.DirectionsBoat,
-					title = "کشتی",
-					value = shipName,
-					color = MaterialTheme.colorScheme.primary,
-					modifier = Modifier.weight(1f)
-				)
-
-				// کارت انبار - طراحی افقی و مینیمال
-				InfoCard(
-					icon = Icons.Default.Store,
-					title = "انبار",
-					value = warehouseName,
-					color = MaterialTheme.colorScheme.secondary,
-					modifier = Modifier.weight(1f)
-				)
-			}
-		}
-	}
+                // کارت انبار
+                InfoCard(
+                    icon = Icons.Default.Store,
+                    title = "انبار",
+                    value = warehouseName,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
 }
 
 @Composable
 fun InfoCard(
-	icon: ImageVector,
-	title: String,
-	value: String,
-	color: Color,
-	modifier: Modifier = Modifier
+    icon: ImageVector,
+    title: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier
 ) {
-	Surface(
-		modifier = modifier,
-		shape = RoundedCornerShape(16.dp),
-		color = color.copy(alpha = 0.05f),
-		border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
-	) {
-		Row(
-			modifier = Modifier
-                .fillMaxWidth()
+    Surface(
+        modifier = modifier.height(96.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
                 .padding(12.dp),
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(12.dp)
-		) {
-			// آیکون
-			Surface(
-				shape = CircleShape,
-				color = color.copy(alpha = 0.1f),
-				modifier = Modifier.size(36.dp)
-			) {
-				Box(contentAlignment = Alignment.Center) {
-					Icon(
-						imageVector = icon,
-						contentDescription = null,
-						tint = color,
-						modifier = Modifier.size(18.dp)
-					)
-				}
-			}
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // بخش بالایی: عنوان و آیکون
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = color
+                )
 
-			// محتوا
-			Column(
-				verticalArrangement = Arrangement.spacedBy(2.dp)
-			) {
-				Text(
-					text = title,
-					style = MaterialTheme.typography.labelMedium,
-					color = color
-				)
+                Surface(
+                    shape = CircleShape,
+                    color = color.copy(alpha = 0.1f),
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = color,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
 
-				Text(
-					text = value,
-					style = MaterialTheme.typography.titleMedium,
-					fontWeight = FontWeight.SemiBold,
-					maxLines = 1,
-					overflow = TextOverflow.Ellipsis
-				)
-			}
-		}
-	}
+            // بخش پایینی: مقدار (نام)
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
 }
 
 @Composable
 fun QuotaSelector(
-	quotas: List<Quota>,
-	selectedQuota: String?,
-	onQuotaSelected: (Quota) -> Unit
+    quotas: List<Quota>,
+    selectedQuota: String?,
+    onQuotaSelected: (Quota) -> Unit
 ) {
-	Card(
-		modifier = Modifier
+    Card(
+        modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-		shape = RoundedCornerShape(16.dp),
-		colors = CardDefaults.cardColors(
-			containerColor = MaterialTheme.colorScheme.surface
-		),
-		elevation = CardDefaults.cardElevation(
-			defaultElevation = 1.dp
-		)
-	) {
-		Column(
-			modifier = Modifier.padding(16.dp),
-			verticalArrangement = Arrangement.spacedBy(12.dp)
-		) {
-			// هدر با عنوان و تعداد کوتاژ
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				// عنوان بخش
-				Row(
-					verticalAlignment = Alignment.CenterVertically,
-					horizontalArrangement = Arrangement.spacedBy(8.dp)
-				) {
-					Icon(
-						imageVector = Icons.Default.Description,
-						contentDescription = null,
-						tint = MaterialTheme.colorScheme.primary,
-						modifier = Modifier.size(18.dp)
-					)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 0.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // هدر - مطابق با طراحی HTML
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // عنوان بخش
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Description,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
 
-					Text(
-						text = "انتخاب شماره کوتاژ",
-						style = MaterialTheme.typography.titleSmall,
-						fontWeight = FontWeight.Medium
-					)
-				}
+                    Text(
+                        text = "انتخاب شماره کوتاژ",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
 
-				// نمایش تعداد کوتاژها
-				Text(
-					text = "${quotas.size} کوتاژ",
-					style = MaterialTheme.typography.bodySmall,
-					color = MaterialTheme.colorScheme.onSurfaceVariant
-				)
-			}
+                // نمایش تعداد کوتاژها
+                Text(
+                    text = "${quotas.size} کوتاژ",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            }
 
-			// لیست کوتاژها با اسکرول افقی
-			if (quotas.isEmpty()) {
-				Box(
-					modifier = Modifier
+            // لیست کوتاژها با اسکرول افقی
+            if (quotas.isEmpty()) {
+                Box(
+                    modifier = Modifier
                         .fillMaxWidth()
                         .height(60.dp),
-					contentAlignment = Alignment.Center
-				) {
-					Text(
-						text = "کوتاژی یافت نشد",
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-					)
-				}
-			} else {
-				LazyRow(
-					horizontalArrangement = Arrangement.spacedBy(8.dp),
-					contentPadding = PaddingValues(vertical = 4.dp)
-				) {
-					items(quotas) { quota ->
-						QuotaChip(
-							quota = quota,
-							isSelected = selectedQuota == quota.number,
-							onSelect = { onQuotaSelected(quota) }
-						)
-					}
-				}
-			}
-		}
-	}
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "کوتاژی یافت نشد",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            } else {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                ) {
+                    items(quotas) { quota ->
+                        QuotaChip(
+                            quota = quota,
+                            isSelected = selectedQuota == quota.number,
+                            onSelect = { onQuotaSelected(quota) }
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
 fun QuotaChip(
-	quota: Quota,
-	isSelected: Boolean,
-	onSelect: () -> Unit
+    quota: Quota,
+    isSelected: Boolean,
+    onSelect: () -> Unit
 ) {
-	val interactionSource = remember { MutableInteractionSource() }
-	val isPressed by interactionSource.collectIsPressedAsState()
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
 
-	val backgroundColor by animateColorAsState(
-		targetValue = when {
-			isSelected -> MaterialTheme.colorScheme.primary
-			isPressed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.07f)
-			else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-		},
-		label = "background color"
-	)
+    val infiniteTransition = rememberInfiniteTransition(label = "dot pulse")
+    val dotAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot alpha"
+    )
 
-	val contentColor by animateColorAsState(
-		targetValue = if (isSelected) {
-			MaterialTheme.colorScheme.onPrimary
-		} else {
-			MaterialTheme.colorScheme.onSurface
-		},
-		label = "content color"
-	)
+    val backgroundColor by animateColorAsState(
+        targetValue = when {
+            isSelected -> MaterialTheme.colorScheme.primary
+            isPressed -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
+            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        },
+        label = "background color"
+    )
 
-	val elevation by animateDpAsState(
-		targetValue = if (isPressed || isSelected) 0.dp else 1.dp,
-		label = "elevation animation"
-	)
+    val contentColor by animateColorAsState(
+        targetValue = if (isSelected) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        label = "content color"
+    )
 
-	val scale by animateFloatAsState(
-		targetValue = if (isPressed) 0.95f else 1f,
-		animationSpec = spring(
-			dampingRatio = Spring.DampingRatioMediumBouncy,
-			stiffness = Spring.StiffnessLow
-		),
-		label = "scale animation"
-	)
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "scale animation"
+    )
 
-	Surface(
-		onClick = onSelect,
-		modifier = Modifier
-            .height(36.dp)
+    Surface(
+        onClick = onSelect,
+        modifier = Modifier
+            .height(42.dp)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             },
-		shape = RoundedCornerShape(18.dp),
-		color = backgroundColor,
-		tonalElevation = elevation,
-		interactionSource = interactionSource
-	) {
-		Row(
-			modifier = Modifier.padding(horizontal = 12.dp),
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(6.dp)
-		) {
-			// نمایش نشانگر فعال/غیرفعال بودن کوتاژ
-			Box(
-				modifier = Modifier
+        shape = CircleShape,
+        color = backgroundColor,
+        border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
+        interactionSource = interactionSource,
+        shadowElevation = if (isSelected) 4.dp else 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // شماره کوتاژ
+            Text(
+                text = quota.number,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                ),
+                color = contentColor
+            )
+
+            // نمایش نشانگر وضعیت با انیمیشن Pulse برای مورد انتخاب شده
+            Box(
+                modifier = Modifier
                     .size(8.dp)
+                    .graphicsLayer {
+                        alpha = if (isSelected) dotAlpha else 1f
+                    }
                     .background(
-                        color = if (quota.isActive) {
-                            if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.tertiary
-                        } else {
-                            if (isSelected) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.error.copy(
-                                alpha = 0.7f
-                            )
+                        color = when {
+                            isSelected -> Color.White
+                            quota.isActive -> if (isSystemInDarkTheme()) Color(0xFF60A5FA) else Color(0xFF2563EB)
+                            else -> if (isSystemInDarkTheme()) Color(0xFFF87171) else Color(0xFFEF4444)
                         },
                         shape = CircleShape
                     )
-			)
-
-			// شماره کوتاژ
-			Text(
-				text = quota.number,
-				style = MaterialTheme.typography.bodyMedium.copy(
-					fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-				),
-				color = contentColor
-			)
-		}
-	}
+            )
+        }
+    }
 }
 
 @Composable
 fun VoucherDetailsButton(summary: FilteredSummary) {
-	var showVoucherDetailsDialog by remember { mutableStateOf(false) }
+    var showVoucherDetailsDialog by remember { mutableStateOf(false) }
+    val isDark = isSystemInDarkTheme()
 
-	Card(
-		onClick = { showVoucherDetailsDialog = true },
-		modifier = Modifier
+    Surface(
+        onClick = { showVoucherDetailsDialog = true },
+        modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-		shape = RoundedCornerShape(16.dp),
-		colors = CardDefaults.cardColors(
-			containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
-		),
-	) {
-		Row(
-			modifier = Modifier.padding(16.dp),
-			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			// اطلاعات اصلی
-			Row(
-				horizontalArrangement = Arrangement.spacedBy(12.dp),
-				verticalAlignment = Alignment.CenterVertically,
-				modifier = Modifier.weight(1f)
-			) {
-				// آیکون
-				Surface(
-					shape = CircleShape,
-					color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f),
-					modifier = Modifier.size(40.dp)
-				) {
-					Box(contentAlignment = Alignment.Center) {
-						Icon(
-							imageVector = Icons.Default.Description,
-							contentDescription = null,
-							tint = MaterialTheme.colorScheme.tertiary,
-							modifier = Modifier.size(20.dp)
-						)
-					}
-				}
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = if (isDark) MaterialTheme.colorScheme.surface else Color(0xFFEFF6FF).copy(alpha = 0.8f),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isDark) Color(0xFF374151) else Color(0xFFDBEAFE)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // بخش اطلاعات اصلی
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                // آیکون در دایره سفید با سایه
+                Surface(
+                    shape = CircleShape,
+                    color = if (isDark) Color(0xFF374151) else Color.White,
+                    shadowElevation = 2.dp,
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Description,
+                            contentDescription = null,
+                            tint = if (isDark) Color(0xFF60A5FA) else Color(0xFF2563EB),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
 
-				// اطلاعات و آمار
-				Column {
-					Text(
-						text = "مشاهده جزئیات حواله‌ها",
-						style = MaterialTheme.typography.titleMedium,
-						fontWeight = FontWeight.Bold,
-						color = MaterialTheme.colorScheme.onTertiaryContainer
-					)
+                // اطلاعات متنی
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "مشاهده جزئیات حواله‌ها",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color.White else Color(0xFF111827)
+                    )
 
-					Row(
-						horizontalArrangement = Arrangement.spacedBy(8.dp),
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						// تعداد حواله‌ها
-						Text(
-							text = "${formatNumber(summary.voucherCount)} حواله",
-							style = MaterialTheme.typography.bodySmall,
-							color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
-						)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // تعداد حواله‌ها با رنگ آبی
+                        Text(
+                            text = "${formatNumber(summary.voucherCount)} حواله",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isDark) Color(0xFF93C5FD) else Color(0xFF2563EB)
+                        )
 
-						// جداکننده
-						Box(
-							modifier = Modifier
-                                .size(3.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.4f),
-                                    CircleShape
-                                )
-						)
+                        // جداکننده نقطه‌ای
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                            color = if (isDark) Color(0xFF6B7280) else Color(0xFF9CA3AF).copy(alpha = 0.5f)
+                        )
 
-						// وزن کل
-						Text(
-							text = formatNumber(summary.totalNetWeight.toInt()),
-							style = MaterialTheme.typography.bodySmall,
-							color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
-						)
-					}
-				}
-			}
+                        // وزن کل
+                        Text(
+                            text = formatNumber(summary.totalNetWeight.toInt()),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isDark) Color(0xFF9CA3AF) else Color(0xFF6B7280)
+                        )
+                    }
+                }
+            }
 
-			// آیکون نمایش جزئیات و انیمیشن
-			Surface(
-				shape = CircleShape,
-				color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-				modifier = Modifier.size(32.dp)
-			) {
-				Box(contentAlignment = Alignment.Center) {
-					Icon(
-						imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-						contentDescription = null,
-						tint = MaterialTheme.colorScheme.tertiary,
-						modifier = Modifier.size(18.dp)
-					)
-				}
-			}
-		}
-	}
+            // دکمه فلش در دایره سفید
+            Surface(
+                shape = CircleShape,
+                color = if (isDark) Color(0xFF374151) else Color.White,
+                shadowElevation = 2.dp,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = if (isDark) Color(0xFF9CA3AF) else Color(0xFF4B5563),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+    }
 
-	// دیالوگ نمایش جزئیات حواله‌ها
-	if (showVoucherDetailsDialog) {
-		VoucherDetailsDialog(
-			summary = summary,
-			onDismiss = { showVoucherDetailsDialog = false }
-		)
-	}
+    // دیالوگ نمایش جزئیات حواله‌ها
+    if (showVoucherDetailsDialog) {
+        VoucherDetailsDialog(
+            summary = summary,
+            onDismiss = { showVoucherDetailsDialog = false }
+        )
+    }
 }
 
 @Composable
 fun VoucherDetailsDialog(
-	summary: FilteredSummary,
-	onDismiss: () -> Unit
+    summary: FilteredSummary,
+    onDismiss: () -> Unit
 ) {
-	var searchQuery by remember { mutableStateOf("") }
-	var sortType by remember { mutableStateOf(VoucherSortType.DATE_DESC) }
+    val isDarkTheme = isSystemInDarkTheme()
+    var searchQuery by remember { mutableStateOf("") }
+    var sortType by remember { mutableStateOf(VoucherSortType.DATE_DESC) }
 
-	val filteredVoucherDetails by remember(searchQuery, sortType, summary.voucherDetails) {
-		derivedStateOf {
-			// ابتدا فیلتر کردن
-			val filtered = summary.voucherDetails.filter { voucher ->
-				val matchesSearch = if (searchQuery.isEmpty()) {
-					true
-				} else {
-					voucher.trackingNumber.contains(searchQuery, ignoreCase = true) ||
-							voucher.scaleReceiptNumber.contains(searchQuery, ignoreCase = true) ||
-							voucher.exitDate.contains(searchQuery, ignoreCase = true) ||
-							voucher.username?.contains(searchQuery, ignoreCase = true) == true ||
-							voucher.confirmUsername?.contains(searchQuery, ignoreCase = true) == true
-				}
+    val filteredVoucherDetails by remember(searchQuery, sortType, summary.voucherDetails) {
+        derivedStateOf {
+            val filtered = summary.voucherDetails.filter { voucher ->
+                val matchesSearch = if (searchQuery.isEmpty()) {
+                    true
+                } else {
+                    voucher.trackingNumber.contains(searchQuery, ignoreCase = true) ||
+                            voucher.scaleReceiptNumber.contains(searchQuery, ignoreCase = true) ||
+                            voucher.exitDate.contains(searchQuery, ignoreCase = true) ||
+                            voucher.username?.contains(searchQuery, ignoreCase = true) == true ||
+                            voucher.confirmUsername?.contains(searchQuery, ignoreCase = true) == true
+                }
+                matchesSearch
+            }
 
-				matchesSearch
-			}
+            when (sortType) {
+                VoucherSortType.DATE_ASC -> filtered.sortedBy { it.exitDate }
+                VoucherSortType.DATE_DESC -> filtered.sortedByDescending { it.exitDate }
+                VoucherSortType.WEIGHT_ASC -> filtered.sortedBy { it.netWeight }
+                VoucherSortType.WEIGHT_DESC -> filtered.sortedByDescending { it.netWeight }
+            }
+        }
+    }
 
-			// مرتب‌سازی
-			when (sortType) {
-				VoucherSortType.DATE_ASC -> filtered.sortedBy { it.exitDate }
-				VoucherSortType.DATE_DESC -> filtered.sortedByDescending { it.exitDate }
-				VoucherSortType.WEIGHT_ASC -> filtered.sortedBy { it.netWeight }
-				VoucherSortType.WEIGHT_DESC -> filtered.sortedByDescending { it.netWeight }
-			}
-		}
-	}
-
-	Dialog(
-		onDismissRequest = onDismiss,
-		properties = DialogProperties(
-			usePlatformDefaultWidth = false,
-			dismissOnBackPress = true,
-			dismissOnClickOutside = true
-		)
-	) {
-		Surface(
-			modifier = Modifier
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
+    ) {
+        Surface(
+            modifier = Modifier
                 .fillMaxWidth(0.95f)
                 .fillMaxHeight(0.9f),
-			shape = RoundedCornerShape(28.dp),
-			color = MaterialTheme.colorScheme.surface,
-			tonalElevation = 4.dp
-		) {
-			Column(
-				modifier = Modifier
-                    .fillMaxSize()
-                    .padding(20.dp)
-			) {
-				// هدر با طراحی مینیمال
-				Row(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.SpaceBetween,
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					// عنوان با آیکون و نمایش تعداد
-					Row(
-						horizontalArrangement = Arrangement.spacedBy(12.dp),
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						Surface(
-							shape = CircleShape,
-							color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-							modifier = Modifier.size(40.dp)
-						) {
-							Box(contentAlignment = Alignment.Center) {
-								Icon(
-									imageVector = Icons.Default.Description,
-									contentDescription = null,
-									tint = MaterialTheme.colorScheme.tertiary,
-									modifier = Modifier.size(20.dp)
-								)
-							}
-						}
+            shape = RoundedCornerShape(Corner3XL),
+            color = MaterialTheme.colorScheme.background,
+            shadowElevation = 24.dp
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // ===== HEADER =====
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(CornerL),
+                            color = if (isDarkTheme) Blue900.copy(alpha = 0.3f) else Blue100.copy(alpha = 0.8f),
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Description,
+                                    contentDescription = null,
+                                    tint = PrimaryBlue,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
 
-						Column {
-							Text(
-								text = "جزئیات حواله‌ها",
-								style = MaterialTheme.typography.titleLarge,
-								fontWeight = FontWeight.Bold
-							)
+                        Column {
+                            Text(
+                                text = "جزئیات حواله‌ها",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
 
-							// نمایش آمار فیلتر شده با طراحی بهتر
-							Row(
-								verticalAlignment = Alignment.CenterVertically,
-								horizontalArrangement = Arrangement.spacedBy(4.dp)
-							) {
-								Text(
-									text = "${formatNumber(filteredVoucherDetails.size)} از ${formatNumber(summary.voucherCount)}",
-									style = MaterialTheme.typography.labelMedium,
-									fontWeight = FontWeight.Medium,
-									color = MaterialTheme.colorScheme.tertiary
-								)
+                            Text(
+                                text = "${formatNumber(filteredVoucherDetails.size)} از ${formatNumber(summary.voucherCount)} حواله",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = PrimaryBlue,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
 
-								Text(
-									text = "حواله",
-									style = MaterialTheme.typography.labelMedium,
-									color = MaterialTheme.colorScheme.onSurfaceVariant
-								)
+                    Surface(
+                        onClick = onDismiss,
+                        shape = CircleShape,
+                        color = if (isDarkTheme) Slate800 else Gray100,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "بستن",
+                                tint = if (isDarkTheme) Slate300 else Gray500,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
 
-								// نمایش وضعیت فیلتر
-								if (searchQuery.isNotEmpty()) {
-									Surface(
-										shape = RoundedCornerShape(4.dp),
-										color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-										modifier = Modifier.padding(start = 4.dp)
-									) {
-										Text(
-											text = "فیلتر شده",
-											style = MaterialTheme.typography.labelSmall,
-											color = MaterialTheme.colorScheme.tertiary,
-											modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-										)
-									}
-								}
-							}
-						}
-					}
+                // ===== MAIN CONTENT =====
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    VoucherSearchAndFilter(
+                        searchQuery = searchQuery,
+                        onSearchChange = { searchQuery = it },
+                        sortType = sortType,
+                        onSortTypeChange = { sortType = it },
+                        isDarkTheme = isDarkTheme
+                    )
 
-					// دکمه بستن با طراحی بهتر
-					Surface(
-						onClick = onDismiss,
-						shape = CircleShape,
-						color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-						modifier = Modifier.size(36.dp)
-					) {
-						Box(contentAlignment = Alignment.Center) {
-							Icon(
-								imageVector = Icons.Default.Close,
-								contentDescription = "بستن",
-								tint = MaterialTheme.colorScheme.onSurfaceVariant,
-								modifier = Modifier.size(18.dp)
-							)
-						}
-					}
-				}
+                    if (filteredVoucherDetails.isEmpty()) {
+                        EmptyVoucherList()
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "لیست حواله‌ها",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDarkTheme) Slate300 else Slate700
+                            )
 
-				Spacer(modifier = Modifier.height(20.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "مرتب‌سازی: ${sortType.persianName}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isDarkTheme) Gray500 else Gray400
+                                )
 
-				// جستجو و فیلترها - کامپکت و مینیمال
-				VoucherSearchAndFilter(
-					searchQuery = searchQuery,
-					onSearchChange = { searchQuery = it },
-					sortType = sortType,
-					onSortTypeChange = { sortType = it }
-				)
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Sort,
+                                    contentDescription = null,
+                                    tint = if (isDarkTheme) Gray500 else Gray400,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
 
-				Spacer(modifier = Modifier.height(12.dp))
-
-				// لیست حواله‌ها
-				if (filteredVoucherDetails.isEmpty()) {
-					EmptyVoucherList()
-				} else {
-					// تیتر لیست با تعداد آیتم‌ها
-					Row(
-						modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp, horizontal = 4.dp),
-						horizontalArrangement = Arrangement.SpaceBetween,
-						verticalAlignment = Alignment.CenterVertically
-					) {
-						Text(
-							text = "لیست حواله‌ها",
-							style = MaterialTheme.typography.titleSmall,
-							fontWeight = FontWeight.Medium,
-							color = MaterialTheme.colorScheme.onSurface
-						)
-
-						// نمایش اطلاعات مرتب‌سازی
-						Row(
-							verticalAlignment = Alignment.CenterVertically,
-							horizontalArrangement = Arrangement.spacedBy(4.dp)
-						) {
-							Icon(
-								imageVector = if (sortType == VoucherSortType.DATE_ASC || sortType == VoucherSortType.WEIGHT_ASC)
-									Icons.Default.ArrowUpward else Icons.Default.ArrowDownward,
-								contentDescription = null,
-								tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-								modifier = Modifier.size(14.dp)
-							)
-
-							Text(
-								text = "مرتب‌سازی: ${sortType.persianName}",
-								style = MaterialTheme.typography.bodySmall,
-								color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-							)
-						}
-					}
-
-					// لیست حواله‌ها با فاصله‌گذاری بهتر
-					LazyColumn(
-						modifier = Modifier.weight(1f),
-						verticalArrangement = Arrangement.spacedBy(8.dp),
-						contentPadding = PaddingValues(bottom = 16.dp, top = 4.dp)
-					) {
-						items(filteredVoucherDetails) { voucher ->
-							VoucherItem(voucher)
-						}
-					}
-				}
-			}
-		}
-	}
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp)
+                        ) {
+                            items(filteredVoucherDetails) { voucher ->
+                                VoucherItem(voucher, isDarkTheme)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
 fun VoucherSearchAndFilter(
-	searchQuery: String,
-	onSearchChange: (String) -> Unit,
-	sortType: VoucherSortType,
-	onSortTypeChange: (VoucherSortType) -> Unit,
-	modifier: Modifier = Modifier
+    searchQuery: String,
+    onSearchChange: (String) -> Unit,
+    sortType: VoucherSortType,
+    onSortTypeChange: (VoucherSortType) -> Unit,
+    isDarkTheme: Boolean,
+    modifier: Modifier = Modifier
 ) {
-	Column(
-		modifier = modifier.fillMaxWidth(),
-		verticalArrangement = Arrangement.spacedBy(8.dp)
-	) {
-		// جستجو - طراحی مینیمال
-		SearchTextField(
-			value = searchQuery,
-			onValueChange = onSearchChange,
-			placeholder = "جستجو در حواله‌ها..."
-		)
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        SearchTextField(
+            value = searchQuery,
+            onValueChange = onSearchChange,
+            placeholder = "جستجو در حواله‌ها...",
+            isDarkTheme = isDarkTheme
+        )
 
-		// نوار فیلترها - طراحی منظم و کارآمد
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			// دکمه‌های مرتب‌سازی - طراحی مینیمال با نمایش در دو ردیف
-			Column(
-				verticalArrangement = Arrangement.spacedBy(8.dp),
-				modifier = Modifier.weight(1f)
-			) {
-				// ردیف اول - گزینه‌های تاریخ
-				Row(
-					horizontalArrangement = Arrangement.spacedBy(8.dp),
-					modifier = Modifier.fillMaxWidth()
-				) {
-					listOf(VoucherSortType.DATE_DESC, VoucherSortType.DATE_ASC).forEach { sortOption ->
-						SortChip(
-							type = sortOption,
-							isSelected = sortType == sortOption,
-							onClick = { onSortTypeChange(sortOption) },
-							modifier = Modifier.weight(1f)
-						)
-					}
-				}
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(top = 8.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                listOf(VoucherSortType.DATE_ASC, VoucherSortType.DATE_DESC).forEach { sortOption ->
+                    SortChip(
+                        type = sortOption,
+                        isSelected = sortType == sortOption,
+                        onClick = { onSortTypeChange(sortOption) },
+                        isDarkTheme = isDarkTheme,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
 
-				// ردیف دوم - گزینه‌های وزن
-				Row(
-					horizontalArrangement = Arrangement.spacedBy(8.dp),
-					modifier = Modifier.fillMaxWidth()
-				) {
-					listOf(VoucherSortType.WEIGHT_DESC, VoucherSortType.WEIGHT_ASC).forEach { sortOption ->
-						SortChip(
-							type = sortOption,
-							isSelected = sortType == sortOption,
-							onClick = { onSortTypeChange(sortOption) },
-							modifier = Modifier.weight(1f)
-						)
-					}
-				}
-			}
-		}
-	}
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                listOf(VoucherSortType.WEIGHT_ASC, VoucherSortType.WEIGHT_DESC).forEach { sortOption ->
+                    SortChip(
+                        type = sortOption,
+                        isSelected = sortType == sortOption,
+                        onClick = { onSortTypeChange(sortOption) },
+                        isDarkTheme = isDarkTheme,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
 fun SearchTextField(
-	value: String,
-	onValueChange: (String) -> Unit,
-	placeholder: String,
-	modifier: Modifier = Modifier
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    isDarkTheme: Boolean,
+    modifier: Modifier = Modifier
 ) {
-	var isFocused by remember { mutableStateOf(false) }
+    var isFocused by remember { mutableStateOf(false) }
 
-	Surface(
-		modifier = modifier.fillMaxWidth(),
-		shape = RoundedCornerShape(12.dp),
-		color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-		border = BorderStroke(
-			width = if (isFocused) 1.5.dp else 1.dp,
-			color = if (isFocused) {
-				MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
-			} else {
-				MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-			}
-		)
-	) {
-		BasicTextField(
-			value = value,
-			onValueChange = onValueChange,
-			singleLine = true,
-			cursorBrush = SolidColor(MaterialTheme.colorScheme.tertiary),
-			textStyle = MaterialTheme.typography.bodyMedium.copy(
-				color = MaterialTheme.colorScheme.onSurface,
-				textDirection = TextDirection.Rtl
-			),
-			modifier = Modifier
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(CornerXL),
+        color = if (isDarkTheme) SurfaceVariantDark else Color.White,
+        shadowElevation = 1.dp,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isFocused) {
+                PrimaryBlue.copy(alpha = 0.5f)
+            } else {
+                if (isDarkTheme) Slate700 else Gray200
+            }
+        )
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            cursorBrush = SolidColor(PrimaryBlue),
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                color = if (isDarkTheme) Color.White else Slate800,
+                textDirection = TextDirection.Rtl
+            ),
+            modifier = Modifier
                 .fillMaxWidth()
                 .onFocusChanged { isFocused = it.isFocused },
-			decorationBox = { innerTextField ->
-				Row(
-					modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					// آیکون جستجو
-					Icon(
-						imageVector = Icons.Default.Search,
-						contentDescription = null,
-						tint = if (isFocused) {
-							MaterialTheme.colorScheme.tertiary
-						} else {
-							MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-						},
-						modifier = Modifier.size(20.dp)
-					)
+            decorationBox = { innerTextField ->
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (value.isEmpty()) {
+                            Text(
+                                text = placeholder,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (isDarkTheme) Gray500 else Gray400
+                            )
+                        }
+                        innerTextField()
+                    }
 
-					// فاصله
-					Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
 
-					Box(
-						modifier = Modifier.weight(1f),
-						contentAlignment = Alignment.CenterStart
-					) {
-						// متن پلیس‌هولدر
-						if (value.isEmpty()) {
-							Text(
-								text = placeholder,
-								style = MaterialTheme.typography.bodyMedium,
-								color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-							)
-						}
-
-						// فیلد ورودی
-						innerTextField()
-					}
-
-					// دکمه پاک کردن
-					if (value.isNotEmpty()) {
-						IconButton(
-							onClick = { onValueChange("") },
-							modifier = Modifier.size(20.dp)
-						) {
-							Icon(
-								imageVector = Icons.Default.Clear,
-								contentDescription = "پاک کردن",
-								tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-								modifier = Modifier.size(16.dp)
-							)
-						}
-					}
-				}
-			}
-		)
-	}
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = if (isFocused) PrimaryBlue else if (isDarkTheme) Gray500 else Gray400,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        )
+    }
 }
 
 @Composable
 fun EmptyVoucherList() {
-	Box(
-		modifier = Modifier
+    Box(
+        modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f),
-		contentAlignment = Alignment.Center
-	) {
-		Column(
-			horizontalAlignment = Alignment.CenterHorizontally,
-			verticalArrangement = Arrangement.Center
-		) {
-			Icon(
-				imageVector = Icons.Default.Inventory,
-				contentDescription = null,
-				tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-				modifier = Modifier.size(80.dp)
-			)
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Inventory,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(80.dp)
+            )
 
-			Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-			Text(
-				text = "حواله‌ای یافت نشد",
-				style = MaterialTheme.typography.titleLarge,
-				color = MaterialTheme.colorScheme.onSurfaceVariant
-			)
+            Text(
+                text = "حواله‌ای یافت نشد",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
-			Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-			Text(
-				text = "لطفا فیلترها را تغییر دهید یا جستجوی دیگری انجام دهید",
-				style = MaterialTheme.typography.bodyMedium,
-				color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-				textAlign = TextAlign.Center
-			)
-		}
-	}
+            Text(
+                text = "لطفا فیلترها را تغییر دهید یا جستجوی دیگری انجام دهید",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
 }
 
 @Composable
-fun VoucherItem(voucher: VoucherDetail) {
-	var expanded by remember { mutableStateOf(false) }
-	val rotationState by animateFloatAsState(
-		targetValue = if (expanded) 180f else 0f,
-		animationSpec = tween(durationMillis = 300),
-		label = "rotation"
-	)
+fun VoucherItem(voucher: VoucherDetail, isDarkTheme: Boolean) {
+    var expanded by remember { mutableStateOf(false) }
+    val rotationState by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "rotation"
+    )
 
-	Card(
-		onClick = { expanded = !expanded },
-		modifier = Modifier
+    Surface(
+        onClick = { expanded = !expanded },
+        modifier = Modifier
             .fillMaxWidth()
             .animateContentSize(
                 animationSpec = spring(
@@ -7322,436 +7200,362 @@ fun VoucherItem(voucher: VoucherDetail) {
                     stiffness = Spring.StiffnessLow
                 )
             ),
-		shape = RoundedCornerShape(16.dp),
-		colors = CardDefaults.cardColors(
-			containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-		),
-		elevation = CardDefaults.cardElevation(
-			defaultElevation = 0.dp
-		)
-	) {
-		Column(
-			modifier = Modifier.padding(12.dp),
-			verticalArrangement = Arrangement.spacedBy(12.dp)
-		) {
-			// هدر با اطلاعات اصلی
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				// اطلاعات اصلی سمت راست
-				Row(
-					verticalAlignment = Alignment.CenterVertically,
-					horizontalArrangement = Arrangement.spacedBy(12.dp)
-				) {
-					// نشانگر وضعیت تایید - مینیمال
-					StatusIndicator(isConfirmed = voucher.confirmUsername != null)
+        shape = RoundedCornerShape(CornerXL),
+        color = if (isDarkTheme) SurfaceVariantDark else Color.White,
+        shadowElevation = 1.dp,
+        border = BorderStroke(1.dp, if (isDarkTheme) Slate700 else Gray100)
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(PrimaryBlue, CircleShape)
+                    )
 
-					// اطلاعات شماره پیگیری و قبض
-					Column {
-						Text(
-							text = voucher.trackingNumber,
-							style = MaterialTheme.typography.titleMedium,
-							fontWeight = FontWeight.Bold
-						)
+                    Column {
+                        Text(
+                            text = voucher.trackingNumber,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            color = if (isDarkTheme) Color.White else Slate800
+                        )
 
-						Row(
-							verticalAlignment = Alignment.CenterVertically,
-							horizontalArrangement = Arrangement.spacedBy(4.dp)
-						) {
-							Text(
-								text = "قبض باسکول:",
-								style = MaterialTheme.typography.bodySmall,
-								color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-							)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "قبض باسکول:",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isDarkTheme) Gray500 else Gray400
+                            )
 
-							Text(
-								text = voucher.scaleReceiptNumber,
-								style = MaterialTheme.typography.bodySmall,
-								fontWeight = FontWeight.Medium,
-								color = MaterialTheme.colorScheme.onSurfaceVariant
-							)
-						}
-					}
-				}
+                            Text(
+                                text = voucher.scaleReceiptNumber,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (isDarkTheme) Gray400 else Gray500
+                            )
+                        }
+                    }
+                }
 
-				// آیکون باز/بسته کردن و وزن - سمت چپ
-				Row(
-					verticalAlignment = Alignment.CenterVertically,
-					horizontalArrangement = Arrangement.spacedBy(8.dp)
-				) {
-					// نمایش وزن
-					Surface(
-						shape = RoundedCornerShape(8.dp),
-						color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-						modifier = Modifier.padding(end = 4.dp)
-					) {
-						Row(
-							modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-							verticalAlignment = Alignment.CenterVertically,
-							horizontalArrangement = Arrangement.spacedBy(4.dp)
-						) {
-							Icon(
-								imageVector = Icons.Default.Scale,
-								contentDescription = null,
-								tint = MaterialTheme.colorScheme.tertiary,
-								modifier = Modifier.size(12.dp)
-							)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(CornerM),
+                        color = if (isDarkTheme) Blue900.copy(alpha = 0.2f) else Blue50
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = formatNumber(voucher.netWeight.toInt()),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = PrimaryBlue
+                            )
 
-							Text(
-								text = formatNumber(voucher.netWeight.toInt()),
-								style = MaterialTheme.typography.labelMedium,
-								fontWeight = FontWeight.Medium,
-								color = MaterialTheme.colorScheme.tertiary
-							)
-						}
-					}
+                            Text(
+                                text = "کیلوگرم",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = PrimaryBlue.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
 
-					// آیکون باز/بسته کردن
-					Icon(
-						imageVector = Icons.Default.KeyboardArrowDown,
-						contentDescription = if (expanded) "بستن" else "باز کردن",
-						tint = MaterialTheme.colorScheme.onSurfaceVariant,
-						modifier = Modifier
+                    Icon(
+                        imageVector = Icons.Default.ExpandLess,
+                        contentDescription = if (expanded) "بستن" else "باز کردن",
+                        tint = if (isDarkTheme) Gray400 else Gray400,
+                        modifier = Modifier
                             .size(24.dp)
                             .rotate(rotationState)
-					)
-				}
-			}
+                    )
+                }
+            }
 
-			// جزئیات بیشتر (قابل بازشدن)
-			AnimatedVisibility(
-				visible = expanded,
-				enter = expandVertically() + fadeIn(),
-				exit = shrinkVertically() + fadeOut()
-			) {
-				Column {
-					// خط جداکننده مینیمال
-					HorizontalDivider(
-						color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-						thickness = 0.5.dp,
-						modifier = Modifier.padding(vertical = 8.dp)
-					)
-
-					// اطلاعات بیشتر با طراحی جدید
-					VoucherDetails(voucher)
-				}
-			}
-		}
-	}
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                VoucherExpandedDetails(voucher, isDarkTheme)
+            }
+        }
+    }
 }
 
 @Composable
-fun StatusIndicator(isConfirmed: Boolean) {
-	Box(
-		modifier = Modifier
-            .size(10.dp)
-            .background(
-                color = if (isConfirmed) {
-                    MaterialTheme.colorScheme.tertiary
-                } else {
-                    MaterialTheme.colorScheme.error
-                },
-                shape = CircleShape
-            )
-	)
-}
+fun VoucherExpandedDetails(voucher: VoucherDetail, isDarkTheme: Boolean) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(if (isDarkTheme) Slate800.copy(alpha = 0.5f) else Gray50)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "ساعت ورود",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isDarkTheme) Gray500 else Gray400
+                )
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (isDarkTheme) Blue900.copy(alpha = 0.4f) else Blue100
+                ) {
+                    Text(
+                        text = voucher.entryTime,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDarkTheme) Blue300 else Blue700,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+            }
 
-@Composable
-fun VoucherDetails(voucher: VoucherDetail) {
-	Column(
-		verticalArrangement = Arrangement.spacedBy(16.dp),
-		modifier = Modifier.padding(vertical = 4.dp, horizontal = 4.dp)
-	) {
-		// بخش تاریخ و اطلاعات کاربران
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.SpaceBetween
-		) {
-			// تاریخ خروج
-			VoucherInfoItem(
-				icon = Icons.Default.DateRange,
-				value = persianDateFormat(voucher.exitDate),
-				label = "تاریخ خروج"
-			)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = persianDateFormat(voucher.exitDate),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isDarkTheme) Slate300 else Slate700
+                )
+                Surface(
+                    shape = CircleShape,
+                    color = if (isDarkTheme) Slate700 else Color.White,
+                    shadowElevation = 1.dp,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarToday,
+                            contentDescription = null,
+                            tint = PrimaryBlue,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+        }
 
-			// ساعت ورود و خروج
-			Column(
-				horizontalAlignment = Alignment.End
-			) {
-				// ساعت ورود
-				UserInfo(
-					label = "ساعت ورود",
-					username = voucher.entryTime,
-					isConfirmed = true
-				)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "ساعت خروج",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isDarkTheme) Gray500 else Gray400
+                )
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (isDarkTheme) Blue900.copy(alpha = 0.4f) else Blue100
+                ) {
+                    Text(
+                        text = voucher.exitTime,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDarkTheme) Blue300 else Blue700,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
 
-				Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider(
+            color = if (isDarkTheme) Slate700 else Gray200,
+            thickness = 1.dp
+        )
 
-				// ساعت خروج
-				UserInfo(
-					label = "ساعت خروج",
-					username = voucher.exitTime,
-					isConfirmed = true
-				)
-			}
-		}
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = PrimaryBlue.copy(alpha = 0.1f)
+                ) {
+                    Text(
+                        text = "تاییدکننده",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBlue,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+                Text(
+                    text = voucher.confirmUsername ?: "-",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isDarkTheme) Slate200 else Slate700
+                )
+            }
 
-		// بخش اطلاعات کاربران (باسکولچی و تائیدکننده)
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.SpaceBetween
-		) {
-			// باسکولچی
-			voucher.username?.let { username ->
-				VoucherInfoItem(
-					icon = Icons.Default.Person,
-					value = username,
-					label = "باسکولچی"
-				)
-			}
-
-			// تائیدکننده
-			Column(
-				horizontalAlignment = Alignment.End
-			) {
-				voucher.confirmUsername?.let { confirmUser ->
-					UserInfo(
-						label = "تائیدکننده",
-						username = confirmUser,
-						isConfirmed = true
-					)
-				} ?: run {
-					UserInfo(
-						label = "تائید نشده",
-						username = "در انتظار تائید",
-						isConfirmed = false
-					)
-				}
-			}
-		}
-	}
-}
-
-@Composable
-fun VoucherInfoItem(
-	icon: ImageVector,
-	value: String,
-	label: String
-) {
-	Row(
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(8.dp)
-	) {
-		Surface(
-			shape = CircleShape,
-			color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
-			modifier = Modifier.size(32.dp)
-		) {
-			Box(contentAlignment = Alignment.Center) {
-				Icon(
-					imageVector = icon,
-					contentDescription = null,
-					tint = MaterialTheme.colorScheme.tertiary,
-					modifier = Modifier.size(16.dp)
-				)
-			}
-		}
-
-		Column {
-			Text(
-				text = value,
-				style = MaterialTheme.typography.bodyMedium,
-				fontWeight = FontWeight.SemiBold
-			)
-
-			Text(
-				text = label,
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-			)
-		}
-	}
-}
-
-@Composable
-fun UserInfo(
-	label: String,
-	username: String,
-	isConfirmed: Boolean
-) {
-	Row(
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(6.dp)
-	) {
-		Text(
-			text = username,
-			style = MaterialTheme.typography.bodyMedium,
-			fontWeight = FontWeight.SemiBold,
-			color = if (isConfirmed) {
-				MaterialTheme.colorScheme.onSurface
-			} else {
-				MaterialTheme.colorScheme.error
-			}
-		)
-
-		Surface(
-			shape = RoundedCornerShape(4.dp),
-			color = if (isConfirmed) {
-				MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
-			} else {
-				MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
-			}
-		) {
-			Text(
-				text = label,
-				style = MaterialTheme.typography.labelSmall,
-				color = if (isConfirmed) {
-					MaterialTheme.colorScheme.tertiary
-				} else {
-					MaterialTheme.colorScheme.error
-				},
-				modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-			)
-		}
-	}
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = PrimaryBlue.copy(alpha = 0.1f)
+                ) {
+                    Text(
+                        text = voucher.username ?: "-",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDarkTheme) Color.White else Slate800
+                    )
+                    Text(
+                        text = "باسکولچی",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isDarkTheme) Gray500 else Gray400
+                    )
+                }
+            }
+        }
+    }
 }
 
 enum class VoucherSortType(val persianName: String) {
-	DATE_DESC("تاریخ نزولی"),
-	DATE_ASC("تاریخ صعودی"),
-	WEIGHT_DESC("وزن نزولی"),
-	WEIGHT_ASC("وزن صعودی")
+    DATE_DESC("تاریخ نزولی"),
+    DATE_ASC("تاریخ صعودی"),
+    WEIGHT_DESC("وزن نزولی"),
+    WEIGHT_ASC("وزن صعودی")
 }
 
 @Composable
 fun SortChip(
-	type: VoucherSortType,
-	isSelected: Boolean,
-	onClick: () -> Unit,
-	modifier: Modifier = Modifier
+    type: VoucherSortType,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    isDarkTheme: Boolean,
+    modifier: Modifier = Modifier
 ) {
-	val interactionSource = remember { MutableInteractionSource() }
-	val isPressed by interactionSource.collectIsPressedAsState()
+    val icon = when (type) {
+        VoucherSortType.DATE_ASC -> Icons.Default.ArrowUpward
+        VoucherSortType.DATE_DESC -> Icons.Default.ArrowDownward
+        VoucherSortType.WEIGHT_ASC -> Icons.AutoMirrored.Filled.TrendingUp
+        VoucherSortType.WEIGHT_DESC -> Icons.AutoMirrored.Filled.TrendingDown
+    }
 
-	val backgroundColor by animateColorAsState(
-		targetValue = when {
-			isSelected -> MaterialTheme.colorScheme.tertiary
-			isPressed -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
-			else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-		},
-		label = "background color"
-	)
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(CornerL),
+        color = if (isSelected) PrimaryBlue else if (isDarkTheme) SurfaceVariantDark else Color.White,
+        shadowElevation = if (isSelected) 4.dp else 2.dp,
+        border = if (!isSelected) BorderStroke(1.dp, if (isDarkTheme) Slate700 else Color.Transparent) else null,
+        modifier = modifier
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = type.persianName,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (isSelected) Color.White else if (isDarkTheme) Slate300 else Slate600
+            )
 
-	val contentColor by animateColorAsState(
-		targetValue = if (isSelected) {
-			MaterialTheme.colorScheme.onTertiary
-		} else {
-			MaterialTheme.colorScheme.onSurface
-		},
-		label = "content color"
-	)
+            Spacer(modifier = Modifier.width(8.dp))
 
-	val scale by animateFloatAsState(
-		targetValue = if (isPressed) 0.95f else 1f,
-		animationSpec = spring(
-			dampingRatio = Spring.DampingRatioMediumBouncy,
-			stiffness = Spring.StiffnessLow
-		),
-		label = "scale animation"
-	)
-
-	// آیکون متناسب با نوع مرتب‌سازی
-	val icon = when (type) {
-		VoucherSortType.DATE_ASC -> Icons.Default.ArrowUpward
-		VoucherSortType.DATE_DESC -> Icons.Default.ArrowDownward
-		VoucherSortType.WEIGHT_ASC -> Icons.AutoMirrored.Filled.TrendingUp
-		VoucherSortType.WEIGHT_DESC -> Icons.AutoMirrored.Filled.TrendingDown
-	}
-
-	Surface(
-		onClick = onClick,
-		interactionSource = interactionSource,
-		shape = RoundedCornerShape(20.dp),
-		color = backgroundColor,
-		modifier = modifier
-			.graphicsLayer {
-				scaleX = scale
-				scaleY = scale
-			}
-	) {
-		Row(
-			modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-			horizontalArrangement = Arrangement.spacedBy(4.dp),
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			Icon(
-				imageVector = icon,
-				contentDescription = null,
-				tint = contentColor,
-				modifier = Modifier.size(16.dp)
-			)
-			Text(
-				text = type.persianName,
-				style = MaterialTheme.typography.labelMedium,
-				color = contentColor,
-				fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-			)
-		}
-	}
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isSelected) Color.White else if (isDarkTheme) Slate300 else Slate600,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
 }
 
 @Composable
 fun QuotaDetails(
-	quotaNumber: String,
-	viewModel: ReportsViewModel
+    quotaNumber: String,
+    viewModel: ReportsViewModel
 ) {
-	val quotaDetails by viewModel.selectedQuotaDetails.collectAsState()
-	val uiState by viewModel.uiState.collectAsState()
+    val quotaDetails by viewModel.selectedQuotaDetails.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
-	LaunchedEffect(quotaNumber) {
-		viewModel.loadQuotaDetails(quotaNumber)
-	}
+    LaunchedEffect(quotaNumber) {
+        viewModel.loadQuotaDetails(quotaNumber)
+    }
 
-	Column(
-		modifier = Modifier
-			.fillMaxSize()
-	) {
-		Column(
-			modifier = Modifier
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column(
+            modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
-		) {
-			when (uiState) {
-				is ReportsViewModel.UiState.Loading -> {
-					CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-				}
+        ) {
+            when (uiState) {
+                is ReportsViewModel.UiState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                }
 
-				is ReportsViewModel.UiState.Error -> {
-					Text(
-						text = (uiState as ReportsViewModel.UiState.Error).message,
-						color = MaterialTheme.colorScheme.error
-					)
-				}
+                is ReportsViewModel.UiState.Error -> {
+                    Text(
+                        text = (uiState as ReportsViewModel.UiState.Error).message,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
 
-				is ReportsViewModel.UiState.Success -> {
-					quotaDetails?.let { details ->
-						QuotaMainCard(details)
-						Spacer(modifier = Modifier.height(16.dp))
-						QuotaInfoCards(details)
-						Spacer(modifier = Modifier.height(16.dp))
-						QuotaProgressBar(details)
-						Spacer(modifier = Modifier.height(16.dp))
-						QuotaAdditionalInfo(details)
-					} ?: run {
-						Text("اطلاعات کوتاژ در دسترس نیست")
-					}
-				}
-			}
-		}
-	}
+                is ReportsViewModel.UiState.Success -> {
+                    quotaDetails?.let { details ->
+                        QuotaMainCard(details)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        QuotaInfoCards(details)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        QuotaProgressBar(details)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        QuotaAdditionalInfo(details)
+                    } ?: run {
+                        Text("اطلاعات کوتاژ در دسترس نیست")
+                    }
+                }
+            }
+        }
+    }
 }
 
 @SuppressLint("RememberReturnType")
@@ -7910,52 +7714,100 @@ fun QuotaCard(
 		modifier = Modifier
             .fillMaxWidth()
             .clickable { onExpandToggle(!isExpanded) },
-		colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+		colors = CardDefaults.cardColors(containerColor = cardColor),
 		shape = RoundedCornerShape(Corner2XL),
 		border = BorderStroke(
 			width = 1.dp,
-			color = if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+			color = if (quota.isActive) {
+				if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+			} else {
+				if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+			}
 		),
-		elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+		elevation = CardDefaults.cardElevation(defaultElevation = if (quota.isActive) 1.dp else 0.dp)
 	) {
 		Column(modifier = Modifier.padding(16.dp)) {
 			// Header: Name and Total Badge
 			Row(
 				modifier = Modifier.fillMaxWidth(),
 				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.Top
+				verticalAlignment = Alignment.CenterVertically
 			) {
-						Text(
-					text = quota.number,
-							style = MaterialTheme.typography.titleMedium,
-					color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
-							fontWeight = FontWeight.Bold,
-							maxLines = 1,
-							overflow = TextOverflow.Ellipsis
+				Column(
+					modifier = Modifier.weight(1f),
+					verticalArrangement = Arrangement.spacedBy(2.dp)
+				) {
+					Text(
+						text = "کوتاژ ${quota.number}",
+						style = MaterialTheme.typography.titleMedium,
+						color = contentColor,
+						fontWeight = FontWeight.Bold,
+						maxLines = 1,
+						overflow = TextOverflow.Ellipsis
+					)
+
+					val calculatedValues = calculateValues(
+						totalTonnage = quota.totalTonnage,
+						percentage = quota.percentage ?: 0.0,
+						remainingTonnage = quota.remainingTonnage
+					)
+					
+					Row(
+						horizontalArrangement = Arrangement.spacedBy(4.dp),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						quota.cargoType?.let { type ->
+							Text(
+								text = type,
+								style = MaterialTheme.typography.bodySmall,
+								color = contentColor.copy(alpha = 0.7f),
+								maxLines = 1,
+								overflow = TextOverflow.Ellipsis
+							)
+							Text(
+								text = " | ",
+								style = MaterialTheme.typography.bodySmall,
+								color = contentColor.copy(alpha = 0.5f)
+							)
+						}
+
+						Icon(
+							imageVector = Icons.Default.Scale,
+							contentDescription = null,
+							tint = accentColor,
+							modifier = Modifier.size(12.dp)
 						)
+						Text(
+							text = "${formatWeightWithDetail(calculatedValues.totalRemainingAfterPercentage.toFloat())} (%.2f%%)".format(quota.percentage ?: 0.0),
+							style = MaterialTheme.typography.bodySmall,
+							color = accentColor,
+							fontWeight = FontWeight.Medium
+						)
+					}
+				}
 
 				// Total Badge
 				Surface(
 					shape = RoundedCornerShape(8.dp),
 					color = if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer
 				) {
-						Row(
+					Row(
 						modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-							horizontalArrangement = Arrangement.spacedBy(4.dp),
-							verticalAlignment = Alignment.CenterVertically
-						) {
-								Text(
+						horizontalArrangement = Arrangement.spacedBy(4.dp),
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						Text(
 							text = formatNumber(quota.totalTonnage.toInt()),
-									style = MaterialTheme.typography.bodySmall,
+							style = MaterialTheme.typography.bodySmall,
 							color = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
 							fontWeight = FontWeight.Bold
 						)
-							Icon(
-								imageVector = Icons.Default.Scale,
-								contentDescription = null,
+						Icon(
+							imageVector = Icons.Default.Scale,
+							contentDescription = null,
 							tint = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
 							modifier = Modifier.size(14.dp)
-							)
+						)
 					}
 				}
 			}
@@ -9154,8 +9006,7 @@ fun RealTimeLoadingBottomSheet(
                                                                         .thenByDescending { it.entryVouchers }
                                                                 ).forEach { quota ->
                                                                     RealTimeLoadingCard(
-                                                                        data = quota,
-                                                                        color = shipColor
+                                                                        data = quota
                                                                     )
                                                                     Spacer(
                                                                         modifier = Modifier.height(
@@ -9873,16 +9724,11 @@ fun DialogHeader(
 
 @Composable
 fun RealTimeLoadingCard(
-	data: RealTimeLoadingData,
-	color: Color
+	data: RealTimeLoadingData
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
-    var expandedInfo by remember { mutableStateOf(false) }
-
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { expandedInfo = !expandedInfo }
             .animateContentSize(),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
@@ -9946,81 +9792,28 @@ fun RealTimeLoadingCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // شماره کوتاژ در کارت سفید
-                    Column(
-                        horizontalAlignment = Alignment.Start,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = "شماره کوتاژ",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                            ),
-                        ) {
-                            Text(
-                                text = data.loadingQuotaNumber,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                letterSpacing = 1.sp,
-                            )
-                        }
-                    }
-
-                    // آیکون‌های ورود/خروج در دایره‌های جداگانه
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // آیکون خروجی (سبز)
-                        Surface(
-                            modifier = Modifier.size(32.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                            ),
-                            shadowElevation = 1.dp
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.ArrowUpward,
-                                    contentDescription = null,
-                                    tint = if (isDarkTheme) Green300 else Green700,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
-
-                        // آیکون ورودی (خاکستری)
-                        Surface(
-                            modifier = Modifier.size(32.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                            ),
-                            shadowElevation = 1.dp
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.ArrowDownward,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
-                    }
+					Text(
+						text = "شماره کوتاژ",
+						style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+						color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+					)
+					Surface(
+						shape = RoundedCornerShape(8.dp),
+						color = MaterialTheme.colorScheme.surface,
+						border = BorderStroke(
+							1.dp,
+							MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+						),
+					) {
+						Text(
+							text = data.loadingQuotaNumber,
+							style = MaterialTheme.typography.bodyMedium,
+							fontWeight = FontWeight.Bold,
+							color = MaterialTheme.colorScheme.onSurface,
+							modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+							letterSpacing = 1.sp,
+						)
+					}
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -10174,196 +9967,238 @@ fun CompactInfo(
 				overflow = TextOverflow.Ellipsis
 			)
 
-			// برچسب
-			Text(
-				text = label,
-				style = MaterialTheme.typography.labelSmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-				maxLines = 1,
-				overflow = TextOverflow.Ellipsis
-			)
-		}
-	}
+            // برچسب
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
 }
 
 @Composable
 fun StatisticItem(
     totalEntryVouchers: Int,
-	totalExitVouchers: Int,
-	totalNetWeight: Float
+    totalExitVouchers: Int,
+    totalNetWeight: Float
 ) {
-	val isDarkTheme = isSystemInDarkTheme()
-	var startAnimation by remember { mutableStateOf(false) }
-	val animatedTotalWeight by animateFloatAsState(
-		targetValue = if (startAnimation) totalNetWeight else 0f,
-		animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-		label = "weight animation"
-	)
-	val animatedEntryVouchers by animateIntAsState(
-		targetValue = if (startAnimation) totalEntryVouchers else 0,
-		animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-		label = "entry animation"
-	)
-	val animatedExitVouchers by animateIntAsState(
-		targetValue = if (startAnimation) totalExitVouchers else 0,
-		animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-		label = "exit animation"
-	)
+    val isDarkTheme = isSystemInDarkTheme()
+    var startAnimation by remember { mutableStateOf(false) }
 
-	Surface(
-		modifier = Modifier
+    LaunchedEffect(Unit) {
+        startAnimation = true
+    }
+
+    val animatedTotalWeight by animateFloatAsState(
+        targetValue = if (startAnimation) totalNetWeight else 0f,
+        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+        label = "weight animation"
+    )
+    val animatedEntryVouchers by animateIntAsState(
+        targetValue = if (startAnimation) totalEntryVouchers else 0,
+        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+        label = "entry animation"
+    )
+    val animatedExitVouchers by animateIntAsState(
+        targetValue = if (startAnimation) totalExitVouchers else 0,
+        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+        label = "exit animation"
+    )
+
+    Surface(
+        modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-		shape = RoundedCornerShape(16.dp),
-		color = MaterialTheme.colorScheme.background,
-		border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
-		shadowElevation = 1.dp
-	) {
-		Row(
-			modifier = Modifier.padding(16.dp),
-			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			// قسمت چپ: وزن کل
-			Column(
-				horizontalAlignment = Alignment.Start,
-				verticalArrangement = Arrangement.spacedBy(8.dp)
-			) {
-				// عنوان با آیکون
-				Row(
-					verticalAlignment = Alignment.CenterVertically,
-					horizontalArrangement = Arrangement.spacedBy(4.dp)
-				) {
-					Icon(
-						imageVector = Icons.Default.Scale,
-						contentDescription = null,
-						tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-						modifier = Modifier.size(16.dp)
-					)
-					Text(
-						text = "وزن کل",
-						style = MaterialTheme.typography.labelSmall,
-						color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-						fontWeight = FontWeight.Medium
-					)
-				}
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.background,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+        shadowElevation = 0.5.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // قسمت چپ: وزن کل
+            Column(
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // عنوان با آیکون
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Scale,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "وزن کل",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
 
-				// عدد وزن
-				Row(
-					verticalAlignment = Alignment.Bottom,
-					horizontalArrangement = Arrangement.spacedBy(4.dp)
-				) {
-					Text(
-						text = formatNumber(animatedTotalWeight.toInt()),
-						style = MaterialTheme.typography.headlineLarge,
-						fontWeight = FontWeight.ExtraBold,
-						color = MaterialTheme.colorScheme.onSurface,
-						letterSpacing = (-0.5).sp
-					)
-					Surface(
-						shape = RoundedCornerShape(4.dp),
-						color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-					) {
-						Text(
-							text = "کیلوگرم",
-							style = MaterialTheme.typography.labelSmall,
-							color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-							fontWeight = FontWeight.Medium,
-							modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-						)
-					}
-				}
-			}
+                // عدد وزن
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = formatNumber(animatedTotalWeight.toInt()),
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        letterSpacing = (-0.5).sp
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Text(
+                            text = "کیلوگرم",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
 
-			// قسمت راست: Badge های ورودی و خروجی
-			Row(
-				horizontalArrangement = Arrangement.spacedBy(8.dp),
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				// Badge ورودی (قرمز)
-				Surface(
-					shape = RoundedCornerShape(12.dp),
-					color = if (isDarkTheme) Red400.copy(alpha = 0.15f) else Red50,
-					border = BorderStroke(1.dp, if (isDarkTheme) Red400.copy(alpha = 0.3f) else Red400.copy(alpha = 0.2f))
-				) {
-					Column(
-						modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-						horizontalAlignment = Alignment.CenterHorizontally,
-						verticalArrangement = Arrangement.spacedBy(2.dp)
-					) {
-						Row(
-							verticalAlignment = Alignment.CenterVertically,
-							horizontalArrangement = Arrangement.spacedBy(2.dp)
-						) {
-							Text(
-								text = formatNumber(animatedEntryVouchers),
-								style = MaterialTheme.typography.bodyMedium,
-								fontWeight = FontWeight.Bold,
-								color = if (isDarkTheme) Red400 else Red700
-							)
-							Icon(
-								imageVector = Icons.Default.ArrowDownward,
-								contentDescription = null,
-								tint = if (isDarkTheme) Red400 else Red700,
-								modifier = Modifier.size(12.dp)
-							)
-						}
-						Text(
-							text = "ورودی",
-							style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-							fontWeight = FontWeight.Medium,
-							color = if (isDarkTheme) Red400.copy(alpha = 0.7f) else Red700.copy(alpha = 0.7f)
-						)
-					}
-				}
+            // قسمت راست: Badge های آماری
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Badge کل (آبی)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = formatNumber(animatedEntryVouchers + animatedExitVouchers),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Icon(
+                                imageVector = Icons.Default.AllInbox,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                        Text(
+                            text = "کل",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                        )
+                    }
+                }
 
-				// Badge خروجی (سبز)
-				Surface(
-					shape = RoundedCornerShape(12.dp),
-					color = if (isDarkTheme) Green300.copy(alpha = 0.15f) else Green50,
-					border = BorderStroke(1.dp, if (isDarkTheme) Green300.copy(alpha = 0.3f) else Green300.copy(alpha = 0.2f))
-				) {
-					Column(
-						modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-						horizontalAlignment = Alignment.CenterHorizontally,
-						verticalArrangement = Arrangement.spacedBy(2.dp)
-					) {
-						Row(
-							verticalAlignment = Alignment.CenterVertically,
-							horizontalArrangement = Arrangement.spacedBy(2.dp)
-						) {
-							Text(
-								text = formatNumber(animatedExitVouchers),
-								style = MaterialTheme.typography.bodyMedium,
-								fontWeight = FontWeight.Bold,
-								color = if (isDarkTheme) Green300 else Green700
-							)
-							Icon(
-								imageVector = Icons.Default.ArrowUpward,
-								contentDescription = null,
-								tint = if (isDarkTheme) Green300 else Green700,
-								modifier = Modifier.size(12.dp)
-							)
-						}
-						Text(
-							text = "خروجی",
-							style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-							fontWeight = FontWeight.Medium,
-							color = if (isDarkTheme) Green300.copy(alpha = 0.7f) else Green700.copy(alpha = 0.7f)
-						)
-					}
-				}
-			}
-		}
-	}
+                // Badge ورودی (قرمز)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isDarkTheme) Red400.copy(alpha = 0.15f) else Red50,
+                    border = BorderStroke(1.dp, if (isDarkTheme) Red400.copy(alpha = 0.3f) else Red400.copy(alpha = 0.2f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = formatNumber(animatedEntryVouchers),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDarkTheme) Red400 else Red700
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ArrowDownward,
+                                contentDescription = null,
+                                tint = if (isDarkTheme) Red400 else Red700,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                        Text(
+                            text = "ورودی",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            fontWeight = FontWeight.Medium,
+                            color = if (isDarkTheme) Red400.copy(alpha = 0.7f) else Red700.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+
+                // Badge خروجی (سبز)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isDarkTheme) Green300.copy(alpha = 0.15f) else Green50,
+                    border = BorderStroke(1.dp, if (isDarkTheme) Green300.copy(alpha = 0.3f) else Green300.copy(alpha = 0.2f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = formatNumber(animatedExitVouchers),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDarkTheme) Green300 else Green700
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ArrowUpward,
+                                contentDescription = null,
+                                tint = if (isDarkTheme) Green300 else Green700,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                        Text(
+                            text = "خروجی",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                            fontWeight = FontWeight.Medium,
+                            color = if (isDarkTheme) Green300.copy(alpha = 0.7f) else Green700.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @SuppressLint("ReturnFromAwaitPointerEventScope")
 @Composable
 fun FloatingActionButton(
-	onRealTimeLoadingClick: () -> Unit,
-	onAdvancedSearchClick: () -> Unit,
-	onAnalyticsClick: () -> Unit,
+    onRealTimeLoadingClick: () -> Unit,
+    onAdvancedSearchClick: () -> Unit,
+    onAnalyticsClick: () -> Unit,
 	onDateRangeClick: (() -> Unit)? = null,
 	onQuotaManagementClick: (() -> Unit)? = null
 ) {
@@ -14100,24 +13935,21 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                     ) {
                         AnalyticsStatChip(
                             value = formatNumber(totalVouchers),
-                            label = "حواله",
-                            color = MaterialTheme.colorScheme.primary
+                            label = "حواله"
                         )
                         
                         Spacer(modifier = Modifier.width(8.dp))
                         
                         AnalyticsStatChip(
                             value = formatNumber(totalWeight.roundToInt()),
-                            label = "تن",
-                            color = MaterialTheme.colorScheme.primary
+                            label = "تن"
                         )
                         
                         Spacer(modifier = Modifier.width(8.dp))
                         
                         AnalyticsStatChip(
                             value = "${quotas.size}",
-                            label = "کوتاژ",
-                            color = MaterialTheme.colorScheme.primary
+                            label = "کوتاژ"
                         )
                     }
                 }
@@ -14163,7 +13995,6 @@ private fun AnalyticsQuotaGroupExpansionPanel(
 private fun AnalyticsStatChip(
     value: String,
     label: String,
-    color: Color,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -14181,14 +14012,14 @@ private fun AnalyticsStatChip(
         ) {
             Text(
                 text = value,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelMedium,
                 color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
                     Color(0xFF93c5fd) else Color(0xFF1E40AF),
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelMedium,
                 color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
                     Color(0xFF93c5fd) else Color(0xFF1E40AF)
             )
@@ -14251,7 +14082,7 @@ private fun AnalyticsQuotaCard(
                 ) {
                     Text(
                         text = quota.loadingQuotaNumber,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -14261,8 +14092,8 @@ private fun AnalyticsQuotaCard(
                             QuotaGroupingMode.BY_SHIP -> quota.shippingCompany
                             QuotaGroupingMode.BY_CARRIER -> quota.shipName
                         },
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -14290,7 +14121,7 @@ private fun AnalyticsQuotaCard(
                     ) {
                         Text(
                             text = "${formatNumber(quota.last_24h_vouchers)} حواله",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelMedium,
                             color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
                                 Color(0xFF94a3b8) else Color(0xFF6B7280),
                             fontWeight = FontWeight.Medium
@@ -14315,7 +14146,7 @@ private fun AnalyticsQuotaCard(
                     ) {
                         Text(
                             text = "${formatNumber(quota.last_24h_weight.roundToInt())} تن",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelMedium,
                             color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a)) 
                                 Color(0xFF94a3b8) else Color(0xFF6B7280),
                             fontWeight = FontWeight.Medium
@@ -14928,7 +14759,10 @@ fun formatWeightWithDetail(weightInKg: Float): String {
 }
 
 fun calculateProgress(value: Float, total: Float): Float {
-    return if (total > 0f) (value / total).coerceIn(0f, 1f) else 0f
+    return if (total > 0f) {
+        val rawProgress = (value / total).coerceIn(0f, 1f)
+        (rawProgress * 100f).roundToInt() / 100f
+    } else 0f
 }
 
 @SuppressLint("DefaultLocale", "SimpleDateFormat")
@@ -15663,12 +15497,8 @@ fun ScrollableSelector(
 				val itemHeight = 40.dp // ارتفاع هر آیتم
 				val visibleItemsCount = 3 // تعداد آیتم‌های قابل مشاهده
 				val viewportHeight = 140.dp
-				val contentPaddingTop = 50.dp
 				val centerOffset = visibleItemsCount / 2 // آفست برای قرار دادن در وسط (1)
-				
-				// تبدیل به px برای محاسبات دقیق
-				val itemHeightPx = with(density) { itemHeight.toPx() }
-				val viewportCenterY = with(density) { viewportHeight.toPx() / 2f }
+                val viewportCenterY = with(density) { viewportHeight.toPx() / 2f }
 
 				val listState = rememberLazyListState(
 					initialFirstVisibleItemIndex = if (selectedIndex >= 0) maxOf(0, selectedIndex - centerOffset) else 0
@@ -15677,7 +15507,7 @@ fun ScrollableSelector(
 				// تنظیم موقعیت اولیه برای قرار دادن آیتم انتخابی در وسط
 				LaunchedEffect(Unit) {
 					if (selectedIndex >= 0) {
-						kotlinx.coroutines.delay(50) // کمی تاخیر برای اطمینان از layout
+                        delay(50) // کمی تاخیر برای اطمینان از layout
 						val layoutInfo = listState.layoutInfo
 						val targetItem = layoutInfo.visibleItemsInfo.firstOrNull { it.index == selectedIndex }
 						if (targetItem != null) {
@@ -15685,20 +15515,20 @@ fun ScrollableSelector(
 							val itemCenter = targetItem.offset + targetItem.size / 2f
 							// محاسبه offset برای قرار دادن مرکز آیتم در مرکز viewport
 							val scrollOffset = itemCenter - viewportCenterY
-							if (kotlin.math.abs(scrollOffset) > 1f) {
+							if (abs(scrollOffset) > 1f) {
 								listState.animateScrollBy(scrollOffset)
 							}
 						} else {
 							// اگر آیتم در viewport نیست، ابتدا به آن اسکرول می‌کنیم
 							listState.animateScrollToItem(maxOf(0, selectedIndex - centerOffset))
-							kotlinx.coroutines.delay(100)
+                            delay(100)
 							// سپس تنظیم دقیق برای قرار دادن در وسط
 							val layoutInfoAfter = listState.layoutInfo
 							val targetItemAfter = layoutInfoAfter.visibleItemsInfo.firstOrNull { it.index == selectedIndex }
 							targetItemAfter?.let {
 								val itemCenter = it.offset + it.size / 2f
 								val scrollOffset = itemCenter - viewportCenterY
-								if (kotlin.math.abs(scrollOffset) > 1f) {
+								if (abs(scrollOffset) > 1f) {
 									listState.animateScrollBy(scrollOffset)
 								}
 							}
@@ -15717,20 +15547,20 @@ fun ScrollableSelector(
 							val itemCenter = targetItem.offset + targetItem.size / 2f
 							// محاسبه offset برای قرار دادن مرکز آیتم در مرکز viewport
 							val scrollOffset = itemCenter - viewportCenterY
-							if (kotlin.math.abs(scrollOffset) > 1f) {
+							if (abs(scrollOffset) > 1f) {
 								listState.animateScrollBy(scrollOffset)
 							}
 						} else {
 							// اگر آیتم در viewport نیست، ابتدا به آن اسکرول می‌کنیم
 						listState.animateScrollToItem(maxOf(0, newIndex - centerOffset))
-							kotlinx.coroutines.delay(100)
+                            delay(100)
 							// سپس تنظیم دقیق برای قرار دادن در وسط
 							val layoutInfoAfter = listState.layoutInfo
 							val targetItemAfter = layoutInfoAfter.visibleItemsInfo.firstOrNull { it.index == newIndex }
 							targetItemAfter?.let {
 								val itemCenter = it.offset + it.size / 2f
 								val scrollOffset = itemCenter - viewportCenterY
-								if (kotlin.math.abs(scrollOffset) > 1f) {
+								if (abs(scrollOffset) > 1f) {
 									listState.animateScrollBy(scrollOffset)
 								}
 							}
@@ -15748,7 +15578,7 @@ fun ScrollableSelector(
 						// پیدا کردن آیتمی که نزدیک‌ترین به وسط است
 						val centerItem = layoutInfo.visibleItemsInfo.minByOrNull { itemInfo ->
 							val itemCenter = itemInfo.offset + itemInfo.size / 2f
-							kotlin.math.abs(itemCenter - viewportCenterYPx)
+                            abs(itemCenter - viewportCenterYPx)
 						}
 						
 						centerItem?.let {
