@@ -84,11 +84,13 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.ListAlt
@@ -164,7 +166,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -175,6 +176,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
@@ -216,10 +218,12 @@ import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.WarningStatus
 import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
+import com.atk.atk_cargo.ui.theme.Amber700
 import com.atk.atk_cargo.ui.theme.BorderLight
 import com.atk.atk_cargo.ui.theme.Gray300
 import com.atk.atk_cargo.ui.theme.Gray500
 import com.atk.atk_cargo.ui.theme.Gray600
+import com.atk.atk_cargo.ui.theme.Green600
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.journeyapps.barcodescanner.ScanContract
@@ -961,6 +965,17 @@ fun RegisterCargoScreen(
     // تفکیک حواله‌ها به دو دسته خروج نشده و خروج شده
     val (nonExitedCargos, exitedCargos) = filteredCargoInfoList.partition { it.status == "ورود" }
 
+    var isPressed by remember { mutableStateOf(false) }
+    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "fab_scale"
+    )
+
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             modifier = Modifier
@@ -969,99 +984,41 @@ fun RegisterCargoScreen(
                 .navigationBarsPadding(),
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
             floatingActionButton = {
-                // Glassmorphism Floating Action Button
-                Box(
+                Card(
                     modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.05f)
-                                ),
-                                radius = 100f
-                            )
-                        )
-                        .border(
-                            width = 1.dp,
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                )
-                            ),
-                            shape = CircleShape
-                        )
-                        .shadow(
-                            elevation = 12.dp,
-                            shape = CircleShape,
-                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                        )
+                        .size(56.dp)
+                        .scale(scale)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
-                        ) {
-                            showQuotaEntryDialog = true
+                        ) { showQuotaEntryDialog = true }
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val down = event.changes.firstOrNull()?.pressed == true
+                                    isPressed = down
+                                }
+                            }
                         },
-                    contentAlignment = Alignment.Center
+                    shape = CircleShape,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
+                    border = BorderStroke(4.dp, MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    // Inner glass effect
                     Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = 0.2f),
-                                        Color.White.copy(alpha = 0.05f),
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                    ),
-                                    start = Offset(0f, 0f),
-                                    end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
-                                )
-                            ),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Icon with subtle glow effect
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .background(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                    CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ConfirmationNumber,
-                                contentDescription = "تغییر کوتاژ",
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.ConfirmationNumber,
+                            contentDescription = "تغییر کوتاژ",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
-                    
-                    // Subtle highlight on top
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(
-                                brush = Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = 0.3f),
-                                        Color.Transparent,
-                                        Color.Transparent
-                                    ),
-                                    startY = 0f,
-                                    endY = 50f
-                                )
-                            )
-                    )
                 }
             }
         ) { paddingValues ->
@@ -1140,8 +1097,8 @@ fun RegisterCargoScreen(
 
                                 val isNewCargo = cargoInfoList.none { it.trackingNumber == trackingNumber }
                                 if (isNewCargo) {
-                                    val numberOfPeopleValue = numberOfPeople.toIntOrNull()
-                                    if (numberOfPeopleValue == null || numberOfPeopleValue < 1) {
+                                    val numberOfPeopleValue = numberOfPeople.toIntOrNull() ?: 1
+                                    if (numberOfPeopleValue < 1) {
                                         snackbarHostState.showSnackbar("تعداد نفرات باید عددی بزرگتر از صفر باشد.")
                                         return@launch
                                     }
@@ -1174,7 +1131,7 @@ fun RegisterCargoScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .offset(y = 5.dp),
+                        .offset(y = (-8).dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Surface3(
@@ -1183,7 +1140,7 @@ fun RegisterCargoScreen(
                             .clickable { isFormExpanded = !isFormExpanded },
                         shape = CircleShape,
                         color = MaterialTheme3.colorScheme.surface,
-                        shadowElevation = 2.dp,
+                        shadowElevation = 1.dp,
                         border = BorderStroke(1.dp, MaterialTheme3.colorScheme.outline)
                     ) {
                         Box(
@@ -1204,7 +1161,7 @@ fun RegisterCargoScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1349,7 +1306,7 @@ fun RegisterCargoScreen(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Assignment,
                                     contentDescription = null,
-                                    tint = if (selectedTab == 0) MaterialTheme3.colorScheme.primary else Gray500,
+                                    tint = if (selectedTab == 0) Amber700 else Gray500,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -1357,19 +1314,19 @@ fun RegisterCargoScreen(
                                     text = "ورود شده",
                                     style = MaterialTheme3.typography.labelMedium,
                                     fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (selectedTab == 0) MaterialTheme3.colorScheme.primary else Gray500
+                                    color = if (selectedTab == 0) Amber700 else Gray500
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 // Badge تعداد
                                 Surface3(
                                     shape = RoundedCornerShape(10.dp),
-                                    color = if (selectedTab == 0) MaterialTheme3.colorScheme.primary.copy(alpha = 0.1f) else Gray300
+                                    color = if (selectedTab == 0) Amber700.copy(alpha = 0.1f) else Gray300
                                 ) {
                                     Text3(
                                         text = "${nonExitedCargos.size}",
                                         style = MaterialTheme3.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (selectedTab == 0) MaterialTheme3.colorScheme.primary else Gray600,
+                                        color = if (selectedTab == 0) Amber700 else Gray600,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
@@ -1393,7 +1350,7 @@ fun RegisterCargoScreen(
                                 Icon(
                                     imageVector = Icons.Default.LocalShipping,
                                     contentDescription = null,
-                                    tint = if (selectedTab == 1) MaterialTheme3.colorScheme.primary else Gray500,
+                                    tint = if (selectedTab == 1) Green600 else Gray500,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -1401,19 +1358,19 @@ fun RegisterCargoScreen(
                                     text = "خروج شده",
                                     style = MaterialTheme3.typography.labelMedium,
                                     fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (selectedTab == 1) MaterialTheme3.colorScheme.primary else Gray500
+                                    color = if (selectedTab == 1) Green600 else Gray500
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 // Badge تعداد
                                 Surface3(
                                     shape = RoundedCornerShape(10.dp),
-                                    color = if (selectedTab == 1) MaterialTheme3.colorScheme.primary.copy(alpha = 0.1f) else Gray300
+                                    color = if (selectedTab == 1) Green600.copy(alpha = 0.1f) else Gray300
                                 ) {
                                     Text3(
                                         text = "${exitedCargos.size}",
                                         style = MaterialTheme3.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (selectedTab == 1) MaterialTheme3.colorScheme.primary else Gray600,
+                                        color = if (selectedTab == 1) Green600 else Gray600,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
@@ -3419,9 +3376,6 @@ fun ExpandableSection(
     isExpanded: Boolean = initiallyExpanded,
     onExpandedChange: (Boolean) -> Unit = {}
 ) {
-    val actualExpanded = isExpanded
-    
-    // Auto-expand if search query matches any item in this section
     LaunchedEffect(searchQuery, items) {
         if (searchQuery.isNotEmpty()) {
             val hasMatchingItem = items.any { 
@@ -3434,7 +3388,7 @@ fun ExpandableSection(
     }
     
     val rotationAngle by animateFloatAsState(
-        targetValue = if (actualExpanded) 180f else 0f,
+        targetValue = if (isExpanded) 180f else 0f,
         animationSpec = tween(300),
         label = "rotation"
     )
@@ -3460,7 +3414,7 @@ fun ExpandableSection(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onExpandedChange(!actualExpanded) }
+                    .clickable { onExpandedChange(!isExpanded) }
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -3519,7 +3473,7 @@ fun ExpandableSection(
                 // آیکون گسترش
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
-                    contentDescription = if (actualExpanded) "بستن" else "باز کردن",
+                    contentDescription = if (isExpanded) "بستن" else "باز کردن",
                     tint = MaterialTheme3.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .size(20.dp)
@@ -3529,7 +3483,7 @@ fun ExpandableSection(
 
             // محتوای قابل گسترش
             AnimatedVisibility(
-                visible = actualExpanded,
+                visible = isExpanded,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
@@ -3721,7 +3675,7 @@ fun AnimatedCounter(
             isSubmitting -> false
             trackingNumber.isBlank() -> false
             !isTrackingNumberValid -> false
-            !isDuplicate -> numberOfPeople.isNotBlank() && numberOfPeople.toIntOrNull() != null && numberOfPeople.toIntOrNull()!! > 0
+            !isDuplicate -> (numberOfPeople.toIntOrNull() ?: 1) > 0
             !canEditWeights -> false
             else -> {
                 val hasShortage = shortageWeight.isNotBlank() && shortageWeight != "0"
@@ -4563,7 +4517,7 @@ private fun TopHeader(
                             modifier = Modifier.padding(top = 4.dp)
                         ) {
                             Text3(
-                                text = "$loadableTrucks10Wheeler = 10چ",
+                                text = "$loadableTrucks10Wheeler = 10چرخ",
                                 style = MaterialTheme3.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = tonnageColor
@@ -4574,7 +4528,7 @@ private fun TopHeader(
                                 color = MaterialTheme3.colorScheme.onSurfaceVariant
                             )
                             Text3(
-                                text = "$loadableTrucks18Wheeler = 18چ",
+                                text = "$loadableTrucks18Wheeler = 18چرخ",
                                 style = MaterialTheme3.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = tonnageColor
@@ -4854,6 +4808,8 @@ fun CargoInfoRow(
     
     // تعیین آیکون و رنگ بر اساس وضعیت
     val isExited = info.status == "خروج"
+    val isConfirmed = info.confirm == "تائید شده"
+
     val iconColor = if (isExited) MaterialTheme3.colorScheme.primary else MaterialTheme3.colorScheme.secondary
     val iconBgColor = if (isExited) 
         MaterialTheme3.colorScheme.primaryContainer.copy(alpha = 0.5f) 
@@ -4883,33 +4839,84 @@ fun CargoInfoRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // آیکون دایره‌ای
-                Surface3(
-                    shape = CircleShape,
-                    color = if (isDuplicate) MaterialTheme3.colorScheme.tertiaryContainer.copy(alpha = 0.5f) else iconBgColor,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
+                Box {
+                    Surface3(
+                        shape = CircleShape,
+                        color = if (isDuplicate) MaterialTheme3.colorScheme.tertiaryContainer.copy(alpha = 0.5f) else iconBgColor,
+                        modifier = Modifier.size(36.dp)
                     ) {
-                        Icon(
-                            imageVector = if (isDuplicate) Icons.Default.ContentCopy 
-                                else if (isExited) Icons.Default.LocalShipping 
-                                else Icons.AutoMirrored.Filled.Assignment,
-                            contentDescription = null,
-                            tint = if (isDuplicate) MaterialTheme3.colorScheme.tertiary else iconColor,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                imageVector = if (isDuplicate) Icons.Default.ContentCopy 
+                                    else if (isExited) Icons.Default.LocalShipping 
+                                    else Icons.AutoMirrored.Filled.Assignment,
+                                contentDescription = null,
+                                tint = if (isDuplicate) MaterialTheme3.colorScheme.tertiary else iconColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    
+                    // نشانگر تأیید/عدم تأیید برای حواله‌های ورودی
+                    if (!isExited) {
+                        Surface3(
+                            shape = CircleShape,
+                            color = if (isConfirmed) Color(0xFF4CAF50) else Color(0xFFFF9800),
+                            modifier = Modifier
+                                .size(14.dp)
+                                .align(Alignment.TopEnd)
+                                .offset(x = 2.dp, y = (-2).dp),
+                            border = BorderStroke(2.dp, MaterialTheme3.colorScheme.surface)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    imageVector = if (isConfirmed) Icons.Default.Check else Icons.Default.Schedule,
+                                    contentDescription = if (isConfirmed) "تأیید شده" else "در انتظار تأیید",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(9.dp)
+                                )
+                            }
+                        }
                     }
                 }
                 
                 // شماره حواله
                 Column {
-                    Text3(
-                        text = "شماره حواله",
-                        style = MaterialTheme3.typography.labelSmall,
-                        color = MaterialTheme3.colorScheme.onSurfaceVariant
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text3(
+                            text = "شماره حواله",
+                            style = MaterialTheme3.typography.labelSmall,
+                            color = MaterialTheme3.colorScheme.onSurfaceVariant
+                        )
+                        
+                        // Badge وضعیت تأیید برای حواله‌های ورودی
+                        if (!isExited) {
+                            Surface3(
+                                shape = RoundedCornerShape(4.dp),
+                                color = if (isConfirmed) 
+                                    Color(0xFF4CAF50).copy(alpha = 0.15f) 
+                                else 
+                                    Color(0xFFFF9800).copy(alpha = 0.15f)
+                            ) {
+                                Text3(
+                                    text = if (isConfirmed) "تأیید شده" else "در انتظار",
+                                    style = MaterialTheme3.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isConfirmed) Color(0xFF2E7D32) else Color(0xFFE65100),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
                     Text3(
                         text = info.trackingNumber,
                         style = MaterialTheme3.typography.titleMedium,
@@ -5200,9 +5207,9 @@ fun CargoInfoDetailsDialog(
         Surface(
             modifier = Modifier
                 .fillMaxWidth(0.85f)
-                .fillMaxHeight(0.85f)
-                .clip(RoundedCornerShape(40.dp)),
-            shape = RoundedCornerShape(40.dp),
+                .fillMaxHeight(0.75f)
+                .clip(RoundedCornerShape(24.dp)),
+            shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp
         ) {
@@ -5210,7 +5217,7 @@ fun CargoInfoDetailsDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(bottom = 100.dp),
+                        .padding(bottom = 50.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Spacer(modifier = Modifier.height(24.dp))
@@ -5218,7 +5225,7 @@ fun CargoInfoDetailsDialog(
                     // هدر با آیکون دایره‌ای
                     Box(
                         modifier = Modifier
-                            .size(96.dp)
+                            .size(64.dp)
                             .background(
                                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
                                 shape = CircleShape
@@ -5258,7 +5265,7 @@ fun CargoInfoDetailsDialog(
                         color = MaterialTheme.colorScheme.primary
                     )
                     
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     
                     // بخش شماره حواله
                     Surface(
@@ -5272,7 +5279,7 @@ fun CargoInfoDetailsDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 16.dp, horizontal = 16.dp)
+                                .padding(12.dp)
                         ) {
                             Text(
                                 text = "شماره حواله: ${info.trackingNumber}",
@@ -5318,7 +5325,7 @@ fun CargoInfoDetailsDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
-                            .padding(horizontal = 20.dp),
+                            .padding(horizontal = 16.dp),
                         shape = RoundedCornerShape(24.dp),
                         color = MaterialTheme.colorScheme.surface
                     ) {
@@ -5369,10 +5376,11 @@ fun CargoInfoDetailsDialog(
                                 },
                                 label = "tab_content"
                             ) { tab ->
-                                Box(
+                                Column(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .padding(20.dp)
+                                        .verticalScroll(rememberScrollState())
+                                        .padding(16.dp)
                                 ) {
                                     when (tab) {
                                         0 -> MainInfoTabContent(
@@ -5406,7 +5414,7 @@ fun CargoInfoDetailsDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 20.dp),
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         // دکمه بستن
@@ -5414,7 +5422,7 @@ fun CargoInfoDetailsDialog(
                             onClick = onDismiss,
                             modifier = Modifier
                                 .weight(1.2f)
-                                .height(56.dp),
+                                .height(46.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -5437,7 +5445,7 @@ fun CargoInfoDetailsDialog(
                             onClick = { showDeleteConfirmation = true },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(56.dp),
+                                .height(46.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.error,
                                 contentColor = MaterialTheme.colorScheme.onError
@@ -5511,7 +5519,7 @@ private fun DetailTabButton(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
+                .padding(vertical = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {

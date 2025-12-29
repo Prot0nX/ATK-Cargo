@@ -29,8 +29,12 @@ import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -68,6 +72,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -104,8 +109,10 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.SdStorage
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material.icons.filled.Warning
@@ -678,7 +685,6 @@ fun UpdateDialog(
     onCancelClick: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    // انیمیشن برای نمایش دیالوگ
     val dialogAlpha by animateFloatAsState(targetValue = 1f, label = "")
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -694,24 +700,30 @@ fun UpdateDialog(
         ) {
             Card(
                 modifier = Modifier
-                    .fillMaxWidth(0.9f)
+                    .fillMaxWidth(0.88f)
                     .wrapContentHeight()
                     .alpha(dialogAlpha),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFFEFF1F5)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    UpdateHeader(
-                        version = updateInfo.latestVersion,
-                        message = updateInfo.updateMessage,
-                        releaseDate = updateInfo.releaseDate
+                    ModernUpdateHeader(
+                        version = updateInfo.latestVersion
                     )
 
-                    UpdateActionSection(
+                    ModernUpdateContent(
+                        message = updateInfo.updateMessage
+                    )
+
+                    ModernUpdateActionSection(
                         downloadState = downloadState,
                         downloadProgress = downloadProgress,
                         updateSize = updateInfo.updateSize,
@@ -952,59 +964,90 @@ private fun PausedState(
 }
 
 @Composable
-private fun UpdateHeader(
-    version: String,
-    message: String,
-    releaseDate: String
+private fun ModernUpdateHeader(
+    version: String
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 16.dp)
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Text(
+            text = "به‌روزرسانی جدید",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF1F2937)
+        )
+        
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = Color(0xFFDCEEFE),
+            modifier = Modifier.wrapContentWidth()
         ) {
             Text(
-                text = "به‌روزرسانی جدید",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Badge(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            ) {
-                Text(
-                    text = version,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
-
-        if (message.isNotEmpty()) {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
-
-        if (releaseDate.isNotEmpty()) {
-            Text(
-                text = "تاریخ انتشار: $releaseDate",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
+                text = version,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1A73E8),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
             )
         }
     }
 }
 
 @Composable
-private fun UpdateActionSection(
+private fun ModernUpdateContent(
+    message: String
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // آیکون مرکزی با انیمیشن
+        val infiniteTransition = rememberInfiniteTransition(label = "")
+        val bounce by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = -12f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = ""
+        )
+        
+        Surface(
+            modifier = Modifier
+                .size(80.dp)
+                .offset(y = bounce.dp),
+            shape = CircleShape,
+            color = Color(0xFFEFF6FF)
+        ) {
+            Box(
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SystemUpdate,
+                    contentDescription = null,
+                    tint = Color(0xFF1A73E8),
+                    modifier = Modifier.size(36.dp)
+                )
+            }
+        }
+        
+        if (message.isNotEmpty()) {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color(0xFF6B7280),
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModernUpdateActionSection(
     downloadState: UpdateManager.DownloadState,
     downloadProgress: UpdateManager.DownloadProgress,
     updateSize: String,
@@ -1013,48 +1056,75 @@ private fun UpdateActionSection(
     onResumeClick: () -> Unit,
     onCancelClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        ),
-        shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            when (downloadState) {
-                is UpdateManager.DownloadState.Idle -> {
+        when (downloadState) {
+            is UpdateManager.DownloadState.Idle -> {
+                // بخش حجم فایل
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val sizeLabel = remember(updateSize) {
-                            val t = updateSize.trim()
-                            if (t.matches(Regex("^[0-9]+(\\.[0-9]+)?$"))) "حجم فایل: $t مگابایت" else "حجم فایل: $t"
-                        }
-                        Text(
-                            text = sizeLabel,
-                            style = MaterialTheme.typography.bodyMedium
+                        Icon(
+                            imageVector = Icons.Default.SdStorage,
+                            contentDescription = null,
+                            tint = Color(0xFF6B7280).copy(alpha = 0.7f),
+                            modifier = Modifier.size(16.dp)
                         )
-                        Button(
-                            onClick = onUpdateClick,
-                            contentPadding = PaddingValues(horizontal = 24.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("شروع دانلود")
-                        }
+                        Text(
+                            text = "حجم فایل:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF6B7280)
+                        )
                     }
+                    
+                    val sizeLabel = remember(updateSize) {
+                        val t = updateSize.trim()
+                        if (t.matches(Regex("^[0-9]+(\\.[0-9]+)?$"))) "$t MB" else t
+                    }
+                    Text(
+                        text = sizeLabel,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF1F2937)
+                    )
                 }
+                
+                // دکمه دانلود
+                Button(
+                    onClick = onUpdateClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF1A73E8)
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 8.dp,
+                        pressedElevation = 4.dp
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "شروع دانلود",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
 
                 is UpdateManager.DownloadState.Downloading -> {
                     DownloadingState(
@@ -1084,7 +1154,6 @@ private fun UpdateActionSection(
             }
         }
     }
-}
 
 @Composable
 private fun ErrorState(
@@ -1723,9 +1792,6 @@ private fun SplashScreenContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // عنوان برنامه
-            SplashAppTitle()
-
             // عنوان فرعی (توضیحات) مشابه صفحه ورود
             SplashSubtitleBadge()
 
@@ -1735,17 +1801,6 @@ private fun SplashScreenContent(
             SplashVersionBadge(appVersion)
         }
     }
-}
-
-@Composable
-private fun SplashAppTitle() {
-    Text(
-        text = "ATK Cargo",
-        style = MaterialTheme.typography.headlineLarge,
-        fontWeight = FontWeight.Bold,
-        color = Color.White,
-        textAlign = TextAlign.Center
-    )
 }
 
 @Composable
