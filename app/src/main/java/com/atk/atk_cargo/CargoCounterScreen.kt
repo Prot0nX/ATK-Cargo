@@ -1030,11 +1030,7 @@ private fun QuotaCard(
         progress >= 0.5f -> color.copy(alpha = 0.7f)
         else -> color.copy(alpha = 0.5f)
     }
-    
-    // رنگ‌های آمار
-    val entryColor = color.copy(alpha = 0.7f)
-    val exitColor = color.copy(alpha = 0.9f)
-    
+
     // تعیین وضعیت فعالیت کوتاژ
     val isActive = total > 0 && shipInfo.exitVouchers < total
     val cardBgColor = if (isActive) {
@@ -1118,14 +1114,14 @@ private fun QuotaCard(
                     Icon(
                         imageVector = Icons.Default.ArrowDownward,
                         contentDescription = "ورود",
-                        tint = entryColor,
+                        tint = color,
                         modifier = Modifier.size(12.dp)
                     )
                     Text(
                         text = shipInfo.entryVouchers.toString(),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
-                        color = entryColor,
+                        color = color,
                         modifier = Modifier.padding(start = 2.dp, end = 4.dp)
                     )
                     
@@ -1141,7 +1137,7 @@ private fun QuotaCard(
                     Icon(
                         imageVector = Icons.Default.ArrowUpward,
                         contentDescription = "خروج",
-                        tint = exitColor,
+                        tint = color,
                         modifier = Modifier
                             .padding(start = 4.dp)
                             .size(12.dp)
@@ -1150,7 +1146,7 @@ private fun QuotaCard(
                         text = shipInfo.exitVouchers.toString(),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
-                        color = exitColor,
+                        color = color,
                         modifier = Modifier.padding(start = 2.dp, end = 4.dp)
                     )
                     
@@ -1175,7 +1171,7 @@ private fun QuotaCard(
                         text = total.toString(),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold,
-                        color = progressColor,
+                        color = color,
                         modifier = Modifier.padding(start = 2.dp)
                     )
                 }
