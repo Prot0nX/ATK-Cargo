@@ -127,7 +127,6 @@ class CargoViewModel(
     private val _filteredCargoInfoList = MutableStateFlow<List<CargoInfo>>(emptyList())
     val filteredCargoInfoList: StateFlow<List<CargoInfo>> = _filteredCargoInfoList.asStateFlow()
     private val _isQuotaActive = MutableStateFlow<Boolean?>(null)
-    private val _shownWarningForQuotas = mutableSetOf<String>()
     private val _pendingMessages = MutableStateFlow<Queue<Pair<String, MessageType>>>(LinkedList())
     private val _isShowingMessage = MutableStateFlow(false)
     private val _loadableTonnage = MutableStateFlow("")
@@ -338,8 +337,7 @@ class CargoViewModel(
                         return@launch
                     }
 
-                    // بررسی وضعیت کوتاژ و سپس بارگذاری اطلاعات
-                    checkQuotaStatus(info)
+                    Log.d("ATK-Log", "CargoViewModel: refreshCargoInfo started")
 
                     // نگهداری آخرین لیست برای مقایسه
                     val oldCargoList = _cargoInfoList.value
@@ -398,7 +396,6 @@ class CargoViewModel(
         numberOfPeople: String
     ) {
         viewModelScope.launch {
-            // استفاده از try-finally برای تضمین ریست _isSubmitting
             try {
                 // بررسی وضعیت ارسال فعلی برای جلوگیری از درخواست‌های تکراری
                 if (_isSubmitting.value) {
@@ -409,7 +406,7 @@ class CargoViewModel(
                 _isSubmitting.value = true
                 Log.d("ATK-Log", "CargoViewModel: submitCargoInfo started for tracking: $trackingNumber")
 
-                // مرحله 1: اعتبارسنجی‌های سریع اولیه
+                // مرحله 1: اعتبارسنجی سریع اولیه
                 if (!performBasicValidation(trackingNumber)) {
                     Log.d("ATK-Log", "CargoViewModel: Basic validation failed for tracking: $trackingNumber")
                     return@launch
@@ -424,22 +421,19 @@ class CargoViewModel(
                 }
                 Log.d("ATK-Log", "CargoViewModel: Initial info retrieved: Quota=${initialInfo.loadingQuotaNumber}")
 
-                // مرحله 3: بررسی وضعیت کوتاژ (درصد و فعال بودن) - 
-                Log.d("ATK-Log", "CargoViewModel: Checking quota percentage and status...")
-                checkAndHandleQuotaPercentage(initialInfo.loadingQuotaNumber.toString())
-                checkQuotaStatus(initialInfo)
-
-                if (_isQuotaActive.value != true) {
-                    val message = if (_messageType.value == MessageType.WARNING) {
-                        "امکان ثبت حواله برای این کوتاژ وجود ندارد. لطفاً وضعیت کوتاژ را بررسی کنید."
-                    } else {
-                        "کوتاژ غیرفعال است و امکان ثبت حواله جدید وجود ندارد"
-                    }
-                    Log.e("ATK-Log", "CargoViewModel: Quota is INACTIVE: $message")
-                    showErrorMessage(message)
+                // مرحله 3: بررسی وضعیت کوتاژ و درصد مجاز (یک‌بار، بدون کش)
+                Log.d("ATK-Log", "CargoViewModel: Validating quota status and percentage...")
+                val validationResult = validateQuotaStatusAndPercentage(initialInfo)
+                
+                if (!validationResult.isValid) {
+                    Log.e("ATK-Log", "CargoViewModel: Quota validation failed: ${validationResult.message}")
+                    showErrorMessage(validationResult.message)
+                    _isQuotaActive.value = validationResult.isActive
                     return@launch
                 }
-                Log.d("ATK-Log", "CargoViewModel: Quota is active")
+                
+                _isQuotaActive.value = true
+                Log.d("ATK-Log", "CargoViewModel: Quota validation passed successfully")
 
                 // مرحله 4: بررسی تناژ موقت
                 if (!validateTempTonnage(initialInfo)) {
@@ -451,7 +445,8 @@ class CargoViewModel(
                 // مرحله 5: بررسی تکراری نبودن و اعتبارسنجی داده‌های ورودی
                 val isNewCargo = !isTrackingNumberDuplicate(trackingNumber)
                 Log.d("ATK-Log", "CargoViewModel: Is new cargo: $isNewCargo")
-                if (!validateInputData(trackingNumber, netWeight, numberOfPeople, shortageWeight, excessWeight, isNewCargo, scaleReceiptNumber)) {
+                if (!validateInputData(trackingNumber, netWeight, numberOfPeople, shortageWeight, excessWeight,
+                        scaleReceiptNumber)) {
                     Log.e("ATK-Log", "CargoViewModel: Input data validation failed")
                     return@launch
                 }
@@ -481,7 +476,6 @@ class CargoViewModel(
                 Log.e("ATK-Log", "CargoViewModel: Exception in submitCargoInfo: ${e.message}", e)
                 showErrorMessage("خطا در ثبت اطلاعات بار: ${e.message}")
             } finally {
-                // تضمین ریست _isSubmitting در تمام حالات
                 _isSubmitting.value = false
             }
         }
@@ -495,77 +489,91 @@ class CargoViewModel(
         return true
     }
 
-    private suspend fun checkQuotaStatus(initialInfo: InitialInfo) {
+    private suspend fun validateQuotaStatusAndPercentage(initialInfo: InitialInfo): QuotaValidationResult {
         try {
-            Log.d("ATK-Log", "CargoViewModel: checkQuotaStatus started for Quota: ${initialInfo.loadingQuotaNumber}")
-            val status = repository.checkQuotaStatus(
+            Log.d("ATK-Log", "CargoViewModel: validateQuotaStatusAndPercentage started for Quota: ${initialInfo.loadingQuotaNumber}")
+            
+            // مرحله 1: بررسی وضعیت کوتاژ (فعال/غیرفعال)
+            val quotaStatus = repository.checkQuotaStatus(
                 quotaNumber = initialInfo.loadingQuotaNumber.toString(),
                 shipName = initialInfo.shipName,
                 cargoType = initialInfo.cargoType,
                 shippingCompany = initialInfo.shippingCompany
             )
-            Log.d("ATK-Log", "CargoViewModel: checkQuotaStatus result: isActive=${status.isActive}, status=${status.status}, message=${status.message}")
+            Log.d("ATK-Log", "CargoViewModel: Quota status check - isActive=${quotaStatus.isActive}, status=${quotaStatus.status}")
 
-            if (status.isActive) {
-                // اگر کوتاژ فعال است، بررسی وضعیت درصد
-                checkAndHandleQuotaPercentage(initialInfo.loadingQuotaNumber.toString())
+            // اگر کوتاژ غیرفعال است، بلافاصله برگردانیم
+            if (!quotaStatus.isActive) {
+                return QuotaValidationResult(
+                    isValid = false,
+                    isActive = false,
+                    percentageReached = false,
+                    message = quotaStatus.message,
+                    messageType = MessageType.ERROR
+                )
             }
 
-            _isQuotaActive.value = status.isActive
-
-            if (!status.status) {
-                // پیام غیرفعال بودن بعد از هشدار درصدی نمایش داده می‌شود
-                delay(5000) // تاخیر بیشتر از هشدار درصدی
-                showMessage(status.message, MessageType.WARNING)
-                return
-            }
-        } catch (e: Exception) {
-            Log.e("ATK-Log", "CargoViewModel: Error in checkQuotaStatus: ${e.message}", e)
-            _resultMessage.value = "خطا در بررسی وضعیت کوتاژ: ${e.message ?: "خطای ناشناخته"}"
-            _messageType.value = MessageType.ERROR
-            _showAnimatedMessage.value = true
-            _isQuotaActive.value = false
-        }
-    }
-
-    private suspend fun checkAndHandleQuotaPercentage(quotaNumber: String) {
-        try {
-            Log.d("ATK-Log", "CargoViewModel: checkAndHandleQuotaPercentage started for Quota: $quotaNumber")
-            val response = apiService.getShipQuotas(shipName = _initialInfo.value?.shipName ?: "")
+            // مرحله 2: بررسی درصد مجاز (فقط اگر کوتاژ فعال باشد)
+            Log.d("ATK-Log", "CargoViewModel: Checking quota percentage limit...")
+            val response = apiService.getShipQuotas(shipName = initialInfo.shipName)
+            
             if (response.isSuccessful) {
                 val quotas = response.body()
-                quotas?.find { it.number == quotaNumber }?.let { quota ->
-                    Log.d("ATK-Log", "CargoViewModel: Quota info found: restricted=${quota.isPercentageRestricted}, percentage=${quota.percentage}")
-                    if (quota.isPercentageRestricted == true && quota.percentage != null) {
-                        if (!_shownWarningForQuotas.contains(quota.number)) {
-                            val percentageAmount = quota.totalTonnage * (quota.percentage / 100)
-                            val remainingTonnage = quota.remainingTonnage
-                            Log.d("ATK-Log", "CargoViewModel: Percentage Check - Limit: $percentageAmount, Remaining: $remainingTonnage")
+                val quota = quotas?.find { it.number == initialInfo.loadingQuotaNumber.toString() }
+                
+                if (quota != null && quota.isPercentageRestricted == true && quota.percentage != null) {
+                    val percentageAmount = quota.totalTonnage * (quota.percentage / 100)
+                    val remainingTonnage = quota.remainingTonnage
+                    Log.d("ATK-Log", "CargoViewModel: Percentage Check - Limit: $percentageAmount, Remaining: $remainingTonnage")
 
-                            if (remainingTonnage <= percentageAmount) {
-                                _shownWarningForQuotas.add(quota.number)
-
-                                // اول نمایش هشدار درصدی
-                                _resultMessage.value = "کوتاژ ${quota.number} به حد نصاب ${quota.percentage}% رسیده است و غیرفعال خواهد شد"
-                                _showAnimatedMessage.value = true
-                                _messageType.value = MessageType.WARNING
-                                Log.d("ATK-Log", "CargoViewModel: Percentage reached! Showing warning and deactivating quota...")
-
-                                // تاخیر کوتاه قبل از غیرفعال کردن
-                                delay(3000)
-
-                                toggleQuotaStatus(quotaNumber)
-                                throw Exception("امکان ثبت حواله جدید وجود ندارد")
-                            }
-                        }
+                    // اگر به حد نصاب رسیده باشد
+                    if (remainingTonnage <= percentageAmount) {
+                        val warningMessage = "کوتاژ ${quota.number} به حد نصاب ${quota.percentage}% رسیده است و غیرفعال خواهد شد"
+                        Log.d("ATK-Log", "CargoViewModel: Percentage limit reached! Deactivating quota...")
+                        
+                        // نمایش پیام هشدار
+                        _resultMessage.value = warningMessage
+                        _showAnimatedMessage.value = true
+                        _messageType.value = MessageType.WARNING
+                        
+                        // تاخیر برای نمایش پیام
+                        delay(1000)
+                        
+                        // غیرفعال کردن خودکار کوتاژ
+                        toggleQuotaStatus(initialInfo.loadingQuotaNumber.toString())
+                        
+                        return QuotaValidationResult(
+                            isValid = false,
+                            isActive = false,
+                            percentageReached = true,
+                            message = "امکان ثبت حواله جدید وجود ندارد",
+                            messageType = MessageType.ERROR
+                        )
                     }
                 }
             } else {
                 Log.e("ATK-Log", "CargoViewModel: Failed to fetch quotas for percentage check: ${response.code()}")
             }
+
+            // همه چیز مجاز است
+            Log.d("ATK-Log", "CargoViewModel: Quota validation passed successfully")
+            return QuotaValidationResult(
+                isValid = true,
+                isActive = true,
+                percentageReached = false,
+                message = "کوتاژ فعال و مجاز است",
+                messageType = MessageType.SUCCESS
+            )
+
         } catch (e: Exception) {
-            Log.e("ATK-Log", "CargoViewModel: Exception in checkAndHandleQuotaPercentage: ${e.message}")
-            throw e
+            Log.e("ATK-Log", "CargoViewModel: Exception in validateQuotaStatusAndPercentage: ${e.message}", e)
+            return QuotaValidationResult(
+                isValid = false,
+                isActive = false,
+                percentageReached = false,
+                message = "خطا در بررسی وضعیت کوتاژ: ${e.message}",
+                messageType = MessageType.ERROR
+            )
         }
     }
 
@@ -606,22 +614,12 @@ class CargoViewModel(
         numberOfPeople: String,
         shortageWeight: String,
         excessWeight: String,
-        isNewCargo: Boolean,
         scaleReceiptNumber: String
     ): Boolean {
         // بررسی شماره حواله
         if (trackingNumber.isBlank()) {
             showErrorMessage("شماره حواله نمی‌تواند خالی باشد.")
             return false
-        }
-
-        // بررسی تعداد نفرات برای حواله‌های جدید
-        if (isNewCargo) {
-            val peopleCount = numberOfPeople.toIntOrNull()
-            if (peopleCount == null || peopleCount < 1) {
-                showErrorMessage("تعداد نفرات باید عددی بزرگتر از صفر باشد.")
-                return false
-            }
         }
 
         // بررسی وزن خالص برای حواله‌های خروجی
@@ -681,10 +679,13 @@ class CargoViewModel(
         initialInfo: InitialInfo
     ): CargoInfo {
         val isExit = netWeight.isNotBlank()
+        
+        // اعمال مقدار پیش‌فرض برای تعداد نفرات در صورت خالی بودن
+        val finalNumberOfPeople = numberOfPeople.ifEmpty { "1" }
 
         return CargoInfo(
             trackingNumber = trackingNumber,
-            numberOfPeople = numberOfPeople,
+            numberOfPeople = finalNumberOfPeople,
             username = username,
             userType = userType,
             entryTime = getCurrentTime(),
@@ -904,11 +905,7 @@ class CargoViewModel(
 
     private fun isValidScaleReceipt(scaleReceipt: String): Boolean {
         // بررسی عددی بودن
-        if (!scaleReceipt.all { it.isDigit() }) {
-            return false
-        }
-        
-        return true
+        return scaleReceipt.all { it.isDigit() }
     }
 
     private suspend fun checkScaleReceiptNumber(scaleReceiptNumber: String): Boolean {
@@ -1100,26 +1097,6 @@ class CargoViewModel(
                     }
                 }
 
-                // بررسی وضعیت کوتاژها با اولویت پایین بعد از بروزرسانی تناژ
-                launch(Dispatchers.IO) {
-                    try {
-                        // تاخیر اندک برای اطمینان از اینکه UI ابتدا بروزرسانی شود
-                        delay(100)
-
-                        val currentQuotas = _cargoInfoList.value
-                        currentQuotas.forEach { cargoInfo ->
-                            val quota = repository.getShipQuotas(cargoInfo.shipName)
-                                .find { it.number == cargoInfo.loadingQuotaNumber }
-
-                            quota?.let {
-                                checkQuotaPercentage(it)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        Log.e("CargoViewModel_Log", "Error checking quota percentages", e)
-                    }
-                }
-
                 // به‌روزرسانی مقادیر نهایی
                 updateInfoValues()
 
@@ -1176,30 +1153,6 @@ class CargoViewModel(
         }
     }
 
-    private fun checkQuotaPercentage(quota: Quota) {
-        if (quota.isPercentageRestricted == true && quota.percentage != null) {
-            if (!_shownWarningForQuotas.contains(quota.number)) {
-                val percentageAmount = quota.totalTonnage * (quota.percentage / 100)
-                val remainingTonnage = quota.remainingTonnage
-
-                if (remainingTonnage <= percentageAmount) {
-                    viewModelScope.launch {
-                        _shownWarningForQuotas.add(quota.number)
-
-                        // اول نمایش هشدار درصدی
-                        addMessageToQueue(
-                            "کوتاژ ${quota.number} به حد نصاب ${quota.percentage}% رسیده است و غیرفعال خواهد شد",
-                            MessageType.WARNING
-                        )
-
-                        // تاخیر کوتاه قبل از غیرفعال کردن
-                        delay(3000)
-                        toggleQuotaStatus(quota.number)
-                    }
-                }
-            }
-        }
-    }
 
     fun updateCargoInfo(cargoInfo: CargoInfo, netWeight: String) {
         viewModelScope.launch {
@@ -2883,10 +2836,10 @@ class ReportsRepository(private val apiService: ApiService) {
                 cargoType = cargoType
             )
 
-            if (response.isSuccessful) {
-                return response.body()?.initialInfo
+            return if (response.isSuccessful) {
+                response.body()?.initialInfo
             } else {
-                return null
+                null
             }
         } catch (e: Exception) {
             return null
@@ -3006,16 +2959,13 @@ class ReportsRepository(private val apiService: ApiService) {
 
             if (response.isSuccessful) {
                 val result = response.body()
-                if (result != null) {
-                    result
-                } else {
-                    QuotaStatusResponse(
+                result
+                    ?: QuotaStatusResponse(
                         isActive = false,
                         status = false,
                         message = "خطا در دریافت وضعیت کوتاژ: پاسخ خالی از سرور",
                         details = null
                     )
-                }
             } else {
                 val errorBody = response.errorBody()?.string()
                 val errorMessage = try {
@@ -3447,6 +3397,14 @@ data class CargoStats(
 enum class MessageType {
     SUCCESS, WARNING, ERROR
 }
+
+data class QuotaValidationResult(
+    val isValid: Boolean,
+    val isActive: Boolean,
+    val percentageReached: Boolean,
+    val message: String,
+    val messageType: MessageType
+)
 
 data class PasswordCheckResponse(
     val success: Boolean,
