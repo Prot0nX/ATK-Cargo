@@ -51,11 +51,6 @@ function validateExitData($netWeight, $scaleReceiptNumber) {
         throw new Exception("شماره قبض باسکول نمی‌تواند خالی باشد.");
     }
     
-    $len = strlen($scaleReceiptNumber);
-    if ($len < 8 || $len > 10) {
-        throw new Exception("شماره قبض باسکول باید بین 8 تا 10 رقم باشد.");
-    }
-    
     // استفاده از ctype_digit برای عملکرد بهتر
     if (!ctype_digit($scaleReceiptNumber)) {
         throw new Exception("شماره قبض باسکول باید فقط شامل اعداد باشد.");
