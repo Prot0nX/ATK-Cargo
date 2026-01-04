@@ -1928,10 +1928,15 @@ fun QuotaWarningDialog(
 
 private fun processScannedQuota(scannedCode: String): String {
     val trimmedCode = scannedCode.trim()
-    return when {
+    val processedCode = when {
         trimmedCode.contains("-") -> trimmedCode.split("-").last()
         trimmedCode.startsWith("990000") -> trimmedCode.substring(6)
         else -> trimmedCode
+    }
+    return if (processedCode.length > 4) {
+        processedCode.takeLast(4)
+    } else {
+        processedCode
     }
 }
 
@@ -2537,8 +2542,7 @@ fun NetWeightDialog(
 ) {
     var netWeight by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
-    var showCamera by remember { mutableStateOf(true) } // تغییر به true برای باز شدن خودکار دوربین
-    var scanMode by remember { mutableStateOf(ScanMode.ML_KIT_SCAN) } // پیش‌فرض: اسکن سریع
+    var showCamera by remember { mutableStateOf(true) }
     val focusManager = LocalFocusManager.current
     var recognizedWeight by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
@@ -5387,7 +5391,7 @@ fun CargoInfoDetailsDialog(
                                             info = info,
                                             onCopyScaleReceipt = {
                                                 coroutineScope.launch {
-                                                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("quota", info.loadingQuotaNumber)))
+                                                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("quota", info.scaleReceiptNumber)))
                                                     snackbarHostState.showSnackbar("شماره قبض باسکول کپی شد")
                                                 }
                                             }
@@ -5568,7 +5572,7 @@ private fun MainInfoTabContent(
         DetailInfoRow(label = "شرکت حمل و نقل", value = info.shippingCompany)
         DetailInfoRow(
             label = "شماره قبض باسکول",
-            value = info.loadingQuotaNumber,
+            value = info.scaleReceiptNumber,
             showCopyIcon = true,
             onCopy = onCopyScaleReceipt,
             isLast = true
