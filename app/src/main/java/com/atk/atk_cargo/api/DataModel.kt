@@ -2185,8 +2185,15 @@ class ReportsViewModel(
 
         // اضافه کردن اطلاعات با استایل مناسب
         addModernInfoRow("شماره کوتاژ:", data.quotaNumber)
-        addModernInfoRow("از تاریخ و ساعت:", "${convertToShamsiDate(data.startDate)} - ${convertToPersianNumbers(data.startTime)}")
-        addModernInfoRow("تا تاریخ و ساعت:", "${convertToShamsiDate(data.endDate)} - ${convertToPersianNumbers(data.endTime)}")
+        
+        val formattedStartDate = if (data.startDate.isNotBlank()) convertToShamsiDate(data.startDate) else "بدون تاریخ"
+        val formattedStartTime = if (data.startTime.isNotBlank()) convertToPersianNumbers(data.startTime) else "۰:۰۰"
+        addModernInfoRow("از تاریخ و ساعت:", "$formattedStartDate - $formattedStartTime")
+
+        val formattedEndDate = if (data.endDate.isNotBlank()) convertToShamsiDate(data.endDate) else "بدون تاریخ"
+        val formattedEndTime = if (data.endTime.isNotBlank()) convertToPersianNumbers(data.endTime) else "۰:۰۰"
+        addModernInfoRow("تا تاریخ و ساعت:", "$formattedEndDate - $formattedEndTime")
+        
         addModernInfoRow("تعداد کل حواله‌ها:", convertToPersianNumbers(data.voucherCount.toString()), true)
         addModernInfoRow("وزن خالص کل:", "${formatPersianNumber(data.totalNetWeight.toInt())} کیلوگرم", true)
 
@@ -2282,17 +2289,20 @@ class ReportsViewModel(
             })
 
             // تاریخ خروج
-            table.addCell(createModernCell(convertToShamsiDate(detail.exitDate), isPersian = true).apply {
+            val exitDate = detail.exitDate.ifBlank { "" }
+            table.addCell(createModernCell(if (exitDate.isNotBlank()) convertToShamsiDate(exitDate) else "---", isPersian = true).apply {
                 backgroundColor = rowColor
             })
 
             // ساعت خروج
-            table.addCell(createModernCell(detail.exitTime, isPersian = true, isNumeric = true).apply {
+            val exitTime = detail.exitTime.ifBlank { "" }
+            table.addCell(createModernCell(if (exitTime.isNotBlank()) exitTime else "---", isPersian = true, isNumeric = true).apply {
                 backgroundColor = rowColor
             })
 
             // ساعت ورود
-            table.addCell(createModernCell(detail.entryTime, isPersian = true, isNumeric = true).apply {
+            val entryTime = detail.entryTime.ifBlank { "" }
+            table.addCell(createModernCell(if (entryTime.isNotBlank()) entryTime else "---", isPersian = true, isNumeric = true).apply {
                 backgroundColor = rowColor
             })
 
@@ -2389,13 +2399,26 @@ class ReportsViewModel(
     // تابع تبدیل تاریخ میلادی به شمسی (برای تاریخ‌های string)
     private fun convertToShamsiDate(date: String): String {
         return try {
-            val parts = date.split("/")
+            if (date.isBlank()) return ""
+            
+            // جایگزینی تمام جداکننده‌های غیر عددی با اسلش و سپس شکستن
+            val normalizedDate = date.replace(Regex("[^0-9]"), "/")
+            val parts = normalizedDate.split("/").filter { it.isNotBlank() }
+            
             if (parts.size == 3) {
                 val year = parts[0].toInt()
                 val month = parts[1].toInt()
                 val day = parts[2].toInt()
 
-                // استفاده از الگوریتم تبدیل
+                // اگر سال در محدوده شمسی (مثلاً بین 1300 و 1500) است، تبدیل مجدد انجام ندهیم
+                if (year in 1300..1500) {
+                    val yearStr = year.toString()
+                    val monthStr = month.toString().padStart(2, '0')
+                    val dayStr = day.toString().padStart(2, '0')
+                    return "${convertToPersianNumbers(yearStr)}/${convertToPersianNumbers(monthStr)}/${convertToPersianNumbers(dayStr)}"
+                }
+
+                // استفاده از الگوریتم تبدیل برای تاریخ‌های میلادی
                 val shamsiDate = gregorianToShamsi(year, month, day)
                 val yearStr = shamsiDate.year.toString()
                 val monthStr = shamsiDate.month.toString().padStart(2, '0')
