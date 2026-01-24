@@ -1583,7 +1583,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                             }
                         }
 
-                        // Signature Section
+                            // Signature Section
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 color = MaterialTheme.colorScheme.surface,

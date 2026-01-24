@@ -16,7 +16,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,7 +33,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -371,9 +369,11 @@ fun CargoCounterScreen(navController: NavController) {
                     
                     // نمایش تب‌ها
                     if (selectedShipNames.isNotEmpty()) {
+                        val allCount = groupedShips.size
                         TabBar(
                             selectedTab = selectedTab,
                             onTabSelected = { tab -> viewModel.updateSelectedTab(tab) },
+                            allCount = allCount,
                             loadingCount = loadingCount,
                             completedCount = completedCount
                         )
@@ -470,44 +470,49 @@ fun CargoCounterScreen(navController: NavController) {
 private fun TabBar(
     selectedTab: ShipFilterTab,
     onTabSelected: (ShipFilterTab) -> Unit,
+    allCount: Int,
     loadingCount: Int,
     completedCount: Int
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 2.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                .padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             ShipFilterTab.entries.forEach { tab ->
                 val isSelected = tab == selectedTab
                 val count = when (tab) {
-                    ShipFilterTab.ALL -> ""
-                    ShipFilterTab.LOADING -> "($loadingCount)"
-                    ShipFilterTab.COMPLETED -> "($completedCount)"
+                    ShipFilterTab.ALL -> allCount
+                    ShipFilterTab.LOADING -> loadingCount
+                    ShipFilterTab.COMPLETED -> completedCount
                 }
                 
+                val activeColor = when (tab) {
+                    ShipFilterTab.ALL -> MaterialTheme.colorScheme.primary
+                    ShipFilterTab.LOADING -> Color(0xFF2196F3) // Blue
+                    ShipFilterTab.COMPLETED -> Color(0xFF4CAF50) // Green
+                }
+
                 Surface(
                     modifier = Modifier
-                        .clickable { onTabSelected(tab) }
-                        .padding(horizontal = 4.dp),
-                    shape = RoundedCornerShape(12.dp),
+                        .weight(1f)
+                        .clickable { onTabSelected(tab) },
+                    shape = RoundedCornerShape(8.dp),
                     color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
-                    border = if (!isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)) else null
+                    shadowElevation = if (isSelected) 1.dp else 0.dp
                 ) {
                     Row(
-                        modifier = Modifier
-                            .padding(horizontal = 8.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        modifier = Modifier.padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         val icon = when (tab) {
                             ShipFilterTab.ALL -> Icons.Default.DirectionsBoat
@@ -518,16 +523,30 @@ private fun TabBar(
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
-                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp)
+                            tint = if (isSelected) activeColor else Color(0xFF9E9E9E),
+                            modifier = Modifier.size(20.dp)
                         )
-                        
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "${tab.title} $count",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            text = tab.title,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) activeColor else Color(0xFF9E9E9E)
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        // Badge تعداد
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) activeColor.copy(alpha = 0.1f) else Color(0xFFE0E0E0)
+                        ) {
+                            Text(
+                                text = "$count",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) activeColor else Color(0xFF757575),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -544,7 +563,7 @@ private fun GroupedShipList(
     shipColorMap: Map<String, Color>
 ) {
     LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
         groupedShips.forEach { (shipName, ships) ->
@@ -586,7 +605,7 @@ private fun ShipHeader(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
+                .padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1030,8 +1049,6 @@ private fun QuotaCard(
         progress >= 0.5f -> color.copy(alpha = 0.7f)
         else -> color.copy(alpha = 0.5f)
     }
-
-    // تعیین وضعیت فعالیت کوتاژ
     val isActive = total > 0 && shipInfo.exitVouchers < total
     val cardBgColor = if (isActive) {
         color.copy(alpha = 0.03f)

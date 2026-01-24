@@ -224,6 +224,7 @@ import com.atk.atk_cargo.ui.theme.Gray300
 import com.atk.atk_cargo.ui.theme.Gray500
 import com.atk.atk_cargo.ui.theme.Gray600
 import com.atk.atk_cargo.ui.theme.Green600
+import com.atk.atk_cargo.ui.theme.Red500
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.journeyapps.barcodescanner.ScanContract
@@ -904,28 +905,14 @@ fun RegisterCargoScreen(
     val loadableTonnage by viewModel.loadableTonnage.collectAsState()
     val loadableTrucks18Wheeler by viewModel.loadableTrucks18Wheeler.collectAsState()
     val loadableTrucks10Wheeler by viewModel.loadableTrucks10Wheeler.collectAsState()
-
-    // متغیر برای کنترل نمایش دیالوگ اطلاعات TopHeader
     var showTopHeaderInfoDialog by remember { mutableStateOf(false) }
-    
-    // متغیر برای تشخیص نوع بروزرسانی (اولیه، تغییر کوتاژ، یا بروزرسانی عادی)
     var updateType by remember { mutableStateOf<String?>(null) }
-    
-    // LazyListState برای کنترل اسکرول لیست حواله‌ها
     val listState = rememberLazyListState()
-    
-    // متغیرهای مربوط به دیالوگ تأیید حواله تکراری
     val showDuplicateConfirmationDialog by viewModel.showDuplicateConfirmationDialog.collectAsState()
     val duplicateWarningMessage by viewModel.duplicateWarningMessage.collectAsState()
-    
-    // متغیرهای مربوط به دیالوگ نمایش حواله‌های تکراری
     val showDuplicateDialog by viewModel.showDuplicateDialog.collectAsState()
     val duplicateTrackingNumbers by viewModel.duplicateTrackingNumbers.collectAsState()
-    
-    // وضعیت ثبت حواله
     val isSubmitting by viewModel.isSubmitting.collectAsState()
-    
-    // متغیرهای مربوط به دیالوگ تغییر کوتاژ
     var showQuotaEntryDialog by remember { mutableStateOf(false) }
 
     fun clearInputFields() {
@@ -1955,8 +1942,6 @@ fun QuotaEntryDialog(
     var isLoading by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val coroutineScope = rememberCoroutineScope()
-    
-    // Barcode scanner setup
     val barcodeLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
         result.contents?.let { scannedCode ->
             val processedCode = processScannedQuota(scannedCode)
@@ -3641,18 +3626,12 @@ fun AnimatedCounter(
     val isDuplicate = remember(trackingNumber, cargoInfoList) {
         trackingNumber.isNotBlank() && cargoInfoList.any { it.trackingNumber == trackingNumber }
     }
-
-    // بررسی اعتبار شماره حواله (فقط اعداد)
     val isTrackingNumberValid = remember(trackingNumber) {
         trackingNumber.isEmpty() || trackingNumber.all { it.isDigit() }
     }
-
-    // دریافت اطلاعات حواله فعلی
     val currentCargo = remember(trackingNumber, cargoInfoList) {
         if (isDuplicate) cargoInfoList.find { it.trackingNumber == trackingNumber } else null
     }
-
-    // بررسی امکان ویرایش کسری/اضافه بار
     val canEditWeights = remember(currentCargo) {
         currentCargo?.let {
             when {
@@ -3663,8 +3642,6 @@ fun AnimatedCounter(
             }
         } == true
     }
-
-    // منطق فعال/غیرفعال کردن دکمه ثبت
     val isSubmitEnabled = remember(
         trackingNumber,
         numberOfPeople,
@@ -3688,8 +3665,6 @@ fun AnimatedCounter(
             }
         }
     }
-
-    // انیمیشن برای نمایش پیام‌ها
     val messageAlpha = remember { androidx.compose.animation.core.Animatable(0f) }
     LaunchedEffect(isDuplicate) {
         if (isDuplicate) {
@@ -3711,18 +3686,18 @@ fun AnimatedCounter(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text3(
-                text = if (isDuplicate) "ویرایش حواله" else "ثبت حواله جدید",
-                style = MaterialTheme3.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme3.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(8.dp))
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ListAlt,
                 contentDescription = null,
                 tint = MaterialTheme3.colorScheme.primary,
                 modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text3(
+                text = if (isDuplicate) "ویرایش حواله" else "ثبت حواله جدید",
+                style = MaterialTheme3.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme3.colorScheme.primary
             )
         }
 
@@ -3831,22 +3806,23 @@ fun AnimatedCounter(
                                 modifier = Modifier.fillMaxSize(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // دکمه کاهش
                                 val currentValue = numberOfPeople.toIntOrNull() ?: 1
+
+                                // دکمه افزایش
                                 Box(
                                     modifier = Modifier
                                         .size(48.dp)
-                                        .clickable(enabled = !isDuplicate && currentValue > 1) {
-                                            if (currentValue > 1) {
-                                                onNumberOfPeopleChange((currentValue - 1).toString())
+                                        .clickable(enabled = !isDuplicate && currentValue < 5) {
+                                            if (currentValue < 5) {
+                                                onNumberOfPeopleChange((currentValue + 1).toString())
                                             }
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Remove,
-                                        contentDescription = "کاهش",
-                                        tint = if (!isDuplicate && currentValue > 1) MaterialTheme3.colorScheme.onSurfaceVariant else MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "افزایش",
+                                        tint = if (!isDuplicate && currentValue < 5) MaterialTheme3.colorScheme.onSurfaceVariant else MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -3872,21 +3848,21 @@ fun AnimatedCounter(
                                     )
                                 }
 
-                                // دکمه افزایش
+                                // دکمه کاهش
                                 Box(
                                     modifier = Modifier
                                         .size(48.dp)
-                                        .clickable(enabled = !isDuplicate && currentValue < 5) {
-                                            if (currentValue < 5) {
-                                                onNumberOfPeopleChange((currentValue + 1).toString())
+                                        .clickable(enabled = !isDuplicate && currentValue > 1) {
+                                            if (currentValue > 1) {
+                                                onNumberOfPeopleChange((currentValue - 1).toString())
                                             }
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = "افزایش",
-                                        tint = if (!isDuplicate && currentValue < 5) MaterialTheme3.colorScheme.onSurfaceVariant else MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                        imageVector = Icons.Default.Remove,
+                                        contentDescription = "کاهش",
+                                        tint = if (!isDuplicate && currentValue > 1) MaterialTheme3.colorScheme.onSurfaceVariant else MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -4038,7 +4014,9 @@ fun AnimatedCounter(
                                 .height(48.dp)
                                 .clickable(enabled = isSubmitEnabled, onClick = onSubmit),
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isSubmitEnabled) MaterialTheme3.colorScheme.surfaceVariant else MaterialTheme3.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            color = if (isSubmitEnabled) {
+                                if (isDuplicate) Amber700 else Green600
+                            } else MaterialTheme3.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxSize(),
@@ -4048,15 +4026,15 @@ fun AnimatedCounter(
                                 Icon(
                                     imageVector = Icons.Default.AddCircle,
                                     contentDescription = null,
-                                    tint = if (isSubmitEnabled) MaterialTheme3.colorScheme.onSurfaceVariant else MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    tint = if (isSubmitEnabled) Color.White else MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text3(
                                     text = if (isDuplicate) "ثبت تغییرات" else "ثبت حواله",
-                                    style = MaterialTheme3.typography.labelSmall,
+                                    style = MaterialTheme3.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isSubmitEnabled) MaterialTheme3.colorScheme.onSurfaceVariant else MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    color = if (isSubmitEnabled) Color.White else MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                 )
                             }
                         }
@@ -4071,7 +4049,7 @@ fun AnimatedCounter(
                                     onClick = onScanBarcode
                                 ),
                             shape = RoundedCornerShape(8.dp),
-                            color = if (isCargoConfirmed && !isCargoExited) MaterialTheme3.colorScheme.surfaceVariant else MaterialTheme3.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            color = if (isCargoConfirmed && !isCargoExited) Red500 else MaterialTheme3.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxSize(),
@@ -4081,15 +4059,15 @@ fun AnimatedCounter(
                                 Icon(
                                     imageVector = Icons.Default.QrCodeScanner,
                                     contentDescription = null,
-                                    tint = if (isCargoConfirmed && !isCargoExited) MaterialTheme3.colorScheme.onSurfaceVariant else MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                    tint = if (isCargoConfirmed && !isCargoExited) Color.White else MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text3(
                                     text = "خروج حواله",
-                                    style = MaterialTheme3.typography.labelSmall,
+                                    style = MaterialTheme3.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isCargoConfirmed && !isCargoExited) MaterialTheme3.colorScheme.onSurfaceVariant else MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    color = if (isCargoConfirmed && !isCargoExited) Color.White else MaterialTheme3.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                 )
                             }
                         }
@@ -4466,7 +4444,7 @@ private fun TopHeader(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .padding(horizontal = 18.dp, vertical = 8.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -4806,30 +4784,22 @@ fun CargoInfoRow(
             "0"
         }
     }
-
-    // بررسی اینکه آیا این حواله تکراری است یا نه
     val isDuplicate = duplicateTrackingNumbers.contains(info.trackingNumber)
-    
-    // تعیین آیکون و رنگ بر اساس وضعیت
     val isExited = info.status == "خروج"
     val isConfirmed = info.confirm == "تائید شده"
-
     val iconColor = if (isExited) MaterialTheme3.colorScheme.primary else MaterialTheme3.colorScheme.secondary
     val iconBgColor = if (isExited) 
         MaterialTheme3.colorScheme.primaryContainer.copy(alpha = 0.5f) 
     else 
         MaterialTheme3.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-
-    // تاریخ نمایشی
     val displayDate = if (isExited && info.exitDate != null) info.exitDate else ""
-    // ساعت نمایشی
     val displayTime = if (isExited && info.exitTime != null) info.exitTime else info.entryTime
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onRowClick(info) }
-            .padding(14.dp)
+            .padding(12.dp)
     ) {
         // هدر: آیکون، شماره حواله و تاریخ
         Row(
@@ -4957,7 +4927,7 @@ fun CargoInfoRow(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         // گرید اطلاعات: تعداد نفرات | وزن خالص | ساعت
         Surface3(
@@ -4968,7 +4938,7 @@ fun CargoInfoRow(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
+                    .padding(6.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -6613,7 +6583,7 @@ fun DuplicateConfirmationDialog(
                             shape = RoundedCornerShape(12.dp),
                             elevation = ButtonDefaults.buttonElevation(
                                 defaultElevation = 4.dp,
-                                pressedElevation = 8.dp
+                                pressedElevation = 12.dp
                             ),
                             modifier = Modifier
                                 .weight(1f)
