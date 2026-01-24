@@ -3252,15 +3252,12 @@ fun ShipSelectionDialog(
     val groupedShips = ships.groupBy { it.shipName }
     val selectedShips = remember { mutableStateOf(selectedShipNames) }
     val searchQuery = remember { mutableStateOf("") }
-    
-    // Define palette locally since cardColors list was missing
     val palette = listOf(
         Blue500, Purple500, Red500, 
         Color(0xFF10B981), // Emerald 500
         Color(0xFFF59E0B), // Amber 500
         Color(0xFFEC4899)  // Pink 500
     )
-
     val initialSortedShipEntries = remember(groupedShips, searchQuery.value) {
         val filtered = if (searchQuery.value.isEmpty()) {
             groupedShips.entries
@@ -3280,7 +3277,6 @@ fun ShipSelectionDialog(
             }
         )
     }
-    
     val shipColors = remember {
         initialSortedShipEntries.associate { (shipName, _) ->
             val index = initialSortedShipEntries.indexOfFirst { it.key == shipName }
@@ -3288,7 +3284,6 @@ fun ShipSelectionDialog(
             shipName to palette[colorIndex]
         }
     }
-    
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.ship))
     val lottieAnimatable = rememberLottieAnimatable()
 
@@ -3309,8 +3304,8 @@ fun ShipSelectionDialog(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.9f)
+                .fillMaxWidth(0.9f)
+                .fillMaxHeight(0.8f)
                 .clip(RoundedCornerShape(24.dp)),
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface,
@@ -3319,7 +3314,7 @@ fun ShipSelectionDialog(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp),
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Header Animation
@@ -3337,7 +3332,7 @@ fun ShipSelectionDialog(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Title Section
                 Text(
@@ -3358,7 +3353,7 @@ fun ShipSelectionDialog(
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Search Bar
                 OutlinedTextField(
@@ -3395,72 +3390,12 @@ fun ShipSelectionDialog(
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Stats Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                     // Active count
-                     Surface(
-                        modifier = Modifier.weight(1f),
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                             Icon(
-                                Icons.Default.DirectionsBoat,
-                                null,
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "${initialSortedShipEntries.size} فعال",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                    }
-                    
-                    // Selected count
-                    Surface(
-                        modifier = Modifier.weight(1f),
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                             Icon(
-                                Icons.Outlined.CheckCircle,
-                                null,
-                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "${selectedShips.value.size} انتخاب",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Ship List
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(initialSortedShipEntries.toList()) { (shipName, shipList) ->
                         val isSelected = selectedShips.value.contains(shipName)
@@ -3483,7 +3418,7 @@ fun ShipSelectionDialog(
                             }
                         ) {
                             Row(
-                                modifier = Modifier.padding(16.dp),
+                                modifier = Modifier.padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 // Icon Box
@@ -3540,7 +3475,7 @@ fun ShipSelectionDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Action Buttons
                 Row(

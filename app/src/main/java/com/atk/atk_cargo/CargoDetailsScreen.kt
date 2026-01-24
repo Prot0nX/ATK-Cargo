@@ -6,20 +6,26 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -67,6 +73,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,6 +81,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -303,42 +312,43 @@ fun InitialInfoSection(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
-        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+        shape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 1.dp
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
+            modifier = Modifier.padding(12.dp)
         ) {
             // هدر کشتی + دکمه expand
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // نام کشتی
                 Surface(
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.Start,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = initialInfo?.shipName ?: "",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
                         Icon(
                             imageVector = Icons.Default.DirectionsBoat,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = initialInfo?.shipName ?: "",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -346,11 +356,11 @@ fun InitialInfoSection(
                 // دکمه expand/collapse
                 Surface(
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(40.dp)
                         .clickable { isExpanded = !isExpanded },
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -360,7 +370,7 @@ fun InitialInfoSection(
                             imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = if (isExpanded) "بستن" else "باز کردن",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -502,8 +512,8 @@ private fun InfoChips(initialInfo: InitialInfo?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(top = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         // شرکت باربری
         InfoGridCard(
@@ -536,34 +546,32 @@ private fun InfoGridCard(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-        shadowElevation = 1.dp
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+        shadowElevation = 0.5.dp
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // آیکون در بالا
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(16.dp)
             )
 
-            // متن در پایین
             Text(
                 text = value,
                 style = MaterialTheme.typography.labelSmall,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
@@ -700,7 +708,7 @@ fun SearchAndRefreshSection(
     )
     val coroutineScope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         // فیلد جستجو و دکمه بروزرسانی در یک Row
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1010,37 +1018,65 @@ private fun GroupStats(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceAround
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            StatItem(
-                label = "تعداد",
-                value = count.toString(),
-                icon = Icons.Default.Inventory,
-                showDivider = true
+            // تعداد
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                StatItem(
+                    label = "تعداد",
+                    value = count.toString()
+                )
+            }
+
+            // جداکننده
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(24.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
             )
-            StatItem(
-                label = "مجموع وزن",
-                value = String.format("%,d", totalWeight.toLong()),
-                unit = "کیلوگرم",
-                icon = Icons.Default.Scale,
-                showDivider = true
+
+            // مجموع وزن
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                StatItem(
+                    label = "مجموع وزن",
+                    value = String.format("%,d", totalWeight.toLong())
+                )
+            }
+
+            // جداکننده
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(24.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
             )
-            StatItem(
-                label = "میانگین",
-                value = String.format("%,d", avgWeight.toLong()),
-                unit = "کیلوگرم",
-                icon = Icons.AutoMirrored.Filled.TrendingUp,
-                showDivider = false
-            )
+
+            // میانگین
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                StatItem(
+                    label = "میانگین",
+                    value = String.format("%,d", avgWeight.toLong())
+                )
+            }
         }
     }
 }
@@ -1049,27 +1085,25 @@ private fun GroupStats(
 private fun StatItem(
     label: String,
     value: String,
-    icon: ImageVector,
-    unit: String = "",
-    showDivider: Boolean = false
+    unit: String = ""
 ) {
-    Row(
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(1.dp)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(horizontal = 8.dp)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 9.sp
+        )
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
                 text = value,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -1077,26 +1111,10 @@ private fun StatItem(
                 Text(
                     text = unit,
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 8.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            } else {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
             }
-        }
-
-        if (showDivider) {
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(60.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-            )
         }
     }
 }
@@ -1112,10 +1130,14 @@ fun CargoDetailsDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
+        val windowInfo = LocalWindowInfo.current
+        val density = LocalDensity.current
+        val maxHeight = with(density) { (windowInfo.containerSize.height * 0.85f).toDp() }
+        
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
-                .fillMaxHeight(0.95f),
+                .heightIn(max = maxHeight),
             shape = RoundedCornerShape(24.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
             colors = CardDefaults.cardColors(
@@ -1123,7 +1145,7 @@ fun CargoDetailsDialog(
             )
         ) {
             Column(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxWidth()
             ) {
                 // Header
                 ModernDialogHeader(
@@ -1131,27 +1153,22 @@ fun CargoDetailsDialog(
                     isConfirmed = info.confirm == "تائید شده"
                 )
                 
-                // Scrollable Content
-                LazyColumn(
+                // Content
+                Column(
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(1f, fill = false)
                         .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
                         .padding(horizontal = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    item {
-                        ModernCargoStatusSection(info)
-                    }
+                    ModernCargoStatusSection(info)
                     
-                    item {
-                        ModernWeightInfoSection(info)
-                    }
+                    ModernWeightInfoSection(info)
                     
-                    item {
-                        ModernCargoDetailsGrid(info)
-                    }
+                    ModernCargoDetailsGrid(info)
                     
-                    item { Spacer(modifier = Modifier.height(8.dp)) }
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
                 
                 // Footer
@@ -1180,6 +1197,59 @@ private fun ModernDialogHeader(trackingNumber: String, isConfirmed: Boolean) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top
     ) {
+        // عنوان و badge در راست
+        Column(
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = "حواله $trackingNumber",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = if (isConfirmed)
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                else
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
+                border = BorderStroke(
+                    1.dp,
+                    if (isConfirmed)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    else
+                        MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isConfirmed) Icons.Default.CheckCircle else Icons.Default.Clear,
+                        contentDescription = null,
+                        tint = if (isConfirmed)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = if (isConfirmed) "تأیید شده" else "در انتظار تأیید",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isConfirmed)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+
         // آیکون در چپ
         Surface(
             shape = RoundedCornerShape(12.dp),
@@ -1195,59 +1265,6 @@ private fun ModernDialogHeader(trackingNumber: String, isConfirmed: Boolean) {
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
-            }
-        }
-        
-        // عنوان و badge در راست
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = "حواله $trackingNumber",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = if (isConfirmed) 
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                else 
-                    MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
-                border = BorderStroke(
-                    1.dp,
-                    if (isConfirmed) 
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                    else 
-                        MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
-                )
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isConfirmed) Icons.Default.CheckCircle else Icons.Default.Clear,
-                        contentDescription = null,
-                        tint = if (isConfirmed) 
-                            MaterialTheme.colorScheme.primary
-                        else 
-                            MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = if (isConfirmed) "تایید شده" else "در انتظار تأیید",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = if (isConfirmed) 
-                            MaterialTheme.colorScheme.primary
-                        else 
-                            MaterialTheme.colorScheme.error
-                    )
-                }
             }
         }
     }
@@ -1421,6 +1438,9 @@ private fun ModernWeightInfoSection(info: CargoInfo) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                val hasShortage = info.shortageWeight.isNotBlank() && info.shortageWeight != "0"
+                val hasExcess = info.excessWeight.isNotBlank() && info.excessWeight != "0"
+
                 ModernWeightInfoItem(
                     label = "وزن خالص",
                     value = info.netWeight,
@@ -1428,20 +1448,26 @@ private fun ModernWeightInfoSection(info: CargoInfo) {
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f)
                 )
-                ModernWeightInfoItem(
-                    label = "کسری",
-                    value = info.shortageWeight,
-                    icon = Icons.AutoMirrored.Filled.TrendingDown,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.weight(1f)
-                )
-                ModernWeightInfoItem(
-                    label = "اضافه",
-                    value = info.excessWeight,
-                    icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f)
-                )
+
+                if (hasShortage) {
+                    ModernWeightInfoItem(
+                        label = "کسری",
+                        value = info.shortageWeight,
+                        icon = Icons.AutoMirrored.Filled.TrendingDown,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                if (hasExcess) {
+                    ModernWeightInfoItem(
+                        label = "اضافه",
+                        value = info.excessWeight,
+                        icon = Icons.AutoMirrored.Filled.TrendingUp,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
     }
@@ -1475,24 +1501,16 @@ fun ModernWeightInfoItem(
             
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center
             )
             
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 color = color,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-            
-            Text(
-                text = "کیلوگرم",
-                style = MaterialTheme.typography.labelSmall,
-                fontSize = 9.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 textAlign = TextAlign.Center
             )
         }
@@ -1501,6 +1519,12 @@ fun ModernWeightInfoItem(
 
 @Composable
 private fun ModernCargoDetailsGrid(info: CargoInfo) {
+    var isExpanded by rememberSaveable { mutableStateOf(false) }
+    val rotation by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        label = "rotation"
+    )
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -1511,79 +1535,101 @@ private fun ModernCargoDetailsGrid(info: CargoInfo) {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "جزئیات حواله",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Category,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Text(
+                        text = "جزئیات حواله",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                
                 Icon(
-                    imageVector = Icons.Default.Category,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+                    imageVector = Icons.Default.ExpandMore,
+                    contentDescription = if (isExpanded) "بستن" else "نمایش بیشتر",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .rotate(rotation)
                 )
             }
             
-            Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    ModernInfoCard(
-                        icon = Icons.Default.DirectionsBoat,
-                        label = "نام کشتی",
-                        value = info.shipName,
-                        modifier = Modifier.weight(1f)
-                    )
-                    ModernInfoCard(
-                        icon = Icons.Default.Warehouse,
-                        label = "انبار بارگیری",
-                        value = info.loadingWarehouse,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    ModernInfoCard(
-                        icon = Icons.Default.Category,
-                        label = "نوع کالا",
-                        value = info.cargoType,
-                        modifier = Modifier.weight(1f)
-                    )
-                    ModernInfoCard(
-                        icon = Icons.Default.Business,
-                        label = "شرکت باربری",
-                        value = info.shippingCompany,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    ModernInfoCard(
-                        icon = Icons.Default.ConfirmationNumber,
-                        label = "شماره کوتاژ",
-                        value = info.loadingQuotaNumber,
-                        modifier = Modifier.weight(1f)
-                    )
-                    ModernInfoCard(
-                        icon = Icons.Default.Group,
-                        label = "تعداد نفرات",
-                        value = info.numberOfPeople,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        ModernInfoCard(
+                            icon = Icons.Default.DirectionsBoat,
+                            label = "نام کشتی",
+                            value = info.shipName,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ModernInfoCard(
+                            icon = Icons.Default.Warehouse,
+                            label = "انبار بارگیری",
+                            value = info.loadingWarehouse,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        ModernInfoCard(
+                            icon = Icons.Default.Category,
+                            label = "نوع کالا",
+                            value = info.cargoType,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ModernInfoCard(
+                            icon = Icons.Default.Business,
+                            label = "شرکت باربری",
+                            value = info.shippingCompany,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        ModernInfoCard(
+                            icon = Icons.Default.ConfirmationNumber,
+                            label = "شماره کوتاژ",
+                            value = info.loadingQuotaNumber,
+                            modifier = Modifier.weight(1f)
+                        )
+                        ModernInfoCard(
+                            icon = Icons.Default.Group,
+                            label = "تعداد نفرات",
+                            value = info.numberOfPeople,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
