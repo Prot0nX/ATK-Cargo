@@ -119,6 +119,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Filter
@@ -170,6 +171,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -903,7 +905,7 @@ fun ShipsTabContent(
     } else {
         LazyColumn(
             modifier = modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
             contentPadding = PaddingValues(vertical = 4.dp)
         ) {
             items(ships) { ship ->
@@ -1520,7 +1522,7 @@ fun WarehousesAndQuotasTab(
                 warehousesCount = shipDetails.warehouses.size
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // محتوای انتخاب شده
             when (selectedSection) {
@@ -7801,7 +7803,6 @@ fun QuotaCard(
         elevation = CardDefaults.cardElevation(defaultElevation = if (quota.isActive) 1.dp else 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header: Name and Total Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -7811,14 +7812,25 @@ fun QuotaCard(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    Text(
-                        text = "کوتاژ ${quota.number}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = contentColor,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (quota.isActive) Icons.Default.CheckCircle else Icons.Default.Cancel,
+                            contentDescription = if (quota.isActive) "فعال" else "غیرفعال",
+                            tint = if (quota.isActive) Green600 else Red500,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = quota.number,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = contentColor,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
 
                     val calculatedValues = calculateValues(
                         totalTonnage = quota.totalTonnage,
@@ -8851,6 +8863,7 @@ fun RealTimeLoadingBottomSheet(
     var searchQuery by remember { mutableStateOf("") }
     var thirdPartySearchQuery by remember { mutableStateOf("") }
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val totalEntryVouchers = remember(loadingData) { loadingData.sumOf { it.entryVouchers } }
     val totalExitVouchers = remember(loadingData) { loadingData.sumOf { it.exitVouchers } }
     val totalNetWeight = remember(loadingData) { loadingData.sumOf { it.totalNetWeight.toDouble() }.toFloat() }
@@ -8929,6 +8942,22 @@ fun RealTimeLoadingBottomSheet(
                             onTabSelected = { selectedTabIndex = it },
                             loadingDataCount = filteredLoadingData.size,
                             thirdPartyOrdersCount = filteredThirdPartyOrders.size,
+                            isRefreshing = isRefreshing,
+                            refreshProgress = remainingSeconds / 30f,
+                            onRefreshClick = {
+                                if (!isRefreshing) {
+                                    scope.launch {
+                                        isRefreshing = true
+                                        viewModel.loadRealTimeData(isDarkTheme, defaultColor)
+                                        viewModel.loadThirdPartyOrders()
+                                        onRefresh()
+                                        remainingSeconds = 30
+                                        delay(800)
+                                        isRefreshing = false
+                                        Toast.makeText(context, "اطلاعات بروزرسانی شد", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
                             onShareClick = {
                                 if (selectedTabIndex == 0) {
                                     // تهیه متن اشتراک‌گذاری
@@ -8957,7 +8986,7 @@ fun RealTimeLoadingBottomSheet(
                                         .padding(horizontal = 16.dp)
                                 ) {
                                     // تب اول: اطلاعات فعلی بارگیری
-                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Spacer(modifier = Modifier.height(6.dp))
 
                                     // فیلد جستجو
                                     SearchField(
@@ -8980,7 +9009,7 @@ fun RealTimeLoadingBottomSheet(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(vertical = 12.dp),
+                                            .padding(vertical = 8.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -9014,8 +9043,8 @@ fun RealTimeLoadingBottomSheet(
                                         label = "LoadingDataContent"
                                     ) { targetLoadingData ->
                                         LazyColumn(
-                                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                                            contentPadding = PaddingValues(bottom = 16.dp)
+                                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                                            contentPadding = PaddingValues(bottom = 8.dp)
                                         ) {
                                             items(
                                                 targetLoadingData.groupBy { it.shipName }.toList(),
@@ -9039,14 +9068,12 @@ fun RealTimeLoadingBottomSheet(
                                                         Column(
                                                             modifier = Modifier
                                                                 .fillMaxWidth()
-                                                                .padding(top = 8.dp)
                                                         ) {
                                                             warehouseGroups.forEach { (warehouse, quotas) ->
-                                                                // نمایش نام انبار به صورت badge آبی (rounded-full)
                                                                 Row(
                                                                     modifier = Modifier
                                                                         .fillMaxWidth()
-                                                                        .padding(bottom = 12.dp),
+                                                                        .padding(bottom = 4.dp),
                                                                     horizontalArrangement = Arrangement.Start
                                                                 ) {
                                                                     Surface(
@@ -9662,6 +9689,9 @@ fun ShipCard(
 @Composable
 fun DialogHeader(
     onShareClick: () -> Unit = {},
+    onRefreshClick: () -> Unit = {},
+    isRefreshing: Boolean = false,
+    refreshProgress: Float = 0f,
     selectedTabIndex: Int,
     onTabSelected: (Int) -> Unit,
     loadingDataCount: Int = 0,
@@ -9682,22 +9712,50 @@ fun DialogHeader(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Refresh button (left)
-                IconButton(
-                    onClick = { /* Refresh action handled by parent */ },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            CircleShape
-                        )
+                // Refresh button (left) with Progress Ring
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(44.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "بروزرسانی",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(22.dp)
+                    // نوار پیشرفت حلقوی دایره‌ای دور دکمه
+                    CircularProgressIndicator(
+                        progress = { refreshProgress },
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                        strokeWidth = 2.dp,
+                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
                     )
+
+                    IconButton(
+                        onClick = onRefreshClick,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                CircleShape
+                            )
+                    ) {
+                        val rotation by animateFloatAsState(
+                            targetValue = if (isRefreshing) 360f else 0f,
+                            animationSpec = if (isRefreshing) {
+                                infiniteRepeatable(
+                                    animation = tween(1000, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Restart
+                                )
+                            } else {
+                                tween(300)
+                            },
+                            label = "refresh_rotation"
+                        )
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "بروزرسانی",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .rotate(rotation)
+                        )
+                    }
                 }
 
                 // Title (center)
@@ -9973,7 +10031,7 @@ fun RealTimeLoadingCard(
                             )
                             Text(
                                 text = data.shippingCompany,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -9999,7 +10057,7 @@ fun RealTimeLoadingCard(
                             )
                             Text(
                                 text = formatNumber(data.totalNetWeight),
-                                style = MaterialTheme.typography.bodySmall.copy(textDirection = TextDirection.Ltr),
+                                style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Ltr),
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -10025,7 +10083,7 @@ fun RealTimeLoadingCard(
                             )
                             Text(
                                 text = "${data.exitVouchers} / ${data.entryVouchers}",
-                                style = MaterialTheme.typography.bodySmall.copy(textDirection = TextDirection.Ltr),
+                                style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Ltr),
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -10164,6 +10222,18 @@ fun StatisticItem(
                     verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Text(
+                            text = "kg",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                     Text(
                         text = formatNumber(animatedTotalWeight.toInt()),
                         style = MaterialTheme.typography.headlineLarge,
@@ -10171,18 +10241,6 @@ fun StatisticItem(
                         color = MaterialTheme.colorScheme.onSurface,
                         letterSpacing = (-0.5).sp
                     )
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    ) {
-                        Text(
-                            text = "کیلوگرم",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
                 }
             }
 
@@ -10360,7 +10418,7 @@ fun FloatingActionButton(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f))
+                    .background(Color.Black.copy(alpha = 0.8f))
                     .clickable { expandedFab = false }
             )
         }
@@ -15024,6 +15082,54 @@ private fun EmptyStateCard(
     }
 }
 
+val PERSIAN_MONTHS = listOf(
+    "فروردین", "اردیبهشت", "خرداد",
+    "تیر", "مرداد", "شهریور",
+    "مهر", "آبان", "آذر",
+    "دی", "بهمن", "اسفند"
+)
+
+fun getDaysInPersianMonth(year: Int, month: Int): Int {
+    return when (month) {
+        in 1..6 -> 31
+        in 7..11 -> 30
+        12 -> if (isPersianLeapYear(year)) 30 else 29
+        else -> 30
+    }
+}
+
+fun isPersianLeapYear(year: Int): Boolean {
+    val a = 0.025
+    val b = 266.0
+    val leapYearDays = (year + b) * a
+    return (leapYearDays - leapYearDays.toInt()) < a
+}
+
+@SuppressLint("DefaultLocale")
+fun addOneDayToPersianDate(date: String): String {
+    val parts = date.split("/")
+    if (parts.size != 3) return date
+
+    var year = parts[0].toIntOrNull() ?: return date
+    var month = parts[1].toIntOrNull() ?: return date
+    var day = parts[2].toIntOrNull() ?: return date
+
+    day++
+    val daysInMonth = getDaysInPersianMonth(year, month)
+
+    if (day > daysInMonth) {
+        day = 1
+        month++
+    }
+
+    if (month > 12) {
+        month = 1
+        year++
+    }
+
+    return "%04d/%02d/%02d".format(year, month, day)
+}
+
 @SuppressLint("DefaultLocale")
 @Composable
 fun PersianDateRangePickerDialog(
@@ -15051,239 +15157,117 @@ fun PersianDateRangePickerDialog(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth(0.95f)
-                    .wrapContentHeight(),
-                shape = RoundedCornerShape(24.dp),
+                    .wrapContentHeight()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(Corner3XL),
                 color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
+                tonalElevation = 12.dp,
+                shadowElevation = 8.dp,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(20.dp)
-                        .fillMaxWidth()
+                        .padding(24.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // عنوان دیالوگ
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                    // عنوان دیالوگ مدرن
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 24.dp)
                     ) {
-                        Icon(
-                            Icons.Default.DateRange,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "انتخاب بازه زمانی",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // کارت تاریخ شروع
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Text(
-                                text = "از تاریخ",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                modifier = Modifier.size(56.dp)
                             ) {
-                                // فیلد تاریخ
-                                OutlinedTextField(
-                                    value = startDateText,
-                                    onValueChange = { },
-                                    label = { Text("تاریخ", style = MaterialTheme.typography.labelSmall) },
-                                    enabled = false,
-                                    trailingIcon = {
-                                        Icon(
-                                            Icons.Default.CalendarToday,
-                                            contentDescription = "انتخاب تاریخ",
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    },
-                                    modifier = Modifier
-                                        .weight(0.6f)
-                                        .clickable(
-                                            indication = null,
-                                            interactionSource = remember { MutableInteractionSource() }
-                                        ) { showStartDatePicker = true },
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                        disabledBorderColor = MaterialTheme.colorScheme.primary,
-                                        disabledLabelColor = MaterialTheme.colorScheme.primary,
-                                        disabledTrailingIconColor = MaterialTheme.colorScheme.primary
-                                    )
-                                )
-
-                                // فیلد زمان
-                                OutlinedTextField(
-                                    value = startTimeText,
-                                    onValueChange = { },
-                                    label = { Text("زمان", style = MaterialTheme.typography.labelSmall) },
-                                    enabled = false,
-                                    trailingIcon = {
-                                        Icon(
-                                            Icons.Default.AccessTime,
-                                            contentDescription = "انتخاب زمان",
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    },
-                                    modifier = Modifier
-                                        .weight(0.4f)
-                                        .clickable(
-                                            indication = null,
-                                            interactionSource = remember { MutableInteractionSource() }
-                                        ) { showStartTimePicker = true },
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                        disabledBorderColor = MaterialTheme.colorScheme.primary,
-                                        disabledLabelColor = MaterialTheme.colorScheme.primary,
-                                        disabledTrailingIconColor = MaterialTheme.colorScheme.primary
-                                    )
+                                Icon(
+                                    Icons.Default.DateRange,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(14.dp)
                                 )
                             }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "انتخاب بازه زمانی",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "بازه گزارش مورد نظر خود را مشخص کنید",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // کارت تاریخ پایان
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Text(
-                                text = "تا تاریخ",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                // فیلد تاریخ
-                                OutlinedTextField(
-                                    value = endDateText,
-                                    onValueChange = { },
-                                    label = { Text("تاریخ", style = MaterialTheme.typography.labelSmall) },
-                                    enabled = false,
-                                    trailingIcon = {
-                                        Icon(
-                                            Icons.Default.CalendarToday,
-                                            contentDescription = "انتخاب تاریخ",
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    },
-                                    modifier = Modifier
-                                        .weight(0.6f)
-                                        .clickable(
-                                            indication = null,
-                                            interactionSource = remember { MutableInteractionSource() }
-                                        ) { showEndDatePicker = true },
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                        disabledBorderColor = MaterialTheme.colorScheme.secondary,
-                                        disabledLabelColor = MaterialTheme.colorScheme.secondary,
-                                        disabledTrailingIconColor = MaterialTheme.colorScheme.secondary
-                                    )
-                                )
-
-                                // فیلد زمان
-                                OutlinedTextField(
-                                    value = endTimeText,
-                                    onValueChange = { },
-                                    label = { Text("زمان", style = MaterialTheme.typography.labelSmall) },
-                                    enabled = false,
-                                    trailingIcon = {
-                                        Icon(
-                                            Icons.Default.AccessTime,
-                                            contentDescription = "انتخاب زمان",
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    },
-                                    modifier = Modifier
-                                        .weight(0.4f)
-                                        .clickable(
-                                            indication = null,
-                                            interactionSource = remember { MutableInteractionSource() }
-                                        ) { showEndTimePicker = true },
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                                        disabledBorderColor = MaterialTheme.colorScheme.secondary,
-                                        disabledLabelColor = MaterialTheme.colorScheme.secondary,
-                                        disabledTrailingIconColor = MaterialTheme.colorScheme.secondary
-                                    )
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // دکمه‌های عمل
+                    // بخش انتخاب تاریخ‌ها
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.Start)
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        // بخش شروع
+                        DateTimeSelectionCard(
+                            title = "از تاریخ",
+                            dateValue = startDateText,
+                            timeValue = startTimeText,
+                            icon = Icons.Default.CalendarToday,
+                            accentColor = MaterialTheme.colorScheme.primary,
+                            onDateClick = { showStartDatePicker = true },
+                            onTimeClick = { showStartTimePicker = true },
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        // بخش پایان
+                        DateTimeSelectionCard(
+                            title = "تا تاریخ",
+                            dateValue = endDateText,
+                            timeValue = endTimeText,
+                            icon = Icons.Default.Event,
+                            accentColor = MaterialTheme.colorScheme.secondary,
+                            onDateClick = { showEndDatePicker = true },
+                            onTimeClick = { showEndTimePicker = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(48.dp))
+
+                    // دکمه‌های عمل مدرن
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(24.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            shape = RoundedCornerShape(CornerXL),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                        ) {
+                            Text("انصراف", style = MaterialTheme.typography.titleMedium)
+                        }
+
                         Button(
                             onClick = {
                                 val startDateTime = "$startDateText $startTimeText"
                                 val endDateTime = "$endDateText $endTimeText"
                                 onDateRangeSelected(startDateTime, endDateTime)
                             },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.height(48.dp)
+                            shape = RoundedCornerShape(CornerXL),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                         ) {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
+                            Icon(Icons.Default.Check, null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("تایید")
-                        }
-
-                        OutlinedButton(
-                            onClick = onDismiss,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.height(48.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("لغو")
+                            Text("اعمال فیلتر", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -15294,25 +15278,13 @@ fun PersianDateRangePickerDialog(
         if (showStartDatePicker) {
             DatePickerDialog(
                 isOpen = true,
-                title = "انتخاب تاریخ شروع",
+                title = "تاریخ شروع گزارش",
                 initialDate = startDateText,
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                titleColor = MaterialTheme.colorScheme.primary,
+                accentColor = MaterialTheme.colorScheme.primary,
                 onDismiss = { showStartDatePicker = false },
                 onDateSelected = { date ->
                     startDateText = date
-                    // انتخاب خودکار یک روز بعد برای تاریخ پایان
-                    val dateParts = date.split("/")
-                    val year = dateParts.getOrNull(0)?.toIntOrNull() ?: 1404
-                    val month = dateParts.getOrNull(1)?.toIntOrNull() ?: 1
-                    val day = dateParts.getOrNull(2)?.toIntOrNull() ?: 1
-
-                    // محاسبه یک روز بعد
-                    val nextDay = if (day < 31) day + 1 else 1
-                    val nextMonth = if (day == 31 && month < 12) month + 1 else if (day == 31 && month == 12) 1 else month
-                    val nextYear = if (day == 31 && month == 12) year + 1 else year
-
-                    endDateText = "%04d/%02d/%02d".format(nextYear, nextMonth, nextDay)
+                    endDateText = addOneDayToPersianDate(date)
                     showStartDatePicker = false
                 }
             )
@@ -15322,7 +15294,7 @@ fun PersianDateRangePickerDialog(
         if (showStartTimePicker) {
             TimePickerDialog(
                 isOpen = true,
-                title = "انتخاب زمان شروع",
+                title = "ساعت شروع",
                 initialTime = startTimeText,
                 containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
                 titleColor = MaterialTheme.colorScheme.primary,
@@ -15338,10 +15310,9 @@ fun PersianDateRangePickerDialog(
         if (showEndDatePicker) {
             DatePickerDialog(
                 isOpen = true,
-                title = "انتخاب تاریخ پایان",
+                title = "تاریخ پایان گزارش",
                 initialDate = endDateText,
-                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
-                titleColor = MaterialTheme.colorScheme.secondary,
+                accentColor = MaterialTheme.colorScheme.secondary,
                 minDate = startDateText,
                 onDismiss = { showEndDatePicker = false },
                 onDateSelected = { date ->
@@ -15355,7 +15326,7 @@ fun PersianDateRangePickerDialog(
         if (showEndTimePicker) {
             TimePickerDialog(
                 isOpen = true,
-                title = "انتخاب زمان پایان",
+                title = "ساعت پایان",
                 initialTime = endTimeText,
                 containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
                 titleColor = MaterialTheme.colorScheme.secondary,
@@ -15369,31 +15340,133 @@ fun PersianDateRangePickerDialog(
     }
 }
 
+@Composable
+fun DateTimeSelectionCard(
+    title: String,
+    dateValue: String,
+    timeValue: String,
+    icon: ImageVector,
+    accentColor: Color,
+    onDateClick: () -> Unit,
+    onTimeClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = accentColor,
+            modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+        )
+        
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(CornerXL),
+            color = accentColor.copy(alpha = 0.05f),
+            border = BorderStroke(1.dp, accentColor.copy(alpha = 0.2f))
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                // دکمه تاریخ
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(CornerL))
+                        .clickable { onDateClick() }
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(icon, null, tint = accentColor, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = dateValue,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    color = accentColor.copy(alpha = 0.1f)
+                )
+                
+                // دکمه ساعت
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(CornerL))
+                        .clickable { onTimeClick() }
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.AccessTime, null, tint = accentColor, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = timeValue,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
 @SuppressLint("DefaultLocale")
 @Composable
 fun DatePickerDialog(
     isOpen: Boolean,
     title: String,
     initialDate: String,
-    containerColor: Color,
-    titleColor: Color,
+    accentColor: Color,
     minDate: String? = null,
     onDismiss: () -> Unit,
     onDateSelected: (date: String) -> Unit
 ) {
     if (isOpen) {
-        // Parse initial date
         val dateParts = initialDate.split("/")
-
-        // State variables
         var selectedYear by remember { mutableIntStateOf(dateParts.getOrNull(0)?.toIntOrNull() ?: 1404) }
         var selectedMonth by remember { mutableIntStateOf(dateParts.getOrNull(1)?.toIntOrNull() ?: 1) }
         var selectedDay by remember { mutableIntStateOf(dateParts.getOrNull(2)?.toIntOrNull() ?: 1) }
 
-        // Lists for scrollable selectors
         val years = (1403..1410).toList()
-        val months = (1..12).toList()
-        val days = (1..31).toList()
+
+        val yearListState = rememberLazyListState()
+        val monthListState = rememberLazyListState()
+        val dayListState = rememberLazyListState()
+
+        // Auto-center year
+        LaunchedEffect(selectedYear, isOpen) {
+            val index = years.indexOf(selectedYear)
+            if (index >= 0) {
+                delay(100)
+                val viewportWidth = yearListState.layoutInfo.viewportSize.width
+                val itemWidth = yearListState.layoutInfo.visibleItemsInfo.find { it.index == index }?.size ?: 0
+                yearListState.animateScrollToItem(index, -(viewportWidth / 2) + (itemWidth / 2))
+            }
+        }
+
+        // Auto-center month
+        LaunchedEffect(selectedMonth, isOpen) {
+            val index = selectedMonth - 1
+            if (index >= 0) {
+                delay(100)
+                val viewportWidth = monthListState.layoutInfo.viewportSize.width
+                val itemWidth = monthListState.layoutInfo.visibleItemsInfo.find { it.index == index }?.size ?: 0
+                monthListState.animateScrollToItem(index, -(viewportWidth / 2) + (itemWidth / 2))
+            }
+        }
+
+        // Auto-center day
+        LaunchedEffect(selectedDay, isOpen) {
+            val index = selectedDay - 1
+            if (index >= 0) {
+                delay(100)
+                val viewportWidth = dayListState.layoutInfo.viewportSize.width
+                val itemWidth = dayListState.layoutInfo.visibleItemsInfo.find { it.index == index }?.size ?: 0
+                dayListState.animateScrollToItem(index, -(viewportWidth / 2) + (itemWidth / 2))
+            }
+        }
 
         Dialog(
             onDismissRequest = onDismiss,
@@ -15401,28 +15474,239 @@ fun DatePickerDialog(
         ) {
             Surface(
                 modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .wrapContentHeight(),
-                shape = RoundedCornerShape(24.dp),
+                    .fillMaxWidth(0.92f)
+                    .wrapContentHeight()
+                    .padding(vertical = 16.dp),
+                shape = RoundedCornerShape(Corner3XL),
                 color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
+                tonalElevation = 16.dp,
+                shadowElevation = 12.dp
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(20.dp)
+                        .padding(24.dp)
                         .fillMaxWidth()
                 ) {
-                    // عنوان دیالوگ
+                    // Header
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(
-                            Icons.Default.CalendarToday,
-                            contentDescription = null,
-                            tint = titleColor,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Column {
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "%04d/%02d/%02d".format(selectedYear, selectedMonth, selectedDay),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Black,
+                                color = accentColor
+                            )
+                        }
+                        Surface(
+                            shape = CircleShape,
+                            color = accentColor.copy(alpha = 0.1f)
+                        ) {
+                            Icon(
+                                Icons.Default.CalendarToday,
+                                contentDescription = null,
+                                tint = accentColor,
+                                modifier = Modifier.padding(12.dp).size(24.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Year Selector
+                    Text(
+                        text = "سال",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    LazyRow(
+                        state = yearListState,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
+                        items(years) { year ->
+                            val isSelected = year == selectedYear
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { selectedYear = year },
+                                label = { Text(year.toString()) },
+                                shape = RoundedCornerShape(CornerL),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = accentColor,
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Month Selector (Horizontal)
+                    Text(
+                        text = "ماه",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    LazyRow(
+                        state = monthListState,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
+                        items(12) { index ->
+                            val month = index + 1
+                            val isSelected = month == selectedMonth
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { selectedMonth = month },
+                                label = { Text(PERSIAN_MONTHS[index]) },
+                                shape = RoundedCornerShape(CornerL),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = accentColor,
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Day Selector (Horizontal)
+                    Text(
+                        text = "روز",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    val daysInMonth = getDaysInPersianMonth(selectedYear, selectedMonth)
+                    if (selectedDay > daysInMonth) selectedDay = daysInMonth
+
+                    LazyRow(
+                        state = dayListState,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
+                        items(daysInMonth) { index ->
+                            val day = index + 1
+                            val isSelected = day == selectedDay
+                            
+                            val isEnabled = minDate?.let { minD ->
+                                val minParts = minD.split("/")
+                                val minYear = minParts[0].toInt()
+                                val minMonth = minParts[1].toInt()
+                                val minDay = minParts[2].toInt()
+                                
+                                when {
+                                    selectedYear > minYear -> true
+                                    selectedYear < minYear -> false
+                                    selectedMonth > minMonth -> true
+                                    selectedMonth < minMonth -> false
+                                    else -> day >= minDay
+                                }
+                            } ?: true
+
+                            FilterChip(
+                                selected = isSelected,
+                                enabled = isEnabled,
+                                onClick = { selectedDay = day },
+                                label = { Text(day.toString()) },
+                                shape = CircleShape,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = accentColor,
+                                    selectedLabelColor = Color.White,
+                                    disabledLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(28.dp))
+
+                    // Actions
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            shape = RoundedCornerShape(CornerL)
+                        ) {
+                            Text("انصراف")
+                        }
+                        Button(
+                            onClick = {
+                                val date = "%04d/%02d/%02d".format(selectedYear, selectedMonth, selectedDay)
+                                onDateSelected(date)
+                            },
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            shape = RoundedCornerShape(CornerL)
+                        ) {
+                            Text("انتخاب")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@SuppressLint("DefaultLocale")
+@Composable
+fun TimePickerDialog(
+    isOpen: Boolean,
+    title: String,
+    initialTime: String,
+    containerColor: Color,
+    titleColor: Color,
+    onDismiss: () -> Unit,
+    onTimeSelected: (time: String) -> Unit
+) {
+    if (isOpen) {
+        // Parse initial time
+        val timeParts = initialTime.split(":")
+        var selectedHour by remember { mutableIntStateOf(timeParts.getOrNull(0)?.toIntOrNull() ?: 8) }
+        var selectedMinute by remember { mutableIntStateOf(timeParts.getOrNull(1)?.toIntOrNull() ?: 0) }
+
+        val hours = (0..23).toList()
+        val minutes = (0..59).toList()
+
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .wrapContentHeight(),
+                shape = RoundedCornerShape(Corner3XL),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 12.dp,
+                shadowElevation = 8.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp).fillMaxWidth()
+                ) {
+                    // Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(Icons.Default.AccessTime, null, tint = titleColor, modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = title,
@@ -15432,137 +15716,70 @@ fun DatePickerDialog(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                    // کارت انتخاب تاریخ
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = containerColor
-                        ),
-                        shape = RoundedCornerShape(16.dp)
+                    // Time Value Display
+                    Surface(
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        shape = RoundedCornerShape(CornerXL),
+                        color = containerColor
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                // روز
-                                ScrollableSelector(
-                                    label = "روز",
-                                    items = days,
-                                    selectedItem = selectedDay,
-                                    onItemSelected = { selectedDay = it },
-                                    modifier = Modifier.weight(1f),
-                                    formatItem = { "%02d".format(it) }
-                                )
-
-                                // ماه
-                                ScrollableSelector(
-                                    label = "ماه",
-                                    items = months,
-                                    selectedItem = selectedMonth,
-                                    onItemSelected = { selectedMonth = it },
-                                    modifier = Modifier.weight(1f),
-                                    formatItem = { "%02d".format(it) }
-                                )
-
-                                // سال
-                                ScrollableSelector(
-                                    label = "سال",
-                                    items = years,
-                                    selectedItem = selectedYear,
-                                    onItemSelected = { selectedYear = it },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
+                        Text(
+                            text = "%02d:%02d".format(selectedHour, selectedMinute),
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Black,
+                            color = titleColor,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                    // بررسی validation
-                    val currentDate = "%04d/%02d/%02d".format(selectedYear, selectedMonth, selectedDay)
-
-                    val isValidDate = minDate?.let { minD ->
-                        val minDateParts = minD.split("/")
-                        val minYear = minDateParts.getOrNull(0)?.toIntOrNull() ?: 1404
-                        val minMonth = minDateParts.getOrNull(1)?.toIntOrNull() ?: 1
-                        val minDay = minDateParts.getOrNull(2)?.toIntOrNull() ?: 1
-
-                        // محاسبه کل روزها برای مقایسه
-                        val currentTotalDays = (selectedYear * 365) + (selectedMonth * 30) + selectedDay
-                        val minTotalDays = (minYear * 365) + (minMonth * 30) + minDay
-
-                        currentTotalDays >= minTotalDays
-                    } != false
-
-                    // نمایش پیام خطا در صورت نامعتبر بودن
-                    if (!isValidDate) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
-                            ),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "تاریخ پایان باید بیشتر یا مساوی تاریخ شروع باشد",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // دکمه‌های عمل
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.Start)
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        ScrollableSelector(
+                            label = "ساعت",
+                            items = hours,
+                            selectedItem = selectedHour,
+                            onItemSelected = { selectedHour = it },
+                            modifier = Modifier.weight(1f),
+                            formatItem = { "%02d".format(it) }
+                        )
+
+                        ScrollableSelector(
+                            label = "دقیقه",
+                            items = minutes,
+                            selectedItem = selectedMinute,
+                            onItemSelected = { selectedMinute = it },
+                            modifier = Modifier.weight(1f),
+                            formatItem = { "%02d".format(it) }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // Actions
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Button(
                             onClick = {
-                                onDateSelected(currentDate)
+                                onTimeSelected("%02d:%02d".format(selectedHour, selectedMinute))
                             },
-                            enabled = isValidDate,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.height(48.dp)
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            shape = RoundedCornerShape(CornerL)
                         ) {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("تایید")
+                            Text("انتخاب")
                         }
-
                         OutlinedButton(
                             onClick = onDismiss,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.height(48.dp)
+                            modifier = Modifier.weight(1f).height(48.dp),
+                            shape = RoundedCornerShape(CornerL)
                         ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("لغو")
+                            Text("انصراف")
                         }
                     }
                 }
@@ -15607,88 +15824,51 @@ fun ScrollableSelector(
             ) {
                 val density = LocalDensity.current
                 val selectedIndex = items.indexOf(selectedItem)
-                val itemHeight = 40.dp // ارتفاع هر آیتم
-                val visibleItemsCount = 3 // تعداد آیتم‌های قابل مشاهده
+                val itemHeight = 40.dp
+                val visibleItemsCount = 3
                 val viewportHeight = 140.dp
-                val centerOffset = visibleItemsCount / 2 // آفست برای قرار دادن در وسط (1)
+                val centerOffset = visibleItemsCount / 2
                 val viewportCenterY = with(density) { viewportHeight.toPx() / 2f }
 
                 val listState = rememberLazyListState(
                     initialFirstVisibleItemIndex = if (selectedIndex >= 0) maxOf(0, selectedIndex - centerOffset) else 0
                 )
 
-                // تنظیم موقعیت اولیه برای قرار دادن آیتم انتخابی در وسط
                 LaunchedEffect(Unit) {
                     if (selectedIndex >= 0) {
-                        delay(50) // کمی تاخیر برای اطمینان از layout
+                        delay(50)
                         val layoutInfo = listState.layoutInfo
                         val targetItem = layoutInfo.visibleItemsInfo.firstOrNull { it.index == selectedIndex }
                         if (targetItem != null) {
-                            // محاسبه موقعیت مرکز آیتم
                             val itemCenter = targetItem.offset + targetItem.size / 2f
-                            // محاسبه offset برای قرار دادن مرکز آیتم در مرکز viewport
                             val scrollOffset = itemCenter - viewportCenterY
                             if (abs(scrollOffset) > 1f) {
                                 listState.animateScrollBy(scrollOffset)
-                            }
-                        } else {
-                            // اگر آیتم در viewport نیست، ابتدا به آن اسکرول می‌کنیم
-                            listState.animateScrollToItem(maxOf(0, selectedIndex - centerOffset))
-                            delay(100)
-                            // سپس تنظیم دقیق برای قرار دادن در وسط
-                            val layoutInfoAfter = listState.layoutInfo
-                            val targetItemAfter = layoutInfoAfter.visibleItemsInfo.firstOrNull { it.index == selectedIndex }
-                            targetItemAfter?.let {
-                                val itemCenter = it.offset + it.size / 2f
-                                val scrollOffset = itemCenter - viewportCenterY
-                                if (abs(scrollOffset) > 1f) {
-                                    listState.animateScrollBy(scrollOffset)
-                                }
                             }
                         }
                     }
                 }
 
-                // اسکرول به مقدار انتخابی هنگام تغییر
                 LaunchedEffect(selectedItem) {
                     val newIndex = items.indexOf(selectedItem)
                     if (newIndex >= 0) {
                         val layoutInfo = listState.layoutInfo
                         val targetItem = layoutInfo.visibleItemsInfo.firstOrNull { it.index == newIndex }
                         if (targetItem != null) {
-                            // محاسبه موقعیت مرکز آیتم
                             val itemCenter = targetItem.offset + targetItem.size / 2f
-                            // محاسبه offset برای قرار دادن مرکز آیتم در مرکز viewport
                             val scrollOffset = itemCenter - viewportCenterY
                             if (abs(scrollOffset) > 1f) {
                                 listState.animateScrollBy(scrollOffset)
-                            }
-                        } else {
-                            // اگر آیتم در viewport نیست، ابتدا به آن اسکرول می‌کنیم
-                            listState.animateScrollToItem(maxOf(0, newIndex - centerOffset))
-                            delay(100)
-                            // سپس تنظیم دقیق برای قرار دادن در وسط
-                            val layoutInfoAfter = listState.layoutInfo
-                            val targetItemAfter = layoutInfoAfter.visibleItemsInfo.firstOrNull { it.index == newIndex }
-                            targetItemAfter?.let {
-                                val itemCenter = it.offset + it.size / 2f
-                                val scrollOffset = itemCenter - viewportCenterY
-                                if (abs(scrollOffset) > 1f) {
-                                    listState.animateScrollBy(scrollOffset)
-                                }
                             }
                         }
                     }
                 }
 
-                // شناسایی مقدار وسط هنگام اسکرول دستی
                 LaunchedEffect(listState.isScrollInProgress) {
                     if (!listState.isScrollInProgress) {
                         val layoutInfo = listState.layoutInfo
-                        val viewportHeightPx = layoutInfo.viewportSize.height
-                        val viewportCenterYPx = viewportHeightPx / 2f
+                        val viewportCenterYPx = layoutInfo.viewportSize.height / 2f
 
-                        // پیدا کردن آیتمی که نزدیک‌ترین به وسط است
                         val centerItem = layoutInfo.visibleItemsInfo.minByOrNull { itemInfo ->
                             val itemCenter = itemInfo.offset + itemInfo.size / 2f
                             abs(itemCenter - viewportCenterYPx)
@@ -15721,9 +15901,7 @@ fun ScrollableSelector(
                             Text(
                                 text = formatItem(item),
                                 style = if (isSelected) {
-                                    MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                                 } else {
                                     MaterialTheme.typography.bodyLarge
                                 },
@@ -15737,173 +15915,21 @@ fun ScrollableSelector(
                     }
                 }
 
-                // خط‌های راهنما برای نشان دادن ناحیه انتخاب
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(itemHeight)
-                        .align(Alignment.Center)
+                    modifier = Modifier.fillMaxWidth().height(itemHeight).align(Alignment.Center)
                 ) {
                     // خط بالا
                     HorizontalDivider(
-                        modifier = Modifier
-                            .fillMaxWidth(0.8f)
-                            .align(Alignment.TopCenter),
+                        modifier = Modifier.fillMaxWidth(0.8f).align(Alignment.TopCenter),
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                         thickness = 1.dp
                     )
                     // خط پایین
                     HorizontalDivider(
-                        modifier = Modifier
-                            .fillMaxWidth(0.8f)
-                            .align(Alignment.BottomCenter),
+                        modifier = Modifier.fillMaxWidth(0.8f).align(Alignment.BottomCenter),
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
                         thickness = 1.dp
                     )
-                }
-            }
-        }
-    }
-}
-
-@SuppressLint("DefaultLocale")
-@Composable
-fun TimePickerDialog(
-    isOpen: Boolean,
-    title: String,
-    initialTime: String,
-    containerColor: Color,
-    titleColor: Color,
-    onDismiss: () -> Unit,
-    onTimeSelected: (time: String) -> Unit
-) {
-    if (isOpen) {
-        // Parse initial time
-        val timeParts = initialTime.split(":")
-
-        // State variables
-        var selectedHour by remember { mutableIntStateOf(timeParts.getOrNull(0)?.toIntOrNull() ?: 8) }
-        var selectedMinute by remember { mutableIntStateOf(timeParts.getOrNull(1)?.toIntOrNull() ?: 0) }
-
-        // Lists for scrollable selectors
-        val hours = (0..23).toList()
-        val minutes = (0..59).toList()
-
-        Dialog(
-            onDismissRequest = onDismiss,
-            properties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .wrapContentHeight(),
-                shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(20.dp)
-                        .fillMaxWidth()
-                ) {
-                    // عنوان دیالوگ
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.AccessTime,
-                            contentDescription = null,
-                            tint = titleColor,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = titleColor
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // کارت انتخاب زمان
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = containerColor
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                // دقیقه
-                                ScrollableSelector(
-                                    label = "دقیقه",
-                                    items = minutes,
-                                    selectedItem = selectedMinute,
-                                    onItemSelected = { selectedMinute = it },
-                                    modifier = Modifier.weight(1f),
-                                    formatItem = { "%02d".format(it) }
-                                )
-
-                                // ساعت
-                                ScrollableSelector(
-                                    label = "ساعت",
-                                    items = hours,
-                                    selectedItem = selectedHour,
-                                    onItemSelected = { selectedHour = it },
-                                    modifier = Modifier.weight(1f),
-                                    formatItem = { "%02d".format(it) }
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // دکمه‌های عمل
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.Start)
-                    ) {
-                        Button(
-                            onClick = {
-                                val currentTime = "%02d:%02d".format(selectedHour, selectedMinute)
-                                onTimeSelected(currentTime)
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.height(48.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("تایید")
-                        }
-
-                        OutlinedButton(
-                            onClick = onDismiss,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.height(48.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("لغو")
-                        }
-                    }
                 }
             }
         }
