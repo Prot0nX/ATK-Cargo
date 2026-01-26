@@ -530,6 +530,56 @@ fun AnimatedHeader(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Right Side: Title and Subtitle
+                Column(
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        text = "بارگیری‌های فعال",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = (-0.5).sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (selectedShipsCount > 0) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                shape = CircleShape,
+                                modifier = Modifier.padding(top = 4.dp)
+                            ) {
+                                Text(
+                                    text = "$selectedShipsCount انتخاب شده",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        
+                        Icon(
+                            imageVector = Icons.Default.DirectionsBoat,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        
+                        Text(
+                            text = "$shipCount کوتاژ فعال",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
                 // Left Side: Buttons
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -594,56 +644,6 @@ fun AnimatedHeader(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    }
-                }
-
-                // Right Side: Title and Subtitle
-                Column(
-                    horizontalAlignment = Alignment.End
-                ) {
-                    Text(
-                        text = "بارگیری‌های فعال",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.5).sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (selectedShipsCount > 0) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.tertiaryContainer,
-                                shape = CircleShape,
-                                modifier = Modifier.padding(top = 4.dp)
-                            ) {
-                                Text(
-                                    text = "$selectedShipsCount انتخاب شده",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                        
-                        Icon(
-                            imageVector = Icons.Default.DirectionsBoat,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        
-                        Text(
-                            text = "$shipCount کوتاژ فعال",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
                 }
             }
@@ -3320,15 +3320,15 @@ fun ShipSelectionDialog(
                 // Header Animation
                 Box(
                     modifier = Modifier
-                        .size(80.dp)
+                        .size(64.dp)
                         .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f), CircleShape)
-                        .padding(16.dp),
+                            .padding(4.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     LottieAnimation(
                         composition = composition,
                         progress = { lottieAnimatable.progress },
-                        modifier = Modifier.size(64.dp)
+                        modifier = Modifier.size(56.dp)
                     )
                 }
 
@@ -3336,7 +3336,7 @@ fun ShipSelectionDialog(
 
                 // Title Section
                 Text(
-                    text = "انتخاب کشتی‌ها",
+                    text = "انتخاب کشتی‌",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
@@ -3344,16 +3344,16 @@ fun ShipSelectionDialog(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "کشتی‌های مورد نظر خود را برای نمایش انتخاب کنید",
+                    text = "کشتی‌ مورد نظر خود را برای نمایش انتخاب کنید",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Search Bar
                 OutlinedTextField(
@@ -3418,7 +3418,7 @@ fun ShipSelectionDialog(
                             }
                         ) {
                             Row(
-                                modifier = Modifier.padding(12.dp),
+                                modifier = Modifier.padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 // Icon Box
@@ -3439,7 +3439,7 @@ fun ShipSelectionDialog(
                                     )
                                 }
                                 
-                                Spacer(modifier = Modifier.width(16.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
                                 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
@@ -3475,7 +3475,7 @@ fun ShipSelectionDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Action Buttons
                 Row(

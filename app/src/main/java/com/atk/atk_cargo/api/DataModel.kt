@@ -491,8 +491,6 @@ class CargoViewModel(
 
     private suspend fun validateQuotaStatusAndPercentage(initialInfo: InitialInfo): QuotaValidationResult {
         try {
-            Log.d("ATK-Log", "CargoViewModel: validateQuotaStatusAndPercentage started for Quota: ${initialInfo.loadingQuotaNumber}")
-            
             // مرحله 1: بررسی وضعیت کوتاژ (فعال/غیرفعال)
             val quotaStatus = repository.checkQuotaStatus(
                 quotaNumber = initialInfo.loadingQuotaNumber.toString(),
@@ -500,7 +498,6 @@ class CargoViewModel(
                 cargoType = initialInfo.cargoType,
                 shippingCompany = initialInfo.shippingCompany
             )
-            Log.d("ATK-Log", "CargoViewModel: Quota status check - isActive=${quotaStatus.isActive}, status=${quotaStatus.status}")
 
             // اگر کوتاژ غیرفعال است، بلافاصله برگردانیم
             if (!quotaStatus.isActive) {
@@ -514,7 +511,6 @@ class CargoViewModel(
             }
 
             // مرحله 2: بررسی درصد مجاز (فقط اگر کوتاژ فعال باشد)
-            Log.d("ATK-Log", "CargoViewModel: Checking quota percentage limit...")
             val response = apiService.getShipQuotas(shipName = initialInfo.shipName)
             
             if (response.isSuccessful) {
@@ -524,13 +520,11 @@ class CargoViewModel(
                 if (quota != null && quota.isPercentageRestricted == true && quota.percentage != null) {
                     val percentageAmount = quota.totalTonnage * (quota.percentage / 100)
                     val remainingTonnage = quota.remainingTonnage
-                    Log.d("ATK-Log", "CargoViewModel: Percentage Check - Limit: $percentageAmount, Remaining: $remainingTonnage")
 
                     // اگر به حد نصاب رسیده باشد
                     if (remainingTonnage <= percentageAmount) {
                         val warningMessage = "کوتاژ ${quota.number} به حد نصاب ${quota.percentage}% رسیده است و غیرفعال خواهد شد"
-                        Log.d("ATK-Log", "CargoViewModel: Percentage limit reached! Deactivating quota...")
-                        
+
                         // نمایش پیام هشدار
                         _resultMessage.value = warningMessage
                         _showAnimatedMessage.value = true
@@ -556,7 +550,6 @@ class CargoViewModel(
             }
 
             // همه چیز مجاز است
-            Log.d("ATK-Log", "CargoViewModel: Quota validation passed successfully")
             return QuotaValidationResult(
                 isValid = true,
                 isActive = true,
@@ -566,7 +559,6 @@ class CargoViewModel(
             )
 
         } catch (e: Exception) {
-            Log.e("ATK-Log", "CargoViewModel: Exception in validateQuotaStatusAndPercentage: ${e.message}", e)
             return QuotaValidationResult(
                 isValid = false,
                 isActive = false,
