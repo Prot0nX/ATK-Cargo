@@ -46,6 +46,7 @@ play-services-mlkit-barcode-scanning = "18.3.1"
 poi = "5.4.1"
 poi-ooxml = "5.4.1"
 retrofit = "3.0.0"
+room = "2.7.0"
 okhttp = "5.1.0"
 
 # Testing
@@ -124,6 +125,11 @@ ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negoti
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor-client-core" }
 lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie-compose" }
 material = { module = "com.google.android.material:material", version.ref = "google-material" }
+
+# Room
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 
 # Networking
 play-services-mlkit-barcode-scanning = { module = "com.google.android.gms:play-services-mlkit-barcode-scanning", version.ref = "play-services-mlkit-barcode-scanning" }

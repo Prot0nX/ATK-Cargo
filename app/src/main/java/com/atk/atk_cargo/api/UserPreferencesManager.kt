@@ -175,6 +175,52 @@ class UserPreferencesManager(private val context: Context) {
         context.getSharedPreferences("LoadingCheckPrefs", Context.MODE_PRIVATE).edit().clear().apply()
     }
 
+    val chatFontSize = dataStore.data
+        .map { preferences ->
+            preferences[CHAT_FONT_SIZE_KEY] ?: 14
+        }
+
+    val chatMyBubbleColor = dataStore.data
+        .map { preferences ->
+            preferences[CHAT_MY_BUBBLE_COLOR_KEY] ?: 0xFF1E88E5 // Blue
+        }
+
+    val chatOtherBubbleColor = dataStore.data
+        .map { preferences ->
+            preferences[CHAT_OTHER_BUBBLE_COLOR_KEY] ?: 0xFFFFFFFF // White
+        }
+
+    suspend fun saveChatSettings(fontSize: Int, myColor: Long, otherColor: Long, backgroundId: Int, bubbleShape: Int) {
+        dataStore.edit { preferences ->
+            preferences[CHAT_FONT_SIZE_KEY] = fontSize
+            preferences[CHAT_MY_BUBBLE_COLOR_KEY] = myColor
+            preferences[CHAT_OTHER_BUBBLE_COLOR_KEY] = otherColor
+            preferences[CHAT_BACKGROUND_ID_KEY] = backgroundId
+            preferences[CHAT_BUBBLE_SHAPE_KEY] = bubbleShape
+        }
+    }
+
+    val chatBackgroundId = dataStore.data
+        .map { preferences ->
+            preferences[CHAT_BACKGROUND_ID_KEY] ?: 0
+        }
+
+    val chatBubbleShape = dataStore.data
+        .map { preferences ->
+            preferences[CHAT_BUBBLE_SHAPE_KEY] ?: 0
+        }
+
+    val lastNotifiedMessageId = dataStore.data
+        .map { preferences ->
+            preferences[LAST_NOTIFIED_MESSAGE_ID_KEY] ?: 0
+        }
+
+    suspend fun saveLastNotifiedMessageId(id: Int) {
+        dataStore.edit { preferences ->
+            preferences[LAST_NOTIFIED_MESSAGE_ID_KEY] = id
+        }
+    }
+
     companion object {
         private val USERNAME_KEY = stringPreferencesKey("username")
         private val USER_TYPE_KEY = stringPreferencesKey("user_type")
@@ -184,5 +230,28 @@ class UserPreferencesManager(private val context: Context) {
         private val DEVICE_SPECS_KEY = stringPreferencesKey("device_specs")
         private val SCORE_TIMESTAMP_KEY = longPreferencesKey("score_timestamp")
         private val IS_LOGGED_IN_KEY = booleanPreferencesKey("is_logged_in")
+        
+        // Chat Settings
+        private val CHAT_FONT_SIZE_KEY = intPreferencesKey("chat_font_size")
+        private val CHAT_MY_BUBBLE_COLOR_KEY = longPreferencesKey("chat_my_bubble_color")
+
+        private val CHAT_OTHER_BUBBLE_COLOR_KEY = longPreferencesKey("chat_other_bubble_color")
+        private val CHAT_BACKGROUND_ID_KEY = intPreferencesKey("chat_background_id")
+        private val CHAT_BUBBLE_SHAPE_KEY = intPreferencesKey("chat_bubble_shape")
+        
+        // Notification
+        private val LAST_NOTIFIED_MESSAGE_ID_KEY = intPreferencesKey("last_notified_message_id")
+        private val LAST_READ_MESSAGE_ID_KEY = intPreferencesKey("last_read_message_id")
+    }
+
+    val lastReadMessageId = dataStore.data
+        .map { preferences ->
+            preferences[LAST_READ_MESSAGE_ID_KEY] ?: 0
+        }
+
+    suspend fun saveLastReadMessageId(id: Int) {
+        dataStore.edit { preferences ->
+            preferences[LAST_READ_MESSAGE_ID_KEY] = id
+        }
     }
 }
