@@ -50,7 +50,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -198,6 +197,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.atk.atk_cargo.api.CargoViewModel
 import com.atk.atk_cargo.api.CargoViewModelFactory
 import com.atk.atk_cargo.api.CreateUserRequest
@@ -224,6 +226,7 @@ import com.atk.atk_cargo.weather.MusicLibraryManager
 import com.atk.atk_cargo.weather.SecurityBlockScreen
 import com.atk.atk_cargo.weather.SecurityErrorType
 import com.atk.atk_cargo.weather.VersionExpiredDialog
+import com.atk.atk_cargo.workers.ChatNotificationWorker
 import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.CoroutineScope
@@ -237,6 +240,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLDecoder
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     private var updateInfo by mutableStateOf<UpdateInfo?>(null)
@@ -253,6 +257,7 @@ class MainActivity : ComponentActivity() {
     private var isSecurityCheckLoading by mutableStateOf(true)
     private var securityErrorType by mutableStateOf<SecurityErrorType?>(null)
     var shouldOpenWarningsDialog by mutableStateOf(false)
+    var pendingNavigationDestination by mutableStateOf<String?>(null)
     val isSessionValid: StateFlow<Boolean> = _isSessionValid.asStateFlow()
 
     @SuppressLint("CoroutineCreationDuringComposition", "BatteryLife")
@@ -264,6 +269,10 @@ class MainActivity : ComponentActivity() {
 
             // بررسی intent برای باز کردن دیالوگ هشدار تناژ کوتاژ
             handleIntent(intent)
+            intent.getStringExtra("navigate_to")?.let { 
+                pendingNavigationDestination = it
+                intent.removeExtra("navigate_to")
+            }
 
             setContent {
                 ATKCargoTheme {
@@ -293,11 +302,11 @@ class MainActivity : ComponentActivity() {
                         // بررسی هشدارهای تناژ کوتاژ
                         checkTonnageWarnings()
 
-                        // راه‌اندازی سرویس نوتیفیکیشن بارگیری لحظه‌ای
-                        startLoadingNotificationService()
-
                         // نمایش محتوای اصلی
                         showMainContent = true
+                        
+                        // بررسی نشست کاربر و راه‌اندازی سرویس‌ها بعد از نمایش صفحه اصلی
+                        checkUserSession()
 
                         // تاخیر طولانی‌تر قبل از شروع سرویس‌ها
                         delay(3000)
@@ -383,7 +392,6 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(Unit) {
                         handleIntent(intent)
-                        checkUserSession()
                     }
                 }
             }
@@ -561,7 +569,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         handleIntent(intent)
+        
+        // Handle navigation intent
+        intent.getStringExtra("navigate_to")?.let { destination ->
+            pendingNavigationDestination = destination
+            intent.removeExtra("navigate_to")
+        }
     }
 
     private fun handleIntent(intent: Intent?) {
@@ -635,16 +650,38 @@ class MainActivity : ComponentActivity() {
                 // شروع سرویس فقط برای کاربران admin
                 Log.d("MainActivity", "User is admin, starting loading notification service")
                 LoadingNotificationService.startLoadingNotification(this@MainActivity)
+                
+                // شروع ورکر نوتیفیکیشن چت
+                startChatNotificationWorker()
             } else {
                 Log.d("MainActivity", "User is not admin, skipping notification service")
                 // اطمینان از توقف سرویس اگر قبلاً اجرا شده است
                 val intent = Intent(this@MainActivity, LoadingNotificationService::class.java)
                 intent.action = "STOP_SERVICE"
                 startService(intent)
+                
+                // برای کاربران عادی هم ورکر چت را اجرا می‌کنیم (برای منشن شدن)
+                startChatNotificationWorker()
             }
         }
 
 
+    }
+
+    private fun startChatNotificationWorker() {
+        val constraints = androidx.work.Constraints.Builder()
+            .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+            .build()
+
+        val workRequest = PeriodicWorkRequestBuilder<ChatNotificationWorker>(15, TimeUnit.MINUTES)
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+            "ChatNotificationWorker",
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
     }
 
     private fun checkNotificationPermission() {
@@ -1227,6 +1264,18 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
     val isSessionValid by mainActivity.isSessionValid.collectAsState()
     val tonnageWarningsCount by TonnageWarningService.warningsCount.collectAsState()
 
+    // Handle Deep Link Navigation Globally
+    LaunchedEffect(mainActivity.pendingNavigationDestination, isSessionValid) {
+        if (isSessionValid && mainActivity.pendingNavigationDestination == "admin_chat") {
+            try {
+                navController.navigate("admin_chat")
+                mainActivity.pendingNavigationDestination = null
+            } catch (e: Exception) {
+                // Ignore navigation errors if destination not found yet
+            }
+        }
+    }
+
     LaunchedEffect(key1 = true) {
         delay(5000)
         showSplash = false
@@ -1547,6 +1596,59 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                                 ManageReportsScreen(viewModel = reportsViewModel, navController = navController)
                                             }
                                             composable(
+                                                route = "admin_chat",
+                                                // انیمیشن‌های حرفه‌ای برای چت ادمین
+                                                enterTransition = {
+                                                    fadeIn(
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + slideIntoContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Left,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + scaleIn(
+                                                        initialScale = 0.90f,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    )
+                                                },
+                                                exitTransition = {
+                                                    fadeOut(
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + slideOutOfContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Right,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + scaleOut(
+                                                        targetScale = 1.10f,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    )
+                                                },
+                                                popEnterTransition = {
+                                                    fadeIn(
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + slideIntoContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Right,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    ) + scaleIn(
+                                                        initialScale = 0.90f,
+                                                        animationSpec = tween(425, easing = EaseOutCubic)
+                                                    )
+                                                },
+                                                popExitTransition = {
+                                                    fadeOut(
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + slideOutOfContainer(
+                                                        AnimatedContentTransitionScope.SlideDirection.Left,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    ) + scaleOut(
+                                                        targetScale = 1.10f,
+                                                        animationSpec = tween(275, easing = EaseInCubic)
+                                                    )
+                                                }
+                                            ) {
+                                                ChatScreen(
+                                                    userPreferencesManager = userPreferencesManager,
+                                                    onBackClick = { navController.popBackStack() }
+                                                )
+                                            }
+                                            composable(
                                                 route = "cargoDetailsScreen/{quotaNumber}/{shippingCompany}/{warehouse}/{cargoType}",
                                                 arguments = listOf(
                                                     navArgument("quotaNumber") { type = NavType.StringType },
@@ -1847,6 +1949,26 @@ fun HomeScreen(
     val mainActivity = context as MainActivity
     val userPreferencesManager = remember { UserPreferencesManager(context) }
     val coroutineScope = rememberCoroutineScope()
+    var unreadMessageCount by remember { mutableIntStateOf(0) }
+
+    // دریافت تعداد پیام‌های خوانده نشده
+    LaunchedEffect(isSessionValid) {
+        if (isSessionValid && username.isNotEmpty()) {
+            launch(Dispatchers.IO) {
+                try {
+                    val lastReadId = userPreferencesManager.lastReadMessageId.first()
+                    val response = RetrofitClient.apiService.getChatMessages(username = username, limit = 100)
+                    if (response.isSuccessful) {
+                        val messages = response.body()?.messages ?: emptyList()
+                        val count = messages.count { it.id > lastReadId && it.username != username }
+                        unreadMessageCount = count
+                    }
+                } catch (e: Exception) {
+                    // خطا در دریافت نادیده گرفته می‌شود
+                }
+            }
+        }
+    }
 
     AnimatedContent(
         targetState = isSessionValid && username.isNotEmpty(),
@@ -1943,11 +2065,11 @@ fun HomeScreen(
                         delay(200)
                         showGridAnimation = true
                     }
-                    AnimatedMenuGrid(
+                    CategorizedMenuGrid(
                         menuItems = getMenuItemsForUserType(userType),
                         showAnimation = showGridAnimation,
+                        badgeCounts = mapOf("admin_chat" to unreadMessageCount),
                         onItemClick = { item ->
-                            Log.d("HomeScreen", "Menu item clicked: ${item.title}, Route: ${item.route}")
                             when (item.route) {
                                 "manage_users" -> {
                                     // مدیریت کاربران در دیالوگ خاص نمایش داده می‌شود
@@ -1968,7 +2090,7 @@ fun HomeScreen(
     LaunchedEffect(selectedMenuItem) {
         selectedMenuItem?.let { menuItem ->
             when (menuItem.route) {
-                "initial_info", "select_info", "cargo_counter", "manage_ships", "manage_users" -> {
+                "initial_info", "select_info", "cargo_counter", "manage_ships", "manage_users", "admin_chat" -> {
                     showGridAnimation = false
                     delay(300)
                     navController.navigate(menuItem.route)
@@ -4824,129 +4946,79 @@ private fun TrendCard(text: String, scrollState: ScrollState? = null) {
 }
 
 @Composable
-private fun AnimatedMenuGrid(
+private fun CategorizedMenuGrid(
     menuItems: List<MenuItem>,
     showAnimation: Boolean,
+    badgeCounts: Map<String, Int> = emptyMap(),
     onItemClick: (MenuItem) -> Unit
 ) {
-    val columnCount = when (menuItems.size) {
-        1 -> 1
-        2 -> 2
-        else -> 2
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp)
+    val groupedItems = menuItems.groupBy { it.category }
+    val categoryOrder = listOf("عملیات پایه", "نظارت", "مدیریت", "ارتباطات")
+    
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        contentPadding = PaddingValues(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        // نقطه‌های دکوراتیو در پس‌زمینه
-        if (showAnimation) {
-            val primaryColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.02f)
-            val secondaryColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.02f)
-            val tertiaryColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.02f)
-
-            // دایره بزرگ بالا چپ
-            Box(
-                modifier = Modifier
-                    .size(180.dp)
-                    .offset(x = (-60).dp, y = (-40).dp)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(primaryColor, Color.Transparent),
-                            radius = 200f
-                        ),
-                        shape = CircleShape
-                    )
-            )
-
-            // دایره متوسط پایین راست
-            Box(
-                modifier = Modifier
-                    .size(150.dp)
-                    .align(Alignment.BottomEnd)
-                    .offset(x = 40.dp, y = 60.dp)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(secondaryColor, Color.Transparent),
-                            radius = 180f
-                        ),
-                        shape = CircleShape
-                    )
-            )
-
-            // دایره کوچک وسط
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .align(Alignment.Center)
-                    .offset(x = 70.dp, y = (-40).dp)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(tertiaryColor, Color.Transparent),
-                            radius = 100f
-                        ),
-                        shape = CircleShape
-                    )
-            )
-        }
-
-        // تقسیم‌بندی آیتم‌های منو
-        val adminItems = menuItems.filter { it.route == "manage_users" }
-        val regularItems = menuItems.filter { it.route != "manage_users" }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp) // کاهش فاصله بین آیتم‌ها
-        ) {
-            // آیتم‌های مدیریتی همیشه در بالا به صورت جداگانه
-            adminItems.forEach { item ->
+        categoryOrder.forEach { category ->
+            val items = groupedItems[category] ?: return@forEach
+            
+            // هدر دسته‌بندی (کل سطر را می‌گیرد)
+            item(span = { GridItemSpan(2) }) {
+                CategoryHeader(title = category, showAnimation = showAnimation)
+            }
+            
+            // آیتم‌های هر دسته
+            items(
+                count = items.size,
+                span = { index -> 
+                    // اگر تعداد آیتم‌ها فرد باشد، آیتم آخر تمام عرض را می‌گیرد
+                    if (items.size % 2 != 0 && index == items.size - 1) GridItemSpan(2) else GridItemSpan(1)
+                }
+            ) { index ->
+                val item = items[index]
+                val isWideItem = items.size % 2 != 0 && index == items.size - 1
+                
                 AnimatedMenuCard(
                     item = item,
-                    isWideItem = true,
-                    index = 0,
+                    isWideItem = isWideItem,
+                    index = index,
                     showAnimation = showAnimation,
-                    onItemClick = { menuItem ->
-                        Log.d("MenuClick", "Admin item clicked: ${menuItem.title}, route: ${menuItem.route}")
-                        onItemClick(menuItem)
-                    }
+                    badgeCount = badgeCounts[item.route] ?: 0,
+                    onItemClick = onItemClick
                 )
             }
+        }
+    }
+}
 
-            // آیتم‌های عملیاتی در گرید
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(columnCount),
-                horizontalArrangement = Arrangement.spacedBy(12.dp), // کاهش فاصله افقی
-                verticalArrangement = Arrangement.spacedBy(12.dp), // کاهش فاصله عمودی
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(
-                    count = regularItems.size,
-                    span = { _ ->
-                        when {
-                            // تک آیتم با عرض کامل
-                            regularItems.size == 1 -> GridItemSpan(columnCount)
-                            else -> GridItemSpan(1)
-                        }
-                    }
-                ) { index ->
-                    val item = regularItems[index]
-                    val isWideItem = regularItems.size == 1
-
-                    AnimatedMenuCard(
-                        item = item,
-                        isWideItem = isWideItem,
-                        index = if (adminItems.isNotEmpty()) index + 1 else index,
-                        showAnimation = showAnimation,
-                        onItemClick = { menuItem ->
-                            Log.d("MenuClick", "Regular item clicked: ${menuItem.title}, route: ${menuItem.route}")
-                            onItemClick(menuItem)
-                        }
-                    )
-                }
-            }
+@Composable
+private fun CategoryHeader(title: String, showAnimation: Boolean) {
+    AnimatedVisibility(
+        visible = showAnimation,
+        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { -20 })
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(4.dp, 8.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
         }
     }
 }
@@ -4957,96 +5029,41 @@ private fun AnimatedMenuCard(
     isWideItem: Boolean,
     index: Int,
     showAnimation: Boolean,
+    badgeCount: Int = 0,
     onItemClick: (MenuItem) -> Unit
 ) {
-    // آرایه رنگ‌ها با طیف‌های جذاب و مدرن
-    val colors = listOf(
-        // رنگ اصلی، رنگ سایه
-        Pair(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer),
-        Pair(MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.secondaryContainer),
-        Pair(MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.tertiaryContainer)
-    )
-
-    // رنگ منحصر به فرد برای هر آیتم
-    val colorPair = colors[index % colors.size]
-    val mainColor = colorPair.first
-    val secondaryColor = colorPair.second
-
-    // تاخیر شناور برای انیمیشن ظهور پلکانی
-    val delayFactor = index * 100
-
-    // متغیرهای حالت برای انیمیشن‌های تعاملی
+    val (startColor, endColor) = when (item.category) {
+        "عملیات پایه" -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.primaryContainer
+        "نظارت" -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.secondaryContainer
+        "مدیریت" -> MaterialTheme.colorScheme.tertiary to MaterialTheme.colorScheme.tertiaryContainer
+        "ارتباطات" -> Color(0xFFE91E63) to Color(0xFFFFC107) // رنگ خاص برای ارتباطات
+        else -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.surfaceVariant
+    }
+    val delayFactor = index * 50 // کاهش تاخیر برای روانی بیشتر
     var isHovered by remember { mutableStateOf(false) }
-    val scale = remember { Animatable(0.96f) }
-    val elevationState = remember { Animatable(0f) }
-    val rotationState = remember { Animatable(0f) }
-
-    // انیمیشن‌های بازخورد تعاملی
+    val scale = remember { Animatable(0.95f) }
     val hoverScale by animateFloatAsState(
-        targetValue = if (isHovered) 1.04f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = ""
+        targetValue = if (isHovered) 1.02f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "hover"
     )
 
-    // انیمیشن ظهور هر آیتم
     AnimatedVisibility(
         visible = showAnimation,
-        enter = fadeIn(
-            animationSpec = tween(
-                durationMillis = 300,
-                delayMillis = delayFactor,
-                easing = FastOutSlowInEasing
-            )
-        ) + slideInVertically(
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            initialOffsetY = { it / 3 }
-        )
+        enter = fadeIn(animationSpec = tween(300, delayMillis = delayFactor)) + 
+                scaleIn(animationSpec = spring(dampingRatio = 0.6f), initialScale = 0.8f)
     ) {
-        // انیمیشن‌های اولیه
         LaunchedEffect(Unit) {
-            launch {
-                scale.animateTo(
-                    targetValue = 1f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                )
-            }
-            launch {
-                elevationState.animateTo(
-                    targetValue = 2f,
-                    animationSpec = tween(durationMillis = 300)
-                )
-            }
-            launch {
-                rotationState.animateTo(
-                    targetValue = 360f,
-                    animationSpec = tween(
-                        durationMillis = 600,
-                        easing = FastOutSlowInEasing
-                    )
-                )
-            }
+            scale.animateTo(1f, spring(dampingRatio = 0.5f))
         }
 
-        // کارت اصلی
         Card(
             modifier = Modifier
                 .let {
-                    when {
-                        isWideItem -> it.fillMaxWidth().height(90.dp)
-                        else -> it.aspectRatio(1f).size(140.dp)
-                    }
+                    if (isWideItem) it.fillMaxWidth().height(80.dp) 
+                    else it.aspectRatio(1.5f) // نسبت تصویر بازتر برای کاهش ارتفاع
                 }
                 .scale(scale.value * hoverScale)
-                // بهبود عملکرد کلیک
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onPress = {
@@ -5054,163 +5071,143 @@ private fun AnimatedMenuCard(
                             tryAwaitRelease()
                             isHovered = false
                         },
-                        onTap = {
-                            Log.d("CardClick", "Card tapped: ${item.title}, route: ${item.route}")
-                            onItemClick(item)
-                        }
+                        onTap = { onItemClick(item) }
                     )
                 },
             elevation = CardDefaults.cardElevation(
-                defaultElevation = elevationState.value.dp,
-                pressedElevation = (elevationState.value + 4f).dp,
-                hoveredElevation = (elevationState.value + 6f).dp
+                defaultElevation = if (isHovered) 8.dp else 2.dp
             ),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = if (isWideItem) {
-                            Brush.horizontalGradient(
-                                colors = listOf(
-                                    mainColor.copy(alpha = 0.08f),
-                                    secondaryColor.copy(alpha = 0.03f)
-                                )
+            Box(modifier = Modifier.fillMaxSize()) {
+                // پس‌زمینه گرادینت ملایم
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(startColor.copy(alpha = 0.08f), endColor.copy(alpha = 0.15f)),
+                                start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                                end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
                             )
-                        } else {
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    mainColor.copy(alpha = 0.08f),
-                                    secondaryColor.copy(alpha = 0.03f)
-                                )
-                            )
-                        }
-                    )
-            ) {
-                // محتوای کارت
+                        )
+                )
+
+                // محتوا
                 if (isWideItem) {
-                    // لایه افقی برای کارت عریض
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.Start,
+                            .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // آیکون با بک‌گراند و افکت چرخش
-                        Box(
-                            modifier = Modifier
-                                .size(54.dp)
-                                .clip(CircleShape)
-                                .background(mainColor.copy(alpha = 0.1f)),
-                            contentAlignment = Alignment.Center
+                        // آیکون
+                        Surface(
+                            shape = CircleShape,
+                            color = startColor.copy(alpha = 0.1f),
+                            modifier = Modifier.size(56.dp)
                         ) {
-                            Image(
-                                painter = painterResource(id = item.iconResourceId),
-                                contentDescription = item.title,
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .rotate(rotationState.value)
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Image(
+                                    painter = painterResource(id = item.iconResourceId),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(38.dp)
+                                )
+                            }
                         }
-
-                        Spacer(modifier = Modifier.width(16.dp))
-
-                        // محتوای متنی
-                        Column(
-                            verticalArrangement = Arrangement.Center
-                        ) {
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = item.title,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-
                             Spacer(modifier = Modifier.height(2.dp))
-
                             Text(
-                                text = getMenuDescription(item.route),
+                                text = item.description,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
+                        
+                        // آیکون فلش
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = startColor.copy(alpha = 0.5f),
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 } else {
-                    // لایه عمودی برای کارت مربعی
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                        verticalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // آیکون
-                        Box(
-                            modifier = Modifier
-                                .size(65.dp)
-                                .clip(CircleShape)
-                                .background(mainColor.copy(alpha = 0.1f))
-                                .border(
-                                    width = 1.dp,
-                                    color = mainColor.copy(alpha = 0.2f),
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
+                        // آیکون و بج
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
                         ) {
-                            Image(
-                                painter = painterResource(id = item.iconResourceId),
-                                contentDescription = item.title,
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .rotate(rotationState.value)
+                             Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = startColor.copy(alpha = 0.1f),
+                                modifier = Modifier.size(44.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Image(
+                                        painter = painterResource(id = item.iconResourceId),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            }
+                            
+                            if (badgeCount > 0) {
+                                Badge(containerColor = MaterialTheme.colorScheme.error) {
+                                    Text(
+                                        text = if (badgeCount > 9) "9+" else badgeCount.toString(),
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // متون
+                        Column {
+                            Text(
+                                text = item.title,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = item.description,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                lineHeight = 14.sp,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // عنوان با فونت کوچکتر
-                        Text(
-                            text = item.title,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-
-                        // توضیحات با فونت کوچکتر
-                        Text(
-                            text = getMenuDescription(item.route),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
                     }
                 }
             }
         }
     }
 }
-
-private fun getMenuDescription(route: String): String {
-    return when (route) {
-        "select_info" -> "ثبت و مدیریت حواله‌ها"
-        "cargo_counter" -> "نظارت بر بارگیری"
-        "initial_info" -> "تعریف اطلاعات کشتی"
-        "manage_ships" -> "گزارش‌های مدیریتی"
-        "manage_users" -> "مدیریت کاربران سیستم"
-        else -> ""
-    }
-}
-
 
 @Composable
 fun UserManagementDialog(
@@ -6845,24 +6842,29 @@ fun getUserTypeDisplay(userType: String): String {
 fun getMenuItemsForUserType(userType: String): List<MenuItem> {
     return when (userType) {
         "admin" -> listOf(
-            MenuItem("ثبت حواله", R.drawable.ic_boosters, "select_info"),
-            MenuItem("نظارت بارشمار", R.drawable.ic_cargo_counter, "cargo_counter"),
-            MenuItem("تعریف کشتی", R.drawable.ic_journal, "initial_info"),
-            MenuItem("مدیریت کشتی ها", R.drawable.ic_reports, "manage_ships"),
-            MenuItem("مدیریت کاربران", R.drawable.profile_admin, "manage_users")
+            // عملیات پایه
+            MenuItem("ثبت حواله", R.drawable.ic_boosters, "select_info", "عملیات پایه", "ثبت و مدیریت حواله‌های جدید"),
+            MenuItem("تعریف کشتی", R.drawable.ic_journal, "initial_info", "عملیات پایه", "ثبت اطلاعات اولیه کشتی"),
+            
+            // نظارت
+            MenuItem("نظارت بارشمار", R.drawable.ic_cargo_counter, "cargo_counter", "نظارت", "مانیتورینگ لحظه‌ای بارگیری"),
+            
+            // مدیریت
+            MenuItem("مدیریت کاربران", R.drawable.profile_admin, "manage_users", "مدیریت", "افزودن و مدیریت سطح دسترسی"),
+            MenuItem("مدیریت کشتی ها", R.drawable.ic_reports, "manage_ships", "مدیریت", "لیست کشتی‌ها و وضعیت آن‌ها"),
+
+            // ارتباطات
+            MenuItem("اطلاع رسانی و گفتگو", R.drawable.ic_chat, "admin_chat", "ارتباطات", "پیام‌رسانی و هماهنگی تیمی")
         )
         "operator" -> listOf(
-            MenuItem("ثبت حواله", R.drawable.ic_boosters, "select_info"),
-            MenuItem("تعریف کشتی", R.drawable.ic_journal, "initial_info")
+            MenuItem("ثبت حواله", R.drawable.ic_boosters, "select_info", "عملیات پایه", "ثبت حواله‌های بارگیری"),
+            MenuItem("تعریف کشتی", R.drawable.ic_journal, "initial_info", "عملیات پایه", "ثبت اطلاعات کشتی جدید")
         )
         "verifier" -> listOf(
-            MenuItem("نظارت بارشمار", R.drawable.ic_cargo_counter, "cargo_counter")
+            MenuItem("نظارت بارشمار", R.drawable.ic_cargo_counter, "cargo_counter", "نظارت", "کنترل و شمارش بار")
         )
         else -> listOf(
-            MenuItem("ثبت حواله", R.drawable.ic_boosters, "select_info"),
-            MenuItem("نظارت بارشمار", R.drawable.ic_cargo_counter, "cargo_counter"),
-            MenuItem("تعریف کشتی", R.drawable.ic_journal, "initial_info"),
-            MenuItem("مدیریت کشتی ها", R.drawable.ic_reports, "manage_ships")
+            // Null
         )
     }
 }

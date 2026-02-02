@@ -660,7 +660,6 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
     LaunchedEffect(Unit) {
         try {
             viewModel.loadShips()
-            Log.d("ShipsList_Log", "درخواست بارگذاری لیست کشتی‌ها ارسال شد")
         } catch (e: Exception) {
             Log.e("ShipsList_Log", "خطا در بارگذاری لیست کشتی‌ها: ${e.message}", e)
         }
@@ -905,8 +904,8 @@ fun ShipsTabContent(
     } else {
         LazyColumn(
             modifier = modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            contentPadding = PaddingValues(vertical = 4.dp)
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            contentPadding = PaddingValues(vertical = 2.dp)
         ) {
             items(ships) { ship ->
                 ShipCard(
@@ -959,11 +958,11 @@ fun ShipCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
+            .padding(vertical = 2.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(Corner2XL),
-        color = if (isActive) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f)),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, if (isActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)),
         tonalElevation = 1.dp
     ) {
         ShipCardContent(
@@ -985,7 +984,7 @@ fun ShipCardContent(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1442,14 +1441,14 @@ fun ShipDetails(
                                 modifier = Modifier.size(48.dp)
                             )
                             Text(
-                                text = "اطلاعات کشتی در دسترس نیست",
+                                text = "اطلاعات کشتی در حال بارگذاری می باشند",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "هیچ اطلاعاتی برای نمایش موجود نیست. لطفاً از صحت نام کشتی اطمینان حاصل کنید.",
+                                text = "لطفاً صبر کنید...",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                                 textAlign = TextAlign.Center
@@ -9135,116 +9134,126 @@ fun RealTimeLoadingBottomSheet(
                                 }
                             }
                             1 -> {
-                                // تب دوم: اطلاعات در جریان باربری
-                                // فیلد جستجو
-                                SearchField(
-                                    searchQuery = thirdPartySearchQuery,
-                                    onSearchQueryChange = { thirdPartySearchQuery = it },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                // نمایش تعداد کل شناسه‌ها
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                                    )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 16.dp)
                                 ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(12.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.AutoMirrored.Filled.List,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                            Text(
-                                                text = "تعداد کل:",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                        Text(
-                                            text = "${filteredThirdPartyOrders.size}",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
+                                    // تب دوم: اطلاعات در جریان باربری
+                                    // فیلد جستجو
+                                    SearchField(
+                                        searchQuery = thirdPartySearchQuery,
+                                        onSearchQueryChange = { thirdPartySearchQuery = it },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
 
-                                // نمایش خطا در صورت وجود
-                                if (thirdPartyLoadingError != null) {
+                                    // نمایش تعداد کل شناسه‌ها
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
                                         colors = CardDefaults.cardColors(
-                                            containerColor = MaterialTheme.colorScheme.errorContainer
+                                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(
+                                                alpha = 0.3f
+                                            )
                                         )
                                     ) {
                                         Row(
-                                            modifier = Modifier.padding(16.dp),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(12.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Error,
-                                                contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.onErrorContainer
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.AutoMirrored.Filled.List,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Text(
+                                                    text = "تعداد کل:",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
                                             Text(
-                                                text = thirdPartyLoadingError ?: "",
-                                                color = MaterialTheme.colorScheme.onErrorContainer
+                                                text = "${filteredThirdPartyOrders.size}",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
                                             )
                                         }
                                     }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                }
 
-                                AnimatedContent(
-                                    targetState = filteredThirdPartyOrders,
-                                    transitionSpec = {
-                                        fadeIn(animationSpec = tween(durationMillis = 300)) togetherWith
-                                                fadeOut(animationSpec = tween(durationMillis = 300))
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    label = "ThirdPartyOrdersContent"
-                                ) { targetOrders ->
-                                    LazyColumn(
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                        contentPadding = PaddingValues(bottom = 16.dp)
-                                    ) {
-                                        if (targetOrders.isEmpty()) {
-                                            item {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(32.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        text = if (thirdPartySearchQuery.isBlank()) "اطلاعاتی یافت نشد" else "نتیجه‌ای برای جستجو یافت نشد",
-                                                        style = MaterialTheme.typography.bodyLarge,
-                                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                                    )
-                                                }
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    // نمایش خطا در صورت وجود
+                                    if (thirdPartyLoadingError != null) {
+                                        Card(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = CardDefaults.cardColors(
+                                                containerColor = MaterialTheme.colorScheme.errorContainer
+                                            )
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(16.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Error,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onErrorContainer
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = thirdPartyLoadingError ?: "",
+                                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                                )
                                             }
-                                        } else {
-                                            items(targetOrders) { order ->
-                                                ThirdPartyOrderCard(order = order)
+                                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                    }
+
+                                    AnimatedContent(
+                                        targetState = filteredThirdPartyOrders,
+                                        transitionSpec = {
+                                            fadeIn(animationSpec = tween(durationMillis = 300)) togetherWith
+                                                    fadeOut(animationSpec = tween(durationMillis = 300))
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        label = "ThirdPartyOrdersContent"
+                                    ) { targetOrders ->
+                                        LazyColumn(
+                                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                                            contentPadding = PaddingValues(bottom = 16.dp)
+                                        ) {
+                                            if (targetOrders.isEmpty()) {
+                                                item {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(32.dp),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(
+                                                            text = if (thirdPartySearchQuery.isBlank()) "اطلاعاتی یافت نشد" else "نتیجه‌ای برای جستجو یافت نشد",
+                                                            style = MaterialTheme.typography.bodyLarge,
+                                                            color = MaterialTheme.colorScheme.onSurface.copy(
+                                                                alpha = 0.6f
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                            } else {
+                                                items(targetOrders) { order ->
+                                                    ThirdPartyOrderCard(order = order)
+                                                }
                                             }
                                         }
                                     }
@@ -10196,7 +10205,7 @@ fun StatisticItem(
             // قسمت چپ: وزن کل
             Column(
                 horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 // عنوان با آیکون
                 Row(
@@ -10211,7 +10220,7 @@ fun StatisticItem(
                     )
                     Text(
                         text = "وزن کل",
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         fontWeight = FontWeight.Medium
                     )
@@ -10229,14 +10238,14 @@ fun StatisticItem(
                         Text(
                             text = "kg",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                     Text(
                         text = formatNumber(animatedTotalWeight.toInt()),
-                        style = MaterialTheme.typography.headlineLarge,
+                        style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onSurface,
                         letterSpacing = (-0.5).sp
@@ -14243,7 +14252,7 @@ private fun AnalyticsQuotaCard(
             // اطلاعات کوتاژ
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 // ردیف اول - شماره کوتاژ و نام شرکت/کشتی
                 Row(
@@ -14269,7 +14278,55 @@ private fun AnalyticsQuotaCard(
                     )
                 }
 
-                // ردیف دوم - بج‌های آماری
+                // ردیف دوم - صاحب کالا و انبار
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // صاحب کالا
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = quota.cargoOwner ?: "نامشخص",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    // انبار
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warehouse,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = quota.warehouse ?: "نامشخص",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                // ردیف سوم - بج‌های آماری
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
