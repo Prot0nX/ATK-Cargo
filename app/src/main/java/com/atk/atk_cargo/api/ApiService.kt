@@ -260,7 +260,41 @@ interface ApiService {
 
     @GET("ActiveQuota.json")
     suspend fun getActiveQuotaReport(): Response<ResponseBody>
+
+    // ===== CHAT API ENDPOINTS =====
+    
+    @GET("chat_api.php")
+    suspend fun getChatMessages(
+        @Query("action") action: String = "getMessages",
+        @Query("lastMessageId") lastMessageId: Int = 0,
+        @Query("olderThanId") olderThanId: Int = 0,
+        @Query("limit") limit: Int = 50,
+        @Query("username") username: String
+    ): Response<ChatMessagesResponse>
+
+
+    @POST("chat_api.php")
+    suspend fun sendChatMessage(
+        @Body request: SendMessageRequest
+    ): Response<SendMessageResponse>
+
+    @POST("chat_api.php")
+    suspend fun editChatMessage(
+        @Body request: EditMessageRequest
+    ): Response<ApiResponse>
+
+    @POST("chat_api.php")
+    suspend fun deleteChatMessage(
+        @Body request: DeleteMessageRequest
+    ): Response<ApiResponse>
+
+    @GET("chat_api.php")
+    suspend fun getUnreadChatCount(
+        @Query("action") action: String = "getUnreadCount",
+        @Query("username") username: String
+    ): Response<UnreadCountResponse>
 }
+
 
 // Third Party API Service
 interface ThirdPartyApiService {

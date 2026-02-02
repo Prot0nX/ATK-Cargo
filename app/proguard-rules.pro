@@ -162,6 +162,14 @@
 -keep class com.atk.atk_cargo.api.WarehouseStatus { *; }
 -keep class com.atk.atk_cargo.models.** { *; }
 
+# Chat specific rules
+-keep class com.atk.atk_cargo.data.db.ChatMessageEntity { *; }
+-keep class com.atk.atk_cargo.api.ChatMessage { *; }
+-keep class com.atk.atk_cargo.api.ChatMessagesResponse { *; }
+-keep class com.atk.atk_cargo.api.SendMessageResponse { *; }
+-keep class com.atk.atk_cargo.api.SendMessageRequest { *; }
+-keep class com.atk.atk_cargo.api.UnreadCountResponse { *; }
+
 # تنظیمات پایه Kotlin (بسیاری از این موارد خودکار هستند)
 -keep class kotlin.Metadata { *; }
 -dontwarn kotlin.**
