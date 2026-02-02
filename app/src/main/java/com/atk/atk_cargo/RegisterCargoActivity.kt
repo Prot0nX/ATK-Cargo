@@ -117,7 +117,6 @@ import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.Person
@@ -174,7 +173,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ClipEntry
@@ -242,10 +240,6 @@ import kotlin.math.sqrt
 import androidx.compose.material3.MaterialTheme as MaterialTheme3
 import androidx.compose.material3.Surface as Surface3
 import androidx.compose.material3.Text as Text3
-
-enum class ScanMode {
-    ML_KIT_SCAN     // ML Kit Text Recognition v2
-}
 
 suspend fun handleQuotaEntry(
     quotaCode: String,
@@ -524,215 +518,6 @@ fun DuplicateTrackingNumbersDialog(
     }
 }
 
-@Composable
-fun TopHeaderInfoDialog(
-    loadingQuotaNumber: Int,
-    loadableTonnage: String,
-    tempTonnageStatus: Boolean,
-    tempTonnageAmount: Float?,
-    loadableTrucks18Wheeler: String,
-    loadableTrucks10Wheeler: String,
-    onDismiss: () -> Unit
-) {
-    val dialogEnterTransition = remember {
-        expandIn(
-            expandFrom = Alignment.Center,
-            animationSpec = tween(300, easing = EaseOutBack)
-        ) + fadeIn(animationSpec = tween(300))
-    }
-
-    val dialogExitTransition = remember {
-        shrinkOut(
-            shrinkTowards = Alignment.Center,
-            animationSpec = tween(300, easing = EaseInBack)
-        ) + fadeOut(animationSpec = tween(300))
-    }
-
-    val backgroundColor = MaterialTheme.colorScheme.surface
-    val iconTint = MaterialTheme.colorScheme.primary
-
-    Dialog(
-        onDismissRequest = { /* Prevent dismissal on outside click */ },
-        properties = DialogProperties(
-            dismissOnClickOutside = false,
-            usePlatformDefaultWidth = false
-        )
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .wrapContentHeight()
-                .clip(RoundedCornerShape(24.dp)),
-            shape = RoundedCornerShape(24.dp),
-            color = backgroundColor,
-            tonalElevation = 8.dp
-        ) {
-            AnimatedVisibility(
-                visible = true,
-                enter = dialogEnterTransition,
-                exit = dialogExitTransition
-            ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Header with colored circle background
-                    Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .background(iconTint.copy(alpha = 0.1f), CircleShape)
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DirectionsBoat,
-                            contentDescription = null,
-                            tint = iconTint,
-                            modifier = Modifier.size(68.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Title
-                    Text(
-                        text = "اطلاعات کشتی",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = iconTint
-                    )
-                    
-                    if (loadingQuotaNumber > 0) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "شماره کوتاژ: $loadingQuotaNumber",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Information content with card background
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = iconTint.copy(alpha = 0.05f),
-                        border = BorderStroke(1.dp, iconTint.copy(alpha = 0.2f))
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            // تناژ مجاز
-                            InfoRow(
-                                icon = Icons.Default.Scale,
-                                label = "تناژ مجاز",
-                                value = if (loadableTonnage.isNotEmpty()) "$loadableTonnage تن" else "نامشخص",
-                                iconColor = iconTint
-                            )
-                            
-                            // تناژ موقت
-                            if (tempTonnageStatus && tempTonnageAmount != null) {
-                                InfoRow(
-                                    icon = Icons.Default.Schedule,
-                                    label = "تناژ موقت",
-                                    value = "${tempTonnageAmount.toInt()} تن",
-                                    iconColor = MaterialTheme.colorScheme.secondary
-                                )
-                            }
-                            
-                            HorizontalDivider(
-                                color = iconTint.copy(alpha = 0.2f),
-                                thickness = 1.dp
-                            )
-                            
-                            // کامیون‌های 18 چرخ
-                            InfoRow(
-                                icon = Icons.Default.LocalShipping,
-                                label = "تعداد کامیون مجاز 18 چرخ",
-                                value = if (loadableTrucks18Wheeler.isNotEmpty()) "$loadableTrucks18Wheeler دستگاه" else "0 دستگاه",
-                                iconColor = MaterialTheme.colorScheme.tertiary
-                            )
-                            
-                            // کامیون‌های 10 چرخ
-                            InfoRow(
-                                icon = Icons.Default.LocalShipping,
-                                label = "تعداد کامیون مجاز 10 چرخ",
-                                value = if (loadableTrucks10Wheeler.isNotEmpty()) "$loadableTrucks10Wheeler دستگاه" else "0 دستگاه",
-                                iconColor = MaterialTheme.colorScheme.tertiary
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Button with gradient background
-                    Button(
-                        onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = iconTint,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        elevation = ButtonDefaults.buttonElevation(
-                            defaultElevation = 4.dp,
-                            pressedElevation = 8.dp
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                    ) {
-                        Text(
-                            "متوجه شدم",
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun InfoRow(
-    icon: ImageVector,
-    label: String,
-    value: String,
-    iconColor: Color
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = iconColor,
-            modifier = Modifier.size(20.dp)
-        )
-        
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
 class RegisterCargoActivity : ComponentActivity() {
     private lateinit var viewModel: CargoViewModel
     private val barcodeLauncher = registerForActivityResult(ScanContract()) { result ->
@@ -905,7 +690,6 @@ fun RegisterCargoScreen(
     val loadableTonnage by viewModel.loadableTonnage.collectAsState()
     val loadableTrucks18Wheeler by viewModel.loadableTrucks18Wheeler.collectAsState()
     val loadableTrucks10Wheeler by viewModel.loadableTrucks10Wheeler.collectAsState()
-    var showTopHeaderInfoDialog by remember { mutableStateOf(false) }
     var updateType by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val showDuplicateConfirmationDialog by viewModel.showDuplicateConfirmationDialog.collectAsState()
@@ -1594,7 +1378,6 @@ fun RegisterCargoScreen(
                     handleQuotaEntry(quotaCode, initialInfo, viewModel, activity, snackbarHostState) {
                         // نمایش دیالوگ TopHeader پس از تغییر موفقیت‌آمیز کوتاژ
                         updateType = "quota_change"
-                        showTopHeaderInfoDialog = true
                     }
                 }
                 showQuotaEntryDialog = false
@@ -1605,26 +1388,12 @@ fun RegisterCargoScreen(
         )
     }
     
-    // دیالوگ نمایش اطلاعات TopHeader در زمان بارگذاری صفحه
-    if (showTopHeaderInfoDialog) {
-        TopHeaderInfoDialog(
-            loadingQuotaNumber = initialInfo?.loadingQuotaNumber ?: 0,
-            loadableTonnage = loadableTonnage,
-            tempTonnageStatus = initialInfo?.tempTonnageStatus ?: false,
-            tempTonnageAmount = initialInfo?.tempTonnageAmount,
-            loadableTrucks18Wheeler = loadableTrucks18Wheeler,
-            loadableTrucks10Wheeler = loadableTrucks10Wheeler,
-            onDismiss = { showTopHeaderInfoDialog = false }
-        )
-    }
-    
     LaunchedEffect(initialInfo, loadableTonnage) {
         if (initialInfo != null && loadableTonnage.isNotEmpty()) {
             val excludedUpdateTypes = setOf("cargo_submit", "cargo_update", "cargo_delete")
             if (updateType == null || updateType !in excludedUpdateTypes) {
                 if (updateType == null) {
-                    showTopHeaderInfoDialog = true
-                    updateType = "initial" 
+                    updateType = "initial"
                 }
             }
         }
@@ -2860,7 +2629,7 @@ fun NetWeightDialog(
             showCamera = false
         }) {
             EnhancedCameraPreview(
-                selectedScanMode = ScanMode.ML_KIT_SCAN, // همیشه ML_KIT
+                // همیشه ML_KIT
                 onImageCaptured = { image, detectedWeight ->
                     showCamera = false
                     coroutineScope.launch {
@@ -3292,12 +3061,7 @@ class EnhancedNumberAnalyzer(
                 imageProxy.close()
             }
     }
-    
-    private fun isValidWeight(weight: String): Boolean {
-        val weightValue = weight.toDoubleOrNull()
-        return weightValue != null && weightValue in 1000.0..60000.0
-    }
-    
+
     private fun extractNetWeights(text: String): List<String> {
         val result = mutableListOf<String>()
         
@@ -5656,211 +5420,6 @@ private fun DetailInfoRow(
 }
 
 @Composable
-private fun ExpandableSection(
-    title: String,
-    icon: ImageVector,
-    initiallyExpanded: Boolean = false,
-    accentColor: Color = MaterialTheme.colorScheme.primary,
-    isExpanded: Boolean? = null,
-    onExpandedChange: ((Boolean) -> Unit)? = null,
-    content: @Composable () -> Unit
-) {
-    var internalExpanded by remember { mutableStateOf(initiallyExpanded) }
-    val currentExpanded = isExpanded ?: internalExpanded
-    val rotationState by animateFloatAsState(
-        targetValue = if (currentExpanded) 180f else 0f,
-        label = "rotation"
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(
-                width = 1.dp,
-                color = accentColor.copy(alpha = 0.15f),
-                shape = RoundedCornerShape(16.dp)
-            )
-    ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { 
-                    if (onExpandedChange != null) {
-                        onExpandedChange(!currentExpanded)
-                    } else {
-                        internalExpanded = !internalExpanded
-                    }
-                }
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                // Icon with background
-                Surface(
-                    shape = CircleShape,
-                    color = accentColor.copy(alpha = 0.1f),
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = accentColor,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-                
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            // Animated rotation for the expand/collapse icon
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = if (currentExpanded) "بستن" else "باز کردن",
-                tint = accentColor.copy(alpha = 0.7f),
-                modifier = Modifier.graphicsLayer { rotationZ = rotationState }
-            )
-        }
-
-        // Content
-        AnimatedVisibility(
-            visible = currentExpanded,
-            enter = expandVertically(animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)),
-            exit = shrinkVertically(animationSpec = tween(300)) + fadeOut(animationSpec = tween(300))
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, end = 20.dp, bottom = 20.dp, top = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(bottom = 8.dp),
-                    thickness = 1.dp,
-                    color = accentColor.copy(alpha = 0.1f)
-                )
-                content()
-            }
-        }
-    }
-}
-
-@Composable
-private fun MainInfoContent(
-    info: CargoInfo,
-    onCopyScaleReceipt: () -> Unit = {}
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        InfoItem(label = "نام کشتی", value = info.shipName)
-        InfoItem(label = "انبار بارگیری", value = info.loadingWarehouse)
-        InfoItem(label = "نوع کالا", value = info.cargoType)
-        InfoItem(label = "شرکت حمل و نقل", value = info.shippingCompany)
-        InfoItem(
-            label = "شماره قبض باسکول", 
-            value = info.loadingQuotaNumber,
-            onClick = onCopyScaleReceipt
-        )
-    }
-}
-
-@Composable
-private fun WeightInfoContent(info: CargoInfo) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        WeightItem(value = info.netWeight)
-    }
-}
-
-@Composable
-private fun TimeInfoContent(info: CargoInfo) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        InfoItem(label = "زمان ورود", value = info.entryTime ?: "--")
-        InfoItem(label = "زمان خروج", value = info.exitTime ?: "--")
-        InfoItem(label = "تاریخ خروج", value = info.exitDate ?: "--")
-    }
-}
-
-@Composable
-private fun InfoItem(label: String, value: String, onClick: (() -> Unit)? = null) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (onClick != null) {
-                    Modifier.clickable { onClick() }
-                } else {
-                    Modifier
-                }
-            ),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-        
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            
-            if (onClick != null) {
-                Icon(
-                    imageVector = Icons.Default.ContentCopy,
-                    contentDescription = "کپی",
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun WeightItem(value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "وزن خالص",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-        
-        Text(
-            text = "$value کیلوگرم",
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            ),
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
-}
-
-@Composable
 private fun DeleteDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
@@ -6067,7 +5626,6 @@ private fun toEnglishNumbers(input: String): String {
 
 @Composable
 fun EnhancedCameraPreview(
-    selectedScanMode: ScanMode,
     onImageCaptured: (ImageProxy, String?) -> Unit,
     onError: (ImageCaptureException) -> Unit,
 ) {
