@@ -149,19 +149,6 @@ class AdvancedCargoAnalytics {
 
     public function getComprehensiveAnalysis(): array {
 		$jsonFilePath = __DIR__ . '/daily_stats.json';
-		$currentDate = date('Y-m-d');
-		
-		if (file_exists($jsonFilePath)) {
-			$fileDate = date('Y-m-d', filemtime($jsonFilePath));
-			if ($fileDate === $currentDate) {
-				$jsonContent = file_get_contents($jsonFilePath);
-				$decodedContent = json_decode($jsonContent, true);
-				if ($decodedContent !== null) {
-					$this->logger->log(self::LOG_PREFIX . " - Returning pre-calculated analysis from JSON file", 'INFO');
-					return $decodedContent;
-				}
-			}
-		}
 		
 		try {
 			$this->testDatabaseConnection();
@@ -190,7 +177,7 @@ class AdvancedCargoAnalytics {
 			
 			$this->logger->log(self::LOG_PREFIX . " - Analysis complete", 'INFO');
 			
-			if (file_put_contents($jsonFilePath, json_encode($data)) === false) {
+			if (file_put_contents($jsonFilePath, json_encode($data, JSON_PRETTY_PRINT)) === false) {
 				$this->logger->log(self::LOG_PREFIX . " - Failed to write analysis results to JSON file", 'WARNING');
 			} else {
 				$this->logger->log(self::LOG_PREFIX . " - Analysis results successfully written to JSON file", 'INFO');
@@ -781,6 +768,8 @@ class AdvancedCargoAnalytics {
                     2) AS avg_completion_hours,
                     i.shipName,
                     c.shippingCompany,
+                    i.cargoOwner,
+                    i.loadingWarehouse,
                     SUM(c.netWeight) AS last_24h_weight,
                     COUNT(*) AS last_24h_vouchers
                 FROM CargoInfo c
@@ -791,7 +780,7 @@ class AdvancedCargoAnalytics {
                         (c.exitDate = ? AND c.exitTime >= '07:00:00') OR
                         (c.exitDate = ? AND c.exitTime < '07:00:00')
                     )
-                GROUP BY c.loadingQuotaNumber, i.cargoWeight, i.shipName, c.shippingCompany
+                GROUP BY c.loadingQuotaNumber, i.cargoWeight, i.shipName, c.shippingCompany, i.cargoOwner, i.loadingWarehouse
                 ORDER BY completion_percentage DESC";
     
             $stmt = $this->conn->prepare($query);
@@ -819,6 +808,8 @@ class AdvancedCargoAnalytics {
                     'avg_completion_hours' => is_null($row['avg_completion_hours']) ? 0 : (float)$row['avg_completion_hours'],
                     'shipName' => $row['shipName'],
                     'shippingCompany' => $row['shippingCompany'],
+                    'cargoOwner' => $row['cargoOwner'],
+                    'warehouse' => $row['loadingWarehouse'],
                     'last_24h_weight' => (float)$row['last_24h_weight'],
                     'last_24h_vouchers' => (int)$row['last_24h_vouchers'],
                 ];

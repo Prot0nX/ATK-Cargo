@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose.compiler)
     id("kotlin-parcelize")
+    id("kotlin-kapt")
 }
 
 android {
@@ -14,7 +15,7 @@ android {
         minSdk = 28
         targetSdk = 33
         versionCode = 1
-        versionName = "3.0.26"
+        versionName = "3.0.27"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -241,6 +242,11 @@ dependencies {
     // ==================== Data Storage ====================
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.datastore.core)
+
+    // ==================== Room Database ====================
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    kapt(libs.androidx.room.compiler)
 
     // ==================== Networking ====================
     implementation(libs.retrofit)

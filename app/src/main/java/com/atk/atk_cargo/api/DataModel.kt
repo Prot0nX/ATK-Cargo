@@ -2601,7 +2601,9 @@ class ReportsViewModel(
                                 shipName = quota.shipName,
                                 shippingCompany = quota.shippingCompany,
                                 last_24h_weight = quota.last_24h_weight,
-                                last_24h_vouchers = quota.last_24h_vouchers
+                                last_24h_vouchers = quota.last_24h_vouchers,
+                                cargoOwner = quota.cargoOwner,
+                                warehouse = quota.warehouse
                             )
                         } ?: emptyList(),
                         quotaProgressAnalysis = response.data.quotaProgressAnalysis?.map { progress ->
@@ -3527,7 +3529,9 @@ data class ShipInfo(
 data class MenuItem(
     val title: String,
     val iconResourceId: Int,
-    val route: String
+    val route: String,
+    val category: String = "",
+    val description: String = ""
 )
 
 data class SuccessResponse(
@@ -4057,7 +4061,9 @@ data class QuotaCompletionAnalysis(
     val shipName: String,
     val shippingCompany: String,
     val last_24h_weight: Float,
-    val last_24h_vouchers: Int
+    val last_24h_vouchers: Int,
+    val cargoOwner: String? = null,
+    val warehouse: String? = null
 )
 
 data class QuotaProgressAnalysis(
@@ -4085,7 +4091,9 @@ data class QuotaCompletionData(
     val shipName: String,
     val shippingCompany: String,
     val last_24h_weight: Float,
-    val last_24h_vouchers: Int
+    val last_24h_vouchers: Int,
+    val cargoOwner: String? = null,
+    val warehouse: String? = null
 )
 
 data class QuotaProgressData(
