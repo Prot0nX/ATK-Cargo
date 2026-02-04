@@ -32,7 +32,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
             ACTION_MUTE_SHIP -> {
                 val shipName = intent.getStringExtra(EXTRA_SHIP_NAME)
                 if (shipName != null) {
-                    val notificationManager = LoadingNotificationManager(context)
+                    val notificationManager = AppNotificationManager(context)
                     notificationManager.muteShip(shipName)
                 }
             }
@@ -41,7 +41,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
             ACTION_UNMUTE_SHIP -> {
                 val shipName = intent.getStringExtra(EXTRA_SHIP_NAME)
                 if (shipName != null) {
-                    val notificationManager = LoadingNotificationManager(context)
+                    val notificationManager = AppNotificationManager(context)
                     notificationManager.unmuteShip(shipName)
                     
                     // بروزرسانی نوتیفیکیشن‌ها بعد از فعال کردن مجدد
@@ -55,7 +55,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
             
             // پاک کردن لیست کشتی‌های غیرفعال شده
             ACTION_CLEAR_MUTED_SHIPS -> {
-                val notificationManager = LoadingNotificationManager(context)
+                val notificationManager = AppNotificationManager(context)
                 notificationManager.clearMutedShips()
                 
                 // بروزرسانی نوتیفیکیشن‌ها بعد از پاک کردن لیست
@@ -84,8 +84,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 }
                 
                 // پاک کردن نوتیفیکیشن‌های فعلی
-                val notificationManager = LoadingNotificationManager(context)
-                notificationManager.clearNotifications()
+                val notificationManager = AppNotificationManager(context)
+                notificationManager.clearAll()
             }
             
             // بروزرسانی نوتیفیکیشن‌ها

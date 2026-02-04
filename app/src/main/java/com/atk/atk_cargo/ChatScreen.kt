@@ -113,11 +113,53 @@ import com.atk.atk_cargo.data.ColorWheel
 import com.atk.atk_cargo.data.db.ChatMessageEntity
 import com.atk.atk_cargo.utils.JalaliDateUtils
 
-// رنگ‌های سفارشی مطابق طراحی
-private val ChatBackgroundLight = Color(0xFFF8FAFC)
-private val DateHeaderColor = Color(0xFFE2E8F0)
-private val TextColorPrimary = Color(0xFF1E293B)
-private val TextColorSecondary = Color(0xFF64748B)
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.atk.atk_cargo.ui.theme.BackgroundDark
+import com.atk.atk_cargo.ui.theme.BackgroundLight
+import com.atk.atk_cargo.ui.theme.PlaceholderDark
+import com.atk.atk_cargo.ui.theme.PlaceholderLight
+
+@Composable
+fun getChatBackgroundColor(backgroundId: Int): Color {
+    val isDark = isSystemInDarkTheme()
+    return when (backgroundId) {
+        0 -> if (isDark) BackgroundDark else BackgroundLight // Default (Adaptive to Project Theme)
+        1 -> Color(0xFFECE5DD) // WhatsApp Light
+        2 -> Color(0xFF202C33) // Dark Gray/Blue
+        3 -> Color(0xFF000000) // Pure Black
+        else -> if (isDark) BackgroundDark else BackgroundLight
+    }
+}
+
+@Composable
+fun getAdaptiveBubbleColor(baseColor: Color, isMe: Boolean): Color {
+    val isDark = isSystemInDarkTheme()
+    if (!isDark) return baseColor
+
+    val luminance = ColorUtils.calculateLuminance(baseColor.toArgb())
+    
+    return if (isMe) {
+        // پیام‌های من: اگر رنگ انتخابی خیلی روشن است، کمی شفافیت آن را کم می‌کنیم یا تیره می‌کنیم
+        if (luminance > 0.7) {
+            baseColor.copy(alpha = 0.85f)
+        } else {
+            baseColor
+        }
+    } else {
+        // پیام‌های دیگران: اگر رنگ مایل به سفید است، در تم تیره به خاکستری تیره استاندارد تبدیل می‌شود
+        if (luminance > 0.85) {
+            Color(0xFF202C33) // رنگ حباب تیره استاندارد
+        } else {
+            // اگر رنگ سفارشی و روشن است، کنتراست را بهبود می‌دهیم
+            if (luminance > 0.6) baseColor.copy(alpha = 0.8f) else baseColor
+        }
+    }
+}
+
+@Composable
+fun getDateHeaderColor(): Color {
+    return if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else Color(0xFFE2E8F0)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,53 +175,34 @@ fun ChatScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val isSending by viewModel.isSending.collectAsState()
-
-    // اطلاعات برای قابلیت‌های هوشمند
     val users by viewModel.users.collectAsState()
-
-    // Clear notifications when screen is opened
     val notificationManager = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
     LaunchedEffect(Unit) {
         notificationManager?.cancelAll()
+        viewModel.markAllMessagesAsRead()
     }
     val shipsData by viewModel.ships.collectAsState()
     val shipQuotas by viewModel.shipQuotas.collectAsState()
-
-    // تنظیمات شخصی‌سازی
-    // تنظیمات شخصی‌سازی
     val fontSize by viewModel.chatFontSize.collectAsState()
     val myBubbleColorLong by viewModel.chatMyBubbleColor.collectAsState()
     val otherBubbleColorLong by viewModel.chatOtherBubbleColor.collectAsState()
     val backgroundId by viewModel.chatBackgroundId.collectAsState()
     val bubbleShapeId by viewModel.chatBubbleShape.collectAsState()
-    
     val myBubbleColor = Color(myBubbleColorLong)
     val otherBubbleColor = Color(otherBubbleColorLong)
-    
-    // Background Color Logic
-    val backgroundColor = when (backgroundId) {
-        0 -> ChatBackgroundLight // Default
-        1 -> Color(0xFFECE5DD) // WhatsApp-like
-        2 -> Color(0xFF202C33) // Dark Blue / Gray
-        3 -> Color(0xFF000000) // Pure Black
-        else -> ChatBackgroundLight
-    }
-    
-    // Bubble Shape Logic
+    val backgroundColor = getChatBackgroundColor(backgroundId)
     val myBubbleShape = when (bubbleShapeId) {
         0 -> RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp) // Default
         1 -> RoundedCornerShape(4.dp) // Square
         2 -> RoundedCornerShape(topStart = 20.dp, topEnd = 2.dp, bottomStart = 20.dp, bottomEnd = 20.dp) // Modern
         else -> RoundedCornerShape(16.dp)
     }
-    
     val otherBubbleShape = when (bubbleShapeId) {
         0 -> RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp) // Default
         1 -> RoundedCornerShape(4.dp) // Square
         2 -> RoundedCornerShape(topStart = 2.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 20.dp) // Modern
         else -> RoundedCornerShape(16.dp)
     }
-
     var showSettingsDialog by remember { mutableStateOf(false) }
 
     // مدیریت خطاها
@@ -203,11 +226,12 @@ fun ChatScreen(
         }
     }
 
-    // Update last read message ID
+    // Update last read message ID and mark all as read
     LaunchedEffect(messages) {
         if (messages.isNotEmpty()) {
             val maxId = messages.maxOfOrNull { it.id } ?: 0
             userPreferencesManager.saveLastReadMessageId(maxId)
+            viewModel.markAllMessagesAsRead()
         }
     }
 
@@ -335,7 +359,7 @@ fun ChatTopBar(
 ) {
     Surface(
         shadowElevation = 2.dp,
-        color = Color.White
+        color = MaterialTheme.colorScheme.surface
     ) {
         TopAppBar(
             title = {
@@ -344,40 +368,36 @@ fun ChatTopBar(
                         text = "اطلاع‌رسانی و گفتگو",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextColorPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     if (isLoading) {
                         Text(
                             text = "در حال بروزرسانی...",
                             fontSize = 11.sp,
-                            color = TextColorSecondary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             },
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowForward, "بازگشت", tint = TextColorPrimary)
+                    Icon(Icons.AutoMirrored.Filled.ArrowForward, "بازگشت", tint = MaterialTheme.colorScheme.onSurface)
                 }
             },
             actions = {
                 IconButton(onClick = onRefreshClick) {
-                    Icon(Icons.Default.Refresh, "بروزرسانی", tint = TextColorSecondary)
+                    Icon(Icons.Default.Refresh, "بروزرسانی", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 IconButton(onClick = onSettingsClick) {
-                    Icon(Icons.Default.Settings, "تنظیمات", tint = TextColorSecondary)
+                    Icon(Icons.Default.Settings, "تنظیمات", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.White
+                containerColor = MaterialTheme.colorScheme.surface
             )
         )
     }
 }
-
-
-
-
 
 @Composable
 fun DateHeader(date: String) {
@@ -388,13 +408,13 @@ fun DateHeader(date: String) {
         contentAlignment = Alignment.Center
     ) {
         Surface(
-            color = DateHeaderColor,
+            color = getDateHeaderColor(),
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
                 text = date,
                 fontSize = 12.sp,
-                color = TextColorSecondary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
             )
         }
@@ -422,8 +442,9 @@ fun MessageBubble(
     
     val bubbleShape = if (isMe) myShape else otherShape
     
-    // Apply personalized colors
-    val finalBubbleColor = if (isMe) myBubbleColor else otherBubbleColor
+    // Apply personalized and adaptive colors for Dark Mode readability
+    val baseBubbleColor = if (isMe) myBubbleColor else otherBubbleColor
+    val finalBubbleColor = getAdaptiveBubbleColor(baseBubbleColor, isMe)
     
     // Determine text color based on background brightness for readability
     val textColor = if (ColorUtils.calculateLuminance(finalBubbleColor.toArgb()) > 0.5) 
@@ -572,7 +593,7 @@ fun MessageBubble(
                         text = senderName,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextColorSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 8.dp, top = 4.dp)
                     )
                 }
@@ -686,7 +707,7 @@ fun MessageInputArea(
 
     Surface(
         shadowElevation = 16.dp,
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
@@ -700,7 +721,7 @@ fun MessageInputArea(
                 ) {
                     Card(
                         elevation = CardDefaults.cardElevation(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         modifier = Modifier
                             .widthIn(max = 250.dp)
                             .height(200.dp)
@@ -726,9 +747,10 @@ fun MessageInputArea(
                                             showUserPopup = false
                                         }
                                         .padding(12.dp),
-                                    style = MaterialTheme.typography.bodyMedium
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
-                                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             }
                         }
                     }
@@ -741,44 +763,6 @@ fun MessageInputArea(
                     .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // دکمه پیوست اطلاعات کشتی
-                IconButton(onClick = { showShipDialog = true }) {
-                    Icon(
-                        imageVector = Icons.Filled.AddCircle,
-                        contentDescription = "افزودن اطلاعات کشتی",
-                        tint = TextColorSecondary
-                    )
-                }
-
-                // دکمه تگ کردن مخاطب
-                IconButton(onClick = { showUserPopup = !showUserPopup }) {
-                    Icon(
-                        imageVector = Icons.Filled.Person,
-                        contentDescription = "تگ کردن مخاطب",
-                        tint = TextColorSecondary
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(4.dp))
-
-                OutlinedTextField(
-                    value = textFieldValue,
-                    onValueChange = { textFieldValue = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("پیام خود را بنویسید...", color = Color.Gray) },
-                    shape = RoundedCornerShape(24.dp),
-                    maxLines = 4,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = myBubbleColor, 
-                        unfocusedBorderColor = Color(0xFFE2E8F0),
-                        focusedContainerColor = ChatBackgroundLight,
-                        unfocusedContainerColor = ChatBackgroundLight
-                    ),
-                    enabled = !isSending
-                )
-                
-                Spacer(modifier = Modifier.width(4.dp))
-                
                 FloatingActionButton(
                     onClick = {
                         if (textFieldValue.text.isNotBlank()) {
@@ -797,6 +781,52 @@ fun MessageInputArea(
                     } else {
                         Icon(Icons.AutoMirrored.Filled.Send, "ارسال", modifier = Modifier.rotateIcon(180f))
                     }
+                }
+
+                Spacer(modifier = Modifier.width(4.dp))
+
+                OutlinedTextField(
+                    value = textFieldValue,
+                    onValueChange = { textFieldValue = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { 
+                        Text(
+                            "پیام خود را بنویسید...", 
+                            color = if (isSystemInDarkTheme()) PlaceholderDark else PlaceholderLight 
+                        ) 
+                    },
+                    shape = RoundedCornerShape(24.dp),
+                    maxLines = 4,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = myBubbleColor, 
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    ),
+                    enabled = !isSending
+                )
+                
+                Spacer(modifier = Modifier.width(4.dp))
+
+                // دکمه پیوست اطلاعات کشتی
+                IconButton(onClick = { showShipDialog = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.AddCircle,
+                        contentDescription = "افزودن اطلاعات کشتی",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                // دکمه تگ کردن مخاطب
+                IconButton(onClick = { showUserPopup = !showUserPopup }) {
+                    Icon(
+                        imageVector = Icons.Filled.Person,
+                        contentDescription = "تگ کردن مخاطب",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -896,7 +926,7 @@ fun ShipSelectionDialog(
                                 Text(
                                     text = "غیرفعال",
                                     fontSize = 10.sp,
-                                    color = TextColorSecondary
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -936,23 +966,23 @@ fun QuotaSelectionDialog(
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp)
                                 .clickable { onQuotaSelected(quota) },
-                            elevation = CardDefaults.cardElevation(2.dp),
-                            colors = CardDefaults.cardColors(containerColor = ChatBackgroundLight)
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.AutoMirrored.Filled.List, null, modifier = Modifier.size(16.dp), tint = TextColorSecondary)
+                                    Icon(Icons.AutoMirrored.Filled.List, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = "کوتاژ: ${quota.number}",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("صاحب کالا: ${quota.cargoOwner ?: "-"}", fontSize = 12.sp, color = TextColorSecondary)
-                                Text("انبار: ${quota.warehouse ?: "-"}", fontSize = 12.sp, color = TextColorSecondary)
-                                Text("باربری: ${quota.shippingCompany}", fontSize = 12.sp, color = TextColorSecondary)
+                                Text("صاحب کالا: ${quota.cargoOwner ?: "-"}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("انبار: ${quota.warehouse ?: "-"}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("باربری: ${quota.shippingCompany}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -976,7 +1006,7 @@ fun EmptyState() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("💬", fontSize = 48.sp)
-        Text("پیامی وجود ندارد", color = TextColorSecondary, fontSize = 16.sp)
+        Text("پیامی وجود ندارد", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp)
     }
 }
 
@@ -1018,8 +1048,6 @@ private fun Modifier.rotateIcon(degrees: Float) = this.then(
     Modifier.graphicsLayer(rotationZ = degrees)
 )
 
-// --- Helper Functions & Composables for Chat Enhancements ---
-
 data class ShipInfoModel(
     val shipName: String,
     val kotazh: String,
@@ -1027,7 +1055,6 @@ data class ShipInfoModel(
     val owner: String,
     val shippingCompany: String
 )
-
 
 fun extractShipInfoAndText(message: String): Pair<String, ShipInfoModel?> {
     val lines = message.lines()
@@ -1355,7 +1382,7 @@ fun ChatSettingsDialogEnhanced(
                         onClick = { onSave(fontSize.toInt(), myColor, otherColor, backgroundId, bubbleShape) },
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF2196F3)
+                            containerColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
                         Text(
@@ -1411,13 +1438,7 @@ fun ChatSettingsPreviewRefined(
     bubbleShapeId: Int
 ) {
     val backgroundColor by animateColorAsState(
-        targetValue = when (backgroundId) {
-            0 -> Color(0xFFF8FAFC)
-            1 -> Color(0xFFECE5DD)
-            2 -> Color(0xFF202C33)
-            3 -> Color(0xFF000000)
-            else -> Color(0xFFF8FAFC)
-        }
+        targetValue = getChatBackgroundColor(backgroundId)
     )
 
     val animatedFontSize by animateFloatAsState(targetValue = fontSize.toFloat())
@@ -1452,10 +1473,11 @@ fun ChatSettingsPreviewRefined(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.Center
         ) {
-            // Received Message (Left Alignment for Preview context usually, but we'll follow RTL logic)
-            val otherTextColor = if (ColorUtils.calculateLuminance(animatedOtherColor.toArgb()) > 0.5) Color.Black else Color.White
+            // Received Message (Adaptive Color logic)
+            val adaptiveOtherColor = getAdaptiveBubbleColor(animatedOtherColor, false)
+            val otherTextColor = if (ColorUtils.calculateLuminance(adaptiveOtherColor.toArgb()) > 0.5) Color.Black else Color.White
             Surface(
-                color = animatedOtherColor,
+                color = adaptiveOtherColor,
                 shape = otherBubbleShape,
                 modifier = Modifier.align(Alignment.Start)
             ) {
@@ -1469,10 +1491,11 @@ fun ChatSettingsPreviewRefined(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Sent Message
-            val myTextColor = if (ColorUtils.calculateLuminance(animatedMyColor.toArgb()) > 0.5) Color.Black else Color.White
+            // Sent Message (Adaptive Color logic)
+            val adaptiveMyColor = getAdaptiveBubbleColor(animatedMyColor, true)
+            val myTextColor = if (ColorUtils.calculateLuminance(adaptiveMyColor.toArgb()) > 0.5) Color.Black else Color.White
             Surface(
-                color = animatedMyColor,
+                color = adaptiveMyColor,
                 shape = myBubbleShape,
                 modifier = Modifier.align(Alignment.End)
             ) {
@@ -1594,7 +1617,6 @@ fun ShapeCardRefined(
     }
 }
 
-
 @Composable
 fun ErrorView(
     message: String,
@@ -1618,7 +1640,7 @@ fun ErrorView(
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(16.dp))
-            androidx.compose.material3.Button(onClick = onRetry) {
+            Button(onClick = onRetry) {
                 Text("تلاش مجدد")
             }
         }
@@ -1723,7 +1745,7 @@ fun MessageInfoDialog(message: ChatMessageEntity, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Info, contentDescription = null, tint = TextColorPrimary)
+                Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("جزئیات پیام")
             }
@@ -1739,7 +1761,7 @@ fun MessageInfoDialog(message: ChatMessageEntity, onDismiss: () -> Unit) {
                 Text(
                     "خوانده شده توسط:",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextColorSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
                 
@@ -1752,7 +1774,7 @@ fun MessageInfoDialog(message: ChatMessageEntity, onDismiss: () -> Unit) {
                         }
                     }
                 } else {
-                    Text("هنوز خوانده نشده است", style = MaterialTheme.typography.bodyMedium, color = TextColorSecondary)
+                    Text("هنوز خوانده نشده است", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
 
                 if (message.updatedAt != null) {
@@ -1773,7 +1795,7 @@ private fun ChatInfoRow(label: String, value: String) {
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = TextColorSecondary)
-        Text(value, style = MaterialTheme.typography.bodyMedium, color = TextColorPrimary)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
     }
 }

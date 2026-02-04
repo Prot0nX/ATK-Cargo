@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 class TonnageWarningService : Service() {
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private lateinit var userPreferencesManager: UserPreferencesManager
-    private lateinit var notificationManager: TonnageNotificationManager
+    private lateinit var notificationManager: AppNotificationManager
     private var lastWarningCount = 0
     
     companion object {
@@ -47,8 +47,8 @@ class TonnageWarningService : Service() {
     override fun onCreate() {
         super.onCreate()
         userPreferencesManager = UserPreferencesManager(this)
-        notificationManager = TonnageNotificationManager(this)
-        notificationManager.createNotificationChannel()
+        notificationManager = AppNotificationManager(this)
+        notificationManager.setupChannels()
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -100,15 +100,14 @@ class TonnageWarningService : Service() {
                         // ارسال نوتیفیکیشن در صورت وجود هشدار جدید
                         if (count > 0 && count != lastWarningCount) {
                             val firstWarning = parsedWarnings.firstOrNull()
-                            notificationManager.showWarningNotification(
-                                count = count,
-                                firstWarningShipName = firstWarning?.shipName,
-                                firstWarningQuotaNumber = firstWarning?.quotaNumber
-                            )
+                            val title = "⚠️ هشدار تناژ کوتاژ"
+                            val text = if (count == 1 && firstWarning != null) {
+                                "کشتی ${firstWarning.shipName} - کوتاژ ${firstWarning.quotaNumber}"
+                            } else {
+                                "$count مورد هشدار جدید در تناژ کوتاژها"
+                            }
+                            notificationManager.showSystemAlert(title, text)
                             lastWarningCount = count
-                        } else if (count == 0) {
-                            lastWarningCount = 0
-                            notificationManager.cancelWarningNotification()
                         }
                     } else {
                         _warningsCount.value = 0
@@ -175,7 +174,7 @@ class TonnageWarningService : Service() {
         coroutineScope.cancel()
         
         // حذف تمام نوتیفیکیشن‌های هشدار هنگام توقف سرویس
-        notificationManager.cancelAllWarningNotifications()
+        notificationManager.clearAll()
         Log.d(TAG, "سرویس بررسی هشدارهای تناژ کوتاژ متوقف شد")
     }
 }

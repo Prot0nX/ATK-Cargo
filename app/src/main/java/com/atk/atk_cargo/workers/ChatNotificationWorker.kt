@@ -11,8 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ListenableWorker
 import androidx.work.WorkerParameters
-import com.atk.atk_cargo.MainActivity
-import com.atk.atk_cargo.R
+import com.atk.atk_cargo.api.AppNotificationManager
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
 import kotlinx.coroutines.flow.first
@@ -75,7 +74,12 @@ class ChatNotificationWorker(
                     }
 
                     if (messagesToShow.isNotEmpty()) {
-                        showGroupedNotification(messagesToShow, uniqueSenders)
+                        // در مدل جدید، لیست جفت‌های (فرستنده، متن) را ارسال می‌کنیم
+                        val messagesPairs = newMessages
+                            .filter { it.username != username }
+                            .map { (it.fullName ?: it.username) to it.message }
+                        
+                        showGroupedNotification(messagesPairs, uniqueSenders)
                     }
 
                     // Update last notified ID
@@ -90,62 +94,13 @@ class ChatNotificationWorker(
         }
     }
 
-    private fun showGroupedNotification(messages: List<String>, senders: Set<String>) {
-        val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channelId = "chat_channel"
+    private fun showGroupedNotification(messages: List<Pair<String, String>>, senders: Set<String>) {
+        val appNotificationManager = AppNotificationManager(applicationContext)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "پیام‌های چت",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "نوتیفیکیشن برای پیام‌های جدید چت"
-                enableLights(true)
-                enableVibration(true)
-            }
-            notificationManager.createNotificationChannel(channel)
+        // نمایش پیام‌ها با استایل پیام‌رسان
+        messages.forEach { (sender, text) ->
+            appNotificationManager.showChatNotification(sender, text)
         }
-
-        val intent = Intent(applicationContext, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra("navigate_to", "admin_chat")
-        }
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(
-            applicationContext, 
-            0, 
-            intent, 
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val title = if (senders.size == 1) {
-            "پیام جدید از ${senders.first()}"
-        } else {
-            "${messages.size} پیام جدید از ${senders.size} گفتگو"
-        }
-
-        val inboxStyle = NotificationCompat.InboxStyle()
-            .setBigContentTitle(title)
-        
-        messages.take(5).forEach { inboxStyle.addLine(it) }
-        if (messages.size > 5) {
-            inboxStyle.setSummaryText("+${messages.size - 5} پیام دیگر")
-        }
-
-        val notification = NotificationCompat.Builder(applicationContext, channelId)
-            .setSmallIcon(R.drawable.ic_notification_icon)
-            .setContentTitle(title)
-            .setContentText(messages.lastOrNull() ?: "پیام جدید")
-            .setStyle(inboxStyle)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-            .setGroup("CHAT_GROUP") // For potential future expansion
-            .setGroupSummary(true)
-            .build()
-
-        // Use a fixed ID for summary/grouped notification to update it instead of spamming
-        notificationManager.notify(1001, notification)
     }
 }
 

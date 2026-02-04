@@ -80,6 +80,42 @@ class UserPreferencesManager(private val context: Context) {
             preferences[HARDWARE_SCORE_KEY] ?: -1
         }
 
+    val notificationsEnabled = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[NOTIFICATIONS_ENABLED_KEY] ?: true
+        }
+
+    val loadingNotificationsEnabled = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[LOADING_NOTIFICATIONS_ENABLED_KEY] ?: true
+        }
+
+    val chatNotificationsEnabled = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[CHAT_NOTIFICATIONS_ENABLED_KEY] ?: true
+        }
+
     suspend fun saveUserCredentials(username: String, userType: String, deviceId: String = "", sessionToken: String = "") {
         dataStore.edit { preferences ->
             preferences[USERNAME_KEY] = username
@@ -103,6 +139,24 @@ class UserPreferencesManager(private val context: Context) {
     suspend fun setLoginState(isLoggedIn: Boolean) {
         dataStore.edit { preferences ->
             preferences[IS_LOGGED_IN_KEY] = isLoggedIn
+        }
+    }
+
+    suspend fun setNotificationsEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[NOTIFICATIONS_ENABLED_KEY] = enabled
+        }
+    }
+
+    suspend fun setLoadingNotificationsEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[LOADING_NOTIFICATIONS_ENABLED_KEY] = enabled
+        }
+    }
+
+    suspend fun setChatNotificationsEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[CHAT_NOTIFICATIONS_ENABLED_KEY] = enabled
         }
     }
 
@@ -242,6 +296,9 @@ class UserPreferencesManager(private val context: Context) {
         // Notification
         private val LAST_NOTIFIED_MESSAGE_ID_KEY = intPreferencesKey("last_notified_message_id")
         private val LAST_READ_MESSAGE_ID_KEY = intPreferencesKey("last_read_message_id")
+        private val NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("notifications_enabled")
+        private val LOADING_NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("loading_notifications_enabled")
+        private val CHAT_NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("chat_notifications_enabled")
     }
 
     val lastReadMessageId = dataStore.data
