@@ -58,7 +58,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -85,6 +84,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.rounded.Assignment
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Check
@@ -115,6 +115,13 @@ import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.rounded.Assignment
+import androidx.compose.material.icons.rounded.DirectionsBoat
+import androidx.compose.material.icons.rounded.Forum
+import androidx.compose.material.icons.rounded.Inventory
+import androidx.compose.material.icons.rounded.ManageAccounts
+import androidx.compose.material.icons.rounded.ManageSearch
+import androidx.compose.material.icons.rounded.ReceiptLong
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -157,6 +164,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -1270,7 +1278,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
             try {
                 navController.navigate("admin_chat")
                 mainActivity.pendingNavigationDestination = null
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Ignore navigation errors if destination not found yet
             }
         }
@@ -1963,7 +1971,7 @@ fun HomeScreen(
                         val count = messages.count { it.id > lastReadId && it.username != username }
                         unreadMessageCount = count
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     // خطا در دریافت نادیده گرفته می‌شود
                 }
             }
@@ -2154,13 +2162,13 @@ private fun Header(
             .fillMaxWidth()
             .scale(headerScale.value)
             .alpha(headerOpacity.value)
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.Top
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // بخش اول: پروفایل
+        // بخش اول: پروفایل (کارت اصلی)
         if (username.isNotEmpty()) {
-            Box(modifier = Modifier.weight(0.75f)) {
+            Box(modifier = Modifier.weight(1f)) {
                 ProfileMenu(
                     username = username,
                     userType = userType,
@@ -2204,14 +2212,12 @@ private fun Header(
             }
         }
 
-        // بخش دوم: گزارشات لحظه‌ای
+        // بخش دوم: دکمه گزارشات (مربعی)
         if (username.isNotEmpty() && userType == "admin") {
-            Box(modifier = Modifier.weight(0.25f)) {
-                SummaryStatsButton(
-                    onClick = { showReportsMenu = true },
-                    warningsCount = warningsCount
-                )
-            }
+            SummaryStatsButton(
+                onClick = { showReportsMenu = true },
+                warningsCount = warningsCount
+            )
         }
     }
 
@@ -2253,68 +2259,54 @@ private fun Header(
 
 @Composable
 private fun SummaryStatsButton(onClick: () -> Unit, warningsCount: Int = 0) {
-    val contentScale = remember { Animatable(0.96f) }
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1f,
+        label = ""
+    )
 
-    LaunchedEffect(Unit) {
-        contentScale.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        )
-    }
-
-    Surface(
-        onClick = onClick,
+    Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .scale(contentScale.value),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        tonalElevation = 0.dp
+            .size(height = 64.dp, width = 56.dp)
+            .scale(scale)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    },
+                    onTap = { onClick() }
+                )
+            },
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            // آیکون با Badge
-            Box(
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Receipt,
-                        contentDescription = "گزارشات لحظه‌ای",
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+            Icon(
+                imageVector = Icons.Rounded.ReceiptLong,
+                contentDescription = "گزارشات",
+                modifier = Modifier.size(26.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
 
-                // نمایش Badge در صورت وجود هشدار
-                if (warningsCount > 0) {
-                    Badge(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(x = 4.dp, y = (-4).dp),
-                        containerColor = MaterialTheme.colorScheme.error
-                    ) {
-                        Text(
-                            text = if (warningsCount > 9) "9+" else warningsCount.toString(),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onError
-                        )
-                    }
+            if (warningsCount > 0) {
+                Badge(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp),
+                    containerColor = MaterialTheme.colorScheme.error
+                ) {
+                    Text(
+                        text = if (warningsCount > 9) "9+" else warningsCount.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White
+                    )
                 }
             }
         }
@@ -2330,69 +2322,27 @@ fun ProfileMenu(
     var expanded by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var currentUser by remember { mutableStateOf<User?>(null) }
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val userPreferencesManager = remember { UserPreferencesManager(context) }
     val hardwareScore by userPreferencesManager.hardwareScore.collectAsState(initial = -1)
 
-    // انیمیشن‌های بهبود یافته
     val rotationState by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
-        animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = ""
     )
 
-    // انیمیشن محتوا
-    val contentScale = remember { Animatable(0.96f) }
-
-    // انیمیشن ظاهر شدن
-    LaunchedEffect(Unit) {
-        contentScale.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        )
-    }
-
-    // دریافت اطلاعات کاربر
-    LaunchedEffect(showSettings) {
-        if (showSettings && currentUser == null) {
-            scope.launch {
-                try {
-                    val response = RetrofitClient.apiService.getAllUsers()
-                    currentUser = response.find { it.username == username }
-                } catch (_: Exception) {
-                    Toast.makeText(
-                        context,
-                        "خطا در دریافت اطلاعات کاربر",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    showSettings = false
-                }
-            }
-        }
-    }
-
-    // طراحی مینیمال و مدرن
-    Surface(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .scale(contentScale.value)
-            .clickable { expanded = !expanded }
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                )
-            ),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        tonalElevation = 0.dp
+            .animateContentSize(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2400,28 +2350,22 @@ fun ProfileMenu(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val userTypeColor = when (userType) {
-                        "admin" -> MaterialTheme.colorScheme.primary
-                        "operator" -> MaterialTheme.colorScheme.secondary
-                        "verifier" -> MaterialTheme.colorScheme.tertiary
-                        else -> MaterialTheme.colorScheme.primary
-                    }
-
+                    // آیکون پروفایل
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(userTypeColor.copy(alpha = 0.12f)),
+                            .size(42.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = getIconForUserType(userType),
+                            imageVector = Icons.Default.Person,
                             contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                            tint = userTypeColor
+                            modifier = Modifier.size(22.dp),
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
 
@@ -2429,7 +2373,7 @@ fun ProfileMenu(
                         Text(
                             text = username,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Row(
@@ -2438,72 +2382,38 @@ fun ProfileMenu(
                         ) {
                             Text(
                                 text = getUserTypeDisplay(userType),
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             if (hardwareScore > 0) {
+                                Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(MaterialTheme.colorScheme.outlineVariant))
                                 Text(
-                                    text = "• امتیاز: $hardwareScore",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.tertiary
+                                    text = "امتیاز: $hardwareScore",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
                     }
                 }
 
-                // آیکون باز/بسته کردن منو
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (expanded)
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                            else
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
+                IconButton(onClick = { expanded = !expanded }) {
                     Icon(
                         imageVector = Icons.Default.ExpandMore,
-                        contentDescription = if (expanded) "بستن منو" else "باز کردن منو",
-                        modifier = Modifier
-                            .size(20.dp)
-                            .rotate(rotationState),
-                        tint = if (expanded)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                        contentDescription = null,
+                        modifier = Modifier.rotate(rotationState),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // بخش گسترش‌یافته منو
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                ) + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
+            AnimatedVisibility(visible = expanded) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp)
+                    modifier = Modifier.padding(top = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // خط جداکننده
-                    HorizontalDivider(
-                        thickness = 1.dp,
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // دکمه‌های عملیات
+                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     ActionButtons(
                         onSettingsClick = {
                             showSettings = true
@@ -2520,15 +2430,30 @@ fun ProfileMenu(
     }
 
     // دیالوگ تنظیمات پروفایل
-    if (showSettings && currentUser != null) {
-        ProfileSettingsDialog(
-            user = currentUser!!,
-            onDismiss = {
-                showSettings = false
-                currentUser = null
-            },
-            onLogout = onLogoutClick
-        )
+    if (showSettings) {
+        // دریافت اطلاعات کاربر
+        LaunchedEffect(Unit) {
+            if (currentUser == null) {
+                try {
+                    val response = RetrofitClient.apiService.getAllUsers()
+                    currentUser = response.find { it.username == username }
+                } catch (_: Exception) {
+                    Toast.makeText(context, "خطا در دریافت اطلاعات", Toast.LENGTH_SHORT).show()
+                    showSettings = false
+                }
+            }
+        }
+        
+        currentUser?.let { user ->
+            ProfileSettingsDialog(
+                user = user,
+                onDismiss = {
+                    showSettings = false
+                    currentUser = null
+                },
+                onLogout = onLogoutClick
+            )
+        }
     }
 }
 
@@ -4802,7 +4727,7 @@ private fun InfoCard(text: String, color: Color, startDelay: Long = 0L, scrollSt
         delay(100)
         val chars = text.toList()
         chars.forEachIndexed { index, _ ->
-            displayedText = text.substring(0, index + 1)
+            displayedText = text.take(index + 1)
             delay(40)
             // اسکرول نرم در حین تایپ
             scrollState?.let {
@@ -4882,7 +4807,7 @@ private fun TrendCard(text: String, scrollState: ScrollState? = null) {
         delay(100)
         val chars = text.toList()
         chars.forEachIndexed { index, _ ->
-            displayedText = text.substring(0, index + 1)
+            displayedText = text.take(index + 1)
             delay(40)
             // اسکرول نرم در حین تایپ
             scrollState?.let {
@@ -4957,38 +4882,54 @@ private fun CategorizedMenuGrid(
     
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(12.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         categoryOrder.forEach { category ->
             val items = groupedItems[category] ?: return@forEach
             
-            // هدر دسته‌بندی (کل سطر را می‌گیرد)
+            // هدر دسته‌بندی
             item(span = { GridItemSpan(2) }) {
                 CategoryHeader(title = category, showAnimation = showAnimation)
             }
             
-            // آیتم‌های هر دسته
-            items(
-                count = items.size,
-                span = { index -> 
-                    // اگر تعداد آیتم‌ها فرد باشد، آیتم آخر تمام عرض را می‌گیرد
-                    if (items.size % 2 != 0 && index == items.size - 1) GridItemSpan(2) else GridItemSpan(1)
+            // بررسی نوع نمایش برای هر دسته
+            when (category) {
+                "نظارت", "ارتباطات" -> {
+                    // نمایش به صورت کارت عریض (Wide)
+                    items(
+                        count = items.size,
+                        span = { GridItemSpan(2) }
+                    ) { index ->
+                        WideMenuCard(
+                            item = items[index],
+                            showAnimation = showAnimation,
+                            badgeCount = badgeCounts[items[index].route] ?: 0,
+                            onItemClick = onItemClick
+                        )
+                    }
                 }
-            ) { index ->
-                val item = items[index]
-                val isWideItem = items.size % 2 != 0 && index == items.size - 1
-                
-                AnimatedMenuCard(
-                    item = item,
-                    isWideItem = isWideItem,
-                    index = index,
-                    showAnimation = showAnimation,
-                    badgeCount = badgeCounts[item.route] ?: 0,
-                    onItemClick = onItemClick
-                )
+                else -> {
+                    // نمایش به صورت کارت فشرده (Compact 2-column)
+                    items(
+                        count = items.size,
+                        span = { GridItemSpan(1) }
+                    ) { index ->
+                        CompactMenuCard(
+                            item = items[index],
+                            showAnimation = showAnimation,
+                            badgeCount = badgeCounts[items[index].route] ?: 0,
+                            onItemClick = onItemClick
+                        )
+                    }
+                }
+            }
+            
+            // فاصله بین دسته‌ها
+            item(span = { GridItemSpan(2) }) {
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
@@ -5003,206 +4944,243 @@ private fun CategoryHeader(title: String, showAnimation: Boolean) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(4.dp),
+                .padding(top = 6.dp, bottom = 0.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(4.dp, 8.dp)
+                    .size(4.dp, 12.dp)
                     .clip(RoundedCornerShape(2.dp))
                     .background(MaterialTheme.colorScheme.primary)
             )
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
 }
 
 @Composable
-private fun AnimatedMenuCard(
+private fun CompactMenuCard(
     item: MenuItem,
-    isWideItem: Boolean,
-    index: Int,
     showAnimation: Boolean,
     badgeCount: Int = 0,
     onItemClick: (MenuItem) -> Unit
 ) {
-    val (startColor, endColor) = when (item.category) {
-        "عملیات پایه" -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.primaryContainer
-        "نظارت" -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.secondaryContainer
-        "مدیریت" -> MaterialTheme.colorScheme.tertiary to MaterialTheme.colorScheme.tertiaryContainer
-        "ارتباطات" -> Color(0xFFE91E63) to Color(0xFFFFC107) // رنگ خاص برای ارتباطات
-        else -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.surfaceVariant
-    }
-    val delayFactor = index * 50 // کاهش تاخیر برای روانی بیشتر
-    var isHovered by remember { mutableStateOf(false) }
-    val scale = remember { Animatable(0.95f) }
-    val hoverScale by animateFloatAsState(
-        targetValue = if (isHovered) 1.02f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "hover"
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "scale"
     )
+
+    val (icon, iconColor) = when (item.title) {
+        "ثبت حواله" -> Icons.AutoMirrored.Rounded.Assignment to Color(0xFF3B82F6)
+        "تعریف کشتی" -> Icons.Rounded.DirectionsBoat to Color(0xFF06B6D4)
+        "مدیریت کاربران" -> Icons.Rounded.ManageAccounts to Color(0xFF6366F1)
+        "مدیریت کشتی ها" -> Icons.Rounded.Inventory to Color(0xFF14B8A6)
+        else -> Icons.AutoMirrored.Rounded.Assignment to MaterialTheme.colorScheme.primary
+    }
+
+    val bgColor = iconColor.copy(alpha = 0.08f)
 
     AnimatedVisibility(
         visible = showAnimation,
-        enter = fadeIn(animationSpec = tween(300, delayMillis = delayFactor)) + 
-                scaleIn(animationSpec = spring(dampingRatio = 0.6f), initialScale = 0.8f)
+        enter = fadeIn(animationSpec = tween(400)) + scaleIn(initialScale = 0.9f)
     ) {
-        LaunchedEffect(Unit) {
-            scale.animateTo(1f, spring(dampingRatio = 0.5f))
-        }
-
         Card(
             modifier = Modifier
-                .let {
-                    if (isWideItem) it.fillMaxWidth().height(80.dp) 
-                    else it.aspectRatio(1.5f) // نسبت تصویر بازتر برای کاهش ارتفاع
-                }
-                .scale(scale.value * hoverScale)
+                .fillMaxWidth()
+                .scale(scale)
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onPress = {
-                            isHovered = true
+                            isPressed = true
                             tryAwaitRelease()
-                            isHovered = false
+                            isPressed = false
                         },
                         onTap = { onItemClick(item) }
                     )
                 },
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = if (isHovered) 8.dp else 2.dp
-            ),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                // پس‌زمینه گرادینت ملایم
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(startColor.copy(alpha = 0.08f), endColor.copy(alpha = 0.15f)),
-                                start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                                end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
-                            )
-                        )
-                )
-
-                // محتوا
-                if (isWideItem) {
-                    Row(
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp),
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(bgColor),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = iconColor
+                        )
+                    }
+                    if (badgeCount > 0) {
+                        Badge(
+                            modifier = Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp),
+                            containerColor = Color.Red
+                        ) {
+                            Text(text = badgeCount.toString(), color = Color.White, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = item.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = item.description,
+                        style = TextStyle(fontSize = 9.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WideMenuCard(
+    item: MenuItem,
+    showAnimation: Boolean,
+    badgeCount: Int = 0,
+    onItemClick: (MenuItem) -> Unit
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "scale"
+    )
+
+    val (icon, iconColor, gradientColors) = when (item.category) {
+        "نظارت" -> Triple(Icons.Rounded.ManageSearch, Color(0xFF3B82F6), listOf(Color(0xFFF0F7FF), Color.White))
+        "ارتباطات" -> Triple(Icons.Rounded.Forum, Color(0xFFF43F5E), listOf(Color(0xFFFFF1F2), Color(0xFFFFF7ED)))
+        else -> Triple(Icons.Rounded.Assignment, MaterialTheme.colorScheme.primary, listOf(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f), MaterialTheme.colorScheme.surface))
+    }
+
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val finalGradient = if (isDark) {
+        listOf(iconColor.copy(alpha = 0.12f), MaterialTheme.colorScheme.surface)
+    } else {
+        gradientColors
+    }
+
+    AnimatedVisibility(
+        visible = showAnimation,
+        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { 20 })
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .scale(scale)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            tryAwaitRelease()
+                            isPressed = false
+                        },
+                        onTap = { onItemClick(item) }
+                    )
+                },
+            shape = RoundedCornerShape(24.dp),
+            border = BorderStroke(
+                1.dp, 
+                if (item.category == "نظارت") Color(0xFFE0E7FF) else if (item.category == "ارتباطات") Color(0xFFFFE4E6) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Brush.linearGradient(finalGradient))
+                    .padding(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // آیکون
-                        Surface(
-                            shape = CircleShape,
-                            color = startColor.copy(alpha = 0.1f),
-                            modifier = Modifier.size(56.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Image(
-                                    painter = painterResource(id = item.iconResourceId),
+                        Box(contentAlignment = Alignment.Center) {
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(if (isDark) MaterialTheme.colorScheme.surfaceVariant else Color.White),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = icon,
                                     contentDescription = null,
-                                    modifier = Modifier.size(38.dp)
+                                    modifier = Modifier.size(28.dp),
+                                    tint = iconColor
                                 )
                             }
+                            if (badgeCount > 0) {
+                                Badge(
+                                    modifier = Modifier.align(Alignment.TopEnd).offset(x = 2.dp, y = (-2).dp),
+                                    containerColor = Color(0xFFF97316)
+                                ) {
+                                    Text(text = badgeCount.toString(), color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
                         }
-                        
-                        Spacer(modifier = Modifier.width(8.dp))
-                        
-                        Column(modifier = Modifier.weight(1f)) {
+
+                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                             Text(
                                 text = item.title,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = item.description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        
-                        // آیکون فلش
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            tint = startColor.copy(alpha = 0.5f),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                } else {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        // آیکون و بج
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
-                        ) {
-                             Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = startColor.copy(alpha = 0.1f),
-                                modifier = Modifier.size(44.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Image(
-                                        painter = painterResource(id = item.iconResourceId),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(32.dp)
-                                    )
-                                }
-                            }
-                            
-                            if (badgeCount > 0) {
-                                Badge(containerColor = MaterialTheme.colorScheme.error) {
-                                    Text(
-                                        text = if (badgeCount > 9) "9+" else badgeCount.toString(),
-                                        color = Color.White,
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
-                            }
-                        }
-                        
-                        // متون
-                        Column {
-                            Text(
-                                text = item.title,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = item.description,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                lineHeight = 14.sp,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
+
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .rotate(180f)
+                            .alpha(0.3f),
+                        tint = iconColor
+                    )
                 }
             }
         }
