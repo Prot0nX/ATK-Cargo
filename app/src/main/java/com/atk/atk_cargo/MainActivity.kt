@@ -47,7 +47,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -85,6 +84,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.rounded.Assignment
+import androidx.compose.material.icons.automirrored.rounded.ManageSearch
+import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Check
@@ -115,13 +116,10 @@ import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.rounded.Assignment
+import androidx.compose.material.icons.rounded.AddTask
 import androidx.compose.material.icons.rounded.DirectionsBoat
 import androidx.compose.material.icons.rounded.Forum
-import androidx.compose.material.icons.rounded.Inventory
 import androidx.compose.material.icons.rounded.ManageAccounts
-import androidx.compose.material.icons.rounded.ManageSearch
-import androidx.compose.material.icons.rounded.ReceiptLong
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -142,6 +140,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -169,7 +169,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -208,6 +207,7 @@ import androidx.navigation.navArgument
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.atk.atk_cargo.api.AppNotificationManager
 import com.atk.atk_cargo.api.CargoViewModel
 import com.atk.atk_cargo.api.CargoViewModelFactory
 import com.atk.atk_cargo.api.CreateUserRequest
@@ -220,7 +220,6 @@ import com.atk.atk_cargo.api.ReportsRepository
 import com.atk.atk_cargo.api.ReportsViewModel
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.SessionCheckRequest
-import com.atk.atk_cargo.api.TonnageNotificationManager
 import com.atk.atk_cargo.api.TonnageWarningService
 import com.atk.atk_cargo.api.UpdateInfo
 import com.atk.atk_cargo.api.UpdateManager
@@ -266,6 +265,7 @@ class MainActivity : ComponentActivity() {
     private var securityErrorType by mutableStateOf<SecurityErrorType?>(null)
     var shouldOpenWarningsDialog by mutableStateOf(false)
     var pendingNavigationDestination by mutableStateOf<String?>(null)
+    private lateinit var chatRepository: com.atk.atk_cargo.data.repository.ChatRepository
     val isSessionValid: StateFlow<Boolean> = _isSessionValid.asStateFlow()
 
     @SuppressLint("CoroutineCreationDuringComposition", "BatteryLife")
@@ -298,6 +298,9 @@ class MainActivity : ComponentActivity() {
                         if (!allowed) {
                             return@LaunchedEffect
                         }
+
+                        // تنظیم کانال‌های اعلان
+                        AppNotificationManager(this@MainActivity).setupChannels()
 
                         // ابتدا بررسی امنیتی را انجام می‌دهیم
                         calculateWeatherForecast()
@@ -423,6 +426,13 @@ class MainActivity : ComponentActivity() {
             userPreferencesManager = UserPreferencesManager(this)
 
             reportsRepository = ReportsRepository(RetrofitClient.apiService)
+
+            val database = com.atk.atk_cargo.data.db.AppDatabase.getDatabase(this)
+            chatRepository = com.atk.atk_cargo.data.repository.ChatRepository(
+                database.chatDao(),
+                RetrofitClient.apiService,
+                userPreferencesManager
+            )
 
             cargoViewModelFactory = CargoViewModelFactory(reportsRepository, userPreferencesManager)
 
@@ -564,9 +574,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun checkTonnageWarnings() {
-        // راه‌اندازی سرویس بررسی دوره‌ای هشدارها
-        TonnageWarningService.startService(this)
+    fun checkTonnageWarnings() {
+        lifecycleScope.launch {
+            if (userPreferencesManager.loadingNotificationsEnabled.first()) {
+                // راه‌اندازی سرویس بررسی دوره‌ای هشدارها
+                TonnageWarningService.startService(this@MainActivity)
+            }
+        }
     }
 
     private fun startUpdateDownload() {
@@ -593,7 +607,7 @@ class MainActivity : ComponentActivity() {
                 intent.getStringExtra("kotazh") ?: return
                 // Add logic for new loading here
             }
-            TonnageNotificationManager.ACTION_OPEN_WARNINGS -> {
+            "com.atk.atk_cargo.OPEN_WARNINGS" -> {
                 // علامت‌گذاری برای باز کردن دیالوگ هشدار تناژ کوتاژ
                 shouldOpenWarningsDialog = true
             }
@@ -616,8 +630,10 @@ class MainActivity : ComponentActivity() {
                         response.isSuccessful && response.body()?.success == true -> {
                             _isSessionValid.value = true
 
-                            // راه‌اندازی سرویس اعلان‌های بارگیری بعد از تأیید اعتبار جلسه
+                            // راه‌اندازی سرویس‌های اعلان بعد از تأیید اعتبار جلسه
                             startLoadingNotificationService()
+                            startChatNotificationWorker()
+                            checkInitialChatMessages()
                         }
                         else -> {
                             _isSessionValid.value = false
@@ -641,9 +657,11 @@ class MainActivity : ComponentActivity() {
         _isSessionValid.value = isValid
     }
 
-    private fun showMessage(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+    private    fun showMessage(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
+
+    fun getChatRepository() = chatRepository
 
     fun startLoadingNotificationService() {
         // بررسی و درخواست مجوز نوتیفیکیشن
@@ -652,44 +670,119 @@ class MainActivity : ComponentActivity() {
         // بررسی سطح دسترسی کاربر قبل از راه‌اندازی سرویس
         lifecycleScope.launch {
             val userPreferencesManager = UserPreferencesManager(this@MainActivity)
+            
+            // اگر نوتیفیکیشن‌های بارگیری غیرفعال باشند، سرویس را متوقف می‌کنیم
+            if (!userPreferencesManager.loadingNotificationsEnabled.first()) {
+                stopLoadingNotificationService()
+                return@launch
+            }
+
             val userType = userPreferencesManager.userType.first()
 
             if (userType == "admin") {
                 // شروع سرویس فقط برای کاربران admin
-                Log.d("MainActivity", "User is admin, starting loading notification service")
                 LoadingNotificationService.startLoadingNotification(this@MainActivity)
-                
-                // شروع ورکر نوتیفیکیشن چت
-                startChatNotificationWorker()
             } else {
-                Log.d("MainActivity", "User is not admin, skipping notification service")
                 // اطمینان از توقف سرویس اگر قبلاً اجرا شده است
                 val intent = Intent(this@MainActivity, LoadingNotificationService::class.java)
                 intent.action = "STOP_SERVICE"
                 startService(intent)
-                
-                // برای کاربران عادی هم ورکر چت را اجرا می‌کنیم (برای منشن شدن)
-                startChatNotificationWorker()
             }
         }
-
-
     }
 
-    private fun startChatNotificationWorker() {
-        val constraints = androidx.work.Constraints.Builder()
-            .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
-            .build()
+    fun stopLoadingNotificationService() {
+        // توقف سرویس بارگیری
+        val loadingIntent = Intent(this, LoadingNotificationService::class.java)
+        loadingIntent.action = LoadingNotificationService.ACTION_STOP_SERVICE
+        startService(loadingIntent)
+        
+        // توقف سرویس هشدار تناژ
+        val tonnageIntent = Intent(this, TonnageWarningService::class.java)
+        stopService(tonnageIntent)
+    }
 
-        val workRequest = PeriodicWorkRequestBuilder<ChatNotificationWorker>(15, TimeUnit.MINUTES)
-            .setConstraints(constraints)
-            .build()
+    fun stopChatNotificationService() {
+        // لغو ورکر چت
+        WorkManager.getInstance(applicationContext).cancelUniqueWork("ChatNotificationWorker")
+    }
 
-        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
-            "ChatNotificationWorker",
-            ExistingPeriodicWorkPolicy.KEEP,
-            workRequest
-        )
+    fun startChatNotificationWorker() {
+        lifecycleScope.launch {
+            if (!userPreferencesManager.chatNotificationsEnabled.first()) {
+                stopChatNotificationService()
+                return@launch
+            }
+
+            val constraints = androidx.work.Constraints.Builder()
+                .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                .build()
+
+            val workRequest = PeriodicWorkRequestBuilder<ChatNotificationWorker>(15, TimeUnit.MINUTES)
+                .setConstraints(constraints)
+                .build()
+
+            WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+                "ChatNotificationWorker",
+                ExistingPeriodicWorkPolicy.KEEP,
+                workRequest
+            )
+        }
+    }
+
+    private fun checkInitialChatMessages() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val enabled = userPreferencesManager.chatNotificationsEnabled.first()
+                if (!enabled) return@launch
+
+                val username = userPreferencesManager.username.first()
+                if (username.isEmpty()) return@launch
+
+                Log.d("ATK_CHAT_DEBUG", "Startup: Checking initial chat messages...")
+
+                // همگام‌سازی پیام‌ها با دیتابیس محلی
+                chatRepository.refreshMessages()
+
+                // دریافت آخرین آی‌دی اعلان شده از تنظیمات
+                val lastNotifiedId = userPreferencesManager.lastNotifiedMessageId.first()
+                val userType = userPreferencesManager.userType.first()
+
+                // دریافت پیام‌های جدید نخوانده از دیتابیس محلی
+                val allMessages = chatRepository.messages.first()
+                val newUnreadMessages = allMessages.filter {
+                    it.id > lastNotifiedId && !it.isReadByMe && it.username != username
+                }
+
+                if (newUnreadMessages.isNotEmpty()) {
+                    Log.d("ATK_CHAT_DEBUG", "Startup: Found ${newUnreadMessages.size} new unread messages")
+                    val appNotificationManager = AppNotificationManager(this@MainActivity)
+                    var maxId = lastNotifiedId
+
+                    // مرتب‌سازی بر اساس آی‌دی برای نمایش به ترتیب
+                    newUnreadMessages.sortedBy { it.id }.forEach { msg ->
+                        if (msg.id > maxId) maxId = msg.id
+
+                        // منطق مشابه ChatNotificationWorker برای نمایش اعلان
+                        if (userType == "admin" || msg.message.contains("@$username")) {
+                            withContext(Dispatchers.Main) {
+                                appNotificationManager.showChatNotification(
+                                    msg.fullName ?: msg.username,
+                                    msg.message
+                                )
+                            }
+                        }
+                    }
+
+                    // به‌روزرسانی آخرین آی‌دی اعلان شده
+                    userPreferencesManager.saveLastNotifiedMessageId(maxId)
+                } else {
+                    Log.d("ATK_CHAT_DEBUG", "Startup: No new messages to notify")
+                }
+            } catch (e: Exception) {
+                Log.e("ATK_CHAT_DEBUG", "Error checking initial chat messages", e)
+            }
+        }
     }
 
     private fun checkNotificationPermission() {
@@ -1957,26 +2050,9 @@ fun HomeScreen(
     val mainActivity = context as MainActivity
     val userPreferencesManager = remember { UserPreferencesManager(context) }
     val coroutineScope = rememberCoroutineScope()
-    var unreadMessageCount by remember { mutableIntStateOf(0) }
 
-    // دریافت تعداد پیام‌های خوانده نشده
-    LaunchedEffect(isSessionValid) {
-        if (isSessionValid && username.isNotEmpty()) {
-            launch(Dispatchers.IO) {
-                try {
-                    val lastReadId = userPreferencesManager.lastReadMessageId.first()
-                    val response = RetrofitClient.apiService.getChatMessages(username = username, limit = 100)
-                    if (response.isSuccessful) {
-                        val messages = response.body()?.messages ?: emptyList()
-                        val count = messages.count { it.id > lastReadId && it.username != username }
-                        unreadMessageCount = count
-                    }
-                } catch (_: Exception) {
-                    // خطا در دریافت نادیده گرفته می‌شود
-                }
-            }
-        }
-    }
+    // مشاهده زنده تعداد پیام‌های خوانده نشده از دیتابیس
+    val unreadCountByMe by mainActivity.getChatRepository().unreadCount.collectAsState(initial = 0)
 
     AnimatedContent(
         targetState = isSessionValid && username.isNotEmpty(),
@@ -2076,7 +2152,7 @@ fun HomeScreen(
                     CategorizedMenuGrid(
                         menuItems = getMenuItemsForUserType(userType),
                         showAnimation = showGridAnimation,
-                        badgeCounts = mapOf("admin_chat" to unreadMessageCount),
+                        badgeCounts = mapOf("admin_chat" to unreadCountByMe),
                         onItemClick = { item ->
                             when (item.route) {
                                 "manage_users" -> {
@@ -2152,8 +2228,8 @@ private fun Header(
             mainActivity.shouldOpenWarningsDialog = false
 
             // حذف نوتیفیکیشن هشدار بعد از باز شدن دیالوگ
-            val tonnageNotificationManager = TonnageNotificationManager(mainActivity)
-            tonnageNotificationManager.cancelWarningNotification()
+            val appNotificationManager = AppNotificationManager(mainActivity)
+            appNotificationManager.clearAll()
         }
     }
 
@@ -2289,7 +2365,7 @@ private fun SummaryStatsButton(onClick: () -> Unit, warningsCount: Int = 0) {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Rounded.ReceiptLong,
+                imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
                 contentDescription = "گزارشات",
                 modifier = Modifier.size(26.dp),
                 tint = MaterialTheme.colorScheme.primary
@@ -2325,7 +2401,8 @@ fun ProfileMenu(
     val context = LocalContext.current
     val userPreferencesManager = remember { UserPreferencesManager(context) }
     val hardwareScore by userPreferencesManager.hardwareScore.collectAsState(initial = -1)
-
+    val loadingEnabled by userPreferencesManager.loadingNotificationsEnabled.collectAsState(initial = true)
+    val chatEnabled by userPreferencesManager.chatNotificationsEnabled.collectAsState(initial = true)
     val rotationState by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
@@ -2411,9 +2488,51 @@ fun ProfileMenu(
             AnimatedVisibility(visible = expanded) {
                 Column(
                     modifier = Modifier.padding(top = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    
+                    // بخش تنظیمات نوتیفیکیشن بارگیری
+                    NotificationSettingRow(
+                        title = "اعلان‌های بارگیری",
+                        subtitle = "بررسی خودکار و هشدار تناژ",
+                        icon = Icons.Default.Inventory,
+                        enabled = loadingEnabled,
+                        onCheckedChange = { isEnabled ->
+                            val activity = context as? MainActivity
+                            CoroutineScope(Dispatchers.Main).launch {
+                                userPreferencesManager.setLoadingNotificationsEnabled(isEnabled)
+                                if (isEnabled) {
+                                    activity?.startLoadingNotificationService()
+                                    activity?.checkTonnageWarnings()
+                                } else {
+                                    activity?.stopLoadingNotificationService()
+                                }
+                            }
+                        }
+                    )
+
+                    // بخش تنظیمات نوتیفیکیشن چت
+                    NotificationSettingRow(
+                        title = "اعلان‌های گفتگو",
+                        subtitle = "پیام‌های جدید و منشن‌ها",
+                        icon = Icons.Rounded.Forum,
+                        enabled = chatEnabled,
+                        onCheckedChange = { isEnabled ->
+                            val activity = context as? MainActivity
+                            CoroutineScope(Dispatchers.Main).launch {
+                                userPreferencesManager.setChatNotificationsEnabled(isEnabled)
+                                if (isEnabled) {
+                                    activity?.startChatNotificationWorker()
+                                } else {
+                                    activity?.stopChatNotificationService()
+                                }
+                            }
+                        }
+                    )
+
+                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    
                     ActionButtons(
                         onSettingsClick = {
                             showSettings = true
@@ -2519,6 +2638,72 @@ private fun ActionButtons(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun NotificationSettingRow(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    enabled: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (enabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Switch(
+            checked = enabled,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        )
     }
 }
 
@@ -4884,7 +5069,7 @@ private fun CategorizedMenuGrid(
         columns = GridCells.Fixed(2),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         categoryOrder.forEach { category ->
@@ -4912,7 +5097,7 @@ private fun CategorizedMenuGrid(
                     }
                 }
                 else -> {
-                    // نمایش به صورت کارت فشرده (Compact 2-column)
+                    // نمایش به صورت 2 ستون
                     items(
                         count = items.size,
                         span = { GridItemSpan(1) }
@@ -4929,7 +5114,7 @@ private fun CategorizedMenuGrid(
             
             // فاصله بین دسته‌ها
             item(span = { GridItemSpan(2) }) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(2.dp))
             }
         }
     }
@@ -4978,15 +5163,20 @@ private fun CompactMenuCard(
         label = "scale"
     )
 
-    val (icon, iconColor) = when (item.title) {
-        "ثبت حواله" -> Icons.AutoMirrored.Rounded.Assignment to Color(0xFF3B82F6)
-        "تعریف کشتی" -> Icons.Rounded.DirectionsBoat to Color(0xFF06B6D4)
-        "مدیریت کاربران" -> Icons.Rounded.ManageAccounts to Color(0xFF6366F1)
-        "مدیریت کشتی ها" -> Icons.Rounded.Inventory to Color(0xFF14B8A6)
-        else -> Icons.AutoMirrored.Rounded.Assignment to MaterialTheme.colorScheme.primary
+    val (icon, iconColor, gradientColors) = when (item.title) {
+        "ثبت حواله" -> Triple(Icons.AutoMirrored.Rounded.Assignment, Color(0xFF3B82F6), listOf(Color(0xFFF0F7FF), Color.White))
+        "تعریف کشتی" -> Triple(Icons.Rounded.AddTask, Color(0xFF06B6D4), listOf(Color(0xFFECFEFF), Color.White))
+        "مدیریت کاربران" -> Triple(Icons.Rounded.ManageAccounts, Color(0xFF6366F1), listOf(Color(0xFFEEF2FF), Color.White))
+        "مدیریت کشتی ها" -> Triple(Icons.Rounded.DirectionsBoat, Color(0xFF14B8A6), listOf(Color(0xFFF0FDFA), Color.White))
+        else -> Triple(Icons.AutoMirrored.Rounded.Assignment, MaterialTheme.colorScheme.primary, listOf(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f), MaterialTheme.colorScheme.surface))
     }
 
-    val bgColor = iconColor.copy(alpha = 0.08f)
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val finalGradient = if (isDark) {
+        listOf(iconColor.copy(alpha = 0.12f), MaterialTheme.colorScheme.surface)
+    } else {
+        gradientColors
+    }
 
     AnimatedVisibility(
         visible = showAnimation,
@@ -5007,58 +5197,66 @@ private fun CompactMenuCard(
                     )
                 },
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .then(
+                        if (isDark) Modifier.background(iconColor.copy(alpha = 0.12f))
+                        else Modifier.background(Brush.linearGradient(finalGradient))
+                    )
+                    .padding(12.dp)
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(bgColor),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(28.dp),
-                            tint = iconColor
-                        )
-                    }
-                    if (badgeCount > 0) {
-                        Badge(
-                            modifier = Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp),
-                            containerColor = Color.Red
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (isDark) MaterialTheme.colorScheme.surfaceVariant else Color.White),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(text = badgeCount.toString(), color = Color.White, style = MaterialTheme.typography.labelSmall)
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = iconColor
+                            )
+                        }
+                        if (badgeCount > 0) {
+                            Badge(
+                                modifier = Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp),
+                                containerColor = Color(0xFFF97316)
+                            ) {
+                                Text(text = badgeCount.toString(), color = Color.White, style = MaterialTheme.typography.labelSmall)
+                            }
                         }
                     }
-                }
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = item.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = item.description,
-                        style = TextStyle(fontSize = 9.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = item.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = item.description,
+                            style = TextStyle(fontSize = 9.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
@@ -5080,9 +5278,9 @@ private fun WideMenuCard(
     )
 
     val (icon, iconColor, gradientColors) = when (item.category) {
-        "نظارت" -> Triple(Icons.Rounded.ManageSearch, Color(0xFF3B82F6), listOf(Color(0xFFF0F7FF), Color.White))
+        "نظارت" -> Triple(Icons.AutoMirrored.Rounded.ManageSearch, Color(0xFF3B82F6), listOf(Color(0xFFF0F7FF), Color.White))
         "ارتباطات" -> Triple(Icons.Rounded.Forum, Color(0xFFF43F5E), listOf(Color(0xFFFFF1F2), Color(0xFFFFF7ED)))
-        else -> Triple(Icons.Rounded.Assignment, MaterialTheme.colorScheme.primary, listOf(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f), MaterialTheme.colorScheme.surface))
+        else -> Triple(Icons.AutoMirrored.Rounded.Assignment, MaterialTheme.colorScheme.primary, listOf(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f), MaterialTheme.colorScheme.surface))
     }
 
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
@@ -5112,15 +5310,17 @@ private fun WideMenuCard(
                 },
             shape = RoundedCornerShape(24.dp),
             border = BorderStroke(
-                1.dp, 
-                if (item.category == "نظارت") Color(0xFFE0E7FF) else if (item.category == "ارتباطات") Color(0xFFFFE4E6) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Brush.linearGradient(finalGradient))
+                    .then(
+                        if (isDark) Modifier.background(iconColor.copy(alpha = 0.12f))
+                        else Modifier.background(Brush.linearGradient(finalGradient))
+                    )
                     .padding(14.dp)
             ) {
                 Row(
@@ -6855,11 +7055,6 @@ class HardwarePerformanceEvaluator(
         private const val EVALUATION_VALIDITY_HOURS = 24 // ارزیابی مجدد هر 24 ساعت
     }
 
-    /**
-     * ارزیابی جامع عملکرد سخت‌افزار با استفاده از رویکرد ترکیبی
-     * شامل بنچمارک‌های سبک و اطلاعات سخت‌افزاری
-     * @return امتیاز عملکرد از 0 تا 100
-     */
     suspend fun evaluatePerformance(): Int {
         // بررسی آیا ارزیابی قبلی هنوز معتبر است
         val lastEvaluation = userPreferencesManager.getScoreTimestamp()
@@ -6875,12 +7070,9 @@ class HardwarePerformanceEvaluator(
             cachedDeviceSpecs == currentDeviceSpecs) {
             val cachedScore = userPreferencesManager.getHardwareScore()
             if (cachedScore != -1) {
-                Log.d("HardwarePerformance", "استفاده از امتیاز کش شده: $cachedScore")
                 return cachedScore
             }
         }
-
-        Log.d("HardwarePerformance", "شروع ارزیابی جامع سخت‌افزار...")
 
         // اجرای بنچمارک‌ها و جمع‌آوری اطلاعات سخت‌افزاری
         val performanceMetrics = withContext(Dispatchers.Default) {
@@ -6908,9 +7100,6 @@ class HardwarePerformanceEvaluator(
 
         // ذخیره نتیجه در UserPreferencesManager
         userPreferencesManager.saveHardwareScore(finalScore, currentDeviceSpecs)
-
-        Log.d("HardwarePerformance", "امتیاز جدید محاسبه و ذخیره شد: $finalScore")
-        Log.d("HardwarePerformance", "جزئیات امتیازدهی: $performanceMetrics")
 
         return finalScore
     }

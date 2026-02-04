@@ -22,6 +22,9 @@ class ChatRepository(
     // دریافت پیام‌ها از دیتابیس به صورت جریان داده (Flow)
     val messages: Flow<List<ChatMessageEntity>> = chatDao.getAllMessages()
 
+    // مشاهده تعداد پیام‌های خوانده نشده
+    val unreadCount: Flow<Int> = chatDao.getUnreadCount()
+
     suspend fun refreshMessages() {
         withContext(Dispatchers.IO) {
             try {
@@ -204,6 +207,12 @@ class ChatRepository(
         } catch (e: Exception) {
             Log.e("ChatRepository", "Error fetching ship quotas", e)
             emptyList()
+        }
+    }
+
+    suspend fun markAllMessagesAsRead() {
+        withContext(Dispatchers.IO) {
+            chatDao.markAllAsReadByMe()
         }
     }
 }

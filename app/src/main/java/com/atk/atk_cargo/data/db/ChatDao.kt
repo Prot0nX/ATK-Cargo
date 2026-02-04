@@ -35,4 +35,10 @@ interface ChatDao {
 
     @Query("UPDATE chat_messages SET isDeleted = 1 WHERE id = :messageId")
     suspend fun markAsDeleted(messageId: Int)
+
+    @Query("SELECT COUNT(*) FROM chat_messages WHERE isReadByMe = 0 AND isSelf = 0 AND isDeleted = 0")
+    fun getUnreadCount(): Flow<Int>
+
+    @Query("UPDATE chat_messages SET isReadByMe = 1 WHERE isReadByMe = 0 AND isSelf = 0")
+    suspend fun markAllAsReadByMe()
 }

@@ -225,6 +225,12 @@ class ChatViewModel(
         _error.value = null
     }
 
+    fun markAllMessagesAsRead() {
+        viewModelScope.launch {
+            repository.markAllMessagesAsRead()
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         isPolling = false

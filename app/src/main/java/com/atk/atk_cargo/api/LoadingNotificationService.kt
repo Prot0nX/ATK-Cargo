@@ -23,12 +23,12 @@ import java.util.concurrent.TimeUnit
 
 class LoadingNotificationService : Service() {
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private lateinit var notificationManager: LoadingNotificationManager
+    private lateinit var notificationManager: AppNotificationManager
     private lateinit var userPreferencesManager: UserPreferencesManager
     
     // تنظیمات فاصله زمانی بین درخواست‌ها (به دقیقه)
     companion object {
-        private const val UPDATE_INTERVAL_MINUTES = 15L
+        private const val UPDATE_INTERVAL_MINUTES = 5L
         private const val INITIAL_DELAY_SECONDS = 10L
         
         // کلیدهای تنظیمات
@@ -58,13 +58,11 @@ class LoadingNotificationService : Service() {
     
     override fun onCreate() {
         super.onCreate()
-        notificationManager = LoadingNotificationManager(this)
+        notificationManager = AppNotificationManager(this)
         userPreferencesManager = UserPreferencesManager(this)
         
-        // ایجاد کانال نوتیفیکیشن
-        notificationManager.createNotificationChannel()
-        
-        // توجه: دریافت دوره‌ای اطلاعات فقط در onStartCommand برای کاربران admin اجرا می‌شود
+        // ایجاد کانال‌های جدید اعلان
+        notificationManager.setupChannels()
     }
     
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
@@ -103,16 +101,17 @@ class LoadingNotificationService : Service() {
 
         return START_STICKY
     }
-    
+
     /**
      * راه‌اندازی سرویس به عنوان فورگراند در اندروید 8.0 و بالاتر
      */
     private fun startForegroundService() {
-        val notification = NotificationCompat.Builder(this, LoadingNotificationManager.CHANNEL_ID)
-            .setContentTitle("بارگیری لحظه‌ای")
-            .setContentText("در حال بررسی اطلاعات بارگیری...")
+        val notification = NotificationCompat.Builder(this, AppNotificationManager.CHANNEL_SERVICE)
+            .setContentTitle("سرویس عملیات بارگیری")
+            .setContentText("در حال مانیتورینگ هوشمند بارگیری...")
             .setSmallIcon(R.drawable.ic_notification_icon)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
             .build()
             
         startForeground(FOREGROUND_ID, notification)
@@ -125,7 +124,7 @@ class LoadingNotificationService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         coroutineScope.cancel()
-        notificationManager.clearNotifications()
+        notificationManager.clearAll()
     }
     
     /**
@@ -190,12 +189,14 @@ class LoadingNotificationService : Service() {
                     // ذخیره داده‌ها در کش برای استفاده در نمایش آمار کلی
                     cacheLoadingData(loadingData.data)
                     
-                    // نمایش همه کشتی‌ها (بدون فیلتر کردن فقط کشتی‌هایی که حواله خروجی دارند)
+                    // نمایش همه کشتی‌ها
                     if (loadingData.data.isNotEmpty()) {
-                        // نمایش نوتیفیکیشن
-                        notificationManager.showLoadingNotifications(loadingData.data, isRefresh)
-                    } else {
-                        ""
+                        // دریافت لیست کشتی‌های مسدود شده
+                        val mutedShips = getSharedPreferences("ship_notifications_prefs", MODE_PRIVATE)
+                            .getStringSet("muted_ships", emptySet()) ?: emptySet()
+
+                        // نمایش نوتیفیکیشن از طریق مدیریت مرکزی
+                        notificationManager.notifyLoadingData(loadingData.data, mutedShips)
                     }
                 }
             } else {
