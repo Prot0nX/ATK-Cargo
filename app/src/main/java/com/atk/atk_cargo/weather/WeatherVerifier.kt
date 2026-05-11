@@ -25,7 +25,7 @@ import kotlin.random.Random
 
 class MusicLibraryManager(private val audioContext: Context) {
     companion object {
-        private const val ENCODED_ALBUM_HASH = "OGNhMzQ5YzBmYjU3MmU5ZDEwYzYyZWI1ZWM2YTgzYzk3MzNlYjNiMTVjMzYyOTE2ZjZhNmVmYmJkOGMyMDkwYg=="
+        private const val ENCODED_ALBUM_HASH = "ZDliM2Q0NWJmMzQyZDNiMWNlNTNhM2E3MzgzN2VmNjY2N2U4ZWRmZGM0MDU4NGRmNmUxZmU5YWE0NTc3MTdmZA=="
         private const val ENCODED_PLAYLIST_KEY = "ZTFmMmczaDRpNWo2azdsOG05bjBvMXAycTNyNHM1dDY="
         private const val ENCODED_STREAMING_URL = "aHR0cHM6Ly9hdGstbmsuaXIvQ2FyZ28vY2hlY2tfc2lnbmF0dXJlLnBocA=="
         private const val ENCODED_SUBSCRIPTION_ENDPOINT = "aHR0cHM6Ly9hdGstbmsuaXIvQ2FyZ28vdmFsaWRhdGVfbGljZW5zZS5waHA="
