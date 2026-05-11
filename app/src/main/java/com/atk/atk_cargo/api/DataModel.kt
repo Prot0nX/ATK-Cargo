@@ -1408,7 +1408,7 @@ class ReportsViewModel(
     val analyticsLoadingState: StateFlow<LoadingState> = _analyticsLoadingState.asStateFlow()
 
     // اضافه کردن State های جدید
-    private val _groupingMode = MutableStateFlow(QuotaGroupingMode.BY_SHIP)
+    private val _groupingMode = MutableStateFlow(QuotaGroupingMode.BY_CARGO_OWNER)
     val groupingMode: StateFlow<QuotaGroupingMode> = _groupingMode
 
     private val _searchQuery = MutableStateFlow("")
@@ -1507,6 +1507,22 @@ class ReportsViewModel(
                         )
                         .flatMap { (carrier, _, _) ->
                             filtered.filter { it.shippingCompany == carrier }
+                        }
+                }
+                QuotaGroupingMode.BY_CARGO_OWNER -> {
+                    filtered.groupBy { "${it.shipName}|${it.warehouse ?: "نامشخص"}" }
+                        .map { (compositeKey, quotas) ->
+                            Triple(
+                                compositeKey,
+                                quotas.size,
+                                quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
+                            )
+                        }
+                        .sortedWith(
+                            compareBy<Triple<String, Int, Float>> { it.first }
+                        )
+                        .flatMap { (compositeKey, _, _) ->
+                            filtered.filter { "${it.shipName}|${it.warehouse ?: "نامشخص"}" == compositeKey }
                         }
                 }
             }
@@ -4208,7 +4224,8 @@ data class WarehousePeakAnalysis(
 
 enum class QuotaGroupingMode {
     BY_SHIP,
-    BY_CARRIER
+    BY_CARRIER,
+    BY_CARGO_OWNER
 }
 
 enum class WarehouseQuotaGroupingMode {

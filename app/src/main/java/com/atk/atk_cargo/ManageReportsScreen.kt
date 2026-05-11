@@ -37,6 +37,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.horizontalScroll
@@ -13873,6 +13874,7 @@ fun QuotaAnalysis(
     }
 
     var expandedGroup by remember { mutableStateOf<String?>(null) }
+    var selectedOwnerQuotas by remember { mutableStateOf<Pair<String, List<QuotaCompletionData>>?>(null) }
     val groupingMode by viewModel.groupingMode.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val filteredQuotas by viewModel.filteredQuotas.collectAsState()
@@ -13903,9 +13905,16 @@ fun QuotaAnalysis(
                 .fillMaxWidth()
                 .padding(top = 12.dp, bottom = 16.dp)
                 .height(48.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            AnalyticsGroupingModeButton(
+                text = "صاحب کالا",
+                icon = Icons.Default.Person,
+                isSelected = groupingMode == QuotaGroupingMode.BY_CARGO_OWNER,
+                onClick = { viewModel.setGroupingMode(QuotaGroupingMode.BY_CARGO_OWNER) },
+                modifier = Modifier.weight(1f)
+            )
             AnalyticsGroupingModeButton(
                 text = "کشتی",
                 icon = Icons.Default.DirectionsBoat,
@@ -13937,6 +13946,9 @@ fun QuotaAnalysis(
         } else {
             // پیش‌پردازش گروه‌بندی خارج از LazyColumn برای بهینه‌سازی
             val grouped = when (groupingMode) {
+                QuotaGroupingMode.BY_CARGO_OWNER -> {
+                    activeQuotas.groupBy { "${it.shipName}|${it.warehouse ?: "نامشخص"}" }
+                }
                 QuotaGroupingMode.BY_SHIP -> {
                     activeQuotas.groupBy { it.shipName }
                 }
@@ -13954,8 +13966,12 @@ fun QuotaAnalysis(
                         quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
                     )
                 }.sortedWith(
-                    compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> { it.second.size }
-                        .thenByDescending { it.third }
+                    if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
+                        compareBy<Triple<String, List<QuotaCompletionData>, Float>> { it.first }
+                    } else {
+                        compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> { it.second.size }
+                            .thenByDescending { it.third }
+                    }
                 )
             }
 
@@ -13977,11 +13993,22 @@ fun QuotaAnalysis(
                         isExpanded = expandedGroup == groupName,
                         onExpandChange = { shouldExpand ->
                             expandedGroup = if (shouldExpand) groupName else null
+                        },
+                        onOwnerLongClick = { owner, ownerQuotas ->
+                            selectedOwnerQuotas = owner to ownerQuotas
                         }
                     )
                 }
             }
         }
+    }
+
+    selectedOwnerQuotas?.let { (owner, quotas) ->
+        OwnerQuotasDialog(
+            owner = owner,
+            quotas = quotas,
+            onDismiss = { selectedOwnerQuotas = null }
+        )
     }
 }
 
@@ -14009,7 +14036,7 @@ private fun AnalyticsGroupingModeButton(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
@@ -14017,12 +14044,12 @@ private fun AnalyticsGroupingModeButton(
                 imageVector = icon,
                 contentDescription = text,
                 tint = contentColor,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(16.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = text,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelMedium,
                 color = contentColor,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
             )
@@ -14037,12 +14064,14 @@ private fun AnalyticsQuotaGroupExpansionPanel(
     groupingMode: QuotaGroupingMode,
     isExpanded: Boolean,
     onExpandChange: (Boolean) -> Unit,
+    onOwnerLongClick: (String, List<QuotaCompletionData>) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val totalWeight = quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
     val totalVouchers = quotas.sumOf { it.last_24h_vouchers }
 
     val groupIcon = when (groupingMode) {
+        QuotaGroupingMode.BY_CARGO_OWNER -> Icons.Default.Person
         QuotaGroupingMode.BY_SHIP -> Icons.Default.DirectionsBoat
         QuotaGroupingMode.BY_CARRIER -> Icons.Default.LocalShipping
     }
@@ -14079,12 +14108,22 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = groupName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
+                            val parts = groupName.split("|")
+                            Text(
+                                text = if (parts.size >= 2) "${parts[0]} | ${parts[1]}" else groupName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        } else {
+                            Text(
+                                text = groupName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
 
                         Spacer(modifier = Modifier.width(12.dp))
 
@@ -14159,11 +14198,35 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    quotas.forEach { quota ->
-                        AnalyticsQuotaCard(
-                            quota = quota,
-                            groupingMode = groupingMode
-                        )
+                    if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
+                        // گروه‌بندی داخلی بر اساس صاحب کالا برای نمایش تجمیعی
+                        val ownerSummaries = quotas.groupBy { it.cargoOwner ?: "نامشخص" }
+                            .map { (owner, ownerQuotas) ->
+                                Triple(
+                                    owner,
+                                    ownerQuotas.sumOf { it.last_24h_vouchers },
+                                    ownerQuotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
+                                )
+                            }.sortedByDescending { it.third } // مرتب‌سازی بر اساس تناژ
+
+                        ownerSummaries.forEach { (owner, voucherCount, totalWeight) ->
+                            AnalyticsOwnerSummaryCard(
+                                owner = owner,
+                                voucherCount = voucherCount,
+                                totalWeight = totalWeight,
+                                onLongClick = {
+                                    val ownerQuotas = quotas.filter { (it.cargoOwner ?: "نامشخص") == owner }
+                                    onOwnerLongClick(owner, ownerQuotas)
+                                }
+                            )
+                        }
+                    } else {
+                        quotas.forEach { quota ->
+                            AnalyticsQuotaCard(
+                                quota = quota,
+                                groupingMode = groupingMode
+                            )
+                        }
                     }
                 }
             }
@@ -14271,6 +14334,7 @@ private fun AnalyticsQuotaCard(
                         text = when (groupingMode) {
                             QuotaGroupingMode.BY_SHIP -> quota.shippingCompany
                             QuotaGroupingMode.BY_CARRIER -> quota.shipName
+                            QuotaGroupingMode.BY_CARGO_OWNER -> quota.shippingCompany
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
@@ -14380,6 +14444,184 @@ private fun AnalyticsQuotaCard(
                             fontWeight = FontWeight.Medium
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun AnalyticsOwnerSummaryCard(
+    owner: String,
+    voucherCount: Int,
+    totalWeight: Float,
+    onLongClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = {}, // No action on simple click
+                onLongClick = onLongClick
+            ),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(
+                            color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
+                                Color(0xFF334155) else Color(0xFFF3F4F6),
+                            shape = RoundedCornerShape(6.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+                Text(
+                    text = owner,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AnalyticsStatChip(
+                    value = formatNumber(voucherCount),
+                    label = "حواله"
+                )
+                AnalyticsStatChip(
+                    value = formatNumber(totalWeight.toInt()),
+                    label = "تن"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OwnerQuotasDialog(
+    owner: String,
+    quotas: List<QuotaCompletionData>,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .fillMaxHeight(0.75f),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "کوتاژهای مرتبط",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = owner,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = CircleShape
+                            )
+                            .size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "بستن",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(20.dp))
+                
+                // Content
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 8.dp)
+                ) {
+                    items(quotas) { quota ->
+                        AnalyticsQuotaCard(
+                            quota = quota,
+                            groupingMode = QuotaGroupingMode.BY_SHIP
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Footer
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(12.dp)
+                ) {
+                    Text(
+                        text = "بستن",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
