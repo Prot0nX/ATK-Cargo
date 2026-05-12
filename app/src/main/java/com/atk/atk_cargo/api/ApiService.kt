@@ -178,7 +178,8 @@ interface ApiService {
         @Query("quotaNumber") quotaNumber: String,
         @Query("shipName") shipName: String? = null,
         @Query("cargoType") cargoType: String? = null,
-        @Query("shippingCompany") shippingCompany: String? = null
+        @Query("shippingCompany") shippingCompany: String? = null,
+        @Query("warehouse") warehouse: String? = null
     ): Response<QuotaStatusResponse>
 
     @GET("realTimeLoadingData.php")
