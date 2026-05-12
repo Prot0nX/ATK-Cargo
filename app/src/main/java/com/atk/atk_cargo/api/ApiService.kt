@@ -185,7 +185,10 @@ interface ApiService {
     suspend fun getRealTimeLoadingData(@Query("action") action: String = "getRealTimeData"): Response<RealTimeDataResponse>
 
     @GET("realTimeLoadingData.php")
-    suspend fun getComprehensiveAnalysis(@Query("action") action: String = "getComprehensiveAnalysis"): Response<ResponseBody>
+    suspend fun getComprehensiveAnalysis(
+        @Query("action") action: String = "getComprehensiveAnalysis",
+        @Query("offset") offset: Int = 0
+    ): Response<ComprehensiveAnalysisResponse>
 
     @POST("check_session.php")
     suspend fun checkSession(@Body request: SessionCheckRequest): Response<SessionResponse>
