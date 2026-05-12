@@ -7224,7 +7224,7 @@ fun getMenuItemsForUserType(userType: String): List<MenuItem> {
             MenuItem("مدیریت کشتی ها", R.drawable.ic_reports, "manage_ships", "مدیریت", "لیست کشتی‌ها و وضعیت آن‌ها"),
 
             // ارتباطات
-            MenuItem("اطلاع رسانی و گفتگو", R.drawable.ic_chat, "admin_chat", "ارتباطات", "پیام‌رسانی و هماهنگی تیمی")
+            // MenuItem("اطلاع رسانی و گفتگو", R.drawable.ic_chat, "admin_chat", "ارتباطات", "پیام‌رسانی و هماهنگی تیمی")
         )
         "operator" -> listOf(
             MenuItem("ثبت حواله", R.drawable.ic_boosters, "select_info", "عملیات پایه", "ثبت حواله‌های بارگیری"),
