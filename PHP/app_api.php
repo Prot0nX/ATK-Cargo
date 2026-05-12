@@ -307,6 +307,7 @@ function getShipsList(DatabaseManager $db): array {
 	$query = "
 	SELECT
 		i.shipName,
+		i.cargoType,
 		COUNT(DISTINCT i.loadingWarehouse) as warehouseCount,
 		COUNT(DISTINCT CONCAT(i.loadingQuotaNumber, '-', i.loadingWarehouse, '-', i.shippingCompany, '-', i.cargoType)) as quotaCount,
 		COUNT(DISTINCT i.shippingCompany) as shippingCompanyCount,
@@ -338,7 +339,7 @@ function getShipsList(DatabaseManager $db): array {
 		AND loaded.loadingWarehouse = i.loadingWarehouse
 		AND loaded.shippingCompany = i.shippingCompany
 		AND loaded.cargoType = i.cargoType
-	GROUP BY i.shipName
+	GROUP BY i.shipName, i.cargoType
 	ORDER BY isActive DESC, shipName ASC
 	";
 	
@@ -357,6 +358,7 @@ function getShipsList(DatabaseManager $db): array {
 		while ($row = $result->fetch_assoc()) {
 			$ship = [
 				'name' => $row['shipName'],
+				'cargoType' => $row['cargoType'],
 				'warehouseCount' => (int)$row['warehouseCount'],
 				'quotaCount' => (int)$row['quotaCount'],
 				'shippingCompanyCount' => (int)$row['shippingCompanyCount'],
