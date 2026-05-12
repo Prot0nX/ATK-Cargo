@@ -1456,6 +1456,13 @@ class ReportsViewModel(
     val shipSortingMode: StateFlow<ShipSortingMode> = _shipSortingMode.asStateFlow()
 
 
+    private val _isMinimalQuotaMode = MutableStateFlow(false)
+    val isMinimalQuotaMode: StateFlow<Boolean> = _isMinimalQuotaMode.asStateFlow()
+
+    fun toggleMinimalQuotaMode() {
+        _isMinimalQuotaMode.value = !_isMinimalQuotaMode.value
+    }
+
     // تابع تغییر حالت گروه‌بندی
     fun setGroupingMode(mode: QuotaGroupingMode) {
         _groupingMode.value = mode

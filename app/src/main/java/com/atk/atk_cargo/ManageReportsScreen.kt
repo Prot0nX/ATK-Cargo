@@ -2031,12 +2031,18 @@ fun QuotasList(
     val currentGroupingMode by groupingMode.collectAsState()
     val currentSortingMode by viewModel.quotaSortingMode.collectAsState()
     val currentGroupSortingMode by viewModel.groupSortingMode.collectAsState()
+    val isMinimalMode by viewModel.isMinimalQuotaMode.collectAsState()
     var expandedGroup by remember { mutableStateOf<String?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         GroupingModeSelector(
             currentMode = currentGroupingMode,
-            onModeChange = onGroupingModeChange
+            onModeChange = onGroupingModeChange,
+            onModeLongClick = { mode ->
+                if (mode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER) {
+                    viewModel.toggleMinimalQuotaMode()
+                }
+            }
         )
 
         // دکمه‌های مرتب‌سازی کوتاژها و گروه‌ها
@@ -2350,7 +2356,9 @@ fun QuotasList(
                             onEdit = onEdit,
                             onToggleStatus = onToggleStatus,
                             onDelete = onDelete,
-                            onPercentageChange = viewModel::updateQuotaPercentage
+                            onPercentageChange = viewModel::updateQuotaPercentage,
+                            shipName = viewModel.selectedShip.value?.name ?: "",
+                            isMinimalMode = isMinimalMode && currentGroupingMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER
                         )
                     }
                 }
@@ -2359,6 +2367,7 @@ fun QuotasList(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun QuotaGroupExpansionPanel(
     groupName: String,
@@ -2368,19 +2377,31 @@ fun QuotaGroupExpansionPanel(
     onEdit: (String, QuotaEditData) -> Unit,
     onToggleStatus: (String) -> Unit,
     onDelete: (Quota) -> Unit,
-    onPercentageChange: (QuotaPercentageData) -> Unit
+    onPercentageChange: (QuotaPercentageData) -> Unit,
+    shipName: String = "",
+    isMinimalMode: Boolean = false
 ) {
+    val context = LocalContext.current
     val loadedWeight = quotas.sumOf { it.loadedTonnage.toDouble() }
     val totalWeight = quotas.sumOf { it.totalTonnage.toDouble() }
     val remainingWeight = totalWeight - loadedWeight
-    var expandedQuotaNumber by remember { mutableStateOf<String?>(null) }
+    var expandedQuotaId by remember { mutableStateOf<Int?>(null) }
     val isDarkTheme = isSystemInDarkTheme()
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize()
-            .clickable(onClick = onExpandToggle),
+            .combinedClickable(
+                onClick = onExpandToggle,
+                onLongClick = {
+                    val singleGroupMap = LinkedHashMap<String?, List<Quota>>().apply {
+                        put(groupName, quotas)
+                    }
+                    val shareText = buildQuotasShareText(singleGroupMap, shipName, includeVoucherCount = true)
+                    shareQuotasData(context, shareText)
+                }
+            ),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -2500,19 +2521,39 @@ fun QuotaGroupExpansionPanel(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
                 Spacer(modifier = Modifier.height(8.dp))
 
-                quotas.forEach { quota ->
-                    QuotaCard(
-                        quota = quota,
-                        isExpanded = expandedQuotaNumber == quota.number,
-                        onExpandToggle = { isExpand ->
-                            expandedQuotaNumber = if (isExpand) quota.number else null
-                        },
-                        onEdit = onEdit,
-                        onToggleStatus = onToggleStatus,
-                        onDelete = onDelete,
-                        onPercentageChange = onPercentageChange
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+                if (isMinimalMode) {
+                    quotas.chunked(2).forEach { rowQuotas ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowQuotas.forEach { quota ->
+                                MinimalQuotaCard(
+                                    quota = quota,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (rowQuotas.size == 1) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                } else {
+                    quotas.forEach { quota ->
+                        QuotaCard(
+                            quota = quota,
+                            isExpanded = expandedQuotaId == quota.id,
+                            onExpandToggle = { isExpand ->
+                                expandedQuotaId = if (isExpand) quota.id else null
+                            },
+                            onEdit = onEdit,
+                            onToggleStatus = onToggleStatus,
+                            onDelete = onDelete,
+                            onPercentageChange = onPercentageChange
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
             }
         }
@@ -2555,7 +2596,8 @@ private fun StatChipShip(value: String, label: String? = null, isDarkTheme: Bool
 @Composable
 fun GroupingModeSelector(
     currentMode: WarehouseQuotaGroupingMode,
-    onModeChange: (WarehouseQuotaGroupingMode) -> Unit
+    onModeChange: (WarehouseQuotaGroupingMode) -> Unit,
+    onModeLongClick: (WarehouseQuotaGroupingMode) -> Unit = {}
 ) {
     val isDarkTheme = isSystemInDarkTheme()
 
@@ -2571,6 +2613,7 @@ fun GroupingModeSelector(
             icon = Icons.Default.LocalShipping,
             isSelected = currentMode == WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY,
             onClick = { onModeChange(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY) },
+            onLongClick = { onModeLongClick(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY) },
             isDarkTheme = isDarkTheme
         )
         GroupingModeButton(
@@ -2578,6 +2621,7 @@ fun GroupingModeSelector(
             icon = Icons.Default.Person,
             isSelected = currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER,
             onClick = { onModeChange(WarehouseQuotaGroupingMode.BY_CARGO_OWNER) },
+            onLongClick = { onModeLongClick(WarehouseQuotaGroupingMode.BY_CARGO_OWNER) },
             isDarkTheme = isDarkTheme
         )
         GroupingModeButton(
@@ -2585,17 +2629,20 @@ fun GroupingModeSelector(
             icon = Icons.Default.Warehouse,
             isSelected = currentMode == WarehouseQuotaGroupingMode.BY_WAREHOUSE,
             onClick = { onModeChange(WarehouseQuotaGroupingMode.BY_WAREHOUSE) },
+            onLongClick = { onModeLongClick(WarehouseQuotaGroupingMode.BY_WAREHOUSE) },
             isDarkTheme = isDarkTheme
         )
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun GroupingModeButton(
     text: String,
     icon: ImageVector,
     isSelected: Boolean,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
     isDarkTheme: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -2618,8 +2665,11 @@ private fun GroupingModeButton(
     }
 
     Surface(
-        modifier = modifier,
-        onClick = onClick,
+        modifier = modifier
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         shape = RoundedCornerShape(CornerL),
         color = backgroundColor,
         border = if (borderColor != Color.Transparent) BorderStroke(1.dp, borderColor) else null,
@@ -8058,6 +8108,91 @@ fun QuotaCard(
             },
             onDismiss = { showEditDialog = false }
         )
+    }
+}
+
+@Composable
+fun MinimalQuotaCard(
+    quota: Quota,
+    modifier: Modifier = Modifier
+) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val accentColor = if (quota.isActive) {
+        if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+    }
+
+    Card(
+        modifier = modifier.height(80.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        shape = RoundedCornerShape(CornerL),
+        border = BorderStroke(
+            1.dp,
+            if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(10.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = quota.number,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (quota.isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Icon(
+                    imageVector = if (quota.isActive) Icons.Default.CheckCircle else Icons.Default.Cancel,
+                    contentDescription = null,
+                    tint = if (quota.isActive) Green600 else Red500,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Scale,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = "${formatNumber(quota.remainingTonnage.toInt())} تن",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = accentColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Mini progress bar
+            val progress = calculateProgress(quota.loadedTonnage, quota.totalTonnage)
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = accentColor,
+                trackColor = accentColor.copy(alpha = 0.1f)
+            )
+        }
     }
 }
 
@@ -13784,7 +13919,11 @@ fun calculateProgress(value: Float, total: Float): Float {
 }
 
 @SuppressLint("DefaultLocale", "SimpleDateFormat")
-fun buildQuotasShareText(groupedQuotas: LinkedHashMap<String?, List<Quota>>, shipName: String = ""): String {
+fun buildQuotasShareText(
+    groupedQuotas: LinkedHashMap<String?, List<Quota>>,
+    shipName: String = "",
+    includeVoucherCount: Boolean = false
+): String {
     val shareText = StringBuilder()
     shareText.append("📄 *اطلاعات کشتی*")
     if (shipName.isNotEmpty()) {
@@ -13800,6 +13939,9 @@ fun buildQuotasShareText(groupedQuotas: LinkedHashMap<String?, List<Quota>>, shi
                 shareText.append("📋 *شماره کوتاژ*: ").append(quota.number).append("\n")
                 shareText.append("🚚 *بارگیری*: ").append(formatNumber(quota.loadedTonnage.toInt())).append(" تن\n")
                 shareText.append("⚖️ *مانده*: ").append(formatNumber(quota.remainingTonnage.toInt())).append(" تن\n")
+                if (includeVoucherCount) {
+                    shareText.append("🎫 *تعداد حواله*: ").append(formatNumber(quota.voucherCount)).append("\n")
+                }
                 shareText.append("\n")
             }
 
