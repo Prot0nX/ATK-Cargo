@@ -65,15 +65,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
@@ -89,7 +85,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -124,7 +119,6 @@ import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Filter
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory
@@ -146,10 +140,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SortByAlpha
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Store
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material.icons.filled.Warehouse
@@ -158,7 +149,6 @@ import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -250,9 +240,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.atk.atk_cargo.api.CalculationResult
 import com.atk.atk_cargo.api.CargoInfo
-import com.atk.atk_cargo.api.CargoOwnerData
-import com.atk.atk_cargo.api.CargoOwnerDetailsData
-import com.atk.atk_cargo.api.CarrierPerformanceAnalysis
 import com.atk.atk_cargo.api.ColorSelector
 import com.atk.atk_cargo.api.FabItem
 import com.atk.atk_cargo.api.FilteredSummary
@@ -269,14 +256,12 @@ import com.atk.atk_cargo.api.RealTimeLoadingData
 import com.atk.atk_cargo.api.ReportsViewModel
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.ShiftInfo
-import com.atk.atk_cargo.api.ShiftPerformanceData
 import com.atk.atk_cargo.api.Ship
 import com.atk.atk_cargo.api.ShipSortingMode
 import com.atk.atk_cargo.api.ThirdPartyOrder
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.VoucherDetail
 import com.atk.atk_cargo.api.Warehouse
-import com.atk.atk_cargo.api.WarehouseEfficiencyData
 import com.atk.atk_cargo.api.WarehouseQuotaGroupingMode
 import com.atk.atk_cargo.api.WarningStatus
 import com.atk.atk_cargo.api.adjustColorForTheme
@@ -2563,52 +2548,6 @@ private fun StatChipShip(value: String, label: String? = null, isDarkTheme: Bool
                     style = MaterialTheme.typography.bodySmall,
                     color = textColor,
                     fontWeight = FontWeight.Medium
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatChip(icon: ImageVector, value: String, color: Color, label: String? = null) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = color.copy(alpha = 0.1f)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(16.dp)
-            )
-            if (label != null) {
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "$label: ",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = color.copy(alpha = 0.7f),
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = value,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = color,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            } else {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = color
                 )
             }
         }
@@ -12583,7 +12522,6 @@ fun ComprehensiveAnalyticsDialog(
     onDismiss: () -> Unit,
     viewModel: ReportsViewModel
 ) {
-    var selectedTab by remember { mutableStateOf(AnalyticsTabType.QUOTAS) }
     val analyticsData by viewModel.comprehensiveAnalytics.collectAsState()
     val loadingState by viewModel.analyticsLoadingState.collectAsState()
 
@@ -12624,15 +12562,10 @@ fun ComprehensiveAnalyticsDialog(
                             .fillMaxSize()
                             .padding(12.dp)
                     ) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
-                        // نوار تب‌ها
-                        AnalyticsTabRow(
-                            selectedTab = selectedTab,
-                            onTabSelected = { selectedTab = it }
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
+                        // بخش انتخاب تاریخ
+                        AnalyticsDateNavigation(viewModel = viewModel)
 
                         // محتوای اصلی با توجه به وضعیت بارگذاری
                         Box(
@@ -12666,43 +12599,13 @@ fun ComprehensiveAnalyticsDialog(
                                     ErrorStateCard(errorMessage = error)
                                 }
                                 ReportsViewModel.LoadingState.Success -> {
-                                    // نمایش محتوای تب انتخاب شده
-                                    AnimatedContent(
-                                        targetState = selectedTab,
-                                        transitionSpec = {
-                                            fadeIn(animationSpec = tween(300)) togetherWith
-                                                    fadeOut(animationSpec = tween(300))
-                                        },
-                                        label = "تغییر تب"
-                                    ) { tab ->
-                                        when (tab) {
-                                            AnalyticsTabType.QUOTAS ->
-                                                analyticsData?.quotaCompletionAnalysis?.let { quotaData ->
-                                                    analyticsData?.quotaPredictionAnalysis?.let {
-                                                        QuotaAnalysis(
-                                                            completionData = quotaData,
-                                                            viewModel = viewModel
-                                                        )
-                                                    }
-                                                } ?: EmptyStateCard("داده‌ای برای کوتاژها یافت نشد")
-                                            AnalyticsTabType.CARGO_OWNERS ->
-                                                analyticsData?.cargoOwnerAnalysis?.let { cargoOwnerData ->
-                                                    CargoOwnerAnalysis(cargoOwnerData = cargoOwnerData)
-                                                } ?: EmptyStateCard("داده‌ای برای صاحبان کالا یافت نشد")
-                                            AnalyticsTabType.PEAK_HOURS ->
-                                                analyticsData?.shiftPerformanceAnalysis?.let { shiftData ->
-                                                    PeakHoursAnalysis(shiftData = shiftData)
-                                                } ?: EmptyStateCard("داده‌ای برای 24 ساعت گذشته یافت نشد")
-                                            AnalyticsTabType.CARRIERS ->
-                                                analyticsData?.carrierPerformanceAnalysis?.let { carrierData ->
-                                                    CarrierAnalysis(carrierPerformanceData = carrierData)
-                                                } ?: EmptyStateCard("داده‌ای برای باربری‌ها یافت نشد")
-                                            AnalyticsTabType.WAREHOUSES ->
-                                                analyticsData?.warehouseEfficiencyAnalysis?.let { warehouseData ->
-                                                    WarehouseAnalysis(efficiencyData = warehouseData)
-                                                } ?: EmptyStateCard("داده‌ای برای انبارها یافت نشد")
-                                        }
-                                    }
+                                    // نمایش آمار کوتاژها به صورت مستقیم (تنها بخش باقی‌مانده)
+                                    analyticsData?.quotaCompletionAnalysis?.let { quotaData ->
+                                        QuotaAnalysis(
+                                            completionData = quotaData,
+                                            viewModel = viewModel
+                                        )
+                                    } ?: EmptyStateCard("داده‌ای برای کوتاژها یافت نشد")
                                 }
                                 ReportsViewModel.LoadingState.Idle -> {
                                     LaunchedEffect(Unit) {
@@ -12718,302 +12621,92 @@ fun ComprehensiveAnalyticsDialog(
     }
 }
 
-enum class AnalyticsTabType {
-    QUOTAS,          // 0- وضعیت کوتاژها
-    CARGO_OWNERS,    // 1- صاحبان کالا
-    PEAK_HOURS,      // 2- 24 ساعت گذشته
-    CARRIERS,        // 3- باربری‌ها
-    WAREHOUSES       // 4- انبارها
-}
-
 @Composable
-fun CargoOwnerAnalysis(
-    cargoOwnerData: List<CargoOwnerData>
+private fun AnalyticsDateNavigation(
+    viewModel: ReportsViewModel
 ) {
-    var expandedShipId by remember { mutableStateOf<String?>(null) }
-    var searchQuery by remember { mutableStateOf("") }
-
-    val filteredShips = remember(cargoOwnerData, searchQuery) {
-        if (searchQuery.isEmpty()) {
-            cargoOwnerData.sortedByDescending { it.total_net_weight }
-        } else {
-            cargoOwnerData.filter { ship ->
-                ship.shipName.contains(searchQuery, ignoreCase = true) ||
-                        ship.owners.any { owner -> owner.cargoOwner.contains(searchQuery, ignoreCase = true) }
-            }.sortedByDescending { it.total_net_weight }
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 4.dp)
-    ) {
-        // فیلد جستجو - طراحی مینیمال
-        SearchField(
-            searchQuery = searchQuery,
-            onSearchQueryChange = { searchQuery = it },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = "جستجوی کشتی یا صاحب کالا..."
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // لیست کشتی‌ها
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
-        ) {
-            items(
-                items = filteredShips,
-                key = { it.shipName }
-            ) { shipData ->
-                ShipCard(
-                    shipData = shipData,
-                    isExpanded = expandedShipId == shipData.shipName,
-                    onExpandChange = { shouldExpand ->
-                        expandedShipId = if (shouldExpand) shipData.shipName else null
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ShipCard(
-    shipData: CargoOwnerData,
-    isExpanded: Boolean,
-    onExpandChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val animateColor = MaterialTheme.colorScheme.primary
-
+    val offset by viewModel.analyticsDateOffset.collectAsState()
+    val analytics by viewModel.comprehensiveAnalytics.collectAsState()
+    val dateInfo = analytics?.dateInfo
+    
+    val formattedDate = dateInfo?.jalaliDate ?: ""
+    val dayName = dateInfo?.dayName ?: ""
+    
     Card(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .clickable { onExpandChange(!isExpanded) }
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ),
+            .padding(bottom = 8.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         ),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // هدر کارت
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // اطلاعات کشتی
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // آیکون کشتی
-                    Surface(
-                        shape = CircleShape,
-                        color = animateColor.copy(alpha = 0.1f),
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DirectionsBoat,
-                            contentDescription = null,
-                            tint = animateColor,
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .size(24.dp)
-                        )
-                    }
-
-                    // اطلاعات کشتی
-                    Column {
-                        Text(
-                            text = shipData.shipName,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            StatChip(
-                                icon = Icons.Default.Person,
-                                value = formatNumber(shipData.owner_count),
-                                color = animateColor
-                            )
-                            StatChip(
-                                icon = Icons.Default.Receipt,
-                                value = formatNumber(shipData.total_vouchers),
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        }
-                    }
-                }
-
-                // وزن و آیکون گسترش
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Scale,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "${formatNumber(shipData.total_net_weight.roundToInt())} تن",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    IconButton(onClick = { onExpandChange(!isExpanded) }) {
-                        Icon(
-                            imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = null,
-                            tint = animateColor
-                        )
-                    }
-                }
-            }
-
-            // محتوای گسترش یافته
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // لیست صاحبان کالا
-                    shipData.owners.sortedByDescending { it.net_weight }.forEach { ownerData ->
-                        CargoOwnerDetailsCard(ownerData = ownerData, color = animateColor)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CargoOwnerDetailsCard(
-    ownerData: CargoOwnerDetailsData,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = color.copy(alpha = 0.05f),
-        shape = RoundedCornerShape(8.dp)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(horizontal = 4.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // اطلاعات صاحب کالا
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            // دکمه روز بعد (جلو)
+            IconButton(
+                onClick = { viewModel.setAnalyticsDateOffset(offset + 1) },
+                enabled = offset < 0
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = color.copy(alpha = 0.1f),
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = color,
-                        modifier = Modifier
-                            .padding(6.dp)
-                            .size(20.dp)
-                    )
-                }
-
-                Column {
-                    Text(
-                        text = ownerData.cargoOwner,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        StatChip(
-                            icon = Icons.Default.Description,
-                            value = formatNumber(ownerData.quota_count),
-                            color = color
-                        )
-                        StatChip(
-                            icon = Icons.Default.Receipt,
-                            value = formatNumber(ownerData.voucher_count),
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "روز بعد",
+                    tint = if (offset < 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                    modifier = Modifier.size(28.dp)
+                )
             }
-
-            // اطلاعات وزن
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)
+            
+            // نمایش تاریخ
+            @SuppressLint("StateFlowValueCalledInComposition")
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.weight(1f)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Scale,
+                        imageVector = Icons.Default.CalendarToday,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(14.dp)
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "${formatNumber(ownerData.net_weight.roundToInt())} تن",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        fontWeight = FontWeight.Bold
+                        text = if (offset == 0) "امروز" else if (offset == -1) "دیروز" else dayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
+                if (formattedDate.isNotEmpty()) {
+                    Text(
+                        text = formattedDate,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            // دکمه روز قبل (عقب)
+            IconButton(
+                onClick = { viewModel.setAnalyticsDateOffset(offset - 1) },
+                enabled = offset > -7
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "روز قبل",
+                    tint = if (offset > -7) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                    modifier = Modifier.size(28.dp)
+                )
             }
         }
     }
@@ -13065,7 +12758,7 @@ private fun AnalyticsHeaderCard(
                     )
 
                     Text(
-                        text = "گزارشات 24 ساعت گذشته",
+                        text = "گزارشات 24 ساعت قبل",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                     )
@@ -13091,688 +12784,6 @@ private fun AnalyticsHeaderCard(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun AnalyticsTabRow(
-    selectedTab: AnalyticsTabType,
-    onTabSelected: (AnalyticsTabType) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val tabs = remember {
-        listOf(
-            TabInfo(AnalyticsTabType.QUOTAS, "آمار کوتاژها", Icons.Default.Description),
-            TabInfo(AnalyticsTabType.CARGO_OWNERS, "صاحبان کالا", Icons.Default.Person),
-            TabInfo(AnalyticsTabType.PEAK_HOURS, "24 ساعت گذشته", Icons.Default.Schedule),
-            TabInfo(AnalyticsTabType.CARRIERS, "باربری‌ها", Icons.Default.LocalShipping),
-            TabInfo(AnalyticsTabType.WAREHOUSES, "انبارها", Icons.Default.Warehouse)
-        )
-    }
-
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-    ) {
-        LazyRow(
-            modifier = Modifier.padding(2.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            contentPadding = PaddingValues(horizontal = 2.dp)
-        ) {
-            items(tabs) { tab ->
-                val isSelected = selectedTab == tab.type
-
-                Surface(
-                    onClick = { onTabSelected(tab.type) },
-                    modifier = Modifier.widthIn(min = 100.dp),
-                    shape = RoundedCornerShape(6.dp),
-                    color = if (isSelected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        Color.Transparent
-                    }
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = tab.icon,
-                            contentDescription = null,
-                            tint = if (isSelected) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            },
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = tab.label,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (isSelected) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            },
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-private data class TabInfo(
-    val type: AnalyticsTabType,
-    val label: String,
-    val icon: ImageVector
-)
-
-@Composable
-fun PeakHoursAnalysis(
-    shiftData: List<ShiftPerformanceData>
-) {
-    var expandedShiftId by remember { mutableStateOf<String?>(null) }
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(
-            items = shiftData,
-            key = { it.shift }
-        ) { shift ->
-            ShiftCard(
-                shift = shift,
-                isDay = shift.shift == "روز",
-                isExpanded = expandedShiftId == shift.shift,
-                onExpandChange = { shouldExpand ->
-                    expandedShiftId = if (shouldExpand) shift.shift else null
-                }
-            )
-        }
-    }
-}
-
-@Composable
-private fun ShiftCard(
-    shift: ShiftPerformanceData,
-    isDay: Boolean,
-    isExpanded: Boolean,
-    onExpandChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val color = if (isDay) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.secondary
-    }
-
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp)
-            .clickable { onExpandChange(!isExpanded) }
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ),
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.05f)
-        ),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Shift Info
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ShiftIcon(isDay = isDay, color = color)
-
-                    Column {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "شیفت ${shift.shift}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Badge(
-                                containerColor = color.copy(alpha = 0.1f),
-                                contentColor = color
-                            ) {
-                                Text("${formatNumber(shift.total_vouchers)} حواله")
-                            }
-                            Badge(
-                                containerColor = color.copy(alpha = 0.1f),
-                                contentColor = color
-                            ) {
-                                Text("${formatNumber(shift.total_weight_tons.roundToInt())} تن")
-                            }
-                        }
-                    }
-                }
-
-                // Expand Icon
-                IconButton(onClick = { onExpandChange(!isExpanded) }) {
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null,
-                        tint = color
-                    )
-                }
-            }
-
-            // Quick Stats
-            if (!isExpanded) {
-                ShiftQuickStats(shift, color)
-            }
-
-            // Expanded Content
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                ShiftDetailedStats(shift, color)
-            }
-        }
-    }
-}
-
-@Composable
-private fun ShiftQuickStats(
-    shift: ShiftPerformanceData,
-    color: Color
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        StatItem(
-            icon = Icons.AutoMirrored.Filled.Assignment,
-            value = formatNumber(shift.total_operations),
-            label = "کوتاژها",
-            color = color
-        )
-        StatItem(
-            icon = Icons.Default.Timer,
-            value = "${shift.avg_completion_time.roundToInt()} دقیقه",
-            label = "میانگین زمان",
-            color = color
-        )
-        StatItem(
-            icon = Icons.Default.Scale,
-            value = formatNumber(shift.avg_weight_per_operation.roundToInt()),
-            label = "میانگین وزن",
-            color = color
-        )
-    }
-}
-
-@Composable
-private fun ShiftDetailedStats(
-    shift: ShiftPerformanceData,
-    color: Color
-) {
-    Column(
-        modifier = Modifier.padding(top = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        HorizontalDivider(color = color.copy(alpha = 0.1f))
-
-        // آمار کلی
-        GeneralStatsSection(shift, color)
-
-        // باربری‌های فعال
-        CarriersSection(shift, color)
-
-        // ساعت اوج
-        if (shift.peak_hour != null && shift.peak_hour_detail != null) {
-            PeakHoursSection(shift, color)
-        }
-
-        // عملیات‌های تاخیردار
-        if (!shift.delayed_operations_detail.isNullOrEmpty()) {
-            DelayedOperationsSection(shift, color)
-        }
-    }
-}
-
-@Composable
-private fun GeneralStatsSection(
-    shift: ShiftPerformanceData,
-    color: Color
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = color.copy(alpha = 0.05f),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SectionTitle(
-                icon = Icons.Default.Analytics,
-                title = "آمار کلی",
-                color = color
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                StatColumn(
-                    label = "تعداد کوتاژ",
-                    value = formatNumber(shift.total_operations),
-                    color = color
-                )
-                StatColumn(
-                    label = "تعداد حواله",
-                    value = formatNumber(shift.total_vouchers),
-                    color = color
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                StatColumn(
-                    label = "وزن کل",
-                    value = "${formatNumber(shift.total_weight_tons.roundToInt())} تن",
-                    color = color
-                )
-                StatColumn(
-                    label = "میانگین زمان",
-                    value = "${shift.avg_completion_time.roundToInt()} دقیقه",
-                    color = color
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatColumn(
-    label: String,
-    value: String,
-    color: Color
-) {
-    Column(
-        horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = color
-        )
-    }
-}
-
-@Composable
-private fun CarriersSection(
-    shift: ShiftPerformanceData,
-    color: Color
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = color.copy(alpha = 0.05f),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SectionTitle(
-                icon = Icons.Default.LocalShipping,
-                title = "باربری‌های فعال",
-                color = color
-            )
-
-            Text(
-                text = "${shift.total_active_carriers} باربری فعال",
-                style = MaterialTheme.typography.bodyMedium,
-                color = color
-            )
-
-            val carrierList = shift.active_carriers_list.split(",")
-            carrierList.forEach { carrierInfo ->
-                val (name, quotas, vouchers, weight) = carrierInfo.trim().split(":")
-                CarrierItem(
-                    name = name,
-                    quotaCount = quotas.toInt(),
-                    voucherCount = vouchers.toInt(),
-                    totalWeight = weight.toDouble(),
-                    color = color
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PeakHoursSection(
-    shift: ShiftPerformanceData,
-    color: Color
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = color.copy(alpha = 0.05f),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SectionTitle(
-                icon = Icons.Default.Schedule,
-                title = "ساعت اوج عملیات",
-                color = color
-            )
-
-            Text(
-                text = buildString {
-                    append("${formatNumber(shift.peak_hour_operations ?: 0)} کوتاژ")
-                    append(" | ${formatNumber(shift.peak_hour_vouchers ?: 0)} حواله")
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = color
-            )
-
-            // نمایش جزئیات هر ساعت اوج عملیات
-            shift.peak_hour_detail?.split("|")?.forEach { detail ->
-                val parts = detail.split(":", limit = 6)
-                if (parts.size >= 6) {
-                    val carrier = parts[0]
-                    val kotazh = parts[1]
-                    val vouchers = parts[2].toIntOrNull() ?: 0
-                    val weight = parts[3].toDoubleOrNull() ?: 0.0
-                    val timePart = parts[5]
-                    val start = "${parts[4]}:${timePart.substringBefore("-")}"
-                    val end = timePart.substringAfter("-")
-                    val time = "از $start تا $end"
-
-                    PeakHourItem(
-                        carrier = carrier,
-                        kotazh = kotazh,
-                        voucherCount = vouchers,
-                        weight = weight,
-                        time = time,
-                        color = color
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PeakHourItem(
-    carrier: String,
-    kotazh: String,
-    voucherCount: Int,
-    weight: Double,
-    time: String,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = color.copy(alpha = 0.05f),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            // ردیف اول: نام باربری و شماره کوتاژ
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = carrier,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = color
-                )
-                Text(
-                    text = "کوتاژ: $kotazh",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = color.copy(alpha = 0.7f)
-                )
-            }
-
-            // ردیف دوم: حواله، تناژ و زمان
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ChipText("${formatNumber(voucherCount)} حواله", color)
-                    ChipText("${formatNumber(weight.roundToInt())} تن", color)
-                    ChipText(time, color)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DelayedOperationsSection(
-    shift: ShiftPerformanceData,
-    color: Color
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = color.copy(alpha = 0.05f),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SectionTitle(
-                icon = Icons.Default.Warning,
-                title = "عملیات‌های تاخیردار",
-                color = color
-            )
-
-            shift.delayed_operations_detail?.split("|")?.forEach { delayInfo ->
-                val (kotazh, carrier, vouchers, hours, count) = delayInfo.split(":")
-                DelayedOperationItem(
-                    kotazh = kotazh,
-                    carrier = carrier,
-                    voucherNumbers = vouchers,
-                    hours = hours.toFloat(),
-                    voucherCount = count.toInt(),
-                    color = color
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun CarrierItem(
-    name: String,
-    quotaCount: Int,
-    voucherCount: Int,
-    totalWeight: Double,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = color.copy(alpha = 0.05f),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            // نام باربری در یک ردیف جداگانه
-            Text(
-                text = name,
-                style = MaterialTheme.typography.bodyMedium,
-                color = color
-            )
-
-            // اطلاعات باربری در ردیف دوم
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ChipText("${formatNumber(quotaCount)} کوتاژ", color)
-                    ChipText("${formatNumber(voucherCount)} حواله", color)
-                    ChipText("${formatNumber(totalWeight.roundToInt())} تن", color)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DelayedOperationItem(
-    kotazh: String,
-    carrier: String,
-    voucherNumbers: String,
-    hours: Float,
-    voucherCount: Int,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = color.copy(alpha = 0.05f),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = carrier,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = color
-                    )
-                    Text(
-                        text = "کوتاژ: $kotazh",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = color.copy(alpha = 0.7f)
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "بیشترین: ${formatHoursToPersian(hours)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (hours > 2) MaterialTheme.colorScheme.error else color
-                    )
-                    ChipText("$voucherCount حواله", color)
-                }
-            }
-            if (voucherNumbers.isNotEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                ) {
-                    Text(
-                        text = "حواله‌ها:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = color.copy(alpha = 0.7f),
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        textAlign = TextAlign.Start
-                    )
-
-                    Text(
-                        text = voucherNumbers,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = color.copy(alpha = 0.7f),
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        textAlign = TextAlign.End
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ChipText(
-    text: String,
-    color: Color
-) {
-    Surface(
-        color = color.copy(alpha = 0.1f),
-        shape = RoundedCornerShape(4.dp)
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = color,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-        )
     }
 }
 
@@ -13836,30 +12847,6 @@ private fun SearchField(
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface
             ),
             textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Right)
-        )
-    }
-}
-
-@Composable
-private fun ShiftIcon(
-    isDay: Boolean,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .size(38.dp)
-            .background(
-                color = color.copy(alpha = 0.1f),
-                shape = CircleShape
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = if (isDay) Icons.Default.LightMode else Icons.Default.DarkMode,
-            contentDescription = if (isDay) "شیفت روز" else "شیفت شب",
-            tint = color,
-            modifier = Modifier.size(24.dp)
         )
     }
 }
@@ -14628,578 +13615,6 @@ private fun OwnerQuotasDialog(
     }
 }
 
-@Composable
-fun CarrierAnalysis(
-    carrierPerformanceData: List<CarrierPerformanceAnalysis>
-) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(
-            items = carrierPerformanceData.sortedByDescending { it.quality_score },
-            key = { it.shippingCompany }
-        ) { carrier ->
-            CarrierCard(carrier = carrier)
-        }
-    }
-}
-
-@Composable
-private fun CarrierCard(
-    carrier: CarrierPerformanceAnalysis,
-    modifier: Modifier = Modifier
-) {
-    val color = when {
-        carrier.quality_score >= 80 -> MaterialTheme.colorScheme.primary
-        carrier.quality_score >= 70 -> MaterialTheme.colorScheme.secondary
-        else -> MaterialTheme.colorScheme.error
-    }
-
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.05f)
-        ),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Status Icon with Background
-                StatusIndicator(carrier.quality_score, color)
-
-                // Company Details
-                Column {
-                    Text(
-                        text = carrier.shippingCompany,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Badge(
-                            containerColor = color.copy(alpha = 0.1f),
-                            contentColor = color
-                        ) {
-                            Text(carrier.performance_category)
-                        }
-                        Badge(
-                            containerColor = color.copy(alpha = 0.1f),
-                            contentColor = color
-                        ) {
-                            Text("${carrier.quality_score.roundToInt()}%")
-                        }
-                    }
-                }
-            }
-
-            // Stats
-            QuickStats(carrier, color)
-
-            // Detailed Stats
-            DetailedStats(carrier, color)
-        }
-    }
-}
-
-@Composable
-private fun StatusIndicator(score: Float, color: Color) {
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .background(color.copy(alpha = 0.1f), CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = when {
-                score >= 80 -> Icons.Default.Star
-                score >= 70 -> Icons.Default.CheckCircle
-                else -> Icons.Default.Warning
-            },
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(24.dp)
-        )
-    }
-}
-
-@Composable
-private fun QuickStats(carrier: CarrierPerformanceAnalysis, color: Color) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        StatItem(
-            icon = Icons.Default.LocalShipping,
-            value = formatNumber(carrier.completed_deliveries),
-            label = "حواله‌ها",
-            color = color
-        )
-        StatItem(
-            icon = Icons.Default.Folder,
-            value = formatNumber(carrier.total_quotas),
-            label = "کوتاژها",
-            color = color
-        )
-        StatItem(
-            icon = Icons.Default.Speed,
-            value = formatNumber(carrier.avg_net_weight.roundToInt()),
-            label = "میانگین",
-            color = color
-        )
-    }
-}
-
-@Composable
-private fun StatItem(
-    icon: ImageVector,
-    value: String,
-    label: String,
-    color: Color
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(16.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-    }
-}
-
-@Composable
-private fun DetailedStats(carrier: CarrierPerformanceAnalysis, color: Color) {
-    Column(
-        modifier = Modifier.padding(top = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        HorizontalDivider(color = color.copy(alpha = 0.1f))
-
-        // بخش کوتاژها
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = color.copy(alpha = 0.05f),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
-        ) {
-            Column(
-                modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Assignment,
-                            contentDescription = null,
-                            tint = color,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = "کوتاژهای فعال",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    Text(
-                        text = "${carrier.completed_quotas} از ${carrier.total_quotas}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = color
-                    )
-                }
-
-                carrier.completed_quota_numbers?.let { quotaNumbers ->
-                    QuotaNumbersGrid(
-                        quotaNumbers = quotaNumbers.split(","),
-                        color = color
-                    )
-                }
-            }
-        }
-
-        // اطلاعات وزن در یک کارت
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = color.copy(alpha = 0.05f),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
-        ) {
-            Column(
-                modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Scale,
-                        contentDescription = null,
-                        tint = color,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = "اطلاعات وزن",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    WeightInfo(
-                        label = "میانگین",
-                        value = formatNumber(carrier.avg_net_weight.roundToInt()),
-                        color = color
-                    )
-                    WeightInfo(
-                        label = "حداقل",
-                        value = formatNumber(carrier.min_weight.roundToInt()),
-                        color = color
-                    )
-                    WeightInfo(
-                        label = "حداکثر",
-                        value = formatNumber(carrier.max_weight.roundToInt()),
-                        color = color
-                    )
-                }
-            }
-        }
-
-        // زمان اوج فعالیت
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = color.copy(alpha = 0.05f),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
-        ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Schedule,
-                        contentDescription = null,
-                        tint = color,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = "ساعت اوج",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                Text(
-                    text = "${formatNumber(carrier.peak_hour_operations)} عملیات در ساعت ${carrier.peak_hour}:00",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = color
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuotaNumbersGrid(
-    quotaNumbers: List<String>,
-    color: Color
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier
-            .heightIn(max = 120.dp)
-            .fillMaxWidth()
-    ) {
-        items(quotaNumbers) { quotaNumber ->
-            QuotaChip(quotaNumber.trim(), color)
-        }
-    }
-}
-
-@Composable
-private fun WeightInfo(
-    label: String,
-    value: String,
-    color: Color
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = color,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Composable
-private fun QuotaChip(
-    quotaNumber: String,
-    color: Color
-) {
-    Surface(
-        color = color.copy(alpha = 0.1f),
-        shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
-    ) {
-        Text(
-            text = quotaNumber,
-            style = MaterialTheme.typography.bodySmall,
-            color = color,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
-    }
-}
-
-@Composable
-fun WarehouseAnalysis(
-    efficiencyData: List<WarehouseEfficiencyData>,
-) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(
-            items = efficiencyData.sortedByDescending { it.daily_throughput },
-            key = { it.loadingWarehouse }
-        ) { warehouse ->
-            ModernWarehouseCard(
-                warehouse = warehouse
-            )
-        }
-    }
-}
-
-@Composable
-private fun ModernWarehouseCard(
-    warehouse: WarehouseEfficiencyData,
-    modifier: Modifier = Modifier
-) {
-    val efficiency = warehouse.daily_throughput / 1000 // تبدیل به تن
-    val color = when {
-        efficiency >= 100 -> MaterialTheme.colorScheme.primary
-        efficiency >= 50 -> MaterialTheme.colorScheme.secondary
-        else -> MaterialTheme.colorScheme.error
-    }
-
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.05f)
-        ),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.2f))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // هدر کارت
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // آیکون وضعیت
-                    WarehouseStatusIcon(color = color)
-
-                    // اطلاعات اصلی
-                    Column {
-                        Text(
-                            text = warehouse.loadingWarehouse,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Badge(
-                                containerColor = color.copy(alpha = 0.1f),
-                                contentColor = color
-                            ) {
-                                Text("${formatNumber(warehouse.active_quotas)} کوتاژ فعال")
-                            }
-                            Badge(
-                                containerColor = color.copy(alpha = 0.1f),
-                                contentColor = color
-                            ) {
-                                Text("${formatNumber(efficiency.roundToInt())} تن در روز")
-                            }
-                        }
-                    }
-                }
-            }
-
-            // آمار سریع
-            QuickWarehouseStats(warehouse, color)
-        }
-    }
-}
-
-@Composable
-private fun WarehouseStatusIcon(
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .size(40.dp)
-            .background(color.copy(alpha = 0.1f), CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.Warehouse,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(24.dp)
-        )
-    }
-}
-
-@SuppressLint("DefaultLocale")
-@Composable
-private fun QuickWarehouseStats(
-    warehouse: WarehouseEfficiencyData,
-    color: Color
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        StatItems(
-            icon = Icons.AutoMirrored.Filled.Assignment,
-            value = formatNumber(warehouse.total_operations),
-            label = "عملیات",
-            color = color
-        )
-        StatItems(
-            icon = Icons.Default.Speed,
-            value = String.format("%.1f", warehouse.daily_operations),
-            label = "عملیات در روز",
-            color = color
-        )
-        StatItems(
-            icon = Icons.Default.Scale,
-            value = formatNumber((warehouse.total_processed_weight / 1000).roundToInt()),
-            label = "تناژ بارگیری (تن)",
-            color = color
-        )
-    }
-}
-
-@Composable
-private fun StatItems(
-    icon: ImageVector,
-    value: String,
-    label: String,
-    color: Color
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(16.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-    }
-}
-
-@Composable
-private fun SectionTitle(
-    icon: ImageVector,
-    title: String,
-    color: Color
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(20.dp)
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
 
 @SuppressLint("DefaultLocale")
 fun formatWeightWithDetail(weightInKg: Float): String {

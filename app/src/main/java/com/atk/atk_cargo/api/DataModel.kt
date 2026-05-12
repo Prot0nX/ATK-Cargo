@@ -1407,7 +1407,16 @@ class ReportsViewModel(
     private val _analyticsLoadingState = MutableStateFlow<LoadingState>(LoadingState.Idle)
     val analyticsLoadingState: StateFlow<LoadingState> = _analyticsLoadingState.asStateFlow()
 
-    // اضافه کردن State های جدید
+    private val _analyticsDateOffset = MutableStateFlow(0)
+    val analyticsDateOffset: StateFlow<Int> = _analyticsDateOffset.asStateFlow()
+
+    fun setAnalyticsDateOffset(offset: Int) {
+        if (offset in -7..0) {
+            _analyticsDateOffset.value = offset
+            loadComprehensiveAnalytics()
+        }
+    }
+
     private val _groupingMode = MutableStateFlow(QuotaGroupingMode.BY_CARGO_OWNER)
     val groupingMode: StateFlow<QuotaGroupingMode> = _groupingMode
 
@@ -2471,46 +2480,31 @@ class ReportsViewModel(
 
     // تابع تبدیل تاریخ میلادی به شمسی (الگوریتم بهبود یافته)
     private fun gregorianToShamsi(gYear: Int, gMonth: Int, gDay: Int): ShamsiDate {
-        val gMonthDays = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334)
-
-        val gy = gYear - 1600
-        val gm = gMonth - 1
-        val gd = gDay - 1
-
-        var gDayNo = 365 * gy + ((gy + 3) / 4) - ((gy + 99) / 100) + ((gy + 399) / 400) - 80 + gd + gMonthDays[gm]
-
-        // بررسی سال کبیسه
-        if (gm > 1 && ((gYear % 4 == 0 && gYear % 100 != 0) || (gYear % 400 == 0))) {
-            gDayNo++
+        val g_d_m = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334)
+        val gy2 = if (gMonth > 2) gYear + 1 else gYear
+        var days = 355666 + (365 * gYear) + ((gy2 + 3) / 4) - ((gy2 + 99) / 100) + ((gy2 + 399) / 400) + gDay + g_d_m[gMonth - 1]
+        
+        var jy = -1595 + (33 * (days / 12053))
+        days %= 12053
+        jy += 4 * (days / 1461)
+        days %= 1461
+        
+        if (days > 365) {
+            jy += (days - 1) / 365
+            days = (days - 1) % 365
         }
-
-        var jDayNo = gDayNo - 79
-
-        val jNp = jDayNo / 12053
-        jDayNo %= 12053
-
-        var jYear = 979 + 33 * jNp + 4 * (jDayNo / 1461)
-        jDayNo %= 1461
-
-        if (jDayNo >= 366) {
-            jYear += ((jDayNo - 1) / 365)
-            jDayNo = (jDayNo - 1) % 365
-        }
-
-        val jMonth: Int
-        val jDay: Int
-
-        if (jDayNo < 186) {
-            // ماه‌های فروردین تا شهریور (۶ ماه اول - هر کدام ۳۱ روز)
-            jMonth = 1 + jDayNo / 31
-            jDay = 1 + (jDayNo % 31)
+        
+        val jm: Int
+        val jd: Int
+        if (days < 186) {
+            jm = 1 + (days / 31)
+            jd = 1 + (days % 31)
         } else {
-            // ماه‌های مهر تا اسفند (۶ ماه آخر - هر کدام ۳۰ روز)
-            jMonth = 7 + (jDayNo - 186) / 30
-            jDay = 1 + ((jDayNo - 186) % 30)
+            jm = 7 + ((days - 186) / 30)
+            jd = 1 + ((days - 186) % 30)
         }
-
-        return ShamsiDate(jYear, jMonth, jDay)
+        
+        return ShamsiDate(jy, jm, jd)
     }
 
     @SuppressLint("SimpleDateFormat", "DefaultLocale")
@@ -2573,148 +2567,20 @@ class ReportsViewModel(
         viewModelScope.launch {
             try {
                 _analyticsLoadingState.value = LoadingState.Loading
-                val response = repository.getComprehensiveAnalysis()
+                val response = repository.getComprehensiveAnalysis(_analyticsDateOffset.value)
 
                 if (response.success) {
                     _comprehensiveAnalytics.value = ComprehensiveAnalytics(
-                        peakHoursAnalysis = response.data.peakHoursAnalysis?.map { hour ->
-                            PeakHourData(
-                                hour = hour.hour,
-                                total_operations = hour.total_operations,
-                                entries = hour.entries,
-                                exits = hour.exits,
-                                percentage = hour.percentage
-                            )
-                        } ?: emptyList(),
-                        shiftPerformanceAnalysis = response.data.shiftPerformanceAnalysis?.map { shift ->
-                            ShiftPerformanceData(
-                                shift = shift.shift,
-                                total_operations = shift.total_operations,
-                                total_vouchers = shift.total_vouchers,
-                                active_carriers_list = shift.active_carriers_list,
-                                avg_completion_time = shift.avg_completion_time,
-                                completed_operations = shift.completed_operations,
-                                total_weight_tons = shift.total_weight_tons,
-                                peak_hour = shift.peak_hour,
-                                peak_hour_operations = shift.peak_hour_operations,
-                                peak_hour_vouchers = shift.peak_hour_vouchers,
-                                peak_hour_detail = shift.peak_hour_detail,
-                                avg_weight_per_operation = shift.avg_weight_per_operation,
-                                delayed_operations_detail = shift.delayed_operations_detail,
-                                completion_rate = shift.completion_rate,
-                                efficiency_score = shift.efficiency_score,
-                                total_active_carriers = shift.total_active_carriers,
-                                weight_standard_deviation = shift.weight_standard_deviation
-                            )
-                        } ?: emptyList(),
+                        dateInfo = response.data.dateInfo,
                         quotaCompletionAnalysis = response.data.quotaCompletionAnalysis?.map { quota ->
                             QuotaCompletionData(
                                 loadingQuotaNumber = quota.loadingQuotaNumber,
-                                total_quota_weight = quota.total_quota_weight,
-                                total_vouchers = quota.total_vouchers,
-                                completion_percentage = quota.completion_percentage,
-                                avg_completion_hours = quota.avg_completion_hours,
                                 shipName = quota.shipName,
                                 shippingCompany = quota.shippingCompany,
                                 last_24h_weight = quota.last_24h_weight,
                                 last_24h_vouchers = quota.last_24h_vouchers,
                                 cargoOwner = quota.cargoOwner,
                                 warehouse = quota.warehouse
-                            )
-                        } ?: emptyList(),
-                        quotaProgressAnalysis = response.data.quotaProgressAnalysis?.map { progress ->
-                            QuotaProgressData(
-                                loadingQuotaNumber = progress.loadingQuotaNumber,
-                                exitDate = progress.exitDate,
-                                daily_vouchers = progress.daily_vouchers,
-                                daily_weight = progress.daily_weight,
-                                cumulative_completion = progress.cumulative_completion
-                            )
-                        } ?: emptyList(),
-                        quotaPredictionAnalysis = response.data.quotaPredictionAnalysis?.map { prediction ->
-                            QuotaPredictionData(
-                                loadingQuotaNumber = prediction.loadingQuotaNumber,
-                                daily_rate = prediction.daily_rate,
-                                total_completed_weight = prediction.total_completed_weight,
-                                total_weight = prediction.total_weight,
-                                estimated_days_remaining = prediction.estimated_days_remaining
-                            )
-                        } ?: emptyList(),
-                        carrierPerformanceAnalysis = response.data.carrierPerformanceAnalysis?.map { carrier ->
-                            CarrierPerformanceAnalysis(
-                                shippingCompany = carrier.shippingCompany,
-                                total_deliveries = carrier.total_deliveries,
-                                completed_deliveries = carrier.completed_deliveries,
-                                total_quotas = carrier.total_quotas,
-                                completed_quotas = carrier.completed_quotas,
-                                avg_net_weight = carrier.avg_net_weight,
-                                min_weight = carrier.min_weight,
-                                max_weight = carrier.max_weight,
-                                avg_operation_time = carrier.avg_operation_time,
-                                operations_per_hour = carrier.operations_per_hour,
-                                peak_hour = carrier.peak_hour,
-                                peak_hour_operations = carrier.peak_hour_operations,
-                                quality_score = carrier.quality_score,
-                                performance_category = carrier.performance_category,
-                                completed_quota_numbers = carrier.completed_quota_numbers,
-                            )
-                        } ?: emptyList(),
-                        warehouseEfficiencyAnalysis = response.data.warehouseEfficiencyAnalysis?.map { warehouse ->
-                            WarehouseEfficiencyData(
-                                loadingWarehouse = warehouse.loadingWarehouse,
-                                active_quotas = warehouse.active_quotas,
-                                total_operations = warehouse.total_operations,
-                                total_processed_weight = warehouse.total_processed_weight,
-                                daily_throughput = warehouse.daily_throughput,
-                                daily_operations = warehouse.daily_operations,
-                                operation_percentage = warehouse.operation_percentage
-                            )
-                        } ?: emptyList(),
-                        warehouseSpeedAnalysis = response.data.warehouseSpeedAnalysis?.map { speed ->
-                            WarehouseSpeedData(
-                                loadingWarehouse = speed.loadingWarehouse,
-                                total_operations = speed.total_operations,
-                                avg_processing_minutes = speed.avg_processing_minutes,
-                                completed_operations = speed.completed_operations,
-                                avg_processed_weight = speed.avg_processed_weight,
-                                completion_rate = speed.completion_rate,
-                                weight_per_minute = speed.weight_per_minute
-                            )
-                        } ?: emptyList(),
-                        warehouseTrafficAnalysis = response.data.warehouseTrafficAnalysis?.map { traffic ->
-                            WarehouseTrafficData(
-                                loadingWarehouse = traffic.loadingWarehouse,
-                                hour = traffic.hour,
-                                entries = traffic.entries,
-                                exits = traffic.exits,
-                                hour_percentage = traffic.hour_percentage,
-                                avg_processed_weight = traffic.avg_processed_weight
-                            )
-                        } ?: emptyList(),
-                        warehousePeakAnalysis = response.data.warehousePeakAnalysis?.map { peak ->
-                            WarehousePeakData(
-                                loadingWarehouse = peak.loadingWarehouse,
-                                hour = peak.hour,
-                                operation_count = peak.operation_count,
-                                avg_weight = peak.avg_weight,
-                                period_percentage = peak.period_percentage,
-                                activity_level = peak.activity_level
-                            )
-                        } ?: emptyList(),
-                        cargoOwnerAnalysis = response.data.cargoOwnerAnalysis?.map { ship ->
-                            CargoOwnerData(
-                                shipName = ship.shipName,
-                                owner_count = ship.owner_count,
-                                total_vouchers = ship.total_vouchers,
-                                total_net_weight = ship.total_net_weight,
-                                owners = ship.owners.map { owner ->
-                                    CargoOwnerDetailsData(
-                                        cargoOwner = owner.cargoOwner,
-                                        voucher_count = owner.voucher_count,
-                                        net_weight = owner.net_weight,
-                                        quota_count = owner.quota_count
-                                    )
-                                }
                             )
                         } ?: emptyList()
                     )
@@ -3309,13 +3175,10 @@ class ReportsRepository(private val apiService: ApiService) {
         }
     }
 
-    suspend fun getComprehensiveAnalysis(): ComprehensiveAnalysisResponse {
-        val response = apiService.getComprehensiveAnalysis()
+    suspend fun getComprehensiveAnalysis(offset: Int = 0): ComprehensiveAnalysisResponse {
+        val response = apiService.getComprehensiveAnalysis(offset = offset)
         if (response.isSuccessful) {
-            val rawResponse = response.body()?.string() ?: throw Exception("Empty response")
-            val jsonStart = rawResponse.indexOf("{")
-            val jsonResponse = rawResponse.substring(jsonStart)
-            return Gson().fromJson(jsonResponse, ComprehensiveAnalysisResponse::class.java)
+            return response.body() ?: throw Exception("Empty response body")
         } else {
             throw Exception("Error ${response.code()}: ${response.errorBody()?.string()}")
         }
@@ -3978,248 +3841,44 @@ sealed class LoadingState {
     data class Error(val message: String) : LoadingState()
 }
 
+data class DateInfo(
+    val jalaliDate: String,
+    val dayName: String
+)
+
 data class ComprehensiveAnalysisResponse(
     val success: Boolean,
     val data: AnalyticsData
 )
 
 data class AnalyticsData(
-    val peakHoursAnalysis: List<PeakHourAnalysis>?,
-    val shiftPerformanceAnalysis: List<ShiftPerformanceResponse>?,
-    val quotaCompletionAnalysis: List<QuotaCompletionAnalysis>?,
-    val quotaProgressAnalysis: List<QuotaProgressAnalysis>?,
-    val quotaPredictionAnalysis: List<QuotaPredictionAnalysis>?,
-    val carrierPerformanceAnalysis: List<CarrierPerformanceAnalysis>?,
-    val warehouseEfficiencyAnalysis: List<WarehouseEfficiencyAnalysis>?,
-    val warehouseSpeedAnalysis: List<WarehouseSpeedAnalysis>?,
-    val warehouseTrafficAnalysis: List<WarehouseTrafficAnalysis>?,
-    val warehousePeakAnalysis: List<WarehousePeakAnalysis>?,
-    val cargoOwnerAnalysis: List<CargoOwnerAnalysis>?
+    val dateInfo: DateInfo?,
+    val quotaCompletionAnalysis: List<QuotaCompletionAnalysis>?
 )
 
 data class ComprehensiveAnalytics(
-    val peakHoursAnalysis: List<PeakHourData> = emptyList(),
-    val shiftPerformanceAnalysis: List<ShiftPerformanceData> = emptyList(),
-    val quotaCompletionAnalysis: List<QuotaCompletionData> = emptyList(),
-    val quotaProgressAnalysis: List<QuotaProgressData> = emptyList(),
-    val quotaPredictionAnalysis: List<QuotaPredictionData> = emptyList(),
-    val carrierPerformanceAnalysis: List<CarrierPerformanceAnalysis> = emptyList(),
-    val warehouseEfficiencyAnalysis: List<WarehouseEfficiencyData> = emptyList(),
-    val warehouseSpeedAnalysis: List<WarehouseSpeedData> = emptyList(),
-    val warehouseTrafficAnalysis: List<WarehouseTrafficData> = emptyList(),
-    val warehousePeakAnalysis: List<WarehousePeakData> = emptyList(),
-    val cargoOwnerAnalysis: List<CargoOwnerData> = emptyList()
-)
-
-data class PeakHourAnalysis(
-    val hour: Int,
-    val total_operations: Int,
-    val entries: Int,
-    val exits: Int,
-    val percentage: Float
-)
-
-data class PeakHourData(
-    val hour: Int,
-    val total_operations: Int,
-    val entries: Int,
-    val exits: Int,
-    val percentage: Float
-)
-
-data class ShiftPerformanceResponse(
-    val shift: String,
-    val total_operations: Int,
-    val total_vouchers: Int,
-    val active_carriers_list: String,
-    val avg_completion_time: Float,
-    val completed_operations: Int,
-    val total_weight_tons: Float,
-    val peak_hour: Int?,
-    val peak_hour_operations: Int?,
-    val peak_hour_vouchers: Int?,
-    val peak_hour_detail: String?,
-    val avg_weight_per_operation: Float,
-    val delayed_operations_detail: String?,
-    val completion_rate: Float,
-    val efficiency_score: Float,
-    val total_active_carriers: Int,
-    val total_delayed_operations: Int,
-    val weight_standard_deviation: Float
-)
-
-data class ShiftPerformanceData(
-    val shift: String,
-    val total_operations: Int,
-    val total_vouchers: Int,
-    val active_carriers_list: String,
-    val avg_completion_time: Float,
-    val completed_operations: Int,
-    val total_weight_tons: Float,
-    val peak_hour: Int?,
-    val peak_hour_operations: Int?,
-    val peak_hour_vouchers: Int?,
-    val peak_hour_detail: String?,
-    val avg_weight_per_operation: Float,
-    val delayed_operations_detail: String?,
-    val completion_rate: Float,
-    val efficiency_score: Float,
-    val total_active_carriers: Int,
-    val weight_standard_deviation: Float
+    val dateInfo: DateInfo? = null,
+    val quotaCompletionAnalysis: List<QuotaCompletionData> = emptyList()
 )
 
 data class QuotaCompletionAnalysis(
     val loadingQuotaNumber: String,
-    val total_quota_weight: Float,
-    val total_vouchers: Int,
-    val completion_percentage: Float,
-    val avg_completion_hours: Float,
     val shipName: String,
     val shippingCompany: String,
     val last_24h_weight: Float,
     val last_24h_vouchers: Int,
     val cargoOwner: String? = null,
     val warehouse: String? = null
-)
-
-data class QuotaProgressAnalysis(
-    val loadingQuotaNumber: String,
-    val exitDate: String,
-    val daily_vouchers: Int,
-    val daily_weight: Float,
-    val cumulative_completion: Float
-)
-
-data class QuotaPredictionAnalysis(
-    val loadingQuotaNumber: String,
-    val daily_rate: Float,
-    val total_completed_weight: Float,
-    val total_weight: Float,
-    val estimated_days_remaining: Float
 )
 
 data class QuotaCompletionData(
     val loadingQuotaNumber: String,
-    val total_quota_weight: Float,
-    val total_vouchers: Int,
-    val completion_percentage: Float,
-    val avg_completion_hours: Float,
     val shipName: String,
     val shippingCompany: String,
     val last_24h_weight: Float,
     val last_24h_vouchers: Int,
     val cargoOwner: String? = null,
     val warehouse: String? = null
-)
-
-data class QuotaProgressData(
-    val loadingQuotaNumber: String,
-    val exitDate: String,
-    val daily_vouchers: Int,
-    val daily_weight: Float,
-    val cumulative_completion: Float
-)
-
-data class QuotaPredictionData(
-    val loadingQuotaNumber: String,
-    val daily_rate: Float,
-    val total_completed_weight: Float,
-    val total_weight: Float,
-    val estimated_days_remaining: Float
-)
-
-data class CarrierPerformanceAnalysis(
-    val shippingCompany: String,
-    val total_deliveries: Int,
-    val completed_deliveries: Int,
-    val total_quotas: Int,
-    val completed_quotas: Int,
-    val completed_quota_numbers: String?,
-    val avg_net_weight: Float,
-    val min_weight: Float,
-    val max_weight: Float,
-    val avg_operation_time: Float,
-    val operations_per_hour: Float,
-    val peak_hour: Int,
-    val peak_hour_operations: Int,
-    val quality_score: Float,
-    val performance_category: String
-)
-
-data class WarehouseEfficiencyData(
-    val loadingWarehouse: String,
-    val active_quotas: Int,
-    val total_operations: Int,
-    val total_processed_weight: Float,
-    val daily_throughput: Float,
-    val daily_operations: Float,
-    val operation_percentage: Float
-)
-
-data class WarehouseSpeedData(
-    val loadingWarehouse: String,
-    val total_operations: Int,
-    val avg_processing_minutes: Float,
-    val completed_operations: Int,
-    val avg_processed_weight: Float,
-    val completion_rate: Float,
-    val weight_per_minute: Float
-)
-
-data class WarehouseTrafficData(
-    val loadingWarehouse: String,
-    val hour: Int,
-    val entries: Int,
-    val exits: Int,
-    val hour_percentage: Float,
-    val avg_processed_weight: Float
-)
-
-data class WarehousePeakData(
-    val loadingWarehouse: String,
-    val hour: Int,
-    val operation_count: Int,
-    val avg_weight: Float,
-    val period_percentage: Float,
-    val activity_level: String
-)
-
-data class WarehouseEfficiencyAnalysis(
-    val loadingWarehouse: String,
-    val active_quotas: Int,
-    val total_operations: Int,
-    val total_processed_weight: Float,
-    val daily_throughput: Float,
-    val daily_operations: Float,
-    val operation_percentage: Float
-)
-
-data class WarehouseSpeedAnalysis(
-    val loadingWarehouse: String,
-    val total_operations: Int,
-    val avg_processing_minutes: Float,
-    val completed_operations: Int,
-    val avg_processed_weight: Float,
-    val completion_rate: Float,
-    val weight_per_minute: Float
-)
-
-data class WarehouseTrafficAnalysis(
-    val loadingWarehouse: String,
-    val hour: Int,
-    val entries: Int,
-    val exits: Int,
-    val hour_percentage: Float,
-    val avg_processed_weight: Float
-)
-
-data class WarehousePeakAnalysis(
-    val loadingWarehouse: String,
-    val hour: Int,
-    val operation_count: Int,
-    val avg_weight: Float,
-    val period_percentage: Float,
-    val activity_level: String
 )
 
 enum class QuotaGroupingMode {
@@ -4253,29 +3912,6 @@ enum class ShipSortingMode {
     NAME_ASC,
     NAME_DESC
 }
-
-data class CargoOwnerAnalysis(
-    val shipName: String,
-    val owner_count: Int,
-    val total_vouchers: Int,
-    val total_net_weight: Float,
-    val owners: List<CargoOwnerDetailsData>
-)
-
-data class CargoOwnerDetailsData(
-    val cargoOwner: String,
-    val voucher_count: Int,
-    val net_weight: Float,
-    val quota_count: Int
-)
-
-data class CargoOwnerData(
-    val shipName: String,
-    val owner_count: Int,
-    val total_vouchers: Int,
-    val total_net_weight: Float,
-    val owners: List<CargoOwnerDetailsData>
-)
 
 data class LoadableTonnageResponse(
     val success: Boolean,
