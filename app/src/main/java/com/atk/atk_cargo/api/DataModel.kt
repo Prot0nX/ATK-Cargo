@@ -214,7 +214,8 @@ class CargoViewModel(
                             quotaNumber = quota.quotaNumber,
                             shipName = shipName,
                             shippingCompany = quota.shippingCompany,
-                            cargoType = quota.cargoType
+                            cargoType = quota.cargoType,
+                            warehouse = quota.warehouse
                         )
                         quota.copy(isActive = quotaStatus.isActive)
                     }
@@ -237,14 +238,16 @@ class CargoViewModel(
         quotaNumber: String,
         shipName: String,
         shippingCompany: String,
-        cargoType: String
+        cargoType: String,
+        warehouse: String
     ): QuotaStatusResponse {
         return try {
             val response = apiService.checkQuotaStatus(
                 quotaNumber = quotaNumber,
                 shipName = shipName,
                 cargoType = cargoType,
-                shippingCompany = shippingCompany
+                shippingCompany = shippingCompany,
+                warehouse = warehouse
             )
             if (response.isSuccessful) {
                 response.body() ?: throw Exception("پاسخ خالی از سرور")
@@ -496,7 +499,8 @@ class CargoViewModel(
                 quotaNumber = initialInfo.loadingQuotaNumber.toString(),
                 shipName = initialInfo.shipName,
                 cargoType = initialInfo.cargoType,
-                shippingCompany = initialInfo.shippingCompany
+                shippingCompany = initialInfo.shippingCompany,
+                warehouse = initialInfo.loadingWarehouse
             )
 
             // اگر کوتاژ غیرفعال است، بلافاصله برگردانیم
@@ -2863,14 +2867,16 @@ class ReportsRepository(private val apiService: ApiService) {
         quotaNumber: String,
         shipName: String,
         cargoType: String,
-        shippingCompany: String
+        shippingCompany: String,
+        warehouse: String
     ): QuotaStatusResponse = withContext(Dispatchers.IO) {
         try {
             val response = apiService.checkQuotaStatus(
                 quotaNumber = quotaNumber,
                 shipName = shipName,
                 cargoType = cargoType,
-                shippingCompany = shippingCompany
+                shippingCompany = shippingCompany,
+                warehouse = warehouse
             )
 
             if (response.isSuccessful) {

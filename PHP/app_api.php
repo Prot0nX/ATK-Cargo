@@ -88,7 +88,7 @@ function checkQuotaStatus(DatabaseManager $db, array $params): array {
 		// customLog("checkQuotaStatus شروع - پارامترهای دریافتی: " . json_encode($params));
 		
 		// اعتبارسنجی سریع‌تر با استفاده از array_diff_key
-		$requiredParams = ['quotaNumber', 'shipName', 'cargoType', 'shippingCompany'];
+		$requiredParams = ['quotaNumber', 'shipName', 'cargoType', 'shippingCompany', 'warehouse'];
 		$missingParams = array_diff($requiredParams, array_keys($params));
 		
 		if (!empty($missingParams)) {
@@ -107,8 +107,9 @@ function checkQuotaStatus(DatabaseManager $db, array $params): array {
 		$shipName = sanitizeInput($params['shipName']);
 		$cargoType = sanitizeInput($params['cargoType']);
 		$shippingCompany = sanitizeInput($params['shippingCompany']);
+		$warehouse = sanitizeInput($params['warehouse']);
 		
-		// customLog("پارامترهای پاک‌سازی شده - quotaNumber: $quotaNumber, shipName: $shipName, cargoType: $cargoType, shippingCompany: $shippingCompany");
+		// customLog("پارامترهای پاک‌سازی شده - quotaNumber: $quotaNumber, shipName: $shipName, cargoType: $cargoType, shippingCompany: $shippingCompany, warehouse: $warehouse");
 		
 		// بهینه‌سازی کوئری با استفاده از LEFT JOIN به جای subquery های تکراری
 		// این روش بسیار سریع‌تر است چون فقط یک بار محاسبه می‌شود
@@ -117,6 +118,7 @@ function checkQuotaStatus(DatabaseManager $db, array $params): array {
 			i.shipName,
 			i.cargoType,
 			i.shippingCompany,
+			i.loadingWarehouse,
 			i.cargoWeight as totalWeight,
 			i.isActive,
 			COALESCE(SUM(c.netWeight), 0) as loadedWeight
@@ -126,22 +128,25 @@ function checkQuotaStatus(DatabaseManager $db, array $params): array {
 			AND c.shipName = i.shipName
 			AND c.cargoType = i.cargoType
 			AND c.shippingCompany = i.shippingCompany
+			AND c.loadingWarehouse = i.loadingWarehouse
 			AND c.status = 'خروج'
 		WHERE i.loadingQuotaNumber = ?
 			AND i.shipName = ?
 			AND i.cargoType = ?
 			AND i.shippingCompany = ?
+			AND i.loadingWarehouse = ?
 		GROUP BY 
 			i.loadingQuotaNumber,
 			i.shipName,
 			i.cargoType,
 			i.shippingCompany,
+			i.loadingWarehouse,
 			i.cargoWeight,
 			i.isActive
 		LIMIT 1";
 		
 		$stmt = $db->prepare($query);
-		$stmt->bind_param("ssss", $quotaNumber, $shipName, $cargoType, $shippingCompany);
+		$stmt->bind_param("sssss", $quotaNumber, $shipName, $cargoType, $shippingCompany, $warehouse);
 		$stmt->execute();
 		$result = $stmt->get_result();
 		
@@ -1990,10 +1995,11 @@ break;
 				}
 				
 				$params = [
-				'quotaNumber' => $_GET['quotaNumber'] ?? '',
-				'shipName' => $_GET['shipName'] ?? '',
-				'cargoType' => $_GET['cargoType'] ?? '',
-				'shippingCompany' => $_GET['shippingCompany'] ?? ''
+					'quotaNumber' => $_GET['quotaNumber'] ?? '',
+					'shipName' => $_GET['shipName'] ?? '',
+					'cargoType' => $_GET['cargoType'] ?? '',
+					'shippingCompany' => $_GET['shippingCompany'] ?? '',
+					'warehouse' => $_GET['warehouse'] ?? ''
 				];
 				
 				// customLog("API دریافت درخواست checkQuotaStatus با پارامترهای: " . json_encode($params));
