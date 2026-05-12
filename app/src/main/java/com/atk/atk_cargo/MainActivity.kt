@@ -71,6 +71,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -229,6 +230,22 @@ import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.UserTypeInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
+import com.atk.atk_cargo.ui.theme.ThemeBlue
+import com.atk.atk_cargo.ui.theme.ThemeBlueDark
+import com.atk.atk_cargo.ui.theme.ThemeBlueOcean
+import com.atk.atk_cargo.ui.theme.ThemeGold
+import com.atk.atk_cargo.ui.theme.ThemeGreen
+import com.atk.atk_cargo.ui.theme.ThemeGreenDark
+import com.atk.atk_cargo.ui.theme.ThemeGreenTeal
+import com.atk.atk_cargo.ui.theme.ThemeOlive
+import com.atk.atk_cargo.ui.theme.ThemeOrange
+import com.atk.atk_cargo.ui.theme.ThemePink
+import com.atk.atk_cargo.ui.theme.ThemePurple
+import com.atk.atk_cargo.ui.theme.ThemePurpleDark
+import com.atk.atk_cargo.ui.theme.ThemeRed
+import com.atk.atk_cargo.ui.theme.ThemeRedDark
+import com.atk.atk_cargo.ui.theme.ThemeSlateBlue
+import com.atk.atk_cargo.ui.theme.ThemeTeal
 import com.atk.atk_cargo.weather.MusicLibraryManager
 import com.atk.atk_cargo.weather.SecurityBlockScreen
 import com.atk.atk_cargo.weather.SecurityErrorType
@@ -283,7 +300,9 @@ class MainActivity : ComponentActivity() {
             }
 
             setContent {
-                ATKCargoTheme {
+                val themeColorLong by userPreferencesManager.themeColor.collectAsState(initial = 0xFF137fecL)
+                val primaryColor = Color(themeColorLong)
+                ATKCargoTheme(primaryColor = primaryColor) {
                     var showMainContent by remember { mutableStateOf(false) }
                     // متغیر جدید برای کنترل نمایش دیالوگ‌های مجوز
                     var canRequestPermissions by remember { mutableStateOf(false) }
@@ -765,11 +784,26 @@ class MainActivity : ComponentActivity() {
 
                         // منطق مشابه ChatNotificationWorker برای نمایش اعلان
                         if (userType == "admin" || msg.message.contains("@$username")) {
-                            withContext(Dispatchers.Main) {
-                                appNotificationManager.showChatNotification(
-                                    msg.fullName ?: msg.username,
-                                    msg.message
-                                )
+                            // بررسی مجوز POST_NOTIFICATIONS برای Android 13+
+                            val hasNotificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                ContextCompat.checkSelfPermission(
+                                    this@MainActivity,
+                                    Manifest.permission.POST_NOTIFICATIONS
+                                ) == PackageManager.PERMISSION_GRANTED
+                            } else {
+                                true
+                            }
+                            if (hasNotificationPermission) {
+                                withContext(Dispatchers.Main) {
+                                    try {
+                                        appNotificationManager.showChatNotification(
+                                            msg.fullName ?: msg.username,
+                                            msg.message
+                                        )
+                                    } catch (se: SecurityException) {
+                                        Log.w("ATK_CHAT_DEBUG", "مجوز نوتیفیکیشن رد شد: ${se.message}")
+                                    }
+                                }
                             }
                         }
                     }
@@ -2532,7 +2566,14 @@ fun ProfileMenu(
                     )
 
                     HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    
+
+                    // ===== انتخابگر رنگ تم =====
+                    ThemeColorPickerRow(
+                        userPreferencesManager = userPreferencesManager
+                    )
+
+                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
                     ActionButtons(
                         onSettingsClick = {
                             showSettings = true
@@ -2707,9 +2748,160 @@ fun NotificationSettingRow(
     }
 }
 
+private data class ThemeColorOption(
+    val color: Color,
+    val colorLong: Long,
+    val label: String
+)
+
+private val themeColorOptions = listOf(
+    // آبی‌ها
+    ThemeColorOption(ThemeBlue,       0xFF137fecL, "آبی"),
+    ThemeColorOption(ThemeBlueDark,   0xFF1976D2L, "آبی تیره"),
+    ThemeColorOption(ThemeBlueOcean,  0xFF0288D1L, "آبی اقیانوس"),
+    ThemeColorOption(ThemeTeal,       0xFF0097A7L, "فیروزه"),
+    // سبزها
+    ThemeColorOption(ThemeGreen,      0xFF10b981L, "سبز"),
+    ThemeColorOption(ThemeGreenDark,  0xFF388E3CL, "سبز تیره"),
+    ThemeColorOption(ThemeGreenTeal,  0xFF00796BL, "سبز آبی"),
+    ThemeColorOption(ThemeOlive,      0xFF689F38L, "زیتونی"),
+    // بنفش‌ها
+    ThemeColorOption(ThemePurple,     0xFF8B5CF6L, "بنفش"),
+    ThemeColorOption(ThemePurpleDark, 0xFF7B1FA2L, "بنفش تیره"),
+    ThemeColorOption(ThemePink,       0xFFE91E63L, "صورتی"),
+    // نارنجی و قرمز
+    ThemeColorOption(ThemeOrange,     0xFFE64A19L, "نارنجی"),
+    ThemeColorOption(ThemeRed,        0xFFEF4444L, "قرمز"),
+    ThemeColorOption(ThemeRedDark,    0xFFC62828L, "قرمز تیره"),
+    // طلایی و خاکستری
+    ThemeColorOption(ThemeGold,       0xFFFFA000L, "طلایی"),
+    ThemeColorOption(ThemeSlateBlue,  0xFF455A64L, "خاکستری آبی")
+)
+
+@Composable
+fun ThemeColorPickerRow(
+    userPreferencesManager: UserPreferencesManager
+) {
+    val currentColorLong by userPreferencesManager.themeColor.collectAsState(initial = 0xFF137fecL)
+    val coroutineScope = rememberCoroutineScope()
+
+    // ===== کانتینر اصلی: ستونی (برچسب بالا، دایره‌ها پایین) =====
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // ── ردیف اول: آیکون + عنوان ──
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            Column {
+                Text(
+                    text = "رنگ اصلی برنامه",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "تم رنگی رابط کاربری",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // ── ردیف دوم: دایره‌های رنگی با اسکرول افقی ──
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp)
+        ) {
+            items(themeColorOptions) { option ->
+                val isSelected = currentColorLong == option.colorLong
+                val sizeAnim by animateFloatAsState(
+                    targetValue = if (isSelected) 40f else 34f,
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    label = "size_${option.label}"
+                )
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(sizeAnim.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isSelected)
+                                    option.color
+                                else
+                                    option.color.copy(alpha = 0.75f)
+                            )
+                            .then(
+                                if (isSelected)
+                                    Modifier.padding(0.dp)
+                                else Modifier
+                            )
+                            .clickable {
+                                coroutineScope.launch {
+                                    userPreferencesManager.saveThemeColor(option.colorLong)
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = option.label,
+                                modifier = Modifier.size(18.dp),
+                                tint = Color.White
+                            )
+                        }
+                    }
+
+                    // برچسب رنگ
+                    Text(
+                        text = option.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 9.sp,
+                        color = if (isSelected)
+                            option.color
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun ProfileSettingsDialog(
     user: User,
+
     onDismiss: () -> Unit,
     onLogout: () -> Unit
 ) {
