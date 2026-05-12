@@ -12,58 +12,72 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryBlue,
-    onPrimary = Color.White,
-    primaryContainer = PrimaryBlueDark,
-    onPrimaryContainer = PrimaryBlueLight,
-    secondary = PrimaryBlue,
-    onSecondary = Color.White,
-    secondaryContainer = PrimaryBlueDark,
-    onSecondaryContainer = PrimaryBlueLight,
-    tertiary = PrimaryBlue,
-    onTertiary = Color.White,
-    tertiaryContainer = PrimaryBlueDark,
-    onTertiaryContainer = PrimaryBlueLight,
-    error = ErrorDark,
-    onError = Color.White,
-    errorContainer = ErrorContainerDark,
-    onErrorContainer = Color(0xFFFFCDD2),
-    background = BackgroundDark,
-    onBackground = TextPrimaryDark,
-    surface = SurfaceDark,
-    onSurface = TextPrimaryDark,
-    surfaceVariant = BorderDark,
-    onSurfaceVariant = TextSecondaryDark,
-    outline = BorderDark
+// ===== تابع کمکی: ترکیب رنگ شفاف روی پس‌زمینه جهانی =====
+private fun Color.compositeOver(background: Color): Color {
+    val a = this.alpha
+    return Color(
+        red   = this.red   * a + background.red   * (1f - a),
+        green = this.green * a + background.green * (1f - a),
+        blue  = this.blue  * a + background.blue  * (1f - a),
+        alpha = 1f
+    )
+}
+
+// ===== ساخت ColorScheme پویا (Dark) بر اساس رنگ primary انتخابی =====
+private fun buildDynamicDarkColorScheme(primary: Color) = darkColorScheme(
+    primary              = primary,
+    onPrimary            = Color.White,
+    primaryContainer     = primary.copy(alpha = 0.25f).compositeOver(Color(0xFF0f172a)),
+    onPrimaryContainer   = primary.copy(alpha = 0.90f),
+    secondary            = primary,
+    onSecondary          = Color.White,
+    secondaryContainer   = primary.copy(alpha = 0.20f).compositeOver(Color(0xFF0f172a)),
+    onSecondaryContainer = primary.copy(alpha = 0.90f),
+    tertiary             = primary,
+    onTertiary           = Color.White,
+    tertiaryContainer    = primary.copy(alpha = 0.20f).compositeOver(Color(0xFF0f172a)),
+    onTertiaryContainer  = primary.copy(alpha = 0.90f),
+    error                = ErrorDark,
+    onError              = Color.White,
+    errorContainer       = ErrorContainerDark,
+    onErrorContainer     = Color(0xFFFFCDD2),
+    background           = BackgroundDark,
+    onBackground         = TextPrimaryDark,
+    surface              = SurfaceDark,
+    onSurface            = TextPrimaryDark,
+    surfaceVariant       = BorderDark,
+    onSurfaceVariant     = TextSecondaryDark,
+    outline              = BorderDark
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = PrimaryBlue,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFE3F2FD),
-    onPrimaryContainer = PrimaryBlueDark,
-    secondary = PrimaryBlue,
-    onSecondary = Color.White,
-    secondaryContainer = Color(0xFFE3F2FD),
-    onSecondaryContainer = PrimaryBlueDark,
-    tertiary = PrimaryBlue,
-    onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFE3F2FD),
-    onTertiaryContainer = PrimaryBlueDark,
-    error = ErrorLight,
-    onError = Color.White,
-    errorContainer = ErrorContainerLight,
-    onErrorContainer = ErrorLight,
-    background = BackgroundLight,
-    onBackground = TextPrimaryLight,
-    surface = SurfaceLight,
-    onSurface = TextPrimaryLight,
-    surfaceVariant = BorderLight,
-    onSurfaceVariant = TextSecondaryLight,
-    outline = BorderLight
+// ===== ساخت ColorScheme پویا (Light) بر اساس رنگ primary انتخابی =====
+private fun buildDynamicLightColorScheme(primary: Color) = lightColorScheme(
+    primary              = primary,
+    onPrimary            = Color.White,
+    primaryContainer     = primary.copy(alpha = 0.12f).compositeOver(Color.White),
+    onPrimaryContainer   = primary,
+    secondary            = primary,
+    onSecondary          = Color.White,
+    secondaryContainer   = primary.copy(alpha = 0.12f).compositeOver(Color.White),
+    onSecondaryContainer = primary,
+    tertiary             = primary,
+    onTertiary           = Color.White,
+    tertiaryContainer    = primary.copy(alpha = 0.12f).compositeOver(Color.White),
+    onTertiaryContainer  = primary,
+    error                = ErrorLight,
+    onError              = Color.White,
+    errorContainer       = ErrorContainerLight,
+    onErrorContainer     = ErrorLight,
+    background           = BackgroundLight,
+    onBackground         = TextPrimaryLight,
+    surface              = SurfaceLight,
+    onSurface            = TextPrimaryLight,
+    surfaceVariant       = BorderLight,
+    onSurfaceVariant     = TextSecondaryLight,
+    outline              = BorderLight
 )
 
+// ===== تابع رنگ‌بندی درصد تکمیل (بدون تغییر) =====
 fun getCompletionColor(percentage: Float, isDarkTheme: Boolean): Color {
     return when {
         percentage >= 95f -> if (isDarkTheme) Green300 else Green700
@@ -75,16 +89,23 @@ fun getCompletionColor(percentage: Float, isDarkTheme: Boolean): Color {
         percentage >= 35f -> if (isDarkTheme) DeepOrange100 else DeepOrange700
         percentage >= 25f -> if (isDarkTheme) DeepOrange50 else DeepOrange900
         percentage >= 15f -> if (isDarkTheme) Gray300 else Gray700
-        else -> if (isDarkTheme) Gray200 else Gray800
+        else              -> if (isDarkTheme) Gray200 else Gray800
     }
 }
 
+// ===== تم اصلی برنامه با پشتیبانی از رنگ primary پویا =====
 @Composable
 fun ATKCargoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    primaryColor: Color = PrimaryBlue,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val colorScheme = if (darkTheme) {
+        buildDynamicDarkColorScheme(primaryColor)
+    } else {
+        buildDynamicLightColorScheme(primaryColor)
+    }
+
     val vazirmatnFontFamily = VazirmatnFontFamily.create()
 
     val typography = Typography(
@@ -172,8 +193,8 @@ fun ATKCargoTheme(
     )
 }
 
-val CornerM = 8.dp
-val CornerL = 12.dp
+val CornerM  = 8.dp
+val CornerL  = 12.dp
 val CornerXL = 16.dp
 val Corner2XL = 20.dp
 val Corner3XL = 24.dp

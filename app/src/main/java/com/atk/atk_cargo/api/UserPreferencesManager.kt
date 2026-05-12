@@ -275,6 +275,25 @@ class UserPreferencesManager(private val context: Context) {
         }
     }
 
+    // ===== رنگ تم برنامه =====
+    val themeColor = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            preferences[APP_THEME_COLOR_KEY] ?: 0xFF137fecL
+        }
+
+    suspend fun saveThemeColor(color: Long) {
+        dataStore.edit { preferences ->
+            preferences[APP_THEME_COLOR_KEY] = color
+        }
+    }
+
     companion object {
         private val USERNAME_KEY = stringPreferencesKey("username")
         private val USER_TYPE_KEY = stringPreferencesKey("user_type")
@@ -284,21 +303,23 @@ class UserPreferencesManager(private val context: Context) {
         private val DEVICE_SPECS_KEY = stringPreferencesKey("device_specs")
         private val SCORE_TIMESTAMP_KEY = longPreferencesKey("score_timestamp")
         private val IS_LOGGED_IN_KEY = booleanPreferencesKey("is_logged_in")
-        
+
         // Chat Settings
         private val CHAT_FONT_SIZE_KEY = intPreferencesKey("chat_font_size")
         private val CHAT_MY_BUBBLE_COLOR_KEY = longPreferencesKey("chat_my_bubble_color")
-
         private val CHAT_OTHER_BUBBLE_COLOR_KEY = longPreferencesKey("chat_other_bubble_color")
         private val CHAT_BACKGROUND_ID_KEY = intPreferencesKey("chat_background_id")
         private val CHAT_BUBBLE_SHAPE_KEY = intPreferencesKey("chat_bubble_shape")
-        
+
         // Notification
         private val LAST_NOTIFIED_MESSAGE_ID_KEY = intPreferencesKey("last_notified_message_id")
         private val LAST_READ_MESSAGE_ID_KEY = intPreferencesKey("last_read_message_id")
         private val NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("notifications_enabled")
         private val LOADING_NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("loading_notifications_enabled")
         private val CHAT_NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("chat_notifications_enabled")
+
+        // Theme
+        val APP_THEME_COLOR_KEY = longPreferencesKey("app_theme_color")
     }
 
     val lastReadMessageId = dataStore.data
