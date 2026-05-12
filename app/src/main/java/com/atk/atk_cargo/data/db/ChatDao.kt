@@ -41,4 +41,8 @@ interface ChatDao {
 
     @Query("UPDATE chat_messages SET isReadByMe = 1 WHERE isReadByMe = 0 AND isSelf = 0")
     suspend fun markAllAsReadByMe()
+
+    // حذف پیام‌هایی که در بازه مشخصی هستند اما در لیست جدید سرور نیستند (برای همگام‌سازی حذف‌ها)
+    @Query("DELETE FROM chat_messages WHERE id >= :minId AND id <= :maxId AND id NOT IN (:presentIds)")
+    suspend fun deleteOrphanedMessages(minId: Int, maxId: Int, presentIds: List<Int>)
 }
