@@ -3489,6 +3489,7 @@ data class ShipsData(
 
 data class Ship(
     val name: String,
+    val cargoType: String? = null,
     val warehouseCount: Int,
     val quotaCount: Int,
     val totalTonnage: Float,

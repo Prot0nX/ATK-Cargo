@@ -108,7 +108,6 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
@@ -122,7 +121,6 @@ import androidx.compose.material.icons.filled.Filter
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material.icons.filled.Newspaper
@@ -1012,7 +1010,7 @@ fun ShipCardContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = ship.name,
+                    text = if (ship.cargoType.isNullOrBlank()) ship.name else "${ship.cargoType} | ${ship.name}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
                     color = if (isDarkTheme) MaterialTheme.colorScheme.onSurface else if (isActive) PrimaryBlueDark else MaterialTheme.colorScheme.onSurface,
