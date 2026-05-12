@@ -300,8 +300,11 @@ class CargoAPI {
     }
 
     private function handleRealTimeDataRequest(): void {
-        $currentTime = date('H:i:s');
-        $shiftInfo = $this->determineShiftInfo($currentTime);
+        $shiftOffset = isset($_GET['shiftOffset']) ? (int)$_GET['shiftOffset'] : 0;
+        $targetTimestamp = time() + ($shiftOffset * 12 * 3600);
+        $currentTimeString = date('H:i:s', $targetTimestamp);
+        
+        $shiftInfo = $this->determineShiftInfo($currentTimeString, $targetTimestamp);
         $realTimeData = $this->getRealTimeData($shiftInfo);
 
         APIResponse::send([
@@ -310,8 +313,12 @@ class CargoAPI {
         ]);
     }
 
-    private function determineShiftInfo(string $currentTime): array {
-        $currentJalaliDate = DateConverter::getCurrentJalaliDate();
+    private function determineShiftInfo(string $currentTime, int $targetTimestamp = null): array {
+        if ($targetTimestamp === null) {
+            $targetTimestamp = time();
+        }
+        
+        $currentJalaliDate = jdate('Y/m/d', $targetTimestamp);
         $shiftType = '';
         $shiftInfo = [];
 
@@ -321,13 +328,13 @@ class CargoAPI {
                 'startDate' => $currentJalaliDate,
                 'endDate' => $currentJalaliDate,
                 'startTime' => '07:30:00',
-                'endTime' => '18:30:00',
+                'endTime' => '19:00:00',
                 'type' => $shiftType
             ];
         } else {
             $shiftType = 'شب';
             if ($currentTime >= '00:00:00' && $currentTime < '07:30:00') {
-                $prevDateTimestamp = strtotime('-1 day');
+                $prevDateTimestamp = $targetTimestamp - 86400;
                 [$prevJY, $prevJM, $prevJD] = DateConverter::gregorianToJalali(
                     (int)date('Y', $prevDateTimestamp),
                     (int)date('m', $prevDateTimestamp),
@@ -337,10 +344,11 @@ class CargoAPI {
                 $shiftEndDate = $currentJalaliDate;
             } else {
                 $shiftStartDate = $currentJalaliDate;
+                $nextDateTimestamp = $targetTimestamp + 86400;
                 [$nextJY, $nextJM, $nextJD] = DateConverter::gregorianToJalali(
-                    (int)date('Y', strtotime('+1 day')),
-                    (int)date('m', strtotime('+1 day')),
-                    (int)date('d', strtotime('+1 day'))
+                    (int)date('Y', $nextDateTimestamp),
+                    (int)date('m', $nextDateTimestamp),
+                    (int)date('d', $nextDateTimestamp)
                 );
                 $shiftEndDate = sprintf('%04d/%02d/%02d', $nextJY, $nextJM, $nextJD);
             }

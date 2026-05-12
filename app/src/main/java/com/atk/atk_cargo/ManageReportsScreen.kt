@@ -493,7 +493,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
         isOpen = showRealTimeDialog,
         onDismiss = { showRealTimeDialog = false },
         loadingData = realTimeLoadingData,
-        shiftInfo = shiftInfo ?: ShiftInfo("", "", ""),
+        shiftInfo = shiftInfo ?: ShiftInfo("", "", "", "", ""),
         onRefresh = { viewModel.loadRealTimeData(isDarkTheme, defaultColor) },
         viewModel = viewModel
     )
@@ -713,7 +713,7 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
         isOpen = showRealTimeDialog,
         onDismiss = { showRealTimeDialog = false },
         loadingData = realTimeLoadingData,
-        shiftInfo = shiftInfo ?: ShiftInfo("", "", ""),
+        shiftInfo = shiftInfo ?: ShiftInfo("", "", "", "", ""),
         onRefresh = { viewModel.loadRealTimeData(isDarkTheme, defaultColor) },
         viewModel = viewModel
     )
@@ -8791,6 +8791,7 @@ fun RealTimeLoadingBottomSheet(
     val shipColorMap by viewModel.shipColorMap.collectAsState()
     val thirdPartyOrders by viewModel.thirdPartyOrders.collectAsState()
     val thirdPartyLoadingError by viewModel.thirdPartyLoadingError.collectAsState()
+    val shiftOffset by viewModel.realTimeShiftOffset.collectAsState()
     val isDarkTheme = isSystemInDarkTheme()
     val defaultColor = MaterialTheme.colorScheme.primary
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -8934,6 +8935,16 @@ fun RealTimeLoadingBottomSheet(
 
                                     Spacer(modifier = Modifier.height(8.dp))
 
+                                    // بخش انتخاب شیفت
+                                    RealTimeShiftNavigation(
+                                        viewModel = viewModel,
+                                        shiftInfo = shiftInfo,
+                                        isDarkTheme = isDarkTheme,
+                                        defaultColor = defaultColor
+                                    )
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
                                     StatisticItem(
                                         totalEntryVouchers = totalEntryVouchers,
                                         totalExitVouchers = totalExitVouchers,
@@ -8979,90 +8990,97 @@ fun RealTimeLoadingBottomSheet(
                                         modifier = Modifier.weight(1f),
                                         label = "LoadingDataContent"
                                     ) { targetLoadingData ->
+                                        val cargoTypeCounts = targetLoadingData
+                                            .groupBy { it.cargoType ?: "نامشخص" }
+                                            .mapValues { it.value.map { data -> data.shipName }.distinct().size }
+
                                         LazyColumn(
                                             verticalArrangement = Arrangement.spacedBy(8.dp),
                                             contentPadding = PaddingValues(bottom = 8.dp)
                                         ) {
                                             items(
-                                                targetLoadingData.groupBy { it.shipName }.toList(),
-                                                key = { it.first }) { (shipName, shipData) ->
-                                                val shipColor = shipColorMap[shipName]
+                                                targetLoadingData.groupBy { "${it.cargoType ?: "نامشخص"} | ${it.shipName}" }
+                                                    .toList()
+                                                    .sortedWith(
+                                                        compareByDescending<Pair<String, List<RealTimeLoadingData>>> { (_, shipData) ->
+                                                            cargoTypeCounts[shipData.first().cargoType ?: "نامشخص"] ?: 0
+                                                        }.thenBy { it.first }
+                                                    ),
+                                                key = { it.first }) { (groupName, shipData) ->
+                                                val actualShipName = shipData.first().shipName
+                                                val shipColor = shipColorMap[actualShipName]
                                                     ?: MaterialTheme.colorScheme.primary
                                                 ShipCard(
-                                                    shipName = shipName,
-                                                    isExpanded = expandedShip == shipName,
+                                                    shipName = groupName,
+                                                    isExpanded = expandedShip == groupName,
                                                     onExpandToggle = {
                                                         expandedShip =
-                                                            if (expandedShip == shipName) null else shipName
+                                                            if (expandedShip == groupName) null else groupName
                                                     },
                                                     entryVouchers = shipData.sumOf { it.entryVouchers },
                                                     exitVouchers = shipData.sumOf { it.exitVouchers },
                                                     content = {
                                                         // گروه‌بندی کوتاژها بر اساس انبار
-                                                        val warehouseGroups =
-                                                            shipData.groupBy { it.loadingWarehouse }
+                                                        val warehouseGroups = shipData.groupBy { it.loadingWarehouse }
 
                                                         Column(
-                                                            modifier = Modifier
-                                                                .fillMaxWidth()
+                                                            modifier = Modifier.fillMaxWidth()
                                                         ) {
-                                                            warehouseGroups.forEach { (warehouse, quotas) ->
-                                                                Row(
-                                                                    modifier = Modifier
-                                                                        .fillMaxWidth()
-                                                                        .padding(bottom = 4.dp),
-                                                                    horizontalArrangement = Arrangement.Start
-                                                                ) {
-                                                                    Surface(
-                                                                        shape = RoundedCornerShape(16.dp),
-                                                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                                                warehouseGroups.forEach { (warehouse, quotas) ->
+                                                                    Row(
+                                                                        modifier = Modifier
+                                                                            .fillMaxWidth()
+                                                                            .padding(bottom = 4.dp),
+                                                                        horizontalArrangement = Arrangement.Start
                                                                     ) {
-                                                                        Row(
-                                                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                                                            verticalAlignment = Alignment.CenterVertically,
-                                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                                        Surface(
+                                                                            shape = RoundedCornerShape(16.dp),
+                                                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                                                                         ) {
-                                                                            Icon(
-                                                                                imageVector = Icons.Default.Warehouse,
-                                                                                contentDescription = null,
-                                                                                tint = MaterialTheme.colorScheme.primary,
-                                                                                modifier = Modifier.size(14.dp)
-                                                                            )
-                                                                            Text(
-                                                                                text = "انبار: $warehouse",
-                                                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                                                                fontWeight = FontWeight.Bold,
-                                                                                color = MaterialTheme.colorScheme.primary
-                                                                            )
+                                                                            Row(
+                                                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                                            ) {
+                                                                                Icon(
+                                                                                    imageVector = Icons.Default.Warehouse,
+                                                                                    contentDescription = null,
+                                                                                    tint = MaterialTheme.colorScheme.primary,
+                                                                                    modifier = Modifier.size(14.dp)
+                                                                                )
+                                                                                Text(
+                                                                                    text = "انبار: $warehouse",
+                                                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                                                                    fontWeight = FontWeight.Bold,
+                                                                                    color = MaterialTheme.colorScheme.primary
+                                                                                )
+                                                                            }
                                                                         }
                                                                     }
-                                                                }
 
-                                                                // نمایش کوتاژهای این انبار
-                                                                quotas.sortedWith(
-                                                                    compareBy<RealTimeLoadingData> { it.shippingCompany }
-                                                                        .thenByDescending { it.entryVouchers }
-                                                                ).forEach { quota ->
-                                                                    RealTimeLoadingCard(
-                                                                        data = quota
-                                                                    )
-                                                                    Spacer(
-                                                                        modifier = Modifier.height(
-                                                                            8.dp
+                                                                    // نمایش کوتاژهای این انبار
+                                                                    quotas.sortedWith(
+                                                                        compareBy<RealTimeLoadingData> { it.shippingCompany }
+                                                                            .thenByDescending { it.entryVouchers }
+                                                                    ).forEach { quota ->
+                                                                        RealTimeLoadingCard(
+                                                                            data = quota
                                                                         )
-                                                                    )
-                                                                }
+                                                                        Spacer(
+                                                                            modifier = Modifier.height(8.dp)
+                                                                        )
+                                                                    }
 
-                                                                if (warehouse != warehouseGroups.keys.last()) {
-                                                                    HorizontalDivider(
-                                                                        modifier = Modifier.padding(
-                                                                            vertical = 8.dp
-                                                                        ),
-                                                                        color = shipColor.copy(alpha = 0.1f)
-                                                                    )
+                                                                    if (warehouse != warehouseGroups.keys.last()) {
+                                                                        HorizontalDivider(
+                                                                            modifier = Modifier.padding(
+                                                                                vertical = 8.dp
+                                                                            ),
+                                                                            color = shipColor.copy(alpha = 0.1f)
+                                                                        )
+                                                                    }
                                                                 }
-                                                            }
                                                         }
                                                     }
                                                 )
@@ -9216,6 +9234,97 @@ fun RealTimeLoadingBottomSheet(
                         remainingSeconds = remainingSeconds
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RealTimeShiftNavigation(
+    viewModel: ReportsViewModel,
+    shiftInfo: ShiftInfo,
+    isDarkTheme: Boolean,
+    defaultColor: Color
+) {
+    val offset by viewModel.realTimeShiftOffset.collectAsState()
+    
+    val formattedDate = shiftInfo.startDate ?: ""
+    val shiftType = shiftInfo.type ?: ""
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // دکمه شیفت بعد (جلو)
+            IconButton(
+                onClick = { viewModel.setRealTimeShiftOffset(offset + 1, isDarkTheme, defaultColor) },
+                enabled = offset < 0
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "شیفت بعد",
+                    tint = if (offset < 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            
+            // نمایش اطلاعات شیفت
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.weight(1f)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccessTime,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "شیفت $shiftType",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                if (formattedDate.isNotEmpty()) {
+                    Text(
+                        text = formattedDate,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            // دکمه شیفت قبل (عقب)
+            IconButton(
+                onClick = { viewModel.setRealTimeShiftOffset(offset - 1, isDarkTheme, defaultColor) },
+                enabled = offset > -14 // Limit to 7 days (14 shifts)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = "شیفت قبل",
+                    tint = if (offset > -14) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                    modifier = Modifier.size(28.dp)
+                )
             }
         }
     }
@@ -9909,28 +10018,54 @@ fun RealTimeLoadingCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // شماره کوتاژ در کارت سفید
+                    // متن عنوان
                     Text(
                         text = "شماره کوتاژ",
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(
-                            1.dp,
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                        ),
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = data.loadingQuotaNumber,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            letterSpacing = 1.sp,
-                        )
+                        // صاحب کالا
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = data.shippingCompany,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        // شماره کوتاژ در کارت سفید
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                            ),
+                        ) {
+                            Text(
+                                text = data.loadingQuotaNumber,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                letterSpacing = 1.sp,
+                            )
+                        }
                     }
                 }
 
