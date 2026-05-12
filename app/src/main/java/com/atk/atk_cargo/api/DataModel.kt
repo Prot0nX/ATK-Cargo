@@ -1417,6 +1417,16 @@ class ReportsViewModel(
         }
     }
 
+    private val _realTimeShiftOffset = MutableStateFlow(0)
+    val realTimeShiftOffset: StateFlow<Int> = _realTimeShiftOffset.asStateFlow()
+
+    fun setRealTimeShiftOffset(offset: Int, isDarkTheme: Boolean, defaultColor: Color) {
+        if (offset <= 0) {
+            _realTimeShiftOffset.value = offset
+            loadRealTimeData(isDarkTheme, defaultColor)
+        }
+    }
+
     private val _groupingMode = MutableStateFlow(QuotaGroupingMode.BY_CARGO_OWNER)
     val groupingMode: StateFlow<QuotaGroupingMode> = _groupingMode
 
@@ -1574,7 +1584,7 @@ class ReportsViewModel(
     fun loadRealTimeData(isDarkTheme: Boolean, defaultColor: Color) {
         viewModelScope.launch {
             try {
-                val response = repository.getRealTimeLoadingData()
+                val response = repository.getRealTimeLoadingData(_realTimeShiftOffset.value)
                 _realTimeLoadingData.value = response.data.sortedByDescending { it.entryVouchers }
                 _shiftInfo.value = response.shiftInfo
                 _loadingError.value = null
@@ -3074,9 +3084,9 @@ class ReportsRepository(private val apiService: ApiService) {
         }
     }
 
-    suspend fun getRealTimeLoadingData(): RealTimeDataResponse = withContext(Dispatchers.IO) {
+    suspend fun getRealTimeLoadingData(shiftOffset: Int = 0): RealTimeDataResponse = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.getRealTimeLoadingData()
+            val response = apiService.getRealTimeLoadingData(shiftOffset = shiftOffset)
             if (response.isSuccessful) {
                 response.body() ?: throw Exception("Body is null")
             } else {
@@ -3443,9 +3453,11 @@ data class RealTimeDataResponse(
 )
 
 data class ShiftInfo(
-    val start: String,
-    val end: String,
-    val type: String
+    val startDate: String?,
+    val endDate: String?,
+    val startTime: String?,
+    val endTime: String?,
+    val type: String?
 )
 
 data class WarningStatus(
@@ -3476,6 +3488,7 @@ data class RealTimeLoadingData(
     val shipName: String,
     val loadingWarehouse: String,
     val shippingCompany: String,
+    val cargoType: String?,
     val entryVouchers: Int,
     val exitVouchers: Int,
     val totalNetWeight: Int,

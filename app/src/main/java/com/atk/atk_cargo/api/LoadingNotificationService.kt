@@ -211,8 +211,8 @@ class LoadingNotificationService : Service() {
      * ذخیره اطلاعات شیفت فعلی
      */
     private fun saveCurrentShiftInfo(shiftInfo: ShiftInfo) {
-        // ساخت شناسه منحصر به فرد برای شیفت فعلی
-        val shiftId = "${shiftInfo.type}_${shiftInfo.start}"
+        // ایجاد یک شناسه یکتا برای هر شیفت
+        val shiftId = "${shiftInfo.type}_${shiftInfo.startDate}"
         
         val prefs = getSharedPreferences("ShiftNotificationsPrefs", MODE_PRIVATE)
         val previousShiftId = prefs.getString("current_shift_id", "") ?: ""

@@ -182,7 +182,10 @@ interface ApiService {
     ): Response<QuotaStatusResponse>
 
     @GET("realTimeLoadingData.php")
-    suspend fun getRealTimeLoadingData(@Query("action") action: String = "getRealTimeData"): Response<RealTimeDataResponse>
+    suspend fun getRealTimeLoadingData(
+        @Query("action") action: String = "getRealTimeData",
+        @Query("shiftOffset") shiftOffset: Int = 0
+    ): Response<RealTimeDataResponse>
 
     @GET("realTimeLoadingData.php")
     suspend fun getComprehensiveAnalysis(
