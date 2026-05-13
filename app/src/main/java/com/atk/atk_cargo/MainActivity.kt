@@ -228,6 +228,7 @@ import com.atk.atk_cargo.api.UpdateManagerFactory
 import com.atk.atk_cargo.api.UpdateUserRequest
 import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.api.PermissionPoller
 import com.atk.atk_cargo.api.UserTypeInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.atk.atk_cargo.ui.theme.ThemeBlue
@@ -1392,6 +1393,14 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
     val userPreferencesManager = remember { UserPreferencesManager(context) }
     val username by userPreferencesManager.username.collectAsState(initial = "")
     val userType by userPreferencesManager.userType.collectAsState(initial = "")
+
+    // PermissionPoller: به‌روزرسانی زنده دسترسی‌ها بدون نیاز به Logout/Login
+    val permissionPoller = remember { PermissionPoller(userPreferencesManager) }
+    val livePermissions by permissionPoller.livePermissions.collectAsState()
+    val storedPermissions by userPreferencesManager.permissions.collectAsState(initial = emptyMap())
+    // livePermissions اولویت دارد؛ اما در لحظه اول (پیش از اولین poll) از DataStore استفاده می‌شود
+    val userPermissions = if (livePermissions.isNotEmpty()) livePermissions else storedPermissions
+
     var showUserManagement by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -1408,6 +1417,15 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
             } catch (_: Exception) {
                 // Ignore navigation errors if destination not found yet
             }
+        }
+    }
+
+    // شروع/توقف PermissionPoller بر اساس وضعیت نشست
+    LaunchedEffect(isSessionValid) {
+        if (isSessionValid) {
+            permissionPoller.start()
+        } else {
+            permissionPoller.stop()
         }
     }
 
@@ -1477,6 +1495,7 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
                                                     navController = navController,
                                                     username = username,
                                                     userType = userType,
+                                                    userPermissions = userPermissions,
                                                     isSessionValid = true,
                                                     onLogoutClick = {
                                                         coroutineScope.launch {
@@ -2073,6 +2092,7 @@ fun HomeScreen(
     navController: NavHostController,
     username: String,
     userType: String,
+    userPermissions: Map<String, Boolean>,
     isSessionValid: Boolean,
     onLogoutClick: () -> Unit,
     onManageUsersClick: () -> Unit,
@@ -2184,7 +2204,7 @@ fun HomeScreen(
                         showGridAnimation = true
                     }
                     CategorizedMenuGrid(
-                        menuItems = getMenuItemsForUserType(userType),
+                        menuItems = getMenuItemsForUserType(userPermissions),
                         showAnimation = showGridAnimation,
                         badgeCounts = mapOf("admin_chat" to unreadCountByMe),
                         onItemClick = { item ->
@@ -5595,6 +5615,7 @@ fun UserManagementDialog(
     val userPreferencesManager = remember { UserPreferencesManager(context) }
     val currentUsername by userPreferencesManager.username.collectAsState(initial = "")
     val currentUserType by userPreferencesManager.userType.collectAsState(initial = "")
+    val userPermissions by userPreferencesManager.permissions.collectAsState(initial = emptyMap())
     val isMainAdmin = currentUsername == "Prot0nX"
 
     // Minimalist animation approach
@@ -5712,7 +5733,7 @@ fun UserManagementDialog(
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
-                    if (currentUserType == "admin") {
+                    if (currentUserType == "admin" || userPermissions["manage_users"] == true) {
                         IconButton(
                             onClick = { showAddDialog = true },
                             modifier = Modifier
@@ -5846,7 +5867,8 @@ fun UserManagementDialog(
                                         onEditClick = { showEditDialog = user },
                                         onDeleteClick = { showDeleteConfirmation = user },
                                         isMainAdmin = isMainAdmin,
-                                        currentUserType = currentUserType
+                                        currentUserType = currentUserType,
+                                        userPermissions = userPermissions
                                     )
                                 }
                             }
@@ -5883,6 +5905,7 @@ fun UserManagementDialog(
     showEditDialog?.let { user ->
         EditUserDialog(
             user = user,
+            isMainAdmin = isMainAdmin,
             onDismiss = { showEditDialog = null },
             onSave = { updateRequest ->
                 scope.launch {
@@ -5938,7 +5961,8 @@ private fun UserListItem(
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
     isMainAdmin: Boolean,
-    currentUserType: String
+    currentUserType: String,
+    userPermissions: Map<String, Boolean>
 ) {
     val userTypeColor = when (user.userType) {
         "admin" -> MaterialTheme.colorScheme.primary
@@ -6036,7 +6060,7 @@ private fun UserListItem(
             }
 
             // Action buttons - minimal design
-            if (isMainAdmin || currentUserType == "admin") {
+            if (isMainAdmin || currentUserType == "admin" || userPermissions["manage_users"] == true) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -6510,12 +6534,14 @@ private fun UserTypeOptionHorizontal(
 @Composable
 private fun EditUserDialog(
     user: User,
+    isMainAdmin: Boolean,
     onDismiss: () -> Unit,
     onSave: (UpdateUserRequest) -> Unit
 ) {
     var username by remember { mutableStateOf(user.username) }
     var fullName by remember { mutableStateOf(user.fullName ?: "") }
     var password by remember { mutableStateOf("") }
+    var selectedUserType by remember { mutableStateOf(user.userType) }
     var errorMessage by remember { mutableStateOf("") }
     val isLoading by remember { mutableStateOf(false) }
     var showConfirmation by remember { mutableStateOf(false) }
@@ -6546,7 +6572,7 @@ private fun EditUserDialog(
             username = username.takeIf { it != user.username },
             fullName = fullName.takeIf { it != user.fullName },
             password = password.takeIf { it.isNotEmpty() }?.let { hashPassword(it) },
-            userType = user.userType
+            userType = selectedUserType
         )
     }
 
@@ -6560,10 +6586,14 @@ private fun EditUserDialog(
             tonalElevation = 6.dp,
             modifier = Modifier
                 .fillMaxWidth(0.9f)
-                .height(400.dp)
+                .wrapContentHeight()
+                .heightIn(max = 650.dp)
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Header
@@ -6621,6 +6651,12 @@ private fun EditUserDialog(
                         keyboardType = KeyboardType.NumberPassword,
                         imeAction = ImeAction.Done
                     )
+                )
+
+                UserTypeSelection(
+                    selectedUserType = selectedUserType,
+                    onUserTypeSelected = { selectedUserType = it },
+                    isMainAdmin = isMainAdmin
                 )
 
                 if (errorMessage.isNotEmpty()) {
@@ -7204,39 +7240,32 @@ fun getUserTypeDisplay(userType: String): String {
     return when (userType) {
         "admin" -> "مدیر"
         "operator" -> "باسکول‌چی"
-        "verifier" -> "بارشمار"
+            "verifier" -> "بارشمار"
         else -> userType
     }
 }
 
-fun getMenuItemsForUserType(userType: String): List<MenuItem> {
-    return when (userType) {
-        "admin" -> listOf(
-            // عملیات پایه
-            MenuItem("ثبت حواله", R.drawable.ic_boosters, "select_info", "عملیات پایه", "ثبت و مدیریت حواله‌های جدید"),
-            MenuItem("تعریف کشتی", R.drawable.ic_journal, "initial_info", "عملیات پایه", "ثبت اطلاعات اولیه کشتی"),
-            
-            // نظارت
-            MenuItem("نظارت بارشمار", R.drawable.ic_cargo_counter, "cargo_counter", "نظارت", "مانیتورینگ لحظه‌ای بارگیری"),
-            
-            // مدیریت
-            MenuItem("مدیریت کاربران", R.drawable.profile_admin, "manage_users", "مدیریت", "افزودن و مدیریت سطح دسترسی"),
-            MenuItem("مدیریت کشتی ها", R.drawable.ic_reports, "manage_ships", "مدیریت", "لیست کشتی‌ها و وضعیت آن‌ها"),
+fun getMenuItemsForUserType(userPermissions: Map<String, Boolean>): List<MenuItem> {
 
-            // ارتباطات
-            // MenuItem("اطلاع رسانی و گفتگو", R.drawable.ic_chat, "admin_chat", "ارتباطات", "پیام‌رسانی و هماهنگی تیمی")
-        )
-        "operator" -> listOf(
-            MenuItem("ثبت حواله", R.drawable.ic_boosters, "select_info", "عملیات پایه", "ثبت حواله‌های بارگیری"),
-            MenuItem("تعریف کشتی", R.drawable.ic_journal, "initial_info", "عملیات پایه", "ثبت اطلاعات کشتی جدید")
-        )
-        "verifier" -> listOf(
-            MenuItem("نظارت بارشمار", R.drawable.ic_cargo_counter, "cargo_counter", "نظارت", "کنترل و شمارش بار")
-        )
-        else -> listOf(
-            // Null
-        )
+    val items = mutableListOf<MenuItem>()
+    
+    if (userPermissions["select_info"] == true) {
+        items.add(MenuItem("ثبت حواله", R.drawable.ic_boosters, "select_info", "عملیات پایه", "ثبت و مدیریت حواله‌های جدید"))
     }
+    if (userPermissions["initial_info"] == true) {
+        items.add(MenuItem("تعریف کشتی", R.drawable.ic_journal, "initial_info", "عملیات پایه", "ثبت اطلاعات اولیه کشتی"))
+    }
+    if (userPermissions["cargo_counter"] == true) {
+        items.add(MenuItem("نظارت بارشمار", R.drawable.ic_cargo_counter, "cargo_counter", "نظارت", "مانیتورینگ لحظه‌ای بارگیری"))
+    }
+    if (userPermissions["manage_users"] == true) {
+        items.add(MenuItem("مدیریت کاربران", R.drawable.profile_admin, "manage_users", "مدیریت", "افزودن و مدیریت سطح دسترسی"))
+    }
+    if (userPermissions["manage_ships"] == true) {
+        items.add(MenuItem("مدیریت کشتی ها", R.drawable.ic_reports, "manage_ships", "مدیریت", "لیست کشتی‌ها و وضعیت آن‌ها"))
+    }
+    
+    return items
 }
 
 class HardwarePerformanceEvaluator(
