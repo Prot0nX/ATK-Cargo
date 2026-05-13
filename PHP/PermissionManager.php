@@ -250,18 +250,36 @@ $feature_labels = [
 
                     <div class="control-group" id="userSelectorGroup" style="display: none;">
                         <label>انتخاب حساب کاربری:</label>
-                        <div class="select-wrapper">
-                            <select name="target_user" id="target_user" onchange="loadPermissions()">
-                                <option value="">-- جستجو و انتخاب کاربر --</option>
+                        <div class="searchable-dropdown" id="userDropdown">
+                            <div class="sd-input-wrapper" onclick="toggleDropdown()" id="sdInputWrapper">
+                                <svg class="sd-search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                                <input type="text" id="userSearchInput" class="sd-search-input" placeholder="جستجوی نام یا نام کاربری..." autocomplete="off"
+                                    oninput="filterUsers(this.value)"
+                                    onclick="event.stopPropagation(); openDropdown()"
+                                    onkeydown="handleSearchKey(event)">
+                                <span id="sdSelectedLabel" class="sd-placeholder">انتخاب کاربر</span>
+                                <button type="button" class="sd-clear-btn" id="sdClearBtn" onclick="clearUserSelection(event)" style="display:none;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                </button>
+                                <svg class="sd-chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                            <div class="sd-dropdown-list" id="sdDropdownList">
+                                <div class="sd-empty" id="sdEmpty" style="display:none;">کاربری یافت نشد</div>
                                 <?php foreach ($users_list as $u): ?>
-                                    <option value="<?php echo htmlspecialchars($u['username']); ?>" data-role="<?php echo htmlspecialchars($u['userType']); ?>">
-                                        <?php echo htmlspecialchars($u['fullName']) . " (" . htmlspecialchars($u['username']) . ")"; ?>
-                                    </option>
+                                <div class="sd-option"
+                                    data-value="<?php echo htmlspecialchars($u['username']); ?>"
+                                    data-role="<?php echo htmlspecialchars($u['userType']); ?>"
+                                    data-label="<?php echo htmlspecialchars($u['fullName'] . ' (' . $u['username'] . ')'); ?>"
+                                    data-search="<?php echo strtolower(htmlspecialchars($u['fullName'] . ' ' . $u['username'])); ?>"
+                                    onclick="selectUser(this)">
+                                    <div class="sd-option-main"><?php echo htmlspecialchars($u['fullName']); ?></div>
+                                    <div class="sd-option-sub"><?php echo htmlspecialchars($u['username']); ?> &nbsp;·&nbsp; <?php echo htmlspecialchars($u['userType']); ?></div>
+                                </div>
                                 <?php endforeach; ?>
-                            </select>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
                         </div>
-                        <input type="hidden" name="target_name" id="target_name">
+                        <input type="hidden" name="target_user" id="target_user" value="">
+                        <input type="hidden" name="target_name" id="target_name" value="">
                     </div>
 
                     <div id="inheritedHint" class="alert alert-info" style="display: none;">
@@ -390,36 +408,152 @@ $feature_labels = [
         loadPermissions();
     }
 
+    // ===== SEARCHABLE DROPDOWN — STATE =====
+    let _sdOpen = false;
+    let _sdSelectedValue = '';
+    let _sdSelectedRole  = '';
+    let _sdFocusedIndex  = -1;
+
+    function getVisibleOptions() {
+        return Array.from(document.querySelectorAll('#sdDropdownList .sd-option:not([style*="display: none"])')
+        ).filter(el => el.style.display !== 'none');
+    }
+
+    function openDropdown() {
+        _sdOpen = true;
+        const wrapper = document.getElementById('userDropdown');
+        const list    = document.getElementById('sdDropdownList');
+        const input   = document.getElementById('userSearchInput');
+        wrapper.classList.add('open');
+        list.style.display = 'block';
+        input.focus();
+        _sdFocusedIndex = -1;
+    }
+
+    function closeDropdown() {
+        _sdOpen = false;
+        const wrapper = document.getElementById('userDropdown');
+        const list    = document.getElementById('sdDropdownList');
+        wrapper.classList.remove('open');
+        list.style.display = 'none';
+        document.getElementById('userSearchInput').value = '';
+        filterUsers('');
+    }
+
+    function toggleDropdown() {
+        if (_sdOpen) closeDropdown(); else openDropdown();
+    }
+
+    function filterUsers(query) {
+        const q = query.trim().toLowerCase();
+        const options  = document.querySelectorAll('#sdDropdownList .sd-option');
+        let visible = 0;
+        options.forEach(opt => {
+            const searchable = opt.getAttribute('data-search') || '';
+            const match = !q || searchable.includes(q);
+            opt.style.display = match ? 'block' : 'none';
+            if (match) visible++;
+        });
+        document.getElementById('sdEmpty').style.display = (visible === 0) ? 'block' : 'none';
+        _sdFocusedIndex = -1;
+        highlightOption(-1);
+    }
+
+    function highlightOption(index) {
+        const opts = getVisibleOptions();
+        opts.forEach((o, i) => o.classList.toggle('focused', i === index));
+        if (index >= 0 && opts[index]) {
+            opts[index].scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    function handleSearchKey(e) {
+        const opts = getVisibleOptions();
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            _sdFocusedIndex = Math.min(_sdFocusedIndex + 1, opts.length - 1);
+            highlightOption(_sdFocusedIndex);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            _sdFocusedIndex = Math.max(_sdFocusedIndex - 1, 0);
+            highlightOption(_sdFocusedIndex);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (_sdFocusedIndex >= 0 && opts[_sdFocusedIndex]) {
+                selectUser(opts[_sdFocusedIndex]);
+            }
+        } else if (e.key === 'Escape') {
+            closeDropdown();
+        }
+    }
+
+    function selectUser(optionEl) {
+        _sdSelectedValue = optionEl.getAttribute('data-value');
+        _sdSelectedRole  = optionEl.getAttribute('data-role');
+        const label = optionEl.getAttribute('data-label');
+
+        document.getElementById('target_user').value  = _sdSelectedValue;
+        document.getElementById('target_name').value  = _sdSelectedValue;
+
+        const lbl = document.getElementById('sdSelectedLabel');
+        lbl.textContent = label;
+        lbl.classList.remove('sd-placeholder');
+
+        document.getElementById('sdClearBtn').style.display = 'flex';
+        document.getElementById('userSearchInput').value = '';
+        closeDropdown();
+        loadPermissions();
+    }
+
+    function clearUserSelection(e) {
+        e.stopPropagation();
+        _sdSelectedValue = '';
+        _sdSelectedRole  = '';
+        document.getElementById('target_user').value = '';
+        document.getElementById('target_name').value = '';
+        const lbl = document.getElementById('sdSelectedLabel');
+        lbl.textContent = 'انتخاب کاربر';
+        lbl.classList.add('sd-placeholder');
+        document.getElementById('sdClearBtn').style.display = 'none';
+        filterUsers('');
+        loadPermissions();
+    }
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+        if (!document.getElementById('userDropdown')?.contains(e.target)) {
+            if (_sdOpen) closeDropdown();
+        }
+    });
+
+    // ===== PERMISSION LOADER =====
     function loadPermissions() {
         const type = currentMode;
         let target, perms;
         const hint = document.getElementById('inheritedHint');
-        
+
         if (type === 'role') {
             target = document.getElementById('target_role').value;
             document.getElementById('target_name').value = target;
             perms = allData?.roles?.[target] || {};
             hint.style.display = 'none';
         } else {
-            const select = document.getElementById('target_user');
-            target = select.value;
+            target = _sdSelectedValue;
             document.getElementById('target_name').value = target;
-            
+
             if (!target) {
                 resetCheckboxes(false);
                 hint.style.display = 'none';
                 return;
             }
 
-            const userRole = select.options[select.selectedIndex].getAttribute('data-role');
-            
             if (allData?.users?.[target]) {
                 perms = allData.users[target];
                 hint.style.display = 'none';
             } else {
-                perms = allData?.roles?.[userRole] || {};
+                perms = allData?.roles?.[_sdSelectedRole] || {};
                 hint.style.display = 'flex';
-                document.getElementById('roleNameText').innerText = userRole.toUpperCase();
+                document.getElementById('roleNameText').innerText = (_sdSelectedRole || '').toUpperCase();
             }
         }
         applyPermissions(perms);
