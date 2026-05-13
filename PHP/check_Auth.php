@@ -68,19 +68,27 @@ try {
     error_log("Login attempt - Username hash: " . md5($username) . ", Result: " . ($user ? 'Found' : 'Not found'));
 
     if ($user && hash_equals($user['password'], $password)) {
-        $allowedAccess = false;
-        switch ($user['userType']) {
-            case 'admin':
-                $allowedAccess = true;
-                break;
-            case 'operator':
-                $allowedAccess = ($userType === '' || $userType === 'select_info' || $userType === 'initial_info');
-                break;
-            case 'verifier':
-                $allowedAccess = ($userType === '' || $userType === 'cargo_counter');
-                break;
-            default:
-                $allowedAccess = ($user['userType'] === $userType);
+        // بارگذاری تنظیمات سطح دسترسی (هوشمند و لایه‌ای)
+        $permissions_file = __DIR__ . '/config/permissions.json';
+        $all_permissions = [];
+        if (file_exists($permissions_file)) {
+            $all_permissions = json_decode(file_get_contents($permissions_file), true);
+        }
+        
+        // اولویت اول: دسترسی اختصاصی کاربر
+        // اولویت دوم: دسترسی نقش (ساختار جدید)
+        // اولویت سوم: دسترسی نقش (ساختار قدیم - برای پایداری)
+        if (isset($all_permissions['roles'])) {
+            $user_permissions = $all_permissions['users'][$username] ?? $all_permissions['roles'][$user['userType']] ?? [];
+        } else {
+            $user_permissions = $all_permissions[$user['userType']] ?? [];
+        }
+        
+        // بررسی دسترسی اولیه بر اساس بخش درخواستی (اگر ارسال شده باشد)
+        $allowedAccess = true;
+        if (!empty($userType)) {
+            // اگر فیلد permission برای این بخش تعریف شده باشد، از آن استفاده کن
+            $allowedAccess = $user_permissions[$userType] ?? ($user['userType'] === 'admin');
         }
 
         if ($allowedAccess) {
@@ -115,7 +123,8 @@ try {
                             'success' => true,
                             'message' => 'شما قبلاً وارد شده‌اید. جلسه به‌روزرسانی شد.',
                             'userType' => $user['userType'],
-                            'session_token' => $sessionToken
+                            'session_token' => $sessionToken,
+                            'permissions' => $user_permissions
                         ]);
                         exit;
                     } else {
@@ -142,13 +151,14 @@ try {
                     // ایجاد تأخیر ثابت برای جلوگیری از حملات timing-based
                     usleep(rand(5000, 10000));
                     
-                    // ارسال پاسخ شامل session_token
+                    // ارسال پاسخ شامل session_token و permissions
                     http_response_code(200);
                     echo json_encode([
                         "success" => true, 
                         "message" => "ورود موفقیت‌آمیز", 
                         "userType" => $user['userType'],
-                        "session_token" => $sessionToken
+                        "session_token" => $sessionToken,
+                        "permissions" => $user_permissions
                     ], JSON_UNESCAPED_UNICODE);
                     exit();
                 } else {

@@ -1540,7 +1540,7 @@ class ReportsViewModel(
                         }
                 }
                 QuotaGroupingMode.BY_CARGO_OWNER -> {
-                    filtered.groupBy { "${it.shipName}|${it.warehouse ?: "نامشخص"}" }
+                    filtered.groupBy { "${it.shipName}|${it.warehouse ?: "نامشخص"}|${it.cargoType ?: "نامشخص"}" }
                         .map { (compositeKey, quotas) ->
                             Triple(
                                 compositeKey,
@@ -1552,7 +1552,7 @@ class ReportsViewModel(
                             compareBy<Triple<String, Int, Float>> { it.first }
                         )
                         .flatMap { (compositeKey, _, _) ->
-                            filtered.filter { "${it.shipName}|${it.warehouse ?: "نامشخص"}" == compositeKey }
+                            filtered.filter { "${it.shipName}|${it.warehouse ?: "نامشخص"}|${it.cargoType ?: "نامشخص"}" == compositeKey }
                         }
                 }
             }
@@ -3274,7 +3274,8 @@ data class LoginResponse(
     val success: Boolean,
     val message: String,
     val userType: String?,
-    val sessionToken: String? = null
+    val sessionToken: String? = null,
+    val permissions: Map<String, Boolean>? = null
 )
 
 data class LogoutRequest(
@@ -3459,6 +3460,20 @@ data class SessionCheckRequest(
 )
 
 data class SessionResponse(val success: Boolean, val message: String, val userType: String?)
+
+// ===== Permission Live-Sync Models =====
+data class PermissionSyncRequest(
+    val username: String,
+    val deviceId: String = "",
+    val session_token: String? = null
+)
+
+data class PermissionSyncResponse(
+    val success: Boolean,
+    val message: String,
+    val userType: String? = null,
+    val permissions: Map<String, Boolean>? = null
+)
 
 data class RealTimeDataResponse(
     val shiftInfo: ShiftInfo,
@@ -3905,7 +3920,8 @@ data class QuotaCompletionData(
     val last_24h_weight: Float,
     val last_24h_vouchers: Int,
     val cargoOwner: String? = null,
-    val warehouse: String? = null
+    val warehouse: String? = null,
+    val cargoType: String? = null
 )
 
 enum class QuotaGroupingMode {

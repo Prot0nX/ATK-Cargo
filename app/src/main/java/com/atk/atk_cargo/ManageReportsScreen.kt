@@ -13366,7 +13366,11 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                         if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
                             val parts = groupName.split("|")
                             Text(
-                                text = if (parts.size >= 2) "${parts[0]} | ${parts[1]}" else groupName,
+                                text = when (parts.size) {
+                                    3 -> "${parts[0]} | ${parts[1]} | ${parts[2]}"
+                                    2 -> "${parts[0]} | ${parts[1]}"
+                                    else -> groupName
+                                },
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -13643,6 +13647,27 @@ private fun AnalyticsQuotaCard(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+                }
+
+                // ردیف سوم - نوع کالا
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Inventory,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = quota.cargoType ?: "نامشخص",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
 
                 // ردیف سوم - بج‌های آماری
