@@ -149,18 +149,22 @@ class AdvancedCargoAnalytics {
                     i.shipName,
                     c.shippingCompany,
                     i.cargoOwner,
-                    i.loadingWarehouse,
+                    c.loadingWarehouse,
+                    i.cargoType,
                     SUM(c.netWeight) AS last_24h_weight,
                     COUNT(*) AS last_24h_vouchers
                 FROM CargoInfo c
-                JOIN InitialInfo i ON c.loadingQuotaNumber = i.loadingQuotaNumber
+                JOIN InitialInfo i ON c.loadingQuotaNumber = i.loadingQuotaNumber 
+                    AND c.loadingWarehouse = i.loadingWarehouse
+                    AND c.shippingCompany = i.shippingCompany
+                    AND c.cargoType = i.cargoType
                 WHERE 
                     c.status = 'خروج' 
                     AND (
                         (c.exitDate = ? AND c.exitTime >= '07:00:00') OR
                         (c.exitDate = ? AND c.exitTime < '07:00:00')
                     )
-                GROUP BY c.loadingQuotaNumber, i.shipName, c.shippingCompany, i.cargoOwner, i.loadingWarehouse
+                GROUP BY c.loadingQuotaNumber, i.shipName, c.shippingCompany, i.cargoOwner, c.loadingWarehouse, i.cargoType
                 ORDER BY last_24h_vouchers DESC";
     
             $stmt = $this->conn->prepare($query);
@@ -176,6 +180,7 @@ class AdvancedCargoAnalytics {
                     'shippingCompany' => $row['shippingCompany'],
                     'cargoOwner' => $row['cargoOwner'],
                     'warehouse' => $row['loadingWarehouse'],
+                    'cargoType' => $row['cargoType'],
                     'last_24h_weight' => (float)$row['last_24h_weight'],
                     'last_24h_vouchers' => (int)$row['last_24h_vouchers'],
                 ];
