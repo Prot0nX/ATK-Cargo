@@ -14,6 +14,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.google.gson.reflect.TypeToken
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
 
@@ -42,6 +45,24 @@ class UserPreferencesManager(private val context: Context) {
         }
         .map { preferences ->
             preferences[USER_TYPE_KEY] ?: ""
+        }
+
+    val permissions = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            val json = preferences[PERMISSIONS_KEY] ?: "{}"
+            try {
+                val type = object : TypeToken<Map<String, Boolean>>() {}.type
+                Gson().fromJson<Map<String, Boolean>>(json, type) ?: emptyMap()
+            } catch (e: Exception) {
+                emptyMap<String, Boolean>()
+            }
         }
 
     val deviceId = dataStore.data
@@ -116,7 +137,7 @@ class UserPreferencesManager(private val context: Context) {
             preferences[CHAT_NOTIFICATIONS_ENABLED_KEY] ?: true
         }
 
-    suspend fun saveUserCredentials(username: String, userType: String, deviceId: String = "", sessionToken: String = "") {
+    suspend fun saveUserCredentials(username: String, userType: String, deviceId: String = "", sessionToken: String = "", permissions: Map<String, Boolean>? = null) {
         dataStore.edit { preferences ->
             preferences[USERNAME_KEY] = username
             preferences[USER_TYPE_KEY] = userType
@@ -127,12 +148,21 @@ class UserPreferencesManager(private val context: Context) {
             if (sessionToken.isNotEmpty()) {
                 preferences[SESSION_TOKEN_KEY] = sessionToken
             }
+            if (permissions != null) {
+                preferences[PERMISSIONS_KEY] = Gson().toJson(permissions)
+            }
         }
     }
 
     suspend fun saveSessionToken(sessionToken: String) {
         dataStore.edit { preferences ->
             preferences[SESSION_TOKEN_KEY] = sessionToken
+        }
+    }
+
+    suspend fun savePermissions(permissions: Map<String, Boolean>) {
+        dataStore.edit { preferences ->
+            preferences[PERMISSIONS_KEY] = Gson().toJson(permissions)
         }
     }
 
@@ -221,6 +251,7 @@ class UserPreferencesManager(private val context: Context) {
             preferences.remove(USERNAME_KEY)
             preferences.remove(USER_TYPE_KEY)
             preferences.remove(SESSION_TOKEN_KEY)
+            preferences.remove(PERMISSIONS_KEY)
             preferences[IS_LOGGED_IN_KEY] = false
         }
 
@@ -299,6 +330,7 @@ class UserPreferencesManager(private val context: Context) {
         private val USER_TYPE_KEY = stringPreferencesKey("user_type")
         private val DEVICE_ID_KEY = stringPreferencesKey("device_id")
         private val SESSION_TOKEN_KEY = stringPreferencesKey("session_token")
+        private val PERMISSIONS_KEY = stringPreferencesKey("user_permissions")
         private val HARDWARE_SCORE_KEY = intPreferencesKey("hardware_score")
         private val DEVICE_SPECS_KEY = stringPreferencesKey("device_specs")
         private val SCORE_TIMESTAMP_KEY = longPreferencesKey("score_timestamp")

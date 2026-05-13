@@ -305,7 +305,8 @@ fun LoginScreen(
                                                 username,
                                                 responseBody.userType ?: "",
                                                 deviceId,
-                                                responseBody.sessionToken ?: ""
+                                                responseBody.sessionToken ?: "",
+                                                responseBody.permissions
                                             )
                                             userPreferencesManager.setLoginState(true)
                                             

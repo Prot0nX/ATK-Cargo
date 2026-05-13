@@ -12,15 +12,25 @@ import retrofit2.http.Query
 
 interface ApiService {
 
-    @POST("saveInitialInfo.php")
-    suspend fun saveInitialInfo(@Body initialInfo: InitialInfo): Response<Void>
+    // ===== INITIAL INFO =====
 
-    @POST("checkExistence.php")
-    suspend fun checkExistence(@Body request: CheckExistenceRequest): Response<CheckExistenceResponse>
+    @POST("protected_proxy.php")
+    suspend fun saveInitialInfo(
+        @Body initialInfo: InitialInfo,
+        @Query("target") target: String = "saveInitialInfo.php"
+    ): Response<Void>
 
-    @GET("check_scale_receipt.php")
+    @POST("protected_proxy.php")
+    suspend fun checkExistence(
+        @Body request: CheckExistenceRequest,
+        @Query("target") target: String = "checkExistence.php"
+    ): Response<CheckExistenceResponse>
+
+    @GET("protected_proxy.php")
     suspend fun checkScaleReceiptNumber(
-        @Query("scaleReceiptNumber") scaleReceiptNumber: String
+        @Query("scaleReceiptNumber") scaleReceiptNumber: String,
+        @Query("target") target: String = "check_scale_receipt.php",
+        @Query("action") action: String = "checkScaleReceiptNumber"
     ): Response<ScaleReceiptCheckResponse>
 
     @GET("protected_proxy.php")
@@ -31,35 +41,56 @@ interface ApiService {
         @Query("shipName") shipName: String
     ): Response<QuotaExistenceMultipleResponse>
 
-    @GET("getInitialInfo.php")
+    @GET("protected_proxy.php")
     suspend fun getCargoInfo(
         @Query("quotaNumber") quotaNumber: String,
         @Query("shippingCompany") shippingCompany: String,
         @Query("warehouse") warehouse: String,
-        @Query("cargoType") cargoType: String
+        @Query("cargoType") cargoType: String,
+        @Query("target") target: String = "getInitialInfo.php",
+        @Query("action") action: String = "getCargoInfo"
     ): Response<CargoInfoResponse>
 
-    @GET("getActiveShips.php")
-    suspend fun getActiveShips(): Response<List<ActiveShipInfo>>
+    @GET("protected_proxy.php")
+    suspend fun getActiveShips(
+        @Query("target") target: String = "getActiveShips.php",
+        @Query("action") action: String = "getActiveShips"
+    ): Response<List<ActiveShipInfo>>
 
-    @POST("saveOrUpdateCargoInfo.php")
-    suspend fun saveOrUpdateCargoInfo(@Body cargoInfo: CargoInfo): Response<SaveOrUpdateResponse>
+    @POST("protected_proxy.php")
+    suspend fun saveOrUpdateCargoInfo(
+        @Body cargoInfo: CargoInfo,
+        @Query("target") target: String = "saveOrUpdateCargoInfo.php"
+    ): Response<SaveOrUpdateResponse>
 
-    @POST("updateCargoInfo.php")
-    suspend fun updateCargoInfo(@Body cargoInfo: CargoInfo): Response<SaveOrUpdateResponse>
+    @POST("protected_proxy.php")
+    suspend fun updateCargoInfo(
+        @Body cargoInfo: CargoInfo,
+        @Query("target") target: String = "updateCargoInfo.php"
+    ): Response<SaveOrUpdateResponse>
 
-    @POST("deleteCargoInfo.php")
-    suspend fun deleteCargo(@Body cargoInfoRequest: CargoInfoRequest): Response<Void>
+    @POST("protected_proxy.php")
+    suspend fun deleteCargo(
+        @Body cargoInfoRequest: CargoInfoRequest,
+        @Query("target") target: String = "deleteCargoInfo.php"
+    ): Response<Void>
 
     @FormUrlEncoded
-    @POST("check_password.php")
+    @POST("protected_proxy.php")
     suspend fun checkPassword(
         @Field("password") password: String,
-        @Field("passwordType") passwordType: String
+        @Field("passwordType") passwordType: String,
+        @Query("target") target: String = "check_password.php",
+        @Query("action") action: String = "checkPassword"
     ): Response<PasswordCheckResponse>
 
-    @POST("check_Auth.php")
-    suspend fun checkLogin(@Body loginRequest: LoginRequest): Response<LoginResponse>
+    @POST("protected_proxy.php")
+    suspend fun checkLogin(
+        @Body loginRequest: LoginRequest,
+        @Query("target") target: String = "check_Auth.php"
+    ): Response<LoginResponse>
+
+    // ===== SHIPS & WAREHOUSES =====
 
     @GET("protected_proxy.php")
     suspend fun getShipsList(
@@ -87,6 +118,8 @@ interface ApiService {
         @Query("startDateTime") startDateTime: String? = null,
         @Query("endDateTime") endDateTime: String? = null
     ): Response<Warehouse>
+
+    // ===== QUOTAS =====
 
     @GET("protected_proxy.php")
     suspend fun getQuotaDetails(
@@ -182,65 +215,6 @@ interface ApiService {
         @Query("warehouse") warehouse: String? = null
     ): Response<QuotaStatusResponse>
 
-    @GET("realTimeLoadingData.php")
-    suspend fun getRealTimeLoadingData(
-        @Query("action") action: String = "getRealTimeData",
-        @Query("shiftOffset") shiftOffset: Int = 0
-    ): Response<RealTimeDataResponse>
-
-    @GET("realTimeLoadingData.php")
-    suspend fun getComprehensiveAnalysis(
-        @Query("action") action: String = "getComprehensiveAnalysis",
-        @Query("offset") offset: Int = 0
-    ): Response<ComprehensiveAnalysisResponse>
-
-    @POST("check_session.php")
-    suspend fun checkSession(@Body request: SessionCheckRequest): Response<SessionResponse>
-
-    @GET("search_by_scaleReceipt.php")
-    suspend fun getCargoInfoByReceiptNumber(
-        @Query("receipt") receiptNumber: String
-    ): Response<CargoInfoSearch>
-
-    @GET("search_by_tracking.php")
-    suspend fun getCargoInfoByTrackingNumber(
-        @Query("tracking") trackingNumber: String
-    ): Response<CargoSearchResponse>
-
-    @GET("protected_proxy.php")
-    suspend fun getLoadableTonnage(
-        @Query("target") target: String = "app_api.php",
-        @Query("action") action: String = "getLoadableTonnage",
-        @Query("quotaNumber") quotaNumber: String,
-        @Query("shippingCompany") shippingCompany: String,
-        @Query("warehouse") warehouse: String,
-        @Query("cargoType") cargoType: String
-    ): Response<LoadableTonnageResponse>
-
-    @GET("users_api.php")
-    suspend fun getAllUsers(
-        @Query("action") action: String = "getAllUsers"
-    ): List<User>
-
-    @POST("users_api.php")
-    suspend fun createUser(@Body request: CreateUserRequest): Response<SuccessResponse>
-
-    @POST("users_api.php")
-    suspend fun updateUser(
-        @Body request: UpdateUserRequest
-    ): ApiResponse
-
-    @POST("users_api.php")
-    suspend fun deleteUser(
-        @Body request: DeleteUserRequest
-    ): ApiResponse
-
-    @POST("check_logout.php")
-    suspend fun logout(@Body logoutRequest: LogoutRequest): Response<LogoutResponse>
-
-    @POST("confirm_cargo.php")
-    suspend fun confirmCargo(@Body request: Map<String, String>): Response<Map<String, JsonElement>>
-
     @GET("protected_proxy.php")
     suspend fun getGroupedQuotas(
         @Query("target") target: String = "app_api.php",
@@ -257,48 +231,159 @@ interface ApiService {
         @Query("tonnage") tonnage: Double? = null
     ): Response<SuccessResponse>
 
-    @GET("summaryData.json")
-    suspend fun getSummaryData(): Response<ResponseBody>
+    @GET("protected_proxy.php")
+    suspend fun getLoadableTonnage(
+        @Query("target") target: String = "app_api.php",
+        @Query("action") action: String = "getLoadableTonnage",
+        @Query("quotaNumber") quotaNumber: String,
+        @Query("shippingCompany") shippingCompany: String,
+        @Query("warehouse") warehouse: String,
+        @Query("cargoType") cargoType: String
+    ): Response<LoadableTonnageResponse>
 
-    @GET("quota_remaining_api.php")
-    suspend fun getActiveQuotasRemaining(
-        @Query("action") action: String = "getActiveQuotasRemaining"
+    // ===== REAL-TIME & ANALYTICS =====
+
+    @GET("protected_proxy.php")
+    suspend fun getRealTimeLoadingData(
+        @Query("action") action: String = "getRealTimeData",
+        @Query("shiftOffset") shiftOffset: Int = 0,
+        @Query("target") target: String = "realTimeLoadingData.php"
+    ): Response<RealTimeDataResponse>
+
+    @GET("protected_proxy.php")
+    suspend fun getComprehensiveAnalysis(
+        @Query("action") action: String = "getComprehensiveAnalysis",
+        @Query("offset") offset: Int = 0,
+        @Query("target") target: String = "realTimeLoadingData.php"
+    ): Response<ComprehensiveAnalysisResponse>
+
+    @GET("protected_proxy.php")
+    suspend fun getSummaryData(
+        @Query("target") target: String = "summaryData.json"
     ): Response<ResponseBody>
 
-    @GET("ActiveQuota.json")
-    suspend fun getActiveQuotaReport(): Response<ResponseBody>
+    @GET("protected_proxy.php")
+    suspend fun getActiveQuotasRemaining(
+        @Query("action") action: String = "getActiveQuotasRemaining",
+        @Query("target") target: String = "quota_remaining_api.php"
+    ): Response<ResponseBody>
+
+    @GET("protected_proxy.php")
+    suspend fun getActiveQuotaReport(
+        @Query("target") target: String = "ActiveQuota.json"
+    ): Response<ResponseBody>
+
+    // ===== SEARCH =====
+
+    @GET("protected_proxy.php")
+    suspend fun getCargoInfoByReceiptNumber(
+        @Query("receipt") receiptNumber: String,
+        @Query("target") target: String = "search_by_scaleReceipt.php",
+        @Query("action") action: String = "getCargoInfoByReceipt"
+    ): Response<CargoInfoSearch>
+
+    @GET("protected_proxy.php")
+    suspend fun getCargoInfoByTrackingNumber(
+        @Query("tracking") trackingNumber: String,
+        @Query("target") target: String = "search_by_tracking.php",
+        @Query("action") action: String = "getCargoInfoByTracking"
+    ): Response<CargoSearchResponse>
+
+    // ===== SESSION & AUTH =====
+
+    @POST("protected_proxy.php")
+    suspend fun checkSession(
+        @Body request: SessionCheckRequest,
+        @Query("target") target: String = "check_session.php"
+    ): Response<SessionResponse>
+
+    @POST("protected_proxy.php")
+    suspend fun syncPermissions(
+        @Body request: PermissionSyncRequest,
+        @Query("target") target: String = "sync_permissions.php"
+    ): Response<PermissionSyncResponse>
+
+    @POST("protected_proxy.php")
+    suspend fun logout(
+        @Body logoutRequest: LogoutRequest,
+        @Query("target") target: String = "check_logout.php"
+    ): Response<LogoutResponse>
+
+    // ===== CARGO OPS =====
+
+    @POST("protected_proxy.php")
+    suspend fun confirmCargo(
+        @Body request: Map<String, String>,
+        @Query("target") target: String = "confirm_cargo.php"
+    ): Response<Map<String, JsonElement>>
+
+    // ===== USERS =====
+
+    @GET("protected_proxy.php")
+    suspend fun getAllUsers(
+        @Query("action") action: String = "getAllUsers",
+        @Query("target") target: String = "users_api.php"
+    ): List<User>
+
+    @POST("protected_proxy.php")
+    suspend fun createUser(
+        @Body request: CreateUserRequest,
+        @Query("target") target: String = "users_api.php",
+        @Query("action") action: String = "createUser"
+    ): Response<SuccessResponse>
+
+    @POST("protected_proxy.php")
+    suspend fun updateUser(
+        @Body request: UpdateUserRequest,
+        @Query("target") target: String = "users_api.php",
+        @Query("action") action: String = "updateUser"
+    ): ApiResponse
+
+    @POST("protected_proxy.php")
+    suspend fun deleteUser(
+        @Body request: DeleteUserRequest,
+        @Query("target") target: String = "users_api.php",
+        @Query("action") action: String = "deleteUser"
+    ): ApiResponse
 
     // ===== CHAT API ENDPOINTS =====
-    
-    @GET("chat_api.php")
+
+    @GET("protected_proxy.php")
     suspend fun getChatMessages(
         @Query("action") action: String = "getMessages",
         @Query("lastMessageId") lastMessageId: Int = 0,
         @Query("olderThanId") olderThanId: Int = 0,
         @Query("limit") limit: Int = 50,
-        @Query("username") username: String
+        @Query("username") username: String,
+        @Query("target") target: String = "chat_api.php"
     ): Response<ChatMessagesResponse>
 
-
-    @POST("chat_api.php")
+    @POST("protected_proxy.php")
     suspend fun sendChatMessage(
-        @Body request: SendMessageRequest
+        @Body request: SendMessageRequest,
+        @Query("target") target: String = "chat_api.php",
+        @Query("action") action: String = "sendMessage"
     ): Response<SendMessageResponse>
 
-    @POST("chat_api.php")
+    @POST("protected_proxy.php")
     suspend fun editChatMessage(
-        @Body request: EditMessageRequest
+        @Body request: EditMessageRequest,
+        @Query("target") target: String = "chat_api.php",
+        @Query("action") action: String = "editMessage"
     ): Response<ApiResponse>
 
-    @POST("chat_api.php")
+    @POST("protected_proxy.php")
     suspend fun deleteChatMessage(
-        @Body request: DeleteMessageRequest
+        @Body request: DeleteMessageRequest,
+        @Query("target") target: String = "chat_api.php",
+        @Query("action") action: String = "deleteMessage"
     ): Response<ApiResponse>
 
-    @GET("chat_api.php")
+    @GET("protected_proxy.php")
     suspend fun getUnreadChatCount(
         @Query("action") action: String = "getUnreadCount",
-        @Query("username") username: String
+        @Query("username") username: String,
+        @Query("target") target: String = "chat_api.php"
     ): Response<UnreadCountResponse>
 }
 
