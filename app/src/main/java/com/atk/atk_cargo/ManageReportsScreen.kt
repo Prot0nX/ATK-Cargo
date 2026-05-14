@@ -13124,6 +13124,8 @@ fun QuotaAnalysis(
     completionData: List<QuotaCompletionData>,
     viewModel: ReportsViewModel
 ) {
+    val context = LocalContext.current
+
     LaunchedEffect(completionData) {
         viewModel.updateInitialQuotas(completionData)
     }
@@ -13143,16 +13145,84 @@ fun QuotaAnalysis(
             .fillMaxSize()
             .padding(horizontal = 12.dp)
     ) {
-        // فیلد جستجو
-        SearchField(
-            searchQuery = searchQuery,
-            onSearchQueryChange = { viewModel.updateSearchQuery(it) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp, bottom = 4.dp),
-            placeholder = "جستجو بر اساس شماره کوتاژ...",
-            keyboardType = KeyboardType.Number
-        )
+        // فیلد جستجو و دکمه اشتراک گذاری
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            SearchField(
+                searchQuery = searchQuery,
+                onSearchQueryChange = { viewModel.updateSearchQuery(it) },
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(top = 12.dp, bottom = 4.dp),
+                placeholder = "جستجو بر اساس شماره کوتاژ...",
+                keyboardType = KeyboardType.Number
+            )
+
+            IconButton(
+                onClick = {
+                    val grouped = when (groupingMode) {
+                        QuotaGroupingMode.BY_CARGO_OWNER -> {
+                            activeQuotas.groupBy { "${it.shipName}|${it.warehouse ?: "نامشخص"}" }
+                        }
+                        QuotaGroupingMode.BY_SHIP -> {
+                            activeQuotas.groupBy { it.shipName }
+                        }
+                        QuotaGroupingMode.BY_CARRIER -> {
+                            activeQuotas.groupBy { it.shippingCompany }
+                        }
+                    }
+                    val sortedForShare = grouped.map { (name, qs) ->
+                        Triple(name, qs, qs.sumOf { it.last_24h_weight.toDouble() }.toFloat())
+                    }.sortedWith(
+                        if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
+                            val warehouseQuotaCounts = activeQuotas.groupBy { it.warehouse ?: "نامشخص" }.mapValues { it.value.size }
+                            compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> { warehouseQuotaCounts[it.first.split("|").getOrNull(1)?.trim() ?: "نامشخص"] ?: 0 }
+                                .thenByDescending { it.second.size }
+                                .thenBy { it.first }
+                        } else {
+                            compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> { it.second.size }
+                                .thenByDescending { it.third }
+                        }
+                    )
+                    
+                    val shareText = buildString {
+                        val modeStr = when (groupingMode) {
+                            QuotaGroupingMode.BY_CARGO_OWNER -> "صاحب کالا"
+                            QuotaGroupingMode.BY_SHIP -> "کشتی"
+                            QuotaGroupingMode.BY_CARRIER -> "باربری"
+                        }
+                        appendLine("📊 تحلیل جامع عملیات - دسته بندی: $modeStr\n")
+                        sortedForShare.forEach { (name, qs, totalWeight) ->
+                            val groupTitle = if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
+                                val parts = name.split("|")
+                                if (parts.size >= 2) "کشتی: ${parts[0]} | انبار: ${parts[1]}" else name
+                            } else name
+                            
+                            appendLine("🔹 $groupTitle")
+                            appendLine("   تعداد کوتاژ: ${qs.size} | تعداد حواله: ${qs.sumOf { it.last_24h_vouchers }} | تناژ کل: ${formatNumber(totalWeight.roundToInt())} تن")
+                            appendLine()
+                        }
+                    }
+                    val sendIntent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_TEXT, shareText)
+                        type = "text/plain"
+                    }
+                    val shareIntent = Intent.createChooser(sendIntent, "ارسال اطلاعات")
+                    context.startActivity(shareIntent)
+                },
+                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Share,
+                    contentDescription = "اشتراک گذاری کل",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
 
         // انتخابگر نوع گروه‌بندی
         Row(
@@ -13212,7 +13282,7 @@ fun QuotaAnalysis(
                 }
             }
 
-            // مرتب‌سازی گروه‌ها براساس تعداد کوتاژ و تناژ کل
+            // مرتب‌سازی گروه‌ها براساس تعداد انبار (برای صاحب کالا)، تعداد کوتاژ و تناژ کل
             val sortedGroups = remember(activeQuotas, groupingMode) {
                 grouped.map { (groupName, quotas) ->
                     Triple(
@@ -13222,7 +13292,10 @@ fun QuotaAnalysis(
                     )
                 }.sortedWith(
                     if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
-                        compareBy<Triple<String, List<QuotaCompletionData>, Float>> { it.first }
+                        val warehouseQuotaCounts = activeQuotas.groupBy { it.warehouse ?: "نامشخص" }.mapValues { it.value.size }
+                        compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> { warehouseQuotaCounts[it.first.split("|").getOrNull(1)?.trim() ?: "نامشخص"] ?: 0 }
+                            .thenByDescending { it.second.size }
+                            .thenBy { it.first }
                     } else {
                         compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> { it.second.size }
                             .thenByDescending { it.third }
@@ -13312,6 +13385,7 @@ private fun AnalyticsGroupingModeButton(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AnalyticsQuotaGroupExpansionPanel(
     groupName: String,
@@ -13322,6 +13396,7 @@ private fun AnalyticsQuotaGroupExpansionPanel(
     onOwnerLongClick: (String, List<QuotaCompletionData>) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val totalWeight = quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
     val totalVouchers = quotas.sumOf { it.last_24h_vouchers }
 
@@ -13348,7 +13423,50 @@ private fun AnalyticsQuotaGroupExpansionPanel(
     ) {
         Column {
             Surface(
-                onClick = { onExpandChange(!isExpanded) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .combinedClickable(
+                        onClick = { onExpandChange(!isExpanded) },
+                        onLongClick = {
+                            val totalGroupVouchers = quotas.sumOf { it.last_24h_vouchers }
+                            val totalGroupWeight = quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
+                            
+                            val shareText = buildString {
+                                val groupTitle = if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
+                                    val parts = groupName.split("|")
+                                    if (parts.size >= 2) "کشتی: ${parts[0]} | انبار: ${parts[1]}" else groupName
+                                } else groupName
+                                appendLine("🔹 اطلاعات $groupTitle")
+                                appendLine("   تعداد کوتاژ: ${quotas.size} | تعداد حواله: $totalGroupVouchers | تناژ کل: ${formatNumber(totalGroupWeight.roundToInt())} تن")
+                                appendLine()
+                                if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
+                                    val ownerSummaries = quotas.groupBy { it.cargoOwner ?: "نامشخص" }
+                                        .map { (owner, ownerQuotas) ->
+                                            Triple(
+                                                owner,
+                                                ownerQuotas.sumOf { it.last_24h_vouchers },
+                                                ownerQuotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
+                                            )
+                                        }.sortedByDescending { it.third }
+                                    
+                                    ownerSummaries.forEach { (owner, vc, tw) ->
+                                        appendLine("   👤 $owner: $vc حواله | ${formatNumber(tw.roundToInt())} تن")
+                                    }
+                                } else {
+                                    quotas.forEach { q ->
+                                        appendLine("   🔸 کوتاژ ${q.loadingQuotaNumber}: ${q.last_24h_vouchers} حواله | ${formatNumber(q.last_24h_weight.roundToInt())} تن")
+                                    }
+                                }
+                            }
+                            val sendIntent = Intent().apply {
+                                action = Intent.ACTION_SEND
+                                putExtra(Intent.EXTRA_TEXT, shareText)
+                                type = "text/plain"
+                            }
+                            val shareIntent = Intent.createChooser(sendIntent, "ارسال اطلاعات")
+                            context.startActivity(shareIntent)
+                        }
+                    ),
                 color = Color.Transparent
             ) {
                 Column(
