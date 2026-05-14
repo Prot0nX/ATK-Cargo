@@ -13551,26 +13551,6 @@ private fun AnalyticsQuotaCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // آیکون کوتاژ
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(
-                        color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                            Color(0xFF334155) else Color(0xFFF3F4F6),
-                        shape = RoundedCornerShape(8.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Receipt,
-                    contentDescription = null,
-                    tint = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                        Color(0xFF94a3b8) else Color(0xFF6B7280),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
             // اطلاعات کوتاژ
             Column(
                 modifier = Modifier.weight(1f),
@@ -13649,28 +13629,7 @@ private fun AnalyticsQuotaCard(
                     }
                 }
 
-                // ردیف سوم - نوع کالا
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Inventory,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = quota.cargoType ?: "نامشخص",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                // ردیف سوم - بج‌های آماری
+                // ردیف دوم - بج‌های آماری
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
