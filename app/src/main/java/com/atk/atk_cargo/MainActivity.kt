@@ -247,7 +247,6 @@ import com.atk.atk_cargo.ui.theme.ThemeRed
 import com.atk.atk_cargo.ui.theme.ThemeRedDark
 import com.atk.atk_cargo.ui.theme.ThemeSlateBlue
 import com.atk.atk_cargo.ui.theme.ThemeTeal
-import com.atk.atk_cargo.weather.LoadingScreen
 import com.atk.atk_cargo.weather.MusicLibraryManager
 import com.atk.atk_cargo.weather.SecurityBlockScreen
 import com.atk.atk_cargo.weather.SecurityErrorType
@@ -292,7 +291,6 @@ class MainActivity : ComponentActivity() {
     // نمایش splash فوری است؛ وقتی تمام چک‌ها تمام شدند این false می‌شود
     private var isSplashVisible by mutableStateOf(true)
     private var isVersionAllowedState by mutableStateOf(true)
-    private var isVersionCheckCompleted by mutableStateOf(false)
 
     @SuppressLint("CoroutineCreationDuringComposition", "BatteryLife")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -322,6 +320,8 @@ class MainActivity : ComponentActivity() {
                                 AppNotificationManager(this@MainActivity).setupChannels()
                             }
 
+                            val timerJob    = async { delay(5_000) }
+
                             // اجرای موازی تمام چک‌های حیاتی در یک لحظه
                             val versionJob  = async { updateManager.isCurrentVersionAllowed() }
                             val securityJob = async { calculateWeatherForecast() }
@@ -330,22 +330,19 @@ class MainActivity : ComponentActivity() {
                             // دریافت نتیجه بررسی نسخه
                             val versionAllowed = versionJob.await()
                             isVersionAllowedState = versionAllowed
-                            isVersionCheckCompleted = true
 
                             if (versionAllowed) {
-                                // منتظر اتمام سایر چک‌های موازی
                                 securityJob.await()
                                 updateJob.await()
-                                
-                                // پوشاندن Splash Screen و نمایش محتوای اصلی
+                                timerJob.await()
+
                                 isSplashVisible = false
 
-                                // فرآیندهای غیرمسدودکننده پس از نمایش UI اصلی
                                 checkTonnageWarnings()
                                 checkUserSession()
                                 requestBatteryOptimizationIfNeeded()
                             } else {
-                                // لغو پردازش‌های غیر‌ضروری در صورت منقضی بودن نسخه
+                                timerJob.await()
                                 securityJob.cancel()
                                 updateJob.cancel()
                                 isSplashVisible = false
@@ -359,9 +356,9 @@ class MainActivity : ComponentActivity() {
 
                     // ===== منطق نمایش صفحات =====
                     when {
-                        // ۱. Splash Screen: هنگامی که چک‌ها هنوز در حال اجرا هستند
+                        // ۱. Splash Screen: همزمان با پردازش‌های پس‌زمینه نمایش داده می‌شود
                         isSplashVisible -> {
-                            LoadingScreen()
+                            SplashScreen(onSkip = { isSplashVisible = false })
                         }
                         // ۲. نسخه منقضی شده: فوری پس از دریافت نتیجه نمایش داده می‌شود
                         !isVersionAllowedState -> {
@@ -379,7 +376,6 @@ class MainActivity : ComponentActivity() {
                         // ۴. محتوای اصلی برنامه
                         else -> {
                             HandleMainContent(
-                                showMainContent = true,
                                 isUpdateAvailable = isUpdateAvailable,
                                 updateInfo = updateInfo
                             )
@@ -465,7 +461,6 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun HandleMainContent(
-        showMainContent: Boolean,
         isUpdateAvailable: Boolean,
         updateInfo: UpdateInfo?
     ) {
@@ -485,9 +480,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * درخواست مجوز بهینه‌سازی باتری - به صورت مستقل و پس از نمایش UI اجرا می‌شود
-     */
+    @SuppressLint("BatteryLife")
     private suspend fun requestBatteryOptimizationIfNeeded() {
         try {
             val pm = getSystemService(POWER_SERVICE) as PowerManager
@@ -1362,7 +1355,7 @@ private fun ErrorState(
 @Composable
 fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
     val navController = rememberNavController()
-    var showSplash by remember { mutableStateOf(true) }
+    var showSplash by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val userPreferencesManager = remember { UserPreferencesManager(context) }
     val username by userPreferencesManager.username.collectAsState(initial = "")
@@ -1401,11 +1394,6 @@ fun MainScreen(cargoViewModelFactory: CargoViewModelFactory) {
         } else {
             permissionPoller.stop()
         }
-    }
-
-    LaunchedEffect(key1 = true) {
-        delay(5000)
-        showSplash = false
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
