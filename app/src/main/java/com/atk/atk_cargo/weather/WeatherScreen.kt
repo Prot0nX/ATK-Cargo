@@ -4,7 +4,6 @@ import android.content.ClipData
 import android.content.pm.PackageManager
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -44,7 +43,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -80,7 +78,7 @@ fun SecurityBlockScreen(
             contentAlignment = Alignment.Center
         ) {
             if (isLoading) {
-                EnhancedLoadingScreen()
+                LoadingScreen()
             } else {
                 Surface(
                     modifier = Modifier
@@ -94,17 +92,16 @@ fun SecurityBlockScreen(
                         modifier = Modifier.padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        var iconScale by remember { mutableFloatStateOf(0.8f) }
-                        LaunchedEffect(Unit) {
-                            animate(
-                                initialValue = 0.8f,
-                                targetValue = 1f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(1000),
-                                    repeatMode = RepeatMode.Reverse
-                                )
-                            ) { value, _ -> iconScale = value }
-                        }
+                        val infiniteTransition = rememberInfiniteTransition(label = "securityIconTransition")
+                        val iconScale by infiniteTransition.animateFloat(
+                            initialValue = 0.8f,
+                            targetValue = 1f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(1000),
+                                repeatMode = RepeatMode.Reverse
+                            ),
+                            label = "securityIconScale"
+                        )
 
                         Box(
                             modifier = Modifier
@@ -417,17 +414,16 @@ fun VersionExpiredDialog(
                     modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    var iconScale by remember { mutableFloatStateOf(0.8f) }
-                    LaunchedEffect(Unit) {
-                        animate(
-                            initialValue = 0.8f,
-                            targetValue = 1f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(1000),
-                                repeatMode = RepeatMode.Reverse
-                            )
-                        ) { value, _ -> iconScale = value }
-                    }
+                    val infiniteTransition = rememberInfiniteTransition(label = "versionIconTransition")
+                    val iconScale by infiniteTransition.animateFloat(
+                        initialValue = 0.8f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(
+                            animation = tween(1000),
+                            repeatMode = RepeatMode.Reverse
+                        ),
+                        label = "versionIconScale"
+                    )
 
                     Box(
                         modifier = Modifier
@@ -523,7 +519,7 @@ fun VersionExpiredDialog(
 }
 
 @Composable
-fun EnhancedLoadingScreen() {
+fun LoadingScreen() {
     val infiniteTransition = rememberInfiniteTransition(label = "")
     val contentAlpha by infiniteTransition.animateFloat(
         initialValue = 0.6f,

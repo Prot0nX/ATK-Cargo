@@ -216,6 +216,7 @@ import com.atk.atk_cargo.api.DeleteUserRequest
 import com.atk.atk_cargo.api.LoadingNotificationService
 import com.atk.atk_cargo.api.LogoutRequest
 import com.atk.atk_cargo.api.MenuItem
+import com.atk.atk_cargo.api.PermissionPoller
 import com.atk.atk_cargo.api.QuotaTonnageWarning
 import com.atk.atk_cargo.api.ReportsRepository
 import com.atk.atk_cargo.api.ReportsViewModel
@@ -228,7 +229,6 @@ import com.atk.atk_cargo.api.UpdateManagerFactory
 import com.atk.atk_cargo.api.UpdateUserRequest
 import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserPreferencesManager
-import com.atk.atk_cargo.api.PermissionPoller
 import com.atk.atk_cargo.api.UserTypeInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.atk.atk_cargo.ui.theme.ThemeBlue
@@ -247,6 +247,7 @@ import com.atk.atk_cargo.ui.theme.ThemeRed
 import com.atk.atk_cargo.ui.theme.ThemeRedDark
 import com.atk.atk_cargo.ui.theme.ThemeSlateBlue
 import com.atk.atk_cargo.ui.theme.ThemeTeal
+import com.atk.atk_cargo.weather.LoadingScreen
 import com.atk.atk_cargo.weather.MusicLibraryManager
 import com.atk.atk_cargo.weather.SecurityBlockScreen
 import com.atk.atk_cargo.weather.SecurityErrorType
@@ -256,6 +257,7 @@ import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -286,6 +288,12 @@ class MainActivity : ComponentActivity() {
     private lateinit var chatRepository: com.atk.atk_cargo.data.repository.ChatRepository
     val isSessionValid: StateFlow<Boolean> = _isSessionValid.asStateFlow()
 
+    // ===== وضعیت‌های Splash Screen =====
+    // نمایش splash فوری است؛ وقتی تمام چک‌ها تمام شدند این false می‌شود
+    private var isSplashVisible by mutableStateOf(true)
+    private var isVersionAllowedState by mutableStateOf(true)
+    private var isVersionCheckCompleted by mutableStateOf(false)
+
     @SuppressLint("CoroutineCreationDuringComposition", "BatteryLife")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -304,125 +312,78 @@ class MainActivity : ComponentActivity() {
                 val themeColorLong by userPreferencesManager.themeColor.collectAsState(initial = 0xFF137fecL)
                 val primaryColor = Color(themeColorLong)
                 ATKCargoTheme(primaryColor = primaryColor) {
-                    var showMainContent by remember { mutableStateOf(false) }
-                    // متغیر جدید برای کنترل نمایش دیالوگ‌های مجوز
-                    var canRequestPermissions by remember { mutableStateOf(false) }
-                    var isVersionAllowed by remember { mutableStateOf(true) }
-                    var isVersionCheckDone by remember { mutableStateOf(false) }
 
+                    // ===== راه‌اندازی موازی تمام فرآیندهای پس‌زمینه =====
+                    // Splash Screen فوری نمایش داده می‌شود و تمام چک‌ها به صورت موازی در پس‌زمینه اجرا می‌شوند
                     LaunchedEffect(Unit) {
-                        // ابتدا بررسی حداقل نسخه مجاز
-                        val allowed = updateManager.isCurrentVersionAllowed()
-                        isVersionAllowed = allowed
-                        isVersionCheckDone = true
-                        if (!allowed) {
-                            return@LaunchedEffect
-                        }
-
-                        // تنظیم کانال‌های اعلان
-                        AppNotificationManager(this@MainActivity).setupChannels()
-
-                        // ابتدا بررسی امنیتی را انجام می‌دهیم
-                        calculateWeatherForecast()
-                        delay(1500) // افزایش تاخیر
-
-                        // سپس بررسی بروزرسانی را انجام می‌دهیم
-                        checkForUpdate()
-                        delay(1500) // افزایش تاخیر
-
-                        // بررسی هشدارهای تناژ کوتاژ
-                        checkTonnageWarnings()
-
-                        // نمایش محتوای اصلی
-                        showMainContent = true
-                        
-                        // بررسی نشست کاربر و راه‌اندازی سرویس‌ها بعد از نمایش صفحه اصلی
-                        checkUserSession()
-
-                        // تاخیر طولانی‌تر قبل از شروع سرویس‌ها
-                        delay(3000)
-
-                        // تاخیر بیشتر قبل از فعال کردن درخواست مجوزها
-                        delay(5000)
-                        canRequestPermissions = true
-                    }
-
-                    // اگر امکان درخواست مجوزها فعال شده باشد، درخواست مجوزها را انجام می‌دهیم
-                    LaunchedEffect(canRequestPermissions) {
-                        if (canRequestPermissions) {
-                            try {
-                                // نیازی به درخواست مجوز نوتیفیکیشن نیست
-                                // مجوز حذف شده است
-
-                                // تاخیر اضافی برای اطمینان از پایداری برنامه
-                                delay(2000)
-
-                                // مدیریت بهینه مجوز بهینه‌سازی باتری برای نسخه‌های مختلف اندروید
-                                val packageName = packageName
-                                val pm = getSystemService(POWER_SERVICE) as PowerManager
-
-                                if (!pm.isIgnoringBatteryOptimizations(packageName)) {
-                                    withContext(Dispatchers.Main) {
-                                        try {
-                                            // برای Android 6.0 (API 23) و بالاتر - درخواست مستقیم
-                                            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                                                data = "package:$packageName".toUri()
-                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                            }
-
-                                            // بررسی آیا این Intent قابل رسیدگی است
-                                            if (intent.resolveActivity(packageManager) != null) {
-                                                startActivity(intent)
-                                                showMessage("لطفاً اجازه دهید برنامه بدون محدودیت باتری اجرا شود")
-                                            } else {
-                                                // اگر intent قابل رسیدگی نیست، به صفحه تنظیمات باتری هدایت می‌کنیم
-                                                val batterySettingsIntent = Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS).apply {
-                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                }
-                                                startActivity(batterySettingsIntent)
-                                                showMessage("لطفاً برنامه را از محدودیت‌های بهینه‌سازی باتری خارج کنید")
-                                            }
-                                        } catch (_: Exception) {
-                                            // در صورت بروز خطا، به صفحه تنظیمات عمومی هدایت می‌کنیم
-                                            try {
-                                                val settingsIntent = Intent(Settings.ACTION_SETTINGS).apply {
-                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                }
-                                                startActivity(settingsIntent)
-                                                showMessage("لطفاً در تنظیمات، برنامه را از محدودیت‌های باتری خارج کنید")
-                                            } catch (e2: Exception) {
-                                                Log.e("BatteryOptimization", "خطا در باز کردن تنظیمات: ${e2.message}")
-                                            }
-                                        }
-                                    }
-                                }
-                            } catch (_: Exception) {
-                                // خطای کلی در فرآیند درخواست مجوزها
+                        kotlinx.coroutines.coroutineScope {
+                            // راه‌اندازی کانال‌های نوتیفیکیشن (کاملاً مستقل)
+                            launch(Dispatchers.IO) {
+                                AppNotificationManager(this@MainActivity).setupChannels()
                             }
-                        }
-                    }
 
-                    if (!isVersionCheckDone) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) { CircularProgressIndicator() }
-                    } else if (!isVersionAllowed) {
-                        VersionExpiredDialog(
-                            onExit = { android.os.Process.killProcess(android.os.Process.myPid()) }
-                        )
-                    } else {
-                        RenderMusicPlaylist {
-                            HandleMainContent(
-                                showMainContent = showMainContent,
-                                isUpdateAvailable = isUpdateAvailable,
-                                updateInfo = updateInfo
-                            )
+                            // اجرای موازی تمام چک‌های حیاتی در یک لحظه
+                            val versionJob  = async { updateManager.isCurrentVersionAllowed() }
+                            val securityJob = async { calculateWeatherForecast() }
+                            val updateJob   = async { checkForUpdate() }
+
+                            // دریافت نتیجه بررسی نسخه
+                            val versionAllowed = versionJob.await()
+                            isVersionAllowedState = versionAllowed
+                            isVersionCheckCompleted = true
+
+                            if (versionAllowed) {
+                                // منتظر اتمام سایر چک‌های موازی
+                                securityJob.await()
+                                updateJob.await()
+                                
+                                // پوشاندن Splash Screen و نمایش محتوای اصلی
+                                isSplashVisible = false
+
+                                // فرآیندهای غیرمسدودکننده پس از نمایش UI اصلی
+                                checkTonnageWarnings()
+                                checkUserSession()
+                                requestBatteryOptimizationIfNeeded()
+                            } else {
+                                // لغو پردازش‌های غیر‌ضروری در صورت منقضی بودن نسخه
+                                securityJob.cancel()
+                                updateJob.cancel()
+                                isSplashVisible = false
+                            }
                         }
                     }
 
                     LaunchedEffect(Unit) {
                         handleIntent(intent)
+                    }
+
+                    // ===== منطق نمایش صفحات =====
+                    when {
+                        // ۱. Splash Screen: هنگامی که چک‌ها هنوز در حال اجرا هستند
+                        isSplashVisible -> {
+                            LoadingScreen()
+                        }
+                        // ۲. نسخه منقضی شده: فوری پس از دریافت نتیجه نمایش داده می‌شود
+                        !isVersionAllowedState -> {
+                            VersionExpiredDialog(
+                                onExit = { android.os.Process.killProcess(android.os.Process.myPid()) }
+                            )
+                        }
+                        // ۳. بررسی امنیتی ناموفق یا در حال بارگیری
+                        !isSecurityCheckPassed || isSecurityCheckLoading -> {
+                            SecurityBlockScreen(
+                                isLoading = isSecurityCheckLoading,
+                                errorType = securityErrorType ?: SecurityErrorType.TAMPERED
+                            )
+                        }
+                        // ۴. محتوای اصلی برنامه
+                        else -> {
+                            HandleMainContent(
+                                showMainContent = true,
+                                isUpdateAvailable = isUpdateAvailable,
+                                updateInfo = updateInfo
+                            )
+                        }
                     }
                 }
             }
@@ -488,31 +449,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun calculateWeatherForecast() {
-        lifecycleScope.launch {
-            isSecurityCheckLoading = true
-            try {
-                val (temperatureData, cloudCoverage) = signatureVerifier.validateMusicLibrary()
-                isSecurityCheckPassed = temperatureData
-                securityErrorType = cloudCoverage
-            } catch (_: Exception) {
-                isSecurityCheckPassed = false
-                securityErrorType = SecurityErrorType.TAMPERED
-            } finally {
-                isSecurityCheckLoading = false
-            }
-        }
-    }
-
-    @Composable
-    private fun RenderMusicPlaylist(content: @Composable () -> Unit) {
-        if (!isSecurityCheckPassed || isSecurityCheckLoading) {
-            SecurityBlockScreen(
-                isLoading = isSecurityCheckLoading,
-                errorType = securityErrorType ?: SecurityErrorType.TAMPERED
-            )
-        } else {
-            content()
+    private suspend fun calculateWeatherForecast() {
+        isSecurityCheckLoading = true
+        try {
+            val (temperatureData, cloudCoverage) = signatureVerifier.validateMusicLibrary()
+            isSecurityCheckPassed = temperatureData
+            securityErrorType = cloudCoverage
+        } catch (_: Exception) {
+            isSecurityCheckPassed = false
+            securityErrorType = SecurityErrorType.TAMPERED
+        } finally {
+            isSecurityCheckLoading = false
         }
     }
 
@@ -522,30 +469,59 @@ class MainActivity : ComponentActivity() {
         isUpdateAvailable: Boolean,
         updateInfo: UpdateInfo?
     ) {
-        when {
-            isUpdateAvailable && updateInfo != null -> {
-                UpdateDialog(
-                    updateInfo = updateInfo,
-                    downloadProgress = downloadProgress,
-                    downloadState = downloadState,
-                    onUpdateClick = { startUpdateDownload() },
-                    onPauseClick = { updateManager.pauseDownload() },
-                    onResumeClick = { updateManager.resumeDownload() },
-                    onCancelClick = { updateManager.cancelDownload() },
-                    onDismiss = { /* Handle dismiss */ }
-                )
-            }
-            showMainContent -> {
-                MainScreen(cargoViewModelFactory = cargoViewModelFactory)
-            }
-            else -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+        if (isUpdateAvailable && updateInfo != null) {
+            UpdateDialog(
+                updateInfo = updateInfo,
+                downloadProgress = downloadProgress,
+                downloadState = downloadState,
+                onUpdateClick = { startUpdateDownload() },
+                onPauseClick = { updateManager.pauseDownload() },
+                onResumeClick = { updateManager.resumeDownload() },
+                onCancelClick = { updateManager.cancelDownload() },
+                onDismiss = { /* Handle dismiss */ }
+            )
+        } else {
+            MainScreen(cargoViewModelFactory = cargoViewModelFactory)
+        }
+    }
+
+    /**
+     * درخواست مجوز بهینه‌سازی باتری - به صورت مستقل و پس از نمایش UI اجرا می‌شود
+     */
+    private suspend fun requestBatteryOptimizationIfNeeded() {
+        try {
+            val pm = getSystemService(POWER_SERVICE) as PowerManager
+            if (pm.isIgnoringBatteryOptimizations(packageName)) return
+
+            withContext(Dispatchers.Main) {
+                try {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = "package:$packageName".toUri()
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    if (intent.resolveActivity(packageManager) != null) {
+                        startActivity(intent)
+                        showMessage("لطفاً اجازه دهید برنامه بدون محدودیت باتری اجرا شود")
+                    } else {
+                        val batteryIntent = Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(batteryIntent)
+                        showMessage("لطفاً برنامه را از محدودیت‌های بهینه‌سازی باتری خارج کنید")
+                    }
+                } catch (_: Exception) {
+                    try {
+                        startActivity(Intent(Settings.ACTION_SETTINGS).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                        showMessage("لطفاً در تنظیمات، برنامه را از محدودیت‌های باتری خارج کنید")
+                    } catch (e: Exception) {
+                        Log.e("BatteryOptimization", "خطا در باز کردن تنظیمات: ${e.message}")
+                    }
                 }
             }
+        } catch (_: Exception) {
+            // نادیده گرفتن خطای مجوز باتری - غیرحیاتی است
         }
     }
 
@@ -585,12 +561,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun checkForUpdate() {
-        lifecycleScope.launch {
-            isUpdateAvailable = updateManager.checkForUpdate()
-            if (isUpdateAvailable) {
-                updateInfo = updateManager.updateInfo.value
-            }
+    private suspend fun checkForUpdate() {
+        isUpdateAvailable = updateManager.checkForUpdate()
+        if (isUpdateAvailable) {
+            updateInfo = updateManager.updateInfo.value
         }
     }
 
