@@ -1,795 +1,221 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سامانه ATK Cargo</title>
+    <title>ATK Cargo - دسترسی محدود</title>
+    
+    <!-- فونت وزیرمتن -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/Vazirmatn-font-face.css" as="style">
+    <link href="https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/Vazirmatn-font-face.css" rel="stylesheet">
+    
+    <!-- آیکون‌های Font Awesome -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    
     <style>
-        @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
-
-        :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --primary-light: #60a5fa;
-            --secondary: #0f172a;
-            --accent: #0ea5e9;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --bg-main: #f8fafc;
-            --bg-card: #ffffff;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --radius-sm: 8px;
-            --radius-md: 16px;
-            --radius-lg: 24px;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        [data-theme="dark"] {
-            --primary: #3b82f6;
-            --primary-dark: #2563eb;
-            --bg-main: #020617;
-            --bg-card: #0f172a;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --border: #1e293b;
-            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
+        
         body {
-            font-family: 'Vazirmatn', sans-serif;
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            line-height: 1.6;
-            transition: var(--transition);
-            overflow-x: hidden;
-        }
-
-        .container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
-
-        /* Navbar */
-        nav {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            height: 80px;
-            background: rgba(var(--bg-card), 0.8);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
-            z-index: 1000;
+            font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
+            min-height: 100vh;
             display: flex;
+            justify-content: center;
             align-items: center;
-            transition: var(--transition);
-        }
-
-        nav.scrolled {
-            height: 70px;
-            box-shadow: var(--shadow-md);
-        }
-
-        .nav-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-
-        .nav-logo {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--primary);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-            list-style: none;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: var(--text-main);
-            font-weight: 500;
-            font-size: 0.95rem;
-            transition: var(--transition);
-        }
-
-        .nav-links a:hover {
-            color: var(--primary);
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            border: none;
-            font-family: inherit;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 2px solid var(--border);
-            color: var(--text-main);
-        }
-
-        .btn-outline:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        /* Hero Section */
-        .hero {
-            padding: 160px 0 100px;
-            position: relative;
+            color: #ffffff;
             overflow: hidden;
-            text-align: center;
+            position: relative;
         }
-
-        .hero::before {
+        
+        /* انیمیشن پس‌زمینه */
+        body::before {
             content: '';
             position: absolute;
-            top: -10%;
-            left: -10%;
-            width: 40%;
-            height: 60%;
-            background: radial-gradient(circle, rgba(37, 99, 235, 0.1) 0%, transparent 70%);
-            z-index: -1;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.05"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+            animation: float 20s ease-in-out infinite;
         }
-
-        .hero-badge {
-            background: rgba(37, 99, 235, 0.1);
-            color: var(--primary);
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            display: inline-block;
-            margin-bottom: 1.5rem;
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
         }
-
-        .hero h1 {
-            font-size: clamp(2.5rem, 5vw, 4rem);
-            line-height: 1.2;
-            margin-bottom: 1.5rem;
-            font-weight: 900;
-            color: var(--text-main);
-        }
-
-        .hero p {
-            font-size: 1.25rem;
-            color: var(--text-muted);
-            max-width: 800px;
-            margin: 0 auto 3rem;
-        }
-
-        .hero-btns {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-        }
-
-        /* Stats Card Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 2rem;
-            margin-top: -60px;
+        
+        .container {
             position: relative;
-            z-index: 10;
-        }
-
-        .stat-item {
-            background: var(--bg-card);
-            padding: 2.5rem;
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--border);
+            z-index: 1;
             text-align: center;
-            transition: var(--transition);
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 24px;
+            padding: 60px 50px;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.25),
+                0 0 0 1px rgba(255, 255, 255, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            max-width: 500px;
+            width: 90%;
+            animation: slideUp 0.8s ease-out;
         }
-
-        .stat-item:hover {
-            transform: translateY(-10px);
-            box-shadow: var(--shadow-lg);
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-
-        .stat-value {
-            font-size: 3rem;
+        
+        .icon-container {
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .main-icon {
+            font-size: 4.5em;
+            color: #ff6b6b;
+            text-shadow: 0 0 30px rgba(255, 107, 107, 0.5);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .brand {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #74b9ff;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        
+        h1 {
+            font-size: 2.8em;
             font-weight: 800;
-            color: var(--primary);
-            display: block;
-            margin-bottom: 0.5rem;
+            margin-bottom: 25px;
+            background: linear-gradient(135deg, #ffffff 0%, #e0e6ed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            line-height: 1.2;
         }
-
-        .stat-label {
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-
-        /* Section Global */
-        section {
-            padding: 100px 0;
-        }
-
-        .section-header {
-            text-align: center;
-            margin-bottom: 4rem;
-        }
-
-        .section-header h2 {
-            font-size: 2.5rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-        }
-
-        .section-header p {
-            color: var(--text-muted);
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        /* Feature Cards */
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 2rem;
-        }
-
-        .feature-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            padding: 2.5rem;
-            border-radius: var(--radius-md);
-            transition: var(--transition);
+        
+        .warning-box {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.15) 0%, rgba(255, 71, 87, 0.15) 100%);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 16px;
+            padding: 25px;
+            margin-top: 35px;
             position: relative;
             overflow: hidden;
         }
-
-        .feature-card:hover {
-            border-color: var(--primary);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .feature-icon {
-            width: 60px;
-            height: 60px;
-            background: rgba(37, 99, 235, 0.1);
-            color: var(--primary);
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .feature-card h3 {
-            font-size: 1.3rem;
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
-
-        .feature-list {
-            list-style: none;
-        }
-
-        .feature-list li {
-            position: relative;
-            padding-right: 1.75rem;
-            margin-bottom: 0.75rem;
-            color: var(--text-muted);
-            font-size: 0.95rem;
-        }
-
-        .feature-list li::before {
-            content: '→';
+        
+        .warning-box::before {
+            content: '';
             position: absolute;
-            right: 0;
-            color: var(--primary);
-            font-weight: 800;
-        }
-
-        .tag-badge {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 50px;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            display: inline-block;
-        }
-
-        .bg-red-soft {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--danger);
-        }
-
-        .bg-blue-soft {
-            background: rgba(37, 99, 235, 0.1);
-            color: var(--primary);
-        }
-
-        .bg-amber-soft {
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--warning);
-        }
-
-        /* Trust/Footer */
-        footer {
-            background: var(--secondary);
-            color: white;
-            padding: 80px 0 40px;
-        }
-
-        .footer-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr;
-            gap: 4rem;
-            margin-bottom: 4rem;
-        }
-
-        .footer-logo {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: white;
-            text-decoration: none;
-            margin-bottom: 1.5rem;
-            display: block;
-        }
-
-        .footer-desc {
-            color: #94a3b8;
-            max-width: 300px;
-        }
-
-        .footer-links h4 {
-            margin-bottom: 1.5rem;
-            font-size: 1.1rem;
-        }
-
-        .footer-links ul {
-            list-style: none;
-        }
-
-        .footer-links li {
-            margin-bottom: 0.75rem;
-        }
-
-        .footer-links a {
-            color: #94a3b8;
-            text-decoration: none;
-            transition: var(--transition);
-        }
-
-        .footer-links a:hover {
-            color: var(--primary-light);
-        }
-
-        .footer-bottom {
-            padding-top: 2rem;
-            border-top: 1px solid #1e293b;
-            text-align: center;
-            color: #64748b;
-            font-size: 0.9rem;
-        }
-
-        /* Scroll Progress & Back to Top */
-        #scroll-progress {
-            position: fixed;
             top: 0;
-            right: 0;
-            height: 4px;
-            background: var(--primary);
-            z-index: 2000;
-            transition: width 0.1s ease;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 3s infinite;
         }
-
-        .back-to-top {
-            position: fixed;
-            bottom: 30px;
-            left: 30px;
-            width: 50px;
-            height: 50px;
-            background: var(--primary);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: var(--shadow-lg);
-            opacity: 0;
-            visibility: hidden;
-            transition: var(--transition);
-            z-index: 1000;
+        
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
         }
-
-        .back-to-top.visible {
-            opacity: 1;
-            visibility: visible;
+        
+        .warning-icon {
+            font-size: 1.5em;
+            color: #ff6b6b;
+            margin-left: 10px;
+            vertical-align: middle;
         }
-
-        /* Animations */
-        [data-aos] {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        .warning-text {
+            font-size: 1em;
+            font-weight: 600;
+            color: #ffffff;
+            display: inline-block;
+            vertical-align: middle;
         }
-
-        [data-aos].aos-animate {
-            opacity: 1;
-            transform: translateY(0);
+        
+        .contact-info {
+            font-size: 0.95em;
+            color: #a8b8d8;
+            margin-top: 15px;
+            font-weight: 400;
         }
-
-        /* Mobile */
-        @media (max-width: 1024px) {
-            .footer-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .hero h1 {
-                font-size: 3rem;
-            }
-        }
-
+        
+        /* ریسپانسیو */
         @media (max-width: 768px) {
-            nav {
-                height: 70px;
+            .container {
+                padding: 40px 30px;
+                margin: 20px;
             }
-
-            .nav-links {
-                display: none;
+            
+            h1 {
+                font-size: 2.2em;
             }
-
-            .hero {
-                padding: 120px 0 60px;
+            
+            .main-icon {
+                font-size: 3.5em;
             }
-
-            .hero h1 {
-                font-size: 2.2rem;
+            
+            .brand {
+                font-size: 1.5em;
             }
-
-            .hero-btns {
-                flex-direction: column;
-                padding: 0 2rem;
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
             }
-
-            .footer-grid {
-                grid-template-columns: 1fr;
-                gap: 2rem;
+            
+            h1 {
+                font-size: 1.8em;
             }
-
-            .feature-grid {
-                grid-template-columns: 1fr;
+            
+            .description {
+                font-size: 1em;
             }
         }
     </style>
-    <!-- Icons are simulated with CSS/Unicode for simplicity in a single file, or using a CDN font -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-
 <body>
-    <div id="scroll-progress"></div>
-
-    <nav id="navbar">
-        <div class="container nav-content">
-            <a href="#" class="nav-logo">
-                <i class="fas fa-cube"></i>
-                <span>ATK Cargo</span>
-            </a>
-            <ul class="nav-links">
-                <li><a href="#features">قابلیت‌ها</a></li>
-                <li><a href="#stats">آمار عملیاتی</a></li>
-                <li><a href="#workflow">فرآیند هوشمند</a></li>
-                <li><a href="#trust">امنیت و پایداری</a></li>
-            </ul>
-            <div class="nav-controls">
-                <button class="btn btn-outline" id="themeToggle" style="padding: 0.5rem 1rem;">
-                    <span id="themeIcon">🌙</span>
-                </button>
-            </div>
+    <div class="container">
+        <div class="brand">ATK CARGO</div>
+        
+        <div class="icon-container">
+            <i class="fas fa-shield-alt main-icon"></i>
         </div>
-    </nav>
-
-    <button class="back-to-top" id="scrollToTop">
-        <i class="fas fa-arrow-up"></i>
-    </button>
-
-    <section class="hero">
-        <div class="container">
-            <h1 data-aos>مدیریت هوشمند عملیات بارگیری</h>
-                <p data-aos>پلتفرمی متمرکز برای پایش لحظه‌ای، کنترل تردد و مدیریت محموله‌های بندری.</p>
-                <div class="hero-btns" data-aos>
-                    <a href="#features" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">
-                        بررسی قابلیت‌ها
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                </div>
-        </div>
-    </section>
-
-    <div class="container" id="stats">
-        <div class="stats-grid">
-            <div class="stat-item" data-aos>
-                <span class="stat-value" data-count="10">۰</span>
-                <span class="stat-label">ماژول عملیاتی قدرتمند</span>
-            </div>
-            <div class="stat-item" data-aos>
-                <span class="stat-value" data-count="50">۰</span>
-                <span class="stat-label">قابلیت پیشرفته سیستمی</span>
-            </div>
-            <div class="stat-item" data-aos>
-                <span class="stat-value">100%</span>
-                <span class="stat-label">دقت در پایش فرآیند</span>
-            </div>
-            <div class="stat-item" data-aos>
-                <span class="stat-value">24/7</span>
-                <span class="stat-label">پایداری و در دسترس بودن</span>
+        
+        <h1>دسترسی محدود</h1>
+        
+        <div class="warning-box">
+            <i class="fas fa-exclamation-triangle warning-icon"></i>
+            <span class="warning-text">هشدار امنیتی</span>
+            <div class="contact-info">
+                            شما مجاز به مشاهده محتویات این بخش نیستید.<br>
+            این منطقه تنها برای کاربران مجاز قابل دسترسی است.
             </div>
         </div>
     </div>
-
-    <section id="features">
-        <div class="container">
-            <div class="section-header" data-aos>
-                <h2>ماژول‌های تخصصی سامانه</h2>
-                <p>ساختار ماژولار ATK Cargo اجازه می‌دهد تمامی مراحل از ورود تا خروج و گزارش‌دهی نهایی را در یک محیط امن
-                    و یکپارچه مدیریت کنید.</p>
-            </div>
-
-            <div class="feature-grid">
-                <!-- Security -->
-                <div class="feature-card" data-aos>
-                    <span class="tag-badge bg-red-soft">امنیت سازمانی</span>
-                    <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
-                    <h3>امنیت و کنترل دسترسی</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">بالاترین سطح حفاظت از داده‌ها با
-                        پروتکل‌های احراز هویت اختصاصی.</p>
-                    <ul class="feature-list">
-                        <li>مدیریت نشست‌های فعال (Single Session)</li>
-                        <li>احراز هویت چندسطحی اپراتورها</li>
-                        <li>پایش یکپارچگی سیستمی</li>
-                    </ul>
-                </div>
-
-                <!-- Dashboard -->
-                <div class="feature-card" data-aos>
-                    <span class="tag-badge bg-blue-soft">رابط کاربری</span>
-                    <div class="feature-icon"><i class="fas fa-chart-pie"></i></div>
-                    <h3>داشبورد مدیریت متمرکز</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">نمایش زنده وضعیت عملیات و شاخص‌های کلیدی
-                        عملکرد بندر.</p>
-                    <ul class="feature-list">
-                        <li>مانیتورینگ لحظه‌ای کشتی‌ها</li>
-                        <li>وضعیت ترافیک کامیون‌ها</li>
-                        <li>هشدار ظرفیت و سقف تناژ</li>
-                    </ul>
-                </div>
-
-                <!-- Cargo -->
-                <div class="feature-card" data-aos>
-                    <span class="tag-badge bg-amber-soft">عملیات میدانی</span>
-                    <div class="feature-icon"><i class="fas fa-truck-loading"></i></div>
-                    <h3>ثبت و پذیرش هوشمند</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">ساده‌سازی فرآیند پذیرش با استفاده از
-                        فناوری‌های نوین پردازش داده.</p>
-                    <ul class="feature-list">
-                        <li>استعلام سیستمی کوتاژ و حواله</li>
-                        <li>تشخیص پلاک و متن (OCR)</li>
-                        <li>جلوگیری هوشمند از حواله تکراری</li>
-                    </ul>
-                </div>
-
-                <!-- Reporting -->
-                <div class="feature-card" data-aos>
-                    <span class="tag-badge bg-blue-soft">تحلیل داده</span>
-                    <div class="feature-icon"><i class="fas fa-file-invoice"></i></div>
-                    <h3>گزارشات و هوش تجاری</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">تبدیل داده‌های خام عملیاتی به گزارش‌های
-                        مدیریتی دقیق و قابل استناد.</p>
-                    <ul class="feature-list">
-                        <li>خروجی اکسل و PDF اختصاصی</li>
-                        <li>تحلیل عملکرد شیفت‌ها و اپراتورها</li>
-                        <li>فیلترینگ هوشمند بر اساس پارامترها</li>
-                    </ul>
-                </div>
-
-                <!-- Notifications -->
-                <div class="feature-card" data-aos>
-                    <span class="tag-badge bg-amber-soft">اطلاع‌رسانی</span>
-                    <div class="feature-icon"><i class="fas fa-bell"></i></div>
-                    <h3>سیستم هشدار فوری</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">آگاهی آنی مدیران از تداخلات عملیاتی و
-                        انحراف از برنامه‌ریزی.</p>
-                    <ul class="feature-list">
-                        <li>هشدارهای تجاوز از ظرفیت کشتی</li>
-                        <li>اطلاع‌رسانی فعالیت‌های مشکوک</li>
-                        <li>ارسال خودکار خلاصه وضعیت روزانه</li>
-                    </ul>
-                </div>
-
-                <!-- Admin/Advanced -->
-                <div class="feature-card" data-aos>
-                    <span class="tag-badge bg-red-soft">زیرساخت</span>
-                    <div class="feature-icon"><i class="fas fa-cogs"></i></div>
-                    <h3>مدیریت پیشرفته سامانه</h3>
-                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">کنترل کامل بر پیکربندی زیربنایی و
-                        مقیاس‌پذیری پلتفرم.</p>
-                    <ul class="feature-list">
-                        <li>مدیریت متمرکز کاربران و نقش‌ها</li>
-                        <li>پیکربندی پارامترهای عملیاتی</li>
-                        <li>یکپارچگی با واسط‌های خارجی (API)</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <footer id="contact">
-        <div class="container">
-            <div class="footer-grid">
-                <div class="footer-main">
-                    <a href="#" class="footer-logo">ATK Cargo</a>
-                    <p class="footer-desc">پیشرو در ارائه راهکارهای هوشمند لجستیک بندری و مدیریت زنجیره تامین در ایران.
-                    </p>
-                </div>
-                <div class="footer-links">
-                    <h4>دفتر اصلی شرکت</h4>
-                    <ul style="color: #94a3b8; font-size: 0.9rem; list-style: none;">
-                        <li><i class="fas fa-map-marker-alt" style="margin-left: 0.5rem;"></i> خوزستان، مجتمع بندری امام
-                            خمینی، جنب پمپ بنزین، سایت هانگار (شرکت امین تجار خوزستان)</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>حقوق معنوی سامانه متعلق به پروژه ATK Cargo می‌باشد | 1401 - 1404</p>
-            </div>
-        </div>
-    </footer>
-
-    <script>
-        // Navbar scroll effect
-        window.addEventListener('scroll', () => {
-            const nav = document.getElementById('navbar');
-            if (window.scrollY > 50) {
-                nav.classList.add('scrolled');
-            } else {
-                nav.classList.remove('scrolled');
-            }
-        });
-
-        // Theme Toggle Logic
-        const themeToggle = document.getElementById('themeToggle');
-        const themeIcon = document.getElementById('themeIcon');
-
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', currentTheme);
-        updateThemeIcon(currentTheme);
-
-        themeToggle.addEventListener('click', () => {
-            const theme = document.documentElement.getAttribute('data-theme');
-            const newTheme = theme === 'light' ? 'dark' : 'light';
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-        });
-
-        function updateThemeIcon(theme) {
-            themeIcon.textContent = theme === 'light' ? '🌙' : '☀️';
-        }
-
-        // Simple reveal on scroll
-        const observerOptions = { threshold: 0.1 };
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('aos-animate');
-                }
-            });
-        }, observerOptions);
-
-        document.querySelectorAll('[data-aos]').forEach(el => observer.observe(el));
-
-        // Scroll Progress & Back to Top
-        window.addEventListener('scroll', () => {
-            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
-            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-            const scrolled = (winScroll / height) * 100;
-            document.getElementById('scroll-progress').style.width = scrolled + '%';
-
-            const backToTop = document.getElementById('scrollToTop');
-            if (window.scrollY > 400) {
-                backToTop.classList.add('visible');
-            } else {
-                backToTop.classList.remove('visible');
-            }
-        });
-
-        document.getElementById('scrollToTop').addEventListener('click', () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-
-        // Stats Counter Animation
-        const statEntries = document.querySelectorAll('.stat-value[data-count]');
-        const counterObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const target = parseInt(entry.target.getAttribute('data-count'));
-                    animateValue(entry.target, 0, target, 2000);
-                    counterObserver.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.5 });
-
-        statEntries.forEach(el => counterObserver.observe(el));
-
-        function animateValue(obj, start, end, duration) {
-            let startTimestamp = null;
-            const step = (timestamp) => {
-                if (!startTimestamp) startTimestamp = timestamp;
-                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                obj.innerHTML = Math.floor(progress * (end - start) + start);
-                if (progress < 1) {
-                    window.requestAnimationFrame(step);
-                } else {
-                    obj.innerHTML = end + (obj.innerHTML.includes('%') ? '%' : '+');
-                }
-            };
-            window.requestAnimationFrame(step);
-        }
-
-        // Smooth scroll
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href');
-                if (targetId !== '#') {
-                    const target = document.querySelector(targetId);
-                    if (target) target.scrollIntoView({ behavior: 'smooth' });
-                }
-            });
-        });
-    </script>
 </body>
-
 </html>

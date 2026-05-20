@@ -46,8 +46,8 @@ try {
     $conn->begin_transaction();
     
     // تبدیل تاریخ امروز و دیروز به شمسی - calculate once
-    $today = jdate('Y-m-d');
-    $yesterday = jdate('Y-m-d', time() - 86400);
+    $today = jdate('Y/m/d');
+    $yesterday = jdate('Y/m/d', time() - 86400);
     
     // OPTIMIZATION 1: Use EXISTS for more efficient record checking
     $initialInfoSql = $conn->prepare(
@@ -124,8 +124,8 @@ try {
             status = 'ورود' 
             OR (
                 status = 'خروج' 
-                AND DATE(exitDate) >= DATE(?) 
-                AND DATE(exitDate) <= DATE(?)
+                AND exitDate >= ? 
+                AND exitDate <= ?
             )
         )
         ORDER BY 

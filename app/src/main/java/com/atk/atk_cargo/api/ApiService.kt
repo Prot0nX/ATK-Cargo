@@ -182,6 +182,7 @@ interface ApiService {
     suspend fun toggleQuotaStatus(
         @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "toggleQuotaStatus",
+        @Query("id") id: Int,
         @Query("quotaNumber") quotaNumber: String
     ): Response<SuccessResponse>
 
@@ -257,21 +258,10 @@ interface ApiService {
         @Query("target") target: String = "realTimeLoadingData.php"
     ): Response<ComprehensiveAnalysisResponse>
 
-    @GET("protected_proxy.php")
-    suspend fun getSummaryData(
-        @Query("target") target: String = "summaryData.json"
-    ): Response<ResponseBody>
 
-    @GET("protected_proxy.php")
-    suspend fun getActiveQuotasRemaining(
-        @Query("action") action: String = "getActiveQuotasRemaining",
-        @Query("target") target: String = "quota_remaining_api.php"
-    ): Response<ResponseBody>
 
-    @GET("protected_proxy.php")
-    suspend fun getActiveQuotaReport(
-        @Query("target") target: String = "ActiveQuota.json"
-    ): Response<ResponseBody>
+    @GET("ActiveQuota.json")
+    suspend fun getActiveQuotaReport(): Response<ResponseBody>
 
     // ===== SEARCH =====
 

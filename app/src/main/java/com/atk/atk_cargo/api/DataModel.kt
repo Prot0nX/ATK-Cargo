@@ -537,8 +537,8 @@ class CargoViewModel(
                         // تاخیر برای نمایش پیام
                         delay(1000)
                         
-                        // غیرفعال کردن خودکار کوتاژ
-                        toggleQuotaStatus(initialInfo.loadingQuotaNumber.toString())
+                        // غیرفعال کردن خودکار کوتاژ (با استفاده از id یکتا برای جلوگیری از تأثیر روی کوتاژهای هم‌شماره)
+                        toggleQuotaStatus(quota.id ?: 0, initialInfo.loadingQuotaNumber.toString())
                         
                         return QuotaValidationResult(
                             isValid = false,
@@ -1114,10 +1114,11 @@ class CargoViewModel(
         return _cargoInfoList.value.any { it.trackingNumber == trackingNumber }
     }
 
-    suspend fun toggleQuotaStatus(quotaNumber: String) {
+    suspend fun toggleQuotaStatus(id: Int, quotaNumber: String) {
         try {
             val response = apiService.toggleQuotaStatus(
                 action = "toggleQuotaStatus",
+                id = id,
                 quotaNumber = quotaNumber
             )
             if (response.isSuccessful) {
@@ -1897,10 +1898,10 @@ class ReportsViewModel(
         }
     }
 
-    fun toggleQuotaStatus(quotaNumber: String, onComplete: () -> Unit = {}) {
+    fun toggleQuotaStatus(id: Int, quotaNumber: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             try {
-                val success = repository.toggleQuotaStatus(quotaNumber)
+                val success = repository.toggleQuotaStatus(id, quotaNumber)
                 if (success) {
                     _currentShipName.value?.let { shipName ->
                         refreshShipDataSilently(shipName)
@@ -2601,7 +2602,8 @@ class ReportsViewModel(
                                 last_24h_weight = quota.last_24h_weight,
                                 last_24h_vouchers = quota.last_24h_vouchers,
                                 cargoOwner = quota.cargoOwner,
-                                warehouse = quota.warehouse
+                                warehouse = quota.warehouse,
+                                cargoType = quota.cargoType
                             )
                         } ?: emptyList()
                     )
@@ -2970,9 +2972,9 @@ class ReportsRepository(private val apiService: ApiService) {
         }
     }
 
-    suspend fun toggleQuotaStatus(quotaNumber: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun toggleQuotaStatus(id: Int, quotaNumber: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.toggleQuotaStatus(quotaNumber = quotaNumber)
+            val response = apiService.toggleQuotaStatus(id = id, quotaNumber = quotaNumber)
             if (response.isSuccessful) {
                 response.body()?.success ?: false
             } else {
@@ -3296,7 +3298,8 @@ data class ActiveShipInfo(
     val shippingCompany: String,
     val loadingQuotaNumber: String,
     var entryVouchers: Int = 0,
-    var exitVouchers: Int = 0
+    var exitVouchers: Int = 0,
+    var totalNetWeight: Int = 0
 )
 
 data class CargoInfoResponse(
@@ -3490,6 +3493,7 @@ data class ShiftInfo(
 
 data class WarningStatus(
     val show: Boolean,
+    val quotaId: Int? = null,
     val quotaNumber: String,
     val percentage: Double,
     val remainingTonnage: Float,
@@ -3910,7 +3914,8 @@ data class QuotaCompletionAnalysis(
     val last_24h_weight: Float,
     val last_24h_vouchers: Int,
     val cargoOwner: String? = null,
-    val warehouse: String? = null
+    val warehouse: String? = null,
+    val cargoType: String? = null
 )
 
 data class QuotaCompletionData(
@@ -3970,6 +3975,7 @@ data class LoadableTonnageResponse(
 )
 
 data class QuotaItem(
+    val id: Int? = null,
     val number: String,
     val shipName: String,
     val warehouse: String,

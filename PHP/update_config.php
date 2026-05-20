@@ -10,15 +10,15 @@ function getFileSize($filePath): string {
 }
 
 return [
-    'latest_version' => '3.0.23', 
+    'latest_version' => '3.0.30', 
     'download_url' => 'https://atk-nk.ir/Cargo/downloads/app-release.apk',
     'min_required_version' => '1.9',
-    'min_allowed_version' => '3.0.19',
+    'min_allowed_version' => '3.0.29',
     'update_priority' => 'normal',
     'update_message' => 'نسخه جدید با امکانات جدید در دسترس است',
     'force_update' => false,
     'update_size' => getFileSize(__DIR__ . '/downloads/app-release.apk'),
-    'release_date' => '1404/09/02', 
+    'release_date' => '1405/02/30', 
     
     'version_constraints' => [
         'min_android_version' => 21,

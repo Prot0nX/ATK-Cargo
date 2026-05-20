@@ -455,8 +455,8 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
             onEdit = { oldQuotaNumber, newQuotaData ->
                 viewModel.editQuota(oldQuotaNumber, newQuotaData)
             },
-            onToggleStatus = { quotaNumber ->
-                viewModel.toggleQuotaStatus(quotaNumber)
+            onToggleStatus = { id, quotaNumber ->
+                viewModel.toggleQuotaStatus(id, quotaNumber)
             },
             onDelete = { quotaNumber ->
                 viewModel.deleteQuota(quotaNumber)
@@ -1518,7 +1518,7 @@ fun WarehousesAndQuotasTab(
                             groupingMode = viewModel.warehouseQuotaGroupingMode,
                             onGroupingModeChange = viewModel::setWarehouseQuotaGroupingMode,
                             onEdit = viewModel::editQuota,
-                            onToggleStatus = viewModel::toggleQuotaStatus,
+                            onToggleStatus = { id, quotaNumber -> viewModel.toggleQuotaStatus(id, quotaNumber) },
                             onDelete = viewModel::deleteQuota,
                             viewModel = viewModel
                         )
@@ -2024,7 +2024,7 @@ fun QuotasList(
     groupingMode: StateFlow<WarehouseQuotaGroupingMode>,
     onGroupingModeChange: (WarehouseQuotaGroupingMode) -> Unit,
     onEdit: (String, QuotaEditData) -> Unit,
-    onToggleStatus: (String) -> Unit,
+    onToggleStatus: (Int, String) -> Unit,
     onDelete: (Quota) -> Unit,
     viewModel: ReportsViewModel
 ) {
@@ -2375,7 +2375,7 @@ fun QuotaGroupExpansionPanel(
     isExpanded: Boolean,
     onExpandToggle: () -> Unit,
     onEdit: (String, QuotaEditData) -> Unit,
-    onToggleStatus: (String) -> Unit,
+    onToggleStatus: (Int, String) -> Unit,
     onDelete: (Quota) -> Unit,
     onPercentageChange: (QuotaPercentageData) -> Unit,
     shipName: String = "",
@@ -2839,7 +2839,7 @@ fun QuotaWarningDialog(
                         onClick = {
                             coroutineScope.launch {
                                 warnings.forEach { warning ->
-                                    viewModel.toggleQuotaStatus(warning.quotaNumber)
+                                    viewModel.toggleQuotaStatus(warning.quotaId ?: 0, warning.quotaNumber)
                                 }
                                 onDismiss()
                             }
@@ -3270,7 +3270,7 @@ private fun QuotaCard(
                                 onClick = {
                                     isStatusToggleLoading = true
                                     scope.launch {
-                                        viewModel.toggleQuotaStatus(warning.quotaNumber)
+                                        viewModel.toggleQuotaStatus(warning.quotaId ?: 0, warning.quotaNumber)
                                         isStatusToggleLoading = false
                                     }
                                 },
@@ -4208,7 +4208,7 @@ fun IntegratedQuotaCard(
                                         checked = quota.isActive,
                                         onCheckedChange = {
                                             isStatusToggling = true
-                                            viewModel.toggleQuotaStatus(quota.number) {
+                                            viewModel.toggleQuotaStatus(quota.id ?: 0, quota.number) {
                                                 isStatusToggling = false
                                                 onRefreshData()
                                             }
@@ -4284,7 +4284,7 @@ fun IntegratedQuotaCard(
                     },
                     onStatusToggle = {
                         isStatusToggling = true
-                        viewModel.toggleQuotaStatus(quota.number) {
+                        viewModel.toggleQuotaStatus(quota.id ?: 0, quota.number) {
                             isStatusToggling = false
                             onRefreshData()
                         }
@@ -4945,6 +4945,7 @@ private fun calculateWarningStatus(quota: Quota): WarningStatus? {
         val percentageAmount = totalTonnage * (quota.percentage / 100)
         return WarningStatus(
             show = true,
+            quotaId = quota.id,
             quotaNumber = quota.number,
             percentage = quota.percentage,
             remainingTonnage = remainingTonnage,
@@ -4966,6 +4967,7 @@ private fun calculateWarningStatus(quota: Quota): WarningStatus? {
     if (diff <= warningThreshold) {
         return WarningStatus(
             show = true,
+            quotaId = quota.id,
             quotaNumber = quota.number,
             percentage = quota.percentage,
             remainingTonnage = remainingTonnage,
@@ -7629,7 +7631,7 @@ fun QuotasDialog(
     quotas: List<Quota>,
     onDismiss: () -> Unit,
     onEdit: (String, QuotaEditData) -> Unit,
-    onToggleStatus: (String) -> Unit,
+    onToggleStatus: (Int, String) -> Unit,
     onDelete: (Quota) -> Unit,
     viewModel: ReportsViewModel
 ) {
@@ -7745,7 +7747,7 @@ fun QuotaCard(
     isExpanded: Boolean = false,
     onExpandToggle: (Boolean) -> Unit = { _ -> },
     onEdit: (String, QuotaEditData) -> Unit,
-    onToggleStatus: (String) -> Unit,
+    onToggleStatus: (Int, String) -> Unit,
     onDelete: (Quota) -> Unit,
     onPercentageChange: (QuotaPercentageData) -> Unit
 ) {
@@ -8084,7 +8086,7 @@ fun QuotaCard(
             quotaNumber = quota.number,
             isActive = quota.isActive,
             onConfirm = {
-                onToggleStatus(quota.number)
+                onToggleStatus(quota.id ?: 0, quota.number)
                 showToggleDialog = false
             },
             onDismiss = { showToggleDialog = false }
@@ -8937,7 +8939,10 @@ fun RealTimeLoadingBottomSheet(
     var thirdPartySearchQuery by remember { mutableStateOf("") }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val totalEntryVouchers = remember(loadingData) { loadingData.sumOf { it.entryVouchers } }
+    val isCurrentShift = remember(shiftOffset) { shiftOffset == 0 }
+    val totalEntryVouchers = remember(loadingData, isCurrentShift) {
+        if (isCurrentShift) loadingData.sumOf { it.entryVouchers } else 0
+    }
     val totalExitVouchers = remember(loadingData) { loadingData.sumOf { it.exitVouchers } }
     val totalNetWeight = remember(loadingData) { loadingData.sumOf { it.totalNetWeight.toDouble() }.toFloat() }
     remember(loadingData, totalExitVouchers) {
@@ -9083,7 +9088,8 @@ fun RealTimeLoadingBottomSheet(
                                     StatisticItem(
                                         totalEntryVouchers = totalEntryVouchers,
                                         totalExitVouchers = totalExitVouchers,
-                                        totalNetWeight = totalNetWeight
+                                        totalNetWeight = totalNetWeight,
+                                        showEntry = isCurrentShift
                                     )
 
                                     Spacer(modifier = Modifier.height(8.dp))
@@ -9152,8 +9158,9 @@ fun RealTimeLoadingBottomSheet(
                                                         expandedShip =
                                                             if (expandedShip == groupName) null else groupName
                                                     },
-                                                    entryVouchers = shipData.sumOf { it.entryVouchers },
+                                                    entryVouchers = if (isCurrentShift) shipData.sumOf { it.entryVouchers } else 0,
                                                     exitVouchers = shipData.sumOf { it.exitVouchers },
+                                                    showEntry = isCurrentShift,
                                                     content = {
                                                         // گروه‌بندی کوتاژها بر اساس انبار
                                                         val warehouseGroups = shipData.groupBy { it.loadingWarehouse }
@@ -9200,7 +9207,8 @@ fun RealTimeLoadingBottomSheet(
                                                                             .thenByDescending { it.entryVouchers }
                                                                     ).forEach { quota ->
                                                                         RealTimeLoadingCard(
-                                                                            data = quota
+                                                                            data = quota,
+                                                                            showEntry = isCurrentShift
                                                                         )
                                                                         Spacer(
                                                                             modifier = Modifier.height(8.dp)
@@ -9710,6 +9718,7 @@ fun ShipCard(
     onExpandToggle: () -> Unit,
     entryVouchers: Int,
     exitVouchers: Int,
+    showEntry: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val isDarkTheme = isSystemInDarkTheme()
@@ -9786,29 +9795,31 @@ fun ShipCard(
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    // Entry vouchers badge (red) - کوچک‌تر
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = if (isDarkTheme) Red400.copy(alpha = 0.15f) else Red50.copy(alpha = 0.7f),
-                                        border = BorderStroke(0.5.dp, if (isDarkTheme) Red400.copy(alpha = 0.3f) else Red400.copy(alpha = 0.2f))
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                    if (showEntry) {
+                                        // Entry vouchers badge (red) - کوچک‌تر
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = if (isDarkTheme) Red400.copy(alpha = 0.15f) else Red50.copy(alpha = 0.7f),
+                                            border = BorderStroke(0.5.dp, if (isDarkTheme) Red400.copy(alpha = 0.3f) else Red400.copy(alpha = 0.2f))
                                         ) {
-                                            Text(
-                                                text = formatNumber(entryVouchers),
-                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (isDarkTheme) Red400 else Red700
-                                            )
-                                            Icon(
-                                                imageVector = Icons.Default.ArrowDownward,
-                                                contentDescription = null,
-                                                tint = if (isDarkTheme) Red400 else Red700,
-                                                modifier = Modifier.size(10.dp)
-                                            )
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                            ) {
+                                                Text(
+                                                    text = formatNumber(entryVouchers),
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isDarkTheme) Red400 else Red700
+                                                )
+                                                Icon(
+                                                    imageVector = Icons.Default.ArrowDownward,
+                                                    contentDescription = null,
+                                                    tint = if (isDarkTheme) Red400 else Red700,
+                                                    modifier = Modifier.size(10.dp)
+                                                )
+                                            }
                                         }
                                     }
 
@@ -10086,7 +10097,8 @@ fun DialogHeader(
 
 @Composable
 fun RealTimeLoadingCard(
-    data: RealTimeLoadingData
+    data: RealTimeLoadingData,
+    showEntry: Boolean = true
 ) {
     Surface(
         modifier = Modifier
@@ -10294,12 +10306,12 @@ fun RealTimeLoadingCard(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = "ورود/خروج",
+                                text = if (showEntry) "ورود/خروج" else "خروجی",
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                             )
                             Text(
-                                text = "${data.exitVouchers} / ${data.entryVouchers}",
+                                text = if (showEntry) "${data.exitVouchers} / ${data.entryVouchers}" else formatNumber(data.exitVouchers),
                                 style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Ltr),
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -10371,7 +10383,8 @@ fun CompactInfo(
 fun StatisticItem(
     totalEntryVouchers: Int,
     totalExitVouchers: Int,
-    totalNetWeight: Float
+    totalNetWeight: Float,
+    showEntry: Boolean = true
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     var startAnimation by remember { mutableStateOf(false) }
@@ -10466,77 +10479,79 @@ fun StatisticItem(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Badge کل (آبی)
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                if (showEntry) {
+                    // Badge کل (آبی)
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        Column(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = formatNumber(animatedEntryVouchers + animatedExitVouchers),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.AllInbox,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
                             Text(
-                                text = formatNumber(animatedEntryVouchers + animatedExitVouchers),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Icon(
-                                imageVector = Icons.Default.AllInbox,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(12.dp)
+                                text = "کل",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                             )
                         }
-                        Text(
-                            text = "کل",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                        )
                     }
-                }
 
-                // Badge ورودی (قرمز)
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (isDarkTheme) Red400.copy(alpha = 0.15f) else Red50,
-                    border = BorderStroke(1.dp, if (isDarkTheme) Red400.copy(alpha = 0.3f) else Red400.copy(alpha = 0.2f))
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    // Badge ورودی (قرمز)
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isDarkTheme) Red400.copy(alpha = 0.15f) else Red50,
+                        border = BorderStroke(1.dp, if (isDarkTheme) Red400.copy(alpha = 0.3f) else Red400.copy(alpha = 0.2f))
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        Column(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = formatNumber(animatedEntryVouchers),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDarkTheme) Red400 else Red700
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDownward,
+                                    contentDescription = null,
+                                    tint = if (isDarkTheme) Red400 else Red700,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
                             Text(
-                                text = formatNumber(animatedEntryVouchers),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isDarkTheme) Red400 else Red700
-                            )
-                            Icon(
-                                imageVector = Icons.Default.ArrowDownward,
-                                contentDescription = null,
-                                tint = if (isDarkTheme) Red400 else Red700,
-                                modifier = Modifier.size(12.dp)
+                                text = "ورودی",
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                fontWeight = FontWeight.Medium,
+                                color = if (isDarkTheme) Red400.copy(alpha = 0.7f) else Red700.copy(alpha = 0.7f)
                             )
                         }
-                        Text(
-                            text = "ورودی",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                            fontWeight = FontWeight.Medium,
-                            color = if (isDarkTheme) Red400.copy(alpha = 0.7f) else Red700.copy(alpha = 0.7f)
-                        )
                     }
                 }
 
@@ -13026,7 +13041,7 @@ private fun AnalyticsHeaderCard(
                     )
 
                     Text(
-                        text = "گزارشات 24 ساعت قبل",
+                        text = "گزارشات 24 ساعته",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                     )
@@ -13165,10 +13180,10 @@ fun QuotaAnalysis(
                 onClick = {
                     val grouped = when (groupingMode) {
                         QuotaGroupingMode.BY_CARGO_OWNER -> {
-                            activeQuotas.groupBy { "${it.shipName}|${it.warehouse ?: "نامشخص"}" }
+                            activeQuotas.groupBy { "${it.shipName}|${it.cargoType ?: "نامشخص"}|${it.warehouse ?: "نامشخص"}" }
                         }
                         QuotaGroupingMode.BY_SHIP -> {
-                            activeQuotas.groupBy { it.shipName }
+                            activeQuotas.groupBy { "${it.shipName}|${it.cargoType ?: "نامشخص"}" }
                         }
                         QuotaGroupingMode.BY_CARRIER -> {
                             activeQuotas.groupBy { it.shippingCompany }
@@ -13198,7 +13213,11 @@ fun QuotaAnalysis(
                         sortedForShare.forEach { (name, qs, totalWeight) ->
                             val groupTitle = if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
                                 val parts = name.split("|")
-                                if (parts.size >= 2) "کشتی: ${parts[0]} | انبار: ${parts[1]}" else name
+                                if (parts.size >= 3) "کشتی: ${parts[0]} | کالا: ${parts[1]} | انبار: ${parts[2]}" 
+                                else if (parts.size >= 2) "کشتی: ${parts[0]} | انبار: ${parts[1]}" else name
+                            } else if (groupingMode == QuotaGroupingMode.BY_SHIP) {
+                                val parts = name.split("|")
+                                if (parts.size >= 2) "کشتی: ${parts[0]} | کالا: ${parts[1]}" else name
                             } else name
                             
                             appendLine("🔹 $groupTitle")
@@ -13272,10 +13291,10 @@ fun QuotaAnalysis(
             // پیش‌پردازش گروه‌بندی خارج از LazyColumn برای بهینه‌سازی
             val grouped = when (groupingMode) {
                 QuotaGroupingMode.BY_CARGO_OWNER -> {
-                    activeQuotas.groupBy { "${it.shipName}|${it.warehouse ?: "نامشخص"}" }
+                    activeQuotas.groupBy { "${it.shipName}|${it.cargoType ?: "نامشخص"}|${it.warehouse ?: "نامشخص"}" }
                 }
                 QuotaGroupingMode.BY_SHIP -> {
-                    activeQuotas.groupBy { it.shipName }
+                    activeQuotas.groupBy { "${it.shipName}|${it.cargoType ?: "نامشخص"}" }
                 }
                 QuotaGroupingMode.BY_CARRIER -> {
                     activeQuotas.groupBy { it.shippingCompany }
@@ -13434,7 +13453,11 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                             val shareText = buildString {
                                 val groupTitle = if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
                                     val parts = groupName.split("|")
-                                    if (parts.size >= 2) "کشتی: ${parts[0]} | انبار: ${parts[1]}" else groupName
+                                    if (parts.size >= 3) "کشتی: ${parts[0]} | کالا: ${parts[1]} | انبار: ${parts[2]}" 
+                                    else if (parts.size >= 2) "کشتی: ${parts[0]} | انبار: ${parts[1]}" else groupName
+                                } else if (groupingMode == QuotaGroupingMode.BY_SHIP) {
+                                    val parts = groupName.split("|")
+                                    if (parts.size >= 2) "کشتی: ${parts[0]} | کالا: ${parts[1]}" else groupName
                                 } else groupName
                                 appendLine("🔹 اطلاعات $groupTitle")
                                 appendLine("   تعداد کوتاژ: ${quotas.size} | تعداد حواله: $totalGroupVouchers | تناژ کل: ${formatNumber(totalGroupWeight.roundToInt())} تن")
@@ -13481,25 +13504,55 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
-                            val parts = groupName.split("|")
-                            Text(
-                                text = when (parts.size) {
-                                    3 -> "${parts[0]} | ${parts[1]} | ${parts[2]}"
-                                    2 -> "${parts[0]} | ${parts[1]}"
-                                    else -> groupName
-                                },
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        } else {
-                            Text(
-                                text = groupName,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                        when (groupingMode) {
+                            QuotaGroupingMode.BY_CARGO_OWNER -> {
+                                val parts = groupName.split("|")
+                                Text(
+                                    text = when (parts.size) {
+                                        3 -> "${parts[0]} | ${parts[1]} | ${parts[2]}"
+                                        2 -> "${parts[0]} | ${parts[1]}"
+                                        else -> groupName
+                                    },
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            QuotaGroupingMode.BY_SHIP -> {
+                                val parts = groupName.split("|")
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = parts[0],
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (parts.size >= 2 && parts[1].isNotBlank() && parts[1] != "نامشخص") {
+                                        Text(
+                                            text = "|",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = parts[1],
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+                            else -> {
+                                Text(
+                                    text = groupName,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.width(12.dp))
@@ -13800,6 +13853,33 @@ private fun AnalyticsQuotaCard(
                                 Color(0xFF94a3b8) else Color(0xFF6B7280),
                             fontWeight = FontWeight.Medium
                         )
+                    }
+
+                    // بج نوع کالا
+                    if (quota.cargoType?.isNotBlank() == true) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
+                                        Color(0xFF1e293b) else Color(0xFFEFF6FF),
+                                    shape = RoundedCornerShape(4.dp)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
+                                        Color(0xFF2563eb).copy(alpha = 0.3f) else Color(0xFF3B82F6).copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(4.dp)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = quota.cargoType,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
+                                    Color(0xFF60a5fa) else Color(0xFF2563EB),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
@@ -14190,10 +14270,10 @@ fun getDaysInPersianMonth(year: Int, month: Int): Int {
 }
 
 fun isPersianLeapYear(year: Int): Boolean {
-    val a = 0.025
-    val b = 266.0
-    val leapYearDays = (year + b) * a
-    return (leapYearDays - leapYearDays.toInt()) < a
+    val remainder = year % 33
+    return remainder == 1 || remainder == 5 || remainder == 9 || 
+           remainder == 13 || remainder == 17 || remainder == 22 || 
+           remainder == 26 || remainder == 30
 }
 
 @SuppressLint("DefaultLocale")
