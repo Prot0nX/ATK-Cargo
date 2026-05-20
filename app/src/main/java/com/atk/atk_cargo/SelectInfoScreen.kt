@@ -124,6 +124,7 @@ import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
+import com.atk.atk_cargo.api.formatNumber
 import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.ui.theme.Blue50
 import com.atk.atk_cargo.ui.theme.Blue500
@@ -355,7 +356,6 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
         refreshData()
     }
 
-    // LaunchedEffect برای باز کردن خودکار دیالوگ انتخاب کشتی
     LaunchedEffect(selectedShipNames, activeShips) {
         // اگر کشتی‌های فعال بارگذاری شده و هیچ کشتی انتخاب نشده باشد
         if (activeShips.isNotEmpty() && selectedShipNames.isEmpty()) {
@@ -1429,6 +1429,7 @@ private fun ShipGroup(
 
     ShipCardDesign(
         shipName = shipName,
+        cargoType = ships.firstOrNull()?.cargoType ?: "",
         total = total,
         completed = completed,
         remaining = remaining,
@@ -1476,6 +1477,7 @@ private fun ShipGroupWithRealTimeData(
 
     ShipCardDesign(
         shipName = shipName,
+        cargoType = realTimeData.firstOrNull()?.cargoType ?: "",
         total = totalVouchers,
         completed = completedVouchers,
         remaining = remainingVouchers,
@@ -1505,13 +1507,13 @@ private fun ShipGroupWithRealTimeData(
 @Composable
 private fun ShipCardDesign(
     shipName: String,
+    cargoType: String,
     total: Int,
     completed: Int,
     remaining: Int,
     color: Color,
     onClick: () -> Unit
 ) {
-    // HTML Design matching
     val backgroundColor = color.copy(alpha = 0.1f)
     val borderColor = color.copy(alpha = 0.15f)
 
@@ -1529,15 +1531,43 @@ private fun ShipCardDesign(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                Text(
-                    text = shipName,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Black,
-                        fontSize = 20.sp,
-                        letterSpacing = (-0.5).sp
-                    ),
-                    color = color
-                )
+                // نام کشتی و نوع کالا
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = shipName,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Black,
+                            fontSize = 20.sp,
+                            letterSpacing = (-0.5).sp
+                        ),
+                        color = color,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                    if (cargoType.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Category,
+                                contentDescription = null,
+                                tint = color.copy(alpha = 0.7f),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = cargoType,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = color,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
 
                 Icon(
                     imageVector = Icons.Default.DirectionsBoat,
@@ -1796,11 +1826,12 @@ private fun ActiveQuotasDialog(
             ActiveShipInfo(
                 shipName = data.shipName,
                 loadingWarehouse = data.loadingWarehouse,
-                cargoType = "",  // این فیلد در RealTimeLoadingData نیست
+                cargoType = data.cargoType ?: "",
                 shippingCompany = data.shippingCompany,
                 loadingQuotaNumber = data.loadingQuotaNumber,
                 entryVouchers = data.entryVouchers,
-                exitVouchers = data.exitVouchers
+                exitVouchers = data.exitVouchers,
+                totalNetWeight = data.totalNetWeight
             )
         }
     }
@@ -1834,6 +1865,7 @@ private fun ActiveQuotasDialog(
     val totalQuotas = filteredShips.size
     val totalVouchers = filteredShips.sumOf { it.entryVouchers + it.exitVouchers }
     val completedVouchers = filteredShips.sumOf { it.exitVouchers }
+    val totalNetWeight = filteredShips.sumOf { it.totalNetWeight }
 
     // فیلتر وضعیت - پیش‌فرض "در حال انجام"
     var filterState by remember { mutableStateOf(FilterState.PENDING) }
@@ -1897,9 +1929,9 @@ private fun ActiveQuotasDialog(
             ) {
                 // سربرگ با دکمه‌ی بروزرسانی
                 QuotasHeader(
-                    totalQuotas = totalQuotas,
                     totalVouchers = totalVouchers,
                     completedVouchers = completedVouchers,
+                    totalNetWeight = totalNetWeight,
                     onDismiss = onDismiss,
                     viewMode = viewMode,
                     onViewModeChange = { viewMode = it },
@@ -2030,9 +2062,9 @@ enum class ViewMode {
 
 @Composable
 private fun QuotasHeader(
-    totalQuotas: Int,
     totalVouchers: Int,
     completedVouchers: Int,
+    totalNetWeight: Int,
     onDismiss: () -> Unit,
     viewMode: ViewMode,
     onViewModeChange: (ViewMode) -> Unit,
@@ -2049,7 +2081,7 @@ private fun QuotasHeader(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "کوتاژهای فعال",
+                text = "آمار بارگیری",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
@@ -2059,13 +2091,13 @@ private fun QuotasHeader(
 
             Surface(
                 shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f)
             ) {
                 Text(
-                    text = "$totalQuotas کوتاژ",
+                    text = "${formatNumber(totalNetWeight)} kg",
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                 )
             }
@@ -2475,6 +2507,7 @@ private fun ShipCard(
     val totalVouchers = ships.sumOf { it.entryVouchers + it.exitVouchers }
     val completedVouchers = ships.sumOf { it.exitVouchers }
     val remainingVouchers = totalVouchers - completedVouchers
+    val totalNetWeight = ships.sumOf { it.totalNetWeight }
     val progressPercentage = if (totalVouchers > 0) {
         (completedVouchers.toFloat() / totalVouchers) * 100f
     } else 0f
@@ -2521,11 +2554,13 @@ private fun ShipCard(
             // سربرگ کشتی با طراحی جدید
             ShipHeader(
                 shipName = shipName,
+                cargoType = ships.firstOrNull()?.cargoType ?: "",
                 quotaCount = ships.count { it.entryVouchers + it.exitVouchers > 0 },
                 totalVouchers = totalVouchers,
                 completedVouchers = completedVouchers,
                 remainingVouchers = remainingVouchers,
                 progressPercentage = progressPercentage,
+                totalNetWeight = totalNetWeight,
                 expanded = expanded,
                 onBackgroundColor = onBackgroundColor
             )
@@ -2585,11 +2620,13 @@ private fun ShipCard(
 @Composable
 private fun ShipHeader(
     shipName: String,
+    cargoType: String,
     quotaCount: Int,
     totalVouchers: Int,
     completedVouchers: Int,
     remainingVouchers: Int,
     progressPercentage: Float,
+    totalNetWeight: Int,
     expanded: Boolean,
     onBackgroundColor: Color
 ) {
@@ -2639,18 +2676,36 @@ private fun ShipHeader(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = shipName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = onBackgroundColor
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = shipName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = onBackgroundColor
+                    )
+                    if (cargoType.isNotBlank()) {
+                        Text(
+                            text = "|",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = onBackgroundColor
+                        )
+                        Text(
+                            text = cargoType,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = onBackgroundColor.copy(alpha = 0.8f)
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
                     text = if (quotaCount > 0) {
-                        "$quotaCount کوتاژ | $completedVouchers از $totalVouchers حواله"
+                        "$quotaCount کوتاژ | $completedVouchers از $totalVouchers حواله | ${formatNumber(totalNetWeight)} kg"
                     } else {
                         "بدون کوتاژ فعال"
                     },
@@ -2880,37 +2935,55 @@ private fun FlatQuotaCard(
                     Spacer(modifier = Modifier.width(12.dp))
 
                     Column {
-                        // نام کشتی با هایلایت متن جستجو شده
-                        if (searchQuery.isNotEmpty() && quota.shipName.contains(searchQuery, ignoreCase = true)) {
-                            val parts = quota.shipName.split(
-                                searchQuery,
-                                ignoreCase = true
-                            )
-                            Row {
-                                for (i in parts.indices) {
-                                    if (i > 0) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            if (searchQuery.isNotEmpty() && quota.shipName.contains(searchQuery, ignoreCase = true)) {
+                                val parts = quota.shipName.split(
+                                    searchQuery,
+                                    ignoreCase = true
+                                )
+                                Row {
+                                    for (i in parts.indices) {
+                                        if (i > 0) {
+                                            Text(
+                                                text = searchQuery,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
                                         Text(
-                                            text = searchQuery,
+                                            text = parts[i],
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
-                                    Text(
-                                        text = parts[i],
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
                                 }
+                            } else {
+                                Text(
+                                    text = quota.shipName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
-                        } else {
-                            Text(
-                                text = quota.shipName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+
+                            if (quota.cargoType.isNotBlank()) {
+                                Text(
+                                    text = "|",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                                Text(
+                                    text = quota.cargoType,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
 
                         // شماره کوتاژ با هایلایت متن جستجو شده
@@ -3013,6 +3086,19 @@ private fun FlatQuotaCard(
                             MaterialTheme.colorScheme.primary
                         else
                             MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    // وزن خالص خروج شده (تناژ خروجی)
+                    Text(
+                        text = "${formatNumber(quota.totalNetWeight)} kg",
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        fontWeight = FontWeight.Bold,
+                        color = if (isCompleted)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                     )
                 }
             }
@@ -3442,12 +3528,45 @@ fun ShipSelectionDialog(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        shipName,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
+                                    // نام کشتی | نوع کالا
+                                    val cargoTypeDisplay = shipList.firstOrNull()?.cargoType?.takeIf { it.isNotBlank() }
+                                    if (cargoTypeDisplay != null) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = shipName,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false)
+                                            )
+                                            Text(
+                                                text = "|",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = cargoTypeDisplay,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false)
+                                            )
+                                        }
+                                    } else {
+                                        Text(
+                                            text = shipName,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         "${shipList.size} کوتاژ",
@@ -3537,6 +3656,7 @@ private fun WarehouseSection(
     val totalVouchers = shipsWithVouchers.sumOf { it.entryVouchers + it.exitVouchers }
     val completedVouchers = shipsWithVouchers.sumOf { it.exitVouchers }
     val remainingVouchers = totalVouchers - completedVouchers
+    val totalNetWeight = shipsWithVouchers.sumOf { it.totalNetWeight }
     val isCompleted = totalVouchers > 0 && remainingVouchers == 0
 
     Card(
@@ -3652,7 +3772,7 @@ private fun WarehouseSection(
                     }
                 }
 
-                // آمار حواله‌ها
+                // آمار حواله‌ها و وزن انبار
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -3674,33 +3794,47 @@ private fun WarehouseSection(
                         Spacer(modifier = Modifier.width(8.dp))
                     }
 
-                    // نمایش آمار کلی
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
+                    // نمایش آمار عددی و وزن انبار
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "$completedVouchers",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Text(
+                                text = "/$totalVouchers",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
                         Text(
-                            text = "$completedVouchers",
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = "${formatNumber(totalNetWeight)} kg",
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                             fontWeight = FontWeight.Bold,
-                            color = if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        Text(
-                            text = "/$totalVouchers",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        // آیکون باز/بسته کردن
-                        Icon(
-                            imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.Info,
-                            contentDescription = if (expanded) "بستن" else "جزئیات بیشتر",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier
-                                .padding(start = 4.dp)
-                                .size(16.dp)
+                            color = if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                         )
                     }
+
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    // آیکون باز/بسته کردن
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.Info,
+                        contentDescription = if (expanded) "بستن" else "جزئیات بیشتر",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(start = 4.dp)
+                            .size(16.dp)
+                    )
                 }
             }
 
@@ -3892,36 +4026,53 @@ private fun QuotaItem(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // نمایش آمار حواله‌ها
-            Row(
-                verticalAlignment = Alignment.CenterVertically
+            // نمایش آمار حواله‌ها و وزن خالص خروج شده
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                // تعداد حواله‌های باقیمانده
-                if (remainingVouchers > 0) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.errorContainer
-                    ) {
-                        Text(
-                            text = "$remainingVouchers",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                // آمار حواله‌ها
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // تعداد حواله‌های باقیمانده
+                    if (remainingVouchers > 0) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.errorContainer
+                        ) {
+                            Text(
+                                text = "$remainingVouchers",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(4.dp))
                     }
 
-                    Spacer(modifier = Modifier.width(4.dp))
+                    // آمار کلی حواله‌ها
+                    Text(
+                        text = "${quota.exitVouchers}/$totalVouchers",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isCompleted)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
-                // آمار کلی حواله‌ها
+                // وزن خالص خروج شده (تناژ خروجی)
                 Text(
-                    text = "${quota.exitVouchers}/$totalVouchers",
-                    style = MaterialTheme.typography.bodySmall,
+                    text = "${formatNumber(quota.totalNetWeight)} kg",
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    fontWeight = FontWeight.Bold,
                     color = if (isCompleted)
                         MaterialTheme.colorScheme.primary
                     else
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
             }
         }

@@ -157,7 +157,6 @@ class AdvancedCargoAnalytics {
                 JOIN InitialInfo i ON c.loadingQuotaNumber = i.loadingQuotaNumber 
                     AND c.loadingWarehouse = i.loadingWarehouse
                     AND c.shippingCompany = i.shippingCompany
-                    AND c.cargoType = i.cargoType
                 WHERE 
                     c.status = 'خروج' 
                     AND (
@@ -180,7 +179,7 @@ class AdvancedCargoAnalytics {
                     'shippingCompany' => $row['shippingCompany'],
                     'cargoOwner' => $row['cargoOwner'],
                     'warehouse' => $row['loadingWarehouse'],
-                    'cargoType' => $row['cargoType'],
+                    'cargoType' => !empty($row['cargoType']) ? $row['cargoType'] : 'نامشخص',
                     'last_24h_weight' => (float)$row['last_24h_weight'],
                     'last_24h_vouchers' => (int)$row['last_24h_vouchers'],
                 ];
@@ -417,7 +416,6 @@ class CargoAPI {
                 CargoInfo c ON i.loadingQuotaNumber = c.loadingQuotaNumber 
                     AND i.loadingWarehouse = c.loadingWarehouse
                     AND i.shippingCompany = c.shippingCompany
-                    AND i.cargoType = c.cargoType
             WHERE 
         ";
 

@@ -733,6 +733,13 @@ function getFilteredSummary(DatabaseManager $db, string $shipName, string $wareh
 			throw new Exception("هیچ کوتاژی انتخاب نشده است");
 		}
 		
+		if (strlen($startDateTime) === 16) {
+			$startDateTime .= ':00';
+		}
+		if (strlen($endDateTime) === 16) {
+			$endDateTime .= ':00';
+		}
+		
 		// ثبت درخواست برای عیب‌یابی
 		// customLog("getFilteredSummary request - Ship: $shipName, Warehouse: $warehouseName, Quota: $selectedQuota, Start: $startDateTime, End: $endDateTime");
 		
@@ -981,6 +988,13 @@ function getFilteredQuotas(DatabaseManager $db, string $shipName, string $startD
 	$shipName = sanitizeInput($shipName);
 	$startDateTime = sanitizeInput($startDateTime);
 	$endDateTime = sanitizeInput($endDateTime);
+	
+	if (strlen($startDateTime) === 16) {
+		$startDateTime .= ':00';
+	}
+	if (strlen($endDateTime) === 16) {
+		$endDateTime .= ':00';
+	}
 	
 	// ثبت درخواست
 	// customLog("Fetching filtered quotas list for ship: $shipName, from: $startDateTime to: $endDateTime");
@@ -1583,14 +1597,22 @@ function updateQuotaPercentage(DatabaseManager $db, string $quotaNumber, float $
 	}
 }
 
-function toggleQuotaStatus(DatabaseManager $db, string $quotaNumber): bool {
+function toggleQuotaStatus(DatabaseManager $db, string $quotaNumber, int $id = 0): bool {
 	try {
-		$query = "UPDATE InitialInfo SET isActive = NOT isActive WHERE loadingQuotaNumber = ?";
-		$stmt = $db->prepare($query);
-		$stmt->bind_param("s", $quotaNumber);
+		if ($id > 0) {
+			// استفاده از id یکتا برای جلوگیری از تأثیر روی کوتاژهای هم‌شماره
+			$query = "UPDATE InitialInfo SET isActive = NOT isActive WHERE id = ?";
+			$stmt = $db->prepare($query);
+			$stmt->bind_param("i", $id);
+		} else {
+			// fallback به quotaNumber برای سازگاری عقبگرد (id=0 یا ارسال نشده)
+			$query = "UPDATE InitialInfo SET isActive = NOT isActive WHERE loadingQuotaNumber = ?";
+			$stmt = $db->prepare($query);
+			$stmt->bind_param("s", $quotaNumber);
+		}
 		$stmt->execute();
 		return true;
-		} catch (Exception $e) {
+	} catch (Exception $e) {
 		throw new Exception("خطا در تغییر وضعیت کوتاژ: " . $e->getMessage());
 	}
 }
@@ -1942,7 +1964,8 @@ break;
 				if (!isset($_GET['quotaNumber'])) {
 					throw new Exception('شماره کوتاژ مشخص نشده است');
 				}
-				$result = toggleQuotaStatus($db, $_GET['quotaNumber']);
+				$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+				$result = toggleQuotaStatus($db, $_GET['quotaNumber'], $id);
 				sendJsonResponse(['success' => $result]);
 				break;
 				

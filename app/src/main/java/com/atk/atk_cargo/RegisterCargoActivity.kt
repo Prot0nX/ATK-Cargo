@@ -1654,7 +1654,7 @@ fun QuotaWarningDialog(
                     Button(
                         onClick = {
                             coroutineScope.launch {
-                                viewModel.toggleQuotaStatus(warning.quotaNumber)
+                                viewModel.toggleQuotaStatus(warning.quotaId ?: 0, warning.quotaNumber)
                                 onDismiss()
                             }
                         },
@@ -4150,6 +4150,7 @@ fun ShipInfoSection(
                 onToggle = onToggleVisibility,
                 loadedPercentage = loadedPercentage.toFloat(),
                 shipName = shipInfo.shipName,
+                cargoType = shipInfo.cargoType,
                 quotaNumber = shipInfo.loadingQuotaNumber,
                 loadableTonnage = loadableTonnage,
                 loadableTrucks18Wheeler = loadableTrucks18Wheeler,
@@ -4178,6 +4179,7 @@ private fun TopHeader(
     onToggle: () -> Unit,
     loadedPercentage: Float,
     shipName: String,
+    cargoType: String,
     quotaNumber: String,
     loadableTonnage: String,
     loadableTrucks18Wheeler: String,
@@ -4282,20 +4284,41 @@ private fun TopHeader(
                         }
                     }
 
-                    // سمت راست: نام کشتی و شماره کوتاژ
+                    // نام کشتی، نوع کالا و شماره کوتاژ
                     Column(
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text3(
-                            text = shipName,
-                            style = MaterialTheme3.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme3.colorScheme.onSurface,
-                            letterSpacing = (-0.5).sp
-                        )
+                        // نام کشتی | نوع کالا
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            if (cargoType.isNotBlank()) {
+                                Text3(
+                                    text = cargoType,
+                                    style = MaterialTheme3.typography.titleSmall,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = MaterialTheme3.colorScheme.onSurface
+                                )
+                                Text3(
+                                    text = "|",
+                                    style = MaterialTheme3.typography.titleSmall,
+                                    color = MaterialTheme3.colorScheme.onSurface
+                                )
+                            }
+                            Text3(
+                                text = shipName,
+                                style = MaterialTheme3.typography.titleMedium,
+                                fontWeight = FontWeight.Black,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme3.colorScheme.onSurface,
+                                letterSpacing = (-0.5).sp
+                            )
+                        }
                         Text3(
                             text = quotaNumber,
                             style = MaterialTheme3.typography.titleSmall,
