@@ -37,17 +37,14 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -98,9 +95,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Engineering
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Lock
@@ -108,7 +103,6 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SdStorage
@@ -171,9 +165,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -181,7 +173,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -254,8 +245,6 @@ import com.atk.atk_cargo.weather.SecurityBlockScreen
 import com.atk.atk_cargo.weather.SecurityErrorType
 import com.atk.atk_cargo.weather.VersionExpiredDialog
 import com.atk.atk_cargo.workers.ChatNotificationWorker
-import com.google.gson.Gson
-import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -290,7 +279,6 @@ class MainActivity : ComponentActivity() {
     val isSessionValid: StateFlow<Boolean> = _isSessionValid.asStateFlow()
 
     // ===== وضعیت‌های Splash Screen =====
-    // نمایش splash فوری است؛ وقتی تمام چک‌ها تمام شدند این false می‌شود
     private var isSplashVisible by mutableStateOf(true)
     private var isVersionAllowedState by mutableStateOf(true)
     private var isServerSyncing by mutableStateOf(false)
@@ -460,10 +448,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * ارزیابی عملکرد سخت‌افزار و تنظیم مدیر انیمیشن‌ها
-     * این تابع امتیاز عملکرد را محاسبه و ذخیره می‌کند تا نیاز به پردازش مجدد نباشد
-     */
     private fun initializeHardwarePerformanceEvaluation() {
         lifecycleScope.launch {
             try {
@@ -520,69 +504,389 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun ServerSyncingScreen() {
-        val infiniteTransition = rememberInfiniteTransition(label = "pulsing")
-        val scale by infiniteTransition.animateFloat(
-            initialValue = 0.9f,
-            targetValue = 1.1f,
+        val primaryColor = MaterialTheme.colorScheme.primary
+        val bgColor = MaterialTheme.colorScheme.background
+        val onBgColor = MaterialTheme.colorScheme.onBackground
+
+        val infiniteTransition = rememberInfiniteTransition(label = "server_sync")
+
+        // ===== ANIMATIONS =====
+        // چرخش حلقه مداری اول (ساعتگرد)
+        val orbitRotation1 by infiniteTransition.animateFloat(
+            initialValue = 0f, targetValue = 360f,
             animationSpec = infiniteRepeatable(
-                animation = tween(1200, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "scale"
+                animation = tween(4000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ), label = "orbit1"
         )
+        // چرخش حلقه مداری دوم (پادساعتگرد)
+        val orbitRotation2 by infiniteTransition.animateFloat(
+            initialValue = 360f, targetValue = 0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(5500, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ), label = "orbit2"
+        )
+        // چرخش حلقه مداری سوم
+        val orbitRotation3 by infiniteTransition.animateFloat(
+            initialValue = 0f, targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(7000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ), label = "orbit3"
+        )
+        // پالس درخشش
+        val glowAlpha by infiniteTransition.animateFloat(
+            initialValue = 0.15f, targetValue = 0.5f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1500, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ), label = "glow"
+        )
+        // مقیاس پالسی آیکون
+        val iconScale by infiniteTransition.animateFloat(
+            initialValue = 0.95f, targetValue = 1.05f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ), label = "iconScale"
+        )
+        // حرکت ذرات شناور (۴ مسیر)
+        val particleOffset1 by infiniteTransition.animateFloat(
+            initialValue = 0f, targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(3000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ), label = "p1"
+        )
+        val particleOffset2 by infiniteTransition.animateFloat(
+            initialValue = 0f, targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(4200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ), label = "p2"
+        )
+        val particleOffset3 by infiniteTransition.animateFloat(
+            initialValue = 0f, targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2700, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ), label = "p3"
+        )
+        // حرکت شیمر نوار پیشرفت
+        val shimmerOffset by infiniteTransition.animateFloat(
+            initialValue = -1f, targetValue = 2f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1800, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ), label = "shimmer"
+        )
+
+        // انیمیشن ورودی (fade-in)
+        val contentAlpha = remember { Animatable(0f) }
+        val contentTranslateY = remember { Animatable(30f) }
+        LaunchedEffect(Unit) {
+            launch {
+                contentAlpha.animateTo(1f, animationSpec = tween(800, easing = EaseOutCubic))
+            }
+            launch {
+                contentTranslateY.animateTo(0f, animationSpec = tween(800, easing = EaseOutCubic))
+            }
+        }
 
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
+            color = bgColor
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(contentAlpha.value)
+                    .offset(y = contentTranslateY.value.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(120.dp)
-                        .scale(scale)
-                        .background(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
+                // ===== لایه ذرات شناور پس‌زمینه =====
+                androidx.compose.foundation.Canvas(
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.DirectionsBoat,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(60.dp)
+                    val w = size.width
+                    val h = size.height
+                    val particleColor = primaryColor.copy(alpha = 0.12f)
+                    val particleColorFaint = primaryColor.copy(alpha = 0.06f)
+
+                    // ذرات کوچک متحرک در مسیرهای مختلف
+                    val particles = listOf(
+                        Triple(0.15f, 0.2f, particleOffset1),
+                        Triple(0.82f, 0.15f, particleOffset2),
+                        Triple(0.08f, 0.75f, particleOffset3),
+                        Triple(0.88f, 0.8f, particleOffset1),
+                        Triple(0.5f, 0.1f, particleOffset2),
+                        Triple(0.35f, 0.85f, particleOffset3),
+                        Triple(0.7f, 0.35f, particleOffset1),
+                        Triple(0.25f, 0.55f, particleOffset2),
                     )
+
+                    particles.forEachIndexed { index, (baseX, baseY, offset) ->
+                        val floatRange = 40f + (index * 8f)
+                        val yOffset = kotlin.math.sin(offset * 2 * Math.PI.toFloat()) * floatRange
+                        val xOffset = kotlin.math.cos(offset * 2 * Math.PI.toFloat() + index) * (floatRange * 0.5f)
+                        val radius = (3f + (index % 3) * 2.5f).dp.toPx()
+                        val alpha = 0.3f + kotlin.math.sin(offset * Math.PI.toFloat()) * 0.4f
+                        drawCircle(
+                            color = if (index % 2 == 0) particleColor.copy(alpha = alpha * 0.5f) else particleColorFaint.copy(alpha = alpha * 0.4f),
+                            radius = radius,
+                            center = androidx.compose.ui.geometry.Offset(
+                                x = baseX * w + xOffset,
+                                y = baseY * h + yOffset
+                            )
+                        )
+                    }
                 }
-                
-                Spacer(modifier = Modifier.height(40.dp))
-                
-                Text(
-                    text = "در حال ارتباط با سرور",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Text(
-                    text = "لطفاً چند لحظه شکیبا باشید",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                )
-                
-                Spacer(modifier = Modifier.height(60.dp))
-                
-                CircularProgressIndicator(
-                    modifier = Modifier.size(48.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 4.dp,
-                    strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
-                )
+
+                // ===== محتوای اصلی =====
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // ===== بخش آیکون مرکزی با حلقه‌های مداری =====
+                    Box(
+                        modifier = Modifier.size(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // حلقه مداری بیرونی (بزرگ)
+                        Box(
+                            modifier = Modifier
+                                .size(190.dp)
+                                .rotate(orbitRotation1)
+                                .border(
+                                    width = 1.dp,
+                                    brush = Brush.sweepGradient(
+                                        listOf(
+                                            primaryColor.copy(alpha = 0.0f),
+                                            primaryColor.copy(alpha = 0.3f),
+                                            primaryColor.copy(alpha = 0.0f),
+                                            primaryColor.copy(alpha = 0.15f),
+                                            primaryColor.copy(alpha = 0.0f)
+                                        )
+                                    ),
+                                    shape = CircleShape
+                                )
+                        ) {
+                            // نقطه مداری روی حلقه بیرونی
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .align(Alignment.TopCenter)
+                                    .offset(y = (-4).dp)
+                                    .background(
+                                        color = primaryColor.copy(alpha = 0.7f),
+                                        shape = CircleShape
+                                    )
+                            )
+                        }
+
+                        // حلقه مداری میانی
+                        Box(
+                            modifier = Modifier
+                                .size(160.dp)
+                                .rotate(orbitRotation2)
+                                .border(
+                                    width = 1.5.dp,
+                                    brush = Brush.sweepGradient(
+                                        listOf(
+                                            primaryColor.copy(alpha = 0.0f),
+                                            primaryColor.copy(alpha = 0.4f),
+                                            primaryColor.copy(alpha = 0.0f),
+                                            primaryColor.copy(alpha = 0.2f),
+                                            primaryColor.copy(alpha = 0.0f)
+                                        )
+                                    ),
+                                    shape = CircleShape
+                                )
+                        ) {
+                            // نقطه مداری روی حلقه میانی
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .align(Alignment.CenterEnd)
+                                    .offset(x = 3.dp)
+                                    .background(
+                                        color = primaryColor.copy(alpha = 0.8f),
+                                        shape = CircleShape
+                                    )
+                            )
+                        }
+
+                        // حلقه مداری داخلی (نزدیک‌ترین)
+                        Box(
+                            modifier = Modifier
+                                .size(130.dp)
+                                .rotate(orbitRotation3)
+                                .border(
+                                    width = 1.dp,
+                                    brush = Brush.sweepGradient(
+                                        listOf(
+                                            primaryColor.copy(alpha = 0.0f),
+                                            primaryColor.copy(alpha = 0.25f),
+                                            primaryColor.copy(alpha = 0.0f),
+                                        )
+                                    ),
+                                    shape = CircleShape
+                                )
+                        ) {
+                            // نقطه مداری روی حلقه داخلی
+                            Box(
+                                modifier = Modifier
+                                    .size(5.dp)
+                                    .align(Alignment.BottomCenter)
+                                    .offset(y = 2.dp)
+                                    .background(
+                                        color = primaryColor.copy(alpha = 0.6f),
+                                        shape = CircleShape
+                                    )
+                            )
+                        }
+
+                        // هاله درخشش پشت آیکون
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .scale(iconScale * 1.2f)
+                                .background(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(
+                                            primaryColor.copy(alpha = glowAlpha),
+                                            primaryColor.copy(alpha = glowAlpha * 0.3f),
+                                            Color.Transparent
+                                        )
+                                    ),
+                                    shape = CircleShape
+                                )
+                        )
+
+                        // دایره اصلی آیکون
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .scale(iconScale)
+                                .background(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            primaryColor,
+                                            primaryColor.copy(alpha = 0.8f)
+                                        )
+                                    ),
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.DirectionsBoat,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    // ===== عنوان =====
+                    Text(
+                        text = "در حال ارتباط با سرور",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = onBgColor
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // ===== زیرعنوان =====
+                    Text(
+                        text = "لطفاً چند لحظه شکیبا باشید",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = onBgColor.copy(alpha = 0.55f)
+                    )
+
+                    Spacer(modifier = Modifier.height(48.dp))
+
+                    // ===== نوار پیشرفت شیمری (Shimmer Progress Bar) =====
+                    Box(
+                        modifier = Modifier
+                            .width(220.dp)
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(primaryColor.copy(alpha = 0.1f))
+                    ) {
+                        // شیمر متحرک
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth(0.4f)
+                                .offset(x = (shimmerOffset * 220).dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            primaryColor.copy(alpha = 0.6f),
+                                            primaryColor,
+                                            primaryColor.copy(alpha = 0.6f),
+                                            Color.Transparent,
+                                        )
+                                    )
+                                )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // ===== نقاط متحرک وضعیت =====
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        repeat(3) { index ->
+                            val dotAlpha by infiniteTransition.animateFloat(
+                                initialValue = 0.2f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(
+                                        durationMillis = 600,
+                                        delayMillis = index * 200,
+                                        easing = FastOutSlowInEasing
+                                    ),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "dot$index"
+                            )
+                            val dotScale by infiniteTransition.animateFloat(
+                                initialValue = 0.7f,
+                                targetValue = 1f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(
+                                        durationMillis = 600,
+                                        delayMillis = index * 200,
+                                        easing = FastOutSlowInEasing
+                                    ),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "dotScale$index"
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .scale(dotScale)
+                                    .alpha(dotAlpha)
+                                    .background(
+                                        color = primaryColor,
+                                        shape = CircleShape
+                                    )
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -733,7 +1037,7 @@ class MainActivity : ComponentActivity() {
         _isSessionValid.value = isValid
     }
 
-    private    fun showMessage(message: String) {
+    private fun showMessage(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
@@ -2537,7 +2841,7 @@ fun ProfileMenu(
             in 5..11 -> "صبح بخیر"
             in 12..15 -> "ظهر بخیر"
             in 16..18 -> "عصر بخیر"
-            in 19..22 -> "شب بخیر"
+            in 19..23 -> "شب بخیر"
             else -> "بامداد بخیر"
         }
     }
@@ -3920,165 +4224,6 @@ private fun LoadingActionButton(
                 modifier = Modifier.size(16.dp),
                 color = color,
                 strokeWidth = 1.5.dp
-            )
-        }
-    }
-}
-
-@Composable
-private fun InfoCard(text: String, color: Color, startDelay: Long = 0L, scrollState: ScrollState? = null) {
-    var displayedText by remember { mutableStateOf("") }
-    var isTypingComplete by remember { mutableStateOf(false) }
-    var isVisible by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(text) {
-        displayedText = ""
-        isTypingComplete = false
-        isVisible = false
-        delay(startDelay)
-        isVisible = true
-        delay(100)
-        val chars = text.toList()
-        chars.forEachIndexed { index, _ ->
-            displayedText = text.take(index + 1)
-            delay(40)
-            // اسکرول نرم در حین تایپ
-            scrollState?.let {
-                scope.launch {
-                    it.animateScrollTo(
-                        it.value + 5,
-                        animationSpec = tween(40, easing = LinearEasing)
-                    )
-                }
-            }
-        }
-        isTypingComplete = true
-    }
-
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(300)),
-        exit = fadeOut() + shrinkVertically()
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            color = color.copy(alpha = 0.08f),
-            border = BorderStroke(0.5.dp, color.copy(alpha = 0.2f))
-        ) {
-            Text(
-                text = buildAnnotatedString {
-                    var currentIndex = 0
-                    val numberPattern = """[\d,]+""".toRegex()
-
-                    numberPattern.findAll(displayedText).forEach { match ->
-                        append(displayedText.substring(currentIndex, match.range.first))
-                        withStyle(
-                            style = SpanStyle(
-                                fontWeight = FontWeight.Bold,
-                                color = color
-                            )
-                        ) {
-                            append(match.value)
-                        }
-                        currentIndex = match.range.last + 1
-                    }
-                    append(displayedText.substring(currentIndex))
-
-                    if (!isTypingComplete) {
-                        withStyle(
-                            style = SpanStyle(
-                                color = color,
-                                fontWeight = FontWeight.Bold
-                            )
-                        ) {
-                            append("▌")
-                        }
-                    }
-                },
-                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(10.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun TrendCard(text: String, scrollState: ScrollState? = null) {
-    var displayedText by remember { mutableStateOf("") }
-    var isTypingComplete by remember { mutableStateOf(false) }
-    var isVisible by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(text) {
-        displayedText = ""
-        isTypingComplete = false
-        isVisible = false
-        delay(300L)
-        isVisible = true
-        delay(100)
-        val chars = text.toList()
-        chars.forEachIndexed { index, _ ->
-            displayedText = text.take(index + 1)
-            delay(40)
-            // اسکرول نرم در حین تایپ
-            scrollState?.let {
-                scope.launch {
-                    it.animateScrollTo(
-                        it.value + 5,
-                        animationSpec = tween(40, easing = LinearEasing)
-                    )
-                }
-            }
-        }
-        isTypingComplete = true
-    }
-
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = fadeIn(animationSpec = tween(300)) + expandVertically(animationSpec = tween(300)),
-        exit = fadeOut() + shrinkVertically()
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.2f)
-        ) {
-            Text(
-                text = buildAnnotatedString {
-                    var currentIndex = 0
-                    val numberPattern = """[\d,]+""".toRegex()
-
-                    numberPattern.findAll(displayedText).forEach { match ->
-                        append(displayedText.substring(currentIndex, match.range.first))
-                        withStyle(
-                            style = SpanStyle(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                        ) {
-                            append(match.value)
-                        }
-                        currentIndex = match.range.last + 1
-                    }
-                    append(displayedText.substring(currentIndex))
-
-                    if (!isTypingComplete) {
-                        withStyle(
-                            style = SpanStyle(
-                                color = MaterialTheme.colorScheme.secondary,
-                                fontWeight = FontWeight.Bold
-                            )
-                        ) {
-                            append("▌")
-                        }
-                    }
-                },
-                style = MaterialTheme.typography.bodySmall.copy(lineHeight = 18.sp),
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(10.dp)
             )
         }
     }
