@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 import com.google.gson.Gson
-import com.google.gson.JsonObject
 import com.google.gson.reflect.TypeToken
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
@@ -60,8 +59,8 @@ class UserPreferencesManager(private val context: Context) {
             try {
                 val type = object : TypeToken<Map<String, Boolean>>() {}.type
                 Gson().fromJson<Map<String, Boolean>>(json, type) ?: emptyMap()
-            } catch (e: Exception) {
-                emptyMap<String, Boolean>()
+            } catch (_: Exception) {
+                emptyMap()
             }
         }
 
@@ -99,18 +98,6 @@ class UserPreferencesManager(private val context: Context) {
         }
         .map { preferences ->
             preferences[HARDWARE_SCORE_KEY] ?: -1
-        }
-
-    val notificationsEnabled = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[NOTIFICATIONS_ENABLED_KEY] ?: true
         }
 
     val loadingNotificationsEnabled = dataStore.data
@@ -169,12 +156,6 @@ class UserPreferencesManager(private val context: Context) {
     suspend fun setLoginState(isLoggedIn: Boolean) {
         dataStore.edit { preferences ->
             preferences[IS_LOGGED_IN_KEY] = isLoggedIn
-        }
-    }
-
-    suspend fun setNotificationsEnabled(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[NOTIFICATIONS_ENABLED_KEY] = enabled
         }
     }
 
@@ -346,18 +327,12 @@ class UserPreferencesManager(private val context: Context) {
         // Notification
         private val LAST_NOTIFIED_MESSAGE_ID_KEY = intPreferencesKey("last_notified_message_id")
         private val LAST_READ_MESSAGE_ID_KEY = intPreferencesKey("last_read_message_id")
-        private val NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("notifications_enabled")
         private val LOADING_NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("loading_notifications_enabled")
         private val CHAT_NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("chat_notifications_enabled")
 
         // Theme
         val APP_THEME_COLOR_KEY = longPreferencesKey("app_theme_color")
     }
-
-    val lastReadMessageId = dataStore.data
-        .map { preferences ->
-            preferences[LAST_READ_MESSAGE_ID_KEY] ?: 0
-        }
 
     suspend fun saveLastReadMessageId(id: Int) {
         dataStore.edit { preferences ->

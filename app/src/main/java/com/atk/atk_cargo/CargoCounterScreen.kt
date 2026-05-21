@@ -38,6 +38,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ConfirmationNumber
@@ -592,6 +593,7 @@ private fun ShipHeader(
     val totalEntry = ships.sumOf { it.entryVouchers }
     val totalExit = ships.sumOf { it.exitVouchers }
     val total = totalEntry + totalExit
+    val cargoType = ships.firstOrNull()?.cargoType ?: ""
     
     // محاسبه وضعیت تکمیل شدن
     val isCompleted = total in 1..totalExit
@@ -634,7 +636,7 @@ private fun ShipHeader(
                 }
 
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -669,6 +671,30 @@ private fun ShipHeader(
                                     )
                                 }
                             }
+                        }
+                    }
+
+                    // نمایش نوع کالا زیر نام کشتی
+                    if (cargoType.isNotBlank()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Category,
+                                contentDescription = null,
+                                tint = color.copy(alpha = 0.7f),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = cargoType,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = color.copy(alpha = 0.85f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                 }
@@ -886,12 +912,36 @@ private fun WarehouseCard(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                
-                                Text(
-                                    text = "${filteredShips.size} کوتاژ",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+
+                                val warehouseCargoType = filteredShips.firstOrNull()?.cargoType ?: ""
+                                if (warehouseCargoType.isNotBlank()) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Category,
+                                            contentDescription = null,
+                                            tint = color.copy(alpha = 0.7f),
+                                            modifier = Modifier.size(11.dp)
+                                        )
+                                        Text(
+                                            text = warehouseCargoType,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                fontWeight = FontWeight.Medium
+                                            ),
+                                            color = color.copy(alpha = 0.85f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                } else {
+                                    Text(
+                                        text = "${filteredShips.size} کوتاژ",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
 
