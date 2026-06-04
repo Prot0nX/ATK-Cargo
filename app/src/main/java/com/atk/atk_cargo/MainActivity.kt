@@ -4238,6 +4238,8 @@ private fun CategorizedMenuGrid(
 ) {
     val groupedItems = menuItems.groupBy { it.category }
     val categoryOrder = listOf("عملیات پایه", "نظارت", "مدیریت", "ارتباطات")
+    // دسته‌بندی‌هایی که فقط از آیتم‌های در دسترس کاربر ساخته شده‌اند
+    val activeCategories = categoryOrder.filter { groupedItems.containsKey(it) }
     
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -4246,20 +4248,22 @@ private fun CategorizedMenuGrid(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        categoryOrder.forEach { category ->
+        activeCategories.forEach { category ->
             val items = groupedItems[category] ?: return@forEach
+            val itemCount = items.size
+            // آیا این دسته همیشه باید عریض (Wide) نمایش داده شود؟
+            val isAlwaysWideCategory = category == "نظارت" || category == "ارتباطات"
             
             // هدر دسته‌بندی
             item(span = { GridItemSpan(2) }) {
                 CategoryHeader(title = category, showAnimation = showAnimation)
             }
             
-            // بررسی نوع نمایش برای هر دسته
-            when (category) {
-                "نظارت", "ارتباطات" -> {
-                    // نمایش به صورت کارت عریض (Wide)
+            when {
+                // ===== دسته‌های ذاتاً عریض (نظارت / ارتباطات) =====
+                isAlwaysWideCategory -> {
                     items(
-                        count = items.size,
+                        count = itemCount,
                         span = { GridItemSpan(2) }
                     ) { index ->
                         WideMenuCard(
@@ -4270,16 +4274,51 @@ private fun CategorizedMenuGrid(
                         )
                     }
                 }
-                else -> {
-                    // نمایش به صورت 2 ستون
+                // ===== فقط ۱ آیتم: نمایش عریض برای جلوگیری از فضای خالی =====
+                itemCount == 1 -> {
+                    item(span = { GridItemSpan(2) }) {
+                        WideMenuCard(
+                            item = items[0],
+                            showAnimation = showAnimation,
+                            badgeCount = badgeCounts[items[0].route] ?: 0,
+                            onItemClick = onItemClick
+                        )
+                    }
+                }
+                // ===== تعداد زوج: چیدمان کامل ۲ ستونی =====
+                itemCount % 2 == 0 -> {
                     items(
-                        count = items.size,
+                        count = itemCount,
                         span = { GridItemSpan(1) }
                     ) { index ->
                         CompactMenuCard(
                             item = items[index],
                             showAnimation = showAnimation,
                             badgeCount = badgeCounts[items[index].route] ?: 0,
+                            onItemClick = onItemClick
+                        )
+                    }
+                }
+                // ===== تعداد فرد (≥3): آیتم‌های جفت + آخرین آیتم عریض =====
+                else -> {
+                    // آیتم‌های جفت (۲ ستونی)
+                    items(
+                        count = itemCount - 1,
+                        span = { GridItemSpan(1) }
+                    ) { index ->
+                        CompactMenuCard(
+                            item = items[index],
+                            showAnimation = showAnimation,
+                            badgeCount = badgeCounts[items[index].route] ?: 0,
+                            onItemClick = onItemClick
+                        )
+                    }
+                    // آخرین آیتم عریض (پر کردن هوشمند فضای خالی)
+                    item(span = { GridItemSpan(2) }) {
+                        WideMenuCard(
+                            item = items.last(),
+                            showAnimation = showAnimation,
+                            badgeCount = badgeCounts[items.last().route] ?: 0,
                             onItemClick = onItemClick
                         )
                     }
@@ -4508,10 +4547,18 @@ private fun WideMenuCard(
         label = "offset"
     )
 
-    val (icon, iconColor, _) = when (item.category) {
-        "نظارت" -> Triple(Icons.AutoMirrored.Rounded.ManageSearch, Color(0xFF3B82F6), listOf(Color(0xFFF0F7FF), Color.White))
-        "ارتباطات" -> Triple(Icons.Rounded.Forum, Color(0xFFF43F5E), listOf(Color(0xFFFFF1F2), Color(0xFFFFF7ED)))
-        else -> Triple(Icons.AutoMirrored.Rounded.Assignment, MaterialTheme.colorScheme.primary, listOf(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f), MaterialTheme.colorScheme.surface))
+    val (icon, iconColor, _) = when (item.title) {
+        // آیکون‌ها بر اساس عنوان آیتم (اولویت اول) — سازگار با CompactMenuCard
+        "ثبت حواله" -> Triple(Icons.AutoMirrored.Rounded.Assignment, Color(0xFF3B82F6), listOf(Color(0xFFF0F7FF), Color.White))
+        "تعریف کشتی" -> Triple(Icons.Rounded.AddTask, Color(0xFF06B6D4), listOf(Color(0xFFECFEFF), Color.White))
+        "مدیریت کاربران" -> Triple(Icons.Rounded.ManageAccounts, Color(0xFF6366F1), listOf(Color(0xFFEEF2FF), Color.White))
+        "مدیریت کشتی ها" -> Triple(Icons.Rounded.DirectionsBoat, Color(0xFF14B8A6), listOf(Color(0xFFF0FDFA), Color.White))
+        else -> when (item.category) {
+            // آیکون‌ها بر اساس دسته‌بندی (فال‌بک)
+            "نظارت" -> Triple(Icons.AutoMirrored.Rounded.ManageSearch, Color(0xFF3B82F6), listOf(Color(0xFFF0F7FF), Color.White))
+            "ارتباطات" -> Triple(Icons.Rounded.Forum, Color(0xFFF43F5E), listOf(Color(0xFFFFF1F2), Color(0xFFFFF7ED)))
+            else -> Triple(Icons.AutoMirrored.Rounded.Assignment, MaterialTheme.colorScheme.primary, listOf(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f), MaterialTheme.colorScheme.surface))
+        }
     }
 
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f

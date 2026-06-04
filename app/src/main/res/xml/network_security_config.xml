@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    پیکربندی امنیت شبکه (Network Security Config)
+    ─────────────────────────────────────────────────
+    این فایل سرتیفیکت‌های CA مورد اعتماد برنامه را تعریف می‌کند.
+    
+    پس از تغییر SSL سرور از Let's Encrypt به Certum (Asseco),
+    بعضی دستگاه‌های اندروید Root CA سرتیفیکت Certum را در
+    Trust Store خود ندارند. این فایل با Bundle کردن CA های
+    Certum در برنامه، مشکل را حل می‌کند.
+    
+    زنجیره سرتیفیکت:
+      [Leaf]         CN=atk-nk.ir
+      [Intermediate] CN=Certum DV TLS G2 R39 CA
+      [Root]         CN=Certum Trusted Root CA
+-->
+<network-security-config>
+
+    <!-- پیکربندی پایه برای تمام دامنه‌ها -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- اعتماد به CA های سیستم (پیش‌فرض اندروید) -->
+            <certificates src="system" />
+            <!-- اعتماد به CA های Bundle شده در برنامه -->
+            <certificates src="@raw/ca_certum_root" />
+            <certificates src="@raw/ca_certum_intermediate" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- پیکربندی اختصاصی برای دامنه اصلی سرور -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">atk-nk.ir</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/ca_certum_root" />
+            <certificates src="@raw/ca_certum_intermediate" />
+        </trust-anchors>
+    </domain-config>
+
+</network-security-config>
