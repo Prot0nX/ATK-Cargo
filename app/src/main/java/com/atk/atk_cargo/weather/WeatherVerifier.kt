@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.content.pm.Signature
 import android.os.Debug
 import android.util.Base64
+import android.util.Log
 import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,9 +21,12 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.security.cert.CertPathValidatorException
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import javax.net.ssl.SSLException
+import javax.net.ssl.SSLHandshakeException
 import kotlin.random.Random
 
 enum class SecurityErrorType {
@@ -35,7 +39,7 @@ enum class SecurityErrorType {
 
 class MusicLibraryManager(private val audioContext: Context) {
     companion object {
-        private const val ENCODED_ALBUM_HASH = "ZDliM2Q0NWJmMzQyZDNiMWNlNTNhM2E3MzgzN2VmNjY2N2U4ZWRmZGM0MDU4NGRmNmUxZmU5YWE0NTc3MTdmZA=="
+        private const val ENCODED_ALBUM_HASH = "NmE2ZTAyZGNlMmQyMjg2ZWMyMjExY2M5ZjIwZmMwZGZlOGM5ZTJlZjU2NjNlMTU4NGU3YWEzYmZjNWUwOTQ3MQ=="
         private const val ENCODED_PLAYLIST_KEY = "ZTFmMmczaDRpNWo2azdsOG05bjBvMXAycTNyNHM1dDY="
         private const val ENCODED_STREAMING_URL = "aHR0cHM6Ly9hdGstbmsuaXIvQ2FyZ28vY2hlY2tfc2lnbmF0dXJlLnBocA=="
         private const val ENCODED_SUBSCRIPTION_ENDPOINT = "aHR0cHM6Ly9hdGstbmsuaXIvQ2FyZ28vdmFsaWRhdGVfbGljZW5zZS5waHA="
@@ -63,14 +67,12 @@ class MusicLibraryManager(private val audioContext: Context) {
 
     private val musicPrefs = audioContext.getSharedPreferences("x1y2z3", Context.MODE_PRIVATE)
     private val randomGenerator = SecureRandom()
-    // استفاده از ThreadLocal برای Cipher به جهت امنیت Thread-Safety در Coroutineها
     private val audioEncoder = object : ThreadLocal<Cipher>() {
         override fun initialValue(): Cipher {
             return Cipher.getInstance("AES/CBC/PKCS5Padding")
         }
     }
     
-    // یک Scope اختصاصی برای اجرای وظایف پس‌زمینه
     private val managerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     private val weatherData = mutableListOf<String>()
@@ -79,8 +81,6 @@ class MusicLibraryManager(private val audioContext: Context) {
     private val cookingRecipes = mapOf("pasta" to "boil water", "rice" to "steam")
     
     init {
-        // انتقال عملیات سنگین (بررسی فایل‌های سیستم) به یک Thread پس‌زمینه
-        // تا از مسدود شدن Main Thread در هنگام ساخت کلاس جلوگیری شود
         managerScope.launch {
             performEnvironmentValidation()
             initializeFakeData()
@@ -150,7 +150,22 @@ class MusicLibraryManager(private val audioContext: Context) {
                 val (subscriptionActive, subscriptionError) = subscriptionDeferred.await()
                 updatePlaylistStatus(subscriptionActive)
                 return@withContext Pair(subscriptionActive, if (!subscriptionActive) subscriptionError else null)
-            } catch (_: Exception) {
+            } catch (e: SSLHandshakeException) {
+                // خطای اعتبارسنجی سرتیفیکت SSL - معمولاً به دلیل عدم وجود Root CA در Trust Store دستگاه
+                Log.e("SecurityVerifier", "SSL Handshake failed (attempt ${attemptNumber + 1}): ${e.message}", e)
+                if (attemptNumber == CONNECTION_ATTEMPTS - 1) {
+                    return@withContext Pair(false, SecurityErrorType.NETWORK_ERROR)
+                }
+                delay((500L * (1 shl attemptNumber)).coerceAtMost(2000L))
+            } catch (e: SSLException) {
+                // سایر خطاهای SSL
+                Log.e("SecurityVerifier", "SSL error (attempt ${attemptNumber + 1}): ${e.message}", e)
+                if (attemptNumber == CONNECTION_ATTEMPTS - 1) {
+                    return@withContext Pair(false, SecurityErrorType.NETWORK_ERROR)
+                }
+                delay((500L * (1 shl attemptNumber)).coerceAtMost(2000L))
+            } catch (e: Exception) {
+                Log.e("SecurityVerifier", "General error (attempt ${attemptNumber + 1}): ${e.message}", e)
                 if (attemptNumber == CONNECTION_ATTEMPTS - 1) {
                     return@withContext Pair(false, SecurityErrorType.NETWORK_ERROR)
                 }
@@ -212,7 +227,11 @@ class MusicLibraryManager(private val audioContext: Context) {
             } else {
                 false
             }
-        } catch (_: Exception) {
+        } catch (e: SSLHandshakeException) {
+            Log.e("SecurityVerifier", "SSL Handshake error in streaming auth: ${e.message}", e)
+            false
+        } catch (e: Exception) {
+            Log.e("SecurityVerifier", "Error in streaming auth: ${e.message}", e)
             false
         } finally {
             connection?.disconnect()
@@ -241,7 +260,6 @@ class MusicLibraryManager(private val audioContext: Context) {
     }
 
     private fun updatePlaylistStatus(isActive: Boolean) {
-        // بهینه‌سازی ذخیره‌سازی ترجیحات کاربر (استفاده از commit = false)
         musicPrefs.edit(commit = false) { putBoolean(PLAYLIST_KEY, isActive) }
     }
 
@@ -297,7 +315,11 @@ class MusicLibraryManager(private val audioContext: Context) {
             } else {
                 Pair(false, SecurityErrorType.LICENSE_INACTIVE)
             }
-        } catch (_: Exception) {
+        } catch (e: SSLHandshakeException) {
+            Log.e("SecurityVerifier", "SSL Handshake error in subscription validation: ${e.message}", e)
+            Pair(false, SecurityErrorType.NETWORK_ERROR)
+        } catch (e: Exception) {
+            Log.e("SecurityVerifier", "Error in subscription validation: ${e.message}", e)
             Pair(false, SecurityErrorType.LICENSE_NOT_FOUND)
         } finally {
             metadataConnection?.disconnect()
@@ -305,7 +327,6 @@ class MusicLibraryManager(private val audioContext: Context) {
         }
     }
     
-    // --- Fake Data / Obfuscation Methods (بهینه‌سازی شده جهت جلوگیری از افت فریم و زمان اجرا) ---
     private fun performEnvironmentValidation() {
         if (Debug.isDebuggerConnected()) {
             simulateWeatherUpdate()

@@ -256,7 +256,6 @@ import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.ShiftInfo
 import com.atk.atk_cargo.api.Ship
 import com.atk.atk_cargo.api.ShipSortingMode
-import com.atk.atk_cargo.api.ThirdPartyOrder
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.VoucherDetail
 import com.atk.atk_cargo.api.Warehouse
@@ -8909,17 +8908,13 @@ fun RealTimeLoadingBottomSheet(
     viewModel: ReportsViewModel
 ) {
     val shipColorMap by viewModel.shipColorMap.collectAsState()
-    val thirdPartyOrders by viewModel.thirdPartyOrders.collectAsState()
-    val thirdPartyLoadingError by viewModel.thirdPartyLoadingError.collectAsState()
     val shiftOffset by viewModel.realTimeShiftOffset.collectAsState()
     val isDarkTheme = isSystemInDarkTheme()
     val defaultColor = MaterialTheme.colorScheme.primary
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
     var remainingSeconds by remember { mutableIntStateOf(30) }
     var isRefreshing by remember { mutableStateOf(false) }
     var expandedShip by remember { mutableStateOf<String?>(null) }
     var searchQuery by remember { mutableStateOf("") }
-    var thirdPartySearchQuery by remember { mutableStateOf("") }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val isCurrentShift = remember(shiftOffset) { shiftOffset == 0 }
@@ -8946,37 +8941,17 @@ fun RealTimeLoadingBottomSheet(
         }
     }
 
-    // فیلتر کردن داده‌های Third Party بر اساس جستجو و orderStatus
-    val filteredThirdPartyOrders = remember(thirdPartyOrders, thirdPartySearchQuery) {
-        // ابتدا فیلتر بر اساس orderStatus (فقط "فعال")
-        val activeOrders = thirdPartyOrders.filter { order ->
-            order.orderStatus == "فعال"
-        }
 
-        // سپس فیلتر بر اساس جستجو
-        if (thirdPartySearchQuery.isBlank()) {
-            activeOrders
-        } else {
-            activeOrders.filter { order ->
-                order.orderId.contains(thirdPartySearchQuery, ignoreCase = true) ||
-                        (order.orderGoodDescreption?.contains(thirdPartySearchQuery, ignoreCase = true) == true) ||
-                        (order.truckLicensePlate?.contains(thirdPartySearchQuery, ignoreCase = true) == true) ||
-                        (order.ctName?.contains(thirdPartySearchQuery, ignoreCase = true) == true)
-            }
-        }
-    }
 
     LaunchedEffect(isOpen) {
         if (isOpen) {
             viewModel.loadRealTimeData(isDarkTheme, defaultColor)
-            viewModel.loadThirdPartyOrders()
             while (true) {
                 delay(1000)
                 remainingSeconds--
                 if (remainingSeconds <= 0) {
                     isRefreshing = true
                     viewModel.loadRealTimeData(isDarkTheme, defaultColor)
-                    viewModel.loadThirdPartyOrders()
                     onRefresh()
                     remainingSeconds = 30
                     delay(500)
@@ -8999,10 +8974,7 @@ fun RealTimeLoadingBottomSheet(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         DialogHeader(
-                            selectedTabIndex = selectedTabIndex,
-                            onTabSelected = { selectedTabIndex = it },
                             loadingDataCount = filteredLoadingData.size,
-                            thirdPartyOrdersCount = filteredThirdPartyOrders.size,
                             isRefreshing = isRefreshing,
                             refreshProgress = remainingSeconds / 30f,
                             onRefreshClick = {
@@ -9010,7 +8982,6 @@ fun RealTimeLoadingBottomSheet(
                                     scope.launch {
                                         isRefreshing = true
                                         viewModel.loadRealTimeData(isDarkTheme, defaultColor)
-                                        viewModel.loadThirdPartyOrders()
                                         onRefresh()
                                         remainingSeconds = 30
                                         delay(800)
@@ -9020,324 +8991,191 @@ fun RealTimeLoadingBottomSheet(
                                 }
                             },
                             onShareClick = {
-                                if (selectedTabIndex == 0) {
-                                    // تهیه متن اشتراک‌گذاری
-                                    val shareText = viewModel.shareRealTimeLoadingData(filteredLoadingData, shiftInfo)
+                                // تهیه متن اشتراک‌گذاری
+                                val shareText = viewModel.shareRealTimeLoadingData(filteredLoadingData, shiftInfo)
 
-                                    // ایجاد Intent اشتراک‌گذاری
-                                    val sendIntent = Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, shareText)
-                                        type = "text/plain"
-                                    }
-
-                                    // نمایش دیالوگ انتخاب برنامه برای اشتراک‌گذاری
-                                    val shareIntent = Intent.createChooser(sendIntent, "اشتراک‌گذاری")
-                                    context.startActivity(shareIntent)
+                                // ایجاد Intent اشتراک‌گذاری
+                                val sendIntent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                                    type = "text/plain"
                                 }
+
+                                // نمایش دیالوگ انتخاب برنامه برای اشتراک‌گذاری
+                                val shareIntent = Intent.createChooser(sendIntent, "اشتراک‌گذاری")
+                                context.startActivity(shareIntent)
                             }
                         )
 
-                        // محتوای تب‌ها
-                        when (selectedTabIndex) {
-                            0 -> {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 16.dp)
+                        // محتوای بارگیری فعلی
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp)
+                        ) {
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            // فیلد جستجو
+                            SearchField(
+                                searchQuery = searchQuery,
+                                onSearchQueryChange = { searchQuery = it },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // بخش انتخاب شیفت
+                            RealTimeShiftNavigation(
+                                viewModel = viewModel,
+                                shiftInfo = shiftInfo,
+                                isDarkTheme = isDarkTheme,
+                                defaultColor = defaultColor
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            StatisticItem(
+                                totalEntryVouchers = totalEntryVouchers,
+                                totalExitVouchers = totalExitVouchers,
+                                totalNetWeight = totalNetWeight,
+                                showEntry = isCurrentShift
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // عنوان "کشتی‌های فعال" با تعداد
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "کشتی‌های فعال",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                                 ) {
-                                    // تب اول: اطلاعات فعلی بارگیری
-                                    Spacer(modifier = Modifier.height(6.dp))
-
-                                    // فیلد جستجو
-                                    SearchField(
-                                        searchQuery = searchQuery,
-                                        onSearchQueryChange = { searchQuery = it },
-                                        modifier = Modifier.fillMaxWidth()
+                                    Text(
+                                        text = "${filteredLoadingData.groupBy { it.shipName }.size} مورد",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                     )
+                                }
+                            }
 
-                                    Spacer(modifier = Modifier.height(8.dp))
+                            AnimatedContent(
+                                targetState = filteredLoadingData,
+                                transitionSpec = {
+                                    fadeIn(animationSpec = tween(durationMillis = 300)) togetherWith
+                                            fadeOut(animationSpec = tween(durationMillis = 300))
+                                },
+                                modifier = Modifier.weight(1f),
+                                label = "LoadingDataContent"
+                            ) { targetLoadingData ->
+                                val cargoTypeCounts = targetLoadingData
+                                    .groupBy { it.cargoType ?: "نامشخص" }
+                                    .mapValues { it.value.map { data -> data.shipName }.distinct().size }
 
-                                    // بخش انتخاب شیفت
-                                    RealTimeShiftNavigation(
-                                        viewModel = viewModel,
-                                        shiftInfo = shiftInfo,
-                                        isDarkTheme = isDarkTheme,
-                                        defaultColor = defaultColor
-                                    )
+                                LazyColumn(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    contentPadding = PaddingValues(bottom = 8.dp)
+                                ) {
+                                    items(
+                                        targetLoadingData.groupBy { "${it.cargoType ?: "نامشخص"} | ${it.shipName}" }
+                                            .toList()
+                                            .sortedWith(
+                                                compareByDescending<Pair<String, List<RealTimeLoadingData>>> { (_, shipData) ->
+                                                    cargoTypeCounts[shipData.first().cargoType ?: "نامشخص"] ?: 0
+                                                }.thenBy { it.first }
+                                            ),
+                                        key = { it.first }) { (groupName, shipData) ->
+                                        val actualShipName = shipData.first().shipName
+                                        val shipColor = shipColorMap[actualShipName]
+                                            ?: MaterialTheme.colorScheme.primary
+                                        ShipCard(
+                                            shipName = groupName,
+                                            isExpanded = expandedShip == groupName,
+                                            onExpandToggle = {
+                                                expandedShip =
+                                                    if (expandedShip == groupName) null else groupName
+                                            },
+                                            entryVouchers = if (isCurrentShift) shipData.sumOf { it.entryVouchers } else 0,
+                                            exitVouchers = shipData.sumOf { it.exitVouchers },
+                                            showEntry = isCurrentShift,
+                                            content = {
+                                                // گروه‌بندی کوتاژها بر اساس انبار
+                                                val warehouseGroups = shipData.groupBy { it.loadingWarehouse }
 
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    StatisticItem(
-                                        totalEntryVouchers = totalEntryVouchers,
-                                        totalExitVouchers = totalExitVouchers,
-                                        totalNetWeight = totalNetWeight,
-                                        showEntry = isCurrentShift
-                                    )
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    // عنوان "کشتی‌های فعال" با تعداد
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "کشتی‌های فعال",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Surface(
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                        ) {
-                                            Text(
-                                                text = "${filteredLoadingData.groupBy { it.shipName }.size} مورد",
-                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                            )
-                                        }
-                                    }
-
-                                    AnimatedContent(
-                                        targetState = filteredLoadingData,
-                                        transitionSpec = {
-                                            fadeIn(animationSpec = tween(durationMillis = 300)) togetherWith
-                                                    fadeOut(animationSpec = tween(durationMillis = 300))
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        label = "LoadingDataContent"
-                                    ) { targetLoadingData ->
-                                        val cargoTypeCounts = targetLoadingData
-                                            .groupBy { it.cargoType ?: "نامشخص" }
-                                            .mapValues { it.value.map { data -> data.shipName }.distinct().size }
-
-                                        LazyColumn(
-                                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                                            contentPadding = PaddingValues(bottom = 8.dp)
-                                        ) {
-                                            items(
-                                                targetLoadingData.groupBy { "${it.cargoType ?: "نامشخص"} | ${it.shipName}" }
-                                                    .toList()
-                                                    .sortedWith(
-                                                        compareByDescending<Pair<String, List<RealTimeLoadingData>>> { (_, shipData) ->
-                                                            cargoTypeCounts[shipData.first().cargoType ?: "نامشخص"] ?: 0
-                                                        }.thenBy { it.first }
-                                                    ),
-                                                key = { it.first }) { (groupName, shipData) ->
-                                                val actualShipName = shipData.first().shipName
-                                                val shipColor = shipColorMap[actualShipName]
-                                                    ?: MaterialTheme.colorScheme.primary
-                                                ShipCard(
-                                                    shipName = groupName,
-                                                    isExpanded = expandedShip == groupName,
-                                                    onExpandToggle = {
-                                                        expandedShip =
-                                                            if (expandedShip == groupName) null else groupName
-                                                    },
-                                                    entryVouchers = if (isCurrentShift) shipData.sumOf { it.entryVouchers } else 0,
-                                                    exitVouchers = shipData.sumOf { it.exitVouchers },
-                                                    showEntry = isCurrentShift,
-                                                    content = {
-                                                        // گروه‌بندی کوتاژها بر اساس انبار
-                                                        val warehouseGroups = shipData.groupBy { it.loadingWarehouse }
-
-                                                        Column(
-                                                            modifier = Modifier.fillMaxWidth()
-                                                        ) {
-                                                                warehouseGroups.forEach { (warehouse, quotas) ->
+                                                Column(
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                        warehouseGroups.forEach { (warehouse, quotas) ->
+                                                            Row(
+                                                                modifier = Modifier
+                                                                    .fillMaxWidth()
+                                                                    .padding(bottom = 4.dp),
+                                                                horizontalArrangement = Arrangement.Start
+                                                            ) {
+                                                                Surface(
+                                                                    shape = RoundedCornerShape(16.dp),
+                                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                                                ) {
                                                                     Row(
-                                                                        modifier = Modifier
-                                                                            .fillMaxWidth()
-                                                                            .padding(bottom = 4.dp),
-                                                                        horizontalArrangement = Arrangement.Start
+                                                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                                                        verticalAlignment = Alignment.CenterVertically,
+                                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                                     ) {
-                                                                        Surface(
-                                                                            shape = RoundedCornerShape(16.dp),
-                                                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                                                                        ) {
-                                                                            Row(
-                                                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                                                                verticalAlignment = Alignment.CenterVertically,
-                                                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                                                            ) {
-                                                                                Icon(
-                                                                                    imageVector = Icons.Default.Warehouse,
-                                                                                    contentDescription = null,
-                                                                                    tint = MaterialTheme.colorScheme.primary,
-                                                                                    modifier = Modifier.size(14.dp)
-                                                                                )
-                                                                                Text(
-                                                                                    text = "انبار: $warehouse",
-                                                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                                                                    fontWeight = FontWeight.Bold,
-                                                                                    color = MaterialTheme.colorScheme.primary
-                                                                                )
-                                                                            }
-                                                                        }
-                                                                    }
-
-                                                                    // نمایش کوتاژهای این انبار
-                                                                    quotas.sortedWith(
-                                                                        compareBy<RealTimeLoadingData> { it.shippingCompany }
-                                                                            .thenByDescending { it.entryVouchers }
-                                                                    ).forEach { quota ->
-                                                                        RealTimeLoadingCard(
-                                                                            data = quota,
-                                                                            showEntry = isCurrentShift
+                                                                        Icon(
+                                                                            imageVector = Icons.Default.Warehouse,
+                                                                            contentDescription = null,
+                                                                            tint = MaterialTheme.colorScheme.primary,
+                                                                            modifier = Modifier.size(14.dp)
                                                                         )
-                                                                        Spacer(
-                                                                            modifier = Modifier.height(8.dp)
-                                                                        )
-                                                                    }
-
-                                                                    if (warehouse != warehouseGroups.keys.last()) {
-                                                                        HorizontalDivider(
-                                                                            modifier = Modifier.padding(
-                                                                                vertical = 8.dp
-                                                                            ),
-                                                                            color = shipColor.copy(alpha = 0.1f)
+                                                                        Text(
+                                                                            text = "انبار: $warehouse",
+                                                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                                                            fontWeight = FontWeight.Bold,
+                                                                            color = MaterialTheme.colorScheme.primary
                                                                         )
                                                                     }
                                                                 }
+                                                            }
+
+                                                            // نمایش کوتاژهای این انبار
+                                                            quotas.sortedWith(
+                                                                compareBy<RealTimeLoadingData> { it.shippingCompany }
+                                                                    .thenByDescending { it.entryVouchers }
+                                                            ).forEach { quota ->
+                                                                RealTimeLoadingCard(
+                                                                    data = quota,
+                                                                    showEntry = isCurrentShift
+                                                                )
+                                                                Spacer(
+                                                                    modifier = Modifier.height(8.dp)
+                                                                )
+                                                            }
+
+                                                            if (warehouse != warehouseGroups.keys.last()) {
+                                                                HorizontalDivider(
+                                                                    modifier = Modifier.padding(
+                                                                        vertical = 8.dp
+                                                                    ),
+                                                                    color = shipColor.copy(alpha = 0.1f)
+                                                                )
+                                                            }
                                                         }
-                                                    }
-                                                )
+                                                }
                                             }
-                                        }
-                                    }
-                                }
-                            }
-                            1 -> {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 16.dp)
-                                ) {
-                                    // تب دوم: اطلاعات در جریان باربری
-                                    // فیلد جستجو
-                                    SearchField(
-                                        searchQuery = thirdPartySearchQuery,
-                                        onSearchQueryChange = { thirdPartySearchQuery = it },
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    // نمایش تعداد کل شناسه‌ها
-                                    Card(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(
-                                                alpha = 0.3f
-                                            )
                                         )
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(12.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.AutoMirrored.Filled.List,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(20.dp)
-                                                )
-                                                Text(
-                                                    text = "تعداد کل:",
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                            }
-                                            Text(
-                                                text = "${filteredThirdPartyOrders.size}",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    // نمایش خطا در صورت وجود
-                                    if (thirdPartyLoadingError != null) {
-                                        Card(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = MaterialTheme.colorScheme.errorContainer
-                                            )
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(16.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Error,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.onErrorContainer
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(
-                                                    text = thirdPartyLoadingError ?: "",
-                                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                                )
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                    }
-
-                                    AnimatedContent(
-                                        targetState = filteredThirdPartyOrders,
-                                        transitionSpec = {
-                                            fadeIn(animationSpec = tween(durationMillis = 300)) togetherWith
-                                                    fadeOut(animationSpec = tween(durationMillis = 300))
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        label = "ThirdPartyOrdersContent"
-                                    ) { targetOrders ->
-                                        LazyColumn(
-                                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                                            contentPadding = PaddingValues(bottom = 16.dp)
-                                        ) {
-                                            if (targetOrders.isEmpty()) {
-                                                item {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .padding(32.dp),
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Text(
-                                                            text = if (thirdPartySearchQuery.isBlank()) "اطلاعاتی یافت نشد" else "نتیجه‌ای برای جستجو یافت نشد",
-                                                            style = MaterialTheme.typography.bodyLarge,
-                                                            color = MaterialTheme.colorScheme.onSurface.copy(
-                                                                alpha = 0.6f
-                                                            )
-                                                        )
-                                                    }
-                                                }
-                                            } else {
-                                                items(targetOrders) { order ->
-                                                    ThirdPartyOrderCard(order = order)
-                                                }
-                                            }
-                                        }
                                     }
                                 }
                             }
@@ -9451,182 +9289,6 @@ private fun RealTimeShiftNavigation(
                     tint = if (offset > -14) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
                     modifier = Modifier.size(28.dp)
                 )
-            }
-        }
-    }
-}
-
-@Composable
-fun ThirdPartyOrderCard(order: ThirdPartyOrder) {
-    val context = LocalContext.current
-    val primaryColor = MaterialTheme.colorScheme.primary
-    var expandedInfo by remember { mutableStateOf(false) }
-    val rotationState by animateFloatAsState(
-        targetValue = if (expandedInfo) 180f else 0f,
-        label = "expand icon rotation"
-    )
-    val scaleState by animateFloatAsState(
-        targetValue = if (expandedInfo) 1.01f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "card scale"
-    )
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                scaleX = scaleState
-                scaleY = scaleState
-            }
-            .animateContentSize(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = if (expandedInfo) 2.dp else 0.dp,
-        border = BorderStroke(1.dp, primaryColor.copy(alpha = 0.12f))
-    ) {
-        Column {
-            // Header Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(primaryColor.copy(alpha = 0.05f))
-                    .padding(horizontal = 12.dp, vertical = 10.dp)
-                    .clickable { expandedInfo = !expandedInfo },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // شناسه منفرد و نوع کالا در یک ردیف
-                Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // شناسه منفرد (قابل کپی)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("شناسه منفرد", order.orderId)
-                            clipboard.setPrimaryClip(clip)
-                            Toast.makeText(context, "شناسه منفرد کپی شد", Toast.LENGTH_SHORT).show()
-                        }
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = primaryColor.copy(alpha = 0.1f),
-                            modifier = Modifier.wrapContentWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Text(
-                                    text = order.orderId,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = primaryColor
-                                )
-                                Icon(
-                                    imageVector = Icons.Default.ContentCopy,
-                                    contentDescription = "کپی کردن",
-                                    tint = primaryColor.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    // نوع کالا
-                    if (!order.orderGoodDescreption.isNullOrBlank()) {
-                        Text(
-                            text = order.orderGoodDescreption ?: "",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                // Expand button
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .background(primaryColor.copy(alpha = 0.05f), CircleShape)
-                        .clickable { expandedInfo = !expandedInfo },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ExpandMore,
-                        contentDescription = if (expandedInfo) "بستن" else "باز کردن",
-                        tint = primaryColor.copy(alpha = 0.7f),
-                        modifier = Modifier
-                            .size(16.dp)
-                            .rotate(rotationState)
-                    )
-                }
-            }
-
-            // Expanded Content
-            AnimatedVisibility(
-                visible = expandedInfo,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                ) {
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // Detail grid
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        // نوع کالا
-                        if (!order.orderGoodDescreption.isNullOrBlank()) {
-                            CompactInfo(
-                                icon = Icons.Default.Inventory,
-                                label = "نوع کالا",
-                                value = order.orderGoodDescreption ?: "",
-                                color = primaryColor,
-                                modifier = Modifier.weight(1.3f)
-                            )
-                        }
-
-                        // شهر
-                        if (!order.ctName.isNullOrBlank()) {
-                            CompactInfo(
-                                icon = Icons.Default.Store,
-                                label = "شهر",
-                                value = order.ctName ?: "",
-                                color = primaryColor,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-
-                        // پلاک
-                        if (!order.truckLicensePlate.isNullOrBlank()) {
-                            CompactInfo(
-                                icon = Icons.Default.LocalShipping,
-                                label = "پلاک",
-                                value = order.truckLicensePlate ?: "",
-                                color = primaryColor,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-
-                }
             }
         }
     }
@@ -9877,10 +9539,7 @@ fun DialogHeader(
     onRefreshClick: () -> Unit = {},
     isRefreshing: Boolean = false,
     refreshProgress: Float = 0f,
-    selectedTabIndex: Int,
-    onTabSelected: (Int) -> Unit,
-    loadingDataCount: Int = 0,
-    thirdPartyOrdersCount: Int = 0
+    loadingDataCount: Int = 0
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -9967,111 +9626,6 @@ fun DialogHeader(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(22.dp)
                     )
-                }
-            }
-
-            // TabRow with new design
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(bottom = 12.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    // تب بارگیری فعلی
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { onTabSelected(0) },
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (selectedTabIndex == 0) MaterialTheme.colorScheme.surface else Color.Transparent,
-                        shadowElevation = if (selectedTabIndex == 0) 1.dp else 0.dp
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(vertical = 10.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DirectionsBoat,
-                                contentDescription = null,
-                                tint = if (selectedTabIndex == 0) Blue700 else Gray500,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "بارگیری فعلی",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.Medium,
-                                color = if (selectedTabIndex == 0) Blue700 else Gray500
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            // Badge تعداد
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = if (selectedTabIndex == 0) Blue700.copy(alpha = 0.1f) else Gray300
-                            ) {
-                                Text(
-                                    text = "$loadingDataCount",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (selectedTabIndex == 0) Blue700 else Gray600,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    // تب در جریان باربری
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { onTabSelected(1) },
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (selectedTabIndex == 1) MaterialTheme.colorScheme.surface else Color.Transparent,
-                        shadowElevation = if (selectedTabIndex == 1) 1.dp else 0.dp
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(vertical = 10.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocalShipping,
-                                contentDescription = null,
-                                tint = if (selectedTabIndex == 1) Blue700 else Gray500,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "در جریان باربری",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.Medium,
-                                color = if (selectedTabIndex == 1) Blue700 else Gray500
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            // Badge تعداد
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = if (selectedTabIndex == 1) Blue700.copy(alpha = 0.1f) else Gray300
-                            ) {
-                                Text(
-                                    text = "$thirdPartyOrdersCount",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (selectedTabIndex == 1) Blue700 else Gray600,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }
