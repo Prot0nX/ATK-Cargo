@@ -299,6 +299,12 @@ interface ApiService {
         @Query("target") target: String = "check_logout.php"
     ): Response<LogoutResponse>
 
+    @POST("protected_proxy.php")
+    suspend fun forceLogoutUser(
+        @Body request: ForceLogoutRequest,
+        @Query("target") target: String = "users_api.php"
+    ): Response<ForceLogoutResponse>
+
     // ===== CARGO OPS =====
 
     @POST("protected_proxy.php")

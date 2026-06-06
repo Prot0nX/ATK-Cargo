@@ -4,6 +4,7 @@
 declare(strict_types=1);
 header('Content-Type: application/json');
 require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/User/SessionManager.php';
 
 date_default_timezone_set('Asia/Tehran');
 
@@ -175,6 +176,32 @@ class UserManager {
         }
     }
 
+    /**
+     * خروج اجباری کاربر از تمام دستگاه‌ها
+     */
+    public function forceLogout(string $username, string $deviceId): array {
+        try {
+            if (empty($username)) {
+                return ['success' => false, 'message' => 'نام کاربری الزامی است'];
+            }
+
+            $sessionManager = new SessionManager();
+
+            if (!empty($deviceId)) {
+                // خروج از دستگاه خاص
+                $result = $sessionManager->forceLogoutFromDevice($username, $deviceId);
+            } else {
+                // خروج از تمام دستگاه‌ها
+                $result = $sessionManager->deactivateSession($username);
+            }
+
+            return $result;
+        } catch (Exception $e) {
+            error_log("خطا در خروج اجباری کاربر: " . $e->getMessage());
+            return ['success' => false, 'message' => 'خطا در خروج اجباری: ' . $e->getMessage()];
+        }
+    }
+
     public function deleteUser(int $userId): array {
         // بررسی وجود کاربر قبل از حذف
         $checkQuery = "SELECT userType FROM Users WHERE id = ?";
@@ -263,6 +290,16 @@ function handleRequest(mysqli $conn): void {
                     throw new Exception('شناسه کاربر مورد نیاز است');
                 }
                 $result = $manager->deleteUser((int)$input['userId']);
+                echo json_encode($result, JSON_THROW_ON_ERROR);
+                break;
+
+            case 'forceLogout':
+                $username = $input['username'] ?? '';
+                $deviceId = $input['device_id'] ?? '';
+                if (empty($username)) {
+                    throw new Exception('نام کاربری الزامی است');
+                }
+                $result = $manager->forceLogout($username, $deviceId);
                 echo json_encode($result, JSON_THROW_ON_ERROR);
                 break;
 
