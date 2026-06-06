@@ -207,6 +207,7 @@ import com.atk.atk_cargo.api.CreateUserRequest
 import com.atk.atk_cargo.api.DeleteUserRequest
 import com.atk.atk_cargo.api.LoadingNotificationService
 import com.atk.atk_cargo.api.LogoutRequest
+import com.atk.atk_cargo.api.ForceLogoutRequest
 import com.atk.atk_cargo.api.MenuItem
 import com.atk.atk_cargo.api.PermissionPoller
 import com.atk.atk_cargo.api.QuotaTonnageWarning
@@ -4698,6 +4699,7 @@ fun UserManagementDialog(
     var isLoading by remember { mutableStateOf(true) }
     var showEditDialog by remember { mutableStateOf<User?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf<User?>(null) }
+    var showForceLogoutConfirmation by remember { mutableStateOf<User?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -4955,8 +4957,10 @@ fun UserManagementDialog(
                                         user = user,
                                         onEditClick = { showEditDialog = user },
                                         onDeleteClick = { showDeleteConfirmation = user },
+                                        onForceLogoutClick = { showForceLogoutConfirmation = user },
                                         isMainAdmin = isMainAdmin,
                                         currentUserType = currentUserType,
+                                        currentUsername = currentUsername,
                                         userPermissions = userPermissions
                                     )
                                 }
@@ -5042,6 +5046,137 @@ fun UserManagementDialog(
             onDismiss = { showDeleteConfirmation = null }
         )
     }
+
+    // دیالوگ تایید خروج اجباری کاربر
+    showForceLogoutConfirmation?.let { user ->
+        var isForceLogoutLoading by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { if (!isForceLogoutLoading) showForceLogoutConfirmation = null },
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            },
+            title = {
+                Text(
+                    text = "خروج اجباری کاربر",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "آیا مطمئنید که می\u200Cخواهید کاربر",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = user.username,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "را از تمام دستگاه\u200Cها خارج کنید؟",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        isForceLogoutLoading = true
+                        scope.launch {
+                            try {
+                                val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+                                val request = ForceLogoutRequest(
+                                    username = user.username,
+                                    deviceId = deviceId
+                                )
+                                val response = RetrofitClient.apiService.forceLogoutUser(request)
+                                if (response.isSuccessful && response.body()?.success == true) {
+                                    Toast.makeText(
+                                        context,
+                                        "کاربر ${user.username} با موفقیت از سیستم خارج شد",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                } else {
+                                    val errorMsg = response.body()?.message ?: "خطا در خروج اجباری کاربر"
+                                    Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(
+                                    context,
+                                    "خطا در ارتباط با سرور: ${e.message}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } finally {
+                                isForceLogoutLoading = false
+                                showForceLogoutConfirmation = null
+                            }
+                        }
+                    },
+                    enabled = !isForceLogoutLoading,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    if (isForceLogoutLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onError
+                        )
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ExitToApp,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text("خروج اجباری")
+                        }
+                    }
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showForceLogoutConfirmation = null },
+                    enabled = !isForceLogoutLoading,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("انصراف")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -5049,8 +5184,10 @@ private fun UserListItem(
     user: User,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    onForceLogoutClick: () -> Unit,
     isMainAdmin: Boolean,
     currentUserType: String,
+    currentUsername: String,
     userPermissions: Map<String, Boolean>
 ) {
     val userTypeColor = when (user.userType) {
@@ -5154,6 +5291,22 @@ private fun UserListItem(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Force Logout button - فقط برای کاربرانی که خود کاربر فعلی نیستند و Prot0nX نیستند
+                    IconButton(
+                        onClick = onForceLogoutClick,
+                        enabled = user.username != "Prot0nX" && user.username != currentUsername,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "خروج اجباری",
+                            tint = if (user.username == "Prot0nX" || user.username == currentUsername)
+                                Color(0xFFFF9800).copy(alpha = 0.3f)
+                            else Color(0xFFFF9800),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
                     // Edit button
                     IconButton(
                         onClick = onEditClick,

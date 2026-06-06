@@ -3291,6 +3291,18 @@ data class LogoutResponse(
     val message: String
 )
 
+data class ForceLogoutRequest(
+    val action: String = "forceLogout",
+    val username: String,
+    @com.google.gson.annotations.SerializedName("device_id")
+    val deviceId: String
+)
+
+data class ForceLogoutResponse(
+    val success: Boolean,
+    val message: String
+)
+
 data class ActiveShipInfo(
     val shipName: String,
     val loadingWarehouse: String,
