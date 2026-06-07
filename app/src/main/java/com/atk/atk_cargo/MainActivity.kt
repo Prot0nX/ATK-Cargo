@@ -208,6 +208,7 @@ import com.atk.atk_cargo.api.DeleteUserRequest
 import com.atk.atk_cargo.api.LoadingNotificationService
 import com.atk.atk_cargo.api.LogoutRequest
 import com.atk.atk_cargo.api.ForceLogoutRequest
+import com.atk.atk_cargo.api.ActiveSessionResponse
 import com.atk.atk_cargo.api.MenuItem
 import com.atk.atk_cargo.api.PermissionPoller
 import com.atk.atk_cargo.api.QuotaTonnageWarning
@@ -5111,10 +5112,27 @@ fun UserManagementDialog(
                         isForceLogoutLoading = true
                         scope.launch {
                             try {
-                                val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+
+                                val activeDeviceId: String = try {
+                                    val sessionResponse = RetrofitClient.apiService.getActiveDeviceId(
+                                        username = user.username
+                                    )
+                                    if (sessionResponse.isSuccessful && sessionResponse.body()?.success == true) {
+                                        // device_id آخرین جلسه فعال
+                                        sessionResponse.body()?.deviceId ?: ""
+                                    } else {
+                                        // جلسه فعالی پیدا نشد — device_id خالی: سرور تمام جلسات را می‌بندد
+                                        ""
+                                    }
+                                } catch (_: Exception) {
+                                    // خطای شبکه: با device_id خالی ادامه می‌دهیم
+                                    // سرور با deactivateSession($username) تمام جلسات فعال را می‌بندد
+                                    ""
+                                }
+
                                 val request = ForceLogoutRequest(
                                     username = user.username,
-                                    deviceId = deviceId
+                                    deviceId = activeDeviceId
                                 )
                                 val response = RetrofitClient.apiService.forceLogoutUser(request)
                                 if (response.isSuccessful && response.body()?.success == true) {
@@ -5138,6 +5156,7 @@ fun UserManagementDialog(
                                 showForceLogoutConfirmation = null
                             }
                         }
+
                     },
                     enabled = !isForceLogoutLoading,
                     colors = ButtonDefaults.buttonColors(

@@ -3680,6 +3680,17 @@ data class User(
     val updatedAt: String? = null
 )
 
+data class ActiveSessionResponse(
+    val success: Boolean,
+    val message: String,
+    @com.google.gson.annotations.SerializedName("device_id")
+    val deviceId: String? = null,
+    @com.google.gson.annotations.SerializedName("last_activity")
+    val lastActivity: String? = null,
+    @com.google.gson.annotations.SerializedName("login_time")
+    val loginTime: String? = null
+)
+
 data class UpdateUserRequest(
     val action: String = "updateUser",
     val id: Int,
