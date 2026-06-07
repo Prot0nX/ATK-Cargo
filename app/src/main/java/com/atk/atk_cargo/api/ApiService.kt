@@ -321,6 +321,13 @@ interface ApiService {
         @Query("target") target: String = "users_api.php"
     ): List<User>
 
+    @GET("protected_proxy.php")
+    suspend fun getActiveDeviceId(
+        @Query("action") action: String = "getActiveDeviceId",
+        @Query("username") username: String,
+        @Query("target") target: String = "users_api.php"
+    ): Response<ActiveSessionResponse>
+
     @POST("protected_proxy.php")
     suspend fun createUser(
         @Body request: CreateUserRequest,

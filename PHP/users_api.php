@@ -176,6 +176,36 @@ class UserManager {
         }
     }
 
+    public function getActiveDeviceId(string $username): array {
+        if (empty($username)) {
+            return ['success' => false, 'message' => 'نام کاربری الزامی است', 'device_id' => null];
+        }
+
+        try {
+            $sessionManager = new SessionManager();
+            $activeSession = $sessionManager->getActiveSession($username);
+
+            if ($activeSession && !empty($activeSession['device_id'])) {
+                return [
+                    'success' => true,
+                    'message' => 'جلسه فعال یافت شد',
+                    'device_id' => $activeSession['device_id'],
+                    'last_activity' => $activeSession['last_activity'] ?? null,
+                    'login_time' => $activeSession['login_time'] ?? null
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => 'هیچ جلسه فعالی برای این کاربر یافت نشد',
+                'device_id' => null
+            ];
+        } catch (Exception $e) {
+            error_log("خطا در دریافت device_id فعال: " . $e->getMessage());
+            return ['success' => false, 'message' => 'خطا در پردازش: ' . $e->getMessage(), 'device_id' => null];
+        }
+    }
+
     /**
      * خروج اجباری کاربر از تمام دستگاه‌ها
      */
@@ -262,11 +292,24 @@ function handleRequest(mysqli $conn): void {
         if (!isset($_GET['action'])) {
             throw new Exception('پارامتر action مورد نیاز است');
         }
-        if ($_GET['action'] === 'getAllUsers') {
-            $users = $manager->getAllUsers();
-            echo json_encode($users, JSON_THROW_ON_ERROR);
-        } else {
-            throw new Exception('عملیات نامعتبر');
+
+        switch ($_GET['action']) {
+            case 'getAllUsers':
+                $users = $manager->getAllUsers();
+                echo json_encode($users, JSON_THROW_ON_ERROR);
+                break;
+
+            case 'getActiveDeviceId':
+                $username = $_GET['username'] ?? '';
+                if (empty($username)) {
+                    throw new Exception('نام کاربری الزامی است');
+                }
+                $result = $manager->getActiveDeviceId($username);
+                echo json_encode($result, JSON_THROW_ON_ERROR);
+                break;
+
+            default:
+                throw new Exception('عملیات نامعتبر');
         }
     } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $input = json_decode(file_get_contents('php://input'), true);
