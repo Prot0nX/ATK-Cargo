@@ -191,11 +191,11 @@ try {
         }
     }
     
-    // بررسی بهینه وجود حواله با کلیدهای اصلی
-    $query = "SELECT id, status, confirm, exitDate, exitTime FROM CargoInfo WHERE 
+    // بررسی بهینه وجود حواله با کلیدهای اصلی (بر اساس آخرین آی‌دی جهت یافتن آخرین وضعیت در صورت تکرار)
+    $query = "SELECT id, status, confirm, exitDate, exitTime, entryTime FROM CargoInfo WHERE 
               shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND 
               shippingCompany = ? AND loadingQuotaNumber = ? AND trackingNumber = ? 
-              LIMIT 1";
+              ORDER BY id DESC LIMIT 1";
     
     $stmt = $conn->prepare($query);
     if (!$stmt) {
@@ -220,8 +220,37 @@ try {
     $stmt->close();
     unset($result);
     
+    // منطق بهینه بررسی تکراری بودن حواله در همان کوتاژ جهت نمایش هشدار و ثبت مجدد
+    $shouldInsertNew = !$existingCargo;
+    
+    if ($existingCargo) {
+        // بررسی اینکه آیا کاربر تلاش برای ثبت ورود جدید دارد (وزن خالص و کسری و اضافه بار خالی هستند)
+        $isNewEntryAttempt = empty($params['netWeight']) && empty($params['shortageWeight']) && empty($params['excessWeight']);
+        
+        if ($isNewEntryAttempt) {
+            if ($params['duplicateConfirmation'] !== "proceed") {
+                // نمایش هشدار تکراری بودن حواله در همین کوتاژ با ذکر تاریخ و ساعت آخرین وضعیت
+                $cargoStatus = $existingCargo['status'];
+                $cargoDate = $cargoStatus === "خروج" ? $existingCargo['exitDate'] : ($existingCargo['exitDate'] ?: $currentDate);
+                $cargoTime = $cargoStatus === "خروج" ? $existingCargo['exitTime'] : ($existingCargo['entryTime'] ?: $currentTime);
+                
+                $warningMessage = "شماره حواله \"{$trackingNumber}\" برای شماره کوتاژ \"{$loadingQuotaNumber}\" برای کشتی [ {$shipName} ] قبلاً در تاریخ {$cargoDate} و ساعت {$cargoTime} در وضعیت [ {$cargoStatus} ] ثبت شده است.\n\nآیا اطمینان دارید که می‌خواهید حواله جدید با همین مشخصات ثبت کنید؟";
+                
+                send_json_response([
+                    "warning" => true,
+                    "message" => $warningMessage,
+                    "existing_cargo" => $existingCargo,
+                    "requires_confirmation" => true
+                ], 409);
+            } else {
+                // با تایید کاربر، مجوز ثبت حواله جدید داده می‌شود
+                $shouldInsertNew = true;
+            }
+        }
+    }
+    
     // منطق بهینه ثبت حواله جدید یا بروزرسانی حواله موجود
-    if (!$existingCargo) {
+    if ($shouldInsertNew) {
         // اعتبارسنجی بهینه تعداد نفرات
         $numberOfPeople = filter_var($params['numberOfPeople'], FILTER_VALIDATE_INT);
         if ($numberOfPeople === false || $numberOfPeople < 1) {
