@@ -91,6 +91,7 @@ import kotlinx.coroutines.launch
 import java.security.MessageDigest
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.time.Duration.Companion.milliseconds
 
 private object UIConfig {
     val CornerRadiusLarge = 28.dp
@@ -262,7 +263,7 @@ fun SecurityBlockScreen(
                                     
                                     Text(
                                         text = when (errorType) {
-                                            SecurityErrorType.TAMPERED -> "این موضوع نشان‌دهنده نصب از منابع رسمی یا تغییر در ساختار کدهاست."
+                                            SecurityErrorType.TAMPERED -> "این موضوع نشان‌دهنده نصب از منابع غیر رسمی یا تغییر در ساختار کدهاست."
                                             SecurityErrorType.LICENSE_NOT_FOUND -> "لطفاً جهت فعال‌سازی و صدور کلید دسترسی جدید اقدام کنید."
                                             SecurityErrorType.LICENSE_INACTIVE -> "برای تمدید و فعال‌سازی مجدد خدمات با مدیر سامانه تماس بگیرید."
                                             SecurityErrorType.NETWORK_ERROR -> "اتصال شبکه خود را بررسی کرده یا دقایقی دیگر مجدداً تلاش نمایید."
@@ -564,7 +565,7 @@ fun SignatureHashCard(
 
     LaunchedEffect(showCopiedMessage) {
         if (showCopiedMessage) {
-            kotlinx.coroutines.delay(2000)
+            kotlinx.coroutines.delay(2000.milliseconds)
             showCopiedMessage = false
         }
     }

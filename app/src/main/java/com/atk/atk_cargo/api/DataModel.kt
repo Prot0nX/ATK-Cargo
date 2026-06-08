@@ -3412,7 +3412,9 @@ data class SaveOrUpdateResponse(
     val exitDate: String?,
     val exitTime: String?,
     val warning: Boolean? = null,
+    @com.google.gson.annotations.SerializedName("existing_cargo")
     val existingCargo: ExistingCargo? = null,
+    @com.google.gson.annotations.SerializedName("requires_confirmation")
     val requiresConfirmation: Boolean? = null
 )
 
