@@ -12731,9 +12731,16 @@ fun QuotaAnalysis(
                     }.sortedWith(
                         if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
                             val warehouseQuotaCounts = activeQuotas.groupBy { it.warehouse ?: "نامشخص" }.mapValues { it.value.size }
-                            compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> { warehouseQuotaCounts[it.first.split("|").getOrNull(1)?.trim() ?: "نامشخص"] ?: 0 }
-                                .thenByDescending { it.second.size }
-                                .thenBy { it.first }
+                            compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> {
+                                val parts = it.first.split("|")
+                                val warehouse = parts.getOrNull(2)?.trim() ?: "نامشخص"
+                                warehouseQuotaCounts[warehouse] ?: 0
+                            }
+                            .thenBy {
+                                val parts = it.first.split("|")
+                                parts.getOrNull(2)?.trim() ?: "نامشخص"
+                            }
+                            .thenByDescending { it.third }
                         } else {
                             compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> { it.second.size }
                                 .thenByDescending { it.third }
@@ -12849,9 +12856,16 @@ fun QuotaAnalysis(
                 }.sortedWith(
                     if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
                         val warehouseQuotaCounts = activeQuotas.groupBy { it.warehouse ?: "نامشخص" }.mapValues { it.value.size }
-                        compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> { warehouseQuotaCounts[it.first.split("|").getOrNull(1)?.trim() ?: "نامشخص"] ?: 0 }
-                            .thenByDescending { it.second.size }
-                            .thenBy { it.first }
+                        compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> {
+                            val parts = it.first.split("|")
+                            val warehouse = parts.getOrNull(2)?.trim() ?: "نامشخص"
+                            warehouseQuotaCounts[warehouse] ?: 0
+                        }
+                        .thenBy {
+                            val parts = it.first.split("|")
+                            parts.getOrNull(2)?.trim() ?: "نامشخص"
+                        }
+                        .thenByDescending { it.third }
                     } else {
                         compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> { it.second.size }
                             .thenByDescending { it.third }
