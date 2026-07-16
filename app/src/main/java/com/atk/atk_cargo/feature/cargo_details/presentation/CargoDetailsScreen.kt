@@ -2,6 +2,7 @@ package com.atk.atk_cargo.feature.cargo_details.presentation
 
 import android.annotation.SuppressLint
 import android.util.Log
+import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -170,16 +171,12 @@ fun CargoDetailsScreen(
                     // Session معتبر است، ادامه می‌دهد
                 },
                 onFailure = {
-                    navController.navigate("home") {
-                        popUpTo(0) { inclusive = true }
-                    }
+                    navController.navigateToHome()
                 }
             )
         } catch (e: Exception) {
             Log.e("CargoDetailsScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
-            navController.navigate("home") {
-                popUpTo(0) { inclusive = true }
-            }
+            navController.navigateToHome()
         }
     }
 

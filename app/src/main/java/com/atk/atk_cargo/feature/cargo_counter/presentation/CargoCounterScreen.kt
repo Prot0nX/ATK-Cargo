@@ -1,6 +1,7 @@
 package com.atk.atk_cargo.feature.cargo_counter.presentation
 
 import android.util.Log
+import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -186,16 +187,12 @@ fun CargoCounterScreen(navController: NavController) {
                     // Session معتبر است، ادامه می‌دهد
                 },
                 onFailure = {
-                    navController.navigate("home") {
-                        popUpTo(0) { inclusive = true }
-                    }
+                    navController.navigateToHome()
                 }
             )
         } catch (e: Exception) {
             Log.e("CargoCounterScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
-            navController.navigate("home") {
-                popUpTo(0) { inclusive = true }
-            }
+            navController.navigateToHome()
             return@LaunchedEffect
         }
     }

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.util.Log
 import com.atk.atk_cargo.feature.startup.domain.AnimationManager
 import com.atk.atk_cargo.feature.cargo_registration.navigation.navigateToCargoRegistration
+import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import com.google.gson.Gson
 import com.atk.atk_cargo.R
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -155,16 +156,12 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                     // Session معتبر است، ادامه می‌دهد
                 },
                 onFailure = {
-                    navController.navigate("home") {
-                        popUpTo(0) { inclusive = true }
-                    }
+                    navController.navigateToHome()
                 }
             )
         } catch (e: Exception) {
             Log.e("SelectInfoScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
-            navController.navigate("home") {
-                popUpTo(0) { inclusive = true }
-            }
+            navController.navigateToHome()
         }
     }
 
