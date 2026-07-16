@@ -4,13 +4,22 @@ import android.app.Application
 import android.util.Log
 import androidx.work.Configuration
 import androidx.work.WorkManager
+import com.atk.atk_cargo.di.appModule
+import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger
+import org.koin.core.context.startKoin
 
 class AtkCargoApplication : Application() {
-    lateinit var container: AppContainer
 
     override fun onCreate() {
         super.onCreate()
-        container = AppContainer()
+
+        // Initialize Koin DI
+        startKoin {
+            androidLogger()
+            androidContext(this@AtkCargoApplication)
+            modules(appModule)
+        }
 
         try {
             val config = Configuration.Builder()

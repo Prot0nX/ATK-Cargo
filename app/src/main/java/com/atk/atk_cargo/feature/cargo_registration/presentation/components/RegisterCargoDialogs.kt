@@ -1,0 +1,2637 @@
+package com.atk.atk_cargo.feature.cargo_registration.presentation.components
+
+import android.annotation.SuppressLint
+import android.content.ClipData
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.*
+import androidx.compose.animation.expandIn
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.airbnb.lottie.compose.*
+import com.atk.atk_cargo.R
+import com.atk.atk_cargo.data.model.CargoInfo
+import com.atk.atk_cargo.data.model.CargoInfoRequest
+import com.atk.atk_cargo.data.model.MessageType
+import com.atk.atk_cargo.data.model.WarningStatus
+import com.atk.atk_cargo.feature.cargo_registration.domain.format.formatNumber
+import com.atk.atk_cargo.feature.cargo_registration.domain.format.toEnglishNumbers
+import com.atk.atk_cargo.feature.cargo_registration.domain.ocr.preprocessImage
+import com.atk.atk_cargo.feature.cargo_registration.domain.ocr.recognizeTextFromImage
+import com.atk.atk_cargo.feature.cargo_registration.domain.ocr.extractNumber
+import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.text.DecimalFormat
+import java.text.NumberFormat
+import java.util.Locale
+
+@Composable
+fun DuplicateTrackingNumbersDialog(
+    duplicateNumbers: List<String>,
+    onDismiss: () -> Unit,
+    onSearchTrackingNumber: (String) -> Unit = {}
+) {
+    var selectedTrackingNumber by remember { mutableStateOf<String?>(null) }
+    var isVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .wrapContentHeight()
+                .scale(
+                    animateFloatAsState(
+                        targetValue = if (isVisible) 1f else 0.8f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        label = "scale"
+                    ).value
+                )
+                .alpha(
+                    animateFloatAsState(
+                        targetValue = if (isVisible) 1f else 0f,
+                        animationSpec = tween(300),
+                        label = "alpha"
+                    ).value
+                ),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp,
+            shadowElevation = 12.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "حواله‌های تکراری",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "${duplicateNumbers.size} شماره حواله تکراری",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                ) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 180.dp)
+                            .padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(duplicateNumbers) { trackingNumber ->
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectedTrackingNumber = trackingNumber
+                                    },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (selectedTrackingNumber == trackingNumber) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
+                                tonalElevation = if (selectedTrackingNumber == trackingNumber) 2.dp else 0.dp
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(
+                                                MaterialTheme.colorScheme.error,
+                                                CircleShape
+                                            )
+                                    )
+
+                                    Text(
+                                        text = trackingNumber,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = if (selectedTrackingNumber == trackingNumber) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    )
+
+                                    if (selectedTrackingNumber == trackingNumber) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (selectedTrackingNumber != null) {
+                        Button(
+                            onClick = {
+                                selectedTrackingNumber?.let { trackingNumber ->
+                                    onSearchTrackingNumber(trackingNumber)
+                                    onDismiss()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "جستجو",
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = if (selectedTrackingNumber != null) "بستن" else "متوجه شدم",
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun QuotaWarningDialog(
+    warning: WarningStatus,
+    onDismiss: () -> Unit,
+    viewModel: CargoViewModel,
+) {
+    val coroutineScope = rememberCoroutineScope()
+    val scale = remember { androidx.compose.animation.core.Animatable(0.8f) }
+    val alpha = remember { androidx.compose.animation.core.Animatable(0f) }
+    val iconScale = remember { androidx.compose.animation.core.Animatable(1f) }
+
+    LaunchedEffect(Unit) {
+        launch {
+            scale.animateTo(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+            )
+        }
+
+        launch {
+            alpha.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(300)
+            )
+        }
+
+        launch {
+            while (true) {
+                iconScale.animateTo(
+                    targetValue = 1.2f,
+                    animationSpec = tween(600, easing = FastOutSlowInEasing)
+                )
+                iconScale.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(600, easing = FastOutSlowInEasing)
+                )
+                delay(1000)
+            }
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .wrapContentHeight()
+                .padding(vertical = 8.dp)
+                .scale(scale.value)
+                .alpha(alpha.value),
+            shape = RoundedCornerShape(24.dp),
+            contentColor = Color.White
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .scale(iconScale.value)
+                            .background(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                                        MaterialTheme.colorScheme.error.copy(alpha = 0.0f)
+                                    )
+                                ),
+                                shape = CircleShape
+                            )
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .align(Alignment.Center)
+                            .background(
+                                color = MaterialTheme.colorScheme.error,
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "هشدار محدودیت درصد کوتاژ",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.08f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    "شماره کوتاژ",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                                Text(
+                                    warning.quotaNumber,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    "${warning.percentage}%",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(10.dp)
+                                    .clip(RoundedCornerShape(5.dp))
+                                    .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f))
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth((warning.percentage / 100f).toFloat())
+                                    .height(10.dp)
+                                    .clip(RoundedCornerShape(5.dp))
+                                    .background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                                                MaterialTheme.colorScheme.error
+                                            )
+                                        )
+                                    )
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                for (i in 1..4) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(4.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (warning.percentage >= i * 25) Color.White.copy(
+                                                    alpha = 0.9f
+                                                )
+                                                else Color.Transparent
+                                            )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "کوتاژ به حد نصاب مجاز رسیده است و امکان ثبت حواله جدید و خروج وجود ندارد.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Justify,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                    ) {
+                        Text(
+                            "بستن",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                viewModel.toggleQuotaStatus(warning.quotaId ?: 0, warning.quotaNumber)
+                                onDismiss()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 4.dp,
+                            pressedElevation = 8.dp
+                        )
+                    ) {
+                        Text(
+                            "متوجه شدم",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun processScannedQuota(scannedCode: String): String {
+    val trimmedCode = scannedCode.trim()
+    val processedCode = when {
+        trimmedCode.contains("-") -> trimmedCode.split("-").last()
+        trimmedCode.startsWith("990000") -> trimmedCode.substring(6)
+        else -> trimmedCode
+    }
+    return if (processedCode.length > 4) {
+        processedCode.takeLast(4)
+    } else {
+        processedCode
+    }
+}
+
+@Composable
+fun QuotaEntryDialog(
+    showDialog: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+    shipName: String,
+    currentQuota: String,
+    viewModel: CargoViewModel
+) {
+    var quotaEntry by remember { mutableStateOf("") }
+    var isError by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    val coroutineScope = rememberCoroutineScope()
+    val barcodeLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
+        result.contents?.let { scannedCode ->
+            val processedCode = processScannedQuota(scannedCode)
+            quotaEntry = processedCode
+            if (isError) {
+                isError = false
+                errorMessage = ""
+            }
+        }
+    }
+    
+    fun startBarcodeScanner() {
+        val options = ScanOptions()
+            .setDesiredBarcodeFormats(ScanOptions.ALL_CODE_TYPES)
+            .setPrompt("اسکن کوتاژ")
+            .setCameraId(0)
+            .setBeepEnabled(false)
+            .setBarcodeImageEnabled(true)
+            .setOrientationLocked(false)
+        
+        barcodeLauncher.launch(options)
+    }
+
+    LaunchedEffect(showDialog) {
+        if (showDialog) {
+            quotaEntry = ""
+            isError = false
+            errorMessage = ""
+            isLoading = false
+            delay(150)
+            focusRequester.requestFocus()
+        }
+    }
+
+    if (showDialog) {
+        Dialog(
+            onDismissRequest = { if (!isLoading) onDismiss() },
+            properties = DialogProperties(
+                dismissOnBackPress = !isLoading,
+                dismissOnClickOutside = !isLoading,
+                usePlatformDefaultWidth = false
+            )
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .padding(16.dp)
+                    .height(440.dp)
+                    .animateContentSize(
+                        animationSpec = tween(
+                            durationMillis = 200,
+                            easing = FastOutSlowInEasing
+                        )
+                    ),
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp,
+                shadowElevation = 8.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ConfirmationNumber,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+                                
+                                Text(
+                                    text = "تغییر کوتاژ",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            
+                            IconButton(
+                                onClick = { if (!isLoading) onDismiss() },
+                                enabled = !isLoading,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "بستن",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            ),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DirectionsBoat,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = "کشتی: $shipName",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Text(
+                                        text = "کوتاژ فعلی: $currentQuota",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+                        }
+
+                        DialogContent(
+                            quotaEntry = quotaEntry,
+                            onQuotaEntryChange = { newValue ->
+                                if (newValue.length <= 4 && newValue.all { it.isDigit() }) {
+                                    quotaEntry = newValue
+                                    if (isError) {
+                                        isError = false
+                                        errorMessage = ""
+                                    }
+                                }
+                            },
+                            isError = isError,
+                            errorMessage = errorMessage,
+                            focusRequester = focusRequester,
+                            isLoading = isLoading
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                when {
+                                    quotaEntry.isEmpty() -> {
+                                        isError = true
+                                        errorMessage = "لطفاً کوتاژ جدید را وارد کنید"
+                                    }
+                                    quotaEntry.length != 4 -> {
+                                        isError = true
+                                        errorMessage = "کوتاژ باید دقیقاً 4 رقم باشد"
+                                    }
+                                    quotaEntry == currentQuota -> {
+                                        isError = true
+                                        errorMessage = "کوتاژ جدید نمی‌تواند مشابه کوتاژ فعلی باشد"
+                                    }
+                                    else -> {
+                                        if (quotaEntry.all { it.isDigit() }) {
+                                            isLoading = true
+                                            coroutineScope.launch {
+                                                try {
+                                                    val response = viewModel.checkQuotaExistenceCargo(quotaEntry, shipName)
+                                                    
+                                                    if (response.exists && response.matchingQuotas.isNotEmpty()) {
+                                                        val selectedQuota = response.matchingQuotas.first()
+                                                        
+                                                        if (selectedQuota.shipName == shipName) {
+                                                            if (selectedQuota.isActive) {
+                                                                onConfirm(quotaEntry)
+                                                            } else {
+                                                                isError = true
+                                                                errorMessage = "کوتاژ $quotaEntry در حال حاضر غیرفعال است و قابل انتخاب نیست"
+                                                            }
+                                                        } else {
+                                                            isError = true
+                                                            errorMessage = "کوتاژ $quotaEntry متعلق به کشتی ${selectedQuota.shipName} است"
+                                                        }
+                                                    } else {
+                                                        isError = true
+                                                        errorMessage = "کوتاژ $quotaEntry برای کشتی $shipName یافت نشد"
+                                                    }
+                                                } catch (e: Exception) {
+                                                    isError = true
+                                                    errorMessage = "خطا در بررسی کوتاژ: ${e.message}"
+                                                } finally {
+                                                    isLoading = false
+                                                }
+                                            }
+                                        } else {
+                                            isError = true
+                                            errorMessage = "کوتاژ باید فقط شامل اعداد باشد"
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            enabled = !isLoading,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            if (isLoading) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(14.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                    Text(
+                                        text = "پردازش...",
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                }
+                            } else {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "تأیید",
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                }
+                            }
+                        }
+
+                        Surface(
+                            onClick = { startBarcodeScanner() },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            enabled = !isLoading,
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                            ),
+                            shadowElevation = 0.dp,
+                            tonalElevation = 0.dp
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        brush = Brush.linearGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                                            ),
+                                            start = Offset(0f, 0f),
+                                            end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.QrCodeScanner,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = if (isLoading) 
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                        else 
+                                            MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = "اسکن",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = if (isLoading) 
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                        else 
+                                            MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DialogContent(
+    quotaEntry: String,
+    onQuotaEntryChange: (String) -> Unit,
+    isError: Boolean,
+    errorMessage: String,
+    focusRequester: FocusRequester,
+    isLoading: Boolean
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        OutlinedTextField(
+            value = quotaEntry,
+            onValueChange = onQuotaEntryChange,
+            label = { 
+                Text(
+                    "کوتاژ جدید",
+                    style = MaterialTheme.typography.bodyMedium
+                ) 
+            },
+            placeholder = { 
+                Text(
+                    "مثال: 1234",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                ) 
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.ConfirmationNumber,
+                    contentDescription = null,
+                    tint = if (isError) MaterialTheme.colorScheme.error 
+                          else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
+            trailingIcon = {
+                if (quotaEntry.isNotEmpty()) {
+                    IconButton(
+                        onClick = { onQuotaEntryChange("") },
+                        enabled = !isLoading,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "پاک کردن",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done
+            ),
+            singleLine = true,
+            isError = isError,
+            enabled = !isLoading,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = if (isError) MaterialTheme.colorScheme.error 
+                                   else MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = if (isError) MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                                     else MaterialTheme.colorScheme.outline,
+                focusedLabelColor = if (isError) MaterialTheme.colorScheme.error 
+                                  else MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                errorBorderColor = MaterialTheme.colorScheme.error,
+                errorLabelColor = MaterialTheme.colorScheme.error,
+                disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                disabledLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+            ),
+            shape = RoundedCornerShape(16.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "کوتاژ باید 4 رقم باشد",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+            
+            Text(
+                text = "${quotaEntry.length}/4",
+                style = MaterialTheme.typography.bodySmall,
+                color = when {
+                    quotaEntry.length == 4 -> MaterialTheme.colorScheme.primary
+                    quotaEntry.length > 4 -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                }
+            )
+        }
+
+        AnimatedVisibility(
+            visible = isError && errorMessage.isNotEmpty(),
+            enter = fadeIn(
+                animationSpec = tween(
+                    durationMillis = 150,
+                    easing = FastOutSlowInEasing
+                )
+            ) + expandVertically(
+                animationSpec = tween(
+                    durationMillis = 150,
+                    easing = FastOutSlowInEasing
+                )
+            ),
+            exit = fadeOut(
+                animationSpec = tween(
+                    durationMillis = 100,
+                    easing = LinearEasing
+                )
+            ) + shrinkVertically(
+                animationSpec = tween(
+                    durationMillis = 100,
+                    easing = LinearEasing
+                )
+            )
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
+                ),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(
+                    1.dp, 
+                    MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    
+                    Text(
+                        text = errorMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = isLoading,
+            enter = fadeIn(
+                animationSpec = tween(
+                    durationMillis = 150,
+                    easing = FastOutSlowInEasing
+                )
+            ) + expandVertically(
+                animationSpec = tween(
+                    durationMillis = 150,
+                    easing = FastOutSlowInEasing
+                )
+            ),
+            exit = fadeOut(
+                animationSpec = tween(
+                    durationMillis = 100,
+                    easing = LinearEasing
+                )
+            ) + shrinkVertically(
+                animationSpec = tween(
+                    durationMillis = 100,
+                    easing = LinearEasing
+                )
+            )
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    Text(
+                        text = "در حال بررسی کوتاژ...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
+}
+
+@SuppressLint("UnusedBoxWithConstraintsScope")
+@Composable
+fun NetWeightDialog(
+    scaleReceiptNumber: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var netWeight by remember { mutableStateOf("") }
+    var isError by remember { mutableStateOf(false) }
+    var showCamera by remember { mutableStateOf(true) }
+    val focusManager = LocalFocusManager.current
+    var recognizedWeight by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
+    val coroutineScope = rememberCoroutineScope()
+    val dialogEnterTransition = remember {
+        expandIn(
+            expandFrom = Alignment.Center,
+            animationSpec = tween(300, easing = EaseOutBack)
+        ) + fadeIn(animationSpec = tween(300))
+    }
+    val dialogExitTransition = remember {
+        shrinkOut(
+            shrinkTowards = Alignment.Center,
+            animationSpec = tween(300, easing = EaseInBack)
+        ) + fadeOut(animationSpec = tween(300))
+    }
+
+    fun validateAndConfirm() {
+        val weight = netWeight.toIntOrNull()
+        if (weight != null && weight in 1000..60000) {
+            onConfirm(netWeight)
+        } else {
+            isError = true
+        }
+    }
+
+    Dialog(
+        onDismissRequest = {
+            focusManager.clearFocus()
+            onDismiss()
+        },
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        BoxWithConstraints {
+            val dialogWidth = maxWidth * 0.92f
+            AnimatedVisibility(
+                visible = true,
+                enter = dialogEnterTransition,
+                exit = dialogExitTransition
+            ) {
+                Surface(
+                    modifier = Modifier
+                        .width(dialogWidth)
+                        .clip(RoundedCornerShape(20.dp))
+                        .align(Alignment.Center),
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 6.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                            CircleShape
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Scale,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(10.dp))
+
+                                Text(
+                                    "ثبت وزن خالص",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    focusManager.clearFocus()
+                                    onDismiss()
+                                },
+                                modifier = Modifier.align(Alignment.TopEnd)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "بستن",
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Receipt,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+
+                                Spacer(modifier = Modifier.width(10.dp))
+
+                                Column {
+                                    Text(
+                                        "شماره قبض باسکول",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        fontSize = 11.sp
+                                    )
+
+                                    Text(
+                                        scaleReceiptNumber,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = netWeight,
+                            onValueChange = {
+                                netWeight = it
+                                isError = false
+                            },
+                            label = {
+                                Text("وزن خالص (کیلوگرم)")
+                            },
+                            placeholder = {
+                                Text(
+                                    "مثال: 25000",
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Scale,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            keyboardActions = KeyboardActions(onDone = {
+                                focusManager.clearFocus()
+                                validateAndConfirm()
+                            }),
+                            isError = isError,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequester),
+                            textStyle = LocalTextStyle.current.copy(
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            ),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                                focusedLabelColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+
+                        if (isError) {
+                            Text(
+                                "وزن خالص باید بین 1000 تا 60000 کیلوگرم باشد",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center,
+                                fontSize = 11.sp,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Camera,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        "اسکن هوشمند تناژ خالص",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Button(
+                                    onClick = { 
+                                        showCamera = true 
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(42.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    elevation = ButtonDefaults.buttonElevation(
+                                        defaultElevation = 3.dp,
+                                        pressedElevation = 6.dp
+                                    )
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Camera,
+                                            contentDescription = "شروع اسکن",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            "اسکن تناژ خالص",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = {
+                                focusManager.clearFocus()
+                                validateAndConfirm()
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(42.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 3.dp,
+                                pressedElevation = 6.dp
+                            )
+                        ) {
+                            Text(
+                                "ثبت وزن خالص",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        Text(
+                            "برای اسکن خودکار وزن، یکی از حالت‌های اسکن را انتخاب کنید",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            textAlign = TextAlign.Center,
+                            fontSize = 10.sp,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (showCamera) {
+        Dialog(onDismissRequest = {
+            showCamera = false
+        }) {
+            EnhancedCameraPreview(
+                onImageCaptured = { image, detectedWeight ->
+                    showCamera = false
+                    coroutineScope.launch {
+                        try {
+                            if (!detectedWeight.isNullOrEmpty()) {
+                                val weightValue = detectedWeight.toDoubleOrNull()
+                                if (weightValue != null && weightValue in 1000.0..60000.0) {
+                                    netWeight = detectedWeight
+                                } else {
+                                    val preprocessedImage = preprocessImage(image)
+                                    val recognizedText = recognizeTextFromImage(preprocessedImage)
+                                    recognizedWeight = extractNumber(recognizedText)
+
+                                    if (recognizedWeight.isNotEmpty()) {
+                                        netWeight = recognizedWeight
+                                    } else {
+                                        isError = true
+                                    }
+                                }
+                            } else {
+                                val preprocessedImage = preprocessImage(image)
+                                val recognizedText = recognizeTextFromImage(preprocessedImage)
+                                recognizedWeight = extractNumber(recognizedText)
+
+                                if (recognizedWeight.isNotEmpty()) {
+                                    netWeight = recognizedWeight
+                                } else {
+                                    isError = true
+                                }
+                            }
+                        } catch (_: Exception) {
+                            isError = true
+                        }
+                    }
+                },
+                onError = {
+                    showCamera = false
+                    isError = true
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun ExitStatusDialog(
+    showDialog: Boolean,
+    onDismiss: () -> Unit,
+    exitVouchersCount: Int,
+    totalNetWeight: Float,
+) {
+    if (showDialog) {
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true)
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "آمار حواله‌های خروجی",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    AnimatedCounter(
+                        label = "تعداد حواله‌ها",
+                        count = exitVouchersCount,
+                        icon = Icons.Default.ConfirmationNumber
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    AnimatedCounter(
+                        label = "جمع وزن خالص (تن)",
+                        count = totalNetWeight.toInt(),
+                        icon = Icons.Default.Scale
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("بستن")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AnimatedCounter(
+    label: String,
+    count: Int,
+    icon: ImageVector,
+) {
+    var animatedCount by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(count) {
+        animate(
+            initialValue = 0f,
+            targetValue = count.toFloat(),
+            animationSpec = tween(durationMillis = 1000, easing = FastOutSlowInEasing)
+        ) { value, _ ->
+            animatedCount = value.toInt()
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(40.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+            Text(
+                text = NumberFormat.getNumberInstance(Locale("en", "US")).format(animatedCount),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
+fun MessageDialog(
+    message: String,
+    type: MessageType,
+    visible: Boolean,
+    onDismiss: () -> Unit
+) {
+    if (visible) {
+        val color = when (type) {
+            MessageType.SUCCESS -> Color(0xFF4CAF50)
+            MessageType.ERROR -> MaterialTheme.colorScheme.error
+            MessageType.WARNING -> Color(0xFFFF9800)
+        }
+        
+        val icon = when (type) {
+            MessageType.SUCCESS -> Icons.Default.CheckCircle
+            MessageType.ERROR -> Icons.Default.Close
+            MessageType.WARNING -> Icons.Default.Warning
+        }
+
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true)
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .background(color.copy(alpha = 0.1f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = color,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "اطلاع‌رسانی",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = color
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = color)
+                    ) {
+                        Text("متوجه شدم")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DialogPassword(
+    message: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var isVisible by remember { mutableStateOf(false) }
+    var password by remember { mutableStateOf("") }
+    var isError by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+
+    LaunchedEffect(key1 = Unit) {
+        isVisible = true
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        val transition = updateTransition(targetState = isVisible, label = "mTransition")
+        val scale by transition.animateFloat(
+            transitionSpec = { tween(durationMillis = 500) }, label = "scale"
+        ) { visible -> if (visible) 1f else 0.8f }
+
+        val alpha by transition.animateFloat(
+            transitionSpec = { tween(durationMillis = 500) }, label = "alpha"
+        ) { visible -> if (visible) 1f else 0f }
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(4.dp)
+                .scale(scale)
+                .alpha(alpha)
+                .clip(RoundedCornerShape(16.dp)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                AnimatedIcon()
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "بروزرسانی اطلاعات حواله",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = message,
+                    textAlign = TextAlign.Right,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(26.dp))
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("رمز عبور") },
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                )
+                if (isError) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(
+                        onClick = {
+                            if (password.isNotBlank()) {
+                                onConfirm(password)
+                            } else {
+                                isError = true
+                                errorMessage = "رمز عبور نمی‌تواند خالی باشد"
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("تائید")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    OutlinedButton(
+                        onClick = {
+                            isVisible = false
+                            onDismiss()
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("لغو")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnimatedIcon() {
+    val transition = rememberInfiniteTransition(label = "")
+    val scale by transition.animateFloat(
+        initialValue = 0.8f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800),
+            repeatMode = RepeatMode.Reverse
+        ), label = ""
+    )
+
+    Icon(
+        imageVector = Icons.Filled.CheckCircle,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.primary,
+        modifier = Modifier
+            .size(64.dp)
+            .scale(scale)
+    )
+}
+
+@Composable
+fun CargoInfoDetailsDialog(
+    info: CargoInfo,
+    viewModel: CargoViewModel,
+    snackbarHostState: SnackbarHostState,
+    onDismiss: () -> Unit,
+    onUpdateTypeChange: (String) -> Unit = {}
+) {
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var password by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
+    val clipboard = LocalClipboard.current
+    var selectedTab by remember { mutableIntStateOf(0) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .fillMaxHeight(0.75f)
+                .clip(RoundedCornerShape(24.dp)),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 50.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
+                                shape = CircleShape
+                            )
+                            .border(
+                                width = 8.dp,
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PriorityHigh,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Text(
+                        text = "جزئیات حواله",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                text = "شماره حواله: ${info.trackingNumber}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                            
+                            Surface(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("tracking", info.trackingNumber)))
+                                        snackbarHostState.showSnackbar("شماره حواله کپی شد")
+                                    }
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.CenterStart)
+                                    .size(36.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surface
+                            ) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ContentCopy,
+                                        contentDescription = "کپی",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    DetailTabButton(
+                                        title = "اطلاعات اصلی",
+                                        icon = Icons.Default.Info,
+                                        isSelected = selectedTab == 0,
+                                        onClick = { selectedTab = 0 },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    
+                                    DetailTabButton(
+                                        title = "وزن",
+                                        icon = Icons.Default.Scale,
+                                        isSelected = selectedTab == 1,
+                                        onClick = { selectedTab = 1 },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    
+                                    DetailTabButton(
+                                        title = "زمان و تاریخ",
+                                        icon = Icons.Default.Schedule,
+                                        isSelected = selectedTab == 2,
+                                        onClick = { selectedTab = 2 },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                            
+                            AnimatedContent(
+                                targetState = selectedTab,
+                                transitionSpec = {
+                                    fadeIn(animationSpec = tween(300)) togetherWith
+                                            fadeOut(animationSpec = tween(300))
+                                },
+                                label = "tab_content"
+                            ) { tab ->
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .verticalScroll(rememberScrollState())
+                                        .padding(16.dp)
+                                ) {
+                                    when (tab) {
+                                        0 -> MainInfoTabContent(
+                                            info = info,
+                                            onCopyScaleReceipt = {
+                                                coroutineScope.launch {
+                                                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("quota", info.scaleReceiptNumber)))
+                                                    snackbarHostState.showSnackbar("شماره قبض باسکول کپی شد")
+                                                }
+                                            }
+                                        )
+                                        1 -> WeightInfoTabContent(info = info)
+                                        2 -> TimeInfoTabContent(info = info)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Button(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .weight(1.2f)
+                                .height(46.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 2.dp,
+                                pressedElevation = 4.dp
+                            )
+                        ) {
+                            Text(
+                                text = "بستن",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        
+                        Button(
+                            onClick = { showDeleteConfirmation = true },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(46.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 4.dp,
+                                pressedElevation = 8.dp
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "حذف",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDeleteConfirmation) {
+        DeleteDialog(
+            onConfirm = {
+                coroutineScope.launch {
+                    val request = CargoInfoRequest(
+                        id = info.id ?: 0
+                    )
+                    viewModel.deleteCargo(request, password)
+                    onUpdateTypeChange("cargo_delete")
+                    snackbarHostState.showSnackbar("حواله با موفقیت حذف شد")
+                    onDismiss()
+                }
+            },
+            onDismiss = { showDeleteConfirmation = false },
+            password = password,
+            onPasswordChange = { password = it }
+        )
+    }
+}
+
+@Composable
+private fun DetailTabButton(
+    title: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else Color.Transparent,
+        label = "tab_bg"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        label = "tab_content"
+    )
+    
+    Box(
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .background(backgroundColor)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(22.dp)
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = contentColor
+            )
+        }
+        
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun MainInfoTabContent(
+    info: CargoInfo,
+    onCopyScaleReceipt: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        DetailInfoRow(label = "نام کشتی", value = info.shipName, isUppercase = true)
+        DetailInfoRow(label = "انبار بارگیری", value = info.loadingWarehouse)
+        DetailInfoRow(label = "نوع کالا", value = info.cargoType)
+        DetailInfoRow(label = "شرکت حمل و نقل", value = info.shippingCompany)
+        DetailInfoRow(
+            label = "شماره قبض باسکول",
+            value = info.scaleReceiptNumber,
+            showCopyIcon = true,
+            onCopy = onCopyScaleReceipt,
+            isLast = true
+        )
+    }
+}
+
+@Composable
+private fun WeightInfoTabContent(info: CargoInfo) {
+    val formattedNetWeight = remember(info.netWeight) {
+        try {
+            val weight = info.netWeight.replace(",", "").toDoubleOrNull() ?: 0.0
+            DecimalFormat("#,###").format(weight.toLong())
+        } catch (e: Exception) {
+            info.netWeight
+        }
+    }
+    
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        DetailInfoRow(label = "وزن خالص", value = "$formattedNetWeight کیلوگرم", isLast = true)
+    }
+}
+
+@Composable
+private fun TimeInfoTabContent(info: CargoInfo) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
+    ) {
+        DetailInfoRow(label = "زمان ورود", value = info.entryTime ?: "--")
+        DetailInfoRow(label = "زمان خروج", value = info.exitTime ?: "--")
+        DetailInfoRow(label = "تاریخ خروج", value = info.exitDate ?: "--", isLast = true)
+    }
+}
+
+@Composable
+private fun DetailInfoRow(
+    label: String,
+    value: String,
+    isUppercase: Boolean = false,
+    showCopyIcon: Boolean = false,
+    onCopy: (() -> Unit)? = null,
+    isLast: Boolean = false
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(
+                    if (onCopy != null) {
+                        Modifier.clickable { onCopy() }
+                    } else {
+                        Modifier
+                    }
+                )
+                .padding(vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (showCopyIcon) {
+                    Surface(
+                        onClick = { onCopy?.invoke() },
+                        shape = RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContentCopy,
+                                contentDescription = "کپی",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
+                }
+                
+                Text(
+                    text = if (isUppercase) value.uppercase() else value,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+        
+        if (!isLast) {
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f),
+                thickness = 1.dp
+            )
+        }
+    }
+}
+
+@Composable
+private fun DeleteDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    password: String,
+    onPasswordChange: (String) -> Unit
+) {
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_warning))
+    val lottieAnimatable = rememberLottieAnimatable()
+
+    LaunchedEffect(composition) {
+        lottieAnimatable.animate(
+            composition = composition,
+            iterations = LottieConstants.IterateForever,
+        )
+    }
+
+    val dialogEnterTransition = remember {
+        expandIn(
+            expandFrom = Alignment.Center,
+            animationSpec = tween(300, easing = EaseOutBack)
+        ) + fadeIn(animationSpec = tween(300))
+    }
+
+    val dialogExitTransition = remember {
+        shrinkOut(
+            shrinkTowards = Alignment.Center,
+            animationSpec = tween(300, easing = EaseInBack)
+        ) + fadeOut(animationSpec = tween(300))
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .wrapContentHeight()
+                .clip(RoundedCornerShape(24.dp)),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp
+        ) {
+            AnimatedVisibility(
+                visible = true,
+                enter = dialogEnterTransition,
+                exit = dialogExitTransition
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f), CircleShape)
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        LottieAnimation(
+                            composition = composition,
+                            progress = { lottieAnimatable.progress },
+                            modifier = Modifier.size(80.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "حذف حواله",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.error
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.05f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
+                    ) {
+                        Text(
+                            text = "آیا از حذف این حواله اطمینان دارید؟ این عملیات غیرقابل بازگشت است.",
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Justify
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = onPasswordChange,
+                        label = { Text("رمز عبور") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.error,
+                            focusedLabelColor = MaterialTheme.colorScheme.error
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        ) {
+                            Text(
+                                text = "انصراف",
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
+
+                        Button(
+                            onClick = onConfirm,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 4.dp,
+                                pressedElevation = 8.dp
+                            ),
+                            enabled = password.isNotEmpty()
+                        ) {
+                            Text(
+                                text = "تایید حذف",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DuplicateConfirmationDialog(
+    message: String,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val composition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.lottie_warning)
+    )
+    val lottieAnimatable = rememberLottieAnimatable()
+
+    LaunchedEffect(composition) {
+        lottieAnimatable.animate(
+            composition = composition,
+            iterations = LottieConstants.IterateForever,
+        )
+    }
+
+    val dialogEnterTransition = remember {
+        expandIn(
+            expandFrom = Alignment.Center,
+            animationSpec = tween(300, easing = EaseOutBack)
+        ) + fadeIn(animationSpec = tween(300))
+    }
+
+    val dialogExitTransition = remember {
+        shrinkOut(
+            shrinkTowards = Alignment.Center,
+            animationSpec = tween(300, easing = EaseInBack)
+        ) + fadeOut(animationSpec = tween(300))
+    }
+
+    val warningColor = MaterialTheme.colorScheme.tertiary
+    val backgroundColor = MaterialTheme.colorScheme.surface
+    val cardBackgroundColor = MaterialTheme.colorScheme.surfaceVariant
+    val borderColor = MaterialTheme.colorScheme.outline
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .wrapContentHeight()
+                .clip(RoundedCornerShape(24.dp)),
+            shape = RoundedCornerShape(24.dp),
+            color = backgroundColor,
+            tonalElevation = 8.dp
+        ) {
+            AnimatedVisibility(
+                visible = true,
+                enter = dialogEnterTransition,
+                exit = dialogExitTransition
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .background(warningColor.copy(alpha = 0.1f), CircleShape)
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        LottieAnimation(
+                            composition = composition,
+                            progress = { lottieAnimatable.progress },
+                            modifier = Modifier.size(80.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "حواله تکراری",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        color = cardBackgroundColor,
+                        border = BorderStroke(1.dp, borderColor)
+                    ) {
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Justify
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = onConfirm,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 4.dp,
+                                pressedElevation = 12.dp
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                        ) {
+                            Text(
+                                "ثبت حواله",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        
+                        OutlinedButton(
+                            onClick = onCancel,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.Transparent,
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                        ) {
+                            Text(
+                                "انصراف",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

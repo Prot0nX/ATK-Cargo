@@ -16,10 +16,14 @@ import kotlinx.coroutines.flow.map
 import java.io.IOException
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.atk.atk_cargo.security.CryptoManager
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
 
-class UserPreferencesManager(private val context: Context) {
+class UserPreferencesManager(
+    private val context: Context,
+    private val cryptoManager: CryptoManager = CryptoManager()
+) {
     private val dataStore: DataStore<Preferences> = context.dataStore
 
     val username = dataStore.data
@@ -31,7 +35,8 @@ class UserPreferencesManager(private val context: Context) {
             }
         }
         .map { preferences ->
-            preferences[USERNAME_KEY] ?: ""
+            val encrypted = preferences[USERNAME_KEY] ?: ""
+            cryptoManager.decrypt(encrypted)
         }
 
     val userType = dataStore.data
@@ -55,7 +60,8 @@ class UserPreferencesManager(private val context: Context) {
             }
         }
         .map { preferences ->
-            val json = preferences[PERMISSIONS_KEY] ?: "{}"
+            val encryptedJson = preferences[PERMISSIONS_KEY] ?: ""
+            val json = cryptoManager.decrypt(encryptedJson).ifEmpty { "{}" }
             try {
                 val type = object : TypeToken<Map<String, Boolean>>() {}.type
                 Gson().fromJson<Map<String, Boolean>>(json, type) ?: emptyMap()
@@ -85,7 +91,8 @@ class UserPreferencesManager(private val context: Context) {
             }
         }
         .map { preferences ->
-            preferences[SESSION_TOKEN_KEY] ?: ""
+            val encrypted = preferences[SESSION_TOKEN_KEY] ?: ""
+            cryptoManager.decrypt(encrypted)
         }
 
     val hardwareScore = dataStore.data
@@ -126,30 +133,32 @@ class UserPreferencesManager(private val context: Context) {
 
     suspend fun saveUserCredentials(username: String, userType: String, deviceId: String = "", sessionToken: String = "", permissions: Map<String, Boolean>? = null) {
         dataStore.edit { preferences ->
-            preferences[USERNAME_KEY] = username
+            preferences[USERNAME_KEY] = cryptoManager.encrypt(username)
             preferences[USER_TYPE_KEY] = userType
             preferences[IS_LOGGED_IN_KEY] = true
             if (deviceId.isNotEmpty()) {
                 preferences[DEVICE_ID_KEY] = deviceId
             }
             if (sessionToken.isNotEmpty()) {
-                preferences[SESSION_TOKEN_KEY] = sessionToken
+                preferences[SESSION_TOKEN_KEY] = cryptoManager.encrypt(sessionToken)
             }
             if (permissions != null) {
-                preferences[PERMISSIONS_KEY] = Gson().toJson(permissions)
+                val json = Gson().toJson(permissions)
+                preferences[PERMISSIONS_KEY] = cryptoManager.encrypt(json)
             }
         }
     }
 
     suspend fun saveSessionToken(sessionToken: String) {
         dataStore.edit { preferences ->
-            preferences[SESSION_TOKEN_KEY] = sessionToken
+            preferences[SESSION_TOKEN_KEY] = cryptoManager.encrypt(sessionToken)
         }
     }
 
     suspend fun savePermissions(permissions: Map<String, Boolean>) {
         dataStore.edit { preferences ->
-            preferences[PERMISSIONS_KEY] = Gson().toJson(permissions)
+            val json = Gson().toJson(permissions)
+            preferences[PERMISSIONS_KEY] = cryptoManager.encrypt(json)
         }
     }
 

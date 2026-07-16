@@ -1,0 +1,160 @@
+package com.atk.atk_cargo.feature.cargo_registration.domain.ocr
+
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Paint
+import androidx.camera.core.ImageProxy
+import com.google.mlkit.vision.common.InputImage
+import kotlin.math.sqrt
+
+fun preprocessImage(imageProxy: ImageProxy): InputImage {
+    val bitmap = imageProxy.toBitmap()
+    val width = bitmap.width
+    val height = bitmap.height
+
+    // ایجاد بیت‌مپ برای پردازش
+    val outputBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(outputBitmap)
+    
+    // مرحله 1: افزایش کنتراست و شارپنس برای بهبود خوانایی متن
+    val enhancementMatrix = ColorMatrix(floatArrayOf(
+        2.5f, 0f, 0f, 0f, -50f,    // افزایش کنتراست کانال قرمز
+        0f, 2.5f, 0f, 0f, -50f,    // افزایش کنتراست کانال سبز
+        0f, 0f, 2.5f, 0f, -50f,    // افزایش کنتراست کانال آبی
+        0f, 0f, 0f, 1.2f, 0f       // افزایش کنتراست آلفا
+    ))
+    
+    val enhancementPaint = Paint().apply {
+        colorFilter = ColorMatrixColorFilter(enhancementMatrix)
+    }
+    
+    // اعمال فیلتر بهبود کنتراست
+    canvas.drawBitmap(bitmap, 0f, 0f, enhancementPaint)
+    
+    // مرحله 2: تبدیل به تصویر باینری با آستانه‌گذاری محلی
+    val pixels = IntArray(width * height)
+    outputBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+    
+    // استفاده از الگوریتم آستانه‌گذاری سازگار
+    adaptiveThresholding(pixels, width, height)
+    
+    // مرحله 3: حذف نویز با فیلتر میانه
+    medianFilter(pixels, width, height)
+    
+    // مرحله 4: تقویت لبه‌ها برای بهبود تشخیص اعداد
+    enhanceEdges(pixels, width, height)
+    
+    // اعمال پیکسل‌های پردازش شده روی تصویر خروجی
+    outputBitmap.setPixels(pixels, 0, width, 0, 0, width, height)
+    
+    return InputImage.fromBitmap(outputBitmap, imageProxy.imageInfo.rotationDegrees)
+}
+
+private fun adaptiveThresholding(pixels: IntArray, width: Int, height: Int) {
+    val windowSize = 15  // اندازه پنجره برای محاسبه آستانه محلی
+    val c = 10          // ثابت کاهش از میانگین محلی
+    
+    for (y in 0 until height) {
+        for (x in 0 until width) {
+            val pos = y * width + x
+            
+            // محاسبه میانگین در پنجره محلی
+            var sum = 0
+            var count = 0
+            
+            for (wy in maxOf(0, y - windowSize / 2) until minOf(height, y + windowSize / 2 + 1)) {
+                for (wx in maxOf(0, x - windowSize / 2) until minOf(width, x + windowSize / 2 + 1)) {
+                    val pixel = pixels[wy * width + wx]
+                    val gray = (pixel and 0xFF) + ((pixel shr 8) and 0xFF) + ((pixel shr 16) and 0xFF)
+                    sum += gray / 3
+                    count++
+                }
+            }
+            
+            val threshold = if (count > 0) sum / count - c else 128
+            
+            // اعمال آستانه محلی
+            val pixel = pixels[pos]
+            val gray = ((pixel and 0xFF) + ((pixel shr 8) and 0xFF) + ((pixel shr 16) and 0xFF)) / 3
+            
+            pixels[pos] = if (gray > threshold) 0xFFFFFFFF.toInt() else 0xFF000000.toInt()
+        }
+    }
+}
+
+private fun medianFilter(pixels: IntArray, width: Int, height: Int) {
+    val output = pixels.copyOf()
+    val windowSize = 3
+    val window = IntArray(windowSize * windowSize)
+    
+    for (y in 1 until height - 1) {
+        for (x in 1 until width - 1) {
+            var idx = 0
+            
+            // جمع‌آوری مقادیر پیکسل‌های همسایه
+            for (wy in -1..1) {
+                for (wx in -1..1) {
+                    window[idx++] = pixels[(y + wy) * width + (x + wx)]
+                }
+            }
+            
+            // مرتب‌سازی و انتخاب مقدار میانه
+            window.sort()
+            output[y * width + x] = window[windowSize * windowSize / 2]
+        }
+    }
+    
+    // کپی نتایج به آرایه اصلی
+    for (i in pixels.indices) {
+        pixels[i] = output[i]
+    }
+}
+
+private fun enhanceEdges(pixels: IntArray, width: Int, height: Int) {
+    val output = pixels.copyOf()
+    val sobelX = arrayOf(
+        intArrayOf(-1, 0, 1),
+        intArrayOf(-2, 0, 2),
+        intArrayOf(-1, 0, 1)
+    )
+    
+    val sobelY = arrayOf(
+        intArrayOf(1, 2, 1),
+        intArrayOf(0, 0, 0),
+        intArrayOf(-1, -2, -1)
+    )
+    
+    for (y in 1 until height - 1) {
+        for (x in 1 until width - 1) {
+            var sumX = 0
+            var sumY = 0
+            
+            for (wy in -1..1) {
+                for (wx in -1..1) {
+                    val pixel = pixels[(y + wy) * width + (x + wx)]
+                    val gray = if (pixel == 0xFFFFFFFF.toInt()) 255 else 0
+                    
+                    sumX += gray * sobelX[wy + 1][wx + 1]
+                    sumY += gray * sobelY[wy + 1][wx + 1]
+                }
+            }
+            
+            val magnitude = minOf(255, sqrt((sumX * sumX + sumY * sumY).toDouble()).toInt())
+            
+            // تقویت لبه‌ها اگر مقدار بیش از آستانه باشد
+            if (magnitude > 30) {
+                output[y * width + x] = 0xFF000000.toInt()  // لبه‌ها سیاه می‌شوند
+            }
+        }
+    }
+    
+    // ادغام لبه‌های تقویت شده با تصویر اصلی
+    for (i in pixels.indices) {
+        // اگر پیکسل در تصویر اصلی سیاه است یا در خروجی لبه تشخیص داده شده، آن را سیاه نگه دار
+        if (pixels[i] == 0xFF000000.toInt() || output[i] == 0xFF000000.toInt()) {
+            pixels[i] = 0xFF000000.toInt()
+        }
+    }
+}

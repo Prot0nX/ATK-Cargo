@@ -21,6 +21,7 @@ kotlin = "2.2.20"
 compose-compiler = "1.5.15"
 kotlinx-coroutines-android = "1.10.2"
 kotlinx-serialization-json = "1.9.0"
+koin = "3.5.6"
 
 # Compose
 compose-bom = "2025.09.00"
@@ -155,8 +156,11 @@ tensorflow-lite-task-vision = { module = "org.tensorflow:tensorflow-lite-task-vi
 text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "text-recognition" }
 zxing-android-embedded = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxing-android-embedded" }
 androidx-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundation-layout" }
+koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
+koin-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
