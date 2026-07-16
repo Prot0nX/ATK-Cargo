@@ -1,0 +1,22 @@
+<?php
+// config.php.example
+// این یک فایل نمونه است. اطلاعات واقعی دیتابیس خود را در فایل config.php قرار دهید.
+
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'atk_cargo_db');
+define('DB_USER', 'root');
+define('DB_PASSWORD', '');
+
+// تابع برای ایجاد اتصال به پایگاه داده (برای کدهای قدیمی)
+function getDbConnection() {
+    static $conn;
+    if ($conn === null) {
+        $conn = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
+        if ($conn->connect_error) {
+            error_log("خطا در اتصال به پایگاه داده: " . $conn->connect_error);
+            die("خطا در اتصال به پایگاه داده. لطفاً بعداً دوباره تلاش کنید.");
+        }
+        $conn->set_charset("utf8mb4");
+    }
+    return $conn;
+}
