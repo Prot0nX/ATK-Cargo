@@ -139,6 +139,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
+import com.atk.atk_cargo.feature.cargo_entry.navigation.navigateToInitialInfo
+import com.atk.atk_cargo.feature.cargo_entry.navigation.navigateToSelectInfo
+import com.atk.atk_cargo.feature.cargo_counter.navigation.navigateToCargoCounter
+import com.atk.atk_cargo.feature.reports.navigation.navigateToManageShips
+import com.atk.atk_cargo.feature.chat.navigation.navigateToAdminChat
 import com.atk.atk_cargo.MainActivity
 import com.atk.atk_cargo.R
 import com.atk.atk_cargo.api.AppNotificationManager
@@ -337,7 +342,13 @@ fun HomeScreen(
                 "initial_info", "select_info", "cargo_counter", "manage_ships", "manage_users", "admin_chat" -> {
                     showGridAnimation = false
                     delay(300)
-                    navController.navigate(menuItem.route)
+                    when (menuItem.route) {
+                        "initial_info" -> navController.navigateToInitialInfo()
+                        "select_info" -> navController.navigateToSelectInfo()
+                        "cargo_counter" -> navController.navigateToCargoCounter()
+                        "manage_ships" -> navController.navigateToManageShips()
+                        "admin_chat" -> navController.navigateToAdminChat()
+                    }
                 }
             }
             selectedMenuItem = null

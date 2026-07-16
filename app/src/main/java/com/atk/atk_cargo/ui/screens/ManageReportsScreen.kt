@@ -4,6 +4,7 @@ package com.atk.atk_cargo.ui.screens
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.util.Log
+import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -112,9 +113,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
                 },
                 onFailure = {
                     if (navController != null) {
-                        navController.navigate("home") {
-                            popUpTo(0) { inclusive = true }
-                        }
+                        navController.navigateToHome()
                     } else {
                         val intent = Intent(context, MainActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -125,9 +124,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
         } catch (e: Exception) {
             Log.e("ManageReportsScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
             if (navController != null) {
-                navController.navigate("home") {
-                    popUpTo(0) { inclusive = true }
-                }
+                navController.navigateToHome()
             } else {
                 val intent = Intent(context, MainActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
