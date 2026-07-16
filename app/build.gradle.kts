@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.kotlin.serialization)
     id("kotlin-parcelize")
     id("kotlin-kapt")
 }
@@ -238,7 +239,7 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.play.services.mlkit.barcode.scanning)
-    implementation("com.google.mlkit:text-recognition:16.0.0")
+    implementation(libs.text.recognition)
 
     // ==================== Data Storage ====================
     implementation(libs.androidx.datastore.preferences)
@@ -291,4 +292,8 @@ dependencies {
     // ==================== Debug Tools ====================
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // ==================== Dependency Injection (Koin) ====================
+    implementation(libs.koin.android)
+    implementation(libs.koin.compose)
 }
