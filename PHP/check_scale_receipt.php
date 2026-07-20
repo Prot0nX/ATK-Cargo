@@ -1,70 +1,39 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
-error_reporting(E_ALL);
-ini_set('display_errors', 0);
+// PHP/check_scale_receipt.php
 
-require_once __DIR__ . '/config/config.php';
+declare(strict_types=1);
 
-// تنظیم مسیر فایل لاگ
-$logFile = __DIR__ . '/logs/scale_receipt_check.log';
+require_once __DIR__ . '/src/bootstrap.php';
 
-function writeLog($message) {
-    global $logFile;
-    $timestamp = date('Y-m-d H:i:s');
-    $logMessage = "[$timestamp] $message" . PHP_EOL;
-    file_put_contents($logFile, $logMessage, FILE_APPEND);
-}
-
-function sanitize_input($input) {
-    return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
-}
-
-function send_json_response($data, $status_code = 200) {
-    http_response_code($status_code);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE);
-    exit();
-}
-
-function is_valid_scale_receipt($scaleReceiptNumber) {
-    // بررسی عددی بودن
-    if (!ctype_digit($scaleReceiptNumber)) {
-        return false;
-    }
-
-    // بررسی طول (8 رقمی بودن)
-    if (strlen($scaleReceiptNumber) !== 8) {
-        return false;
-    }
-
-    // بررسی دو رقم اول
-    $firstTwoDigits = substr($scaleReceiptNumber, 0, 2);
-    if ($firstTwoDigits < '44' || $firstTwoDigits > '55') {
-        return false;
-    }
-
-    return true;
-}
-
-
-$scaleReceiptNumber = sanitize_input($_GET['scaleReceiptNumber'] ?? '');
-
-if (empty($scaleReceiptNumber)) {
-    send_json_response(['error' => 'شماره قبض باسکول الزامی است.'], 400);
-}
-
-if (!is_valid_scale_receipt($scaleReceiptNumber)) {
-    send_json_response(['error' => 'شماره قبض باسکول معتبر نیست. لطفاً دوباره اسکن کنید.'], 400);
-}
+use App\Core\Database;
+use App\Core\Request;
+use App\Core\Response;
+use App\Core\Logger;
 
 try {
-    $conn = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
-    if ($conn->connect_error) {
-        throw new Exception("خطا در اتصال به پایگاه داده");
+    $request = new Request();
+    $scaleReceiptNumber = $request->get('scaleReceiptNumber');
+
+    if (!$scaleReceiptNumber) {
+        Response::sendJson(['error' => 'شماره قبض باسکول الزامی است.'], 400);
     }
 
-    $conn->set_charset("utf8mb4");
+    $scaleReceiptNumber = htmlspecialchars(trim((string)$scaleReceiptNumber), ENT_QUOTES, 'UTF-8');
 
-    $stmt = $conn->prepare("SELECT trackingNumber, netWeight, loadingQuotaNumber FROM CargoInfo WHERE scaleReceiptNumber = ? LIMIT 1");
+    // بررسی معتبر بودن قبض باسکول (عددی و ۸ رقمی بودن)
+    if (!ctype_digit($scaleReceiptNumber) || strlen($scaleReceiptNumber) !== 8) {
+        Response::sendJson(['error' => 'شماره قبض باسکول معتبر نیست. لطفاً دوباره اسکن کنید.'], 400);
+    }
+
+    $firstTwoDigits = substr($scaleReceiptNumber, 0, 2);
+    if ($firstTwoDigits < '44' || $firstTwoDigits > '55') {
+        Response::sendJson(['error' => 'شماره قبض باسکول معتبر نیست. لطفاً دوباره اسکن کنید.'], 400);
+    }
+
+    $db = Database::getInstance()->getMysqliConnection();
+    
+    // واکشی اطلاعات حواله، کوتاژ و وزن برای قبض باسکول تکراری با فیلتر کردن ردیف‌های نامعتبر و کثیف دیتابیس
+    $stmt = $db->prepare("SELECT trackingNumber AS trackingNumber, netWeight AS netWeight, loadingQuotaNumber AS loadingQuotaNumber FROM CargoInfo WHERE scaleReceiptNumber = ? AND trackingNumber IS NOT NULL AND trackingNumber != '' ORDER BY id DESC LIMIT 1");
     if (!$stmt) {
         throw new Exception("خطا در آماده‌سازی دستور SQL");
     }
@@ -76,23 +45,27 @@ try {
 
     $result = $stmt->get_result();
     if ($row = $result->fetch_assoc()) {
-        send_json_response([
+        Logger::getInstance()->info("Found scale receipt duplicate: " . json_encode($row, JSON_UNESCAPED_UNICODE));
+        
+        // تبدیل کلیدهای آرایه به حروف کوچک جهت انعطاف‌پذیری و مقاومت در برابر درایورهای مختلف MySQL
+        $lowerRow = array_change_key_case($row, CASE_LOWER);
+        
+        $trackingNumberVal = $lowerRow['trackingnumber'] ?? '';
+        $netWeightVal = $lowerRow['netweight'] ?? '';
+        $loadingQuotaNumberVal = $lowerRow['loadingquotanumber'] ?? '';
+
+        Response::sendJson([
             'exists' => true,
             'message' => 'شماره قبض باسکول تکراری است.',
-            'trackingNumber' => $row['trackingNumber'],
-            'netWeight' => $row['netWeight'],
-            'loadingQuotaNumber' => $row['loadingQuotaNumber']
+            'trackingNumber' => (string)$trackingNumberVal,
+            'netWeight' => (string)$netWeightVal,
+            'loadingQuotaNumber' => (string)$loadingQuotaNumberVal
         ]);
     } else {
-        send_json_response(['exists' => false, 'message' => 'شماره قبض باسکول معتبر است.']);
+        Response::sendJson(['exists' => false, 'message' => 'شماره قبض باسکول معتبر است.']);
     }
 
 } catch (Exception $e) {
-    send_json_response(['error' => $e->getMessage()], 500);
-} finally {
-    if (isset($stmt)) $stmt->close();
-    if (isset($conn) && $conn instanceof mysqli) {
-        $conn->close();
-    }
+    Logger::getInstance()->error("Error in check_scale_receipt.php: " . $e->getMessage());
+    Response::sendJson(['error' => $e->getMessage()], 500);
 }
-?>

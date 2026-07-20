@@ -1742,10 +1742,19 @@ fun MessageDialog(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
                     Text(
                         text = message,
                         style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
+                        textAlign = if (message.contains("\n")) TextAlign.Start else TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                            .clickable {
+                                clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(message))
+                                android.widget.Toast.makeText(context, "کپی شد!", android.widget.Toast.LENGTH_SHORT).show()
+                            },
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 

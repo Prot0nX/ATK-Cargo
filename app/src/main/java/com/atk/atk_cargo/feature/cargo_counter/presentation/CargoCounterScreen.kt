@@ -55,6 +55,7 @@ import com.atk.atk_cargo.feature.cargo_counter.presentation.components.StatusSna
 import com.atk.atk_cargo.feature.cargo_counter.presentation.components.TabBar
 import com.atk.atk_cargo.feature.cargo_entry.presentation.ShipSelectionDialog
 import com.atk.atk_cargo.feature.home.navigation.navigateToHome
+import com.atk.atk_cargo.feature.reports.navigation.navigateToCargoDetails
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -144,26 +145,17 @@ private fun loadActiveShips(
 
 private fun navigateToCargoDetailsScreen(navController: NavController, shipInfo: ActiveShipInfo) {
     try {
-        val encodedShippingCompany = URLEncoder.encode(shipInfo.shippingCompany, "UTF-8")
-        val encodedWarehouse = URLEncoder.encode(shipInfo.loadingWarehouse, "UTF-8")
-        val encodedCargoType = URLEncoder.encode(shipInfo.cargoType, "UTF-8")
+        val encodedShippingCompany = java.net.URLEncoder.encode(shipInfo.shippingCompany, "UTF-8")
+        val encodedWarehouse = java.net.URLEncoder.encode(shipInfo.loadingWarehouse, "UTF-8")
+        val encodedCargoType = java.net.URLEncoder.encode(shipInfo.cargoType, "UTF-8")
 
-        val route = buildString {
-            append("cargoDetailsScreen/")
-            append(shipInfo.loadingQuotaNumber)
-            append("/")
-            append(encodedShippingCompany)
-            append("/")
-            append(encodedWarehouse)
-            append("/")
-            append(encodedCargoType)
-        }
-
-        Log.d("Navigation", "Navigating to: $route")
-        navController.navigate(route) {
-            launchSingleTop = true
-            restoreState = true
-        }
+        Log.d("Navigation", "Navigating to CargoDetails for quota: ${shipInfo.loadingQuotaNumber}")
+        navController.navigateToCargoDetails(
+            quotaNumber = shipInfo.loadingQuotaNumber,
+            shippingCompany = encodedShippingCompany,
+            warehouse = encodedWarehouse,
+            cargoType = encodedCargoType
+        )
     } catch (e: Exception) {
         Log.e("Navigation", "Navigation error: ${e.message}")
         e.printStackTrace()
