@@ -47,11 +47,11 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.ColorUtils
 import com.atk.atk_cargo.api.ChatViewModel
 import com.atk.atk_cargo.data.db.ChatMessageEntity
-import com.atk.atk_cargo.utils.JalaliDateUtils
 import com.atk.atk_cargo.feature.chat.domain.ShipInfoModel
-import com.atk.atk_cargo.feature.chat.domain.getAdaptiveBubbleColor
 import com.atk.atk_cargo.feature.chat.domain.extractShipInfoAndText
+import com.atk.atk_cargo.feature.chat.domain.getAdaptiveBubbleColor
 import com.atk.atk_cargo.feature.chat.domain.replaceUsernamesWithFullNames
+import com.atk.atk_cargo.utils.JalaliDateUtils
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

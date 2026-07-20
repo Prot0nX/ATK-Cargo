@@ -1,17 +1,13 @@
 package com.atk.atk_cargo.feature.chat.presentation
 
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,15 +42,15 @@ import com.atk.atk_cargo.api.ChatViewModel
 import com.atk.atk_cargo.api.ChatViewModelFactory
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.data.db.ChatMessageEntity
-import com.atk.atk_cargo.utils.JalaliDateUtils
 import com.atk.atk_cargo.feature.chat.domain.ChatUiItem
 import com.atk.atk_cargo.feature.chat.domain.getChatBackgroundColor
 import com.atk.atk_cargo.feature.chat.domain.getDateHeaderColor
+import com.atk.atk_cargo.feature.chat.presentation.components.ChatSettingsDialogEnhanced
+import com.atk.atk_cargo.feature.chat.presentation.components.ChatTopBar
+import com.atk.atk_cargo.feature.chat.presentation.components.ErrorView
 import com.atk.atk_cargo.feature.chat.presentation.components.MessageBubble
 import com.atk.atk_cargo.feature.chat.presentation.components.MessageInputArea
-import com.atk.atk_cargo.feature.chat.presentation.components.ChatTopBar
-import com.atk.atk_cargo.feature.chat.presentation.components.ChatSettingsDialogEnhanced
-import com.atk.atk_cargo.feature.chat.presentation.components.ErrorView
+import com.atk.atk_cargo.utils.JalaliDateUtils
 
 @Composable
 fun ChatScreen(

@@ -3,6 +3,7 @@ package com.atk.atk_cargo.feature.startup.domain
 import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.Context
+import android.graphics.Canvas
 import android.hardware.display.DisplayManager
 import android.os.BatteryManager
 import android.os.Build
@@ -10,7 +11,6 @@ import android.os.Environment
 import android.os.StatFs
 import android.view.Display
 import androidx.core.graphics.createBitmap
-import android.graphics.Canvas
 import com.atk.atk_cargo.api.UserPreferencesManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

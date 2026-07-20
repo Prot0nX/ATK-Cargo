@@ -26,6 +26,7 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import javax.net.ssl.SSLException
 import javax.net.ssl.SSLHandshakeException
+import kotlin.time.Duration.Companion.milliseconds
 
 enum class SecurityErrorType {
     TAMPERED,              // دستکاری شده
@@ -146,19 +147,19 @@ class SecurityVerifier(private val context: Context) {
                 if (attemptNumber == CONNECTION_ATTEMPTS - 1) {
                     return@withContext Pair(false, SecurityErrorType.NETWORK_ERROR)
                 }
-                delay((500L * (1 shl attemptNumber)).coerceAtMost(2000L))
+                delay((500L * (1 shl attemptNumber)).coerceAtMost(2000L).milliseconds)
             } catch (e: SSLException) {
                 Log.e("SecurityVerifier", "SSL error (attempt ${attemptNumber + 1}): ${e.message}", e)
                 if (attemptNumber == CONNECTION_ATTEMPTS - 1) {
                     return@withContext Pair(false, SecurityErrorType.NETWORK_ERROR)
                 }
-                delay((500L * (1 shl attemptNumber)).coerceAtMost(2000L))
+                delay((500L * (1 shl attemptNumber)).coerceAtMost(2000L).milliseconds)
             } catch (e: Exception) {
                 Log.e("SecurityVerifier", "General security verification error (attempt ${attemptNumber + 1}): ${e.message}", e)
                 if (attemptNumber == CONNECTION_ATTEMPTS - 1) {
                     return@withContext Pair(false, SecurityErrorType.NETWORK_ERROR)
                 }
-                delay((500L * (1 shl attemptNumber)).coerceAtMost(2000L))
+                delay((500L * (1 shl attemptNumber)).coerceAtMost(2000L).milliseconds)
             }
         }
         Pair(false, SecurityErrorType.UNKNOWN_ERROR)

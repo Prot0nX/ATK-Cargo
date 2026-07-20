@@ -155,11 +155,10 @@
 # 5. مدل‌های برنامه (اولویت متوسط)
 # =======================================================================
 # حفظ مدل‌های داده برای سریالیزیشن/دیسریالیزیشن
+
 -keep class com.atk.atk_cargo.api.** { *; }
 -keep class com.atk.atk_cargo.network.** { *; }
 # حفظ data class هایSummary برای Gson (فقط کلاس‌های مورد نیاز)
--keep class com.atk.atk_cargo.api.SummaryData { *; }
--keep class com.atk.atk_cargo.api.WarehouseStatus { *; }
 -keep class com.atk.atk_cargo.models.** { *; }
 
 # Chat specific rules

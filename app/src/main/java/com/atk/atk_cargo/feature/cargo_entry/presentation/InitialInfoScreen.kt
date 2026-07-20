@@ -1,6 +1,5 @@
 package com.atk.atk_cargo.feature.cargo_entry.presentation
 
-import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
@@ -93,8 +92,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
-import com.atk.atk_cargo.feature.cargo_registration.navigation.navigateToCargoRegistration
-import com.google.gson.Gson
 import com.atk.atk_cargo.api.CheckExistenceRequest
 import com.atk.atk_cargo.api.InitialInfo
 import com.atk.atk_cargo.api.RetrofitClient
@@ -104,6 +101,8 @@ import com.atk.atk_cargo.feature.cargo_entry.domain.isValidQuotaNumber
 import com.atk.atk_cargo.feature.cargo_entry.domain.isValidShipName
 import com.atk.atk_cargo.feature.cargo_entry.domain.isValidWarehouseName
 import com.atk.atk_cargo.feature.cargo_entry.domain.isValidWeight
+import com.atk.atk_cargo.feature.cargo_registration.navigation.navigateToCargoRegistration
+import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import java.util.Locale
 

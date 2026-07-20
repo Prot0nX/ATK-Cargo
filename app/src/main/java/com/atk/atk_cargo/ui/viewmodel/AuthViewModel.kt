@@ -7,12 +7,12 @@ import com.atk.atk_cargo.api.ApiService
 import com.atk.atk_cargo.api.LoginRequest
 import com.atk.atk_cargo.api.SessionResponse
 import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.utils.hashPassword
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import com.atk.atk_cargo.utils.hashPassword
 
 sealed class LoginUiState {
     data object Idle : LoginUiState()

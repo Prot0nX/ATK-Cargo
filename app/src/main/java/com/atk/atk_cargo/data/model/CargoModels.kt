@@ -149,7 +149,10 @@ enum class MessageType {
 
 data class ScaleReceiptCheckResponse(
     val exists: Boolean,
-    val message: String
+    val message: String,
+    val trackingNumber: String? = null,
+    val netWeight: String? = null,
+    val loadingQuotaNumber: String? = null
 )
 
 data class QuotaTonnageWarning(
@@ -190,7 +193,8 @@ data class ShipInfo(
     val totalServices: String,
     val remainingServices: String,
     val tempTonnageStatus: Boolean = false,
-    val tempTonnageAmount: Float? = null
+    val tempTonnageAmount: Float? = null,
+    val cargoOwner: String = ""
 ) : Parcelable
 
 data class MenuItem(

@@ -22,7 +22,6 @@ fun NavGraphBuilder.loginScreen(
 ) {
     composable<LoginRoute> {
         LoginScreen(
-            userPreferencesManager = userPreferencesManager,
             onLoginSuccess = onLoginSuccess
         )
     }

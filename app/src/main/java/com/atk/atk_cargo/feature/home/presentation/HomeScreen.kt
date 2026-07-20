@@ -7,7 +7,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
@@ -44,7 +43,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -62,26 +60,23 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.rounded.Assignment
 import androidx.compose.material.icons.automirrored.rounded.ManageSearch
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
-import androidx.compose.material.icons.filled.AddTask
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.rounded.AddTask
 import androidx.compose.material.icons.rounded.DirectionsBoat
 import androidx.compose.material.icons.rounded.Forum
@@ -98,7 +93,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -132,18 +126,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
-import com.atk.atk_cargo.feature.cargo_entry.navigation.navigateToInitialInfo
-import com.atk.atk_cargo.feature.cargo_entry.navigation.navigateToSelectInfo
-import com.atk.atk_cargo.feature.cargo_counter.navigation.navigateToCargoCounter
-import com.atk.atk_cargo.feature.reports.navigation.navigateToManageShips
-import com.atk.atk_cargo.feature.chat.navigation.navigateToAdminChat
 import com.atk.atk_cargo.MainActivity
 import com.atk.atk_cargo.R
 import com.atk.atk_cargo.api.AppNotificationManager
@@ -155,7 +143,11 @@ import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.data.model.MenuItem
 import com.atk.atk_cargo.feature.admin.presentation.getUserTypeDisplay
-import com.atk.atk_cargo.feature.admin.presentation.getIconForUserType
+import com.atk.atk_cargo.feature.cargo_counter.navigation.navigateToCargoCounter
+import com.atk.atk_cargo.feature.cargo_entry.navigation.navigateToInitialInfo
+import com.atk.atk_cargo.feature.cargo_entry.navigation.navigateToSelectInfo
+import com.atk.atk_cargo.feature.chat.navigation.navigateToAdminChat
+import com.atk.atk_cargo.feature.reports.navigation.navigateToManageShips
 import com.atk.atk_cargo.ui.theme.SurfaceDark
 import com.atk.atk_cargo.ui.theme.ThemeBlue
 import com.atk.atk_cargo.ui.theme.ThemeBlueDark
@@ -177,9 +169,9 @@ import com.atk.atk_cargo.utils.hashPassword
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.flow.first
 import java.util.UUID
 
 @SuppressLint("HardwareIds")

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -45,21 +44,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.atk.atk_cargo.api.ColorSelector
 import com.atk.atk_cargo.api.Quota
-import com.atk.atk_cargo.api.QuotaDetails as ApiQuotaDetails
 import com.atk.atk_cargo.api.QuotaEditData
 import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.api.toTon
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import com.atk.atk_cargo.feature.reports.domain.calculatePercentage
 import com.atk.atk_cargo.feature.reports.domain.calculateProgress
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.presentation.components.InfoCard
 import com.atk.atk_cargo.feature.reports.presentation.components.ProgressBar
+import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+import com.atk.atk_cargo.api.QuotaDetails as ApiQuotaDetails
 
 @Composable
 fun QuotaDetails(

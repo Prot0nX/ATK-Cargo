@@ -46,10 +46,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -113,7 +109,8 @@ fun ShipInfoSection(
                 loadableTrucks10Wheeler = loadableTrucks10Wheeler,
                 isExpanded = isInfoVisible,
                 tempTonnageStatus = shipInfo.tempTonnageStatus,
-                tempTonnageAmount = shipInfo.tempTonnageAmount
+                tempTonnageAmount = shipInfo.tempTonnageAmount,
+                cargoOwner = shipInfo.cargoOwner
             )
 
             // محتوای قابل گسترش
@@ -143,6 +140,7 @@ private fun TopHeader(
     isExpanded: Boolean,
     tempTonnageStatus: Boolean = false,
     tempTonnageAmount: Float? = null,
+    cargoOwner: String = "",
 ) {
     val rotationAngle by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
@@ -275,8 +273,13 @@ private fun TopHeader(
                                 letterSpacing = (-0.5).sp
                             )
                         }
+                        val displayQuota = if (cargoOwner.isNotBlank()) {
+                            "$quotaNumber | $cargoOwner"
+                        } else {
+                            quotaNumber
+                        }
                         Text(
-                            text = quotaNumber,
+                            text = displayQuota,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary

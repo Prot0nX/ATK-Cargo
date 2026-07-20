@@ -1,12 +1,9 @@
 package com.atk.atk_cargo.feature.reports.presentation.dialogs
 
-import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -64,7 +61,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -75,7 +72,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -98,10 +94,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.api.QuotaItem
 import com.atk.atk_cargo.api.RetrofitClient
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
-import androidx.compose.material3.FilterChip
+import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlin.math.roundToInt
 
 @Composable

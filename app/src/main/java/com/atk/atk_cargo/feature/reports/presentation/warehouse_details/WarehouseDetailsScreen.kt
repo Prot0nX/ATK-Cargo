@@ -92,7 +92,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
@@ -100,7 +99,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
@@ -112,6 +110,8 @@ import com.atk.atk_cargo.api.FilteredSummary
 import com.atk.atk_cargo.api.Quota
 import com.atk.atk_cargo.api.VoucherDetail
 import com.atk.atk_cargo.api.Warehouse
+import com.atk.atk_cargo.feature.reports.domain.formatNumber
+import com.atk.atk_cargo.feature.reports.domain.persianDateFormat
 import com.atk.atk_cargo.ui.theme.Blue100
 import com.atk.atk_cargo.ui.theme.Blue300
 import com.atk.atk_cargo.ui.theme.Blue400
@@ -123,12 +123,11 @@ import com.atk.atk_cargo.ui.theme.Corner3XL
 import com.atk.atk_cargo.ui.theme.CornerL
 import com.atk.atk_cargo.ui.theme.CornerM
 import com.atk.atk_cargo.ui.theme.CornerXL
-import com.atk.atk_cargo.ui.theme.Gray50
 import com.atk.atk_cargo.ui.theme.Gray100
 import com.atk.atk_cargo.ui.theme.Gray200
 import com.atk.atk_cargo.ui.theme.Gray400
+import com.atk.atk_cargo.ui.theme.Gray50
 import com.atk.atk_cargo.ui.theme.Gray500
-import com.atk.atk_cargo.ui.theme.Gray600
 import com.atk.atk_cargo.ui.theme.PrimaryBlue
 import com.atk.atk_cargo.ui.theme.PrimaryBlueLight
 import com.atk.atk_cargo.ui.theme.Slate200
@@ -138,8 +137,6 @@ import com.atk.atk_cargo.ui.theme.Slate700
 import com.atk.atk_cargo.ui.theme.Slate800
 import com.atk.atk_cargo.ui.theme.SurfaceVariantDark
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
-import com.atk.atk_cargo.feature.reports.domain.formatNumber
-import com.atk.atk_cargo.feature.reports.domain.persianDateFormat
 
 @Composable
 fun WarehouseDetails(

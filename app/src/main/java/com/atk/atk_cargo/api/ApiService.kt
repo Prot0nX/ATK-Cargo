@@ -1,7 +1,7 @@
 package com.atk.atk_cargo.api
 
+import com.atk.atk_cargo.data.model.RealTimeDataResponse
 import com.google.gson.JsonElement
-import com.atk.atk_cargo.data.model.*
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body

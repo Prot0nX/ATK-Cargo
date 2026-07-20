@@ -1,13 +1,6 @@
 package com.atk.atk_cargo.feature.cargo_entry.presentation
 
-import android.content.Context
-import android.content.Intent
 import android.util.Log
-import com.atk.atk_cargo.feature.startup.domain.AnimationManager
-import com.atk.atk_cargo.feature.cargo_registration.navigation.navigateToCargoRegistration
-import com.atk.atk_cargo.feature.home.navigation.navigateToHome
-import com.google.gson.Gson
-import com.atk.atk_cargo.R
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -118,6 +111,7 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieAnimatable
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.atk.atk_cargo.R
 import com.atk.atk_cargo.api.ActiveShipInfo
 import com.atk.atk_cargo.api.CargoViewModel
 import com.atk.atk_cargo.api.ColorSelector
@@ -131,6 +125,9 @@ import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.api.formatNumber
 import com.atk.atk_cargo.api.validateServerSession
+import com.atk.atk_cargo.feature.cargo_registration.navigation.navigateToCargoRegistration
+import com.atk.atk_cargo.feature.home.navigation.navigateToHome
+import com.atk.atk_cargo.feature.startup.domain.AnimationManager
 import com.atk.atk_cargo.ui.theme.Blue50
 import com.atk.atk_cargo.ui.theme.Blue500
 import com.atk.atk_cargo.ui.theme.Gray200
@@ -138,6 +135,7 @@ import com.atk.atk_cargo.ui.theme.Purple50
 import com.atk.atk_cargo.ui.theme.Purple500
 import com.atk.atk_cargo.ui.theme.Red50
 import com.atk.atk_cargo.ui.theme.Red500
+import com.google.gson.Gson
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.delay

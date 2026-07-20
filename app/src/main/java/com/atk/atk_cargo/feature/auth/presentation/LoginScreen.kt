@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -64,7 +63,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.atk.atk_cargo.R
-import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.feature.auth.viewmodel.AuthViewModel
 import com.atk.atk_cargo.feature.auth.viewmodel.LoginUiState
 import org.koin.androidx.compose.koinViewModel
@@ -72,7 +70,6 @@ import java.util.UUID
 
 @Composable
 fun LoginScreen(
-    userPreferencesManager: UserPreferencesManager,
     onLoginSuccess: () -> Unit,
     authViewModel: AuthViewModel = koinViewModel()
 ) {
