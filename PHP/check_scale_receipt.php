@@ -64,7 +64,7 @@ try {
 
     $conn->set_charset("utf8mb4");
 
-    $stmt = $conn->prepare("SELECT COUNT(*) as count FROM CargoInfo WHERE scaleReceiptNumber = ?");
+    $stmt = $conn->prepare("SELECT trackingNumber, netWeight, loadingQuotaNumber FROM CargoInfo WHERE scaleReceiptNumber = ? LIMIT 1");
     if (!$stmt) {
         throw new Exception("خطا در آماده‌سازی دستور SQL");
     }
@@ -75,10 +75,14 @@ try {
     }
 
     $result = $stmt->get_result();
-    $row = $result->fetch_assoc();
-
-    if ($row['count'] > 0) {
-        send_json_response(['exists' => true, 'message' => 'شماره قبض باسکول تکراری است.']);
+    if ($row = $result->fetch_assoc()) {
+        send_json_response([
+            'exists' => true,
+            'message' => 'شماره قبض باسکول تکراری است.',
+            'trackingNumber' => $row['trackingNumber'],
+            'netWeight' => $row['netWeight'],
+            'loadingQuotaNumber' => $row['loadingQuotaNumber']
+        ]);
     } else {
         send_json_response(['exists' => false, 'message' => 'شماره قبض باسکول معتبر است.']);
     }

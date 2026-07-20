@@ -1,14 +1,8 @@
 package com.atk.atk_cargo.feature.chat.presentation.components
 
-import android.annotation.SuppressLint
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -78,8 +72,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.toColorInt
 import com.atk.atk_cargo.data.ColorWheel
-import com.atk.atk_cargo.feature.chat.domain.getChatBackgroundColor
 import com.atk.atk_cargo.feature.chat.domain.getAdaptiveBubbleColor
+import com.atk.atk_cargo.feature.chat.domain.getChatBackgroundColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

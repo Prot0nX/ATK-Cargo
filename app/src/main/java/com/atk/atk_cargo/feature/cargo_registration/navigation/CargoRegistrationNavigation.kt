@@ -1,5 +1,6 @@
 package com.atk.atk_cargo.feature.cargo_registration.navigation
 
+import android.util.Log
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -8,13 +9,11 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
-import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
-import com.atk.atk_cargo.feature.cargo_registration.presentation.RegisterCargoScreen
 import com.atk.atk_cargo.data.model.InitialInfo
+import com.atk.atk_cargo.feature.cargo_registration.presentation.RegisterCargoScreen
+import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.google.gson.Gson
 import kotlinx.serialization.Serializable
-import android.util.Log
-
 import org.koin.androidx.compose.koinViewModel
 
 @Serializable

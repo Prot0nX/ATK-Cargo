@@ -3,7 +3,6 @@ package com.atk.atk_cargo.data.model
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
-import java.util.Locale
 
 data class ShiftInfo(
     val startDate: String?,

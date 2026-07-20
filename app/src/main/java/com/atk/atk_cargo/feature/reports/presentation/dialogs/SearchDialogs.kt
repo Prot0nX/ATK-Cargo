@@ -98,14 +98,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.api.CargoInfo
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
+import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlinx.coroutines.launch
 
 enum class SearchType {

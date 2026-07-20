@@ -4,7 +4,6 @@ package com.atk.atk_cargo.ui.screens
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.util.Log
-import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -77,6 +76,7 @@ import com.atk.atk_cargo.api.CargoInfo
 import com.atk.atk_cargo.api.ShiftInfo
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.validateServerSession
+import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import com.atk.atk_cargo.feature.reports.presentation.components.FloatingActionButton
 import com.atk.atk_cargo.feature.reports.presentation.details.ShipDetails
 import com.atk.atk_cargo.feature.reports.presentation.dialogs.AdvancedSearchDialog

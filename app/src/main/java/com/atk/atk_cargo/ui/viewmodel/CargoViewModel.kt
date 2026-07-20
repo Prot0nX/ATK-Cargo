@@ -5,20 +5,18 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.atk.atk_cargo.feature.cargo_entry.presentation.SnackbarMessage
 import com.atk.atk_cargo.api.RetrofitClient.apiService
-import com.atk.atk_cargo.data.model.InitialInfo
+import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.data.model.CargoInfo
+import com.atk.atk_cargo.data.model.CargoInfoRequest
+import com.atk.atk_cargo.data.model.InitialInfo
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.data.model.QuotaExistenceMultipleResponse
 import com.atk.atk_cargo.data.model.QuotaStatusResponse
 import com.atk.atk_cargo.data.model.SaveOrUpdateResponse
-import com.atk.atk_cargo.data.model.CargoInfoRequest
-import com.atk.atk_cargo.api.UserPreferencesManager
-import com.atk.atk_cargo.data.model.QuotaValidationResult
 import com.atk.atk_cargo.data.repository.ReportsRepository
+import com.atk.atk_cargo.feature.cargo_entry.presentation.SnackbarMessage
 import com.google.gson.Gson
-import com.google.gson.JsonObject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -34,9 +32,7 @@ import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
-import java.util.LinkedList
 import java.util.Locale
-import java.util.Queue
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -672,7 +668,14 @@ class CargoViewModel(
 
                 if (result?.exists == true) {
                     Log.d("ATK-Log", "CargoViewModel: Scale receipt exists on server: ${result.message}")
-                    showMessage(result.message, MessageType.ERROR)
+                    val detailMsg = buildString {
+                        append("شماره قبض باسکول تکراری است!\n\n")
+                        append("این شماره قبلاً ثبت شده است:\n")
+                        append("• شماره حواله: ${result.trackingNumber ?: "نامشخص"}\n")
+                        append("• تناژ: ${result.netWeight ?: "نامشخص"} کیلوگرم\n")
+                        append("• شماره کوتاژ: ${result.loadingQuotaNumber ?: "نامشخص"}")
+                    }
+                    showMessage(detailMsg, MessageType.ERROR)
                     false
                 } else {
                     Log.d("ATK-Log", "CargoViewModel: Scale receipt is unique")

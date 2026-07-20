@@ -1,5 +1,6 @@
 package com.atk.atk_cargo.core.navigation
 
+// ===== FEATURE NAVIGATION IMPORTS =====
 import android.annotation.SuppressLint
 import android.os.Build
 import android.widget.Toast
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.atk.atk_cargo.MainActivity
 import com.atk.atk_cargo.api.LogoutRequest
@@ -57,47 +59,30 @@ import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.TonnageWarningService
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.feature.admin.presentation.UserManagementDialog
+import com.atk.atk_cargo.feature.auth.navigation.loginScreen
+import com.atk.atk_cargo.feature.auth.presentation.LoginScreen
+import com.atk.atk_cargo.feature.cargo_counter.navigation.CargoCounterRoute
+import com.atk.atk_cargo.feature.cargo_counter.presentation.CargoCounterScreen
+import com.atk.atk_cargo.feature.cargo_entry.navigation.InitialInfoRoute
+import com.atk.atk_cargo.feature.cargo_entry.navigation.SelectInfoRoute
+import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoScreen
+import com.atk.atk_cargo.feature.cargo_entry.presentation.SelectInfoScreenContent
+import com.atk.atk_cargo.feature.cargo_registration.navigation.cargoRegistrationScreen
+import com.atk.atk_cargo.feature.chat.navigation.AdminChatRoute
+import com.atk.atk_cargo.feature.chat.navigation.navigateToAdminChat
+import com.atk.atk_cargo.feature.chat.presentation.ChatScreen
+import com.atk.atk_cargo.feature.home.navigation.HomeRoute
+import com.atk.atk_cargo.feature.home.navigation.homeScreen
+import com.atk.atk_cargo.feature.reports.navigation.ManageShipsRoute
+import com.atk.atk_cargo.feature.reports.navigation.cargoDetailsScreen
 import com.atk.atk_cargo.feature.startup.presentation.SplashScreen
+import com.atk.atk_cargo.ui.screens.ManageReportsScreen
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import java.util.UUID
-
-import com.atk.atk_cargo.feature.auth.presentation.LoginScreen
-// ===== FEATURE NAVIGATION IMPORTS =====
-import com.atk.atk_cargo.feature.auth.navigation.loginScreen
-import com.atk.atk_cargo.feature.auth.navigation.navigateToLogin
-import com.atk.atk_cargo.feature.auth.navigation.LoginRoute
-import com.atk.atk_cargo.feature.home.navigation.homeScreen
-import com.atk.atk_cargo.feature.home.navigation.navigateToHome
-import com.atk.atk_cargo.feature.home.navigation.HomeRoute
-import com.atk.atk_cargo.feature.cargo_entry.navigation.initialInfoScreen
-import com.atk.atk_cargo.feature.cargo_entry.navigation.navigateToInitialInfo
-import com.atk.atk_cargo.feature.cargo_entry.navigation.selectInfoScreen
-import com.atk.atk_cargo.feature.cargo_entry.navigation.navigateToSelectInfo
-import com.atk.atk_cargo.feature.cargo_registration.navigation.cargoRegistrationScreen
-import com.atk.atk_cargo.feature.cargo_registration.navigation.navigateToCargoRegistration
-import com.atk.atk_cargo.feature.cargo_counter.navigation.cargoCounterScreen
-import com.atk.atk_cargo.feature.cargo_counter.navigation.navigateToCargoCounter
-import com.atk.atk_cargo.feature.reports.navigation.manageShipsScreen
-import com.atk.atk_cargo.feature.reports.navigation.cargoDetailsScreen
-import com.atk.atk_cargo.feature.reports.navigation.navigateToManageShips
-import com.atk.atk_cargo.feature.reports.navigation.navigateToCargoDetails
-import com.atk.atk_cargo.feature.chat.navigation.adminChatScreen
-import com.atk.atk_cargo.feature.chat.navigation.navigateToAdminChat
-import androidx.navigation.compose.composable
-import com.atk.atk_cargo.feature.cargo_entry.navigation.InitialInfoRoute
-import com.atk.atk_cargo.feature.cargo_entry.navigation.SelectInfoRoute
-import com.atk.atk_cargo.feature.cargo_counter.navigation.CargoCounterRoute
-import com.atk.atk_cargo.feature.reports.navigation.ManageShipsRoute
-import com.atk.atk_cargo.feature.chat.navigation.AdminChatRoute
-import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoScreen
-import com.atk.atk_cargo.feature.cargo_entry.presentation.SelectInfoScreenContent
-import com.atk.atk_cargo.feature.cargo_counter.presentation.CargoCounterScreen
-import com.atk.atk_cargo.ui.screens.ManageReportsScreen
-import com.atk.atk_cargo.feature.chat.presentation.ChatScreen
 
 @SuppressLint("ContextCastToActivity", "HardwareIds")
 @Composable
@@ -168,11 +153,9 @@ fun MainScreen() {
                             ) {
                                 if (!isSessionValid) {
                                     LoginScreen(
-                                        userPreferencesManager = userPreferencesManager,
                                         onLoginSuccess = {
                                             mainActivity.updateSessionValidity(true)
                                             mainActivity.startLoadingNotificationService()
-                                            navController.navigateToHome()
                                         }
                                     )
                                 } else {
@@ -185,7 +168,6 @@ fun MainScreen() {
                                             onLoginSuccess = {
                                                 mainActivity.updateSessionValidity(true)
                                                 mainActivity.startLoadingNotificationService()
-                                                navController.navigateToHome()
                                             }
                                         )
                                         homeScreen(

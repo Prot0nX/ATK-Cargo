@@ -86,7 +86,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.InitialInfo
-import com.atk.atk_cargo.feature.startup.domain.AnimationManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

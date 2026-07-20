@@ -1,14 +1,11 @@
 package com.atk.atk_cargo.feature.reports.presentation.details
 
-import android.util.Log
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,14 +13,12 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,7 +27,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.Error
@@ -60,29 +54,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.atk.atk_cargo.api.Quota
+import com.atk.atk_cargo.api.Ship
+import com.atk.atk_cargo.api.WarningStatus
+import com.atk.atk_cargo.feature.reports.domain.calculateProgress
+import com.atk.atk_cargo.feature.reports.domain.formatNumber
+import com.atk.atk_cargo.feature.reports.presentation.dialogs.QuotaWarningDialog
+import com.atk.atk_cargo.feature.reports.presentation.quota_details.QuotasList
+import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
+import com.atk.atk_cargo.feature.reports.presentation.warehouse_details.WarehousesSection
 import com.atk.atk_cargo.ui.theme.Blue700
+import com.atk.atk_cargo.ui.theme.Corner3XL
 import com.atk.atk_cargo.ui.theme.Gray300
 import com.atk.atk_cargo.ui.theme.Gray500
 import com.atk.atk_cargo.ui.theme.Gray600
 import com.atk.atk_cargo.ui.theme.PrimaryBlueLight
-import com.atk.atk_cargo.api.Quota
-import com.atk.atk_cargo.api.Ship
-import com.atk.atk_cargo.api.WarningStatus
-import com.atk.atk_cargo.ui.theme.Corner3XL
 import com.atk.atk_cargo.ui.theme.getCompletionColor
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
-import com.atk.atk_cargo.feature.reports.domain.calculateProgress
-import com.atk.atk_cargo.feature.reports.domain.formatNumber
-import com.atk.atk_cargo.feature.reports.presentation.dialogs.QuotaWarningDialog
-import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
-import com.atk.atk_cargo.feature.reports.presentation.quota_details.QuotasList
-import com.atk.atk_cargo.feature.reports.presentation.warehouse_details.WarehousesSection
 import kotlin.math.abs
 
 @Composable

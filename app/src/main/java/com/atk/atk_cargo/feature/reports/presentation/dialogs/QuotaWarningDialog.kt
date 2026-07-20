@@ -3,8 +3,8 @@ package com.atk.atk_cargo.feature.reports.presentation.dialogs
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -73,14 +72,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.api.WarningStatus
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
-import com.atk.atk_cargo.feature.reports.domain.formatWeightWithDetail
 import com.atk.atk_cargo.feature.reports.domain.format
+import com.atk.atk_cargo.feature.reports.domain.formatWeightWithDetail
 import com.atk.atk_cargo.feature.reports.presentation.quota_details.ActionButton
+import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
