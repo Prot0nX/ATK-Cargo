@@ -1,73 +1,20 @@
 <?php
-// تنظیم منطقه زمانی تهران
-date_default_timezone_set('Asia/Tehran');
+// PHP/check_logout.php
 
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+declare(strict_types=1);
 
-require_once __DIR__ . '/SessionManager.php';
+require_once __DIR__ . '/src/bootstrap.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
-
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'فقط درخواست POST مجاز است']);
-    exit;
-}
+use App\Controllers\AuthController;
+use App\Core\Response;
 
 try {
-    // دریافت داده‌های ورودی
-    $input = json_decode(file_get_contents('php://input'), true);
-    
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'فرمت JSON نامعتبر است']);
-        exit;
-    }
-    
-    if (!isset($input['username']) || empty($input['username'])) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'نام کاربری الزامی است']);
-        exit;
-    }
-    
-    $user = trim($input['username']);
-    $deviceId = isset($input['deviceId']) ? trim($input['deviceId']) : null;
-    
-    // استفاده از SessionManager برای مدیریت خروج
-    $sessionManager = new SessionManager();
-    
-    // غیرفعال کردن جلسه کاربر
-    $result = $sessionManager->deactivateSession($user, $deviceId);
-    
-    // ارسال پاسخ با کد HTTP مناسب
-    $httpCode = isset($result['http_code']) ? $result['http_code'] : ($result['success'] ? 200 : 404);
-    http_response_code($httpCode);
-    
-    // حذف http_code از پاسخ JSON
-    if (isset($result['http_code'])) {
-        unset($result['http_code']);
-    }
-    
-    echo json_encode($result);
-    
-} catch (PDOException $e) {
-    error_log("Database error in logout: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'خطا در اتصال به دیتابیس'
-    ]);
+    $controller = new AuthController();
+    $controller->logout();
 } catch (Exception $e) {
-    error_log("General error in logout: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode([
+    error_log("Error in check_logout.php wrapper: " . $e->getMessage());
+    Response::json([
         'success' => false,
-        'message' => 'خطای سرور'
-    ]);
+        'message' => 'خطایی در سرور رخ داده است.'
+    ], 500);
 }
-?>

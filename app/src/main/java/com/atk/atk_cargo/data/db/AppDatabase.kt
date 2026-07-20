@@ -20,7 +20,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "atk_cargo_db"
                 )
-                .fallbackToDestructiveMigration()
+                    .fallbackToDestructiveMigration(false)
                 .build()
                 INSTANCE = instance
                 instance

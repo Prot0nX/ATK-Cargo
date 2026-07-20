@@ -158,8 +158,16 @@
 
 -keep class com.atk.atk_cargo.api.** { *; }
 -keep class com.atk.atk_cargo.network.** { *; }
+# حفظ مدل‌های داده جدید پروژه برای جلوگیری از عدم تطابق Gson
+-keep class com.atk.atk_cargo.data.model.** { *; }
 # حفظ data class هایSummary برای Gson (فقط کلاس‌های مورد نیاز)
 -keep class com.atk.atk_cargo.models.** { *; }
+
+# حفظ کلاس Secrets و متدهای JNI Native آن جهت جلوگیری از UnsatisfiedLinkError به دلیل تغییر نام پکیج
+-keep class com.atk.atk_cargo.api.Secrets { *; }
+-keepclasseswithmembernames,includedescriptorclasses class * {
+    native <methods>;
+}
 
 # Chat specific rules
 -keep class com.atk.atk_cargo.data.db.ChatMessageEntity { *; }

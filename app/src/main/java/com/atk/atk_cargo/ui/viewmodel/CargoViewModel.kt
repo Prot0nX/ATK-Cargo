@@ -668,12 +668,23 @@ class CargoViewModel(
 
                 if (result?.exists == true) {
                     Log.d("ATK-Log", "CargoViewModel: Scale receipt exists on server: ${result.message}")
+                    val rawWeight = result.netWeight?.toFloatOrNull()
+                    val weightText = if (rawWeight != null) {
+                        val formatted = java.text.NumberFormat.getNumberInstance(java.util.Locale("en", "US")).format(rawWeight.toInt())
+                        "$formatted کیلوگرم (${(rawWeight / 1000).toInt()} تن)"
+                    } else {
+                        "نامشخص"
+                    }
                     val detailMsg = buildString {
                         append("شماره قبض باسکول تکراری است!\n\n")
                         append("این شماره قبلاً ثبت شده است:\n")
-                        append("• شماره حواله: ${result.trackingNumber ?: "نامشخص"}\n")
-                        append("• تناژ: ${result.netWeight ?: "نامشخص"} کیلوگرم\n")
-                        append("• شماره کوتاژ: ${result.loadingQuotaNumber ?: "نامشخص"}")
+                        append("• شماره حواله: ${result.trackingNumber?.takeIf { it.isNotBlank() } ?: "نامشخص"}\n")
+                        append("• تناژ: $weightText\n")
+                        append("• شماره کوتاژ: ${result.loadingQuotaNumber?.takeIf { it.isNotBlank() } ?: "نامشخص"}\n\n")
+                        append("🔍 برای کپی کردن اطلاعات دیباگ کلیک کنید:\n")
+                        append("URL: ${response.raw().request.url}\n")
+                        append("HTTP Code: ${response.code()}\n")
+                        append("Raw Response: ${Gson().toJson(result)}")
                     }
                     showMessage(detailMsg, MessageType.ERROR)
                     false
