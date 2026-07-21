@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
@@ -37,14 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.atk.atk_cargo.data.model.MessageType
-import com.atk.atk_cargo.ui.theme.Blue50
-import com.atk.atk_cargo.ui.theme.Blue500
-import com.atk.atk_cargo.ui.theme.Purple50
-import com.atk.atk_cargo.ui.theme.Purple500
-import com.atk.atk_cargo.ui.theme.Red50
-import com.atk.atk_cargo.ui.theme.Red500
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.delay
 
 @Composable
@@ -59,7 +52,7 @@ fun StatusSnackbar(
     var animatedVisibility by remember { mutableStateOf(false) }
 
     val translateY by animateDpAsState(
-        targetValue = if (animatedVisibility) 0.dp else 100.dp,
+        targetValue = if (animatedVisibility) ATKCargoTheme.spacing.none else ATKCargoTheme.spacing.max * 1.5f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioLowBouncy,
             stiffness = Spring.StiffnessLow
@@ -69,7 +62,7 @@ fun StatusSnackbar(
     val alpha by animateFloatAsState(
         targetValue = if (animatedVisibility) 1f else 0f,
         animationSpec = tween(
-            durationMillis = 300,
+            durationMillis = ATKCargoTheme.motion.durationLong1,
             easing = FastOutSlowInEasing
         ), label = "alpha"
     )
@@ -85,10 +78,16 @@ fun StatusSnackbar(
     }
 
     if (isVisible || animatedVisibility) {
+        val semanticColors = ATKCargoTheme.semanticColors
+
         Box(
             modifier = modifier
                 .fillMaxSize()
-                .padding(bottom = 24.dp, start = 16.dp, end = 16.dp),
+                .padding(
+                    bottom = ATKCargoTheme.spacing.xxl,
+                    start = ATKCargoTheme.spacing.l,
+                    end = ATKCargoTheme.spacing.l
+                ),
             contentAlignment = Alignment.BottomCenter
         ) {
             Surface(
@@ -97,21 +96,27 @@ fun StatusSnackbar(
                     .wrapContentHeight()
                     .offset(y = translateY)
                     .alpha(alpha),
-                shape = RoundedCornerShape(16.dp),
+                shape = ATKCargoTheme.appShapes.large,
                 color = when (type) {
-                    MessageType.SUCCESS -> Blue50
-                    MessageType.ERROR -> Red50
-                    MessageType.WARNING -> Purple50
+                    MessageType.SUCCESS -> semanticColors.successContainer
+                    MessageType.ERROR -> MaterialTheme.colorScheme.errorContainer
+                    MessageType.WARNING -> semanticColors.warningContainer
                 },
-                border = BorderStroke(1.dp, when (type) {
-                    MessageType.SUCCESS -> Blue500.copy(alpha = 0.2f)
-                    MessageType.ERROR -> Red500.copy(alpha = 0.2f)
-                    MessageType.WARNING -> Purple500.copy(alpha = 0.2f)
-                }),
-                shadowElevation = 2.dp
+                border = BorderStroke(
+                    width = ATKCargoTheme.dimensions.borderWidthThin,
+                    color = when (type) {
+                        MessageType.SUCCESS -> semanticColors.success.copy(alpha = 0.3f)
+                        MessageType.ERROR -> MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
+                        MessageType.WARNING -> semanticColors.warning.copy(alpha = 0.3f)
+                    }
+                ),
+                shadowElevation = ATKCargoTheme.elevation.cardDefault
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                    modifier = Modifier.padding(
+                        horizontal = ATKCargoTheme.spacing.l,
+                        vertical = ATKCargoTheme.spacing.m
+                    ),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -123,22 +128,22 @@ fun StatusSnackbar(
                         },
                         contentDescription = null,
                         tint = when (type) {
-                            MessageType.SUCCESS -> Blue500
-                            MessageType.ERROR -> Red500
-                            MessageType.WARNING -> Purple500
+                            MessageType.SUCCESS -> semanticColors.success
+                            MessageType.ERROR -> MaterialTheme.colorScheme.error
+                            MessageType.WARNING -> semanticColors.warning
                         },
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(ATKCargoTheme.dimensions.iconMedium)
                     )
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(ATKCargoTheme.spacing.m))
 
                     Text(
                         text = message,
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                         color = when (type) {
-                            MessageType.SUCCESS -> Blue500
-                            MessageType.ERROR -> Red500
-                            MessageType.WARNING -> Purple500
+                            MessageType.SUCCESS -> semanticColors.onSuccessContainer
+                            MessageType.ERROR -> MaterialTheme.colorScheme.onErrorContainer
+                            MessageType.WARNING -> semanticColors.onWarningContainer
                         }
                     )
                 }
@@ -146,3 +151,4 @@ fun StatusSnackbar(
         }
     }
 }
+

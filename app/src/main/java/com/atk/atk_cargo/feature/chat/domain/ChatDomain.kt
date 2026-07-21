@@ -8,8 +8,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
 import com.atk.atk_cargo.data.db.ChatMessageEntity
-import com.atk.atk_cargo.ui.theme.BackgroundDark
-import com.atk.atk_cargo.ui.theme.BackgroundLight
+import com.atk.atk_cargo.ui.theme.*
 
 sealed class ChatUiItem {
     abstract val id: String
@@ -32,9 +31,9 @@ fun getChatBackgroundColor(backgroundId: Int): Color {
     val isDark = isSystemInDarkTheme()
     return when (backgroundId) {
         0 -> if (isDark) BackgroundDark else BackgroundLight
-        1 -> Color(0xFFECE5DD) // WhatsApp Light
-        2 -> Color(0xFF202C33) // Dark Gray/Blue
-        3 -> Color(0xFF000000) // Pure Black
+        1 -> if (isDark) Slate900 else Gray100
+        2 -> if (isDark) Slate800 else Blue50
+        3 -> if (isDark) BackgroundDark else SurfaceLight
         else -> if (isDark) BackgroundDark else BackgroundLight
     }
 }
@@ -54,7 +53,7 @@ fun getAdaptiveBubbleColor(baseColor: Color, isMe: Boolean): Color {
         }
     } else {
         if (luminance > 0.85) {
-            Color(0xFF202C33)
+            SurfaceVariantDark
         } else {
             baseColor
         }
@@ -62,7 +61,7 @@ fun getAdaptiveBubbleColor(baseColor: Color, isMe: Boolean): Color {
 }
 
 fun getDateHeaderColor(isDarkTheme: Boolean): Color {
-    return if (isDarkTheme) Color(0xFF1F1F1F) else Color(0xFFE1F5FE)
+    return if (isDarkTheme) SurfaceDark else Blue50
 }
 
 fun Modifier.rotateIcon(degrees: Float) = this.then(

@@ -2,82 +2,14 @@ package com.atk.atk_cargo.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Typography
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
-// ===== تابع کمکی: ترکیب رنگ شفاف روی پس‌زمینه جهانی =====
-private fun Color.compositeOver(background: Color): Color {
-    val a = this.alpha
-    return Color(
-        red   = this.red   * a + background.red   * (1f - a),
-        green = this.green * a + background.green * (1f - a),
-        blue  = this.blue  * a + background.blue  * (1f - a),
-        alpha = 1f
-    )
-}
-
-// ===== ساخت ColorScheme پویا (Dark) بر اساس رنگ primary انتخابی =====
-private fun buildDynamicDarkColorScheme(primary: Color) = darkColorScheme(
-    primary              = primary,
-    onPrimary            = Color.White,
-    primaryContainer     = primary.copy(alpha = 0.25f).compositeOver(Color(0xFF0f172a)),
-    onPrimaryContainer   = primary.copy(alpha = 0.90f),
-    secondary            = primary,
-    onSecondary          = Color.White,
-    secondaryContainer   = primary.copy(alpha = 0.20f).compositeOver(Color(0xFF0f172a)),
-    onSecondaryContainer = primary.copy(alpha = 0.90f),
-    tertiary             = primary,
-    onTertiary           = Color.White,
-    tertiaryContainer    = primary.copy(alpha = 0.20f).compositeOver(Color(0xFF0f172a)),
-    onTertiaryContainer  = primary.copy(alpha = 0.90f),
-    error                = ErrorDark,
-    onError              = Color.White,
-    errorContainer       = ErrorContainerDark,
-    onErrorContainer     = Color(0xFFFFCDD2),
-    background           = BackgroundDark,
-    onBackground         = TextPrimaryDark,
-    surface              = SurfaceDark,
-    onSurface            = TextPrimaryDark,
-    surfaceVariant       = BorderDark,
-    onSurfaceVariant     = TextSecondaryDark,
-    outline              = BorderDark
-)
-
-// ===== ساخت ColorScheme پویا (Light) بر اساس رنگ primary انتخابی =====
-private fun buildDynamicLightColorScheme(primary: Color) = lightColorScheme(
-    primary              = primary,
-    onPrimary            = Color.White,
-    primaryContainer     = primary.copy(alpha = 0.12f).compositeOver(Color.White),
-    onPrimaryContainer   = primary,
-    secondary            = primary,
-    onSecondary          = Color.White,
-    secondaryContainer   = primary.copy(alpha = 0.12f).compositeOver(Color.White),
-    onSecondaryContainer = primary,
-    tertiary             = primary,
-    onTertiary           = Color.White,
-    tertiaryContainer    = primary.copy(alpha = 0.12f).compositeOver(Color.White),
-    onTertiaryContainer  = primary,
-    error                = ErrorLight,
-    onError              = Color.White,
-    errorContainer       = ErrorContainerLight,
-    onErrorContainer     = ErrorLight,
-    background           = BackgroundLight,
-    onBackground         = TextPrimaryLight,
-    surface              = SurfaceLight,
-    onSurface            = TextPrimaryLight,
-    surfaceVariant       = BorderLight,
-    onSurfaceVariant     = TextSecondaryLight,
-    outline              = BorderLight
-)
-
-// ===== تابع رنگ‌بندی درصد تکمیل (بدون تغییر) =====
+/**
+ * تابع رنگ‌بندی درصد تکمیل (جهت سازگاری با بخش‌های موجود).
+ */
 fun getCompletionColor(percentage: Float, isDarkTheme: Boolean): Color {
     return when {
         percentage >= 95f -> if (isDarkTheme) Green300 else Green700
@@ -93,7 +25,9 @@ fun getCompletionColor(percentage: Float, isDarkTheme: Boolean): Color {
     }
 }
 
-// ===== تم اصلی برنامه با پشتیبانی از رنگ primary پویا =====
+/**
+ * تم اصلی سازمانی ATK-Cargo بر پایه Material Design 3 و سیستم توکن‌های طراحی.
+ */
 @Composable
 fun ATKCargoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -101,100 +35,44 @@ fun ATKCargoTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) {
-        buildDynamicDarkColorScheme(primaryColor)
+        buildAppDarkColorScheme(primaryColor)
     } else {
-        buildDynamicLightColorScheme(primaryColor)
+        buildAppLightColorScheme(primaryColor)
     }
 
-    val vazirmatnFontFamily = VazirmatnFontFamily.create()
+    val semanticColors = if (darkTheme) DarkSemanticColors else LightSemanticColors
+    val typography = createTypography()
+    val adaptiveConfig = rememberAdaptiveLayoutConfig()
 
-    val typography = Typography(
-        displayLarge = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(400),
-            fontSize = 57.sp
-        ),
-        displayMedium = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(400),
-            fontSize = 45.sp
-        ),
-        displaySmall = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(400),
-            fontSize = 36.sp
-        ),
-        headlineLarge = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500),
-            fontSize = 32.sp
-        ),
-        headlineMedium = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500),
-            fontSize = 28.sp
-        ),
-        headlineSmall = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500),
-            fontSize = 20.sp
-        ),
-        titleLarge = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500),
-            fontSize = 22.sp
-        ),
-        titleMedium = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500),
-            fontSize = 15.sp
-        ),
-        titleSmall = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500),
-            fontSize = 13.sp
-        ),
-        bodyLarge = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(400),
-            fontSize = 16.sp
-        ),
-        bodyMedium = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(400),
-            fontSize = 13.sp
-        ),
-        bodySmall = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(400),
-            fontSize = 11.sp
-        ),
-        labelLarge = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500),
-            fontSize = 14.sp
-        ),
-        labelMedium = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500),
-            fontSize = 11.sp
-        ),
-        labelSmall = TextStyle(
-            fontFamily = vazirmatnFontFamily,
-            fontWeight = FontWeight(500),
-            fontSize = 10.sp
+    val spacing = Spacing()
+    val dimensions = Dimensions()
+    val appShapes = AppShapes()
+    val elevation = Elevation()
+    val motion = Motion()
+    val componentStyles = ComponentStyles()
+
+    CompositionLocalProvider(
+        LocalSpacing provides spacing,
+        LocalDimensions provides dimensions,
+        LocalAppShapes provides appShapes,
+        LocalElevation provides elevation,
+        LocalMotion provides motion,
+        LocalSemanticColors provides semanticColors,
+        LocalComponentStyles provides componentStyles,
+        LocalAdaptiveLayout provides adaptiveConfig
+    ) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            shapes = Material3Shapes,
+            typography = typography,
+            content = content
         )
-    )
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = typography,
-        content = content
-    )
+    }
 }
 
-val CornerM  = 8.dp
-val CornerL  = 12.dp
+// ثوابت سازگاری انحناها
+val CornerM = 8.dp
+val CornerL = 12.dp
 val CornerXL = 16.dp
 val Corner2XL = 20.dp
 val Corner3XL = 24.dp

@@ -41,8 +41,10 @@ import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -292,12 +294,16 @@ fun EnhancedCameraPreview(
                 modifier = Modifier.padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                val successColor = ATKCargoTheme.semanticColors.success
+                val errorColor = MaterialTheme.colorScheme.error
+                val infoColor = ATKCargoTheme.semanticColors.info
+
                 // نمایش حالت اسکن فعال
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
                 ) {
-                    val (icon, title, color) = Triple("📱", "اسکن داخلی", Color(0xFF4CAF50))
+                    val (icon, title, color) = Triple("📱", "اسکن داخلی", successColor)
 
                     Text(
                         text = icon,
@@ -313,8 +319,8 @@ fun EnhancedCameraPreview(
                     if (isAIAnalyzing) {
                         androidx.compose.material3.CircularProgressIndicator(
                             color = color,
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp
+                            modifier = Modifier.size(ATKCargoTheme.dimensions.iconSmall),
+                            strokeWidth = ATKCargoTheme.dimensions.borderWidthMedium
                         )
                     }
                 }
@@ -324,7 +330,7 @@ fun EnhancedCameraPreview(
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = ATKCargoTheme.spacing.xs)
                 )
             }
         }
@@ -342,37 +348,26 @@ fun EnhancedCameraPreview(
             )
         ) {
             detectedNumber?.let { number ->
+                val successColor = ATKCargoTheme.semanticColors.success
+                val errorColor = MaterialTheme.colorScheme.error
                 Surface(
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .padding(16.dp),
-                    shape = RoundedCornerShape(16.dp),
+                        .padding(ATKCargoTheme.spacing.l),
+                    shape = ATKCargoTheme.appShapes.large,
                     color = if (isValidWeight)
-                        Color(0xFF4CAF50).copy(alpha = 0.95f)
+                        successColor.copy(alpha = 0.95f)
                     else
-                        Color(0xFFE57373).copy(alpha = 0.95f),
+                        errorColor.copy(alpha = 0.95f),
                 ) {
                     Column(
-                        modifier = Modifier.padding(20.dp),
+                        modifier = Modifier.padding(ATKCargoTheme.spacing.xl),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
                         ) {
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = Color.White.copy(alpha = 0.2f)
-                            ) {
-                                Text(
-                                    text = "📱 ML",
-                                    color = Color.White,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                                )
-                            }
-
                             Icon(
                                 imageVector = if (isValidWeight) Icons.Default.CheckCircle else Icons.Default.Warning,
                                 contentDescription = null,

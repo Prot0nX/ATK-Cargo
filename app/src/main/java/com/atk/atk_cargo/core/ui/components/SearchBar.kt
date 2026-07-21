@@ -2,7 +2,6 @@ package com.atk.atk_cargo.core.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -18,7 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 
 @Composable
 fun SearchBar(
@@ -57,7 +56,7 @@ fun SearchBar(
             }
         },
         singleLine = true,
-        shape = RoundedCornerShape(16.dp),
+        shape = ATKCargoTheme.appShapes.large,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
@@ -74,6 +73,7 @@ fun SearchBar(
         textStyle = MaterialTheme.typography.bodyMedium,
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .height(ATKCargoTheme.dimensions.buttonLargeHeight)
     )
 }
+

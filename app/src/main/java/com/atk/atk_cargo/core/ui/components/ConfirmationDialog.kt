@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -35,8 +34,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 
 @Composable
 fun ConfirmationDialog(
@@ -63,22 +62,22 @@ fun ConfirmationDialog(
                 .fillMaxWidth()
                 .scale(scale)
                 .alpha(alpha),
-            shape = RoundedCornerShape(24.dp),
+            shape = ATKCargoTheme.appShapes.dialog,
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp
+            tonalElevation = ATKCargoTheme.elevation.dialog
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                modifier = Modifier.padding(ATKCargoTheme.spacing.dialogContentPadding),
+                verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xl)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.l),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(ATKCargoTheme.dimensions.iconXLarge)
                             .background(
                                 color = MaterialTheme.colorScheme.primaryContainer,
                                 shape = CircleShape
@@ -89,7 +88,7 @@ fun ConfirmationDialog(
                             imageVector = icon,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(ATKCargoTheme.dimensions.iconDefault)
                         )
                     }
                     Column(modifier = Modifier.weight(1f)) {
@@ -115,18 +114,18 @@ fun ConfirmationDialog(
                 ) {
                     OutlinedButton(
                         onClick = onDismiss,
-                        shape = RoundedCornerShape(12.dp)
+                        shape = ATKCargoTheme.appShapes.button
                     ) {
                         Text(text = dismissText)
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(ATKCargoTheme.spacing.m))
                     Button(
                         onClick = onConfirm,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = ATKCargoTheme.appShapes.button
                     ) {
                         Text(text = confirmText)
                     }
@@ -135,3 +134,4 @@ fun ConfirmationDialog(
         }
     }
 }
+

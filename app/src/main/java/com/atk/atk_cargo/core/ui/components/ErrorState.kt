@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 
 @Composable
 fun ErrorState(
@@ -34,17 +34,17 @@ fun ErrorState(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(32.dp),
+            .padding(ATKCargoTheme.spacing.huge),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(64.dp),
+            modifier = Modifier.size(ATKCargoTheme.dimensions.iconHuge),
             tint = MaterialTheme.colorScheme.error
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.l))
         Text(
             text = message,
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -52,7 +52,7 @@ fun ErrorState(
             textAlign = TextAlign.Center
         )
         if (errorDetails != null) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.s))
             Text(
                 text = errorDetails,
                 style = MaterialTheme.typography.bodyMedium,
@@ -61,9 +61,10 @@ fun ErrorState(
             )
         }
         if (onRetryClick != null) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xxl))
             ElevatedButton(
                 onClick = onRetryClick,
+                shape = ATKCargoTheme.appShapes.button,
                 colors = ButtonDefaults.elevatedButtonColors(
                     containerColor = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer
@@ -74,3 +75,4 @@ fun ErrorState(
         }
     }
 }
+
