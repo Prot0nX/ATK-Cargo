@@ -148,11 +148,11 @@ enum class MessageType {
 }
 
 data class ScaleReceiptCheckResponse(
-    @com.google.gson.annotations.SerializedName("exists") val exists: Boolean,
-    @com.google.gson.annotations.SerializedName("message") val message: String,
-    @com.google.gson.annotations.SerializedName("trackingNumber") val trackingNumber: String? = null,
-    @com.google.gson.annotations.SerializedName("netWeight") val netWeight: String? = null,
-    @com.google.gson.annotations.SerializedName("loadingQuotaNumber") val loadingQuotaNumber: String? = null
+    val exists: Boolean,
+    val message: String,
+    val trackingNumber: String? = null,
+    val netWeight: String? = null,
+    val loadingQuotaNumber: String? = null
 )
 
 data class QuotaTonnageWarning(

@@ -35,6 +35,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
 class CargoViewModelFactory(
     private val repository: ReportsRepository,
@@ -61,22 +62,17 @@ class CargoViewModel(
     private val _scaleReceiptNumber = MutableStateFlow("")
     val scaleReceiptNumber: StateFlow<String> = _scaleReceiptNumber
     private val _loadedWeight = MutableStateFlow("")
-    val loadedWeight: StateFlow<String> = _loadedWeight.asStateFlow()
     private val _cargoCount = MutableStateFlow(0)
     private val _clearInputFields = MutableStateFlow(false)
     val clearInputFields: StateFlow<Boolean> = _clearInputFields.asStateFlow()
     private val _initialInfo = MutableStateFlow<InitialInfo?>(null)
     val initialInfo: StateFlow<InitialInfo?> = _initialInfo.asStateFlow()
     private val _cargoWeight = MutableStateFlow("")
-    val cargoWeight: StateFlow<String> = _cargoWeight.asStateFlow()
     private val _totalNetWeight = MutableStateFlow("")
     val totalNetWeight: StateFlow<String> = _totalNetWeight.asStateFlow()
     private val _remainingWeight = MutableStateFlow("")
-    val remainingWeight: StateFlow<String> = _remainingWeight.asStateFlow()
     private val _averageNetWeight = MutableStateFlow("")
-    val averageNetWeight: StateFlow<String> = _averageNetWeight.asStateFlow()
     private val _remainingServices = MutableStateFlow("")
-    val remainingServices: StateFlow<String> = _remainingServices.asStateFlow()
     private val _totalServices = MutableStateFlow("")
     private val snackbarQueue = com.atk.atk_cargo.feature.cargo.domain.CargoSnackbarQueue()
     val resultMessage: StateFlow<String> = snackbarQueue.resultMessage
@@ -266,7 +262,6 @@ class CargoViewModel(
                         return@launch
                     }
 
-                    Log.d("ATK-Log", "CargoViewModel: refreshCargoInfo started")
                     val oldCargoList = _cargoInfoList.value
 
                     loadCargoInfoList(
@@ -315,35 +310,27 @@ class CargoViewModel(
         viewModelScope.launch {
             try {
                 if (_isSubmitting.value) {
-                    Log.d("ATK-Log", "CargoViewModel: Already submitting, ignoring request for tracking: $trackingNumber")
                     return@launch
                 }
 
                 _isSubmitting.value = true
-                Log.d("ATK-Log", "CargoViewModel: submitCargoInfo started for tracking: $trackingNumber")
 
                 if (!performBasicValidation(trackingNumber)) {
-                    Log.d("ATK-Log", "CargoViewModel: Basic validation failed for tracking: $trackingNumber")
                     return@launch
                 }
-                Log.d("ATK-Log", "CargoViewModel: Basic validation passed")
 
                 val initialInfo = _initialInfo.value ?: run {
-                    Log.e("ATK-Log", "CargoViewModel: Initial info is NULL")
                     showErrorMessage("اطلاعات اولیه در دسترس نیست")
                     return@launch
                 }
-                Log.d("ATK-Log", "CargoViewModel: Initial info retrieved: Quota=${initialInfo.loadingQuotaNumber}")
 
-                Log.d("ATK-Log", "CargoViewModel: Validating quota status and percentage...")
                 val validationResult = quotaValidationUseCase.validateQuotaStatusAndPercentage(initialInfo)
                 
                 if (!validationResult.isValid) {
-                    Log.e("ATK-Log", "CargoViewModel: Quota validation failed: ${validationResult.message}")
                     if (validationResult.percentageReached && validationResult.quotaIdToToggle != null) {
                         showMessage(validationResult.warningMessage ?: validationResult.message, MessageType.WARNING)
                         
-                        delay(1000)
+                        delay(1000.milliseconds)
                         toggleQuotaStatus(validationResult.quotaIdToToggle, initialInfo.loadingQuotaNumber.toString())
                     } else {
                         showErrorMessage(validationResult.message)
@@ -353,36 +340,26 @@ class CargoViewModel(
                 }
                 
                 _isQuotaActive.value = true
-                Log.d("ATK-Log", "CargoViewModel: Quota validation passed successfully")
 
                 val tempTonnageResult = quotaValidationUseCase.validateTempTonnage(initialInfo)
                 if (!tempTonnageResult.isValid) {
-                    Log.e("ATK-Log", "CargoViewModel: Temp tonnage validation failed")
                     showErrorMessage(tempTonnageResult.errorMessage ?: "")
                     return@launch
                 }
-                Log.d("ATK-Log", "CargoViewModel: Temp tonnage validation passed")
 
-                val isNewCargo = !isTrackingNumberDuplicate(trackingNumber)
-                Log.d("ATK-Log", "CargoViewModel: Is new cargo: $isNewCargo")
-                
                 val inputValidationResult = quotaValidationUseCase.validateInputData(
                     trackingNumber, netWeight, numberOfPeople, shortageWeight, excessWeight, scaleReceiptNumber
                 )
                 if (!inputValidationResult.isValid) {
-                    Log.e("ATK-Log", "CargoViewModel: Input data validation failed")
                     showErrorMessage(inputValidationResult.errorMessage ?: "")
                     return@launch
                 }
-                Log.d("ATK-Log", "CargoViewModel: Input data validation passed")
 
                 val userInfo = getUserInfo()
                 if (userInfo == null) {
-                    Log.e("ATK-Log", "CargoViewModel: User info is NULL")
                     showErrorMessage("اطلاعات کاربری در دسترس نیست. لطفاً دوباره وارد شوید.")
                     return@launch
                 }
-                Log.d("ATK-Log", "CargoViewModel: User info retrieved: ${userInfo.first}")
 
                 val cargoInfo = prepareCargoInfoForSubmission(
                     trackingNumber, numberOfPeople, userInfo.first, userInfo.second,
@@ -395,7 +372,6 @@ class CargoViewModel(
                     scaleReceiptNumber, shortageWeight, excessWeight
                 )
             } catch (e: Exception) {
-                Log.e("ATK-Log", "CargoViewModel: Exception in submitCargoInfo: ${e.message}", e)
                 showErrorMessage("خطا در ثبت اطلاعات بار: ${e.message}")
             } finally {
                 _isSubmitting.value = false
@@ -422,8 +398,7 @@ class CargoViewModel(
             } else {
                 null
             }
-        } catch (e: Exception) {
-            Log.e("CargoViewModel_Log", "خطا در دریافت اطلاعات کاربری: ${e.message}", e)
+        } catch (_: Exception) {
             null
         }
     }
@@ -480,9 +455,7 @@ class CargoViewModel(
         excessWeight: String
     ) {
         try {
-            Log.d("ATK-Log", "CargoViewModel: Sending cargo info to server: $cargoInfo")
             val response = apiService.saveOrUpdateCargoInfo(cargoInfo)
-            Log.d("ATK-Log", "CargoViewModel: Server response code: ${response.code()}")
 
             if (response.isSuccessful) {
                 val responseBody = response.body()
@@ -501,11 +474,9 @@ class CargoViewModel(
                 }
             } else {
                 _pendingCargoInfo.value = cargoInfo
-                Log.d("ATK-Log", "CargoViewModel: HTTP Error response received")
                 handleErrorHttpResponse(response)
             }
         } catch (e: Exception) {
-            Log.e("CargoViewModel_Log", "خطا در ارسال به سرور: ${e.message}", e)
             showErrorMessage("خطا در ارتباط با سرور: ${e.message}")
         }
     }
@@ -513,7 +484,6 @@ class CargoViewModel(
     private fun handleErrorHttpResponse(response: Response<SaveOrUpdateResponse>) {
         val errorBody = response.errorBody()?.string()
         val errorCode = response.code()
-        Log.d("ATK-Log", "CargoViewModel: Handling HTTP Error: code=$errorCode, body=$errorBody")
 
         try {
             val parsedError = parseErrorResponse(errorBody)
@@ -541,7 +511,6 @@ class CargoViewModel(
     }
 
     private fun handleErrorResponse(responseBody: SaveOrUpdateResponse) {
-        Log.d("ATK-Log", "CargoViewModel: Handling business error: status=${responseBody.status}, message=${responseBody.message}")
         val msg = when (responseBody.status) {
             "duplicate_voucher" -> {
                 "حواله مورد نظر برای کشتی ${responseBody.shipName ?: ""} در شماره کوتاژ ${responseBody.loadingQuotaNumber ?: ""} قبلا ثبت شده است!"
@@ -559,7 +528,6 @@ class CargoViewModel(
         shortageWeight: String,
         excessWeight: String
     ) {
-        Log.d("ATK-Log", "CargoViewModel: Success response received for tracking: $trackingNumber")
         val msg = when {
             netWeight.isNotBlank() -> {
                 "شماره حواله $trackingNumber با شماره قبض باسکول $scaleReceiptNumber در تاریخ ${responseBody?.exitDate ?: "نامشخص"} و ساعت ${responseBody?.exitTime ?: "نامشخص"} و وزن خالص $netWeight خروج آن ثبت و سرویس آن بسته شد."
@@ -611,7 +579,6 @@ class CargoViewModel(
     fun confirmDuplicateCargoRegistration() {
         val cargoInfo = _pendingCargoInfo.value
         if (cargoInfo != null) {
-            Log.d("ATK-Log", "CargoViewModel: User confirmed duplicate, re-sending for tracking: ${cargoInfo.trackingNumber}")
             val updatedCargoInfo = cargoInfo.copy(duplicateConfirmation = "proceed")
             viewModelScope.launch {
                 try {
@@ -634,7 +601,6 @@ class CargoViewModel(
                         handleErrorHttpResponse(response)
                     }
                 } catch (e: Exception) {
-                    Log.e("CargoViewModel_Log", "خطا در ارسال مجدد حواله: ${e.message}", e)
                     showErrorMessage("خطا در ارتباط با سرور: ${e.message}")
                 }
             }
@@ -665,31 +631,18 @@ class CargoViewModel(
             val response = apiService.checkScaleReceiptNumber(scaleReceiptNumber)
             if (response.isSuccessful) {
                 val result = response.body()
-
                 if (result?.exists == true) {
-                    Log.d("ATK-Log", "CargoViewModel: Scale receipt exists on server: ${result.message}")
-                    val rawWeight = result.netWeight?.toFloatOrNull()
-                    val weightText = if (rawWeight != null) {
-                        val formatted = java.text.NumberFormat.getNumberInstance(java.util.Locale("en", "US")).format(rawWeight.toInt())
-                        "$formatted کیلوگرم (${(rawWeight / 1000).toInt()} تن)"
-                    } else {
-                        "نامشخص"
-                    }
+                    showMessage(result.message, MessageType.ERROR)
                     val detailMsg = buildString {
                         append("شماره قبض باسکول تکراری است!\n\n")
                         append("این شماره قبلاً ثبت شده است:\n")
-                        append("• شماره حواله: ${result.trackingNumber?.takeIf { it.isNotBlank() } ?: "نامشخص"}\n")
-                        append("• تناژ: $weightText\n")
-                        append("• شماره کوتاژ: ${result.loadingQuotaNumber?.takeIf { it.isNotBlank() } ?: "نامشخص"}\n\n")
-                        append("🔍 برای کپی کردن اطلاعات دیباگ کلیک کنید:\n")
-                        append("URL: ${response.raw().request.url}\n")
-                        append("HTTP Code: ${response.code()}\n")
-                        append("Raw Response: ${Gson().toJson(result)}")
+                        append("• شماره حواله: ${result.trackingNumber ?: "نامشخص"}\n")
+                        append("• تناژ: ${result.netWeight ?: "نامشخص"} کیلوگرم\n")
+                        append("• شماره کوتاژ: ${result.loadingQuotaNumber ?: "نامشخص"}")
                     }
                     showMessage(detailMsg, MessageType.ERROR)
                     false
                 } else {
-                    Log.d("ATK-Log", "CargoViewModel: Scale receipt is unique")
                     true
                 }
             } else {
@@ -705,10 +658,8 @@ class CargoViewModel(
 
     fun updateScaleReceiptNumber(barcode: String) {
         viewModelScope.launch {
-            Log.d("ATK-Log", "CargoViewModel: Updating scale receipt number: $barcode")
             if (isValidScaleReceipt(barcode)) {
                 if (checkScaleReceiptNumber(barcode)) {
-                    Log.d("ATK-Log", "CargoViewModel: Scale receipt number validated successfully")
                     _scaleReceiptNumber.value = barcode
                     _showNetWeightDialog.value = true
                 }
@@ -848,18 +799,10 @@ class CargoViewModel(
                 updateInfoValues()
                 onComplete()
             } catch (e: Exception) {
-                Log.e("CargoViewModel_Log", "Error loading cargo info", e)
                 showMessage("خطا در ارتباط با سرور: ${e.localizedMessage}", MessageType.ERROR)
                 onComplete()
             }
         }
-    }
-
-    private fun isTrackingNumberDuplicate(trackingNumber: String): Boolean {
-        if (_cachedTrackingNumbers.value.contains(trackingNumber)) {
-            return true
-        }
-        return _cargoInfoList.value.any { it.trackingNumber == trackingNumber }
     }
 
     suspend fun toggleQuotaStatus(id: Int, quotaNumber: String) {
