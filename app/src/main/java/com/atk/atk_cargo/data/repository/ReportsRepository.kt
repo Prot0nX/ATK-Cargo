@@ -27,9 +27,9 @@ class ReportsRepository(private val apiService: ApiService) {
         shippingCompany: String,
         warehouse: String,
         cargoType: String
-    ): CargoInfoResponse {
+    ): CargoInfoResponse = withContext(Dispatchers.IO) {
         try {
-            val response = RetrofitClient.apiService.getCargoInfo(
+            val response = apiService.getCargoInfo(
                 quotaNumber = quotaNumber,
                 shippingCompany = shippingCompany,
                 warehouse = warehouse,
@@ -37,7 +37,7 @@ class ReportsRepository(private val apiService: ApiService) {
             )
 
             if (response.isSuccessful) {
-                return response.body() ?: throw Exception("Empty response body")
+                response.body() ?: throw Exception("Empty response body")
             } else {
                 val errorBody = response.errorBody()?.string()
                 throw Exception("Failed to fetch cargo info. Response code: ${response.code()}, Error body: $errorBody")
@@ -53,22 +53,22 @@ class ReportsRepository(private val apiService: ApiService) {
         shippingCompany: String,
         warehouse: String,
         cargoType: String
-    ): InitialInfo? {
+    ): InitialInfo? = withContext(Dispatchers.IO) {
         try {
-            val response = RetrofitClient.apiService.getCargoInfo(
+            val response = apiService.getCargoInfo(
                 quotaNumber = quotaNumber,
                 shippingCompany = shippingCompany,
                 warehouse = warehouse,
                 cargoType = cargoType
             )
 
-            return if (response.isSuccessful) {
+            if (response.isSuccessful) {
                 response.body()?.initialInfo
             } else {
                 null
             }
         } catch (e: Exception) {
-            return null
+            null
         }
     }
 

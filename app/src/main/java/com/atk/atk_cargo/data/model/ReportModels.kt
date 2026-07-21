@@ -1,9 +1,12 @@
 package com.atk.atk_cargo.data.model
 
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
 
+@Immutable
 data class ShiftInfo(
     val startDate: String?,
     val endDate: String?,
@@ -12,6 +15,7 @@ data class ShiftInfo(
     val type: String?
 )
 
+@Immutable
 data class WarningStatus(
     val show: Boolean,
     val quotaId: Int? = null,
@@ -23,6 +27,7 @@ data class WarningStatus(
     val isPercentageRestricted: Boolean = false
 )
 
+@Immutable
 data class QuotaPercentageData(
     val quotaNumber: String,
     val percentage: Double,
@@ -30,12 +35,14 @@ data class QuotaPercentageData(
     val isEnabled: Int = if (percentage > 0.0) 1 else 0
 )
 
+@Immutable
 data class CalculationResult(
     val percentageAmount: Double,
     val remainingAfterPercentage: Double,
     val totalRemainingAfterPercentage: Double
 )
 
+@Immutable
 data class RealTimeLoadingData(
     val loadingQuotaNumber: String,
     val shipName: String,
@@ -48,11 +55,13 @@ data class RealTimeLoadingData(
     val cargoWeight: Int
 )
 
+@Immutable
 data class ShipsData(
     val activeShips: List<Ship>,
     val inactiveShips: List<Ship>
 )
 
+@Immutable
 data class Ship(
     val name: String,
     val cargoType: String? = null,
@@ -65,6 +74,7 @@ data class Ship(
     val warehouses: List<Warehouse>
 )
 
+@Immutable
 data class Quota(
     val id: Int? = null,
     val number: String,
@@ -83,11 +93,13 @@ data class Quota(
     val cargoOwner: String? = null
 )
 
+@Immutable
 data class ExitDateInfo(
     val date: String,
     val time: String
 )
 
+@Immutable
 data class QuotaEditData(
     val id: Int,
     val quotaNumber: String,
@@ -98,6 +110,7 @@ data class QuotaEditData(
     val totalTonnage: Float
 )
 
+@Immutable
 data class Warehouse(
     val name: String,
     val quotaCount: Int,
@@ -108,6 +121,7 @@ data class Warehouse(
     val availableExitDates: List<String>
 )
 
+@Immutable
 data class QuotaDetails(
     val number: String,
     val totalTonnage: Float,
@@ -119,12 +133,14 @@ data class QuotaDetails(
     val additionalInfo: String?
 )
 
+@Immutable
 data class FilteredSummaryResponse(
     val totalNetWeight: Float,
     val voucherCount: Int,
     val voucherDetails: List<VoucherDetail>?
 )
 
+@Immutable
 data class VoucherDetail(
     val trackingNumber: String,
     val entryTime: String,
@@ -136,6 +152,7 @@ data class VoucherDetail(
     val confirmUsername: String?
 )
 
+@Immutable
 data class FilteredSummary(
     val totalNetWeight: Float,
     val voucherCount: Int,
@@ -148,6 +165,7 @@ data class FilteredSummary(
     val endTime: String
 )
 
+@Immutable
 data class QuotaStatusResponse(
     val isActive: Boolean,
     val status: Boolean,
@@ -155,6 +173,7 @@ data class QuotaStatusResponse(
     val details: QuotaStatusDetails? = null
 )
 
+@Immutable
 data class QuotaStatusDetails(
     val quotaNumber: String,
     val shipName: String,
@@ -167,6 +186,7 @@ data class QuotaStatusDetails(
     val existingQuotas: List<ExistingQuota>? = null
 )
 
+@Immutable
 data class ExistingQuota(
     val quotaNumber: String,
     val shipName: String,
@@ -174,26 +194,31 @@ data class ExistingQuota(
     val shippingCompany: String
 )
 
+@Immutable
 data class DateInfo(
     val jalaliDate: String,
     val dayName: String
 )
 
+@Immutable
 data class ComprehensiveAnalysisResponse(
     val success: Boolean,
     val data: AnalyticsData
 )
 
+@Immutable
 data class AnalyticsData(
     val dateInfo: DateInfo?,
     val quotaCompletionAnalysis: List<QuotaCompletionAnalysis>?
 )
 
+@Immutable
 data class ComprehensiveAnalytics(
     val dateInfo: DateInfo? = null,
     val quotaCompletionAnalysis: List<QuotaCompletionData> = emptyList()
 )
 
+@Immutable
 data class QuotaCompletionAnalysis(
     val loadingQuotaNumber: String,
     val shipName: String,
@@ -205,6 +230,7 @@ data class QuotaCompletionAnalysis(
     val cargoType: String? = null
 )
 
+@Immutable
 data class QuotaCompletionData(
     val loadingQuotaNumber: String,
     val shipName: String,
@@ -248,6 +274,7 @@ enum class ShipSortingMode {
     NAME_DESC
 }
 
+@Immutable
 data class QuotaItem(
     val id: Int? = null,
     val number: String,
@@ -277,6 +304,7 @@ data class ThirdPartyOrderResponse(
     val statusCode: Int
 )
 
+@Immutable
 data class ThirdPartyOrder(
     val orderId: String,
     val companyInternalContractCode: String?,

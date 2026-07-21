@@ -1307,7 +1307,10 @@ private fun OwnerQuotasDialog(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
-                    items(quotas) { quota ->
+                    items(
+                        items = quotas,
+                        key = { quota -> quota.loadingQuotaNumber + "_" + quota.shipName }
+                    ) { quota ->
                         AnalyticsQuotaCard(
                             quota = quota,
                             groupingMode = QuotaGroupingMode.BY_SHIP

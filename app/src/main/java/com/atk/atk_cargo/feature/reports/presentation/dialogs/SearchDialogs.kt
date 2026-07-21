@@ -515,7 +515,10 @@ fun MultipleSearchResultDialog(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(cargoInfoList) { cargoInfo ->
+                    items(
+                        items = cargoInfoList,
+                        key = { cargo -> (cargo.trackingNumber ?: "") + "_" + (cargo.scaleReceiptNumber ?: "") }
+                    ) { cargoInfo ->
                         val context = LocalContext.current
                         CargoSearchResultCard(
                             cargoInfo = cargoInfo,

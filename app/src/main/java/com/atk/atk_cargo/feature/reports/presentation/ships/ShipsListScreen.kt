@@ -286,7 +286,10 @@ fun ShipsTabContent(
             verticalArrangement = Arrangement.spacedBy(2.dp),
             contentPadding = PaddingValues(vertical = 2.dp)
         ) {
-            items(ships) { ship ->
+            items(
+                items = ships,
+                key = { ship -> ship.name }
+            ) { ship ->
                 ShipCard(
                     ship = ship,
                     isActive = isActive,

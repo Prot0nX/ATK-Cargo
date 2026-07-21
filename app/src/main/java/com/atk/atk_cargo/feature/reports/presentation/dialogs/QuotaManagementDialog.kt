@@ -967,7 +967,10 @@ fun QuotaTabContent(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
-            items(quotaData.entries.toList()) { (shipName, cargoOwners) ->
+            items(
+                items = quotaData.entries.toList(),
+                key = { (shipName, _) -> shipName }
+            ) { (shipName, cargoOwners) ->
                 val allQuotas = cargoOwners.values.flatten()
                 val allQuotasInactive = allQuotas.isNotEmpty() && allQuotas.all { !it.isActive }
 
