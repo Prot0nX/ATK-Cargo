@@ -275,23 +275,28 @@ fun RealTimeLoadingBottomSheet(
                                 modifier = Modifier.weight(1f),
                                 label = "LoadingDataContent"
                             ) { targetLoadingData ->
-                                val cargoTypeCounts = targetLoadingData
-                                    .groupBy { it.cargoType ?: "نامشخص" }
-                                    .mapValues { it.value.map { data -> data.shipName }.distinct().size }
+                                val groupedLoadingData = remember(targetLoadingData) {
+                                    val cargoTypeCounts = targetLoadingData
+                                        .groupBy { it.cargoType ?: "نامشخص" }
+                                        .mapValues { it.value.map { data -> data.shipName }.distinct().size }
+
+                                    targetLoadingData.groupBy { "${it.cargoType ?: "نامشخص"} | ${it.shipName}" }
+                                        .toList()
+                                        .sortedWith(
+                                            compareByDescending<Pair<String, List<RealTimeLoadingData>>> { (_, shipData) ->
+                                                cargoTypeCounts[shipData.first().cargoType ?: "نامشخص"] ?: 0
+                                            }.thenBy { it.first }
+                                        )
+                                }
 
                                 LazyColumn(
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                     contentPadding = PaddingValues(bottom = 8.dp)
                                 ) {
                                     items(
-                                        targetLoadingData.groupBy { "${it.cargoType ?: "نامشخص"} | ${it.shipName}" }
-                                            .toList()
-                                            .sortedWith(
-                                                compareByDescending<Pair<String, List<RealTimeLoadingData>>> { (_, shipData) ->
-                                                    cargoTypeCounts[shipData.first().cargoType ?: "نامشخص"] ?: 0
-                                                }.thenBy { it.first }
-                                            ),
-                                        key = { it.first }) { (groupName, shipData) ->
+                                        items = groupedLoadingData,
+                                        key = { it.first }
+                                    ) { (groupName, shipData) ->
                                         val actualShipName = shipData.first().shipName
                                         val shipColor = shipColorMap[actualShipName]
                                             ?: MaterialTheme.colorScheme.primary

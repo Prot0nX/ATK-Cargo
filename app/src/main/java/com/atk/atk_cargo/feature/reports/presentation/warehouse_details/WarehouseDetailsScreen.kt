@@ -604,7 +604,10 @@ fun DateTimePicker(
                             modifier = Modifier.heightIn(max = 300.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            items(availableDates) { date ->
+                            items(
+                                items = availableDates,
+                                key = { it }
+                            ) { date ->
                                 PersianDateItem(
                                     date = date,
                                     onClick = {
@@ -1375,7 +1378,10 @@ fun VoucherDetailsDialog(
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp)
                         ) {
-                            items(filteredVoucherDetails) { voucher ->
+                            items(
+                                items = filteredVoucherDetails,
+                                key = { it.trackingNumber + "_" + it.scaleReceiptNumber }
+                            ) { voucher ->
                                 VoucherItem(voucher, isDarkTheme)
                             }
                         }
@@ -1893,7 +1899,10 @@ fun WarehousesSection(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(vertical = 4.dp)
         ) {
-            items(warehouses) { warehouse ->
+            items(
+                items = warehouses,
+                key = { it.name }
+            ) { warehouse ->
                 WarehouseCard(
                     warehouse = warehouse,
                     onClick = { onWarehouseSelected(warehouse.name) }

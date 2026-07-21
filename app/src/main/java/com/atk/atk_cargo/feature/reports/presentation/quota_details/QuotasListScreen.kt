@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -446,24 +447,25 @@ fun QuotasList(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            groupedQuotas.forEach { (groupName, sortedQuotas) ->
-                item {
-                    groupName?.let {
-                        QuotaGroupExpansionPanel(
-                            groupName = it,
-                            quotas = sortedQuotas,
-                            isExpanded = expandedGroup == groupName,
-                            onExpandToggle = {
-                                expandedGroup = if (expandedGroup == groupName) null else groupName
-                            },
-                            onEdit = onEdit,
-                            onToggleStatus = onToggleStatus,
-                            onDelete = onDelete,
-                            onPercentageChange = viewModel::updateQuotaPercentage,
-                            shipName = viewModel.selectedShip.value?.name ?: "",
-                            isMinimalMode = isMinimalMode && currentGroupingMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER
-                        )
-                    }
+            items(
+                items = groupedQuotas.entries.toList(),
+                key = { (groupName, _) -> groupName ?: "" }
+            ) { (groupName, sortedQuotas) ->
+                groupName?.let {
+                    QuotaGroupExpansionPanel(
+                        groupName = it,
+                        quotas = sortedQuotas,
+                        isExpanded = expandedGroup == groupName,
+                        onExpandToggle = {
+                            expandedGroup = if (expandedGroup == groupName) null else groupName
+                        },
+                        onEdit = onEdit,
+                        onToggleStatus = onToggleStatus,
+                        onDelete = onDelete,
+                        onPercentageChange = viewModel::updateQuotaPercentage,
+                        shipName = viewModel.selectedShip.value?.name ?: "",
+                        isMinimalMode = isMinimalMode && currentGroupingMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER
+                    )
                 }
             }
         }
