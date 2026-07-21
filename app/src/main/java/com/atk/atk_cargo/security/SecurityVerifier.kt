@@ -38,7 +38,7 @@ enum class SecurityErrorType {
 
 class SecurityVerifier(private val context: Context) {
     companion object {
-        private const val ENCODED_EXPECTED_SIGNATURE_HASH = "ZDliM2Q0NWJmMzQyZDNiMWNlNTNhM2E3MzgzN2VmNjY2N2U4ZWRmZGM0MDU4NGRmNmUxZmU5YWE0NTc3MTdmZA=="
+        private const val ENCODED_EXPECTED_SIGNATURE_HASH = "NmE2ZTAyZGNlMmQyMjg2ZWMyMjExY2M5ZjIwZmMwZGZlOGM5ZTJlZjU2NjNlMTU4NGU3YWEzYmZjNWUwOTQ3MQ=="
         private const val ENCODED_LICENSE_STATUS_PREF_KEY = "ZTFmMmczaDRpNWo2azdsOG05bjBvMXAycTNyNHM1dDY="
         private const val ENCODED_SIGNATURE_CHECK_URL = "aHR0cHM6Ly9hdGstbmsuaXIvQ2FyZ28vY2hlY2tfc2lnbmF0dXJlLnBocA=="
         private const val ENCODED_LICENSE_CHECK_URL = "aHR0cHM6Ly9hdGstbmsuaXIvQ2FyZ28vdmFsaWRhdGVfbGljZW5zZS5waHA="
