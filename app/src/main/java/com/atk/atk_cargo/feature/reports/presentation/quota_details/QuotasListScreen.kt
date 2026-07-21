@@ -1,5 +1,8 @@
 package com.atk.atk_cargo.feature.reports.presentation.quota_details
 
+import com.atk.atk_cargo.feature.reports.presentation.quota_details.components.DeleteQuotaDialog
+import com.atk.atk_cargo.feature.reports.presentation.quota_details.components.ToggleQuotaStatusDialog
+
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -1280,51 +1283,11 @@ fun DeleteQuotaDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.End
-                ) {
-                    Text(
-                        text = "تأیید حذف کوتاژ",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "آیا از حذف کوتاژ شماره $quotaNumber و تمام حواله‌های مرتبط با آن اطمینان دارید؟",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start)
-                    ) {
-                        Button(
-                            onClick = onConfirm,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                        ) {
-                            Text("حذف", color = MaterialTheme.colorScheme.onError)
-                        }
-                        Button(
-                            onClick = onDismiss,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                        ) {
-                            Text("انصراف", color = MaterialTheme.colorScheme.onSecondary)
-                        }
-                    }
-                }
-            }
-        }
-    }
+    com.atk.atk_cargo.feature.reports.presentation.quota_details.components.DeleteQuotaDialog(
+        quotaNumber = quotaNumber,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss
+    )
 }
 
 @Composable
@@ -1334,51 +1297,12 @@ fun ToggleQuotaStatusDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    Dialog(onDismissRequest = onDismiss) {
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.End
-                ) {
-                    Text(
-                        text = "تغییر وضعیت کوتاژ",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "آیا از ${if (isActive) "غیرفعال" else "فعال"} کردن کوتاژ شماره $quotaNumber اطمینان دارید؟",
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start)
-                    ) {
-                        Button(
-                            onClick = onConfirm,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text("تأیید", color = MaterialTheme.colorScheme.onPrimary)
-                        }
-                        Button(
-                            onClick = onDismiss,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                        ) {
-                            Text("انصراف", color = MaterialTheme.colorScheme.onSecondary)
-                        }
-                    }
-                }
-            }
-        }
-    }
+    com.atk.atk_cargo.feature.reports.presentation.quota_details.components.ToggleQuotaStatusDialog(
+        quotaNumber = quotaNumber,
+        isActive = isActive,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -2236,7 +2160,7 @@ fun AnimatedNumber(
     }
 }
 
-private fun calculateValues(
+fun calculateValues(
     totalTonnage: Float,
     percentage: Double,
     remainingTonnage: Float

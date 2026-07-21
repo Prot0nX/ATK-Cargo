@@ -366,7 +366,7 @@ fun SecurityBlockScreen(
                                 ) {
                                     Column(horizontalAlignment = Alignment.Start) {
                                         Text(
-                                            text = "سامانه ترخیص بار هانگار",
+                                            text = "سامانه ترخیص بار",
                                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                             color = MaterialTheme.colorScheme.primary
                                         )
