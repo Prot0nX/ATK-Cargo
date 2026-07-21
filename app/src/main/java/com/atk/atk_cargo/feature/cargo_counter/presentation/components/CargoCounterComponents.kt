@@ -73,6 +73,7 @@ import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.feature.cargo_counter.presentation.CargoSnackbarMessage
 import com.atk.atk_cargo.feature.cargo_counter.presentation.ShipFilterTab
 import com.atk.atk_cargo.feature.startup.domain.AnimationManager
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.atk.atk_cargo.ui.theme.Blue50
 import com.atk.atk_cargo.ui.theme.Blue500
 import com.atk.atk_cargo.ui.theme.Purple50
@@ -110,22 +111,23 @@ fun TabBar(
                     ShipFilterTab.COMPLETED -> completedCount
                 }
                 
+                val semantic = ATKCargoTheme.semanticColors
                 val activeColor = when (tab) {
                     ShipFilterTab.ALL -> MaterialTheme.colorScheme.primary
-                    ShipFilterTab.LOADING -> Color(0xFF2196F3) // Blue
-                    ShipFilterTab.COMPLETED -> Color(0xFF4CAF50) // Green
+                    ShipFilterTab.LOADING -> semantic.shipLoading
+                    ShipFilterTab.COMPLETED -> semantic.shipCompleted
                 }
 
                 Surface(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { onTabSelected(tab) },
-                    shape = RoundedCornerShape(8.dp),
+                    shape = ATKCargoTheme.appShapes.small,
                     color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
-                    shadowElevation = if (isSelected) 1.dp else 0.dp
+                    shadowElevation = if (isSelected) ATKCargoTheme.elevation.level1 else ATKCargoTheme.elevation.level0
                 ) {
                     Row(
-                        modifier = Modifier.padding(vertical = 10.dp),
+                        modifier = Modifier.padding(vertical = ATKCargoTheme.spacing.s),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -138,28 +140,28 @@ fun TabBar(
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
-                            tint = if (isSelected) activeColor else Color(0xFF9E9E9E),
-                            modifier = Modifier.size(20.dp)
+                            tint = if (isSelected) activeColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(ATKCargoTheme.dimensions.iconMedium)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(ATKCargoTheme.spacing.s))
                         Text(
                             text = tab.title,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) activeColor else Color(0xFF9E9E9E)
+                            color = if (isSelected) activeColor else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(ATKCargoTheme.spacing.s))
                         // Badge تعداد
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) activeColor.copy(alpha = 0.1f) else Color(0xFFE0E0E0)
+                            shape = ATKCargoTheme.appShapes.chip,
+                            color = if (isSelected) activeColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Text(
                                 text = "$count",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isSelected) activeColor else Color(0xFF757575),
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                color = if (isSelected) activeColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = ATKCargoTheme.spacing.xs, vertical = ATKCargoTheme.spacing.xxs)
                             )
                         }
                     }
@@ -438,8 +440,8 @@ private fun WarehouseCard(
     val total = totalEntry + totalExit
     val progress = if (total > 0) totalExit.toFloat() / total else 0f
 
-    val entryColor = Color(0xFF2196F3)
-    val exitColor = Color(0xFF4CAF50)
+    val entryColor = ATKCargoTheme.semanticColors.cargoEntry
+    val exitColor = ATKCargoTheme.semanticColors.cargoExit
 
     val sortedShips = remember(filteredShips) {
         filteredShips.sortedWith(

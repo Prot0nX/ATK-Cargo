@@ -52,6 +52,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -699,8 +700,8 @@ private fun UserListItem(
                             Icons.AutoMirrored.Filled.ExitToApp,
                             contentDescription = "خروج اجباری",
                             tint = if (user.username == "Prot0nX" || user.username == currentUsername)
-                                Color(0xFFFF9800).copy(alpha = 0.3f)
-                            else Color(0xFFFF9800),
+                                ATKCargoTheme.semanticColors.warning.copy(alpha = 0.3f)
+                            else ATKCargoTheme.semanticColors.warning,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -1014,10 +1015,11 @@ private fun UserTypeSelection(
             fontWeight = FontWeight.SemiBold
         )
 
+        val userTypesList = getUserTypes()
         val availableUserTypes = if (isMainAdmin) {
-            userTypes
+            userTypesList
         } else {
-            userTypes.filter { it.value != "admin" }
+            userTypesList.filter { it.value != "admin" }
         }
 
         Row(
@@ -1036,27 +1038,28 @@ private fun UserTypeSelection(
     }
 }
 
-private val userTypes = listOf(
+@Composable
+private fun getUserTypes() = listOf(
     UserTypeInfo(
         label = "مدیر سیستم",
         description = "مدیریت کاربران و سیستم",
         value = "admin",
         icon = Icons.Default.AdminPanelSettings,
-        color = Color(0xFF2196F3)
+        color = ATKCargoTheme.semanticColors.info
     ),
     UserTypeInfo(
         label = "باسکول‌چی",
         description = "وزن و ثبت بارها",
         value = "operator",
         icon = Icons.Default.Engineering,
-        color = Color(0xFF4CAF50)
+        color = ATKCargoTheme.semanticColors.success
     ),
     UserTypeInfo(
         label = "بارشمار",
         description = "شمارش و بررسی بارها",
         value = "verifier",
         icon = Icons.Default.PersonSearch,
-        color = Color(0xFFFFA000)
+        color = ATKCargoTheme.semanticColors.warning
     )
 )
 

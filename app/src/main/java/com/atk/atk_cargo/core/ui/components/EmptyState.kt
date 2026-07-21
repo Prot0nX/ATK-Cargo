@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 
 @Composable
 fun EmptyState(
@@ -33,17 +33,17 @@ fun EmptyState(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(32.dp),
+            .padding(ATKCargoTheme.spacing.huge),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(64.dp),
+            modifier = Modifier.size(ATKCargoTheme.dimensions.iconHuge),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.l))
         Text(
             text = message,
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -51,7 +51,7 @@ fun EmptyState(
             textAlign = TextAlign.Center
         )
         if (description != null) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.s))
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyMedium,
@@ -60,10 +60,14 @@ fun EmptyState(
             )
         }
         if (actionText != null && onActionClick != null) {
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onActionClick) {
+            Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xxl))
+            Button(
+                onClick = onActionClick,
+                shape = ATKCargoTheme.appShapes.button
+            ) {
                 Text(text = actionText)
             }
         }
     }
 }
+

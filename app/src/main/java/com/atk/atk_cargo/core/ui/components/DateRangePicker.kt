@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
@@ -43,9 +42,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.delay
 
 val PERSIAN_MONTHS = listOf(
@@ -85,7 +84,7 @@ fun DateRangePicker(
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.m)
     ) {
         DateClickableField(
             label = "تاریخ شروع",
@@ -103,34 +102,30 @@ fun DateRangePicker(
         )
     }
 
-    if (showStartDatePicker) {
-        PersianDatePickerDialog(
-            isOpen = showStartDatePicker,
-            title = "انتخاب تاریخ شروع",
-            initialDate = startDate,
-            accentColor = accentColor,
-            onDismiss = { showStartDatePicker = false },
-            onDateSelected = {
-                onStartDateChange(it)
-                showStartDatePicker = false
-            }
-        )
-    }
+    PersianDatePickerDialog(
+        isOpen = showStartDatePicker,
+        title = "انتخاب تاریخ شروع",
+        initialDate = startDate,
+        accentColor = accentColor,
+        onDismiss = { showStartDatePicker = false },
+        onDateSelected = { date ->
+            onStartDateChange(date)
+            showStartDatePicker = false
+        }
+    )
 
-    if (showEndDatePicker) {
-        PersianDatePickerDialog(
-            isOpen = showEndDatePicker,
-            title = "انتخاب تاریخ پایان",
-            initialDate = endDate,
-            accentColor = accentColor,
-            minDate = startDate,
-            onDismiss = { showEndDatePicker = false },
-            onDateSelected = {
-                onEndDateChange(it)
-                showEndDatePicker = false
-            }
-        )
-    }
+    PersianDatePickerDialog(
+        isOpen = showEndDatePicker,
+        title = "انتخاب تاریخ پایان",
+        initialDate = endDate,
+        accentColor = accentColor,
+        minDate = startDate,
+        onDismiss = { showEndDatePicker = false },
+        onDateSelected = { date ->
+            onEndDateChange(date)
+            showEndDatePicker = false
+        }
+    )
 }
 
 @Composable
@@ -144,16 +139,16 @@ private fun DateClickableField(
     Card(
         modifier = modifier
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = ATKCargoTheme.appShapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f)
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        border = BorderStroke(ATKCargoTheme.dimensions.borderWidthThin, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = ATKCargoTheme.spacing.l, vertical = ATKCargoTheme.spacing.m),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -163,7 +158,7 @@ private fun DateClickableField(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xs))
                 Text(
                     text = value,
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
@@ -174,7 +169,7 @@ private fun DateClickableField(
                 imageVector = Icons.Default.CalendarMonth,
                 contentDescription = null,
                 tint = accentColor,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(ATKCargoTheme.dimensions.iconMedium)
             )
         }
     }
@@ -243,15 +238,15 @@ fun PersianDatePickerDialog(
                 modifier = Modifier
                     .fillMaxWidth(0.92f)
                     .wrapContentHeight()
-                    .padding(vertical = 16.dp),
-                shape = RoundedCornerShape(24.dp),
+                    .padding(vertical = ATKCargoTheme.spacing.l),
+                shape = ATKCargoTheme.appShapes.dialog,
                 color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 16.dp,
-                shadowElevation = 12.dp
+                tonalElevation = ATKCargoTheme.elevation.dialog,
+                shadowElevation = ATKCargoTheme.elevation.level5
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(24.dp)
+                        .padding(ATKCargoTheme.spacing.dialogContentPadding)
                         .fillMaxWidth()
                 ) {
                     // Header
@@ -282,25 +277,25 @@ fun PersianDatePickerDialog(
                                 Icons.Default.CalendarToday,
                                 contentDescription = null,
                                 tint = accentColor,
-                                modifier = Modifier.padding(12.dp).size(24.dp)
+                                modifier = Modifier.padding(ATKCargoTheme.spacing.m).size(ATKCargoTheme.dimensions.iconDefault)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xl))
 
                     // Year Selector
                     Text(
                         text = "سال",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = ATKCargoTheme.spacing.s)
                     )
                     LazyRow(
                         state = yearListState,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s),
                         modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = 4.dp)
+                        contentPadding = PaddingValues(horizontal = ATKCargoTheme.spacing.xs)
                     ) {
                         items(years) { year ->
                             val isSelected = year == selectedYear
@@ -308,7 +303,7 @@ fun PersianDatePickerDialog(
                                 selected = isSelected,
                                 onClick = { selectedYear = year },
                                 label = { Text(year.toString()) },
-                                shape = RoundedCornerShape(8.dp),
+                                shape = ATKCargoTheme.appShapes.chip,
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = accentColor,
                                     selectedLabelColor = Color.White
@@ -317,20 +312,20 @@ fun PersianDatePickerDialog(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.l))
 
                     // Month Selector
                     Text(
                         text = "ماه",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = ATKCargoTheme.spacing.s)
                     )
                     LazyRow(
                         state = monthListState,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s),
                         modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = 4.dp)
+                        contentPadding = PaddingValues(horizontal = ATKCargoTheme.spacing.xs)
                     ) {
                         items(12) { index ->
                             val month = index + 1
@@ -339,7 +334,7 @@ fun PersianDatePickerDialog(
                                 selected = isSelected,
                                 onClick = { selectedMonth = month },
                                 label = { Text(PERSIAN_MONTHS[index]) },
-                                shape = RoundedCornerShape(8.dp),
+                                shape = ATKCargoTheme.appShapes.chip,
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = accentColor,
                                     selectedLabelColor = Color.White
@@ -348,23 +343,23 @@ fun PersianDatePickerDialog(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.l))
 
                     // Day Selector
                     Text(
                         text = "روز",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        modifier = Modifier.padding(bottom = ATKCargoTheme.spacing.s)
                     )
                     val daysInMonth = getDaysInPersianMonth(selectedYear, selectedMonth)
                     if (selectedDay > daysInMonth) selectedDay = daysInMonth
 
                     LazyRow(
                         state = dayListState,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xs),
                         modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = 4.dp)
+                        contentPadding = PaddingValues(horizontal = ATKCargoTheme.spacing.xs)
                     ) {
                         items(daysInMonth) { index ->
                             val day = index + 1
@@ -400,7 +395,7 @@ fun PersianDatePickerDialog(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xxl))
 
                     // Actions
                     Row(
@@ -409,11 +404,11 @@ fun PersianDatePickerDialog(
                     ) {
                         OutlinedButton(
                             onClick = onDismiss,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = ATKCargoTheme.appShapes.button
                         ) {
                             Text("انصراف")
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(ATKCargoTheme.spacing.m))
                         Button(
                             onClick = {
                                 onDateSelected("%04d/%02d/%02d".format(selectedYear, selectedMonth, selectedDay))
@@ -422,7 +417,7 @@ fun PersianDatePickerDialog(
                                 containerColor = accentColor,
                                 contentColor = Color.White
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = ATKCargoTheme.appShapes.button
                         ) {
                             Text("تأیید")
                         }

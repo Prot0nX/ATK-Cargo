@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -25,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 
 @Composable
 fun StatisticsCard(
@@ -37,16 +36,19 @@ fun StatisticsCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.height(100.dp),
-        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.height(ATKCargoTheme.dimensions.cardMinHeight),
+        shape = ATKCargoTheme.appShapes.card,
         colors = CardDefaults.cardColors(
             containerColor = color.copy(alpha = 0.1f)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = ATKCargoTheme.elevation.cardDefault
         )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
+                .padding(ATKCargoTheme.spacing.m),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
@@ -56,7 +58,7 @@ fun StatisticsCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(ATKCargoTheme.dimensions.avatarSmall)
                         .background(color.copy(alpha = 0.15f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
@@ -64,10 +66,10 @@ fun StatisticsCard(
                         imageVector = icon,
                         contentDescription = null,
                         tint = color,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(ATKCargoTheme.dimensions.iconSmall)
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(ATKCargoTheme.spacing.s))
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
@@ -92,3 +94,4 @@ fun StatisticsCard(
         }
     }
 }
+

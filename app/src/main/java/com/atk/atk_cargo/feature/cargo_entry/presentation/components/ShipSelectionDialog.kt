@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -71,10 +72,12 @@ fun ShipSelectionDialog(
     val selectedShips = remember { mutableStateOf(selectedShipNames) }
     val searchQuery = remember { mutableStateOf("") }
     val palette = listOf(
-        Blue500, Purple500, Red500, 
-        Color(0xFF10B981), // Emerald 500
-        Color(0xFFF59E0B), // Amber 500
-        Color(0xFFEC4899)  // Pink 500
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.secondary,
+        MaterialTheme.colorScheme.tertiary, 
+        ATKCargoTheme.semanticColors.cargoExit,
+        ATKCargoTheme.semanticColors.warning,
+        ATKCargoTheme.semanticColors.cargoEntry
     )
     val initialSortedShipEntries = remember(groupedShips, searchQuery.value) {
         val filtered = if (searchQuery.value.isEmpty()) {

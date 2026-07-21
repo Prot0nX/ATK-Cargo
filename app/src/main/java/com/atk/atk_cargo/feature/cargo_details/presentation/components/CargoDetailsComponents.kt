@@ -58,6 +58,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -407,21 +408,19 @@ fun CargoInfoCard(cargoInfo: CargoInfo, onClick: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.width(80.dp)
             ) {
+                val statusColor = if (isExited) ATKCargoTheme.semanticColors.cargoExit else MaterialTheme.colorScheme.primary
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (isExited) 
-                        Color(0xFF4CAF50).copy(alpha = 0.1f) 
-                    else 
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    shape = ATKCargoTheme.appShapes.chip,
+                    color = statusColor.copy(alpha = 0.1f),
                     border = BorderStroke(
-                        1.dp,
-                        if (isExited) Color(0xFF4CAF50).copy(alpha = 0.3f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        ATKCargoTheme.dimensions.borderWidthThin,
+                        statusColor.copy(alpha = 0.3f)
                     )
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                            .padding(horizontal = ATKCargoTheme.spacing.m, vertical = ATKCargoTheme.spacing.xs),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -429,7 +428,7 @@ fun CargoInfoCard(cargoInfo: CargoInfo, onClick: () -> Unit) {
                             text = cargoInfo.status,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (isExited) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary
+                            color = statusColor
                         )
                     }
                 }
@@ -645,30 +644,32 @@ fun TabsSection(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val errorColor = MaterialTheme.colorScheme.error
+                        val successColor = ATKCargoTheme.semanticColors.success
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = null,
-                            tint = if (selectedTab == 0) Color(0xFFF44336) else Color(0xFF9E9E9E),
-                            modifier = Modifier.size(20.dp)
+                            tint = if (selectedTab == 0) errorColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(ATKCargoTheme.dimensions.iconMedium)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(ATKCargoTheme.spacing.s))
                         Text(
                             text = "تأیید نشده",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium,
-                            color = if (selectedTab == 0) Color(0xFFF44336) else Color(0xFF9E9E9E)
+                            color = if (selectedTab == 0) errorColor else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(ATKCargoTheme.spacing.s))
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (selectedTab == 0) Color(0xFFF44336).copy(alpha = 0.1f) else Color(0xFFE0E0E0)
+                            shape = ATKCargoTheme.appShapes.chip,
+                            color = if (selectedTab == 0) errorColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Text(
                                 text = "$unconfirmedCount",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = if (selectedTab == 0) Color(0xFFF44336) else Color(0xFF757575),
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                color = if (selectedTab == 0) errorColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = ATKCargoTheme.spacing.xs, vertical = ATKCargoTheme.spacing.xxs)
                             )
                         }
                     }
@@ -678,39 +679,40 @@ fun TabsSection(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { onTabSelected(1) },
-                    shape = RoundedCornerShape(8.dp),
+                    shape = ATKCargoTheme.appShapes.small,
                     color = if (selectedTab == 1) MaterialTheme.colorScheme.surface else Color.Transparent,
-                    shadowElevation = if (selectedTab == 1) 1.dp else 0.dp
+                    shadowElevation = if (selectedTab == 1) ATKCargoTheme.elevation.level1 else ATKCargoTheme.elevation.level0
                 ) {
                     Row(
-                        modifier = Modifier.padding(vertical = 10.dp),
+                        modifier = Modifier.padding(vertical = ATKCargoTheme.spacing.s),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val successColor = ATKCargoTheme.semanticColors.success
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = null,
-                            tint = if (selectedTab == 1) Color(0xFF4CAF50) else Color(0xFF9E9E9E),
-                            modifier = Modifier.size(20.dp)
+                            tint = if (selectedTab == 1) successColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(ATKCargoTheme.dimensions.iconMedium)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(ATKCargoTheme.spacing.s))
                         Text(
                             text = "تأیید شده",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium,
-                            color = if (selectedTab == 1) Color(0xFF4CAF50) else Color(0xFF9E9E9E)
+                            color = if (selectedTab == 1) successColor else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(ATKCargoTheme.spacing.s))
                         Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (selectedTab == 1) Color(0xFF4CAF50).copy(alpha = 0.1f) else Color(0xFFE0E0E0)
+                            shape = ATKCargoTheme.appShapes.chip,
+                            color = if (selectedTab == 1) successColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Text(
                                 text = "$confirmedCount",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = if (selectedTab == 1) Color(0xFF4CAF50) else Color(0xFF757575),
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                color = if (selectedTab == 1) successColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = ATKCargoTheme.spacing.xs, vertical = ATKCargoTheme.spacing.xxs)
                             )
                         }
                     }
