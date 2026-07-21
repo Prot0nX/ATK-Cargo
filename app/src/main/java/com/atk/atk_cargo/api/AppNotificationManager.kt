@@ -216,6 +216,7 @@ class AppNotificationManager(private val context: Context) {
             .setStyle(NotificationCompat.BigTextStyle().bigText(expandedText))
             .setContentIntent(pendingIntent)
             .setGroup("LOADING_GROUP_V2")
+            .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .build()
 
@@ -235,6 +236,7 @@ class AppNotificationManager(private val context: Context) {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setGroup("LOADING_GROUP_V2")
             .setGroupSummary(false) // این به عنوان یکی از اعضای گروه نمایش داده می‌شود
+            .setOnlyAlertOnce(true)
             .build()
 
         notificationManager.notify(SUMMARY_LOADING_ID, notification)
