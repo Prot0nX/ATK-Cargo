@@ -164,4 +164,36 @@ class UserController {
                 throw new ApiException('عملیات نامعتبر است', 400);
         }
     }
+
+    /**
+     * به‌روزرسانی توکن FCM (update_fcm_token.php)
+     */
+    public function updateFcmToken(): void {
+        $userId = intval($this->request->get('user_id', 0));
+        $token = (string)$this->request->get('token', '');
+
+        if (!$userId || empty($token)) {
+            Response::json(['error' => 'Missing user_id or token'], 400);
+        }
+
+        try {
+            $conn = \App\Core\Database::getInstance()->getMysqliConnection();
+            $stmt = $conn->prepare("UPDATE Users SET fcm_token = ? WHERE id = ?");
+            if (!$stmt) {
+                // تست جدول users در صورت حروف کوچک
+                $stmt = $conn->prepare("UPDATE users SET fcm_token = ? WHERE id = ?");
+            }
+            $stmt->bind_param("si", $token, $userId);
+            if ($stmt->execute()) {
+                $stmt->close();
+                Response::json(['message' => 'FCM token updated successfully']);
+            } else {
+                $stmt->close();
+                Response::json(['error' => 'Failed to update FCM token'], 500);
+            }
+        } catch (\Exception $e) {
+            Response::json(['error' => 'Failed to update FCM token'], 500);
+        }
+    }
 }
+
