@@ -1,19 +1,21 @@
 package com.atk.atk_cargo.feature.auth.viewmodel
 
-import android.os.Build
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.atk.atk_cargo.api.ApiService
-import com.atk.atk_cargo.api.LoginRequest
-import com.atk.atk_cargo.api.SessionResponse
-import com.atk.atk_cargo.api.UserPreferencesManager
-import com.atk.atk_cargo.utils.hashPassword
-import com.google.gson.Gson
+import com.atk.atk_cargo.feature.auth.data.LoginResult
+import com.atk.atk_cargo.feature.auth.domain.LoginUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+// ===== TYPES / ENUMS =====
+
+/**
+ * وضعیت جاری UI صفحه ورود — مُهر و موم شده (Sealed) برای ایمنی کامل
+ */
 sealed class LoginUiState {
     data object Idle : LoginUiState()
     data object Loading : LoginUiState()
@@ -21,89 +23,102 @@ sealed class LoginUiState {
     data class Error(val message: String) : LoginUiState()
 }
 
+/**
+ * وضعیت فرم ورود — State Hoisting کامل در ViewModel
+ * با این رویکرد، چرخش صفحه دیگر ورودی‌های کاربر را پاک نمی‌کند.
+ */
+data class LoginFormState(
+    val username: String = "",
+    val password: String = "",
+    val isPasswordVisible: Boolean = false
+)
+
+// ===== CORE LOGIC =====
+
+/**
+ * ViewModel صفحه ورود.
+ *
+ * مسئولیت‌ها:
+ * - نگهداری حالت فرم (State Hoisting) — جلوگیری از پاک شدن ورودی‌ها در چرخش صفحه
+ * - مدیریت چرخه ورود از طریق LoginUseCase
+ * - هیچ دسترسی مستقیمی به ApiService یا UserPreferencesManager ندارد
+ */
 class AuthViewModel(
-    private val apiService: ApiService,
-    private val userPreferencesManager: UserPreferencesManager
+    private val loginUseCase: LoginUseCase,
+    private val context: Context
 ) : ViewModel() {
+
+    // ===== STATE =====
 
     private val _loginState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
     val loginState: StateFlow<LoginUiState> = _loginState.asStateFlow()
 
-    fun login(username: String, password: String, appVersion: String, deviceId: String) {
-        if (username.isBlank() || password.isBlank()) {
-            _loginState.value = LoginUiState.Error("نام کاربری یا رمز عبور نمی‌تواند خالی باشد.")
-            return
-        }
+    private val _formState = MutableStateFlow(LoginFormState())
+    val formState: StateFlow<LoginFormState> = _formState.asStateFlow()
 
+    // ===== HELPERS =====
+
+    private fun getAppVersion(): String {
+        return try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "Unknown"
+        } catch (_: Exception) {
+            "Unknown"
+        }
+    }
+
+    // ===== CORE LOGIC =====
+
+    /**
+     * به‌روزرسانی نام کاربری در حالت فرم + ریست خطا
+     */
+    fun onUsernameChanged(value: String) {
+        _formState.update { it.copy(username = value) }
+        if (_loginState.value is LoginUiState.Error) {
+            _loginState.value = LoginUiState.Idle
+        }
+    }
+
+    /**
+     * به‌روزرسانی رمز عبور (فقط اعداد) در حالت فرم + ریست خطا
+     */
+    fun onPasswordChanged(value: String) {
+        _formState.update { it.copy(password = value.filter { c -> c.isDigit() }) }
+        if (_loginState.value is LoginUiState.Error) {
+            _loginState.value = LoginUiState.Idle
+        }
+    }
+
+    /**
+     * تغییر وضعیت نمایش/پنهان کردن رمز عبور
+     */
+    fun togglePasswordVisibility() {
+        _formState.update { it.copy(isPasswordVisible = !it.isPasswordVisible) }
+    }
+
+    /**
+     * شروع فرآیند ورود
+     * هشینگ و درخواست شبکه داخل AuthRepository/IO Thread انجام می‌شوند
+     */
+    fun login() {
+        val form = _formState.value
         viewModelScope.launch {
             _loginState.value = LoginUiState.Loading
-            try {
-                val hashedPassword = hashPassword(password)
-                val deviceModel = Build.MODEL ?: "Unknown"
-                val androidVersion = Build.VERSION.RELEASE ?: "Unknown"
-
-                val loginRequest = LoginRequest(
-                    username = username,
-                    password = hashedPassword,
-                    userType = "",
-                    deviceModel = deviceModel,
-                    deviceId = deviceId,
-                    androidVersion = androidVersion,
-                    appVersion = appVersion
-                )
-
-                val response = apiService.checkLogin(loginRequest)
-
-                if (response.isSuccessful) {
-                    val responseBody = response.body()
-                    if (responseBody != null && responseBody.success) {
-                        responseBody.sessionToken?.let { sessionToken ->
-                            userPreferencesManager.saveSessionToken(sessionToken)
-                        }
-
-                        userPreferencesManager.saveUserCredentials(
-                            username,
-                            responseBody.userType ?: "",
-                            deviceId,
-                            responseBody.sessionToken ?: "",
-                            responseBody.permissions
-                        )
-                        userPreferencesManager.setLoginState(true)
-                        _loginState.value = LoginUiState.Success
-                    } else {
-                        _loginState.value = LoginUiState.Error(responseBody?.message ?: "خطا در ورود")
-                    }
-                } else {
-                    val errorMessage = if (response.code() == 409) {
-                        try {
-                            val errorBody = response.errorBody()?.string()
-                            val gson = Gson()
-                            val errorResponse = gson.fromJson(errorBody, SessionResponse::class.java)
-                            errorResponse?.message ?: "شما در حال حاضر از دستگاه دیگری وارد شده‌اید."
-                        } catch (_: Exception) {
-                            "شما در حال حاضر از دستگاه دیگری وارد شده‌اید."
-                        }
-                    } else {
-                        when (response.code()) {
-                            401 -> "نام کاربری یا رمز عبور اشتباه است"
-                            403 -> "دسترسی مجاز نیست"
-                            500 -> "خطای سرور"
-                            else -> "خطا در اتصال"
-                        }
-                    }
-                    _loginState.value = LoginUiState.Error(errorMessage)
-                }
-            } catch (e: Exception) {
-                val errorMessage = when (e) {
-                    is java.net.UnknownHostException -> "عدم دسترسی به اینترنت"
-                    is java.net.SocketTimeoutException -> "زمان اتصال به پایان رسید"
-                    else -> "خطا در اتصال"
-                }
-                _loginState.value = LoginUiState.Error(errorMessage)
+            val result = loginUseCase(
+                username = form.username.trim(),
+                password = form.password,
+                appVersion = getAppVersion()
+            )
+            _loginState.value = when (result) {
+                is LoginResult.Success          -> LoginUiState.Success
+                is LoginResult.Error            -> LoginUiState.Error(result.message)
+                is LoginResult.ConflictSession  -> LoginUiState.Error(result.message)
             }
         }
     }
 
+    /**
+     * بازنشانی وضعیت ورود به Idle (برای مدیریت دستی در صورت نیاز)
+     */
     fun resetState() {
         _loginState.value = LoginUiState.Idle
     }
