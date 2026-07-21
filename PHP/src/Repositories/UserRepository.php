@@ -63,6 +63,19 @@ class UserRepository {
     }
 
     /**
+     * به‌روزرسانی پسورد کاربر — برای Silent Migration از SHA-256 به bcrypt
+     */
+    public function updatePassword(int $id, string $hashedPassword): bool {
+        $stmt = $this->db->prepare(
+            "UPDATE Users SET password = :password, updated_at = CURRENT_TIMESTAMP WHERE id = :id"
+        );
+        return $stmt->execute([
+            ':password' => $hashedPassword,
+            ':id'       => $id,
+        ]);
+    }
+
+    /**
      * به‌روزرسانی اطلاعات کاربر
      */
     public function update(int $id, array $updates): bool {
@@ -100,3 +113,4 @@ class UserRepository {
         return (int)($result['count'] ?? 0);
     }
 }
+

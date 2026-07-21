@@ -3,6 +3,9 @@ package com.atk.atk_cargo.di
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.data.repository.ReportsRepository
+import com.atk.atk_cargo.feature.auth.data.AuthRepository
+import com.atk.atk_cargo.feature.auth.data.AuthRepositoryImpl
+import com.atk.atk_cargo.feature.auth.domain.LoginUseCase
 import com.atk.atk_cargo.feature.auth.viewmodel.AuthViewModel
 import com.atk.atk_cargo.security.CryptoManager
 import com.atk.atk_cargo.security.SecurityVerifier
@@ -14,21 +17,32 @@ import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
-    // API Service
+    // ===== API Service =====
     single { RetrofitClient.apiService }
-    
-    // Repository
-    single { ReportsRepository(get()) }
-    
-    // Security
-    single { SecurityVerifier(androidContext()) }
+
+    // ===== Security =====
     single { CryptoManager() }
-    
-    // Preferences Manager
+    single { SecurityVerifier(androidContext()) }
+
+    // ===== Preferences Manager =====
     single { UserPreferencesManager(androidContext(), get()) }
-    
-    // ViewModels
+
+    // ===== Repositories =====
+    single { ReportsRepository(get()) }
+    single<AuthRepository> {
+        AuthRepositoryImpl(
+            context = androidContext(),
+            apiService = get(),
+            userPreferencesManager = get()
+        )
+    }
+
+    // ===== Use Cases =====
+    single { LoginUseCase(get()) }
+
+    // ===== ViewModels =====
     viewModel { ReportsViewModel(get(), androidApplication()) }
     viewModel { CargoViewModel(get(), get()) }
-    viewModel { AuthViewModel(get(), get()) }
+    viewModel { AuthViewModel(loginUseCase = get(), context = androidContext()) }
 }
+

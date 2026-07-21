@@ -164,7 +164,6 @@ fun MainScreen() {
                                         startDestination = HomeRoute
                                     ) {
                                         loginScreen(
-                                            userPreferencesManager = userPreferencesManager,
                                             onLoginSuccess = {
                                                 mainActivity.updateSessionValidity(true)
                                                 mainActivity.startLoadingNotificationService()
