@@ -11,6 +11,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
 import com.atk.atk_cargo.R
 import com.atk.atk_cargo.api.RetrofitClient.apiService
+import com.atk.atk_cargo.data.model.RealTimeLoadingData
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,6 +23,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.milliseconds
 
 class LoadingNotificationService : Service() {
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -134,7 +138,7 @@ class LoadingNotificationService : Service() {
     private fun startPeriodicFetching() {
         coroutineScope.launch {
             // تاخیر اولیه برای اطمینان از راه‌اندازی کامل برنامه
-            delay(TimeUnit.SECONDS.toMillis(INITIAL_DELAY_SECONDS))
+            delay(TimeUnit.SECONDS.toMillis(INITIAL_DELAY_SECONDS).milliseconds)
             
             while (isActive) {
                 try {
@@ -144,7 +148,7 @@ class LoadingNotificationService : Service() {
                 }
                 
                 // انتظار تا زمان دریافت بعدی
-                delay(TimeUnit.MINUTES.toMillis(UPDATE_INTERVAL_MINUTES))
+                delay(TimeUnit.MINUTES.toMillis(UPDATE_INTERVAL_MINUTES).milliseconds)
             }
         }
     }
@@ -180,17 +184,21 @@ class LoadingNotificationService : Service() {
                 val loadingData = response.body()
                 
                 if (loadingData != null) {
+                    // دریافت داده‌های قبلی ذخیره‌شده در کش برای مقایسه تغییرات
+                    val previousData = getCachedLoadingData()
+                    val hasDataChanged = previousData == null || previousData.toSet() != loadingData.data.toSet()
+                    
                     // ذخیره زمان آخرین به‌روزرسانی
                     prefs.edit { putLong(KEY_LAST_UPDATE_TIME, System.currentTimeMillis()) }
                     
                     // ذخیره اطلاعات شیفت فعلی
                     saveCurrentShiftInfo(loadingData.shiftInfo)
                     
-                    // ذخیره داده‌ها در کش برای استفاده در نمایش آمار کلی
+                    // ذخیره داده‌های جدید در کش
                     cacheLoadingData(loadingData.data)
                     
-                    // نمایش همه کشتی‌ها
-                    if (loadingData.data.isNotEmpty()) {
+                    // نمایش نوتیفیکیشن تنها در صورتی که داده جدید باشد یا تغییرات واقعی رخ داده باشد
+                    if (loadingData.data.isNotEmpty() && hasDataChanged) {
                         // دریافت لیست کشتی‌های مسدود شده
                         val mutedShips = getSharedPreferences("ship_notifications_prefs", MODE_PRIVATE)
                             .getStringSet("muted_ships", emptySet()) ?: emptySet()
@@ -248,11 +256,25 @@ class LoadingNotificationService : Service() {
     }
 
     /**
+     * دریافت داده‌های بارگیری ذخیره‌شده از کش جهت بررسی تغییرات
+     */
+    private fun getCachedLoadingData(): List<RealTimeLoadingData>? {
+        return try {
+            val jsonData = getSharedPreferences("LoadingDataCache", MODE_PRIVATE)
+                .getString("cached_data", null) ?: return null
+            val type = object : TypeToken<List<RealTimeLoadingData>>() {}.type
+            Gson().fromJson(jsonData, type)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
      * ذخیره داده‌های بارگیری در کش
      */
     private fun cacheLoadingData(data: List<RealTimeLoadingData>) {
         try {
-            val gson = com.google.gson.Gson()
+            val gson = Gson()
             val jsonData = gson.toJson(data)
             
             // ذخیره داده‌ها در SharedPreferences
