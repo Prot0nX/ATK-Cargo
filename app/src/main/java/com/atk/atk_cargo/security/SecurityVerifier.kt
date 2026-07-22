@@ -5,7 +5,6 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.pm.Signature
 import android.os.Debug
-import android.util.Base64
 import android.util.Log
 import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +27,8 @@ import javax.net.ssl.SSLException
 import javax.net.ssl.SSLHandshakeException
 import kotlin.time.Duration.Companion.milliseconds
 
+import com.atk.atk_cargo.api.Secrets
+
 enum class SecurityErrorType {
     TAMPERED,              // دستکاری شده
     LICENSE_NOT_FOUND,     // لایسنس پیدا نشد
@@ -38,31 +39,15 @@ enum class SecurityErrorType {
 
 class SecurityVerifier(private val context: Context) {
     companion object {
-        private const val ENCODED_EXPECTED_SIGNATURE_HASH = "NmE2ZTAyZGNlMmQyMjg2ZWMyMjExY2M5ZjIwZmMwZGZlOGM5ZTJlZjU2NjNlMTU4NGU3YWEzYmZjNWUwOTQ3MQ=="
-        private const val ENCODED_LICENSE_STATUS_PREF_KEY = "ZTFmMmczaDRpNWo2azdsOG05bjBvMXAycTNyNHM1dDY="
-        private const val ENCODED_SIGNATURE_CHECK_URL = "aHR0cHM6Ly9hdGstbmsuaXIvQ2FyZ28vY2hlY2tfc2lnbmF0dXJlLnBocA=="
-        private const val ENCODED_LICENSE_CHECK_URL = "aHR0cHM6Ly9hdGstbmsuaXIvQ2FyZ28vdmFsaWRhdGVfbGljZW5zZS5waHA="
-        private const val ENCODED_LICENSE_INFO_URL = "aHR0cHM6Ly9hdGstbmsuaXIvQ2FyZ28vZ2V0X2xpY2Vuc2VfaW5mby5waHA="
-        private const val ENCODED_LICENSE_KEY = "MTNGNzFBRENCNDU4NUYxQkU2MzJGRkI5MTlGMDY2OTE="
-        
         private const val BUFFER_DURATION = 15000
         private const val CONNECTION_ATTEMPTS = 2
         
-        private val EXPECTED_SIGNATURE_HASH: String by lazy { decodeBase64String(ENCODED_EXPECTED_SIGNATURE_HASH) }
-        private val LICENSE_STATUS_PREF_KEY: String by lazy { decodeBase64String(ENCODED_LICENSE_STATUS_PREF_KEY) }
-        private val SIGNATURE_CHECK_URL: String by lazy { decodeBase64String(ENCODED_SIGNATURE_CHECK_URL) }
-        private val LICENSE_CHECK_URL: String by lazy { decodeBase64String(ENCODED_LICENSE_CHECK_URL) }
-        private val LICENSE_INFO_URL: String by lazy { decodeBase64String(ENCODED_LICENSE_INFO_URL) }
-        private val LICENSE_KEY: String by lazy { decodeBase64String(ENCODED_LICENSE_KEY) }
-        
-        private fun decodeBase64String(encodedData: String): String {
-            return try {
-                val decodedBytes = Base64.decode(encodedData, Base64.DEFAULT)
-                String(decodedBytes, Charsets.UTF_8)
-            } catch (_: Exception) {
-                ""
-            }
-        }
+        private val EXPECTED_SIGNATURE_HASH: String by lazy { Secrets.getExpectedSignatureHash() }
+        private val LICENSE_STATUS_PREF_KEY: String by lazy { Secrets.getLicenseStatusPrefKey() }
+        private val SIGNATURE_CHECK_URL: String by lazy { Secrets.getSignatureCheckUrl() }
+        private val LICENSE_CHECK_URL: String by lazy { Secrets.getLicenseCheckUrl() }
+        private val LICENSE_INFO_URL: String by lazy { Secrets.getLicenseInfoUrl() }
+        private val LICENSE_KEY: String by lazy { Secrets.getLicenseKey() }
     }
 
     private val securityPrefs = context.getSharedPreferences("x1y2z3", Context.MODE_PRIVATE)
