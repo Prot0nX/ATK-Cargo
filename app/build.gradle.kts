@@ -46,9 +46,7 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
 
-            // تنظیمات NDK برای دیباگ - شامل تمام معماری‌ها
             ndk {
-                //noinspection ChromeOsAbiSupport
                 abiFilters += listOf("arm64-v8a", "x86_64")
             }
         }
@@ -62,10 +60,8 @@ android {
                 "proguard-rules.pro"
             )
 
-            // تنظیمات NDK برای ریلیز - فقط ARM
             ndk {
-                //noinspection ChromeOsAbiSupport
-                abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+                abiFilters += listOf("arm64-v8a")
             }
 
             // بهینه‌سازی APK

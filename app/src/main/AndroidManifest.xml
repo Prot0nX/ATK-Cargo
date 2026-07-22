@@ -79,11 +79,6 @@
             android:enabled="true"
             android:exported="false" />
         
-        <!-- سرویس بررسی دوره‌ای هشدارهای تناژ -->
-        <service
-            android:name=".api.TonnageWarningService"
-            android:enabled="true"
-            android:exported="false" />
             
         <!-- دریافت کننده رویداد بوت دستگاه -->
         <receiver

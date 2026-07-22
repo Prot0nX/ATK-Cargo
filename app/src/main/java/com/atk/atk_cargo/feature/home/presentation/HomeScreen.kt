@@ -1,16 +1,15 @@
 package com.atk.atk_cargo.feature.home.presentation
 
-import com.atk.atk_cargo.feature.home.domain.getMenuItemsForUserType
-import com.atk.atk_cargo.feature.home.domain.parseQuotaTonnageData
-import com.atk.atk_cargo.feature.home.presentation.components.NotificationSettingRow
-import com.atk.atk_cargo.feature.home.presentation.components.ProfileMenu
-import com.atk.atk_cargo.feature.home.presentation.components.ThemeColorPickerRow
 import android.annotation.SuppressLint
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.os.Build
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -29,16 +28,14 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -48,12 +45,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,26 +55,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.rounded.Assignment
 import androidx.compose.material.icons.automirrored.rounded.ManageSearch
 import androidx.compose.material.icons.automirrored.rounded.ReceiptLong
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.ToggleOff
-import androidx.compose.material.icons.filled.ToggleOn
+import androidx.compose.material.icons.filled.SignalCellular4Bar
+import androidx.compose.material.icons.filled.SignalCellularOff
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.rounded.AddTask
 import androidx.compose.material.icons.rounded.DirectionsBoat
@@ -89,26 +73,22 @@ import androidx.compose.material.icons.rounded.ManageAccounts
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -122,10 +102,10 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -134,14 +114,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.atk.atk_cargo.MainActivity
-import com.atk.atk_cargo.R
-import com.atk.atk_cargo.api.AppNotificationManager
 import com.atk.atk_cargo.api.LogoutRequest
-import com.atk.atk_cargo.api.QuotaTonnageWarning
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UpdateUserRequest
 import com.atk.atk_cargo.api.User
@@ -152,31 +127,14 @@ import com.atk.atk_cargo.feature.cargo_counter.navigation.navigateToCargoCounter
 import com.atk.atk_cargo.feature.cargo_entry.navigation.navigateToInitialInfo
 import com.atk.atk_cargo.feature.cargo_entry.navigation.navigateToSelectInfo
 import com.atk.atk_cargo.feature.chat.navigation.navigateToAdminChat
+import com.atk.atk_cargo.feature.home.domain.getMenuItemsForUserType
+import com.atk.atk_cargo.feature.home.presentation.components.ProfileMenu
 import com.atk.atk_cargo.feature.reports.navigation.navigateToManageShips
-import com.atk.atk_cargo.ui.theme.SurfaceDark
-import com.atk.atk_cargo.ui.theme.ThemeBlue
-import com.atk.atk_cargo.ui.theme.ThemeBlueDark
-import com.atk.atk_cargo.ui.theme.ThemeBlueOcean
-import com.atk.atk_cargo.ui.theme.ThemeGold
-import com.atk.atk_cargo.ui.theme.ThemeGreen
-import com.atk.atk_cargo.ui.theme.ThemeGreenDark
-import com.atk.atk_cargo.ui.theme.ThemeGreenTeal
-import com.atk.atk_cargo.ui.theme.ThemeOlive
-import com.atk.atk_cargo.ui.theme.ThemeOrange
-import com.atk.atk_cargo.ui.theme.ThemePink
-import com.atk.atk_cargo.ui.theme.ThemePurple
-import com.atk.atk_cargo.ui.theme.ThemePurpleDark
-import com.atk.atk_cargo.ui.theme.ThemeRed
-import com.atk.atk_cargo.ui.theme.ThemeRedDark
-import com.atk.atk_cargo.ui.theme.ThemeSlateBlue
-import com.atk.atk_cargo.ui.theme.ThemeTeal
 import com.atk.atk_cargo.utils.hashPassword
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.UUID
 
 @SuppressLint("HardwareIds")
@@ -203,51 +161,53 @@ fun HomeScreen(
     AnimatedContent(
         targetState = isSessionValid && username.isNotEmpty(),
         transitionSpec = {
-            fadeIn(animationSpec = tween(600)) + slideInVertically(
-                animationSpec = tween(600),
+            fadeIn(animationSpec = tween(500)) + slideInVertically(
+                animationSpec = tween(500),
                 initialOffsetY = { fullHeight -> -fullHeight }
-            ) togetherWith fadeOut(animationSpec = tween(600)) + slideOutVertically(
-                animationSpec = tween(600),
+            ) togetherWith fadeOut(animationSpec = tween(500)) + slideOutVertically(
+                animationSpec = tween(500),
                 targetOffsetY = { fullHeight -> fullHeight }
             )
         },
-        label = ""
+        label = "home_screen_session_animation"
     ) { isLoggedIn ->
         val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
         val primaryColor = MaterialTheme.colorScheme.primary
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
+            // پس‌زمینه زنده صنعتی با گرادیان ملایم و عدم ضربه به کنتراست
             androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
                 val width = size.width
                 val height = size.height
-                
+
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            primaryColor.copy(alpha = if (isDark) 0.14f else 0.08f),
+                            primaryColor.copy(alpha = if (isDark) 0.12f else 0.06f),
                             primaryColor.copy(alpha = 0f)
                         ),
-                        center = androidx.compose.ui.geometry.Offset(width * 0.9f, height * 0.1f),
-                        radius = width * 0.8f
+                        center = androidx.compose.ui.geometry.Offset(width * 0.85f, height * 0.08f),
+                        radius = width * 0.75f
                     ),
-                    center = androidx.compose.ui.geometry.Offset(width * 0.9f, height * 0.1f),
-                    radius = width * 0.8f
+                    center = androidx.compose.ui.geometry.Offset(width * 0.85f, height * 0.08f),
+                    radius = width * 0.75f
                 )
-                
+
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            primaryColor.copy(alpha = if (isDark) 0.10f else 0.06f),
+                            primaryColor.copy(alpha = if (isDark) 0.08f else 0.04f),
                             primaryColor.copy(alpha = 0f)
                         ),
-                        center = androidx.compose.ui.geometry.Offset(width * 0.1f, height * 0.9f),
-                        radius = width * 0.8f
+                        center = androidx.compose.ui.geometry.Offset(width * 0.15f, height * 0.85f),
+                        radius = width * 0.75f
                     ),
-                    center = androidx.compose.ui.geometry.Offset(width * 0.1f, height * 0.9f),
-                    radius = width * 0.8f
+                    center = androidx.compose.ui.geometry.Offset(width * 0.15f, height * 0.85f),
+                    radius = width * 0.75f
                 )
             }
 
@@ -257,6 +217,7 @@ fun HomeScreen(
                     .statusBarsPadding()
                     .navigationBarsPadding()
             ) {
+                // هدر مدیریت کاربری و خلاصه هشدارهای عملیاتی
                 Header(
                     username = username,
                     userType = userType,
@@ -264,10 +225,9 @@ fun HomeScreen(
                         coroutineScope.launch {
                             try {
                                 showGridAnimation = false
-                                delay(300)
+                                delay(200)
 
                                 val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
-
                                 val sessionToken = userPreferencesManager.sessionToken.first()
                                 val logoutRequest = LogoutRequest(
                                     username = username,
@@ -288,9 +248,7 @@ fun HomeScreen(
                                         500 -> "🔧 خطای داخلی سرور"
                                         else -> "خطا در خروج (کد: ${response.code()})"
                                     }
-
                                     Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
-
                                     userPreferencesManager.clearUserCredentials()
                                     mainActivity.updateSessionValidity(false)
                                     onLogoutClick()
@@ -310,11 +268,17 @@ fun HomeScreen(
 
                 if (isLoggedIn) {
                     LaunchedEffect(Unit) {
-                        delay(200)
+                        delay(150)
                         showGridAnimation = true
                     }
+
+                    val menuItems = remember(userPermissions) {
+                        getMenuItemsForUserType(userPermissions)
+                    }
+
+                    // شبکه منوی دسته‌بندی‌شده و تطبیقی (Responsive Adaptive Operational Grid)
                     CategorizedMenuGrid(
-                        menuItems = getMenuItemsForUserType(userPermissions),
+                        menuItems = menuItems,
                         showAnimation = showGridAnimation,
                         badgeCounts = mapOf("admin_chat" to unreadCountByMe),
                         onItemClick = { item ->
@@ -338,7 +302,7 @@ fun HomeScreen(
             when (menuItem.route) {
                 "initial_info", "select_info", "cargo_counter", "manage_ships", "manage_users", "admin_chat" -> {
                     showGridAnimation = false
-                    delay(300)
+                    delay(250)
                     when (menuItem.route) {
                         "initial_info" -> navController.navigateToInitialInfo()
                         "select_info" -> navController.navigateToSelectInfo()
@@ -366,7 +330,6 @@ private fun Header(
 ) {
     val headerScale = remember { Animatable(0.97f) }
     val headerOpacity = remember { Animatable(0f) }
-    var showQuotaTonnage by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         launch {
@@ -381,18 +344,8 @@ private fun Header(
         launch {
             headerOpacity.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(durationMillis = 400)
+                animationSpec = tween(durationMillis = 350)
             )
-        }
-    }
-
-    LaunchedEffect(mainActivity.shouldOpenWarningsDialog) {
-        if (mainActivity.shouldOpenWarningsDialog) {
-            showQuotaTonnage = true
-            mainActivity.shouldOpenWarningsDialog = false
-
-            val appNotificationManager = AppNotificationManager(mainActivity)
-            appNotificationManager.clearAll()
         }
     }
 
@@ -401,7 +354,7 @@ private fun Header(
             .fillMaxWidth()
             .scale(headerScale.value)
             .alpha(headerOpacity.value)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -449,17 +402,6 @@ private fun Header(
                 )
             }
         }
-
-        if (username.isNotEmpty() && userType == "admin") {
-            SummaryStatsButton(
-                onClick = { showQuotaTonnage = true },
-                warningsCount = warningsCount
-            )
-        }
-    }
-
-    if (showQuotaTonnage) {
-        QuotaTonnageDialog(onDismiss = { showQuotaTonnage = false })
     }
 }
 
@@ -468,32 +410,37 @@ private fun SummaryStatsButton(onClick: () -> Unit, warningsCount: Int = 0) {
     var isPressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.94f else 1f,
-        label = ""
+        label = "button_scale"
     )
 
     val infiniteTransition = rememberInfiniteTransition(label = "badge_pulse")
     val badgeScale by infiniteTransition.animateFloat(
-        initialValue = 0.9f,
-        targetValue = 1.15f,
+        initialValue = 0.92f,
+        targetValue = 1.12f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
+            animation = tween(900, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "badge_scale"
     )
 
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    val glassBgColor = if (isDark) MaterialTheme.colorScheme.surface.copy(alpha = 0.55f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
-    val glassBorderColor = if (isPressed) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+    val containerColor = if (isDark) {
+        MaterialTheme.colorScheme.surfaceContainerHigh
     } else {
-        if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
+        MaterialTheme.colorScheme.surface
+    }
+    val borderColor = if (warningsCount > 0) {
+        MaterialTheme.colorScheme.error.copy(alpha = 0.6f)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
     }
 
     Card(
         modifier = Modifier
-            .size(height = 64.dp, width = 56.dp)
+            .size(height = 64.dp, width = 60.dp)
             .scale(scale)
+            .semantics { contentDescription = "گزارشات و هشدارهای تناژ کوتاژ، $warningsCount هشدار" }
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
@@ -505,9 +452,9 @@ private fun SummaryStatsButton(onClick: () -> Unit, warningsCount: Int = 0) {
                 )
             },
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = glassBgColor),
-        border = BorderStroke(1.dp, glassBorderColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = BorderStroke(1.5.dp, borderColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -515,22 +462,23 @@ private fun SummaryStatsButton(onClick: () -> Unit, warningsCount: Int = 0) {
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.ReceiptLong,
-                contentDescription = "گزارشات",
-                modifier = Modifier.size(26.dp),
-                tint = MaterialTheme.colorScheme.primary
+                contentDescription = null,
+                modifier = Modifier.size(28.dp),
+                tint = if (warningsCount > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
             )
 
             if (warningsCount > 0) {
                 Badge(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(8.dp)
+                        .padding(6.dp)
                         .scale(badgeScale),
                     containerColor = MaterialTheme.colorScheme.error
                 ) {
                     Text(
                         text = if (warningsCount > 9) "9+" else warningsCount.toString(),
                         style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                 }
@@ -539,322 +487,134 @@ private fun SummaryStatsButton(onClick: () -> Unit, warningsCount: Int = 0) {
     }
 }
 
-
-
+// ===== نوار آگاهی صنعتی و پویا از وضعیت سیستم =====
 @Composable
-fun ProfileSettingsDialog(
-    user: User,
-    onDismiss: () -> Unit,
-    onLogout: () -> Unit
-) {
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf("") }
-    var showConfirmation by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
+private fun SystemAwarenessBanner() {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
-                }
-                Text(
-                    "تغییر رمز عبور",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.size(48.dp))
+    var isOnline by remember { mutableStateOf(true) }
+
+    DisposableEffect(context) {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                isOnline = true
             }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "نام کاربری:",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                user.username,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "نام و نام خانوادگی:",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                user.fullName ?: "",
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "نقش کاربری:",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                getUserTypeDisplay(user.userType),
-                                fontWeight = FontWeight.Bold,
-                                color = when (user.userType) {
-                                    "admin" -> MaterialTheme.colorScheme.primary
-                                    "operator" -> MaterialTheme.colorScheme.secondary
-                                    "verifier" -> MaterialTheme.colorScheme.tertiary
-                                    else -> MaterialTheme.colorScheme.onSurface
-                                }
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = {
-                        password = it.filter { char -> char.isDigit() }
-                        errorMessage = ""
-                    },
-                    label = { Text("رمز عبور جدید") },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.NumberPassword,
-                        imeAction = ImeAction.Next
-                    ),
-                    isError = errorMessage.isNotEmpty()
-                )
-                OutlinedTextField(
-                    value = confirmPassword,
-                    onValueChange = {
-                        confirmPassword = it.filter { char -> char.isDigit() }
-                        errorMessage = ""
-                    },
-                    label = { Text("تکرار رمز عبور جدید") },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.NumberPassword,
-                        imeAction = ImeAction.Done
-                    ),
-                    isError = errorMessage.isNotEmpty()
-                )
-                if (errorMessage.isNotEmpty()) {
-                    Text(
-                        text = errorMessage,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Right
-                    )
-                }
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Info,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            "برای حفظ امنیت، رمز عبور باید فقط شامل اعداد و حداقل 4 رقم باشد",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    when {
-                        password.isEmpty() -> {
-                            errorMessage = "لطفاً رمز عبور جدید را وارد کنید"
-                            return@Button
-                        }
-                        password.length < 4 -> {
-                            errorMessage = "رمز عبور باید حداقل 4 رقم باشد"
-                            return@Button
-                        }
-                        confirmPassword.isEmpty() -> {
-                            errorMessage = "لطفاً تکرار رمز عبور را وارد کنید"
-                            return@Button
-                        }
-                        password != confirmPassword -> {
-                            errorMessage = "رمز عبور و تکرار آن مطابقت ندارند"
-                            return@Button
-                        }
-                        else -> {
-                            showConfirmation = true
-                        }
-                    }
-                },
-                enabled = !isLoading
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Icon(Icons.Default.Save, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("تغییر رمز عبور")
-                }
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("انصراف")
+
+            override fun onLost(network: Network) {
+                isOnline = false
             }
         }
-    )
 
-    if (showConfirmation) {
-        AlertDialog(
-            onDismissRequest = { showConfirmation = false },
-            title = {
-                Text(
-                    "تأیید تغییر رمز عبور",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+        try {
+            val activeNetwork = connectivityManager?.activeNetwork
+            val capabilities = connectivityManager?.getNetworkCapabilities(activeNetwork)
+            isOnline = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+
+            val request = NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build()
+            connectivityManager?.registerNetworkCallback(request, networkCallback)
+        } catch (_: Exception) {
+            isOnline = true
+        }
+
+        onDispose {
+            try {
+                connectivityManager?.unregisterNetworkCallback(networkCallback)
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val bannerBg = if (isDark) {
+        MaterialTheme.colorScheme.surfaceContainerHigh
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
+    }
+
+    val statusColor = if (isOnline) Color(0xFF10B981) else Color(0xFFF59E0B)
+    val statusText = if (isOnline) "سیستم آمـاده بارگیری" else "حالت آفلاین (ذخیره محلی)"
+    val networkText = if (isOnline) "آنلاین" else "آفلاین"
+    val syncText = if (isOnline) "همگام" else "در انتظار شبکه"
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = bannerBg,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(statusColor)
                 )
-            },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("آیا از تغییر رمز عبور خود اطمینان دارید؟")
-                    Surface(
-                        color = MaterialTheme.colorScheme.errorContainer,
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                            Text(
-                                "پس از تغییر رمز عبور، نیاز به ورود مجدد خواهید داشت",
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
-                    }
+                    Icon(
+                        imageVector = if (isOnline) Icons.Default.SignalCellular4Bar else Icons.Default.SignalCellularOff,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = if (isOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    )
+                    Text(
+                        text = networkText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isOnline) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                        fontWeight = if (!isOnline) FontWeight.Bold else FontWeight.Normal
+                    )
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            isLoading = true
-                            try {
-                                val updateRequest = UpdateUserRequest(
-                                    id = user.id,
-                                    username = user.username,
-                                    fullName = null,
-                                    password = hashPassword(password),
-                                    userType = user.userType
-                                )
-                                val response = RetrofitClient.apiService.updateUser(updateRequest)
-                                if (response.success) {
-                                    Toast.makeText(context, "رمز عبور با موفقیت تغییر کرد", Toast.LENGTH_SHORT).show()
-                                    delay(800)
-                                    onDismiss()
-                                    onLogout()
-                                } else {
-                                    errorMessage = response.message
-                                    showConfirmation = false
-                                }
-                            } catch (e: Exception) {
-                                errorMessage = "خطا در تغییر رمز عبور: ${e.message}"
-                                showConfirmation = false
-                            } finally {
-                                isLoading = false
-                            }
-                        }
-                    },
-                    enabled = !isLoading
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Text("تأیید و تغییر رمز عبور")
-                    }
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { showConfirmation = false },
-                    enabled = !isLoading
-                ) {
-                    Text("انصراف")
+                    Icon(
+                        imageVector = Icons.Default.Sync,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = if (isOnline) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline
+                    )
+                    Text(
+                        text = syncText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-        )
+        }
     }
 }
 
+// ===== شبکه عملیاتی دسته‌بندی شده و تطبیقی =====
 @Composable
 private fun CategorizedMenuGrid(
     menuItems: List<MenuItem>,
@@ -862,88 +622,97 @@ private fun CategorizedMenuGrid(
     badgeCounts: Map<String, Int> = emptyMap(),
     onItemClick: (MenuItem) -> Unit
 ) {
-    val groupedItems = menuItems.groupBy { it.category }
+    val groupedItems = remember(menuItems) { menuItems.groupBy { it.category } }
     val categoryOrder = listOf("عملیات پایه", "نظارت", "مدیریت", "ارتباطات")
-    val activeCategories = categoryOrder.filter { groupedItems.containsKey(it) }
-    
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        activeCategories.forEach { category ->
-            val items = groupedItems[category] ?: return@forEach
-            val itemCount = items.size
-            val isAlwaysWideCategory = category == "نظارت" || category == "ارتباطات"
-            
-            item(span = { GridItemSpan(2) }) {
-                CategoryHeader(title = category, showAnimation = showAnimation)
+    val activeCategories = remember(groupedItems) { categoryOrder.filter { groupedItems.containsKey(it) } }
+
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val availableWidth = maxWidth
+        val columnsCount = if (availableWidth >= 600.dp) 3 else 2
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columnsCount),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            item(span = { GridItemSpan(columnsCount) }) {
+                SystemAwarenessBanner()
             }
-            
-            when {
-                isAlwaysWideCategory -> {
-                    items(
-                        count = itemCount,
-                        span = { GridItemSpan(2) }
-                    ) { index ->
-                        WideMenuCard(
-                            item = items[index],
-                            showAnimation = showAnimation,
-                            badgeCount = badgeCounts[items[index].route] ?: 0,
-                            onItemClick = onItemClick
-                        )
+
+            activeCategories.forEach { category ->
+                val items = groupedItems[category] ?: return@forEach
+                val itemCount = items.size
+                val isAlwaysWideCategory = category == "نظارت" || category == "ارتباطات"
+
+                item(span = { GridItemSpan(columnsCount) }) {
+                    CategoryHeader(title = category, showAnimation = showAnimation)
+                }
+
+                when {
+                    isAlwaysWideCategory -> {
+                        items(
+                            count = itemCount,
+                            span = { GridItemSpan(columnsCount) }
+                        ) { index ->
+                            WideMenuCard(
+                                item = items[index],
+                                showAnimation = showAnimation,
+                                badgeCount = badgeCounts[items[index].route] ?: 0,
+                                onItemClick = onItemClick
+                            )
+                        }
+                    }
+                    itemCount == 1 -> {
+                        item(span = { GridItemSpan(columnsCount) }) {
+                            WideMenuCard(
+                                item = items[0],
+                                showAnimation = showAnimation,
+                                badgeCount = badgeCounts[items[0].route] ?: 0,
+                                onItemClick = onItemClick
+                            )
+                        }
+                    }
+                    itemCount % columnsCount == 0 -> {
+                        items(
+                            count = itemCount,
+                            span = { GridItemSpan(1) }
+                        ) { index ->
+                            CompactMenuCard(
+                                item = items[index],
+                                showAnimation = showAnimation,
+                                badgeCount = badgeCounts[items[index].route] ?: 0,
+                                onItemClick = onItemClick
+                            )
+                        }
+                    }
+                    else -> {
+                        items(
+                            count = itemCount - 1,
+                            span = { GridItemSpan(1) }
+                        ) { index ->
+                            CompactMenuCard(
+                                item = items[index],
+                                showAnimation = showAnimation,
+                                badgeCount = badgeCounts[items[index].route] ?: 0,
+                                onItemClick = onItemClick
+                            )
+                        }
+                        item(span = { GridItemSpan(columnsCount) }) {
+                            WideMenuCard(
+                                item = items.last(),
+                                showAnimation = showAnimation,
+                                badgeCount = badgeCounts[items.last().route] ?: 0,
+                                onItemClick = onItemClick
+                            )
+                        }
                     }
                 }
-                itemCount == 1 -> {
-                    item(span = { GridItemSpan(2) }) {
-                        WideMenuCard(
-                            item = items[0],
-                            showAnimation = showAnimation,
-                            badgeCount = badgeCounts[items[0].route] ?: 0,
-                            onItemClick = onItemClick
-                        )
-                    }
+
+                item(span = { GridItemSpan(columnsCount) }) {
+                    Spacer(modifier = Modifier.height(4.dp))
                 }
-                itemCount % 2 == 0 -> {
-                    items(
-                        count = itemCount,
-                        span = { GridItemSpan(1) }
-                    ) { index ->
-                        CompactMenuCard(
-                            item = items[index],
-                            showAnimation = showAnimation,
-                            badgeCount = badgeCounts[items[index].route] ?: 0,
-                            onItemClick = onItemClick
-                        )
-                    }
-                }
-                else -> {
-                    items(
-                        count = itemCount - 1,
-                        span = { GridItemSpan(1) }
-                    ) { index ->
-                        CompactMenuCard(
-                            item = items[index],
-                            showAnimation = showAnimation,
-                            badgeCount = badgeCounts[items[index].route] ?: 0,
-                            onItemClick = onItemClick
-                        )
-                    }
-                    item(span = { GridItemSpan(2) }) {
-                        WideMenuCard(
-                            item = items.last(),
-                            showAnimation = showAnimation,
-                            badgeCount = badgeCounts[items.last().route] ?: 0,
-                            onItemClick = onItemClick
-                        )
-                    }
-                }
-            }
-            
-            item(span = { GridItemSpan(2) }) {
-                Spacer(modifier = Modifier.height(2.dp))
             }
         }
     }
@@ -953,22 +722,22 @@ private fun CategorizedMenuGrid(
 private fun CategoryHeader(title: String, showAnimation: Boolean) {
     AnimatedVisibility(
         visible = showAnimation,
-        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { -15 })
+        enter = fadeIn(animationSpec = tween(400)) + slideInVertically(initialOffsetY = { -10 })
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 14.dp, bottom = 4.dp),
+                .padding(top = 12.dp, bottom = 4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(6.dp)
+                        .size(8.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primary)
                 )
@@ -976,15 +745,15 @@ private fun CategoryHeader(title: String, showAnimation: Boolean) {
                     text = title,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 0.3.sp
+                        letterSpacing = 0.2.sp
                     ),
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.25f)
-                    .height(2.dp)
+                    .fillMaxWidth(0.3f)
+                    .height(3.dp)
                     .clip(CircleShape)
                     .background(
                         brush = Brush.horizontalGradient(
@@ -1010,43 +779,39 @@ private fun CompactMenuCard(
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.96f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "scale"
-    )
-    val pressOffset by animateFloatAsState(
-        targetValue = if (isPressed) 3f else 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "offset"
+        label = "compact_card_scale"
     )
 
-    val (icon, iconColor, _) = when (item.title) {
-        "ثبت حواله" -> Triple(Icons.AutoMirrored.Rounded.Assignment, Color(0xFF3B82F6), listOf(Color(0xFFF0F7FF), Color.White))
-        "تعریف کشتی" -> Triple(Icons.Rounded.AddTask, Color(0xFF06B6D4), listOf(Color(0xFFECFEFF), Color.White))
-        "مدیریت کاربران" -> Triple(Icons.Rounded.ManageAccounts, Color(0xFF6366F1), listOf(Color(0xFFEEF2FF), Color.White))
-        "مدیریت کشتی ها" -> Triple(Icons.Rounded.DirectionsBoat, Color(0xFF14B8A6), listOf(Color(0xFFF0FDFA), Color.White))
-        else -> Triple(Icons.AutoMirrored.Rounded.Assignment, MaterialTheme.colorScheme.primary, listOf(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f), MaterialTheme.colorScheme.surface))
+    val (icon, iconColor) = when (item.title) {
+        "ثبت حواله" -> Pair(Icons.AutoMirrored.Rounded.Assignment, Color(0xFF2563EB))
+        "تعریف کشتی" -> Pair(Icons.Rounded.AddTask, Color(0xFF0891B2))
+        "مدیریت کاربران" -> Pair(Icons.Rounded.ManageAccounts, Color(0xFF4F46E5))
+        "مدیریت کشتی ها" -> Pair(Icons.Rounded.DirectionsBoat, Color(0xFF0D9488))
+        else -> Pair(Icons.AutoMirrored.Rounded.Assignment, MaterialTheme.colorScheme.primary)
     }
 
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    val glassBg = if (isDark) {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+    val containerColor = if (isDark) {
+        MaterialTheme.colorScheme.surfaceContainerHigh
     } else {
-        Color.White.copy(alpha = 0.75f)
+        MaterialTheme.colorScheme.surface
     }
-    val glassBorder = if (isPressed) {
-        iconColor.copy(alpha = 0.4f)
+    val borderColor = if (isDark) {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
     } else {
-        if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
     }
 
     AnimatedVisibility(
         visible = showAnimation,
-        enter = fadeIn(animationSpec = tween(400)) + scaleIn(initialScale = 0.9f)
+        enter = fadeIn(animationSpec = tween(350)) + scaleIn(initialScale = 0.92f)
     ) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
+                .height(115.dp)
                 .scale(scale)
-                .offset(y = pressOffset.dp)
+                .semantics { contentDescription = "${item.title}: ${item.description}" }
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onPress = {
@@ -1057,81 +822,72 @@ private fun CompactMenuCard(
                         onTap = { onItemClick(item) }
                     )
                 },
-            shape = RoundedCornerShape(24.dp),
-            border = BorderStroke(1.dp, glassBorder),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            colors = CardDefaults.cardColors(containerColor = glassBg)
+            shape = RoundedCornerShape(20.dp),
+            border = BorderStroke(1.5.dp, if (isPressed) iconColor else borderColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            colors = CardDefaults.cardColors(containerColor = containerColor)
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .padding(12.dp)
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Box(
-                            modifier = Modifier.size(54.dp),
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(iconColor.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(46.dp)
-                                    .rotate(15f)
-                                    .background(
-                                        color = iconColor.copy(alpha = 0.12f),
-                                        shape = RoundedCornerShape(14.dp)
-                                    )
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(26.dp),
+                                tint = iconColor
                             )
-                            Box(
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .background(
-                                        color = if (isDark) MaterialTheme.colorScheme.surfaceVariant else Color.White,
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.03f),
-                                        RoundedCornerShape(12.dp)
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = iconColor
-                                )
-                            }
                         }
+
                         if (badgeCount > 0) {
                             Badge(
-                                modifier = Modifier.align(Alignment.TopEnd).offset(x = 6.dp, y = (-6).dp),
-                                containerColor = Color(0xFFF97316)
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 6.dp, y = (-6).dp),
+                                containerColor = MaterialTheme.colorScheme.error
                             ) {
-                                Text(text = badgeCount.toString(), color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                Text(
+                                    text = badgeCount.toString(),
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
                             }
                         }
                     }
 
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
                         Text(
                             text = item.title,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = item.description,
-                            style = TextStyle(fontSize = 9.sp),
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
-                            lineHeight = 12.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1153,47 +909,43 @@ private fun WideMenuCard(
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.98f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "scale"
-    )
-    val pressOffset by animateFloatAsState(
-        targetValue = if (isPressed) 2f else 0f,
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "offset"
+        label = "wide_card_scale"
     )
 
-    val (icon, iconColor, _) = when (item.title) {
-        "ثبت حواله" -> Triple(Icons.AutoMirrored.Rounded.Assignment, Color(0xFF3B82F6), listOf(Color(0xFFF0F7FF), Color.White))
-        "تعریف کشتی" -> Triple(Icons.Rounded.AddTask, Color(0xFF06B6D4), listOf(Color(0xFFECFEFF), Color.White))
-        "مدیریت کاربران" -> Triple(Icons.Rounded.ManageAccounts, Color(0xFF6366F1), listOf(Color(0xFFEEF2FF), Color.White))
-        "مدیریت کشتی ها" -> Triple(Icons.Rounded.DirectionsBoat, Color(0xFF14B8A6), listOf(Color(0xFFF0FDFA), Color.White))
+    val (icon, iconColor) = when (item.title) {
+        "ثبت حواله" -> Pair(Icons.AutoMirrored.Rounded.Assignment, Color(0xFF2563EB))
+        "تعریف کشتی" -> Pair(Icons.Rounded.AddTask, Color(0xFF0891B2))
+        "مدیریت کاربران" -> Pair(Icons.Rounded.ManageAccounts, Color(0xFF4F46E5))
+        "مدیریت کشتی ها" -> Pair(Icons.Rounded.DirectionsBoat, Color(0xFF0D9488))
         else -> when (item.category) {
-            "نظارت" -> Triple(Icons.AutoMirrored.Rounded.ManageSearch, Color(0xFF3B82F6), listOf(Color(0xFFF0F7FF), Color.White))
-            "ارتباطات" -> Triple(Icons.Rounded.Forum, Color(0xFFF43F5E), listOf(Color(0xFFFFF1F2), Color(0xFFFFF7ED)))
-            else -> Triple(Icons.AutoMirrored.Rounded.Assignment, MaterialTheme.colorScheme.primary, listOf(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f), MaterialTheme.colorScheme.surface))
+            "نظارت" -> Pair(Icons.AutoMirrored.Rounded.ManageSearch, Color(0xFF2563EB))
+            "ارتباطات" -> Pair(Icons.Rounded.Forum, Color(0xFFE11D48))
+            else -> Pair(Icons.AutoMirrored.Rounded.Assignment, MaterialTheme.colorScheme.primary)
         }
     }
 
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    val glassBg = if (isDark) {
-        MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+    val containerColor = if (isDark) {
+        MaterialTheme.colorScheme.surfaceContainerHigh
     } else {
-        Color.White.copy(alpha = 0.75f)
+        MaterialTheme.colorScheme.surface
     }
-    val glassBorder = if (isPressed) {
-        iconColor.copy(alpha = 0.4f)
+    val borderColor = if (isDark) {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
     } else {
-        if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
     }
 
     AnimatedVisibility(
         visible = showAnimation,
-        enter = fadeIn(animationSpec = tween(500)) + slideInVertically(initialOffsetY = { 20 })
+        enter = fadeIn(animationSpec = tween(400)) + slideInVertically(initialOffsetY = { 15 })
     ) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
+                .height(72.dp)
                 .scale(scale)
-                .offset(y = pressOffset.dp)
+                .semantics { contentDescription = "${item.title}: ${item.description}" }
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onPress = {
@@ -1204,15 +956,16 @@ private fun WideMenuCard(
                         onTap = { onItemClick(item) }
                     )
                 },
-            shape = RoundedCornerShape(24.dp),
-            border = BorderStroke(1.dp, glassBorder),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            colors = CardDefaults.cardColors(containerColor = glassBg)
+            shape = RoundedCornerShape(20.dp),
+            border = BorderStroke(1.5.dp, if (isPressed) iconColor else borderColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            colors = CardDefaults.cardColors(containerColor = containerColor)
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1220,56 +973,42 @@ private fun WideMenuCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Box(
-                                modifier = Modifier.size(54.dp),
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(iconColor.copy(alpha = 0.12f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(46.dp)
-                                        .rotate(15f)
-                                        .background(
-                                            color = iconColor.copy(alpha = 0.12f),
-                                            shape = RoundedCornerShape(14.dp)
-                                        )
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(26.dp),
+                                    tint = iconColor
                                 )
-                                Box(
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .background(
-                                            color = if (isDark) MaterialTheme.colorScheme.surfaceVariant else Color.White,
-                                            shape = RoundedCornerShape(12.dp)
-                                        )
-                                        .border(
-                                            1.dp,
-                                            if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.03f),
-                                            RoundedCornerShape(12.dp)
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp),
-                                        tint = iconColor
-                                    )
-                                }
                             }
                             if (badgeCount > 0) {
                                 Badge(
-                                    modifier = Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp),
-                                    containerColor = Color(0xFFF97316)
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 4.dp, y = (-4).dp),
+                                    containerColor = MaterialTheme.colorScheme.error
                                 ) {
-                                    Text(text = badgeCount.toString(), color = Color.White, style = MaterialTheme.typography.labelSmall)
+                                    Text(
+                                        text = badgeCount.toString(),
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
                                 }
                             }
                         }
 
-                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
                                 text = item.title,
                                 style = MaterialTheme.typography.titleMedium,
@@ -1289,8 +1028,7 @@ private fun WideMenuCard(
                         contentDescription = null,
                         modifier = Modifier
                             .size(20.dp)
-                            .rotate(180f)
-                            .alpha(0.3f),
+                            .rotate(180f),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -1299,549 +1037,294 @@ private fun WideMenuCard(
     }
 }
 
+// ===== دیالوگ‌های بازطراحی‌شده صنعتی =====
 @Composable
-private fun QuotaTonnageDialog(onDismiss: () -> Unit) {
-    var warnings by remember { mutableStateOf<List<QuotaTonnageWarning>>(emptyList()) }
-    var isAllClear by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var refreshTrigger by remember { mutableIntStateOf(0) }
+fun ProfileSettingsDialog(
+    user: User,
+    onDismiss: () -> Unit,
+    onLogout: () -> Unit
+) {
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf("") }
+    var showConfirmation by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val loadData: () -> Unit = {
-        scope.launch(Dispatchers.IO) {
-            withContext(Dispatchers.Main) {
-                isLoading = true
-                errorMessage = null
-                warnings = emptyList()
-                isAllClear = false
-            }
-
-            try {
-                val response = RetrofitClient.apiService.getActiveQuotaReport()
-                if (response.isSuccessful) {
-                    response.body()?.use { responseBody ->
-                        val body = responseBody.string()
-                        if (body.isNotEmpty()) {
-                            val parsedWarnings = parseQuotaTonnageData(body)
-
-                            withContext(Dispatchers.Main) {
-                                if (parsedWarnings.isEmpty() && body.contains("در حد مجاز")) {
-                                    isAllClear = true
-                                } else {
-                                    warnings = parsedWarnings
-                                }
-                            }
-                        } else {
-                            withContext(Dispatchers.Main) {
-                                errorMessage = "داده‌ای دریافت نشد"
-                            }
-                        }
-                    }
-                } else {
-                    withContext(Dispatchers.Main) {
-                        errorMessage = "خطا در دریافت داده (کد: ${response.code()})"
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    errorMessage = "خطا در ارتباط با سرور: ${e.message}"
-                }
-            } finally {
-                withContext(Dispatchers.Main) {
-                    isLoading = false
-                }
-            }
-        }
-    }
-
-    LaunchedEffect(refreshTrigger) {
-        loadData()
-    }
-
-    Dialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            dismissOnClickOutside = true,
-            usePlatformDefaultWidth = false
-        )
-    ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .fillMaxHeight(0.90f),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Checklist,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Text(
-                            "گزارش هشدار تناژ کوتاژ",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = { refreshTrigger++ },
-                            enabled = !isLoading,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Refresh,
-                                contentDescription = "بروزرسانی",
-                                modifier = Modifier.size(20.dp),
-                                tint = if (isLoading)
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                else
-                                    MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        IconButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "بستن",
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                }
-
-                HorizontalDivider(
-                    thickness = 1.dp,
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                )
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    contentAlignment = if (isLoading || errorMessage != null) Alignment.Center else Alignment.TopStart
-                ) {
-                    when {
-                        isLoading -> {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(20.dp)
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(40.dp),
-                                    strokeWidth = 3.dp
-                                )
-                                Text(
-                                    "در حال دریافت داده...",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-
-                        errorMessage != null -> {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Error,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.size(50.dp)
-                                )
-                                Text(
-                                    errorMessage!!,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.error,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-
-                        isAllClear -> {
-                            AllClearMessage()
-                        }
-
-                        warnings.isNotEmpty() -> {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                items(warnings) { warning ->
-                                    QuotaTonnageWarningCard(warning)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun QuotaTonnageWarningCard(warning: QuotaTonnageWarning) {
-    val scope = rememberCoroutineScope()
-    var isToggling by remember { mutableStateOf(false) }
-    var isActive by remember { mutableStateOf(warning.isActive) }
-
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = if (isActive)
-            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)
-        else
-            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.05f),
-        border = BorderStroke(
-            1.5.dp,
-            if (isActive)
-                MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-            else
-                MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
-        ),
-        tonalElevation = if (isActive) 2.dp else 0.5.dp
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        "هشدار تناژ",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.error
-                    )
+                IconButton(onClick = onDismiss, modifier = Modifier.size(48.dp)) {
+                    Icon(Icons.Default.Close, contentDescription = "بستن")
                 }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Text(
+                    "تغییر رمز عبور",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.size(48.dp))
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ),
+                    shape = RoundedCornerShape(14.dp)
                 ) {
-                    Badge(
-                        containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            "کوتاژ ${warning.quotaNumber}",
-                            color = MaterialTheme.colorScheme.error,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    if (!isActive) {
-                        Badge(
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Text("نام کاربری:", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(user.username, fontWeight = FontWeight.Bold)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("نام و نام خانوادگی:", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(user.fullName ?: "-", fontWeight = FontWeight.Bold)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("نقش کاربری:", color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
-                                "فعال",
-                                color = MaterialTheme.colorScheme.primary,
+                                getUserTypeDisplay(user.userType),
                                 fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.labelSmall
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
                 }
-            }
 
-            HorizontalDivider(
-                thickness = 1.dp,
-                color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
-            )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = {
+                        password = it.filter { char -> char.isDigit() }
+                        errorMessage = ""
+                    },
+                    label = { Text("رمز عبور جدید (عددی)") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.NumberPassword,
+                        imeAction = ImeAction.Next
+                    ),
+                    isError = errorMessage.isNotEmpty()
+                )
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                InfoItem(
-                    icon = "🛳",
-                    label = "کشتی",
-                    value = warning.shipName,
-                    modifier = Modifier.weight(1f),
-                    valueColor = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = {
+                        confirmPassword = it.filter { char -> char.isDigit() }
+                        errorMessage = ""
+                    },
+                    label = { Text("تکرار رمز عبور جدید") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.NumberPassword,
+                        imeAction = ImeAction.Done
+                    ),
+                    isError = errorMessage.isNotEmpty()
                 )
-                InfoItem(
-                    icon = "👤",
-                    label = "صاحب کالا",
-                    value = warning.cargoOwner,
-                    modifier = Modifier.weight(1f),
-                    valueColor = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
-            }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                InfoItem(
-                    icon = "📦",
-                    label = "مانده فعلی",
-                    value = "${warning.currentRemaining} کیلوگرم",
-                    modifier = Modifier.weight(1f),
-                    valueColor = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                )
-                InfoItem(
-                    icon = "📝",
-                    label = "حواله‌های ورود",
-                    value = "${warning.voucherCount} عدد",
-                    modifier = Modifier.weight(1f),
-                    valueColor = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
-            }
-
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = if (warning.isNegative)
-                    MaterialTheme.colorScheme.error.copy(alpha = if (isActive) 0.15f else 0.05f)
-                else
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (isActive) 0.3f else 0.1f)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "⚠️",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            "مانده بعد از خروج:",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                if (errorMessage.isNotEmpty()) {
                     Text(
-                        "${warning.remainingAfterExit} کیلوگرم",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = if (warning.isNegative)
-                            MaterialTheme.colorScheme.error.copy(alpha = if (isActive) 1f else 0.5f)
-                        else
-                            MaterialTheme.colorScheme.primary.copy(alpha = if (isActive) 1f else 0.5f)
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Right
                     )
                 }
-            }
 
-            HorizontalDivider(
-                thickness = 1.dp,
-                color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-
-            if (isToggling) {
-                LoadingActionButton(
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                )
-            } else {
-                Button(
-                    onClick = {
-                        isToggling = true
-                        scope.launch(Dispatchers.IO) {
-                            try {
-                                val response = RetrofitClient.apiService.toggleQuotaStatus(
-                                    action = "toggleQuotaStatus",
-                                    id = 0,
-                                    quotaNumber = warning.quotaNumber
-                                )
-                                if (response.isSuccessful) {
-                                    withContext(Dispatchers.Main) {
-                                        isActive = !isActive
-                                    }
-                                }
-                            } catch (_: Exception) {
-                            } finally {
-                                isToggling = false
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isActive)
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                        else
-                            MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
-                    )
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = if (isActive) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
+                            Icons.Default.Info,
                             contentDescription = null,
-                            tint = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
+                            tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            if (isActive) "فعال کردن" else "غیرفعال کردن",
-                            color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                            fontWeight = FontWeight.SemiBold
+                            "رمز عبور باید فقط شامل اعداد و حداقل ۴ رقم باشد.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 }
             }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    when {
+                        password.isEmpty() -> errorMessage = "لطفاً رمز عبور جدید را وارد کنید"
+                        password.length < 4 -> errorMessage = "رمز عبور باید حداقل ۴ رقم باشد"
+                        confirmPassword.isEmpty() -> errorMessage = "لطفاً تکرار رمز عبور را وارد کنید"
+                        password != confirmPassword -> errorMessage = "رمز عبور و تکرار آن مطابقت ندارند"
+                        else -> showConfirmation = true
+                    }
+                },
+                enabled = !isLoading,
+                modifier = Modifier.height(48.dp)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Icon(Icons.Default.Save, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("تغییر رمز عبور")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.height(48.dp)
+            ) {
+                Text("انصراف")
+            }
         }
-    }
-}
+    )
 
-@Composable
-private fun AllClearMessage() {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(100.dp)
-                .background(
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
-                    CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                Icons.Default.CheckCircle,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(50.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            "همه چیز در حد مجاز است!",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            "تناژ کوتاژها در حد مجاز هستند و مشکلی برای بارگیری وجود ندارد",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 32.dp)
-        )
-    }
-}
-
-@Composable
-private fun LoadingActionButton(
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .background(
-                    color = color.copy(alpha = 0.1f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(16.dp),
-                color = color,
-                strokeWidth = 1.5.dp
-            )
-        }
-    }
-}
-
-@Composable
-private fun InfoItem(
-    icon: String,
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    valueColor: Color = MaterialTheme.colorScheme.onSurface
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                icon,
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Text(
-            value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = valueColor
+    if (showConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showConfirmation = false },
+            title = {
+                Text(
+                    "تأیید تغییر رمز عبور",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("آیا از تغییر رمز عبور خود اطمینان دارید؟")
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                "پس از تغییر رمز عبور، نیاز به ورود مجدد خواهید داشت.",
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        scope.launch {
+                            isLoading = true
+                            try {
+                                val updateRequest = UpdateUserRequest(
+                                    id = user.id,
+                                    username = user.username,
+                                    fullName = null,
+                                    password = hashPassword(password),
+                                    userType = user.userType
+                                )
+                                val response = RetrofitClient.apiService.updateUser(updateRequest)
+                                if (response.success) {
+                                    Toast.makeText(context, "رمز عبور با موفقیت تغییر کرد", Toast.LENGTH_SHORT).show()
+                                    delay(600)
+                                    onDismiss()
+                                    onLogout()
+                                } else {
+                                    errorMessage = response.message
+                                    showConfirmation = false
+                                }
+                            } catch (e: Exception) {
+                                errorMessage = "خطا در تغییر رمز عبور: ${e.message}"
+                                showConfirmation = false
+                            } finally {
+                                isLoading = false
+                            }
+                        }
+                    },
+                    enabled = !isLoading,
+                    modifier = Modifier.height(48.dp)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("تأیید و تغییر رمز عبور")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showConfirmation = false },
+                    enabled = !isLoading,
+                    modifier = Modifier.height(48.dp)
+                ) {
+                    Text("انصراف")
+                }
+            }
         )
     }
 }

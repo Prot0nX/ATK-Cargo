@@ -31,7 +31,6 @@ import com.atk.atk_cargo.api.AppNotificationManager
 import com.atk.atk_cargo.api.LoadingNotificationService
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.SessionCheckRequest
-import com.atk.atk_cargo.api.TonnageWarningService
 import com.atk.atk_cargo.api.UpdateInfo
 import com.atk.atk_cargo.api.UpdateManager
 import com.atk.atk_cargo.api.UpdateManagerFactory
@@ -78,7 +77,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var chatRepository: com.atk.atk_cargo.data.repository.ChatRepository
     val isSessionValid: StateFlow<Boolean> = _isSessionValid.asStateFlow()
 
-    // ===== وضعیت‌های Splash Screen =====
     private var isSplashVisible by mutableStateOf(true)
     private var isVersionAllowedState by mutableStateOf(true)
     private var isServerSyncing by mutableStateOf(false)
@@ -167,7 +165,6 @@ class MainActivity : ComponentActivity() {
                                 checkInitialChatMessages()
                             }
 
-                            checkTonnageWarnings()
                             requestBatteryOptimizationIfNeeded()
                         }
                     }
@@ -375,15 +372,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun checkTonnageWarnings() {
-        lifecycleScope.launch {
-            if (userPreferencesManager.loadingNotificationsEnabled.first()) {
-                // راه‌اندازی سرویس بررسی دوره‌ای هشدارها
-                TonnageWarningService.startService(this@MainActivity)
-            }
-        }
-    }
-
     private fun startUpdateDownload() {
         updateInfo?.downloadUrl?.let { url ->
             updateManager.startDownload(url)
@@ -479,10 +467,6 @@ class MainActivity : ComponentActivity() {
         val loadingIntent = Intent(this, LoadingNotificationService::class.java)
         loadingIntent.action = LoadingNotificationService.ACTION_STOP_SERVICE
         startService(loadingIntent)
-        
-        // توقف سرویس هشدار تناژ
-        val tonnageIntent = Intent(this, TonnageWarningService::class.java)
-        stopService(tonnageIntent)
     }
 
     fun stopChatNotificationService() {

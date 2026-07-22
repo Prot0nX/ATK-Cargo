@@ -152,6 +152,25 @@ class SessionRepository {
     }
 
     /**
+     * دریافت آخرین جلسه ثبت شده برای تمامی کاربران (جهت بررسی وضعیت آنلاین/آفلاین و تاریخ آخرین بازدید)
+     */
+    public function getLatestSessionsForAllUsers(): array {
+        $stmt = $this->db->prepare("
+            SELECT us.id, us.username, us.device_model, us.device_id, us.is_active,
+                   us.login_time, us.last_activity, us.ip_address,
+                   TIMESTAMPDIFF(SECOND, COALESCE(us.last_activity, us.login_time), NOW()) as idle_time
+            FROM user_sessions us
+            INNER JOIN (
+                SELECT username, MAX(id) as max_id
+                FROM user_sessions
+                GROUP BY username
+            ) latest ON us.id = latest.max_id
+        ");
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    /**
      * دریافت تمامی جلسات فعال کاربر
      */
     public function getActiveSessionsForUser(string $username): array {

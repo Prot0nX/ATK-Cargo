@@ -2,7 +2,6 @@ package com.atk.atk_cargo.api
 
 import com.atk.atk_cargo.data.model.RealTimeDataResponse
 import com.google.gson.JsonElement
-import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.Field
@@ -261,8 +260,6 @@ interface ApiService {
 
 
 
-    @GET("ActiveQuota.json")
-    suspend fun getActiveQuotaReport(): Response<ResponseBody>
 
     // ===== SEARCH =====
 
@@ -319,6 +316,12 @@ interface ApiService {
     @GET("protected_proxy.php")
     suspend fun getAllUsers(
         @Query("action") action: String = "getAllUsers",
+        @Query("target") target: String = "users_api.php"
+    ): List<User>
+
+    @GET("protected_proxy.php")
+    suspend fun getAllUsersWithStatus(
+        @Query("action") action: String = "getAllUsersWithStatus",
         @Query("target") target: String = "users_api.php"
     ): List<User>
 

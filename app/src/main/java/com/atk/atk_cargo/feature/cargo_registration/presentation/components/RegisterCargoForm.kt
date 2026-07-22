@@ -8,8 +8,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
@@ -39,8 +37,12 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,14 +51,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.ui.theme.Amber700
-import com.atk.atk_cargo.ui.theme.BorderLight
 import com.atk.atk_cargo.ui.theme.Green600
 import com.atk.atk_cargo.ui.theme.Red500
 
@@ -133,11 +133,11 @@ fun FormSection(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
-        // عنوان فرم - سمت راست با آیکون
+        // هدر کارت فرم
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 8.dp),
+                .padding(bottom = 6.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -145,426 +145,306 @@ fun FormSection(
                 imageVector = Icons.AutoMirrored.Filled.ListAlt,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = if (isDuplicate) "ویرایش حواله" else "ثبت حواله جدید",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                modifier = Modifier.size(20.dp)
             )
         }
 
-        // کارت فرم اصلی
+        // کارت ورودی‌های اصلی M3
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 1.dp,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            shadowElevation = 2.dp,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(4.dp)
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                // سطر ۱: شماره حواله و کنترلر تعداد نفرات
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // بخش اول: شماره حواله و تعداد نفرات
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // فیلد شماره حواله
-                        Box(modifier = Modifier.weight(1f)) {
-                            BasicTextField(
-                                value = trackingNumber,
-                                onValueChange = { newValue ->
-                                    if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                                        onTrackingNumberChange(newValue)
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
-                                    .background(
-                                        color = MaterialTheme.colorScheme.surfaceVariant,
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                    .border(
-                                        width = 1.dp,
-                                        color = if ((isDuplicate && !canEditWeights) || !isTrackingNumberValid)
-                                            MaterialTheme.colorScheme.error
-                                        else
-                                            BorderLight,
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
-                                    .padding(start = 40.dp, end = 12.dp),
-                                textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    textAlign = TextAlign.Left
-                                ),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
-                                decorationBox = { innerTextField ->
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.CenterStart
-                                    ) {
-                                        if (trackingNumber.isEmpty()) {
-                                            Text(
-                                                text = "شماره حواله",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                        innerTextField()
-                                    }
-                                }
+                    // فیلد شماره حواله مدرن M3
+                    OutlinedTextField(
+                        value = trackingNumber,
+                        onValueChange = { newValue ->
+                            if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                onTrackingNumberChange(newValue)
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1.2f)
+                            .height(56.dp),
+                        label = { Text("شماره حواله") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Numbers,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            // آیکون سمت راست
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.CenterStart)
-                                    .padding(start = 12.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Numbers,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
+                        },
+                        isError = (isDuplicate && !canEditWeights) || !isTrackingNumberValid,
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(onDone = {
+                            if (isSubmitEnabled) onSubmit()
+                        }),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
+                    )
 
-                        // فیلد تعداد نفرات - کنترل افزایشی/کاهشی
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp)
-                                .background(
-                                    color = if (!isDuplicate) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .border(
-                                    width = 1.dp,
-                                    color = MaterialTheme.colorScheme.outline,
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                val currentValue = numberOfPeople.toIntOrNull() ?: 1
-
-                                // دکمه افزایش
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clickable(enabled = !isDuplicate && currentValue < 5) {
-                                            if (currentValue < 5) {
-                                                onNumberOfPeopleChange((currentValue + 1).toString())
-                                            }
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = "افزایش",
-                                        tint = if (!isDuplicate && currentValue < 5) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-
-                                // مقدار و آیکون
-                                Row(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = null,
-                                        tint = if (!isDuplicate) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = numberOfPeople.ifEmpty { "1" },
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (!isDuplicate) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                    )
-                                }
-
-                                // دکمه کاهش
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clickable(enabled = !isDuplicate && currentValue > 1) {
-                                            if (currentValue > 1) {
-                                                onNumberOfPeopleChange((currentValue - 1).toString())
-                                            }
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Remove,
-                                        contentDescription = "کاهش",
-                                        tint = if (!isDuplicate && currentValue > 1) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // بخش کسری بار و اضافه بار - فقط برای حواله‌های تایید شده و آماده خروج
-                    AnimatedVisibility(
-                        visible = isCargoConfirmed && !isCargoExited,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut()
+                    // کنترلر صنعتی تعداد نفرات (56dp Touch Target)
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // کسری بار
-                            Box(modifier = Modifier.weight(1f)) {
-                                BasicTextField(
-                                    value = shortageWeight,
-                                    onValueChange = { newValue ->
-                                        if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                                            onShortageWeightChange(newValue)
+                            val currentValue = numberOfPeople.toIntOrNull() ?: 1
+
+                            // دکمه افزایش (+)
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clickable(enabled = !isDuplicate && currentValue < 5) {
+                                        if (currentValue < 5) {
+                                            onNumberOfPeopleChange((currentValue + 1).toString())
                                         }
                                     },
-                                    enabled = canEditWeights,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(48.dp)
-                                        .background(
-                                            color = if (canEditWeights) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                        .border(
-                                            width = 1.dp,
-                                            color = MaterialTheme.colorScheme.outline,
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                        .padding(start = 40.dp, end = 12.dp),
-                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                        color = if (canEditWeights) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                        textAlign = TextAlign.Left
-                                    ),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    singleLine = true,
-                                    decorationBox = { innerTextField ->
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.CenterStart
-                                        ) {
-                                            if (shortageWeight.isEmpty()) {
-                                                Text(
-                                                    text = "کسری بار",
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = if (canEditWeights) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                                )
-                                            }
-                                            innerTextField()
-                                        }
-                                    }
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "افزایش نفرات",
+                                    tint = if (!isDuplicate && currentValue < 5) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(22.dp)
                                 )
-                                // آیکون سمت راست
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.CenterStart)
-                                        .padding(start = 12.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.TrendingDown,
-                                        contentDescription = null,
-                                        tint = if (canEditWeights) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.error.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
                             }
 
-                            // اضافه بار
-                            Box(modifier = Modifier.weight(1f)) {
-                                BasicTextField(
-                                    value = excessWeight,
-                                    onValueChange = { newValue ->
-                                        if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                                            onExcessWeightChange(newValue)
+                            // مقدار نفرات
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = numberOfPeople.ifEmpty { "1" },
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            // دکمه کاهش (-)
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clickable(enabled = !isDuplicate && currentValue > 1) {
+                                        if (currentValue > 1) {
+                                            onNumberOfPeopleChange((currentValue - 1).toString())
                                         }
                                     },
-                                    enabled = canEditWeights,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(48.dp)
-                                        .background(
-                                            color = if (canEditWeights) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                        .border(
-                                            width = 1.dp,
-                                            color = MaterialTheme.colorScheme.outline,
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                        .padding(start = 40.dp, end = 12.dp),
-                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                        color = if (canEditWeights) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                        textAlign = TextAlign.Left
-                                    ),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    singleLine = true,
-                                    decorationBox = { innerTextField ->
-                                        Box(
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentAlignment = Alignment.CenterStart
-                                        ) {
-                                            if (excessWeight.isEmpty()) {
-                                                Text(
-                                                    text = "اضافه بار",
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = if (canEditWeights) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                                )
-                                            }
-                                            innerTextField()
-                                        }
-                                    }
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Remove,
+                                    contentDescription = "کاهش نفرات",
+                                    tint = if (!isDuplicate && currentValue > 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(22.dp)
                                 )
-                                // آیکون سمت راست
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.CenterStart)
-                                        .padding(start = 12.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
-                                        contentDescription = null,
-                                        tint = if (canEditWeights) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
                             }
                         }
                     }
+                }
 
-                    // دکمه‌های ثبت و خروج
+                // سطر ۲: کسری بار و اضافه بار
+                AnimatedVisibility(
+                    visible = isCargoConfirmed && !isCargoExited,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        // دکمه ثبت حواله
-                        Surface(
+                        OutlinedTextField(
+                            value = shortageWeight,
+                            onValueChange = { newValue ->
+                                if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                    onShortageWeightChange(newValue)
+                                }
+                            },
+                            enabled = canEditWeights,
                             modifier = Modifier
                                 .weight(1f)
-                                .height(48.dp)
-                                .clickable(enabled = isSubmitEnabled, onClick = onSubmit),
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isSubmitEnabled) {
-                                if (isDuplicate) Amber700 else Green600
-                            } else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxSize(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                                .height(56.dp),
+                            label = { Text("کسری بار") },
+                            leadingIcon = {
                                 Icon(
-                                    imageVector = Icons.Default.AddCircle,
+                                    imageVector = Icons.AutoMirrored.Filled.TrendingDown,
                                     contentDescription = null,
-                                    tint = if (isSubmitEnabled) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(18.dp)
+                                    tint = MaterialTheme.colorScheme.error
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = if (isDuplicate) "ثبت تغییرات" else "ثبت حواله",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isSubmitEnabled) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
-                        }
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            shape = RoundedCornerShape(12.dp)
+                        )
 
-                        // دکمه خروج حواله
-                        Surface(
+                        OutlinedTextField(
+                            value = excessWeight,
+                            onValueChange = { newValue ->
+                                if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                    onExcessWeightChange(newValue)
+                                }
+                            },
+                            enabled = canEditWeights,
                             modifier = Modifier
                                 .weight(1f)
-                                .height(48.dp)
-                                .clickable(
-                                    enabled = isCargoConfirmed && !isCargoExited,
-                                    onClick = onScanBarcode
-                                ),
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isCargoConfirmed && !isCargoExited) Red500 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxSize(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                                .height(56.dp),
+                            label = { Text("اضافه بار") },
+                            leadingIcon = {
                                 Icon(
-                                    imageVector = Icons.Default.QrCodeScanner,
+                                    imageVector = Icons.AutoMirrored.Filled.TrendingUp,
                                     contentDescription = null,
-                                    tint = if (isCargoConfirmed && !isCargoExited) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(18.dp)
+                                    tint = MaterialTheme.colorScheme.tertiary
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "خروج حواله",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isCargoConfirmed && !isCargoExited) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
+                            },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                }
+
+                // سطر ۳: دکمه‌های اقدام (Sticky Action Area - 56dp height)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // دکمه ثبت
+                    Button(
+                        onClick = onSubmit,
+                        enabled = isSubmitEnabled,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isDuplicate) Amber700 else Green600,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        )
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AddCircle,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (isDuplicate) "ثبت تغییرات" else "ثبت حواله",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // دکمه خروج
+                    Button(
+                        onClick = onScanBarcode,
+                        enabled = isCargoConfirmed && !isCargoExited,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Red500,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        )
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.QrCodeScanner,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "خروج حواله",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
             }
         }
 
-        // نمایش پیام خطای اعتبارسنجی شماره حواله
+        // پیام هشدار اعتبارسنجی
         AnimatedVisibility(
             visible = !isTrackingNumberValid && trackingNumber.isNotBlank(),
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
             Surface(
-                color = MaterialTheme.colorScheme.error.copy(alpha = 0.08f),
-                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = RoundedCornerShape(10.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp)
+                    .padding(vertical = 6.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.Warning,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(14.dp)
+                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "فیلد شماره حواله فقط می‌تواند شامل اعداد باشد. لطفاً مقدار وارد شده را اصلاح نمایید.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error
+                        text = "شماره حواله فقط باید شامل اعداد باشد.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
             }
         }
 
-        // نمایش پیام وضعیت با انیمیشن
+        // وضعیت تکراری/موجود
         AnimatedVisibility(
             visible = isDuplicate,
             enter = fadeIn() + expandVertically(),
@@ -572,71 +452,72 @@ fun FormSection(
         ) {
             val (messageText, messageColor) = when {
                 currentCargo?.status == "خروج" -> 
-                    Pair("این حواله قبلاً خروج شده و قابل تغییر نیست!", MaterialTheme.colorScheme.error)
+                    Pair("این حواله قبلاً خروج شده است!", MaterialTheme.colorScheme.error)
                 currentCargo?.confirm == "در انتظار تائید" -> 
-                    Pair("این حواله هنوز تائید نشده و قابل ویرایش نیست!", MaterialTheme.colorScheme.error)
+                    Pair("این حواله هنوز تائید نشده و در انتظار تائید است.", MaterialTheme.colorScheme.error)
                 canEditWeights -> 
-                    Pair("امکان ثبت کسری/اضافه بار یا خروج حواله وجود دارد!", MaterialTheme.colorScheme.primary)
+                    Pair("حواله تائید شده؛ امکان ثبت کسری/اضافه یا خروج وجود دارد.", MaterialTheme.colorScheme.primary)
                 else -> 
-                    Pair("این حواله هنوز تائید نشده و قابل ویرایش نیست!", MaterialTheme.colorScheme.error)
+                    Pair("این حواله غیرقابل ویرایش است.", MaterialTheme.colorScheme.error)
             }
 
             Surface(
-                color = messageColor.copy(alpha = 0.08f),
-                shape = RoundedCornerShape(6.dp),
+                color = messageColor.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(10.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp)
+                    .padding(vertical = 6.dp)
                     .alpha(messageAlpha.value)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = if (messageColor == MaterialTheme.colorScheme.error)
-                            Icons.Default.Info else Icons.Default.CheckCircle,
+                        imageVector = if (messageColor == MaterialTheme.colorScheme.error) Icons.Default.Info else Icons.Default.CheckCircle,
                         contentDescription = null,
                         tint = messageColor,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = messageText,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = messageColor
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = messageColor,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
         }
 
-        // نمایش شماره قبض باسکول
+        // شماره قبض اسکن شده
         AnimatedVisibility(
             visible = scaleReceiptNumber.isNotBlank(),
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
             Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(10.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 6.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.Receipt,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "قبض باسکول: $scaleReceiptNumber",
-                        style = MaterialTheme.typography.labelMedium,
+                        text = "قبض باسکول دریافت شد: $scaleReceiptNumber",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }

@@ -92,9 +92,12 @@ fun ShipInfoSection(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 4.dp)
             .animateContentSize(),
-        tonalElevation = 1.dp,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shadowElevation = 2.dp,
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             // هدر مینیمال

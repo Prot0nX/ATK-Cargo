@@ -58,6 +58,11 @@ class UserController {
                 Response::json($users);
                 break;
 
+            case 'getAllUsersWithStatus':
+                $users = $this->userService->getAllUsersWithStatus();
+                Response::json($users);
+                break;
+
             case 'getActiveDeviceId':
                 $username = $this->request->get('username');
                 if (!$username || empty($username)) {

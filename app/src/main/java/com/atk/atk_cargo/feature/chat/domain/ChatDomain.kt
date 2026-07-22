@@ -8,7 +8,15 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
 import com.atk.atk_cargo.data.db.ChatMessageEntity
-import com.atk.atk_cargo.ui.theme.*
+import com.atk.atk_cargo.ui.theme.BackgroundDark
+import com.atk.atk_cargo.ui.theme.BackgroundLight
+import com.atk.atk_cargo.ui.theme.Blue50
+import com.atk.atk_cargo.ui.theme.Gray100
+import com.atk.atk_cargo.ui.theme.Slate800
+import com.atk.atk_cargo.ui.theme.Slate900
+import com.atk.atk_cargo.ui.theme.SurfaceDark
+import com.atk.atk_cargo.ui.theme.SurfaceLight
+import com.atk.atk_cargo.ui.theme.SurfaceVariantDark
 
 sealed class ChatUiItem {
     abstract val id: String

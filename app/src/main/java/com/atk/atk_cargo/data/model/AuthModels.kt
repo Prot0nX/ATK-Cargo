@@ -80,7 +80,18 @@ data class User(
     val password: String? = null,
     val userType: String,
     val createdAt: String? = null,
-    val updatedAt: String? = null
+    val updatedAt: String? = null,
+    // ===== فیلدهای وضعیت آنلاین — از endpoint getAllUsersWithStatus =====
+    @com.google.gson.annotations.SerializedName("is_online")
+    val isOnline: Boolean = false,
+    @com.google.gson.annotations.SerializedName("last_activity")
+    val lastActivity: String? = null,
+    @com.google.gson.annotations.SerializedName("idle_minutes")
+    val idleMinutes: Int? = null,
+    @com.google.gson.annotations.SerializedName("login_time")
+    val loginTime: String? = null,
+    @com.google.gson.annotations.SerializedName("device_model")
+    val deviceModel: String? = null
 )
 
 data class ActiveSessionResponse(

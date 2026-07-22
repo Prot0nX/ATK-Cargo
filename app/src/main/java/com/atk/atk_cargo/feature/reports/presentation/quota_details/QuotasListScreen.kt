@@ -1,8 +1,5 @@
 package com.atk.atk_cargo.feature.reports.presentation.quota_details
 
-import com.atk.atk_cargo.feature.reports.presentation.quota_details.components.DeleteQuotaDialog
-import com.atk.atk_cargo.feature.reports.presentation.quota_details.components.ToggleQuotaStatusDialog
-
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -90,7 +87,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -106,13 +102,11 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -128,6 +122,8 @@ import com.atk.atk_cargo.feature.reports.domain.calculateProgress
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.domain.formatWeightWithDetail
 import com.atk.atk_cargo.feature.reports.domain.shareQuotasData
+import com.atk.atk_cargo.feature.reports.presentation.quota_details.components.DeleteQuotaDialog
+import com.atk.atk_cargo.feature.reports.presentation.quota_details.components.ToggleQuotaStatusDialog
 import com.atk.atk_cargo.ui.theme.Blue400
 import com.atk.atk_cargo.ui.theme.Blue700
 import com.atk.atk_cargo.ui.theme.Corner2XL
