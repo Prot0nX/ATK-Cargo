@@ -58,7 +58,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -87,6 +86,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.InitialInfo
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

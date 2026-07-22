@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,6 +34,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +51,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.atk.atk_cargo.MainActivity
@@ -56,7 +60,6 @@ import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.feature.home.presentation.ProfileSettingsDialog
-import com.atk.atk_cargo.ui.theme.SurfaceDark
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -78,12 +81,20 @@ fun ProfileMenu(
     val rotationState by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = ""
+        label = "expand_rotation"
     )
 
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    val glassBgColor = if (isDark) MaterialTheme.colorScheme.surface.copy(alpha = 0.55f) else MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
-    val glassBorderColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
+    val cardBgColor = if (isDark) {
+        MaterialTheme.colorScheme.surfaceContainerHigh
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+    val cardBorderColor = if (isDark) {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+    } else {
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+    }
 
     val greeting = remember {
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
@@ -99,91 +110,107 @@ fun ProfileMenu(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize(),
+            .animateContentSize()
+            .semantics { contentDescription = "منوی کاربر $username" },
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = glassBgColor),
-        border = BorderStroke(1.dp, glassBorderColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        colors = CardDefaults.cardColors(containerColor = cardBgColor),
+        border = BorderStroke(1.5.dp, cardBorderColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(10.dp)
+            modifier = Modifier.padding(12.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(16.dp))
                             .background(
                                 brush = Brush.linearGradient(
                                     listOf(
                                         MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                                        MaterialTheme.colorScheme.primaryContainer
                                     )
-                                ),
-                                shape = RoundedCornerShape(14.dp)
-                            )
-                            .padding(1.5.dp)
-                            .background(
-                                color = if (isDark) SurfaceDark else Color.White,
-                                shape = RoundedCornerShape(13.dp)
+                                )
                             )
                             .padding(2.dp)
                             .background(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                shape = RoundedCornerShape(11.dp)
+                                color = if (isDark) MaterialTheme.colorScheme.surface else Color.White,
+                                shape = RoundedCornerShape(14.dp)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = null,
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(24.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
 
-                    Column {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
                         Text(
                             text = "$greeting، $username",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = getUserTypeDisplay(userType),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            if (hardwareScore > 0) {
-                                Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(MaterialTheme.colorScheme.outlineVariant))
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                            ) {
                                 Text(
-                                    text = "امتیاز: $hardwareScore",
+                                    text = getUserTypeDisplay(userType),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                            if (hardwareScore > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(4.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.outlineVariant)
+                                )
+                                Text(
+                                    text = "امتیاز سخت‌افزار: $hardwareScore",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = MaterialTheme.colorScheme.secondary
                                 )
                             }
                         }
                     }
                 }
 
-                IconButton(onClick = { expanded = !expanded }) {
+                IconButton(
+                    onClick = { expanded = !expanded },
+                    modifier = Modifier.size(48.dp)
+                ) {
                     Icon(
                         imageVector = Icons.Default.ExpandMore,
-                        contentDescription = null,
+                        contentDescription = if (expanded) "بستن منو" else "باز کردن منو",
                         modifier = Modifier.rotate(rotationState),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -191,10 +218,13 @@ fun ProfileMenu(
             AnimatedVisibility(visible = expanded) {
                 Column(
                     modifier = Modifier.padding(top = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+
                     NotificationSettingRow(
                         title = "اعلان‌های بارگیری",
                         subtitle = "بررسی خودکار و هشدار تناژ",
@@ -206,7 +236,6 @@ fun ProfileMenu(
                                 userPreferencesManager.setLoadingNotificationsEnabled(isEnabled)
                                 if (isEnabled) {
                                     activity?.startLoadingNotificationService()
-                                    activity?.checkTonnageWarnings()
                                 } else {
                                     activity?.stopLoadingNotificationService()
                                 }
@@ -232,13 +261,19 @@ fun ProfileMenu(
                         }
                     )
 
-                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
 
                     ThemeColorPickerRow(
                         userPreferencesManager = userPreferencesManager
                     )
 
-                    HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
 
                     ActionButtons(
                         onSettingsClick = {
@@ -262,13 +297,13 @@ fun ProfileMenu(
                     val response = RetrofitClient.apiService.getAllUsers()
                     currentUser = response.find { it.username == username }
                 } catch (_: Exception) {
-                    Toast.makeText(context, "خطا در دریافت اطلاعات", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "خطا در دریافت اطلاعات کاربر", Toast.LENGTH_SHORT).show()
                     showSettings = false
                     currentUser = null
                 }
             }
         }
-        
+
         currentUser?.let { user ->
             ProfileSettingsDialog(
                 user = user,
@@ -300,60 +335,62 @@ private fun ActionButtons(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(
+        Surface(
             modifier = Modifier
                 .weight(1f)
+                .height(48.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                .clickable { onSettingsClick() }
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center
+                .clickable { onSettingsClick() },
+            color = MaterialTheme.colorScheme.primaryContainer,
+            shape = RoundedCornerShape(14.dp)
         ) {
             Row(
+                modifier = Modifier.padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Default.Security,
+                    imageVector = Icons.Default.Security,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "رمز عبور",
+                    text = "رمز عبور",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }
 
-        Box(
+        Surface(
             modifier = Modifier
                 .weight(1f)
+                .height(48.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
-                .clickable { onLogoutClick() }
-                .padding(vertical = 12.dp),
-            contentAlignment = Alignment.Center
+                .clickable { onLogoutClick() },
+            color = MaterialTheme.colorScheme.errorContainer,
+            shape = RoundedCornerShape(14.dp)
         ) {
             Row(
+                modifier = Modifier.padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.AutoMirrored.Filled.ExitToApp,
+                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.error
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onErrorContainer
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    "خروج",
+                    text = "خروج",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.error
+                    color = MaterialTheme.colorScheme.onErrorContainer
                 )
             }
         }

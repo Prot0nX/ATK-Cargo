@@ -1,43 +1,7 @@
 package com.atk.atk_cargo.feature.home.domain
 
 import com.atk.atk_cargo.R
-import com.atk.atk_cargo.api.MenuItem
-import com.atk.atk_cargo.api.QuotaTonnageWarning
-
-fun parseQuotaTonnageData(rawData: String): List<QuotaTonnageWarning> {
-    val warnings = mutableListOf<QuotaTonnageWarning>()
-    val blocks = rawData.split("━━━━━━━━━━━━━━━━")
-
-    for (block in blocks) {
-        if (block.contains("کشتی") && block.contains("کوتاژ")) {
-            try {
-                val shipName = block.substringAfter("کشتی *").substringBefore("*").trim()
-                val cargoOwner = block.substringAfter("👤 ").substringBefore("\n").trim()
-                val quotaNumber = block.substringAfter("کوتاژ: ").substringBefore("\n").trim()
-                val currentRemaining = block.substringAfter("مانده فعلی: ").substringBefore(" کیلوگرم").trim()
-                val voucherCount = block.substringAfter("حواله‌های ورود شده: ").substringBefore(" عدد").trim()
-                val remainingAfterExit = block.substringAfter("مانده بعداز خروج: ").substringBefore(" کیلوگرم").trim()
-
-                val isNegative = remainingAfterExit.contains("−") || remainingAfterExit.contains("-")
-
-                warnings.add(
-                    QuotaTonnageWarning(
-                        shipName = shipName,
-                        cargoOwner = cargoOwner,
-                        quotaNumber = quotaNumber,
-                        currentRemaining = currentRemaining,
-                        voucherCount = voucherCount,
-                        remainingAfterExit = remainingAfterExit,
-                        isNegative = isNegative
-                    )
-                )
-            } catch (_: Exception) {
-            }
-        }
-    }
-
-    return warnings
-}
+import com.atk.atk_cargo.data.model.MenuItem
 
 fun getMenuItemsForUserType(userPermissions: Map<String, Boolean>): List<MenuItem> {
     val items = mutableListOf<MenuItem>()

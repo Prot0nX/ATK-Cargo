@@ -12,8 +12,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -37,7 +35,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
@@ -52,6 +50,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -76,8 +76,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -441,112 +441,95 @@ fun RegisterCargoScreen(
                     }
                 }
 
+                // نوار ابزار جستجو و بروزرسانی مدرن صنعتی
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { newValue ->
-                                searchQuery = newValue
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.surface,
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .border(
-                                    width = 1.dp,
-                                    color = MaterialTheme.colorScheme.outline,
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .padding(start = 40.dp, end = 16.dp),
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurface,
-                                textAlign = TextAlign.Left
-                            ),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            decorationBox = { innerTextField ->
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.CenterStart
-                                ) {
-                                    if (searchQuery.isEmpty()) {
-                                        Text(
-                                            text = "جستجوی شماره حواله",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                    innerTextField()
-                                }
-                            }
-                        )
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.CenterStart)
-                                .padding(start = 12.dp)
-                        ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        placeholder = {
+                            Text(
+                                text = "جستجوی شماره حواله...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
                             )
-                        }
-                    }
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Search
+                        ),
+                        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                        )
+                    )
 
                     var isRefreshing by remember { mutableStateOf(false) }
                     var rotationState by remember { mutableFloatStateOf(0f) }
                     val rotation = animateFloatAsState(
                         targetValue = rotationState,
-                        animationSpec = if (AnimationManager.areAnimationsEnabled()) tween(400, easing = androidx.compose.animation.core.FastOutSlowInEasing) else tween(0),
+                        animationSpec = if (AnimationManager.areAnimationsEnabled()) tween(400) else tween(0),
                         label = "rotation"
                     )
 
                     Surface(
                         modifier = Modifier
-                            .height(48.dp)
+                            .height(52.dp)
                             .clickable(enabled = !isRefreshing) {
                                 if (!isRefreshing) {
                                     isRefreshing = true
                                     rotationState += 360f
                                     viewModel.refreshCargoInfo()
                                     coroutineScope.launch {
-                                        delay(1500.milliseconds)
+                                        delay(1200.milliseconds)
                                         isRefreshing = false
                                     }
                                 }
                             },
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 16.dp),
+                            modifier = Modifier.padding(horizontal = 14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Text(
                                 text = "بروزرسانی",
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Icon(
                                 imageVector = Icons.Default.Refresh,
                                 contentDescription = "بروزرسانی",
                                 modifier = Modifier
-                                    .size(18.dp)
+                                    .size(20.dp)
                                     .rotate(rotation.value),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
                     }

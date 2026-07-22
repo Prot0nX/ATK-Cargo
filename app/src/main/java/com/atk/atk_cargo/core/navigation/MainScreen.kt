@@ -56,7 +56,6 @@ import com.atk.atk_cargo.MainActivity
 import com.atk.atk_cargo.api.LogoutRequest
 import com.atk.atk_cargo.api.PermissionPoller
 import com.atk.atk_cargo.api.RetrofitClient
-import com.atk.atk_cargo.api.TonnageWarningService
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.feature.admin.presentation.UserManagementDialog
 import com.atk.atk_cargo.feature.auth.navigation.loginScreen
@@ -104,7 +103,6 @@ fun MainScreen() {
     val snackbarHostState = remember { SnackbarHostState() }
     val mainActivity = LocalContext.current as MainActivity
     val isSessionValid by mainActivity.isSessionValid.collectAsState()
-    val tonnageWarningsCount by TonnageWarningService.warningsCount.collectAsState()
 
     LaunchedEffect(mainActivity.pendingNavigationDestination, isSessionValid) {
         if (isSessionValid && mainActivity.pendingNavigationDestination == "admin_chat") {
@@ -207,7 +205,7 @@ fun MainScreen() {
                                                 }
                                             },
                                             onManageUsersClick = { showUserManagement = true },
-                                            warningsCount = tonnageWarningsCount
+                                            warningsCount = 0
                                         )
                                         composable<InitialInfoRoute>(
                                             enterTransition = {

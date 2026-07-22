@@ -65,6 +65,64 @@ class UserService {
         return $this->userRepository->getAll();
     }
 
+    /**
+     * دریافت تمامی کاربران به همراه وضعیت آنلاین و آخرین فعالیت.
+     *
+     * منطق آنلاین بودن: اگر `last_activity` در ۵ دقیقه گذشته ثبت شده باشد،
+     * کاربر آنلاین در نظر گرفته می‌شود (هماهنگ با OnlineUsersController).
+     */
+    public function getAllUsersWithStatus(): array {
+        $users = $this->userRepository->getAll();
+        $sessionRepo = new \App\Repositories\SessionRepository();
+        $latestSessions = $sessionRepo->getLatestSessionsForAllUsers();
+
+        // ساخت Map از strtolower(username) → session برای تطبیق دقیق و Case-Insensitive
+        $sessionMap = [];
+        foreach ($latestSessions as $session) {
+            if (!empty($session['username'])) {
+                $sessionMap[strtolower((string)$session['username'])] = $session;
+            }
+        }
+
+        $result = [];
+        foreach ($users as $user) {
+            $usernameKey = strtolower((string)$user['username']);
+            $session     = $sessionMap[$usernameKey] ?? null;
+            $isActive    = $session ? ((int)($session['is_active'] ?? 0) === 1) : false;
+            $idleSeconds = $session ? (int)($session['idle_time'] ?? PHP_INT_MAX) : PHP_INT_MAX;
+
+            // آنلاین بودن: داشتن نشست فعال + فعالیت در ۵ دقیقه اخیر (۳۰۰ ثانیه)
+            $isOnline    = $isActive && ($idleSeconds <= 300);
+            $idleMinutes = ($session && $idleSeconds < PHP_INT_MAX) ? (int)floor($idleSeconds / 60) : null;
+
+            // استخراج تاریخ آخرین بازدید با فرمت شمسی در صورت امکان
+            $rawLastActivity = $session['last_activity'] ?? $session['login_time'] ?? $user['updatedAt'] ?? $user['createdAt'] ?? null;
+            $lastActivityFormatted = null;
+            if (!empty($rawLastActivity)) {
+                $timestamp = strtotime((string)$rawLastActivity);
+                if ($timestamp > 0) {
+                    if (function_exists('jdate')) {
+                        $lastActivityFormatted = jdate('Y/m/d H:i', $timestamp);
+                    } else {
+                        $lastActivityFormatted = date('Y/m/d H:i', $timestamp);
+                    }
+                } else {
+                    $lastActivityFormatted = (string)$rawLastActivity;
+                }
+            }
+
+            $result[] = array_merge($user, [
+                'is_online'     => $isOnline,
+                'last_activity' => $lastActivityFormatted,
+                'idle_minutes'  => $idleMinutes,
+                'login_time'    => $session['login_time'] ?? null,
+                'device_model'  => $session['device_model'] ?? null,
+            ]);
+        }
+
+        return $result;
+    }
+
     public function createUser(array $data): array {
         // فیلتر کردن و اعتبارسنجی مقادیر
         $username = trim($data['username']);

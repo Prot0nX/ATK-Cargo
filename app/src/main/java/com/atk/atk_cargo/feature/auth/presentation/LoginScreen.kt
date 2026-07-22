@@ -1,10 +1,11 @@
 package com.atk.atk_cargo.feature.auth.presentation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -12,9 +13,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -25,13 +28,19 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.SignalCellularAlt
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,7 +52,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -52,11 +60,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -71,24 +82,9 @@ import com.atk.atk_cargo.feature.auth.viewmodel.AuthViewModel
 import com.atk.atk_cargo.feature.auth.viewmodel.LoginFormState
 import com.atk.atk_cargo.feature.auth.viewmodel.LoginUiState
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
+import com.atk.atk_cargo.ui.theme.WindowSizeClass
+import com.atk.atk_cargo.ui.theme.rememberAdaptiveLayoutConfig
 import org.koin.androidx.compose.koinViewModel
-
-// ===== CONSTANTS =====
-private val HeaderHeight = 260.dp
-private val LogoSize = 64.dp
-private val LogoIconSize = 40.dp
-private val LogoCorner = 16.dp
-private val FormPadding = 24.dp
-private val ButtonHeight = 56.dp
-private val ButtonCorner = 16.dp
-private val FieldCorner = 16.dp
-private val FieldSpacing = 16.dp
-private val SpacingSmall = 8.dp
-private val SpacingMedium = 12.dp
-private val ProgressIndicatorSize = 24.dp
-private val ProgressIndicatorStrokeWidth = 2.dp
-
-// ===== SCREEN =====
 
 @Composable
 fun LoginScreen(
@@ -105,20 +101,26 @@ fun LoginScreen(
         }
     }
 
-    // ===== UI =====
+    // ===== ADAPTIVE LAYOUT & THEME TOKENS =====
+    val adaptiveConfig = rememberAdaptiveLayoutConfig()
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        val scrollState = rememberScrollState()
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .imePadding()
-        ) {
-            LoginHeader()
-            LoginForm(
+        if (adaptiveConfig.windowSizeClass == WindowSizeClass.COMPACT) {
+            // حالت عمودی گوشی (Portrait Layout)
+            CompactLoginLayout(
+                formState = formState,
+                loginState = loginState,
+                onUsernameChanged = viewModel::onUsernameChanged,
+                onPasswordChanged = viewModel::onPasswordChanged,
+                onPasswordToggle = viewModel::togglePasswordVisibility,
+                onLoginClick = viewModel::login
+            )
+        } else {
+            // حالت افقی گوشی یا تبلت (Dual-Column Expanded Layout)
+            ExpandedLoginLayout(
                 formState = formState,
                 loginState = loginState,
                 onUsernameChanged = viewModel::onUsernameChanged,
@@ -130,89 +132,8 @@ fun LoginScreen(
     }
 }
 
-// ===== COMPONENTS =====
-
 @Composable
-private fun LoginHeader() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(HeaderHeight)
-    ) {
-        // تصویر پس‌زمینه
-        Image(
-            painter = painterResource(R.drawable.login_bg),
-            contentDescription = "تصویر پس‌زمینه صفحه ورود",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
-
-        // گرادینت انتقال به پس‌زمینه
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                            MaterialTheme.colorScheme.background
-                        )
-                    )
-                )
-        )
-
-        // لوگو و نام برند
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Bottom
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(LogoSize)
-                    .clip(RoundedCornerShape(LogoCorner))
-                    .background(MaterialTheme.colorScheme.primary)
-                    .padding(SpacingSmall)
-                    .semantics { contentDescription = "لوگوی ATK Cargo" },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.LocalShipping,
-                    contentDescription = null, // توضیح روی کانتینر تعریف شده
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(LogoIconSize)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(SpacingMedium))
-
-            Text(
-                text = "ATK Cargo",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            Text(
-                text = "مدیریت هوشمند فرآیند بارگیری",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                modifier = Modifier
-                    .background(
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                        shape = CircleShape
-                    )
-                    .padding(horizontal = 12.dp, vertical = 2.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun LoginForm(
+private fun CompactLoginLayout(
     formState: LoginFormState,
     loginState: LoginUiState,
     onUsernameChanged: (String) -> Unit,
@@ -220,159 +141,503 @@ private fun LoginForm(
     onPasswordToggle: () -> Unit,
     onLoginClick: () -> Unit
 ) {
-    // ===== KEYBOARD / FOCUS =====
-    val passwordFocusRequester = remember { FocusRequester() }
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    // ===== DERIVED STATE =====
-    val isLoginEnabled = formState.username.isNotBlank() &&
-            formState.password.isNotBlank() &&
-            loginState !is LoginUiState.Loading
-    val isLoading = loginState is LoginUiState.Loading
-    val errorMessage = (loginState as? LoginUiState.Error)?.message
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(FormPadding),
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .imePadding()
+            .padding(horizontal = ATKCargoTheme.spacing.l, vertical = ATKCargoTheme.spacing.m),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(FieldSpacing)
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // عنوان فرم
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "ورود به حساب کاربری",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Black
-            )
-            Text(
-                text = "خوش آمدید! لطفاً اطلاعات خود را وارد کنید.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // هدر تصویر برندینگ
+            IndustrialCompactHeaderWithImage()
+            Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.l))
+
+            // کارت فرم ورود
+            IndustrialLoginFormCard(
+                formState = formState,
+                loginState = loginState,
+                onUsernameChanged = onUsernameChanged,
+                onPasswordChanged = onPasswordChanged,
+                onPasswordToggle = onPasswordToggle,
+                onLoginClick = onLoginClick
             )
         }
 
-        Spacer(modifier = Modifier.height(SpacingSmall))
+        Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xl))
+        IndustrialFooterInfo()
+    }
+}
 
-        // فیلد نام کاربری
-        LoginInputField(
-            value = formState.username,
-            onValueChange = onUsernameChanged,
-            label = "نام کاربری",
-            placeholder = "نام کاربری خود را وارد کنید",
-            fieldDescription = "فیلد نام کاربری",
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "آیکون کاربر",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-            },
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Next,
-            keyboardActions = KeyboardActions(
-                onNext = { passwordFocusRequester.requestFocus() }
-            )
-        )
+@Composable
+private fun ExpandedLoginLayout(
+    formState: LoginFormState,
+    loginState: LoginUiState,
+    onUsernameChanged: (String) -> Unit,
+    onPasswordChanged: (String) -> Unit,
+    onPasswordToggle: () -> Unit,
+    onLoginClick: () -> Unit
+) {
+    val scrollState = rememberScrollState()
 
-        // فیلد رمز عبور
-        LoginInputField(
-            value = formState.password,
-            onValueChange = onPasswordChanged,
-            label = "رمز عبور (فقط عدد)",
-            placeholder = "رمز عبور عددی خود را وارد کنید",
-            fieldDescription = "فیلد رمز عبور — فقط ارقام مجاز است",
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Lock,
-                    contentDescription = "آیکون قفل رمز عبور",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                )
-            },
-            trailingIcon = {
-                IconButton(onClick = onPasswordToggle) {
-                    Icon(
-                        imageVector = if (formState.isPasswordVisible)
-                            Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (formState.isPasswordVisible)
-                            "پنهان کردن رمز عبور" else "نمایش رمز عبور",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
-                }
-            },
-            isPassword = true,
-            passwordVisible = formState.isPasswordVisible,
-            keyboardType = KeyboardType.NumberPassword,
-            imeAction = ImeAction.Done,
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    keyboardController?.hide()
-                    if (isLoginEnabled) onLoginClick()
-                }
-            ),
-            focusRequester = passwordFocusRequester
-        )
-
-        // پیام خطا با انیمیشن
-        AnimatedVisibility(
-            visible = errorMessage != null,
-            enter = slideInVertically() + fadeIn(),
-            exit = slideOutVertically() + fadeOut()
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(ATKCargoTheme.spacing.xl)
+            .imePadding(),
+        horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xxl),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // ستون سمت چپ: هدر تصویر پس‌زمینه + برندینگ و ویژگی‌های سامانه
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(ATKCargoTheme.dimensions.cardCornerRadius))
         ) {
-            errorMessage?.let { msg ->
-                Text(
-                    text = msg,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
-                            RoundedCornerShape(SpacingSmall)
+            // تصویر پس‌زمینه صنعتی
+            Image(
+                painter = painterResource(R.drawable.login_bg),
+                contentDescription = "تصویر پس‌زمینه هدر سامانه ATK Cargo",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            // گرادینت پوششی برای بالا بردن کنتراست متن
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f)
+                            )
                         )
-                        .padding(12.dp)
-                        .semantics { contentDescription = "خطای ورود: $msg" },
-                    textAlign = TextAlign.Center
+                    )
+            )
+
+            // محتوای هدر
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(ATKCargoTheme.spacing.xxl),
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.Center
+            ) {
+                IndustrialBrandingHeaderContent(isCompact = false)
+
+                Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xl))
+
+                IndustrialFeatureBadge(
+                    icon = Icons.Default.Security,
+                    title = "احراز هویت امن پرسنل",
+                    subtitle = "کنترل دقیق سطوح دسترسی عملیاتی"
+                )
+                Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.m))
+                IndustrialFeatureBadge(
+                    icon = Icons.Default.SignalCellularAlt,
+                    title = "عملکرد پایدار آفلاین",
+                    subtitle = "ثبت اطلاعات حتی هنگام قطع ارتباط شبکه"
+                )
+                Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.m))
+                IndustrialFeatureBadge(
+                    icon = Icons.Default.CheckCircle,
+                    title = "سازگار با تجهیزات صنعتی",
+                    subtitle = "پشتیبانی کامل از بارکدخوان و اسکنر نوری"
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(SpacingSmall))
+        // ستون سمت راست: فرم ورود صنعتی
+        Column(
+            modifier = Modifier
+                .weight(1.2f)
+                .fillMaxHeight()
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            IndustrialLoginFormCard(
+                formState = formState,
+                loginState = loginState,
+                onUsernameChanged = onUsernameChanged,
+                onPasswordChanged = onPasswordChanged,
+                onPasswordToggle = onPasswordToggle,
+                onLoginClick = onLoginClick
+            )
 
-        // دکمه ورود
-        Button(
-            onClick = {
-                keyboardController?.hide()
-                onLoginClick()
-            },
+            Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.l))
+            IndustrialFooterInfo()
+        }
+    }
+}
+
+@Composable
+private fun IndustrialCompactHeaderWithImage() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp),
+        shape = RoundedCornerShape(ATKCargoTheme.dimensions.cardCornerRadius),
+        elevation = CardDefaults.cardElevation(defaultElevation = ATKCargoTheme.elevation.level2)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // تصویر پس‌زمینه هدر
+            Image(
+                painter = painterResource(R.drawable.login_bg),
+                contentDescription = "تصویر پس‌زمینه هدر سامانه ورود",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            // گرادینت تاریک شفاف جهت خوانایی عالی متن و آیکون
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                                MaterialTheme.colorScheme.surface
+                            )
+                        )
+                    )
+            )
+
+            // محتوای متنی و آیکون هدر
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(ATKCargoTheme.spacing.l),
+                contentAlignment = Alignment.Center
+            ) {
+                IndustrialBrandingHeaderContent(isCompact = true)
+            }
+        }
+    }
+}
+
+@Composable
+private fun IndustrialBrandingHeaderContent(isCompact: Boolean) {
+    Column(
+        horizontalAlignment = if (isCompact) Alignment.CenterHorizontally else Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xs)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.m)
+        ) {
+            Surface(
+                modifier = Modifier.size(if (isCompact) 48.dp else 60.dp),
+                shape = RoundedCornerShape(ATKCargoTheme.dimensions.buttonCornerRadius),
+                color = MaterialTheme.colorScheme.primary,
+                tonalElevation = ATKCargoTheme.elevation.level3
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.LocalShipping,
+                        contentDescription = "لوگوی سامانه ATK Cargo",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(if (isCompact) 28.dp else 34.dp)
+                    )
+                }
+            }
+
+            Column {
+                Text(
+                    text = "ATK Cargo",
+                    style = if (isCompact) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "ENTERPRISE LOGISTICS",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = MaterialTheme.typography.labelMedium.letterSpacing
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.xxs))
+
+        Text(
+            text = "سامانه جامع مدیریت عملیات بارگیری",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = if (isCompact) TextAlign.Center else TextAlign.Start
+        )
+    }
+}
+
+@Composable
+private fun IndustrialFeatureBadge(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    subtitle: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.m),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+            modifier = Modifier.size(40.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun IndustrialLoginFormCard(
+    formState: LoginFormState,
+    loginState: LoginUiState,
+    onUsernameChanged: (String) -> Unit,
+    onPasswordChanged: (String) -> Unit,
+    onPasswordToggle: () -> Unit,
+    onLoginClick: () -> Unit
+) {
+    val passwordFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val haptic = LocalHapticFeedback.current
+
+    val isLoginEnabled = formState.username.isNotBlank() &&
+            formState.password.isNotBlank() &&
+            loginState !is LoginUiState.Loading
+
+    val isLoading = loginState is LoginUiState.Loading
+    val errorMessage = (loginState as? LoginUiState.Error)?.message
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(ATKCargoTheme.dimensions.cardCornerRadius),
+        colors = CardDefaults.cardColors(
+            containerColor = ATKCargoTheme.semanticColors.cardBackground
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = ATKCargoTheme.elevation.level2
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            width = ATKCargoTheme.dimensions.borderWidthThin,
+            color = ATKCargoTheme.semanticColors.borderSubtle
+        )
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(ButtonHeight)
-                .semantics { contentDescription = if (isLoading) "در حال ورود..." else "ورود به برنامه" },
-            shape = RoundedCornerShape(ButtonCorner),
-            enabled = isLoginEnabled,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-            ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                .padding(ATKCargoTheme.spacing.xl),
+            verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.l)
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(ProgressIndicatorSize),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = ProgressIndicatorStrokeWidth
+
+            // Title & Helper
+            Column(verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xxs)) {
+                Text(
+                    text = "ورود پرسنل",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-            } else {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(SpacingSmall),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Text(
+                    text = "نام کاربری و رمز عبور عددی خود را وارد کنید",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Username Field
+            IndustrialInputField(
+                value = formState.username,
+                onValueChange = onUsernameChanged,
+                label = "نام کاربری",
+                placeholder = "مثال: ali",
+                fieldDescription = "فیلد نام کاربری",
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "آیکون پرسنل",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Next,
+                keyboardActions = KeyboardActions(
+                    onNext = { passwordFocusRequester.requestFocus() }
+                )
+            )
+
+            // Password Field (Numeric PIN)
+            IndustrialInputField(
+                value = formState.password,
+                onValueChange = onPasswordChanged,
+                label = "رمز عبور (فقط عدد)",
+                placeholder = "پین‌کد عددی را وارد کنید",
+                fieldDescription = "فیلد رمز عبور عددی",
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "آیکون قفل امنیتی",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                },
+                trailingIcon = {
+                    IconButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onPasswordToggle()
+                        },
+                        modifier = Modifier.size(ATKCargoTheme.dimensions.touchTargetMin)
+                    ) {
+                        Icon(
+                            imageVector = if (formState.isPasswordVisible)
+                                Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = if (formState.isPasswordVisible)
+                                "پنهان‌سازی رمز عبور" else "نمایش رمز عبور",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                isPassword = true,
+                passwordVisible = formState.isPasswordVisible,
+                keyboardType = KeyboardType.NumberPassword,
+                imeAction = ImeAction.Done,
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        keyboardController?.hide()
+                        if (isLoginEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onLoginClick()
+                        }
+                    }
+                ),
+                focusRequester = passwordFocusRequester
+            )
+
+            // Error Banner (Animated Visibility & Accessibility LiveRegion)
+            AnimatedVisibility(
+                visible = errorMessage != null,
+                enter = expandVertically(animationSpec = tween(ATKCargoTheme.motion.durationMedium2)) + fadeIn(),
+                exit = shrinkVertically(animationSpec = tween(ATKCargoTheme.motion.durationShort2)) + fadeOut()
+            ) {
+                errorMessage?.let { msg ->
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics {
+                                liveRegion = LiveRegionMode.Assertive
+                                contentDescription = "خطای ورود: $msg"
+                            },
+                        shape = RoundedCornerShape(ATKCargoTheme.dimensions.buttonCornerRadius),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = ATKCargoTheme.dimensions.borderWidthThin,
+                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(ATKCargoTheme.spacing.m),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.m)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ErrorOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(ATKCargoTheme.dimensions.iconDefault)
+                            )
+                            Text(
+                                text = msg,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Action Button (56dp Industrial Target Height)
+            Button(
+                onClick = {
+                    keyboardController?.hide()
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLoginClick()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(ATKCargoTheme.dimensions.buttonLargeHeight)
+                    .semantics {
+                        contentDescription = if (isLoading) "در حال تایید و ورود به سامانه..." else "دکمه ورود به سامانه"
+                    },
+                shape = RoundedCornerShape(ATKCargoTheme.dimensions.buttonCornerRadius),
+                enabled = isLoginEnabled,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = ATKCargoTheme.elevation.level2,
+                    pressedElevation = ATKCargoTheme.elevation.level0
+                )
+            ) {
+                if (isLoading) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.m),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.5.dp
+                        )
+                        Text(
+                            text = "در حال ارتباط با سرور...",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                } else {
                     Text(
-                        text = "ورود به برنامه",
+                        text = "ورود به سامانه عملیات",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -380,10 +645,8 @@ private fun LoginForm(
     }
 }
 
-// ===== REUSABLE WIDGETS =====
-
 @Composable
-fun LoginInputField(
+private fun IndustrialInputField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
@@ -400,30 +663,37 @@ fun LoginInputField(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(SpacingSmall)
+        verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xs)
     ) {
         Text(
             text = label,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-            modifier = Modifier.padding(horizontal = 4.dp)
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = ATKCargoTheme.spacing.xxs)
         )
 
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            placeholder = { Text(placeholder) },
+            placeholder = {
+                Text(
+                    text = placeholder,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            },
             leadingIcon = leadingIcon,
             trailingIcon = trailingIcon,
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(min = ATKCargoTheme.dimensions.inputMinHeight)
                 .then(
                     if (focusRequester != null) Modifier.focusRequester(focusRequester)
                     else Modifier
                 )
                 .semantics { contentDescription = fieldDescription },
-            shape = RoundedCornerShape(FieldCorner),
+            shape = RoundedCornerShape(ATKCargoTheme.dimensions.buttonCornerRadius),
             visualTransformation = if (isPassword && !passwordVisible)
                 PasswordVisualTransformation()
             else
@@ -436,74 +706,94 @@ fun LoginInputField(
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                unfocusedBorderColor = ATKCargoTheme.semanticColors.borderStrong,
+                focusedContainerColor = ATKCargoTheme.semanticColors.inputBackground,
+                unfocusedContainerColor = ATKCargoTheme.semanticColors.inputBackground,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedLabelColor = MaterialTheme.colorScheme.primary
             )
         )
     }
 }
 
-// ===== PREVIEWS =====
+@Composable
+private fun IndustrialFooterInfo() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xxs)
+    ) {
+        Text(
+            text = "شرکت آریا تاید کاسپین • کلیه حقوق محفوظ است",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "پشتیبانی فنی: مرکز کنترل دیسپچینگ صنعتی",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+    }
+}
 
-@Preview(name = "Login - Light Theme", showBackground = true, locale = "fa")
+@Preview(name = "Compact - Industrial Light Header Image", showBackground = true, locale = "fa")
 @Composable
 private fun LoginScreenLightPreview() {
     ATKCargoTheme(darkTheme = false) {
-        LoginFormPreviewContent()
-    }
-}
-
-@Preview(name = "Login - Dark Theme", showBackground = true, locale = "fa")
-@Composable
-private fun LoginScreenDarkPreview() {
-    ATKCargoTheme(darkTheme = true) {
-        LoginFormPreviewContent()
-    }
-}
-
-@Preview(name = "Login - Dark Error State", showBackground = true, locale = "fa")
-@Composable
-private fun LoginScreenErrorPreview() {
-    ATKCargoTheme(darkTheme = true) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .imePadding()
-            ) {
-                LoginHeader()
-                LoginForm(
-                    formState = LoginFormState(username = "admin", password = "1234"),
-                    loginState = LoginUiState.Error("نام کاربری یا رمز عبور اشتباه است"),
-                    onUsernameChanged = {},
-                    onPasswordChanged = {},
-                    onPasswordToggle = {},
-                    onLoginClick = {}
-                )
-            }
+        Surface(modifier = Modifier.fillMaxSize()) {
+            CompactLoginLayout(
+                formState = LoginFormState(username = "admin"),
+                loginState = LoginUiState.Idle,
+                onUsernameChanged = {},
+                onPasswordChanged = {},
+                onPasswordToggle = {},
+                onLoginClick = {}
+            )
         }
     }
 }
 
+@Preview(name = "Compact - Industrial Dark Header Image", showBackground = true, locale = "fa")
 @Composable
-private fun LoginFormPreviewContent() {
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .imePadding()
-        ) {
-            LoginHeader()
-            LoginForm(
+private fun LoginScreenDarkPreview() {
+    ATKCargoTheme(darkTheme = true) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            CompactLoginLayout(
+                formState = LoginFormState(username = "operator_1"),
+                loginState = LoginUiState.Idle,
+                onUsernameChanged = {},
+                onPasswordChanged = {},
+                onPasswordToggle = {},
+                onLoginClick = {}
+            )
+        }
+    }
+}
+
+@Preview(name = "Compact - Error State", showBackground = true, locale = "fa")
+@Composable
+private fun LoginScreenErrorPreview() {
+    ATKCargoTheme(darkTheme = true) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            CompactLoginLayout(
+                formState = LoginFormState(username = "981042", password = "123"),
+                loginState = LoginUiState.Error("شناسه پرسنلی یا رمز عبور اشتباه است."),
+                onUsernameChanged = {},
+                onPasswordChanged = {},
+                onPasswordToggle = {},
+                onLoginClick = {}
+            )
+        }
+    }
+}
+
+@Preview(name = "Expanded - Tablet View Header Image", showBackground = true, device = "spec:width=1280dp,height=800dp,dpi=240", locale = "fa")
+@Composable
+private fun LoginScreenTabletPreview() {
+    ATKCargoTheme(darkTheme = true) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            ExpandedLoginLayout(
                 formState = LoginFormState(),
                 loginState = LoginUiState.Idle,
                 onUsernameChanged = {},

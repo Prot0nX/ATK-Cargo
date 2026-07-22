@@ -2,7 +2,6 @@ package com.atk.atk_cargo.data.repository
 
 import android.util.Log
 import com.atk.atk_cargo.api.ApiService
-import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoResponse
 import com.atk.atk_cargo.data.model.ComprehensiveAnalysisResponse

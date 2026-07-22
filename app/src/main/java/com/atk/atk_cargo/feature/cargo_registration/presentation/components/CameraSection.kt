@@ -44,7 +44,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -67,6 +66,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.atk.atk_cargo.feature.cargo_registration.domain.ocr.EnhancedNumberAnalyzer
+import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import java.text.NumberFormat
 import java.util.Locale
 
