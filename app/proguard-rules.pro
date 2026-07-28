@@ -1,216 +1,213 @@
 # =======================================================================
-# 1. تنظیمات پایه و بهینه‌سازی (اولویت بالا - تنظیمات اصلی)
-# =======================================================================
--optimizationpasses 10                 # تعداد دفعات بهینه‌سازی (افزایش یافته)
--dontusemixedcaseclassnames            # نام کلاس‌ها را با حروف مختلط نسازد
--dontskipnonpubliclibraryclasses       # کلاس‌های غیرعمومی کتابخانه‌ها را نادیده نگیرد
--dontpreverify                         # تأیید قبلی را انجام ندهد (سرعت بیشتر)
--verbose                               # گزارش‌های مفصل
--optimizations !code/simplification/arithmetic,!field/*,!class/merging/*  # بهینه‌سازی‌های خاص
-
-# تنظیمات اضافی برای کاهش حجم APK
--repackageclasses 'obfuscated'         # کلاس‌ها را با هم بسته‌بندی می‌کند (بهینه‌سازی حجم)
--allowaccessmodification               # اجازه تغییر سطح دسترسی کلاس‌ها برای بهینه‌سازی
--mergeinterfacesaggressively           # ادغام تهاجمی رابط‌های مشابه
--overloadaggressively                  # استفاده مجدد از نام متدها با پارامترهای متفاوت
--renamesourcefileattribute SourceFile # تغییر نام فایل منبع در استک‌تریس
--adaptresourcefilenames **.properties  # تطبیق نام فایل‌های منابع با کلاس‌های مبهم شده
--adaptresourcefilecontents **.properties,META-INF/MANIFEST.MF  # بروزرسانی محتوای فایل‌ها
-
-# =======================================================================
-# 2. تنظیمات حفظ ویژگی‌ها (اولویت بالا - برای عملکرد صحیح)
-# =======================================================================
--keepattributes *Annotation*           # حفظ آنوتیشن‌ها (برای رتروفیت و گسون ضروری است)
--keepattributes Signature              # حفظ اطلاعات Generic Signature
--keepattributes Exceptions             # حفظ اطلاعات استثناها
--keepattributes InnerClasses,EnclosingMethod  # حفظ ساختار کلاس‌های داخلی
--keepattributes !SourceFile,!LineNumberTable    # حذف اطلاعات خط در تولید نهایی برای امنیت
--keepattributes RuntimeVisibleAnnotations,AnnotationDefault  # مورد نیاز برای Jetpack Compose
-
-# =======================================================================
-# 3. تنظیمات امنیتی برای محافظت از توابع امنیتی (اولویت بالا)
-# =======================================================================
-# حفظ کلاس امضاپژیر با سازنده (نام واقعی کلاس: MusicLibraryManager)
--keep class com.atk.atk_cargo.weather.MusicLibraryManager {
-    <init>(android.content.Context);
-    public Pair validateMusicLibrary();
-}
-
-# حفظ متغیرهای حساس در Companion Object (فقط فیلدها)
--keepclassmembers class com.atk.atk_cargo.weather.MusicLibraryManager$Companion {
-    private static final java.lang.String ENCODED_*;
-}
-
-# حفظ enum SecurityErrorType (رعایت استانداردهای پروگارد برای انوم)
--keepclassmembers enum com.atk.atk_cargo.weather.SecurityErrorType {
-    public static **[] values();
-    public static ** valueOf(java.lang.String);
-}
-
-# محافظت از MainActivity با حفظ ساختار اصلی (فقط موارد ضروری)
--keep class com.atk.atk_cargo.MainActivity {
-    public <init>();
-    protected void onCreate(android.os.Bundle);
-}
-
-# مبهم‌سازی توابع و فیلدهای امنیتی MainActivity (اجازه تغییر نام)
--keepclassmembernames class com.atk.atk_cargo.MainActivity {
-    private void calculateWeatherForecast();
-    private boolean isSecurityCheckPassed;
-    private *** signatureVerifier;
-}
-
-# =======================================================================
-# 4. تنظیمات API و ارتباطات شبکه (اولویت متوسط)
-# =======================================================================
-# رتروفیت و سرویس‌های API
--keepattributes Signature, RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
-
--keepclassmembers interface com.atk.atk_cargo.api.ApiService {
-    <methods>;
-}
-
-# =======================================================================
-# 4.1. مبهم‌سازی و محافظت از API Endpoints (امنیت بالا)
+# ENTERPRISE PROGUARD & R8 CONFIGURATION - ATK-CARGO
+# Production-Grade Security Hardening, Optimization & Shrinking Rules
 # =======================================================================
 
-# حفظ ساختار ApiService اما مبهم‌سازی مقادیر رشته‌ای
--keepclassmembers interface com.atk.atk_cargo.api.ApiService {
-    @retrofit2.http.POST <methods>;
-    @retrofit2.http.GET <methods>;
-}
+# -----------------------------------------------------------------------
+# SECTION 1: GENERAL OPTIMIZATION & R8 HARDENING
+# -----------------------------------------------------------------------
+-optimizationpasses 10
+-dontusemixedcaseclassnames
+-dontskipnonpubliclibraryclasses
+-dontpreverify
+-verbose
 
-# مبهم‌سازی تمام رشته‌های ثابت در ApiService
--adaptresourcefilecontents com/atk/atk_cargo/api/ApiService.class
-
-# حذف اطلاعات دیباگ از ApiService در release
--assumenosideeffects class com.atk.atk_cargo.api.ApiService {
-    # این باعث حذف لاگ‌های مربوط به API می‌شود
-}
-
-# مبهم‌سازی پارامترهای Query و Field
--keepclassmembers class * {
-    @retrofit2.http.Query *;
-    @retrofit2.http.Field *;
-    @retrofit2.http.Body *;
-}
-
-# رمزنگاری و مبهم‌سازی نام متدها و پارامترها
+# Obfuscation Dictionaries & Repackaging
 -obfuscationdictionary proguard-dictionary.txt
 -classobfuscationdictionary proguard-dictionary.txt
 -packageobfuscationdictionary proguard-dictionary.txt
 
-# مبهم‌سازی تهاجمی برای کلاس‌های API
--repackageclasses 'obfuscated.api'
+-repackageclasses 'obfuscated'
 -allowaccessmodification
+-mergeinterfacesaggressively
+-overloadaggressively
+-renamesourcefileattribute SourceFile
+-adaptresourcefilenames **.properties
+-adaptresourcefilecontents **.properties,META-INF/MANIFEST.MF
 
-# حذف اطلاعات منبع و شماره خط برای ApiService در release
+# R8 Optimization Rules & Fine Tuning
+-optimizations !code/simplification/arithmetic,!field/*,!class/merging/*
+
+# -----------------------------------------------------------------------
+# SECTION 2: ATTRIBUTE PRESERVATION & METADATA
+# -----------------------------------------------------------------------
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod,Exceptions
+-keepattributes RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations,AnnotationDefault
 -keepattributes !SourceFile,!LineNumberTable
 
-# مبهم‌سازی رشته‌های ثابت در کلاس‌های API
-# این باعث می‌شود نام فایل‌های PHP مبهم شوند
--assumenosideeffects class kotlin.jvm.internal.Intrinsics {
-    public static void checkNotNullParameter(java.lang.Object, java.lang.String);
-}
-
-# Retrofit
--keep class retrofit2.** { *; }
--keepclasseswithmembers class * {
-    @retrofit2.http.* <methods>;
-}
--keepclassmembers,allowshrinking,allowobfuscation interface * {
-    @retrofit2.http.* <methods>;
-}
-
-# OkHttp و Okio (قوانین در خود کتابخانه وجود دارد)
--dontwarn okhttp3.**
--dontwarn okio.**
-
-# Gson (قوانین در خود کتابخانه وجود دارد)
--dontwarn com.google.gson.**
--keep class * implements com.google.gson.TypeAdapterFactory
--keep class * implements com.google.gson.JsonSerializer
--keep class * implements com.google.gson.JsonDeserializer
--keepclassmembers,allowobfuscation class * {
-    @com.google.gson.annotations.SerializedName <fields>;
-}
-
-# حفظ همه data class ها برای Gson
--keep class * {
-    @com.google.gson.annotations.SerializedName <fields>;
-}
--keepclassmembers class * {
-    @com.google.gson.annotations.SerializedName <fields>;
-}
-
-# حفظ data class های Kotlin
--keep class kotlin.Metadata { *; }
--keepclassmembers class * {
-    @kotlin.Metadata <fields>;
-}
-
--dontwarn sun.misc.**
-
-# =======================================================================
-# 5. مدل‌های برنامه (اولویت متوسط)
-# =======================================================================
-# حفظ مدل‌های داده برای سریالیزیشن/دیسریالیزیشن
-
--keep class com.atk.atk_cargo.api.** { *; }
--keep class com.atk.atk_cargo.network.** { *; }
-# حفظ مدل‌های داده جدید پروژه برای جلوگیری از عدم تطابق Gson
--keep class com.atk.atk_cargo.data.model.** { *; }
-# حفظ data class هایSummary برای Gson (فقط کلاس‌های مورد نیاز)
--keep class com.atk.atk_cargo.models.** { *; }
-
-# حفظ کلاس Secrets و متدهای JNI Native آن جهت جلوگیری از UnsatisfiedLinkError به دلیل تغییر نام پکیج
--keep class com.atk.atk_cargo.api.Secrets { *; }
--keepclasseswithmembernames,includedescriptorclasses class * {
-    native <methods>;
-}
-
-# Chat specific rules
--keep class com.atk.atk_cargo.data.db.ChatMessageEntity { *; }
--keep class com.atk.atk_cargo.api.ChatMessage { *; }
--keep class com.atk.atk_cargo.api.ChatMessagesResponse { *; }
--keep class com.atk.atk_cargo.api.SendMessageResponse { *; }
--keep class com.atk.atk_cargo.api.SendMessageRequest { *; }
--keep class com.atk.atk_cargo.api.UnreadCountResponse { *; }
-
-# تنظیمات پایه Kotlin (بسیاری از این موارد خودکار هستند)
--keep class kotlin.Metadata { *; }
--dontwarn kotlin.**
--keepclassmembers class **$WhenMappings {
-    <fields>;
-}
--keepclassmembers class kotlin.Metadata {
-    public <methods>;
-}
-
-# =======================================================================
-# 7. تنظیمات Coroutines (اولویت متوسط)
-# =======================================================================
--keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
--keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
--keepclassmembers class kotlinx.coroutines.** {
-    volatile <fields>;
-}
--keepclassmembernames class kotlinx.** {
-    volatile <fields>;
-}
-
-# =======================================================================
-# 8. تنظیمات Android (اولویت متوسط)
-# =======================================================================
+# -----------------------------------------------------------------------
+# SECTION 3: ANDROID CORE ENTRY POINTS
+# -----------------------------------------------------------------------
 -keep public class * extends android.app.Activity
 -keep public class * extends android.app.Application
 -keep public class * extends android.app.Service
 -keep public class * extends android.content.BroadcastReceiver
 -keep public class * extends android.content.ContentProvider
+-keep public class * extends android.app.backup.BackupAgent
 
-# =======================================================================
-# 9. حذف لاگ‌ها و بهینه‌سازی کد (اولویت پایین)
-# =======================================================================
+# -----------------------------------------------------------------------
+# SECTION 4: JNI & NATIVE BRIDGE PROTECTION
+# -----------------------------------------------------------------------
+# Critical: Keep JNI class name, package name, and method signatures matching C++ libsecrets.so
+-keep class com.atk.atk_cargo.api.Secrets { *; }
+-keepclasseswithmembernames,includedescriptorclasses class * {
+    native <methods>;
+}
+
+# -----------------------------------------------------------------------
+# SECTION 5: SECURITY & CRITICAL APPLICATION HARDENING
+# -----------------------------------------------------------------------
+# Security Verifier, Anti-Tamper & Cryptographic Engine
+-keep class com.atk.atk_cargo.security.SecurityVerifier { *; }
+-keepclassmembers class com.atk.atk_cargo.security.SecurityVerifier { *; }
+
+-keep class com.atk.atk_cargo.security.CryptoManager { *; }
+-keepclassmembers class com.atk.atk_cargo.security.CryptoManager { *; }
+
+-keepclassmembers enum com.atk.atk_cargo.security.SecurityErrorType {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+-keep class com.atk.atk_cargo.api.UserPreferencesManager { *; }
+
+# Preserve MainActivity lifecycle entry point
+-keep class com.atk.atk_cargo.MainActivity {
+    public <init>();
+    protected void onCreate(android.os.Bundle);
+}
+
+# -----------------------------------------------------------------------
+# SECTION 6: NETWORKING (RETROFIT, OKHTTP, GSON)
+# -----------------------------------------------------------------------
+# Retrofit Interfaces & Annotations
+-keep interface com.atk.atk_cargo.api.ApiService { *; }
+-keep interface com.atk.atk_cargo.api.ThirdPartyApiService { *; }
+
+-keepclassmembers interface * {
+    @retrofit2.http.* <methods>;
+}
+
+# Data Models & DTO Preservation (Gson Reflection Safety)
+-keep class com.atk.atk_cargo.data.model.** { *; }
+-keepclassmembers class com.atk.atk_cargo.data.model.** { *; }
+-keep class com.atk.atk_cargo.api.DataModel** { *; }
+
+# Gson TypeAdapters & SerializedName Annotations
+-keep class * implements com.google.gson.TypeAdapterFactory
+-keep class * implements com.google.gson.JsonSerializer
+-keep class * implements com.google.gson.JsonDeserializer
+
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# Networking Library Types & Warnings
+-keep class retrofit2.** { *; }
+-keep class okhttp3.** { *; }
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn retrofit2.**
+-dontwarn com.google.gson.**
+
+# -----------------------------------------------------------------------
+# SECTION 7: KOTLIN, COROUTINES & SERIALIZATION
+# -----------------------------------------------------------------------
+-dontwarn kotlin.**
+-keepclassmembers class **$WhenMappings {
+    <fields>;
+}
+
+# Kotlin Coroutines
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler
+-keepclassmembers class kotlinx.coroutines.** {
+    volatile <fields>;
+}
+
+# Kotlinx Serialization & Navigation Routes
+-keepclassmembers class * {
+    @kotlinx.serialization.Serializable <fields>;
+}
+
+-keepclassmembers class **$Companion {
+    *** serializer(...);
+}
+
+-keep class * implements kotlinx.serialization.KSerializer
+-keepclassmembers class * implements kotlinx.serialization.KSerializer {
+    public static *** INSTANCE;
+}
+
+-keepclassmembers class * {
+    @kotlinx.serialization.Serializer *** serializer(...);
+}
+
+# -----------------------------------------------------------------------
+# SECTION 8: ROOM DATABASE & PARCELABLE
+# -----------------------------------------------------------------------
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-keep @androidx.room.Dao class *
+-keepclassmembers class * {
+    @androidx.room.TypeConverter <methods>;
+}
+-dontwarn androidx.room.**
+
+-keep class * implements android.os.Parcelable {
+    public static final android.os.Parcelable$Creator *;
+}
+
+# -----------------------------------------------------------------------
+# SECTION 9: DEPENDENCY INJECTION (KOIN)
+# -----------------------------------------------------------------------
+-keepclassmembers class * {
+    @org.koin.core.annotation.* <fields>;
+    @org.koin.core.annotation.* <methods>;
+}
+-keepnames class org.koin.core.Koin { *; }
+-dontwarn org.koin.**
+
+# -----------------------------------------------------------------------
+# SECTION 10: WORKMANAGER & BACKGROUND TASKS
+# -----------------------------------------------------------------------
+-keep class * extends androidx.work.ListenableWorker {
+    public <init>(android.content.Context, androidx.work.WorkerParameters);
+}
+-dontwarn androidx.work.**
+
+# -----------------------------------------------------------------------
+# SECTION 11: JETPACK COMPOSE & UI LIBRARIES
+# -----------------------------------------------------------------------
+-dontwarn androidx.compose.**
+-keep class androidx.compose.ui.platform.NestedScrollInteropConnection { *; }
+
+-keepclassmembers class * {
+    @androidx.navigation.** <methods>;
+}
+
+# -----------------------------------------------------------------------
+# SECTION 12: MEDIA, DOCUMENT & THIRD-PARTY SDKs
+# -----------------------------------------------------------------------
+# Image Loading & Animations
+-dontwarn coil.**
+-dontwarn io.coil.**
+-dontwarn com.airbnb.lottie.**
+
+# Document & Charts Processing
+-dontwarn com.itextpdf.**
+-dontwarn com.patrykandpatrick.vico.**
+
+# Barcode & CameraX ML Kit
+-dontwarn com.google.zxing.**
+-dontwarn com.google.mlkit.**
+-dontwarn androidx.camera.**
+-dontwarn androidx.media3.**
+
+# -----------------------------------------------------------------------
+# SECTION 13: RELEASE LOGGING STRIPPING & WARNING SUPPRESSIONS
+# -----------------------------------------------------------------------
+# Strip Android Log methods from Release Binary
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
     public static int v(...);
@@ -221,54 +218,22 @@
     public static int wtf(...);
 }
 
-# حذف printStackTrace در release
+# Strip Throwable printStackTrace from Release Binary
 -assumenosideeffects class java.lang.Throwable {
     public void printStackTrace();
 }
 
-# =======================================================================
-# 10. تنظیمات Compose (اولویت بالا)
-# =======================================================================
-# بخش Jetpack Compose به طور خودکار توسط کتابخانه مدیریت می‌شود
-# در اینجا فقط موارد ضروری یا تداخلی اضافه شود
--dontwarn androidx.compose.**
-
-# Navigation Compose (در کتابخانه موجود است)
--keepclassmembers class * {
-    @androidx.navigation.** <methods>;
+# Strip Kotlin Intrinsics null checks parameter strings
+-assumenosideeffects class kotlin.jvm.internal.Intrinsics {
+    public static void checkNotNullParameter(java.lang.Object, java.lang.String);
+    public static void checkNotNull(java.lang.Object, java.lang.String);
 }
 
-# Coil, Lottie, iText, Charts (عموماً خودکار هستند)
--dontwarn coil.**
--dontwarn io.coil.**
--dontwarn com.airbnb.lottie.**
--dontwarn com.itextpdf.**
--dontwarn com.patrykandpatrick.vico.**
-
-# =======================================================================
-# 18. تنظیمات Work Manager (اولویت متوسط)
-# =======================================================================
--keep class androidx.work.** { *; }
--keep class * extends androidx.work.Worker
--keep class * extends androidx.work.ListenableWorker
--keepclassmembers class * extends androidx.work.Worker {
-    public <init>(android.content.Context,androidx.work.WorkerParameters);
-}
-
-# =======================================================================
-# 19. سرکوب هشدارها (اولویت پایین)
-# =======================================================================
+# Global Warning Suppressions
 -dontwarn org.bouncycastle.**
 -dontwarn org.conscrypt.**
 -dontwarn org.openjsse.**
 -dontwarn org.slf4j.**
--dontwarn aQute.bnd.**
--dontwarn edu.umd.cs.findbugs.**
--dontwarn org.osgi.framework.**
--dontwarn javax.lang.model.**
 -dontwarn com.sun.jna.**
--dontwarn java.awt.**
--dontwarn javax.swing.**
 -dontwarn sun.misc.**
--dontwarn org.apache.log4j.**
--dontwarn org.apache.commons.logging.**
+-dontwarn javax.lang.model.**
