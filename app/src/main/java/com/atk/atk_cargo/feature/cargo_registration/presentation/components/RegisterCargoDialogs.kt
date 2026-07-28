@@ -121,6 +121,7 @@ import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun DuplicateTrackingNumbersDialog(
@@ -176,7 +177,7 @@ fun QuotaWarningDialog(
                     targetValue = 1f,
                     animationSpec = tween(600, easing = FastOutSlowInEasing)
                 )
-                delay(1000)
+                delay(1000.milliseconds)
             }
         }
     }
@@ -458,7 +459,7 @@ fun QuotaEntryDialog(
             isError = false
             errorMessage = ""
             isLoading = false
-            delay(150)
+            delay(150.milliseconds)
             focusRequester.requestFocus()
         }
     }
@@ -1608,7 +1609,7 @@ private fun WeightInfoTabContent(info: CargoInfo) {
         try {
             val weight = info.netWeight.replace(",", "").toDoubleOrNull() ?: 0.0
             DecimalFormat("#,###").format(weight.toLong())
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             info.netWeight
         }
     }

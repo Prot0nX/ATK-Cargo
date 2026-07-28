@@ -255,7 +255,7 @@ fun EnhancedCameraPreview(
                         .apply {
                             setAnalyzer(executor, EnhancedNumberAnalyzer(
                                 context = context,
-                                onNumbersDetected = { extractedNumbers, bestEstimate ->
+                                onNumbersDetected = { _, bestEstimate ->
                                     if (processingActive) {
                                         if (bestEstimate.isNotEmpty()) {
                                             detectedNumber = bestEstimate
@@ -314,8 +314,6 @@ fun EnhancedCameraPreview(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 val successColor = ATKCargoTheme.semanticColors.success
-                val errorColor = MaterialTheme.colorScheme.error
-                val infoColor = ATKCargoTheme.semanticColors.info
 
                 // نمایش حالت اسکن فعال
                 Row(
