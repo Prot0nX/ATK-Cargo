@@ -167,125 +167,136 @@ private fun TopHeader(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
+                // سطر ۱: نوع کالا | نام کشتی (راست) --- تناژ مجاز (چپ)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // سمت چپ: تناژ مجاز و اطلاعات کامیون‌ها
-                    Column(
-                        horizontalAlignment = Alignment.Start,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    // نوع کالا | نام کشتی
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.weight(1f, fill = false)
                     ) {
-                        // تناژ مجاز با آیکون
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
+                        if (cargoType.isNotBlank()) {
                             Text(
-                                text = "تناژ مجاز",
-                                style = MaterialTheme.typography.labelSmall,
+                                text = cargoType,
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Icon(
-                                imageVector = Icons.Default.ExpandMore,
-                                contentDescription = if (isExpanded) "بستن" else "باز کردن",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .rotate(rotationAngle)
-                            )
-                        }
-
-                        // مقدار تناژ
-                        val displayText = if (tempTonnageStatus && tempTonnageAmount != null) {
-                            val formattedTempTonnage = DecimalFormat("#,###").format(tempTonnageAmount.toInt())
-                            "$loadableTonnage ($formattedTempTonnage)"
-                        } else {
-                            loadableTonnage
-                        }
-
-                        Text(
-                            text = displayText,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = tonnageColor
-                        )
-
-                        // اطلاعات کامیون‌ها
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.padding(top = 4.dp)
-                        ) {
-                            Text(
-                                text = "$loadableTrucks10Wheeler = 10چرخ",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = tonnageColor
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "|",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-                            Text(
-                                text = "$loadableTrucks18Wheeler = 18چرخ",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = tonnageColor
-                            )
-                        }
-                    }
-
-                    // نام کشتی، نوع کالا و شماره کوتاژ
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        // نام کشتی | نوع کالا
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            if (cargoType.isNotBlank()) {
-                                Text(
-                                    text = cargoType,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "|",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            Text(
-                                text = shipName,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Black,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                letterSpacing = (-0.5).sp
-                            )
-                        }
-                        val displayQuota = if (cargoOwner.isNotBlank()) {
-                            "$quotaNumber | $cargoOwner"
-                        } else {
-                            quotaNumber
                         }
                         Text(
-                            text = displayQuota,
-                            style = MaterialTheme.typography.titleSmall,
+                            text = shipName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            letterSpacing = (-0.5).sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // عنوان تناژ مجاز با آیکون
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "تناژ مجاز",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Icon(
+                            imageVector = Icons.Default.ExpandMore,
+                            contentDescription = if (isExpanded) "بستن" else "باز کردن",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .size(16.dp)
+                                .rotate(rotationAngle)
+                        )
+                    }
+                }
+
+                // سطر ۲: کوتاژ | صاحب کالا (راست با وزن حداکثری جهت جلوگیری از ۲ خطی شدن) --- مقدار تناژ (چپ)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val displayQuota = if (cargoOwner.isNotBlank()) {
+                        "$quotaNumber | $cargoOwner"
+                    } else {
+                        quotaNumber
+                    }
+
+                    Text(
+                        text = displayQuota,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    val displayText = if (tempTonnageStatus && tempTonnageAmount != null) {
+                        val formattedTempTonnage = DecimalFormat("#,###").format(tempTonnageAmount.toInt())
+                        "$loadableTonnage ($formattedTempTonnage)"
+                    } else {
+                        loadableTonnage
+                    }
+
+                    Text(
+                        text = displayText,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = tonnageColor
+                    )
+                }
+
+                // سطر ۳: اطلاعات کامیون‌ها
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "$loadableTrucks10Wheeler = 10چرخ",
+                            style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = tonnageColor
+                        )
+                        Text(
+                            text = "|",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "$loadableTrucks18Wheeler = 18چرخ",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = tonnageColor
                         )
                     }
                 }
