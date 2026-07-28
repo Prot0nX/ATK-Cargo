@@ -7,6 +7,7 @@ import android.content.pm.Signature
 import android.os.Debug
 import android.util.Log
 import androidx.core.content.edit
+import com.atk.atk_cargo.api.Secrets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,8 +27,6 @@ import javax.crypto.spec.SecretKeySpec
 import javax.net.ssl.SSLException
 import javax.net.ssl.SSLHandshakeException
 import kotlin.time.Duration.Companion.milliseconds
-
-import com.atk.atk_cargo.api.Secrets
 
 enum class SecurityErrorType {
     TAMPERED,              // دستکاری شده
