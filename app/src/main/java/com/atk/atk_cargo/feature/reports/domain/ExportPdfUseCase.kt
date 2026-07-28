@@ -149,7 +149,7 @@ class ExportPdfUseCase(private val application: Application) {
     }
 
     private fun formatPersianNumber(number: Int): String {
-        val formatted = NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
+        val formatted = NumberFormat.getNumberInstance(Locale.US).format(number)
         return convertToPersianNumbers(formatted)
     }
 

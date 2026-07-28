@@ -2,6 +2,7 @@ package com.atk.atk_cargo.api
 
 import com.atk.atk_cargo.BuildConfig
 import com.google.gson.GsonBuilder
+import com.google.gson.Strictness
 import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonToken
@@ -47,7 +48,7 @@ object RetrofitClient {
 
     // Configure Gson with custom type adapter
     private val gson = GsonBuilder()
-        .setLenient()
+        .setStrictness(Strictness.LENIENT)
         .serializeNulls()
         .registerTypeAdapter(Float::class.java, FloatTypeAdapter())
         .create()
@@ -129,7 +130,7 @@ object ThirdPartyRetrofitClient {
 
     // Configure Gson
     private val gson = GsonBuilder()
-        .setLenient()
+        .setStrictness(Strictness.LENIENT)
         .serializeNulls()
         .create()
 

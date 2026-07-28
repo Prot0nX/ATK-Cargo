@@ -212,9 +212,28 @@ fun EnhancedCameraPreview(
 
                 cameraProviderFuture.addListener({
                     val cameraProvider = cameraProviderFuture.get()
+
+                    val targetResolutionSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                        .setResolutionStrategy(
+                            androidx.camera.core.resolutionselector.ResolutionStrategy(
+                                android.util.Size(1440, 1080),
+                                androidx.camera.core.resolutionselector.ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
+                            )
+                        )
+                        .build()
+
+                    val analysisResolutionSelector = androidx.camera.core.resolutionselector.ResolutionSelector.Builder()
+                        .setResolutionStrategy(
+                            androidx.camera.core.resolutionselector.ResolutionStrategy(
+                                android.util.Size(1280, 960),
+                                androidx.camera.core.resolutionselector.ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
+                            )
+                        )
+                        .build()
+
                     preview = Preview.Builder()
                         .setTargetRotation(previewView.display.rotation)
-                        .setTargetResolution(android.util.Size(1440, 1080)) // Using explicit resolution instead of aspect ratio
+                        .setResolutionSelector(targetResolutionSelector)
                         .build()
                         .also {
                             it.surfaceProvider = previewView.surfaceProvider
@@ -226,12 +245,12 @@ fun EnhancedCameraPreview(
 
                     imageCapture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                        .setTargetResolution(android.util.Size(1440, 1080)) // Using 4:3 ratio with explicit resolution
+                        .setResolutionSelector(targetResolutionSelector)
                         .build()
 
                     val imageAnalysis = ImageAnalysis.Builder()
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .setTargetResolution(android.util.Size(1280, 960)) // 4:3 aspect ratio using explicit resolution
+                        .setResolutionSelector(analysisResolutionSelector)
                         .build()
                         .apply {
                             setAnalyzer(executor, EnhancedNumberAnalyzer(
@@ -379,7 +398,7 @@ fun EnhancedCameraPreview(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = "${NumberFormat.getNumberInstance(Locale("en", "US")).format(number.toDoubleOrNull() ?: 0.0)} کیلوگرم",
+                            text = "${NumberFormat.getNumberInstance(Locale.US).format(number.toDoubleOrNull() ?: 0.0)} کیلوگرم",
                             color = Color.White,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,

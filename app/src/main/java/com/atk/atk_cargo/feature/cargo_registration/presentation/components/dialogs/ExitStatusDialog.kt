@@ -137,7 +137,7 @@ fun AnimatedCounter(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
             Text(
-                text = NumberFormat.getNumberInstance(Locale("en", "US")).format(animatedCount),
+                text = NumberFormat.getNumberInstance(Locale.US).format(animatedCount),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary

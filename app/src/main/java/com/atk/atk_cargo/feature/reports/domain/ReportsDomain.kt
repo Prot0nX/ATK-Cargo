@@ -92,7 +92,7 @@ fun calculatePercentage(value: Float, total: Float): Int {
 fun Double.format(digits: Int) = "%.${digits}f".format(this)
 
 fun formatNumber(number: Int): String {
-    return NumberFormat.getNumberInstance(Locale("en", "US")).format(number)
+    return NumberFormat.getNumberInstance(Locale.US).format(number)
 }
 
 fun formatHoursToPersian(hours: Float): String {
