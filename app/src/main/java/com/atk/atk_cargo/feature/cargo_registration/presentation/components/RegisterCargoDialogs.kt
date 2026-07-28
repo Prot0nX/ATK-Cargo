@@ -1066,6 +1066,7 @@ fun MessageDialog(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     val context = androidx.compose.ui.platform.LocalContext.current
+                    @Suppress("DEPRECATION")
                     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
                     Text(
                         text = message,

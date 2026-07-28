@@ -2,74 +2,110 @@ package com.atk.atk_cargo.data.model
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.google.gson.annotations.SerializedName
 
 data class LoginRequest(
+    @SerializedName("username")
     val username: String,
+    @SerializedName("password")
     val password: String,
+    @SerializedName("userType")
     val userType: String,
+    @SerializedName("deviceModel")
     val deviceModel: String,
+    @SerializedName("deviceId")
     val deviceId: String,
+    @SerializedName("androidVersion")
     val androidVersion: String,
+    @SerializedName("appVersion")
     val appVersion: String
 )
 
 data class LoginResponse(
+    @SerializedName("success")
     val success: Boolean,
+    @SerializedName("message")
     val message: String,
+    @SerializedName("userType")
     val userType: String? = null,
+    @SerializedName("sessionToken")
     val sessionToken: String? = null,
+    @SerializedName("permissions")
     val permissions: Map<String, Boolean>? = null
 )
 
 data class LogoutRequest(
+    @SerializedName("username")
     val username: String,
+    @SerializedName("deviceId")
     val deviceId: String = "",
+    @SerializedName("sessionToken")
     val sessionToken: String? = null
 )
 
 data class LogoutResponse(
+    @SerializedName("success")
     val success: Boolean,
+    @SerializedName("message")
     val message: String
 )
 
 data class ForceLogoutRequest(
+    @SerializedName("action")
     val action: String = "forceLogout",
+    @SerializedName("username")
     val username: String,
-    @com.google.gson.annotations.SerializedName("device_id")
+    @SerializedName("device_id")
     val deviceId: String
 )
 
 data class ForceLogoutResponse(
+    @SerializedName("success")
     val success: Boolean,
+    @SerializedName("message")
     val message: String
 )
 
 data class SessionCheckRequest(
+    @SerializedName("username")
     val username: String,
+    @SerializedName("deviceId")
     val deviceId: String = "",
+    @SerializedName("sessionToken")
     val sessionToken: String? = null
 )
 
 data class SessionResponse(
+    @SerializedName("success")
     val success: Boolean,
+    @SerializedName("message")
     val message: String,
+    @SerializedName("userType")
     val userType: String?
 )
 
 data class PermissionSyncRequest(
+    @SerializedName("username")
     val username: String,
+    @SerializedName("deviceId")
     val deviceId: String = "",
+    @SerializedName("session_token")
     val session_token: String? = null
 )
 
 data class PermissionSyncResponse(
+    @SerializedName("success")
     val success: Boolean,
+    @SerializedName("message")
     val message: String,
+    @SerializedName("permissions")
     val permissions: Map<String, Boolean>? = null
 )
 
 data class PasswordCheckResponse(
+    @SerializedName("success")
     val success: Boolean,
+    @SerializedName("message")
     val message: String
 )
 

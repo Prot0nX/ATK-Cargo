@@ -1,182 +1,216 @@
 # =======================================================================
-# ENTERPRISE PROGUARD & R8 CONFIGURATION - ATK-CARGO
+# 1. تنظیمات پایه و بهینه‌سازی (اولویت بالا - تنظیمات اصلی)
 # =======================================================================
+-optimizationpasses 10                 # تعداد دفعات بهینه‌سازی (افزایش یافته)
+-dontusemixedcaseclassnames            # نام کلاس‌ها را با حروف مختلط نسازد
+-dontskipnonpubliclibraryclasses       # کلاس‌های غیرعمومی کتابخانه‌ها را نادیده نگیرد
+-dontpreverify                         # تأیید قبلی را انجام ندهد (سرعت بیشتر)
+-verbose                               # گزارش‌های مفصل
+-optimizations !code/simplification/arithmetic,!field/*,!class/merging/*  # بهینه‌سازی‌های خاص
 
-# -----------------------------------------------------------------------
-# 1. OPTIMIZATION & HARDENING CONFIGURATION
-# -----------------------------------------------------------------------
--optimizationpasses 5
--dontusemixedcaseclassnames
--dontskipnonpubliclibraryclasses
--dontpreverify
--verbose
+# تنظیمات اضافی برای کاهش حجم APK
+-repackageclasses 'obfuscated'         # کلاس‌ها را با هم بسته‌بندی می‌کند (بهینه‌سازی حجم)
+-allowaccessmodification               # اجازه تغییر سطح دسترسی کلاس‌ها برای بهینه‌سازی
+-mergeinterfacesaggressively           # ادغام تهاجمی رابط‌های مشابه
+-overloadaggressively                  # استفاده مجدد از نام متدها با پارامترهای متفاوت
+-renamesourcefileattribute SourceFile # تغییر نام فایل منبع در استک‌تریس
+-adaptresourcefilenames **.properties  # تطبیق نام فایل‌های منابع با کلاس‌های مبهم شده
+-adaptresourcefilecontents **.properties,META-INF/MANIFEST.MF  # بروزرسانی محتوای فایل‌ها
 
-# Aggressive Obfuscation & Package Repackaging
--repackageclasses 'obfuscated'
--allowaccessmodification
--mergeinterfacesaggressively
--overloadaggressively
--renamesourcefileattribute SourceFile
--adaptresourcefilenames **.properties
--adaptresourcefilecontents **.properties,META-INF/MANIFEST.MF
+# =======================================================================
+# 2. تنظیمات حفظ ویژگی‌ها (اولویت بالا - برای عملکرد صحیح)
+# =======================================================================
+-keepattributes *Annotation*           # حفظ آنوتیشن‌ها (برای رتروفیت و گسون ضروری است)
+-keepattributes Signature              # حفظ اطلاعات Generic Signature
+-keepattributes Exceptions             # حفظ اطلاعات استثناها
+-keepattributes InnerClasses,EnclosingMethod  # حفظ ساختار کلاس‌های داخلی
+-keepattributes !SourceFile,!LineNumberTable    # حذف اطلاعات خط در تولید نهایی برای امنیت
+-keepattributes RuntimeVisibleAnnotations,AnnotationDefault  # مورد نیاز برای Jetpack Compose
 
-# Obfuscation Dictionaries
--obfuscationdictionary proguard-dictionary.txt
--classobfuscationdictionary proguard-dictionary.txt
--packageobfuscationdictionary proguard-dictionary.txt
-
-# R8 Optimizations
--optimizations !code/simplification/arithmetic,!field/*,!class/merging/*
-
-# -----------------------------------------------------------------------
-# 2. ATTRIBUTE PRESERVATION
-# -----------------------------------------------------------------------
--keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod,Exceptions
--keepattributes RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations,AnnotationDefault
--keepattributes !SourceFile,!LineNumberTable
-
-# -----------------------------------------------------------------------
-# 3. ANDROID COMPONENT ENTRY POINTS
-# -----------------------------------------------------------------------
--keep public class * extends android.app.Activity
--keep public class * extends android.app.Application
--keep public class * extends android.app.Service
--keep public class * extends android.content.BroadcastReceiver
--keep public class * extends android.content.ContentProvider
--keep public class * extends android.app.backup.BackupAgent
-
-# -----------------------------------------------------------------------
-# 4. JNI & NATIVE BRIDGE PROTECTION
-# -----------------------------------------------------------------------
-# Critical: Keep JNI class name and native method signatures matching C++ libsecrets.so
--keep,allowoptimization class com.atk.atk_cargo.api.Secrets {
-    native <methods>;
-}
--keepclasseswithmembernames,includedescriptorclasses class * {
-    native <methods>;
+# =======================================================================
+# 3. تنظیمات امنیتی برای محافظت از توابع امنیتی (اولویت بالا)
+# =======================================================================
+# حفظ کلاس امضاپژیر با سازنده (نام واقعی کلاس: MusicLibraryManager)
+-keep class com.atk.atk_cargo.weather.MusicLibraryManager {
+    <init>(android.content.Context);
+    public Pair validateMusicLibrary();
 }
 
-# -----------------------------------------------------------------------
-# 5. SECURITY & CORE APPLICATION HARDENING
-# -----------------------------------------------------------------------
-# Keep Security Error Enum value methods
--keepclassmembers enum com.atk.atk_cargo.security.SecurityErrorType {
+# حفظ متغیرهای حساس در Companion Object (فقط فیلدها)
+-keepclassmembers class com.atk.atk_cargo.weather.MusicLibraryManager$Companion {
+    private static final java.lang.String ENCODED_*;
+}
+
+# حفظ enum SecurityErrorType (رعایت استانداردهای پروگارد برای انوم)
+-keepclassmembers enum com.atk.atk_cargo.weather.SecurityErrorType {
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }
 
-# Preserve MainActivity lifecycle entry point while allowing member obfuscation
+# محافظت از MainActivity با حفظ ساختار اصلی (فقط موارد ضروری)
 -keep class com.atk.atk_cargo.MainActivity {
     public <init>();
     protected void onCreate(android.os.Bundle);
 }
 
-# -----------------------------------------------------------------------
-# 6. NETWORKING: RETROFIT, OKHTTP & GSON
-# -----------------------------------------------------------------------
-# Retrofit Interface & Annotations
+# مبهم‌سازی توابع و فیلدهای امنیتی MainActivity (اجازه تغییر نام)
+-keepclassmembernames class com.atk.atk_cargo.MainActivity {
+    private void calculateWeatherForecast();
+    private boolean isSecurityCheckPassed;
+    private *** signatureVerifier;
+}
+
+# =======================================================================
+# 4. تنظیمات API و ارتباطات شبکه (اولویت متوسط)
+# =======================================================================
+# رتروفیت و سرویس‌های API
 -keepattributes Signature, RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
 
--keepclassmembers interface * {
+-keepclassmembers interface com.atk.atk_cargo.api.ApiService {
+    <methods>;
+}
+
+# =======================================================================
+# 4.1. مبهم‌سازی و محافظت از API Endpoints (امنیت بالا)
+# =======================================================================
+
+# حفظ ساختار ApiService اما مبهم‌سازی مقادیر رشته‌ای
+-keepclassmembers interface com.atk.atk_cargo.api.ApiService {
+    @retrofit2.http.POST <methods>;
+    @retrofit2.http.GET <methods>;
+}
+
+# مبهم‌سازی تمام رشته‌های ثابت در ApiService
+-adaptresourcefilecontents com/atk/atk_cargo/api/ApiService.class
+
+# حذف اطلاعات دیباگ از ApiService در release
+-assumenosideeffects class com.atk.atk_cargo.api.ApiService {
+    # این باعث حذف لاگ‌های مربوط به API می‌شود
+}
+
+# مبهم‌سازی پارامترهای Query و Field
+-keepclassmembers class * {
+    @retrofit2.http.Query *;
+    @retrofit2.http.Field *;
+    @retrofit2.http.Body *;
+}
+
+# رمزنگاری و مبهم‌سازی نام متدها و پارامترها
+-obfuscationdictionary proguard-dictionary.txt
+-classobfuscationdictionary proguard-dictionary.txt
+-packageobfuscationdictionary proguard-dictionary.txt
+
+# مبهم‌سازی تهاجمی برای کلاس‌های API
+-repackageclasses 'obfuscated.api'
+-allowaccessmodification
+
+# حذف اطلاعات منبع و شماره خط برای ApiService در release
+-keepattributes !SourceFile,!LineNumberTable
+
+# مبهم‌سازی رشته‌های ثابت در کلاس‌های API
+# این باعث می‌شود نام فایل‌های PHP مبهم شوند
+-assumenosideeffects class kotlin.jvm.internal.Intrinsics {
+    public static void checkNotNullParameter(java.lang.Object, java.lang.String);
+}
+
+# Retrofit
+-keep class retrofit2.** { *; }
+-keepclasseswithmembers class * {
+    @retrofit2.http.* <methods>;
+}
+-keepclassmembers,allowshrinking,allowobfuscation interface * {
     @retrofit2.http.* <methods>;
 }
 
-# Gson Serialization & Annotations (Scoped to classes implementing TypeAdapters or SerializedName fields)
+# OkHttp و Okio (قوانین در خود کتابخانه وجود دارد)
+-dontwarn okhttp3.**
+-dontwarn okio.**
+
+# Gson (قوانین در خود کتابخانه وجود دارد)
+-dontwarn com.google.gson.**
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
+-keepclassmembers,allowobfuscation class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
 
+# حفظ همه data class ها برای Gson
+-keep class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
 -keepclassmembers class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
 
-# Networking Library Warning Suppress
--dontwarn okhttp3.**
--dontwarn okio.**
--dontwarn retrofit2.**
--dontwarn com.google.gson.**
-
-# -----------------------------------------------------------------------
-# 7. KOTLINX SERIALIZATION & JETPACK COMPOSE NAVIGATION (SCOPED)
-# -----------------------------------------------------------------------
-# Type-safe Navigation routes using Kotlinx Serialization - Scoped specifically to @Serializable targets
+# حفظ data class های Kotlin
+-keep class kotlin.Metadata { *; }
 -keepclassmembers class * {
-    @kotlinx.serialization.Serializable <fields>;
+    @kotlin.Metadata <fields>;
 }
 
--keepclassmembers class **$Companion {
-    *** serializer(...);
+-dontwarn sun.misc.**
+
+# =======================================================================
+# 5. مدل‌های برنامه (اولویت متوسط)
+# =======================================================================
+# حفظ مدل‌های داده برای سریالیزیشن/دیسریالیزیشن
+
+-keep class com.atk.atk_cargo.api.** { *; }
+-keep class com.atk.atk_cargo.network.** { *; }
+# حفظ مدل‌های داده جدید پروژه برای جلوگیری از عدم تطابق Gson
+-keep class com.atk.atk_cargo.data.model.** { *; }
+# حفظ data class هایSummary برای Gson (فقط کلاس‌های مورد نیاز)
+-keep class com.atk.atk_cargo.models.** { *; }
+
+# حفظ کلاس Secrets و متدهای JNI Native آن جهت جلوگیری از UnsatisfiedLinkError به دلیل تغییر نام پکیج
+-keep class com.atk.atk_cargo.api.Secrets { *; }
+-keepclasseswithmembernames,includedescriptorclasses class * {
+    native <methods>;
 }
 
--keepclassmembers class * implements kotlinx.serialization.KSerializer {
-    public static *** INSTANCE;
-}
+# Chat specific rules
+-keep class com.atk.atk_cargo.data.db.ChatMessageEntity { *; }
+-keep class com.atk.atk_cargo.api.ChatMessage { *; }
+-keep class com.atk.atk_cargo.api.ChatMessagesResponse { *; }
+-keep class com.atk.atk_cargo.api.SendMessageResponse { *; }
+-keep class com.atk.atk_cargo.api.SendMessageRequest { *; }
+-keep class com.atk.atk_cargo.api.UnreadCountResponse { *; }
 
--keepclassmembers class * {
-    @kotlinx.serialization.Serializer *** serializer(...);
-}
-
-# -----------------------------------------------------------------------
-# 8. KOTLIN COROUTINES & METADATA
-# -----------------------------------------------------------------------
+# تنظیمات پایه Kotlin (بسیاری از این موارد خودکار هستند)
+-keep class kotlin.Metadata { *; }
 -dontwarn kotlin.**
 -keepclassmembers class **$WhenMappings {
     <fields>;
 }
+-keepclassmembers class kotlin.Metadata {
+    public <methods>;
+}
 
--keepnames class kotlinx.coroutines.internal.MainDispatcherFactory
--keepnames class kotlinx.coroutines.CoroutineExceptionHandler
+# =======================================================================
+# 7. تنظیمات Coroutines (اولویت متوسط)
+# =======================================================================
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
 -keepclassmembers class kotlinx.coroutines.** {
     volatile <fields>;
 }
-
-# -----------------------------------------------------------------------
-# 9. ROOM DATABASE & PARCELABLE
-# -----------------------------------------------------------------------
--keep class * extends androidx.room.RoomDatabase
--keep @androidx.room.Entity class *
--dontwarn androidx.room.**
-
--keep class * implements android.os.Parcelable {
-    public static final android.os.Parcelable$Creator *;
+-keepclassmembernames class kotlinx.** {
+    volatile <fields>;
 }
 
-# -----------------------------------------------------------------------
-# 10. DEPENDENCY INJECTION (KOIN) & WORKMANAGER (SCOPED - NO OVERLY BROAD RULES)
-# -----------------------------------------------------------------------
-# Koin DI reflection safety (Scoped to annotated members and core entry point)
--keepclassmembers class * {
-    @org.koin.core.annotation.* <fields>;
-    @org.koin.core.annotation.* <methods>;
-}
--keepnames class org.koin.core.Koin { *; }
--dontwarn org.koin.**
+# =======================================================================
+# 8. تنظیمات Android (اولویت متوسط)
+# =======================================================================
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Application
+-keep public class * extends android.app.Service
+-keep public class * extends android.content.BroadcastReceiver
+-keep public class * extends android.content.ContentProvider
 
-# WorkManager Worker reflection instantiation (Scoped strictly to Worker constructors)
--keep class * extends androidx.work.ListenableWorker {
-    public <init>(android.content.Context, androidx.work.WorkerParameters);
-}
--dontwarn androidx.work.**
-
-# -----------------------------------------------------------------------
-# 11. JETPACK COMPOSE & UI LIBRARIES
-# -----------------------------------------------------------------------
--dontwarn androidx.compose.**
--keep class androidx.compose.ui.platform.NestedScrollInteropConnection { *; }
-
-# Third-party UI & Media Libraries
--dontwarn coil.**
--dontwarn io.coil.**
--dontwarn com.airbnb.lottie.**
--dontwarn com.itextpdf.**
--dontwarn com.patrykandpatrick.vico.**
--dontwarn com.google.zxing.**
--dontwarn androidx.media3.**
-
-# -----------------------------------------------------------------------
-# 12. RELEASE LOGGING STRIPPING & OBFUSCATION HARDENING
-# -----------------------------------------------------------------------
-# Strip all Android Log methods from release binary
+# =======================================================================
+# 9. حذف لاگ‌ها و بهینه‌سازی کد (اولویت پایین)
+# =======================================================================
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
     public static int v(...);
@@ -187,24 +221,54 @@
     public static int wtf(...);
 }
 
-# Strip stack traces in production
+# حذف printStackTrace در release
 -assumenosideeffects class java.lang.Throwable {
     public void printStackTrace();
 }
 
-# Strip Kotlin Intrinsics null checks parameter strings for obfuscation
--assumenosideeffects class kotlin.jvm.internal.Intrinsics {
-    public static void checkNotNullParameter(java.lang.Object, java.lang.String);
-    public static void checkNotNull(java.lang.Object, java.lang.String);
+# =======================================================================
+# 10. تنظیمات Compose (اولویت بالا)
+# =======================================================================
+# بخش Jetpack Compose به طور خودکار توسط کتابخانه مدیریت می‌شود
+# در اینجا فقط موارد ضروری یا تداخلی اضافه شود
+-dontwarn androidx.compose.**
+
+# Navigation Compose (در کتابخانه موجود است)
+-keepclassmembers class * {
+    @androidx.navigation.** <methods>;
 }
 
-# -----------------------------------------------------------------------
-# 13. GLOBAL WARNING SUPPRESSIONS
-# -----------------------------------------------------------------------
+# Coil, Lottie, iText, Charts (عموماً خودکار هستند)
+-dontwarn coil.**
+-dontwarn io.coil.**
+-dontwarn com.airbnb.lottie.**
+-dontwarn com.itextpdf.**
+-dontwarn com.patrykandpatrick.vico.**
+
+# =======================================================================
+# 18. تنظیمات Work Manager (اولویت متوسط)
+# =======================================================================
+-keep class androidx.work.** { *; }
+-keep class * extends androidx.work.Worker
+-keep class * extends androidx.work.ListenableWorker
+-keepclassmembers class * extends androidx.work.Worker {
+    public <init>(android.content.Context,androidx.work.WorkerParameters);
+}
+
+# =======================================================================
+# 19. سرکوب هشدارها (اولویت پایین)
+# =======================================================================
 -dontwarn org.bouncycastle.**
 -dontwarn org.conscrypt.**
 -dontwarn org.openjsse.**
 -dontwarn org.slf4j.**
--dontwarn com.sun.jna.**
--dontwarn sun.misc.**
+-dontwarn aQute.bnd.**
+-dontwarn edu.umd.cs.findbugs.**
+-dontwarn org.osgi.framework.**
 -dontwarn javax.lang.model.**
+-dontwarn com.sun.jna.**
+-dontwarn java.awt.**
+-dontwarn javax.swing.**
+-dontwarn sun.misc.**
+-dontwarn org.apache.log4j.**
+-dontwarn org.apache.commons.logging.**

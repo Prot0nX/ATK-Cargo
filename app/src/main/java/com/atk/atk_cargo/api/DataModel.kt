@@ -94,7 +94,7 @@ fun adjustColorForTheme(color: Color, isDarkTheme: Boolean) = com.atk.atk_cargo.
 fun Float.toTon(): Int = (this / 1000).toInt()
 
 fun formatNumber(number: Number): String {
-    return java.text.NumberFormat.getNumberInstance(java.util.Locale("en", "US")).format(number)
+    return java.text.NumberFormat.getNumberInstance(java.util.Locale.US).format(number)
 }
 
 typealias UiState = com.atk.atk_cargo.ui.viewmodel.ReportsViewModel.UiState
