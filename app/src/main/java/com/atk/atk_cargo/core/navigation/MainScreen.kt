@@ -281,7 +281,8 @@ fun MainScreen() {
                                                         scaleOut(targetScale = 1.06f, animationSpec = tween(275, easing = EaseInCubic))
                                             }
                                         ) {
-                                            CargoCounterScreen(navController = navController)
+                                            val cargoViewModel: CargoViewModel = koinViewModel()
+                                            com.atk.atk_cargo.feature.cargo_counter.presentation.CargoCounterOperationScreen(navController = navController, viewModel = cargoViewModel)
                                         }
                                         composable<ManageShipsRoute>(
                                             enterTransition = {
