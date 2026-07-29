@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.AddChart
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.ChangeCircle
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.ContentCopy
@@ -78,6 +79,7 @@ fun ShipInfoSection(
     loadableTonnage: String,
     loadableTrucks18Wheeler: String,
     loadableTrucks10Wheeler: String,
+    onChangeSelectionClick: (() -> Unit)? = null
 ) {
     val loadedPercentage = remember(shipInfo.cargoWeight, shipInfo.totalNetWeight) {
         try {
@@ -115,7 +117,8 @@ fun ShipInfoSection(
                 isExpanded = isInfoVisible,
                 tempTonnageStatus = shipInfo.tempTonnageStatus,
                 tempTonnageAmount = shipInfo.tempTonnageAmount,
-                cargoOwner = shipInfo.cargoOwner
+                cargoOwner = shipInfo.cargoOwner,
+                onChangeSelectionClick = onChangeSelectionClick
             )
 
             // محتوای قابل گسترش
@@ -146,6 +149,7 @@ private fun TopHeader(
     tempTonnageStatus: Boolean = false,
     tempTonnageAmount: Float? = null,
     cargoOwner: String = "",
+    onChangeSelectionClick: (() -> Unit)? = null
 ) {
     val rotationAngle by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
@@ -220,7 +224,7 @@ private fun TopHeader(
                         Text(
                             text = "تناژ مجاز",
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Medium,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Icon(
@@ -273,13 +277,13 @@ private fun TopHeader(
                     )
                 }
 
-                // سطر ۳: آیکون‌های اختصاصی کامیون‌های ۱۰ چرخ (زرد) و ۱۸ چرخ (آبی)
+                // سطر ۳: آیکون‌های اختصاصی کامیون‌های ۱۰ چرخ (زرد) و ۱۸ چرخ (آبی) + دکمه تغییر کوتاژ
                 val truck10Color = Color(0xFFD97706) // زرد / امبر (Golden Yellow)
                 val truck18Color = Color(0xFF2563EB) // آبی (Vibrant Blue)
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
@@ -302,7 +306,7 @@ private fun TopHeader(
                                 color = truck10Color.copy(alpha = 0.12f)
                             ) {
                                 Text(
-                                    text = "۱۰",
+                                    text = "10",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Black,
                                     color = truck10Color,
@@ -339,7 +343,7 @@ private fun TopHeader(
                                 color = truck18Color.copy(alpha = 0.12f)
                             ) {
                                 Text(
-                                    text = "۱۸",
+                                    text = "18",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Black,
                                     color = truck18Color,
@@ -352,6 +356,37 @@ private fun TopHeader(
                                 fontWeight = FontWeight.Bold,
                                 color = truck18Color
                             )
+                        }
+                    }
+
+                    // دکمه مینیمال تغییر کوتاژ در سطر ۳ سمت چپ
+                    onChangeSelectionClick?.let { onClick ->
+                        Surface(
+                            modifier = Modifier.clickable { onClick() },
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ChangeCircle,
+                                    contentDescription = "تغییر کشتی",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = "تغییر کوتاژ",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
                 }

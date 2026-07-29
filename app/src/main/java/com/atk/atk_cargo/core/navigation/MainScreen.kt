@@ -254,7 +254,7 @@ fun MainScreen() {
                                             }
                                         ) {
                                             val cargoViewModel: CargoViewModel = koinViewModel()
-                                            SelectInfoScreenContent(navController = navController, viewModel = cargoViewModel)
+                                            com.atk.atk_cargo.feature.cargo_entry.presentation.CargoOperationScreen(navController = navController, viewModel = cargoViewModel)
                                         }
                                         cargoRegistrationScreen(
                                             navController = navController
