@@ -89,6 +89,7 @@ import com.atk.atk_cargo.data.model.InitialInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun InitialInfoSection(
@@ -165,6 +166,8 @@ fun InitialInfoSection(
                         }
                     }
                 }
+
+
 
                 Surface(
                     modifier = Modifier
@@ -574,7 +577,7 @@ fun SearchAndRefreshSection(
                             rotationState += 360f
                             onRefresh()
                             coroutineScope.launch {
-                                delay(1500)
+                                delay(1500.milliseconds)
                                 isRefreshing = false
                             }
                         }
@@ -645,7 +648,6 @@ fun TabsSection(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         val errorColor = MaterialTheme.colorScheme.error
-                        val successColor = ATKCargoTheme.semanticColors.success
                         Icon(
                             imageVector = Icons.Default.Schedule,
                             contentDescription = null,

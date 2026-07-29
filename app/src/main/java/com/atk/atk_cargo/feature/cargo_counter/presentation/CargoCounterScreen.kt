@@ -64,6 +64,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 enum class ShipFilterTab(val title: String) {
     ALL("همه کشتی‌ها"),
@@ -142,22 +143,48 @@ private fun loadActiveShips(
     }
 }
 
-private fun navigateToCargoDetailsScreen(navController: NavController, shipInfo: ActiveShipInfo) {
-    try {
-        val encodedShippingCompany = java.net.URLEncoder.encode(shipInfo.shippingCompany, "UTF-8")
-        val encodedWarehouse = java.net.URLEncoder.encode(shipInfo.loadingWarehouse, "UTF-8")
-        val encodedCargoType = java.net.URLEncoder.encode(shipInfo.cargoType, "UTF-8")
-
-        Log.d("Navigation", "Navigating to CargoDetails for quota: ${shipInfo.loadingQuotaNumber}")
-        navController.navigateToCargoDetails(
-            quotaNumber = shipInfo.loadingQuotaNumber,
-            shippingCompany = encodedShippingCompany,
-            warehouse = encodedWarehouse,
-            cargoType = encodedCargoType
+private fun navigateToCargoDetailsScreen(
+    navController: NavController,
+    shipInfo: ActiveShipInfo,
+    sharedViewModel: com.atk.atk_cargo.api.CargoViewModel? = null
+) {
+    if (sharedViewModel != null) {
+        val initialInfo = com.atk.atk_cargo.data.model.InitialInfo(
+            shipName = shipInfo.shipName,
+            loadingWarehouse = shipInfo.loadingWarehouse,
+            cargoType = shipInfo.cargoType,
+            shippingCompany = shipInfo.shippingCompany,
+            cargoWeight = 0f,
+            loadingQuotaNumber = shipInfo.loadingQuotaNumber.toIntOrNull() ?: 0,
+            remainingWeight = 0f,
+            totalNetWeight = 0f,
+            averageNetWeight = 0f,
+            remainingServices = 0
         )
-    } catch (e: Exception) {
-        Log.e("Navigation", "Navigation error: ${e.message}")
-        e.printStackTrace()
+        sharedViewModel.setInitialInfo(initialInfo)
+        sharedViewModel.loadCargoInfoList(
+            quotaNumber = shipInfo.loadingQuotaNumber,
+            shippingCompany = shipInfo.shippingCompany,
+            warehouse = shipInfo.loadingWarehouse,
+            cargoType = shipInfo.cargoType
+        )
+    } else {
+        try {
+            val encodedShippingCompany = java.net.URLEncoder.encode(shipInfo.shippingCompany, "UTF-8")
+            val encodedWarehouse = java.net.URLEncoder.encode(shipInfo.loadingWarehouse, "UTF-8")
+            val encodedCargoType = java.net.URLEncoder.encode(shipInfo.cargoType, "UTF-8")
+
+            Log.d("Navigation", "Navigating to CargoDetails for quota: ${shipInfo.loadingQuotaNumber}")
+            navController.navigateToCargoDetails(
+                quotaNumber = shipInfo.loadingQuotaNumber,
+                shippingCompany = encodedShippingCompany,
+                warehouse = encodedWarehouse,
+                cargoType = encodedCargoType
+            )
+        } catch (e: Exception) {
+            Log.e("Navigation", "Navigation error: ${e.message}")
+            e.printStackTrace()
+        }
     }
 }
 
@@ -166,7 +193,10 @@ private suspend fun showErrorMessage(snackbarHostState: SnackbarHostState, messa
 }
 
 @Composable
-fun CargoCounterScreen(navController: NavController) {
+fun CargoCounterScreen(
+    navController: NavController,
+    sharedViewModel: com.atk.atk_cargo.api.CargoViewModel? = null
+) {
     val context = LocalContext.current
     val userPreferencesManager = remember { UserPreferencesManager(context) }
     
@@ -298,7 +328,7 @@ fun CargoCounterScreen(navController: NavController) {
 
     LaunchedEffect(Unit) {
         while (true) {
-            delay(30000)
+            delay(30000.milliseconds)
             updateStatistics()
         }
     }
@@ -405,7 +435,7 @@ fun CargoCounterScreen(navController: NavController) {
                                 viewModel.updateExpandedShipName(if (expandedShipName == shipName) null else shipName)
                             },
                             onClick = { selectedShip ->
-                                navigateToCargoDetailsScreen(navController, selectedShip)
+                                navigateToCargoDetailsScreen(navController, selectedShip, sharedViewModel)
                             },
                             shipColorMap = shipColorMap.value
                         )

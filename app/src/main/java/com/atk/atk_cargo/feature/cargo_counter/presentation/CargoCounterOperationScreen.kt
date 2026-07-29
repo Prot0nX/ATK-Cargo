@@ -1,0 +1,47 @@
+package com.atk.atk_cargo.feature.cargo_counter.presentation
+
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.navigation.NavController
+import com.atk.atk_cargo.feature.cargo_details.presentation.CargoDetailsScreen
+import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
+
+@Composable
+fun CargoCounterOperationScreen(
+    navController: NavController,
+    viewModel: CargoViewModel
+) {
+    val initialInfo by viewModel.initialInfo.collectAsState()
+
+    AnimatedContent(
+        targetState = initialInfo != null,
+        transitionSpec = {
+            fadeIn() togetherWith fadeOut()
+        },
+        label = "CargoCounterOperationTransition"
+    ) { isInitialInfoSelected ->
+        if (!isInitialInfoSelected) {
+            CargoCounterScreen(
+                navController = navController,
+                sharedViewModel = viewModel
+            )
+        } else {
+            CargoDetailsScreen(
+                navController = navController,
+                quotaNumber = initialInfo?.loadingQuotaNumber?.toString() ?: "",
+                shippingCompany = initialInfo?.shippingCompany ?: "",
+                warehouse = initialInfo?.loadingWarehouse ?: "",
+                cargoType = initialInfo?.cargoType ?: "",
+                passedViewModel = viewModel,
+                onChangeSelectionClick = {
+                    viewModel.resetCurrentSelection()
+                }
+            )
+        }
+    }
+}
