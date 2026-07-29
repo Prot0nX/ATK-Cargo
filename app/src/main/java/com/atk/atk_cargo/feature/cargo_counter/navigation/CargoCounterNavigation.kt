@@ -5,7 +5,6 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.atk.atk_cargo.api.CargoViewModel
 import com.atk.atk_cargo.feature.cargo_counter.presentation.CargoCounterOperationScreen
-import com.atk.atk_cargo.feature.cargo_counter.presentation.CargoCounterScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
