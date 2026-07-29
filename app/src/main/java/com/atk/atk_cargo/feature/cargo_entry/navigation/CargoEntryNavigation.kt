@@ -3,6 +3,7 @@ package com.atk.atk_cargo.feature.cargo_entry.navigation
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import com.atk.atk_cargo.feature.cargo_entry.presentation.CargoOperationScreen
 import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoScreen
 import com.atk.atk_cargo.feature.cargo_entry.presentation.SelectInfoScreenContent
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
@@ -30,6 +31,8 @@ fun NavGraphBuilder.initialInfoScreen(navController: NavController) {
 
 fun NavGraphBuilder.selectInfoScreen(navController: NavController, viewModel: CargoViewModel) {
     composable<SelectInfoRoute> {
-        SelectInfoScreenContent(navController = navController, viewModel = viewModel)
+        CargoOperationScreen(navController = navController, viewModel = viewModel)
     }
 }
+
+

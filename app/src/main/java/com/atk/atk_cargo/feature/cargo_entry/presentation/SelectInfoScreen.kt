@@ -180,7 +180,7 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                 ship = ship,
                 onQuotaSelected = { selectedQuota ->
                     showDialog = false
-                    navigateToRegisterCargoActivity(navController, selectedQuota)
+                    navigateToRegisterCargoActivity(navController, selectedQuota, viewModel)
                 },
                 onDismiss = {
                     showDialog = false
@@ -256,7 +256,7 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                             else -> {
                                 val matchingQuota = response.matchingQuotas.first()
                                 if (matchingQuota.shipName == ship.shipName) {
-                                    navigateToRegisterCargoActivity(navController, matchingQuota)
+                                    navigateToRegisterCargoActivity(navController, matchingQuota, viewModel)
                                 } else {
                                     showUpdateMessage(
                                         "خطا: کوتاژ $processedCode متعلق به کشتی ${matchingQuota.shipName} است، نه کشتی ${ship.shipName}!",
@@ -304,7 +304,7 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                                     showQuotaSelectionDialog(response.matchingQuotas, ship)
                                 }
                                 else -> {
-                                    navigateToRegisterCargoActivity(navController, response.matchingQuotas[0])
+                                    navigateToRegisterCargoActivity(navController, response.matchingQuotas[0], viewModel)
                                 }
                             }
                         } catch (e: Exception) {
@@ -2195,7 +2195,11 @@ private fun FlatQuotaCard(
     }
 }
 
-private fun navigateToRegisterCargoActivity(navController: NavController, selectedQuota: MatchingQuota) {
+private fun navigateToRegisterCargoActivity(
+    navController: NavController,
+    selectedQuota: MatchingQuota,
+    viewModel: CargoViewModel? = null
+) {
     val initialInfo = InitialInfo(
         shipName = selectedQuota.shipName,
         loadingWarehouse = selectedQuota.warehouse,
@@ -2206,10 +2210,16 @@ private fun navigateToRegisterCargoActivity(navController: NavController, select
         remainingWeight = 0f,
         totalNetWeight = 0f,
         averageNetWeight = 0f,
-        remainingServices = 0
+        remainingServices = 0,
+        cargoOwner = selectedQuota.cargoOwner ?: ""
     )
-    val json = Gson().toJson(initialInfo)
-    navController.navigateToCargoRegistration(json, selectedQuota.quotaNumber)
+    if (viewModel != null) {
+        viewModel.setInitialInfo(initialInfo)
+        viewModel.refreshCargoInfo()
+    } else {
+        val json = Gson().toJson(initialInfo)
+        navController.navigateToCargoRegistration(json, selectedQuota.quotaNumber)
+    }
 }
 
 private suspend fun loadActiveShips(

@@ -991,6 +991,18 @@ class CargoViewModel(
         _initialInfo.value = initialInfo
     }
 
+    fun resetCurrentSelection() {
+        _initialInfo.value = null
+        _cargoInfoList.value = emptyList()
+        _filteredCargoInfoList.value = emptyList()
+        _scaleReceiptNumber.value = ""
+        _clearInputFields.value = true
+        _loadableTonnage.value = ""
+        _loadableTrucks18Wheeler.value = ""
+        _loadableTrucks10Wheeler.value = ""
+        clearApiCache()
+    }
+
     @SuppressLint("DefaultLocale")
     private fun gregorianToJalali(gregorian: Calendar): String {
         val gy = gregorian.get(Calendar.YEAR)

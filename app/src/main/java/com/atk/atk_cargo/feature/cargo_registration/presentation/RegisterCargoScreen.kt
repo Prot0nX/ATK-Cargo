@@ -171,10 +171,10 @@ fun RegisterCargoScreen(
     showAnimatedMessage: Boolean,
     messageType: MessageType,
     viewModel: CargoViewModel,
+    onChangeSelectionClick: (() -> Unit)? = null
 ) {
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-
     val barcodeLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
         result.contents?.let { barcode ->
             val cleanedBarcode = barcode.replace(Regex("[^0-9]"), "")
@@ -329,7 +329,8 @@ fun RegisterCargoScreen(
                     onToggleVisibility = { isInfoVisible = !isInfoVisible },
                     loadableTonnage = loadableTonnage,
                     loadableTrucks18Wheeler = loadableTrucks18Wheeler,
-                    loadableTrucks10Wheeler = loadableTrucks10Wheeler
+                    loadableTrucks10Wheeler = loadableTrucks10Wheeler,
+                    onChangeSelectionClick = onChangeSelectionClick
                 )
                 
                 Spacer(modifier = Modifier.height(4.dp))
