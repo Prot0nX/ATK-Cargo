@@ -2,6 +2,7 @@ package com.atk.atk_cargo.api
 
 import com.atk.atk_cargo.data.model.RealTimeDataResponse
 import com.google.gson.JsonElement
+import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.Field
@@ -402,10 +403,10 @@ interface ThirdPartyApiService {
 }
 
 data class ApiResponse(
-    val success: Boolean,
-    val message: String
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String
 )
 
 data class ApiResponse2<T>(
-    val data: T
+    @SerializedName("data") val data: T
 )

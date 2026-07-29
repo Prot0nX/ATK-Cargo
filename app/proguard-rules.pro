@@ -91,7 +91,10 @@
 # Data Models & DTO Preservation (Gson Reflection Safety)
 -keep class com.atk.atk_cargo.data.model.** { *; }
 -keepclassmembers class com.atk.atk_cargo.data.model.** { *; }
--keep class com.atk.atk_cargo.api.DataModel** { *; }
+-keep class com.atk.atk_cargo.api.** { *; }
+-keepclassmembers class com.atk.atk_cargo.api.** { *; }
+-keep class com.atk.atk_cargo.data.** { *; }
+-keepclassmembers class com.atk.atk_cargo.data.** { *; }
 
 # Gson TypeAdapters & SerializedName Annotations
 -keep class * implements com.google.gson.TypeAdapterFactory
@@ -126,6 +129,7 @@
 }
 
 # Kotlinx Serialization & Navigation Routes
+-keep @kotlinx.serialization.Serializable class * { *; }
 -keepclassmembers class * {
     @kotlinx.serialization.Serializable <fields>;
 }
