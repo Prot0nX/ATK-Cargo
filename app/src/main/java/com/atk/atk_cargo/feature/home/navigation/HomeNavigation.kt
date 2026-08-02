@@ -32,8 +32,7 @@ fun NavGraphBuilder.homeScreen(
             userPermissions = userPermissions,
             isSessionValid = true,
             onLogoutClick = onLogoutClick,
-            onManageUsersClick = onManageUsersClick,
-            warningsCount = warningsCount
+            onManageUsersClick = onManageUsersClick
         )
     }
 }

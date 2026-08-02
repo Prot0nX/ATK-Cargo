@@ -47,7 +47,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
@@ -135,27 +134,15 @@ fun ProfileMenu(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                brush = Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    )
-                                )
-                            )
-                            .padding(2.dp)
-                            .background(
-                                color = if (isDark) MaterialTheme.colorScheme.surface else Color.White,
-                                shape = RoundedCornerShape(14.dp)
-                            ),
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.inverseSurface),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = null,
                             modifier = Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.inverseOnSurface
                         )
                     }
 
@@ -204,14 +191,27 @@ fun ProfileMenu(
 
                 IconButton(
                     onClick = { expanded = !expanded },
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(40.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ExpandMore,
-                        contentDescription = if (expanded) "بستن منو" else "باز کردن منو",
-                        modifier = Modifier.rotate(rotationState),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (expanded) MaterialTheme.colorScheme.inverseSurface
+                                else Color.Transparent
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ExpandMore,
+                            contentDescription = if (expanded) "بستن منو" else "باز کردن منو",
+                            modifier = Modifier
+                                .size(18.dp)
+                                .rotate(rotationState),
+                            tint = if (expanded) MaterialTheme.colorScheme.inverseOnSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
