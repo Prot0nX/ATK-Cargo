@@ -80,6 +80,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
@@ -107,6 +108,14 @@ import com.atk.atk_cargo.ui.theme.Red700
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+private val RealTimeAccent = Color(0xFF0D9488)
+private val RealTimeAccentBg = Color(0xFFDCEFEA)
+private val RealTimeAccentBorder = Color(0xFFB9DED7)
+private val RealTimeCardBorder = Color(0xFFDCEEE9)
+private val RealTimeMutedBg = Color(0xFFF3F4F5)
+private val RealTimeMutedText = Color(0xFF8A8F98)
+private val RealTimeTitleColor = Color(0xFF1F2937)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -250,17 +259,17 @@ fun RealTimeLoadingBottomSheet(
                                     text = "کشتی‌های فعال",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = RealTimeMutedText
                                 )
                                 Surface(
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                    shape = RoundedCornerShape(100),
+                                    color = RealTimeAccentBg
                                 ) {
                                     Text(
                                         text = "${filteredLoadingData.groupBy { it.shipName }.size} مورد",
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        color = RealTimeAccent,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                     )
                                 }
@@ -324,9 +333,8 @@ fun RealTimeLoadingBottomSheet(
                                                             horizontalArrangement = Arrangement.Start
                                                         ) {
                                                             Surface(
-                                                                shape = RoundedCornerShape(16.dp),
-                                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                                                shape = RoundedCornerShape(100),
+                                                                color = RealTimeAccentBg
                                                             ) {
                                                                 Row(
                                                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
@@ -336,14 +344,14 @@ fun RealTimeLoadingBottomSheet(
                                                                     Icon(
                                                                         imageVector = Icons.Default.Warehouse,
                                                                         contentDescription = null,
-                                                                        tint = MaterialTheme.colorScheme.primary,
+                                                                        tint = RealTimeAccent,
                                                                         modifier = Modifier.size(14.dp)
                                                                     )
                                                                     Text(
                                                                         text = "انبار: $warehouse",
                                                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                                                                         fontWeight = FontWeight.Bold,
-                                                                        color = MaterialTheme.colorScheme.primary
+                                                                        color = RealTimeAccent
                                                                     )
                                                                 }
                                                             }
@@ -413,78 +421,71 @@ private fun RealTimeShiftNavigation(
     val formattedDate = shiftInfo.startDate ?: ""
     val shiftType = shiftInfo.type ?: ""
 
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+            .padding(bottom = 8.dp)
+            .clip(RoundedCornerShape(13.dp))
+            .background(RealTimeMutedBg)
+            .padding(horizontal = 6.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        IconButton(
+            onClick = { viewModel.setRealTimeShiftOffset(offset + 1, isDarkTheme, defaultColor) },
+            enabled = offset < 0,
+            modifier = Modifier.size(26.dp)
         ) {
-            IconButton(
-                onClick = { viewModel.setRealTimeShiftOffset(offset + 1, isDarkTheme, defaultColor) },
-                enabled = offset < 0
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "شیفت بعد",
+                tint = if (offset < 0) RealTimeAccent else RealTimeMutedText.copy(alpha = 0.4f),
+                modifier = Modifier.size(16.dp)
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.weight(1f)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                Text(
+                    text = "شیفت $shiftType",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = RealTimeTitleColor
+                )
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "شیفت بعد",
-                    tint = if (offset < 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                    modifier = Modifier.size(28.dp)
+                    imageVector = Icons.Default.AccessTime,
+                    contentDescription = null,
+                    tint = RealTimeMutedText,
+                    modifier = Modifier.size(12.dp)
                 )
             }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.weight(1f)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AccessTime,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = "شیفت $shiftType",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                if (formattedDate.isNotEmpty()) {
-                    Text(
-                        text = formattedDate,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            IconButton(
-                onClick = { viewModel.setRealTimeShiftOffset(offset - 1, isDarkTheme, defaultColor) },
-                enabled = offset > -14
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "شیفت قبل",
-                    tint = if (offset > -14) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                    modifier = Modifier.size(28.dp)
+            if (formattedDate.isNotEmpty()) {
+                Text(
+                    text = formattedDate,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = RealTimeMutedText
                 )
             }
+        }
+
+        IconButton(
+            onClick = { viewModel.setRealTimeShiftOffset(offset - 1, isDarkTheme, defaultColor) },
+            enabled = offset > -14,
+            modifier = Modifier.size(26.dp)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "شیفت قبل",
+                tint = if (offset > -14) RealTimeAccent else RealTimeMutedText.copy(alpha = 0.4f),
+                modifier = Modifier.size(16.dp)
+            )
         }
     }
 }
@@ -564,16 +565,16 @@ fun ShipCard(
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+        shape = RoundedCornerShape(14.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, RealTimeCardBorder)
     ) {
         Column(modifier = Modifier.padding(vertical = 0.dp)) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onExpandToggle),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = if (isDarkTheme) 0.08f else 0.05f)
+                color = Color.Transparent
             ) {
                 Column {
                     Row(
@@ -585,32 +586,27 @@ fun ShipCard(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Surface(
-                                modifier = Modifier.size(40.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                color = MaterialTheme.colorScheme.surface,
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                                shadowElevation = 1.dp
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .background(RealTimeAccentBg, RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.DirectionsBoat,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
+                                Icon(
+                                    imageVector = Icons.Default.DirectionsBoat,
+                                    contentDescription = null,
+                                    tint = RealTimeAccent,
+                                    modifier = Modifier.size(14.dp)
+                                )
                             }
 
                             Text(
                                 text = shipName,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = RealTimeTitleColor,
                                 letterSpacing = 0.5.sp
                             )
                         }
@@ -690,7 +686,7 @@ fun ShipCard(
                     }
 
                     HorizontalDivider(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        color = RealTimeCardBorder,
                         thickness = 1.dp
                     )
                 }
@@ -704,7 +700,7 @@ fun ShipCard(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
+                        .background(Color.White)
                         .padding(16.dp)
                 ) {
                     content()
@@ -724,85 +720,84 @@ private fun DialogHeader(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface
+        color = Color.White
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                modifier = Modifier.size(34.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(44.dp)
-                ) {
-                    CircularProgressIndicator(
-                        progress = { refreshProgress },
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                        strokeWidth = 2.dp,
-                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                    )
-
-                    IconButton(
-                        onClick = onRefreshClick,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                CircleShape
-                            )
-                    ) {
-                        val rotation by animateFloatAsState(
-                            targetValue = if (isRefreshing) 360f else 0f,
-                            animationSpec = if (isRefreshing) {
-                                infiniteRepeatable(
-                                    animation = tween(1000, easing = LinearEasing),
-                                    repeatMode = RepeatMode.Restart
-                                )
-                            } else {
-                                tween(300)
-                            },
-                            label = "refresh_rotation"
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "بروزرسانی",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .rotate(rotation)
-                        )
-                    }
-                }
-
-                Text(
-                    "بارگیری لحظه‌ای",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                CircularProgressIndicator(
+                    progress = { refreshProgress },
+                    modifier = Modifier.fillMaxSize(),
+                    color = RealTimeAccent.copy(alpha = 0.35f),
+                    strokeWidth = 2.dp,
+                    trackColor = RealTimeAccentBg,
                 )
 
                 IconButton(
-                    onClick = onShareClick,
+                    onClick = onRefreshClick,
                     modifier = Modifier
-                        .size(40.dp)
-                        .background(
-                            MaterialTheme.colorScheme.surfaceVariant,
-                            CircleShape
-                        )
+                        .size(26.dp)
+                        .background(RealTimeAccentBg, CircleShape)
                 ) {
+                    val rotation by animateFloatAsState(
+                        targetValue = if (isRefreshing) 360f else 0f,
+                        animationSpec = if (isRefreshing) {
+                            infiniteRepeatable(
+                                animation = tween(1000, easing = LinearEasing),
+                                repeatMode = RepeatMode.Restart
+                            )
+                        } else {
+                            tween(300)
+                        },
+                        label = "refresh_rotation"
+                    )
                     Icon(
-                        imageVector = Icons.Outlined.Share,
-                        contentDescription = "اشتراک‌گذاری",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(22.dp)
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "بروزرسانی",
+                        tint = RealTimeAccent,
+                        modifier = Modifier
+                            .size(14.dp)
+                            .rotate(rotation)
                     )
                 }
+            }
+
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(
+                    "بارگیری لحظه‌ای",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = RealTimeTitleColor
+                )
+                Text(
+                    "$loadingDataCount کوتاژ فعال",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = RealTimeMutedText
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(RealTimeMutedBg)
+                    .clickable(onClick = onShareClick),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Share,
+                    contentDescription = "اشتراک‌گذاری",
+                    tint = RealTimeTitleColor,
+                    modifier = Modifier.size(15.dp)
+                )
             }
         }
     }
@@ -817,11 +812,11 @@ fun RealTimeLoadingCard(
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),
+        shape = RoundedCornerShape(14.dp),
+        color = RealTimeMutedBg,
+        border = BorderStroke(1.dp, Color(0xFFE9EAED)),
     ) {
-        val verticalLineColor = MaterialTheme.colorScheme.primary
+        val verticalLineColor = RealTimeAccent
 
         Box(
             modifier = Modifier
@@ -872,9 +867,9 @@ fun RealTimeLoadingCard(
                     Text(
                         text = "شماره کوتاژ",
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        color = RealTimeMutedText
                     )
-                    
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -886,30 +881,27 @@ fun RealTimeLoadingCard(
                             Icon(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = RealTimeAccent,
                                 modifier = Modifier.size(12.dp)
                             )
                             Text(
                                 text = data.shippingCompany,
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = RealTimeAccent
                             )
                         }
 
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                            ),
+                            color = Color.White,
+                            border = BorderStroke(1.dp, RealTimeCardBorder),
                         ) {
                             Text(
                                 text = data.loadingQuotaNumber,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = RealTimeTitleColor,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                 letterSpacing = 1.sp,
                             )
@@ -922,7 +914,7 @@ fun RealTimeLoadingCard(
                 Column(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    val dashLineColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    val dashLineColor = RealTimeCardBorder
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1103,10 +1095,9 @@ fun StatisticItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.background,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
-        shadowElevation = 0.5.dp
+        shape = RoundedCornerShape(14.dp),
+        color = RealTimeMutedBg,
+        border = BorderStroke(1.dp, Color(0xFFE9EAED))
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -1124,13 +1115,13 @@ fun StatisticItem(
                     Icon(
                         imageVector = Icons.Default.Scale,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        tint = RealTimeMutedText,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
                         text = "وزن کل",
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        color = RealTimeMutedText,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -1141,12 +1132,12 @@ fun StatisticItem(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        color = Color.White
                     ) {
                         Text(
                             text = "kg",
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            color = RealTimeMutedText,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
@@ -1169,8 +1160,8 @@ fun StatisticItem(
                     val totalVouchers = animatedEntryVouchers.toInt() + animatedExitVouchers.toInt()
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                        color = RealTimeAccentBg,
+                        border = BorderStroke(1.dp, RealTimeAccentBorder)
                     ) {
                         Column(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -1185,12 +1176,12 @@ fun StatisticItem(
                                     text = formatNumber(totalVouchers),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = RealTimeAccent
                                 )
                                 Icon(
                                     imageVector = Icons.Default.AllInbox,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = RealTimeAccent,
                                     modifier = Modifier.size(12.dp)
                                 )
                             }
@@ -1198,7 +1189,7 @@ fun StatisticItem(
                                 text = "کل",
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                color = RealTimeAccent.copy(alpha = 0.7f)
                             )
                         }
                     }

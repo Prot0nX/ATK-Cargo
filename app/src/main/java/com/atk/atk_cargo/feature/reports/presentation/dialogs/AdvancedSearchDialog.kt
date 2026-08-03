@@ -1,7 +1,7 @@
 package com.atk.atk_cargo.feature.reports.presentation.dialogs
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,16 +19,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -40,14 +35,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+
+private val SearchAccent = Color(0xFF0D9488)
+private val SearchAccentBg = Color(0xFFDCEFEA)
+private val SearchMutedBg = Color(0xFFF3F4F5)
+private val SearchMutedText = Color(0xFF8A8F98)
+private val SearchTitleColor = Color(0xFF1F2937)
+private val SearchModalGradientBottom = Color(0xFFF2FAF8)
 
 @Composable
 fun AdvancedSearchDialog(
@@ -71,38 +77,79 @@ fun AdvancedSearchDialog(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth(0.92f)
-                    .fillMaxHeight(0.42f),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp
+                    .fillMaxHeight(0.46f),
+                shape = RoundedCornerShape(20.dp),
+                color = Color.Transparent
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
+                        .background(
+                            Brush.verticalGradient(listOf(Color.White, SearchModalGradientBottom)),
+                            RoundedCornerShape(20.dp)
+                        )
+                        .padding(20.dp)
                 ) {
-                    SearchHeaderCard(
-                        onClose = onDismiss,
-                        selectedSearchType = selectedSearchType
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(
+                                text = "جستجوی پیشرفته",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = SearchTitleColor
+                            )
+                            Text(
+                                text = when (selectedSearchType) {
+                                    SearchType.RECEIPT_NUMBER -> "جستجو بر اساس شماره قبض"
+                                    SearchType.TRACKING_NUMBER -> "جستجو بر اساس شماره حواله"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = SearchMutedText
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(SearchAccentBg),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = null,
+                                tint = SearchAccent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    SearchTypeTabRow(
+                        selectedSearchType = selectedSearchType,
+                        onSearchTypeSelected = {
+                            selectedSearchType = it
+                            searchNumber = ""
+                        }
                     )
 
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                    ) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                        SearchTypeTabRow(
-                            selectedSearchType = selectedSearchType,
-                            onSearchTypeSelected = {
-                                selectedSearchType = it
-                                searchNumber = ""
-                            }
+                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text(
+                            text = when (selectedSearchType) {
+                                SearchType.RECEIPT_NUMBER -> "شماره قبض باسکول"
+                                SearchType.TRACKING_NUMBER -> "شماره حواله"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = SearchMutedText
                         )
-
-                        Spacer(modifier = Modifier.height(24.dp))
-
                         OutlinedTextField(
                             value = searchNumber,
                             onValueChange = {
@@ -113,11 +160,12 @@ fun AdvancedSearchDialog(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                                focusedBorderColor = SearchAccent,
+                                unfocusedBorderColor = Color(0xFFE5E7EA),
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White
                             ),
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Right),
                             leadingIcon = {
                                 Icon(
                                     imageVector = when (selectedSearchType) {
@@ -125,15 +173,7 @@ fun AdvancedSearchDialog(
                                         SearchType.TRACKING_NUMBER -> Icons.Default.Numbers
                                     },
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            },
-                            label = {
-                                Text(
-                                    when (selectedSearchType) {
-                                        SearchType.RECEIPT_NUMBER -> "شماره قبض باسکول"
-                                        SearchType.TRACKING_NUMBER -> "شماره حواله"
-                                    }
+                                    tint = SearchAccent
                                 )
                             },
                             keyboardOptions = KeyboardOptions(
@@ -152,131 +192,43 @@ fun AdvancedSearchDialog(
                             ),
                             singleLine = true
                         )
+                    }
 
-                        Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.weight(1f))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(13.dp))
+                                .background(SearchMutedBg)
+                                .clickable(onClick = onDismiss)
+                                .padding(vertical = 13.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            OutlinedButton(
-                                onClick = onDismiss,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("انصراف")
-                            }
-
-                            Button(
-                                onClick = {
-                                    if (searchNumber.isNotBlank()) {
-                                        when (selectedSearchType) {
-                                            SearchType.RECEIPT_NUMBER -> onSearchReceipt(searchNumber)
-                                            SearchType.TRACKING_NUMBER -> onSearchTracking(searchNumber)
-                                        }
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                enabled = searchNumber.isNotBlank(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary
-                                )
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("جستجو")
-                            }
+                            Text("انصراف", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF737780))
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .weight(1.3f)
+                                .clip(RoundedCornerShape(13.dp))
+                                .background(if (searchNumber.isNotBlank()) SearchAccent else SearchAccent.copy(alpha = 0.4f))
+                                .clickable(enabled = searchNumber.isNotBlank()) {
+                                    when (selectedSearchType) {
+                                        SearchType.RECEIPT_NUMBER -> onSearchReceipt(searchNumber)
+                                        SearchType.TRACKING_NUMBER -> onSearchTracking(searchNumber)
+                                    }
+                                }
+                                .padding(vertical = 13.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("جستجو", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SearchHeaderCard(
-    onClose: () -> Unit,
-    selectedSearchType: SearchType
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.primary
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f),
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-
-                Column {
-                    Text(
-                        text = "جستجوی پیشرفته",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = when (selectedSearchType) {
-                            SearchType.RECEIPT_NUMBER -> "جستجو بر اساس شماره قبض"
-                            SearchType.TRACKING_NUMBER -> "جستجو بر اساس شماره حواله"
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                    )
-                }
-            }
-
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f),
-                modifier = Modifier.size(40.dp)
-            ) {
-                IconButton(
-                    onClick = onClose,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "بستن",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
                 }
             }
         }
@@ -296,57 +248,43 @@ private fun SearchTypeTabRow(
         )
     }
 
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(SearchMutedBg)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(2.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            tabs.forEach { tab ->
-                val isSelected = selectedSearchType == tab.type
+        tabs.forEach { tab ->
+            val isSelected = selectedSearchType == tab.type
 
-                Surface(
-                    onClick = { onSearchTypeSelected(tab.type) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(6.dp),
-                    color = if (isSelected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        Color.Transparent
-                    }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (isSelected) Color.White else Color.Transparent)
+                    .clickable { onSearchTypeSelected(tab.type) }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = tab.icon,
-                            contentDescription = null,
-                            tint = if (isSelected) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            },
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = tab.label,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (isSelected) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                            },
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    }
+                    Icon(
+                        imageVector = tab.icon,
+                        contentDescription = null,
+                        tint = if (isSelected) SearchAccent else SearchMutedText,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = tab.label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (isSelected) SearchAccent else SearchMutedText,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }
