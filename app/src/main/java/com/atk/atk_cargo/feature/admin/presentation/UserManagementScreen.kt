@@ -1,7 +1,6 @@
 package com.atk.atk_cargo.feature.admin.presentation
 
 import android.widget.Toast
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -13,7 +12,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -48,7 +47,6 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
@@ -61,18 +59,19 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -83,11 +82,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -95,7 +91,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.api.CreateUserRequest
@@ -110,7 +105,7 @@ import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.atk.atk_cargo.utils.hashPassword
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun UserManagementDialog(
     onDismiss: () -> Unit
@@ -137,23 +132,7 @@ fun UserManagementDialog(
     val userPermissions by userPreferencesManager.permissions.collectAsState(initial = emptyMap())
     val isMainAdmin = currentUsername == "Prot0nX"
 
-    val contentAlpha = remember { Animatable(0f) }
-    val dialogScale = remember { Animatable(0.95f) }
-
-    LaunchedEffect(Unit) {
-        launch {
-            dialogScale.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
-            )
-        }
-        launch {
-            contentAlpha.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 250)
-            )
-        }
-    }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     fun fetchUsersWithStatus() {
         isLoading = true
@@ -217,118 +196,118 @@ fun UserManagementDialog(
         groups
     }
 
-    Dialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            dismissOnBackPress = true,
-            dismissOnClickOutside = false,
-            usePlatformDefaultWidth = false
-        )
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(top = 10.dp, bottom = 6.dp)
+                    .width(34.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+            )
+        }
     ) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp,
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.90f)
-                .scale(dialogScale.value)
-                .alpha(contentAlpha.value)
+                .fillMaxWidth()
+                .fillMaxHeight(0.75f)
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp)
         ) {
-            Column(
+            // Header Bar
+            TopHeaderSection(
+                canAddUser = currentUserType == "admin" || userPermissions["manage_users"] == true,
+                onAddUserClick = { showAddDialog = true },
+                onRefreshClick = { fetchUsersWithStatus() },
+                onCloseClick = onDismiss
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Dashboard Summary Cards
+            DashboardSummaryRow(users = users)
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Search Bar
+            UserSearchBar(
+                query = searchQuery,
+                onQueryChange = { searchQuery = it }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Filter Chips
+            RoleFilterChipRow(
+                selectedFilter = selectedRoleFilter,
+                totalCount = users.size,
+                adminCount = users.count { it.userType == "admin" },
+                operatorCount = users.count { it.userType == "operator" },
+                verifierCount = users.count { it.userType == "verifier" },
+                onFilterSelected = { selectedRoleFilter = it }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Content Area
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
+                    .weight(1f)
             ) {
-                // Header Bar
-                TopHeaderSection(
-                    canAddUser = currentUserType == "admin" || userPermissions["manage_users"] == true,
-                    onAddUserClick = { showAddDialog = true },
-                    onRefreshClick = { fetchUsersWithStatus() },
-                    onCloseClick = onDismiss
-                )
+                when {
+                    isLoading -> {
+                        ShimmerUserLoadingList()
+                    }
+                    filteredUsers.isEmpty() -> {
+                        EmptyStateView(
+                            searchQuery = searchQuery,
+                            selectedFilter = selectedRoleFilter,
+                            onClearFilter = {
+                                searchQuery = ""
+                                selectedRoleFilter = "all"
+                            }
+                        )
+                    }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(vertical = 4.dp)
+                        ) {
+                            groupedUsers.forEach { (role, roleUserList) ->
+                                val isExpanded = (expandedRole == role)
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Dashboard Summary Cards
-                DashboardSummaryRow(users = users)
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Search Bar
-                UserSearchBar(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it }
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Filter Chips
-                RoleFilterChipRow(
-                    selectedFilter = selectedRoleFilter,
-                    totalCount = users.size,
-                    adminCount = users.count { it.userType == "admin" },
-                    operatorCount = users.count { it.userType == "operator" },
-                    verifierCount = users.count { it.userType == "verifier" },
-                    onFilterSelected = { selectedRoleFilter = it }
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Content Area
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .weight(1f)
-                ) {
-                    when {
-                        isLoading -> {
-                            ShimmerUserLoadingList()
-                        }
-                        filteredUsers.isEmpty() -> {
-                            EmptyStateView(
-                                searchQuery = searchQuery,
-                                selectedFilter = selectedRoleFilter,
-                                onClearFilter = {
-                                    searchQuery = ""
-                                    selectedRoleFilter = "all"
-                                }
-                            )
-                        }
-                        else -> {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                contentPadding = PaddingValues(vertical = 4.dp)
-                            ) {
-                                groupedUsers.forEach { (role, roleUserList) ->
-                                    val isExpanded = (expandedRole == role)
-
-                                    // Sticky Header for each role group
-                                    stickyHeader(key = "header_$role") {
-                                        RoleGroupHeader(
-                                            role = role,
-                                            userCount = roleUserList.size,
-                                            isExpanded = isExpanded,
-                                            onToggleExpand = {
-                                                expandedRole = if (expandedRole == role) null else role
-                                            }
-                                        )
-                                    }
-
-                                    if (isExpanded) {
-                                        items(roleUserList, key = { it.id }) { user ->
-                                            EnterpriseUserCard(
-                                                user = user,
-                                                isMainAdmin = isMainAdmin,
-                                                currentUserType = currentUserType,
-                                                currentUsername = currentUsername,
-                                                userPermissions = userPermissions,
-                                                onEditClick = { showEditDialog = user },
-                                                onDeleteClick = { showDeleteConfirmation = user },
-                                                onForceLogoutClick = { showForceLogoutConfirmation = user }
-                                            )
+                                // Sticky Header for each role group
+                                stickyHeader(key = "header_$role") {
+                                    RoleGroupHeader(
+                                        role = role,
+                                        userCount = roleUserList.size,
+                                        isExpanded = isExpanded,
+                                        onToggleExpand = {
+                                            expandedRole = if (expandedRole == role) null else role
                                         }
+                                    )
+                                }
+
+                                if (isExpanded) {
+                                    items(roleUserList, key = { it.id }) { user ->
+                                        EnterpriseUserCard(
+                                            user = user,
+                                            isMainAdmin = isMainAdmin,
+                                            currentUserType = currentUserType,
+                                            currentUsername = currentUsername,
+                                            userPermissions = userPermissions,
+                                            onEditClick = { showEditDialog = user },
+                                            onDeleteClick = { showDeleteConfirmation = user },
+                                            onForceLogoutClick = { showForceLogoutConfirmation = user }
+                                        )
                                     }
                                 }
                             }
@@ -443,10 +422,9 @@ private fun TopHeaderSection(
     onRefreshClick: () -> Unit,
     onCloseClick: () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -483,13 +461,14 @@ private fun TopHeaderSection(
         }
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(
                 onClick = onRefreshClick,
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
             ) {
@@ -504,28 +483,30 @@ private fun TopHeaderSection(
             if (canAddUser) {
                 Button(
                     onClick = onAddUserClick,
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
+                        containerColor = MaterialTheme.colorScheme.inverseSurface,
+                        contentColor = MaterialTheme.colorScheme.inverseOnSurface
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            "کاربر جدید",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        "کاربر جدید",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
             }
         }
     }
@@ -533,112 +514,52 @@ private fun TopHeaderSection(
 
 @Composable
 private fun DashboardSummaryRow(users: List<User>) {
-    val totalCount = users.size
-    val adminCount = users.count { it.userType == "admin" }
-    val operatorCount = users.count { it.userType == "operator" }
-    val verifierCount = users.count { it.userType == "verifier" }
-    val onlineCount = users.count { it.isOnline }
+    val stats = listOf(
+        "کل کاربران" to users.size,
+        "مدیران" to users.count { it.userType == "admin" },
+        "باسکول‌چی" to users.count { it.userType == "operator" },
+        "بارشمار" to users.count { it.userType == "verifier" }
+    )
 
-    Row(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
     ) {
-        SummaryCard(
-            title = "کل کاربران",
-            count = totalCount,
-            subText = "$onlineCount آنلاین",
-            icon = Icons.Default.People,
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-            contentColor = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.weight(1f)
-        )
-
-        SummaryCard(
-            title = "مدیران",
-            count = adminCount,
-            subText = "مدیریت ارشد",
-            icon = Icons.Default.AdminPanelSettings,
-            containerColor = ATKCargoTheme.semanticColors.infoContainer.copy(alpha = 0.3f),
-            contentColor = ATKCargoTheme.semanticColors.info,
-            modifier = Modifier.weight(1f)
-        )
-
-        SummaryCard(
-            title = "باسکول‌چی",
-            count = operatorCount,
-            subText = "عملیات وزن",
-            icon = Icons.Default.Engineering,
-            containerColor = ATKCargoTheme.semanticColors.successContainer.copy(alpha = 0.3f),
-            contentColor = ATKCargoTheme.semanticColors.success,
-            modifier = Modifier.weight(1f)
-        )
-
-        SummaryCard(
-            title = "بارشمار",
-            count = verifierCount,
-            subText = "شمارش بار",
-            icon = Icons.Default.PersonSearch,
-            containerColor = ATKCargoTheme.semanticColors.warningContainer.copy(alpha = 0.3f),
-            contentColor = ATKCargoTheme.semanticColors.warning,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-private fun SummaryCard(
-    title: String,
-    count: Int,
-    subText: String,
-    icon: ImageVector,
-    containerColor: Color,
-    contentColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Medium
-                )
+            stats.forEachIndexed { index, (label, count) ->
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = count.toString(),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = contentColor,
-                    modifier = Modifier.size(16.dp)
-                )
+                if (index != stats.lastIndex) {
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(30.dp)
+                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    )
+                }
             }
-
-            Text(
-                text = count.toString(),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = contentColor
-            )
-
-            Text(
-                text = subText,
-                style = MaterialTheme.typography.labelSmall,
-                fontSize = 9.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                maxLines = 1
-            )
         }
     }
 }
@@ -654,16 +575,9 @@ private fun UserSearchBar(
         modifier = Modifier.fillMaxWidth(),
         placeholder = {
             Text(
-                "جستجو بر اساس نام کاربری یا نام کامل...",
+                "جستجو بر اساس نام یا نام کاربری",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
-        },
-        leadingIcon = {
-            Icon(
-                Icons.Default.Search,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
             )
         },
         trailingIcon = {
@@ -675,15 +589,21 @@ private fun UserSearchBar(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            } else {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         },
         singleLine = true,
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(50),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f),
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
+            focusedBorderColor = Color.Transparent,
+            unfocusedBorderColor = Color.Transparent,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
         )
     )
 }
@@ -697,88 +617,44 @@ private fun RoleFilterChipRow(
     verifierCount: Int,
     onFilterSelected: (String) -> Unit
 ) {
+    val tabs = listOf(
+        Triple("all", "همه", totalCount),
+        Triple("admin", "مدیران", adminCount),
+        Triple("operator", "باسکول‌چی", operatorCount),
+        Triple("verifier", "بارشمار", verifierCount)
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        FilterChipItem(
-            label = "همه کاربران ($totalCount)",
-            isSelected = selectedFilter == "all",
-            onSelect = { onFilterSelected("all") }
-        )
-
-        FilterChipItem(
-            label = "مدیران ($adminCount)",
-            isSelected = selectedFilter == "admin",
-            icon = Icons.Default.AdminPanelSettings,
-            badgeColor = ATKCargoTheme.semanticColors.info,
-            onSelect = { onFilterSelected("admin") }
-        )
-
-        FilterChipItem(
-            label = "باسکول‌چی ($operatorCount)",
-            isSelected = selectedFilter == "operator",
-            icon = Icons.Default.Engineering,
-            badgeColor = ATKCargoTheme.semanticColors.success,
-            onSelect = { onFilterSelected("operator") }
-        )
-
-        FilterChipItem(
-            label = "بارشمار ($verifierCount)",
-            isSelected = selectedFilter == "verifier",
-            icon = Icons.Default.PersonSearch,
-            badgeColor = ATKCargoTheme.semanticColors.warning,
-            onSelect = { onFilterSelected("verifier") }
-        )
+        tabs.forEach { (value, label, _) ->
+            val isSelected = selectedFilter == value
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent)
+                    .clickable { onFilterSelected(value) }
+                    .padding(vertical = 9.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
-@Composable
-private fun FilterChipItem(
-    label: String,
-    isSelected: Boolean,
-    icon: ImageVector? = null,
-    badgeColor: Color? = null,
-    onSelect: () -> Unit
-) {
-    FilterChip(
-        selected = isSelected,
-        onClick = onSelect,
-        label = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-            )
-        },
-        leadingIcon = icon?.let {
-            {
-                Icon(
-                    imageVector = it,
-                    contentDescription = null,
-                    tint = if (isSelected) MaterialTheme.colorScheme.primary else (badgeColor ?: MaterialTheme.colorScheme.onSurfaceVariant),
-                    modifier = Modifier.size(14.dp)
-                )
-            }
-        },
-        shape = RoundedCornerShape(10.dp),
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-            selectedLabelColor = MaterialTheme.colorScheme.primary,
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = true,
-            selected = isSelected,
-            selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-        )
-    )
-}
+private val UserManagementAccent = Color(0xFF0D9488)
 
 @Composable
 private fun RoleGroupHeader(
@@ -787,25 +663,11 @@ private fun RoleGroupHeader(
     isExpanded: Boolean,
     onToggleExpand: () -> Unit
 ) {
-    val roleColor = when (role) {
-        "admin" -> ATKCargoTheme.semanticColors.info
-        "operator" -> ATKCargoTheme.semanticColors.success
-        "verifier" -> ATKCargoTheme.semanticColors.warning
-        else -> MaterialTheme.colorScheme.outline
-    }
-
     val roleTitle = when (role) {
         "admin" -> "مدیران سیستم"
         "operator" -> "باسکول‌چی‌ها"
         "verifier" -> "بارشمارها"
         else -> "سایر نقش‌ها"
-    }
-
-    val roleIcon = when (role) {
-        "admin" -> Icons.Default.AdminPanelSettings
-        "operator" -> Icons.Default.Engineering
-        "verifier" -> Icons.Default.PersonSearch
-        else -> Icons.Default.People
     }
 
     Surface(
@@ -817,59 +679,44 @@ private fun RoleGroupHeader(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(10.dp))
-                .background(roleColor.copy(alpha = 0.08f))
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
                 .clickable { onToggleExpand() }
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 14.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Text(
+                text = roleTitle,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(roleColor.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = roleIcon,
-                        contentDescription = null,
-                        tint = roleColor,
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-
-                Text(
-                    text = roleTitle,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
                 Surface(
-                    color = roleColor.copy(alpha = 0.2f),
-                    shape = RoundedCornerShape(12.dp)
+                    color = UserManagementAccent,
+                    shape = RoundedCornerShape(50)
                 ) {
                     Text(
                         text = "$userCount نفر",
                         style = MaterialTheme.typography.labelSmall,
-                        color = roleColor,
+                        color = Color.White,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
                     )
                 }
-            }
 
-            Icon(
-                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (isExpanded) "بستن" else "باز کردن",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "بستن" else "باز کردن",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }
@@ -887,297 +734,178 @@ private fun EnterpriseUserCard(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
-    val userTypeColor = when (user.userType) {
-        "admin" -> ATKCargoTheme.semanticColors.info
-        "operator" -> ATKCargoTheme.semanticColors.success
-        "verifier" -> ATKCargoTheme.semanticColors.warning
-        else -> MaterialTheme.colorScheme.outline
-    }
-
     val canManage = isMainAdmin || currentUserType == "admin" || userPermissions["manage_users"] == true
     val isProtectedUser = user.username == "Prot0nX"
     val isCurrentUser = user.username == currentUsername
+    val displayName = user.fullName?.takeIf { it.isNotBlank() } ?: user.username
 
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = if (user.isOnline) {
-            BorderStroke(1.dp, ATKCargoTheme.semanticColors.success.copy(alpha = 0.4f))
-        } else null
+            .padding(horizontal = 4.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                // Avatar with online status indicator dot
-                UserAvatarWithStatus(
-                    username = user.username,
-                    fullName = user.fullName,
-                    isOnline = user.isOnline,
-                    userTypeColor = userTypeColor
-                )
-
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = user.username,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                    Text(
+                        text = displayName,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
-                        if (isProtectedUser) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(
-                                    text = "مدیر اصلی",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        if (isCurrentUser) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(
-                                    text = "شما",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.secondary,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    }
-
-                    if (!user.fullName.isNullOrEmpty()) {
-                        Text(
-                            text = user.fullName,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    if (user.isOnline) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(ATKCargoTheme.semanticColors.success)
                         )
                     }
 
-                    // Status line: Last activity & Online status
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // Role Badge
+                    if (isProtectedUser) {
                         Surface(
-                            color = userTypeColor.copy(alpha = 0.12f),
-                            shape = RoundedCornerShape(6.dp)
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(4.dp)
                         ) {
                             Text(
-                                text = getUserTypeDisplay(user.userType),
+                                text = "مدیر اصلی",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = userTypeColor,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
-                                fontWeight = FontWeight.SemiBold
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                                fontWeight = FontWeight.Bold
                             )
                         }
+                    }
 
-                        // Online / Last activity status text
-                        if (user.isOnline) {
-                            Surface(
-                                color = ATKCargoTheme.semanticColors.successContainer.copy(alpha = 0.5f),
-                                shape = RoundedCornerShape(6.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(ATKCargoTheme.semanticColors.success)
-                                    )
-                                    Text(
-                                        text = if (user.idleMinutes != null && user.idleMinutes > 0)
-                                            "آنلاین (${user.idleMinutes} دقیقه پیش)"
-                                        else
-                                            "آنلاین (فعال)",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = ATKCargoTheme.semanticColors.success,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-                        } else if (!user.lastActivity.isNullOrEmpty()) {
+                    if (isCurrentUser) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
                             Text(
-                                text = "آخرین بازدید: ${user.lastActivity}",
+                                text = "شما",
                                 style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        } else if (!user.updatedAt.isNullOrEmpty()) {
-                            Text(
-                                text = "آخرین بروزرسانی: ${user.updatedAt}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                color = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }
                 }
-            }
 
-            // Actions dropdown menu
-            if (canManage) {
-                Box {
-                    IconButton(
-                        onClick = { menuExpanded = true },
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.MoreVert,
-                            contentDescription = "عملیات",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false },
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("ویرایش اطلاعات") },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            },
-                            enabled = !isProtectedUser,
-                            onClick = {
-                                menuExpanded = false
-                                onEditClick()
-                            }
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("خروج اجباری") },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ExitToApp,
-                                    contentDescription = null,
-                                    tint = ATKCargoTheme.semanticColors.warning,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            },
-                            enabled = !isProtectedUser && !isCurrentUser,
-                            onClick = {
-                                menuExpanded = false
-                                onForceLogoutClick()
-                            }
-                        )
-
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    "حذف کاربر",
-                                    color = if (!isProtectedUser) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
-                                )
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = null,
-                                    tint = if (!isProtectedUser) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            },
-                            enabled = !isProtectedUser && (isMainAdmin || currentUserType == "admin"),
-                            onClick = {
-                                menuExpanded = false
-                                onDeleteClick()
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun UserAvatarWithStatus(
-    username: String,
-    fullName: String?,
-    isOnline: Boolean,
-    userTypeColor: Color
-) {
-    val initialLetter = (fullName?.takeIf { it.isNotBlank() } ?: username).take(1).uppercase()
-
-    Box(
-        modifier = Modifier.size(46.dp),
-        contentAlignment = Alignment.BottomEnd
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(CircleShape)
-                .background(userTypeColor.copy(alpha = 0.15f))
-                .border(1.dp, userTypeColor.copy(alpha = 0.3f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = initialLetter,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = userTypeColor
-            )
-        }
-
-        // Online status dot badge
-        if (isOnline) {
-            Box(
-                modifier = Modifier
-                    .size(14.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(2.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(CircleShape)
-                        .background(ATKCargoTheme.semanticColors.success)
+                Text(
+                    text = user.username,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            Surface(
+                color = UserManagementAccent.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(50)
+            ) {
+                Text(
+                    text = getUserTypeDisplay(user.userType),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = UserManagementAccent,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+
+        // Actions dropdown menu
+        if (canManage) {
+            Box {
+                IconButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "عملیات",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("ویرایش اطلاعات") },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        enabled = !isProtectedUser,
+                        onClick = {
+                            menuExpanded = false
+                            onEditClick()
+                        }
+                    )
+
+                    DropdownMenuItem(
+                        text = { Text("خروج اجباری") },
+                        leadingIcon = {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ExitToApp,
+                                contentDescription = null,
+                                tint = ATKCargoTheme.semanticColors.warning,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        enabled = !isProtectedUser && !isCurrentUser,
+                        onClick = {
+                            menuExpanded = false
+                            onForceLogoutClick()
+                        }
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "حذف کاربر",
+                                color = if (!isProtectedUser) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = null,
+                                tint = if (!isProtectedUser) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        enabled = !isProtectedUser && (isMainAdmin || currentUserType == "admin"),
+                        onClick = {
+                            menuExpanded = false
+                            onDeleteClick()
+                        }
+                    )
+                }
+            }
+        } else {
+            Spacer(modifier = Modifier.size(36.dp))
         }
     }
 }
