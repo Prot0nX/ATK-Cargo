@@ -303,9 +303,7 @@ fun QuotasDialog(
                                     onEdit = onEdit,
                                     onToggleStatus = onToggleStatus,
                                     onDelete = { onDelete(it) },
-                                    onPercentageChange = { percentageData ->
-                                        viewModel.updateQuotaPercentage(percentageData)
-                                    }
+                                    onPercentageChange = {}
                                 )
                             }
                         }
