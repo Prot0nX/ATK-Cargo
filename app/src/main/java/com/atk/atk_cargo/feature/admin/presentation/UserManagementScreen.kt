@@ -15,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -47,6 +48,7 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PersonAddAlt
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
@@ -58,7 +60,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -72,6 +73,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -82,15 +84,20 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.api.CreateUserRequest
@@ -213,101 +220,103 @@ fun UserManagementDialog(
             )
         }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.75f)
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 16.dp)
-        ) {
-            // Header Bar
-            TopHeaderSection(
-                canAddUser = currentUserType == "admin" || userPermissions["manage_users"] == true,
-                onAddUserClick = { showAddDialog = true },
-                onRefreshClick = { fetchUsersWithStatus() },
-                onCloseClick = onDismiss
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Dashboard Summary Cards
-            DashboardSummaryRow(users = users)
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Search Bar
-            UserSearchBar(
-                query = searchQuery,
-                onQueryChange = { searchQuery = it }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Filter Chips
-            RoleFilterChipRow(
-                selectedFilter = selectedRoleFilter,
-                totalCount = users.size,
-                adminCount = users.count { it.userType == "admin" },
-                operatorCount = users.count { it.userType == "operator" },
-                verifierCount = users.count { it.userType == "verifier" },
-                onFilterSelected = { selectedRoleFilter = it }
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Content Area
-            Box(
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f)
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.75f)
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp)
             ) {
-                when {
-                    isLoading -> {
-                        ShimmerUserLoadingList()
-                    }
-                    filteredUsers.isEmpty() -> {
-                        EmptyStateView(
-                            searchQuery = searchQuery,
-                            selectedFilter = selectedRoleFilter,
-                            onClearFilter = {
-                                searchQuery = ""
-                                selectedRoleFilter = "all"
-                            }
-                        )
-                    }
-                    else -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            contentPadding = PaddingValues(vertical = 4.dp)
-                        ) {
-                            groupedUsers.forEach { (role, roleUserList) ->
-                                val isExpanded = (expandedRole == role)
+                // Header Bar
+                TopHeaderSection(
+                    canAddUser = currentUserType == "admin" || userPermissions["manage_users"] == true,
+                    onAddUserClick = { showAddDialog = true },
+                    onRefreshClick = { fetchUsersWithStatus() },
+                    onCloseClick = onDismiss
+                )
 
-                                // Sticky Header for each role group
-                                stickyHeader(key = "header_$role") {
-                                    RoleGroupHeader(
-                                        role = role,
-                                        userCount = roleUserList.size,
-                                        isExpanded = isExpanded,
-                                        onToggleExpand = {
-                                            expandedRole = if (expandedRole == role) null else role
-                                        }
-                                    )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Dashboard Summary Cards
+                DashboardSummaryRow(users = users)
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Search Bar
+                UserSearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Filter Chips
+                RoleFilterChipRow(
+                    selectedFilter = selectedRoleFilter,
+                    totalCount = users.size,
+                    adminCount = users.count { it.userType == "admin" },
+                    operatorCount = users.count { it.userType == "operator" },
+                    verifierCount = users.count { it.userType == "verifier" },
+                    onFilterSelected = { selectedRoleFilter = it }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Content Area
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f)
+                ) {
+                    when {
+                        isLoading -> {
+                            ShimmerUserLoadingList()
+                        }
+                        filteredUsers.isEmpty() -> {
+                            EmptyStateView(
+                                searchQuery = searchQuery,
+                                selectedFilter = selectedRoleFilter,
+                                onClearFilter = {
+                                    searchQuery = ""
+                                    selectedRoleFilter = "all"
                                 }
+                            )
+                        }
+                        else -> {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(vertical = 4.dp)
+                            ) {
+                                groupedUsers.forEach { (role, roleUserList) ->
+                                    val isExpanded = (expandedRole == role)
 
-                                if (isExpanded) {
-                                    items(roleUserList, key = { it.id }) { user ->
-                                        EnterpriseUserCard(
-                                            user = user,
-                                            isMainAdmin = isMainAdmin,
-                                            currentUserType = currentUserType,
-                                            currentUsername = currentUsername,
-                                            userPermissions = userPermissions,
-                                            onEditClick = { showEditDialog = user },
-                                            onDeleteClick = { showDeleteConfirmation = user },
-                                            onForceLogoutClick = { showForceLogoutConfirmation = user }
+                                    // Sticky Header for each role group
+                                    stickyHeader(key = "header_$role") {
+                                        RoleGroupHeader(
+                                            role = role,
+                                            userCount = roleUserList.size,
+                                            isExpanded = isExpanded,
+                                            onToggleExpand = {
+                                                expandedRole = if (expandedRole == role) null else role
+                                            }
                                         )
+                                    }
+
+                                    if (isExpanded) {
+                                        items(roleUserList, key = { it.id }) { user ->
+                                            EnterpriseUserCard(
+                                                user = user,
+                                                isMainAdmin = isMainAdmin,
+                                                currentUserType = currentUserType,
+                                                currentUsername = currentUsername,
+                                                userPermissions = userPermissions,
+                                                onEditClick = { showEditDialog = user },
+                                                onDeleteClick = { showDeleteConfirmation = user },
+                                                onForceLogoutClick = { showForceLogoutConfirmation = user }
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -465,21 +474,6 @@ private fun TopHeaderSection(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = onRefreshClick,
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-            ) {
-                Icon(
-                    Icons.Default.Refresh,
-                    contentDescription = "بروزرسانی",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-
             if (canAddUser) {
                 Button(
                     onClick = onAddUserClick,
@@ -507,6 +501,21 @@ private fun TopHeaderSection(
                 }
             } else {
                 Spacer(modifier = Modifier.weight(1f))
+            }
+
+            IconButton(
+                onClick = onRefreshClick,
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            ) {
+                Icon(
+                    Icons.Default.Refresh,
+                    contentDescription = "بروزرسانی",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }
@@ -655,6 +664,13 @@ private fun RoleFilterChipRow(
 }
 
 private val UserManagementAccent = Color(0xFF0D9488)
+private val UserCardBg = Color(0xFFFAFAFB)
+private val UserCardBorder = Color(0xFFE4E6E9)
+private val UserCardBorderHover = Color(0xFFA9DCD3)
+private val UserAvatarBg = Color(0xFFDCEFEA)
+private val UserRoleBadgeBg = Color(0xFFD9EFE9)
+private val ForceLogoutTint = Color(0xFFC2760A)
+private val ModalGradientBottom = Color(0xFFF2FAF8)
 
 @Composable
 private fun RoleGroupHeader(
@@ -739,19 +755,22 @@ private fun EnterpriseUserCard(
     val isCurrentUser = user.username == currentUsername
     val displayName = user.fullName?.takeIf { it.isNotBlank() } ?: user.username
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(13.dp),
+        color = UserCardBg,
+        border = BorderStroke(1.dp, if (menuExpanded) UserCardBorderHover else UserCardBorder)
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 11.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
-                horizontalAlignment = Alignment.End,
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Row(
@@ -762,7 +781,8 @@ private fun EnterpriseUserCard(
                         text = displayName,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Right
                     )
 
                     if (user.isOnline) {
@@ -808,13 +828,14 @@ private fun EnterpriseUserCard(
                 Text(
                     text = user.username,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Right
                 )
             }
 
             Surface(
-                color = UserManagementAccent.copy(alpha = 0.12f),
-                shape = RoundedCornerShape(50)
+                color = UserRoleBadgeBg,
+                shape = RoundedCornerShape(100)
             ) {
                 Text(
                     text = getUserTypeDisplay(user.userType),
@@ -824,89 +845,106 @@ private fun EnterpriseUserCard(
                     fontWeight = FontWeight.SemiBold
                 )
             }
-        }
 
-        // Actions dropdown menu
-        if (canManage) {
-            Box {
-                IconButton(
-                    onClick = { menuExpanded = true },
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        Icons.Default.MoreVert,
-                        contentDescription = "عملیات",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            // Actions dropdown menu
+            if (canManage) {
+                Box {
+                    IconButton(
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                    ) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = "عملیات",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                        shape = RoundedCornerShape(14.dp),
+                        containerColor = Color.White
+                    ) {
+                        Column(modifier = Modifier.padding(6.dp).width(IntrinsicSize.Max)) {
+                            UserMenuRow(
+                                label = "ویرایش اطلاعات",
+                                labelColor = Color(0xFF1F2937),
+                                icon = Icons.Default.Edit,
+                                iconTint = UserManagementAccent,
+                                enabled = !isProtectedUser,
+                                onClick = {
+                                    menuExpanded = false
+                                    onEditClick()
+                                }
+                            )
+                            UserMenuRow(
+                                label = "خروج اجباری",
+                                labelColor = Color(0xFF1F2937),
+                                icon = Icons.AutoMirrored.Filled.ExitToApp,
+                                iconTint = ForceLogoutTint,
+                                enabled = !isProtectedUser && !isCurrentUser,
+                                onClick = {
+                                    menuExpanded = false
+                                    onForceLogoutClick()
+                                }
+                            )
+                            UserMenuRow(
+                                label = "حذف کاربر",
+                                labelColor = MaterialTheme.colorScheme.error,
+                                icon = Icons.Default.Delete,
+                                iconTint = MaterialTheme.colorScheme.error,
+                                enabled = !isProtectedUser && (isMainAdmin || currentUserType == "admin"),
+                                onClick = {
+                                    menuExpanded = false
+                                    onDeleteClick()
+                                }
+                            )
+                        }
+                    }
                 }
-
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { menuExpanded = false },
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("ویرایش اطلاعات") },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        },
-                        enabled = !isProtectedUser,
-                        onClick = {
-                            menuExpanded = false
-                            onEditClick()
-                        }
-                    )
-
-                    DropdownMenuItem(
-                        text = { Text("خروج اجباری") },
-                        leadingIcon = {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ExitToApp,
-                                contentDescription = null,
-                                tint = ATKCargoTheme.semanticColors.warning,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        },
-                        enabled = !isProtectedUser && !isCurrentUser,
-                        onClick = {
-                            menuExpanded = false
-                            onForceLogoutClick()
-                        }
-                    )
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                "حذف کاربر",
-                                color = if (!isProtectedUser) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = null,
-                                tint = if (!isProtectedUser) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        },
-                        enabled = !isProtectedUser && (isMainAdmin || currentUserType == "admin"),
-                        onClick = {
-                            menuExpanded = false
-                            onDeleteClick()
-                        }
-                    )
-                }
+            } else {
+                Spacer(modifier = Modifier.size(28.dp))
             }
-        } else {
-            Spacer(modifier = Modifier.size(36.dp))
         }
+    }
+}
+
+@Composable
+private fun UserMenuRow(
+    label: String,
+    labelColor: Color,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: Color,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(9.dp))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 10.dp)
+            .alpha(if (enabled) 1f else 0.4f),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = labelColor
+        )
+        Spacer(modifier = Modifier.width(24.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(16.dp)
+        )
     }
 }
 
@@ -1015,8 +1053,7 @@ fun EnhancedAddUserDialog(
     ) {
         Surface(
             shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp,
+            color = Color.Transparent,
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .wrapContentHeight()
@@ -1025,54 +1062,52 @@ fun EnhancedAddUserDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(listOf(Color.White, ModalGradientBottom)),
+                        RoundedCornerShape(20.dp)
+                    )
                     .verticalScroll(rememberScrollState())
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Dialog Title Header
+                // Header: title + subtitle, icon badge
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Top
                 ) {
-                    Text(
-                        "ایجاد کاربر جدید",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(
+                            "ایجاد کاربر جدید",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF1F2937)
+                        )
+                        Text(
+                            "افزودن کاربر به سیستم",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF8A8F98)
+                        )
+                    }
 
-                    IconButton(onClick = onDismiss) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(UserAvatarBg),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
-                            Icons.Default.Close,
-                            contentDescription = "بستن",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            Icons.Default.PersonAddAlt,
+                            contentDescription = null,
+                            tint = UserManagementAccent,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                OutlinedTextField(
-                    value = username,
-                    onValueChange = { input ->
-                        val newValue = input.filter { char ->
-                            char.isLetterOrDigit() && char.code < 128
-                        }
-                        username = newValue.lowercase()
-                        errorMessage = ""
-                    },
-                    label = { Text("نام کاربری (حروف انگلیسی)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Ascii,
-                        imeAction = ImeAction.Next
-                    )
-                )
-
-                OutlinedTextField(
+                DesignTextField(
+                    label = "نام و نام خانوادگی",
                     value = fullName,
                     onValueChange = { input ->
                         val newValue = input.filter { char ->
@@ -1085,21 +1120,32 @@ fun EnhancedAddUserDialog(
                         fullName = newValue
                         errorMessage = ""
                     },
-                    label = { Text("نام و نام خانوادگی (حداقل دو بخش)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                 )
 
-                OutlinedTextField(
+                DesignTextField(
+                    label = "نام کاربری (حروف انگلیسی)",
+                    value = username,
+                    onValueChange = { input ->
+                        val newValue = input.filter { char ->
+                            char.isLetterOrDigit() && char.code < 128
+                        }
+                        username = newValue.lowercase()
+                        errorMessage = ""
+                    },
+                    ltr = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Ascii,
+                        imeAction = ImeAction.Next
+                    )
+                )
+
+                DesignTextField(
+                    label = "رمز عبور (حداقل ۴ رقم عددی)",
                     value = password,
                     onValueChange = { password = it.filter { char -> char.isDigit() } },
-                    label = { Text("رمز عبور (حداقل ۴ رقم عددی)") },
-                    singleLine = true,
+                    ltr = true,
                     visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.NumberPassword,
                         imeAction = ImeAction.Done
@@ -1139,80 +1185,121 @@ fun EnhancedAddUserDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(13.dp))
+                            .border(1.5.dp, Color(0xFFE0E2E6), RoundedCornerShape(13.dp))
+                            .clickable(enabled = !isLoading, onClick = onDismiss)
+                            .padding(vertical = 13.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text("انصراف")
+                        Text("انصراف", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF737780))
                     }
 
-                    Button(
-                        onClick = {
-                            when {
-                                username.isEmpty() -> errorMessage = "لطفاً نام کاربری را وارد کنید"
-                                username.length < 4 -> errorMessage = "نام کاربری باید حداقل ۴ کاراکتر باشد"
-                                fullName.isEmpty() -> errorMessage = "لطفاً نام و نام خانوادگی را وارد کنید"
-                                !isValidFullName(fullName) -> errorMessage = "نام و نام خانوادگی باید حداقل شامل نام و نام خانوادگی باشد"
-                                password.isEmpty() -> errorMessage = "لطفاً رمز عبور را وارد کنید"
-                                password.length < 4 -> errorMessage = "رمز عبور باید حداقل ۴ رقم باشد"
-                                else -> {
-                                    scope.launch {
-                                        isLoading = true
-                                        try {
-                                            val hashedPassword = hashPassword(password)
-                                            val request = CreateUserRequest(
-                                                username = username,
-                                                fullName = fullName,
-                                                password = hashedPassword,
-                                                userType = selectedUserType
-                                            )
-                                            val response = RetrofitClient.apiService.createUser(request)
-                                            if (response.isSuccessful && response.body()?.success == true) {
-                                                Toast.makeText(context, "کاربر با موفقیت ایجاد شد", Toast.LENGTH_SHORT).show()
-                                                onUserAdded()
-                                                onDismiss()
-                                            } else {
-                                                errorMessage = "خطا در ایجاد کاربر: ${response.errorBody()?.string()}"
+                    Box(
+                        modifier = Modifier
+                            .weight(1.4f)
+                            .clip(RoundedCornerShape(13.dp))
+                            .background(UserManagementAccent)
+                            .clickable(enabled = !isLoading) {
+                                when {
+                                    username.isEmpty() -> errorMessage = "لطفاً نام کاربری را وارد کنید"
+                                    username.length < 4 -> errorMessage = "نام کاربری باید حداقل ۴ کاراکتر باشد"
+                                    fullName.isEmpty() -> errorMessage = "لطفاً نام و نام خانوادگی را وارد کنید"
+                                    !isValidFullName(fullName) -> errorMessage = "نام و نام خانوادگی باید حداقل شامل نام و نام خانوادگی باشد"
+                                    password.isEmpty() -> errorMessage = "لطفاً رمز عبور را وارد کنید"
+                                    password.length < 4 -> errorMessage = "رمز عبور باید حداقل ۴ رقم باشد"
+                                    else -> {
+                                        scope.launch {
+                                            isLoading = true
+                                            try {
+                                                val hashedPassword = hashPassword(password)
+                                                val request = CreateUserRequest(
+                                                    username = username,
+                                                    fullName = fullName,
+                                                    password = hashedPassword,
+                                                    userType = selectedUserType
+                                                )
+                                                val response = RetrofitClient.apiService.createUser(request)
+                                                if (response.isSuccessful && response.body()?.success == true) {
+                                                    Toast.makeText(context, "کاربر با موفقیت ایجاد شد", Toast.LENGTH_SHORT).show()
+                                                    onUserAdded()
+                                                    onDismiss()
+                                                } else {
+                                                    errorMessage = "خطا در ایجاد کاربر: ${response.errorBody()?.string()}"
+                                                }
+                                            } catch (e: Exception) {
+                                                errorMessage = "خطا در ارتباط: ${e.message}"
+                                            } finally {
+                                                isLoading = false
                                             }
-                                        } catch (e: Exception) {
-                                            errorMessage = "خطا در ارتباط: ${e.message}"
-                                        } finally {
-                                            isLoading = false
                                         }
                                     }
                                 }
                             }
-                        },
-                        enabled = !isLoading,
-                        modifier = Modifier.weight(1.2f),
-                        shape = RoundedCornerShape(12.dp)
+                            .padding(vertical = 13.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
                                 strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = Color.White
                             )
                         } else {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Text("ایجاد کاربر")
-                            }
+                            Text("تایید و ثبت", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DesignTextField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    ltr: Boolean = false,
+    visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF8A8F98)
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            visualTransformation = visualTransformation,
+            keyboardOptions = keyboardOptions,
+            textStyle = androidx.compose.ui.text.TextStyle(
+                textAlign = if (ltr) TextAlign.Left else TextAlign.Right,
+                fontSize = 14.sp
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = UserManagementAccent,
+                unfocusedBorderColor = Color(0xFFE5E7EA),
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            )
+        )
     }
 }
 
