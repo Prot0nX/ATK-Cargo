@@ -136,6 +136,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.UUID
+import kotlin.time.Duration.Companion.milliseconds
 
 @SuppressLint("HardwareIds")
 @Composable
@@ -146,8 +147,7 @@ fun HomeScreen(
     userPermissions: Map<String, Boolean>,
     isSessionValid: Boolean,
     onLogoutClick: () -> Unit,
-    onManageUsersClick: () -> Unit,
-    warningsCount: Int = 0
+    onManageUsersClick: () -> Unit
 ) {
     var selectedMenuItem by remember { mutableStateOf<MenuItem?>(null) }
     var showGridAnimation by remember { mutableStateOf(false) }
@@ -225,7 +225,7 @@ fun HomeScreen(
                         coroutineScope.launch {
                             try {
                                 showGridAnimation = false
-                                delay(200)
+                                delay(200.milliseconds)
 
                                 val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
                                 val sessionToken = userPreferencesManager.sessionToken.first()
@@ -262,13 +262,12 @@ fun HomeScreen(
                     },
                     userPreferencesManager = userPreferencesManager,
                     coroutineScope = coroutineScope,
-                    mainActivity = mainActivity,
-                    warningsCount = warningsCount
+                    mainActivity = mainActivity
                 )
 
                 if (isLoggedIn) {
                     LaunchedEffect(Unit) {
-                        delay(150)
+                        delay(150.milliseconds)
                         showGridAnimation = true
                     }
 
@@ -302,7 +301,7 @@ fun HomeScreen(
             when (menuItem.route) {
                 "initial_info", "select_info", "cargo_counter", "manage_ships", "manage_users", "admin_chat" -> {
                     showGridAnimation = false
-                    delay(250)
+                    delay(250.milliseconds)
                     when (menuItem.route) {
                         "initial_info" -> navController.navigateToInitialInfo()
                         "select_info" -> navController.navigateToSelectInfo()
@@ -325,8 +324,7 @@ private fun Header(
     onLogoutClick: () -> Unit,
     userPreferencesManager: UserPreferencesManager,
     coroutineScope: CoroutineScope,
-    mainActivity: MainActivity,
-    warningsCount: Int = 0
+    mainActivity: MainActivity
 ) {
     val headerScale = remember { Animatable(0.97f) }
     val headerOpacity = remember { Animatable(0f) }
@@ -487,7 +485,6 @@ private fun SummaryStatsButton(onClick: () -> Unit, warningsCount: Int = 0) {
     }
 }
 
-// ===== نوار آگاهی صنعتی و پویا از وضعیت سیستم =====
 @Composable
 private fun SystemAwarenessBanner() {
     val context = LocalContext.current
@@ -530,45 +527,109 @@ private fun SystemAwarenessBanner() {
     val bannerBg = if (isDark) {
         MaterialTheme.colorScheme.surfaceContainerHigh
     } else {
-        MaterialTheme.colorScheme.surfaceContainerLow
+        MaterialTheme.colorScheme.surface
+    }
+    val borderColor = if (isDark) {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+    } else {
+        MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
     }
 
     val statusColor = if (isOnline) Color(0xFF10B981) else Color(0xFFF59E0B)
+    val statusIconBg = statusColor.copy(alpha = 0.14f)
     val statusText = if (isOnline) "سیستم آمـاده بارگیری" else "حالت آفلاین (ذخیره محلی)"
     val networkText = if (isOnline) "آنلاین" else "آفلاین"
     val syncText = if (isOnline) "همگام" else "در انتظار شبکه"
 
-    Surface(
+    val pulseTransition = rememberInfiniteTransition(label = "status_pulse")
+    val pulseAlpha by pulseTransition.animateFloat(
+        initialValue = 0.45f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1600, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "status_pulse_alpha"
+    )
+    val pulseScale by pulseTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 2.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1600, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "status_pulse_scale"
+    )
+
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(14.dp),
-        color = bannerBg,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = bannerBg),
+        border = BorderStroke(0.5.dp, borderColor)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(11.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(statusColor)
-                )
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                    modifier = Modifier.size(34.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(statusIconBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isOnline) Icons.Default.SignalCellular4Bar else Icons.Default.SignalCellularOff,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = statusColor
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .offset(x = (-2).dp, y = (-2).dp)
+                            .size(9.dp)
+                            .scale(pulseScale)
+                            .clip(CircleShape)
+                            .background(statusColor.copy(alpha = pulseAlpha))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .offset(x = (-2).dp, y = (-2).dp)
+                            .size(9.dp)
+                            .clip(CircleShape)
+                            .background(statusColor)
+                    )
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "به‌روزرسانی خودکار فعال",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             Row(
@@ -593,6 +654,13 @@ private fun SystemAwarenessBanner() {
                     )
                 }
 
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(12.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                )
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -614,7 +682,6 @@ private fun SystemAwarenessBanner() {
     }
 }
 
-// ===== شبکه عملیاتی دسته‌بندی شده و تطبیقی =====
 @Composable
 private fun CategorizedMenuGrid(
     menuItems: List<MenuItem>,
@@ -623,7 +690,7 @@ private fun CategorizedMenuGrid(
     onItemClick: (MenuItem) -> Unit
 ) {
     val groupedItems = remember(menuItems) { menuItems.groupBy { it.category } }
-    val categoryOrder = listOf("عملیات پایه", "نظارت", "مدیریت", "ارتباطات")
+    val categoryOrder = listOf("عملیات پایه", "مدیریت", "ارتباطات")
     val activeCategories = remember(groupedItems) { categoryOrder.filter { groupedItems.containsKey(it) } }
 
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -643,71 +710,40 @@ private fun CategorizedMenuGrid(
 
             activeCategories.forEach { category ->
                 val items = groupedItems[category] ?: return@forEach
-                val itemCount = items.size
-                val isAlwaysWideCategory = category == "نظارت" || category == "ارتباطات"
+                val (wideItems, compactItems) = items.partition { it.isWideCard() }
 
                 item(span = { GridItemSpan(columnsCount) }) {
                     CategoryHeader(title = category, showAnimation = showAnimation)
                 }
 
-                when {
-                    isAlwaysWideCategory -> {
-                        items(
-                            count = itemCount,
-                            span = { GridItemSpan(columnsCount) }
-                        ) { index ->
-                            WideMenuCard(
-                                item = items[index],
-                                showAnimation = showAnimation,
-                                badgeCount = badgeCounts[items[index].route] ?: 0,
-                                onItemClick = onItemClick
-                            )
-                        }
+                items(
+                    count = wideItems.size,
+                    span = { GridItemSpan(columnsCount) }
+                ) { index ->
+                    WideMenuCard(
+                        item = wideItems[index],
+                        showAnimation = showAnimation,
+                        badgeCount = badgeCounts[wideItems[index].route] ?: 0,
+                        onItemClick = onItemClick
+                    )
+                }
+
+                if (wideItems.isNotEmpty() && compactItems.isNotEmpty()) {
+                    item(span = { GridItemSpan(columnsCount) }) {
+                        Spacer(modifier = Modifier.height(6.dp))
                     }
-                    itemCount == 1 -> {
-                        item(span = { GridItemSpan(columnsCount) }) {
-                            WideMenuCard(
-                                item = items[0],
-                                showAnimation = showAnimation,
-                                badgeCount = badgeCounts[items[0].route] ?: 0,
-                                onItemClick = onItemClick
-                            )
-                        }
-                    }
-                    itemCount % columnsCount == 0 -> {
-                        items(
-                            count = itemCount,
-                            span = { GridItemSpan(1) }
-                        ) { index ->
-                            CompactMenuCard(
-                                item = items[index],
-                                showAnimation = showAnimation,
-                                badgeCount = badgeCounts[items[index].route] ?: 0,
-                                onItemClick = onItemClick
-                            )
-                        }
-                    }
-                    else -> {
-                        items(
-                            count = itemCount - 1,
-                            span = { GridItemSpan(1) }
-                        ) { index ->
-                            CompactMenuCard(
-                                item = items[index],
-                                showAnimation = showAnimation,
-                                badgeCount = badgeCounts[items[index].route] ?: 0,
-                                onItemClick = onItemClick
-                            )
-                        }
-                        item(span = { GridItemSpan(columnsCount) }) {
-                            WideMenuCard(
-                                item = items.last(),
-                                showAnimation = showAnimation,
-                                badgeCount = badgeCounts[items.last().route] ?: 0,
-                                onItemClick = onItemClick
-                            )
-                        }
-                    }
+                }
+
+                items(
+                    count = compactItems.size,
+                    span = { GridItemSpan(1) }
+                ) { index ->
+                    CompactMenuCard(
+                        item = compactItems[index],
+                        showAnimation = showAnimation,
+                        badgeCount = badgeCounts[compactItems[index].route] ?: 0,
+                        onItemClick = onItemClick
+                    )
                 }
 
                 item(span = { GridItemSpan(columnsCount) }) {
@@ -718,51 +754,34 @@ private fun CategorizedMenuGrid(
     }
 }
 
+private fun MenuItem.isWideCard(): Boolean = route == "manage_ships" || category == "ارتباطات"
+
 @Composable
 private fun CategoryHeader(title: String, showAnimation: Boolean) {
     AnimatedVisibility(
         visible = showAnimation,
         enter = fadeIn(animationSpec = tween(400)) + slideInVertically(initialOffsetY = { -10 })
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp, bottom = 4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(top = 14.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 0.2.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.2.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.3f)
-                    .height(3.dp)
-                    .clip(CircleShape)
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0f)
-                            )
-                        )
-                    )
+                    .weight(1f)
+                    .height(1.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
             )
         }
     }
@@ -790,16 +809,19 @@ private fun CompactMenuCard(
         else -> Pair(Icons.AutoMirrored.Rounded.Assignment, MaterialTheme.colorScheme.primary)
     }
 
+    // کارت‌های عملیات فعال (ثبت/تعریف/مدیریت) با پس‌زمینه رنگی برجسته می‌شوند تا از کارت‌های نظارتی/فهرستی متمایز شوند
+    val isCreationAction = item.route == "select_info" || item.route == "initial_info" || item.route == "manage_users"
+
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    val containerColor = if (isDark) {
-        MaterialTheme.colorScheme.surfaceContainerHigh
-    } else {
-        MaterialTheme.colorScheme.surface
+    val containerColor = when {
+        isCreationAction -> iconColor.copy(alpha = if (isDark) 0.16f else 0.1f)
+        isDark -> MaterialTheme.colorScheme.surfaceContainerHigh
+        else -> MaterialTheme.colorScheme.surface
     }
-    val borderColor = if (isDark) {
-        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-    } else {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
+    val borderColor = when {
+        isCreationAction -> iconColor.copy(alpha = 0.18f)
+        isDark -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.18f)
     }
 
     AnimatedVisibility(
@@ -823,8 +845,8 @@ private fun CompactMenuCard(
                     )
                 },
             shape = RoundedCornerShape(20.dp),
-            border = BorderStroke(1.5.dp, if (isPressed) iconColor else borderColor),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            border = BorderStroke(1.dp, if (isPressed) iconColor else borderColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
             colors = CardDefaults.cardColors(containerColor = containerColor)
         ) {
             Box(
@@ -842,14 +864,14 @@ private fun CompactMenuCard(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(iconColor.copy(alpha = 0.12f)),
+                                .background(if (isCreationAction) iconColor else iconColor.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
                                 modifier = Modifier.size(26.dp),
-                                tint = iconColor
+                                tint = if (isCreationAction) Color.White else iconColor
                             )
                         }
 
@@ -957,8 +979,8 @@ private fun WideMenuCard(
                     )
                 },
             shape = RoundedCornerShape(20.dp),
-            border = BorderStroke(1.5.dp, if (isPressed) iconColor else borderColor),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            border = BorderStroke(1.dp, if (isPressed) iconColor else borderColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
             colors = CardDefaults.cardColors(containerColor = containerColor)
         ) {
             Box(
@@ -1037,7 +1059,6 @@ private fun WideMenuCard(
     }
 }
 
-// ===== دیالوگ‌های بازطراحی‌شده صنعتی =====
 @Composable
 fun ProfileSettingsDialog(
     user: User,
@@ -1288,7 +1309,7 @@ fun ProfileSettingsDialog(
                                 val response = RetrofitClient.apiService.updateUser(updateRequest)
                                 if (response.success) {
                                     Toast.makeText(context, "رمز عبور با موفقیت تغییر کرد", Toast.LENGTH_SHORT).show()
-                                    delay(600)
+                                    delay(600.milliseconds)
                                     onDismiss()
                                     onLogout()
                                 } else {
