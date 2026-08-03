@@ -107,7 +107,8 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
         ) {
             SearchField(
                 searchQuery = searchTerm,
-                onSearchQueryChange = { searchTerm = it }
+                onSearchQueryChange = { searchTerm = it },
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -304,7 +305,7 @@ fun ShipsTabContent(
 fun SearchField(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     placeholder: String = "جستجو بر اساس نام کشتی، شماره...",
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
