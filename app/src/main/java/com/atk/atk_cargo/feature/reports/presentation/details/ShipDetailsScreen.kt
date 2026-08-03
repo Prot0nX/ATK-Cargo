@@ -6,10 +6,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,14 +28,11 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -69,12 +66,13 @@ import com.atk.atk_cargo.feature.reports.presentation.quota_details.QuotasList
 import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
 import com.atk.atk_cargo.feature.reports.presentation.warehouse_details.WarehousesSection
 import com.atk.atk_cargo.ui.theme.Blue700
-import com.atk.atk_cargo.ui.theme.Corner3XL
+import com.atk.atk_cargo.ui.theme.DeepOrange100
+import com.atk.atk_cargo.ui.theme.DeepOrange900
 import com.atk.atk_cargo.ui.theme.Gray300
 import com.atk.atk_cargo.ui.theme.Gray500
 import com.atk.atk_cargo.ui.theme.Gray600
-import com.atk.atk_cargo.ui.theme.PrimaryBlueLight
-import com.atk.atk_cargo.ui.theme.getCompletionColor
+import com.atk.atk_cargo.ui.theme.Teal50
+import com.atk.atk_cargo.ui.theme.Teal900
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlin.math.abs
 
@@ -447,177 +445,106 @@ fun WarehousesAndQuotasTab(
 private fun ShipHeaderCard(shipDetails: Ship) {
     val loadedTonnage = shipDetails.totalTonnage - shipDetails.remainingTonnage
     val progress = calculateProgress(loadedTonnage, shipDetails.totalTonnage)
-    val isDarkTheme = isSystemInDarkTheme()
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(bottomStart = Corner3XL, bottomEnd = Corner3XL),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Teal50),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = formatNumber(shipDetails.quotaCount),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Description,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = formatNumber(shipDetails.warehouses.size),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Warehouse,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Description,
+                        contentDescription = null,
+                        tint = Teal900,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = shipDetails.name,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Icon(
-                        imageVector = Icons.Default.DirectionsBoat,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
+                    Text(
+                        text = "${formatNumber(shipDetails.warehouses.size)} انبار · ${formatNumber(shipDetails.quotaCount)} کوتاژ",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Row(
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                shape = RoundedCornerShape(13.dp),
+                color = DeepOrange100.copy(alpha = 0.6f)
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    StatChipShip(
-                        value = formatNumber(shipDetails.totalTonnage.toInt()),
-                        label = "کل",
-                        isDarkTheme = isDarkTheme
-                    )
-
-                    StatChipShip(
-                        value = formatNumber(shipDetails.remainingTonnage.toInt()),
-                        label = "مانده",
-                        isDarkTheme = isDarkTheme
-                    )
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 11.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Text(
+                        text = "${(progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = DeepOrange900
+                    )
                     Box(
                         modifier = Modifier
-                            .width(96.dp)
-                            .height(8.dp)
+                            .weight(1f)
+                            .height(7.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(
-                                if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.3f) 
-                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                            )
+                            .background(DeepOrange900.copy(alpha = 0.18f))
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(progress)
                                 .fillMaxHeight()
-                                .background(
-                                    getCompletionColor(progress * 100, isDarkTheme)
-                                )
+                                .background(DeepOrange900)
                         )
                     }
                     Text(
-                        text = "${(progress * 100).toInt()}%",
+                        text = "مانده: ${formatNumber(shipDetails.remainingTonnage.toInt())}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DeepOrange900,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = "کل: ${formatNumber(shipDetails.totalTonnage.toInt())}",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = getCompletionColor(progress * 100, isDarkTheme)
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatChipShip(value: String, label: String? = null, isDarkTheme: Boolean = false) {
-    val backgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer
-    val textColor = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary
-
-    Surface(
-        shape = RoundedCornerShape(9999.dp),
-        color = backgroundColor
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (label != null) {
-                Text(
-                    text = "$label: $value",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = textColor,
-                    fontWeight = FontWeight.Medium
-                )
-            } else {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = textColor,
-                    fontWeight = FontWeight.Medium
-                )
             }
         }
     }
