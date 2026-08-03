@@ -1,14 +1,10 @@
 package com.atk.atk_cargo.feature.reports.presentation.quota_details
 
+import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,11 +12,11 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +37,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -57,6 +54,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Remove
@@ -65,7 +63,6 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material.icons.filled.Warehouse
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -73,7 +70,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -81,11 +77,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -100,6 +93,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -124,23 +118,24 @@ import com.atk.atk_cargo.feature.reports.domain.formatWeightWithDetail
 import com.atk.atk_cargo.feature.reports.domain.shareQuotasData
 import com.atk.atk_cargo.feature.reports.presentation.quota_details.components.DeleteQuotaDialog
 import com.atk.atk_cargo.feature.reports.presentation.quota_details.components.ToggleQuotaStatusDialog
-import com.atk.atk_cargo.ui.theme.Blue400
-import com.atk.atk_cargo.ui.theme.Blue700
-import com.atk.atk_cargo.ui.theme.Corner2XL
 import com.atk.atk_cargo.ui.theme.CornerL
-import com.atk.atk_cargo.ui.theme.CornerXL
+import com.atk.atk_cargo.ui.theme.DeepOrange100
+import com.atk.atk_cargo.ui.theme.DeepOrange900
 import com.atk.atk_cargo.ui.theme.Green600
 import com.atk.atk_cargo.ui.theme.Green700
-import com.atk.atk_cargo.ui.theme.PrimaryBlueLight
 import com.atk.atk_cargo.ui.theme.Purple700
 import com.atk.atk_cargo.ui.theme.Red500
 import com.atk.atk_cargo.ui.theme.Red900
+import com.atk.atk_cargo.ui.theme.Teal50
+import com.atk.atk_cargo.ui.theme.Teal900
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import java.util.Locale
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
+@SuppressLint("MutableCollectionMutableState")
 @Composable
 fun QuotasList(
     quotas: List<Quota>,
@@ -171,12 +166,57 @@ fun QuotasList(
 
         var shareGroupedQuotas by remember { mutableStateOf<LinkedHashMap<String?, List<Quota>>?>(null) }
         val context = LocalContext.current
-        val isDarkTheme = isSystemInDarkTheme()
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            val isQuotaSortingSelected = currentSortingMode == QuotaSortingMode.REMAINING_TONNAGE_ASC || currentSortingMode == QuotaSortingMode.REMAINING_TONNAGE_DESC
+            val quotaSortingIcon = if (currentSortingMode == QuotaSortingMode.REMAINING_TONNAGE_ASC) {
+                Icons.Default.ArrowUpward
+            } else {
+                Icons.Default.ArrowDownward
+            }
+            val isGroupSortingSelected = currentGroupSortingMode == GroupSortingMode.REMAINING_TONNAGE_ASC || currentGroupSortingMode == GroupSortingMode.REMAINING_TONNAGE_DESC
+            val groupSortingIcon = if (currentGroupSortingMode == GroupSortingMode.REMAINING_TONNAGE_ASC) {
+                Icons.Default.ArrowUpward
+            } else {
+                Icons.Default.ArrowDownward
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SortPill(
+                    text = "مانده کوتاژ",
+                    icon = quotaSortingIcon,
+                    isSelected = isQuotaSortingSelected,
+                    onClick = {
+                        val newMode = if (currentSortingMode == QuotaSortingMode.REMAINING_TONNAGE_ASC) {
+                            QuotaSortingMode.REMAINING_TONNAGE_DESC
+                        } else {
+                            QuotaSortingMode.REMAINING_TONNAGE_ASC
+                        }
+                        viewModel.setQuotaSortingMode(newMode)
+                    }
+                )
+                SortPill(
+                    text = "مانده گروه",
+                    icon = groupSortingIcon,
+                    isSelected = isGroupSortingSelected,
+                    onClick = {
+                        val newMode = if (currentGroupSortingMode == GroupSortingMode.REMAINING_TONNAGE_ASC) {
+                            GroupSortingMode.REMAINING_TONNAGE_DESC
+                        } else {
+                            GroupSortingMode.REMAINING_TONNAGE_ASC
+                        }
+                        viewModel.setGroupSortingMode(newMode)
+                    }
+                )
+            }
+
             Surface(
                 onClick = {
                     shareGroupedQuotas?.let { quotas ->
@@ -185,10 +225,9 @@ fun QuotasList(
                         shareQuotasData(context, shareText)
                     }
                 },
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(CornerXL),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 1.dp
+                modifier = Modifier.size(30.dp),
+                shape = RoundedCornerShape(9.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -197,117 +236,9 @@ fun QuotasList(
                     Icon(
                         imageVector = Icons.Default.Share,
                         contentDescription = "اشتراک‌گذاری اطلاعات",
-                        tint = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(15.dp)
                     )
-                }
-            }
-
-            val isGroupSortingSelected = currentGroupSortingMode == GroupSortingMode.REMAINING_TONNAGE_ASC || currentGroupSortingMode == GroupSortingMode.REMAINING_TONNAGE_DESC
-            val groupSortingIcon = if (currentGroupSortingMode == GroupSortingMode.REMAINING_TONNAGE_ASC) {
-                Icons.Default.ArrowUpward
-            } else {
-                Icons.Default.ArrowDownward
-            }
-            Surface(
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    val newMode = if (currentGroupSortingMode == GroupSortingMode.REMAINING_TONNAGE_ASC) {
-                        GroupSortingMode.REMAINING_TONNAGE_DESC
-                    } else {
-                        GroupSortingMode.REMAINING_TONNAGE_ASC
-                    }
-                    viewModel.setGroupSortingMode(newMode)
-                },
-                shape = RoundedCornerShape(CornerXL),
-                color = if (isGroupSortingSelected) {
-                    if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surface
-                },
-                border = if (isGroupSortingSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
-                tonalElevation = if (isGroupSortingSelected) 1.dp else 0.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "مانده گروه",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (isGroupSortingSelected) {
-                            if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        fontWeight = if (isGroupSortingSelected) FontWeight.Bold else FontWeight.Medium
-                    )
-                    if (isGroupSortingSelected) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = groupSortingIcon,
-                            contentDescription = null,
-                            tint = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-
-            val isQuotaSortingSelected = currentSortingMode == QuotaSortingMode.REMAINING_TONNAGE_ASC || currentSortingMode == QuotaSortingMode.REMAINING_TONNAGE_DESC
-            val quotaSortingIcon = if (currentSortingMode == QuotaSortingMode.REMAINING_TONNAGE_ASC) {
-                Icons.Default.ArrowUpward
-            } else {
-                Icons.Default.ArrowDownward
-            }
-            Surface(
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    val newMode = if (currentSortingMode == QuotaSortingMode.REMAINING_TONNAGE_ASC) {
-                        QuotaSortingMode.REMAINING_TONNAGE_DESC
-                    } else {
-                        QuotaSortingMode.REMAINING_TONNAGE_ASC
-                    }
-                    viewModel.setQuotaSortingMode(newMode)
-                },
-                shape = RoundedCornerShape(CornerXL),
-                color = if (isQuotaSortingSelected) {
-                    if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surface
-                },
-                border = if (isQuotaSortingSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
-                tonalElevation = if (isQuotaSortingSelected) 1.dp else 0.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "مانده کوتاژ",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (isQuotaSortingSelected) {
-                            if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        fontWeight = if (isQuotaSortingSelected) FontWeight.Bold else FontWeight.Medium
-                    )
-                    if (isQuotaSortingSelected) {
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Icon(
-                            imageVector = quotaSortingIcon,
-                            contentDescription = null,
-                            tint = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
                 }
             }
         }
@@ -391,7 +322,7 @@ fun QuotasList(
                         WarehouseQuotaGroupingMode.BY_WAREHOUSE -> "${it.warehouse} | ${it.cargoOwner}"
                     }
                 }
-                .mapValues { (groupName, groupQuotas) ->
+                .mapValues { (_, groupQuotas) ->
                     val sorted = groupQuotas.sortedWith(
                         compareByDescending<Quota> { it.isActive }
                             .thenBy { quota ->
@@ -471,6 +402,41 @@ fun QuotasList(
     }
 }
 
+@Composable
+private fun SortPill(
+    text: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        onClick = onClick,
+        shape = RoundedCornerShape(9.dp),
+        color = if (isSelected) Teal900 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Bold
+            )
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(11.dp)
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun QuotaGroupExpansionPanel(
@@ -490,7 +456,6 @@ fun QuotaGroupExpansionPanel(
     val totalWeight = quotas.sumOf { it.totalTonnage.toDouble() }
     val remainingWeight = totalWeight - loadedWeight
     var expandedQuotaId by remember { mutableStateOf<Int?>(null) }
-    val isDarkTheme = isSystemInDarkTheme()
 
     Card(
         modifier = Modifier
@@ -509,107 +474,114 @@ fun QuotaGroupExpansionPanel(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(CornerXL),
-        border = BorderStroke(
-            1.dp,
-            if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.7f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, Teal900.copy(alpha = 0.2f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Text(
-                    text = groupName,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = formatNumber(totalWeight.toInt()),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Scale,
-                            contentDescription = null,
-                            tint = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = "بارگیری:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = formatNumber(loadedWeight.toInt()),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isDarkTheme) Blue400 else MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
                     Icon(
-                        imageVector = Icons.Default.ArrowUpward,
+                        imageVector = Icons.Default.KeyboardArrowDown,
                         contentDescription = null,
-                        tint = if (isDarkTheme) Blue400 else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .scale(scaleX = 1f, scaleY = if (isExpanded) -1f else 1f)
+                    )
+                    Text(
+                        text = groupName,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = "کل:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = formatNumber(totalWeight.toInt()),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(9.dp),
+                    color = DeepOrange100.copy(alpha = 0.6f)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "مانده: ${formatNumber(remainingWeight.toInt())}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
+                            text = "بارگیری:",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = DeepOrange900.copy(alpha = 0.8f)
                         )
-                        Icon(
-                            imageVector = Icons.Default.ArrowDownward,
-                            contentDescription = null,
-                            tint = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp)
+                        Text(
+                            text = "↑ ${formatNumber(loadedWeight.toInt())}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = DeepOrange900
+                        )
+                    }
+                }
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(9.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "مانده:",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "↓ ${formatNumber(remainingWeight.toInt())}",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -684,12 +656,10 @@ fun QuotaCard(
         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
     }
     val accentColor = if (quota.isActive) {
-        MaterialTheme.colorScheme.primary
+        Teal900
     } else {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+        Teal900.copy(alpha = 0.5f)
     }
-    val progress = calculateProgress(quota.loadedTonnage, quota.totalTonnage)
-    val isDarkTheme = isSystemInDarkTheme()
     val loadedTonnage = quota.loadedTonnage
     val remainingTonnage = quota.remainingTonnage
 
@@ -698,16 +668,16 @@ fun QuotaCard(
             .fillMaxWidth()
             .clickable { onExpandToggle(!isExpanded) },
         colors = CardDefaults.cardColors(containerColor = cardColor),
-        shape = RoundedCornerShape(Corner2XL),
+        shape = RoundedCornerShape(12.dp),
         border = BorderStroke(
             width = 1.dp,
             color = if (quota.isActive) {
-                if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
             } else {
-                if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
             }
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (quota.isActive) 1.dp else 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -736,6 +706,17 @@ fun QuotaCard(
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = "|",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = contentColor.copy(alpha = 0.4f)
+                        )
+                        Text(
+                            text = "${formatNumber(quota.voucherCount)} حواله",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = contentColor.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.Medium
                         )
                     }
 
@@ -779,97 +760,80 @@ fun QuotaCard(
                     }
                 }
 
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = formatNumber(quota.totalTonnage.toInt()),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Scale,
-                            contentDescription = null,
-                            tint = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Bottom
                 ) {
                     Text(
-                        text = "بارگیری:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "کل:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = contentColor.copy(alpha = 0.6f)
                     )
                     Text(
-                        text = formatNumber(loadedTonnage.toInt()),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isDarkTheme) Blue400 else MaterialTheme.colorScheme.primary,
+                        text = formatNumber(quota.totalTonnage.toInt()),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = contentColor,
                         fontWeight = FontWeight.Bold
                     )
-                    Icon(
-                        imageVector = Icons.Default.ArrowUpward,
-                        contentDescription = null,
-                        tint = if (isDarkTheme) Blue400 else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "مانده: ${formatNumber(remainingTonnage.toInt())}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Icon(
-                            imageVector = Icons.Default.ArrowDownward,
-                            contentDescription = null,
-                            tint = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
                 }
             }
 
-            if (!isExpanded) {
-                Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp)),
-                    color = accentColor,
-                    trackColor = accentColor.copy(alpha = 0.1f)
-                )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 9.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "مانده:",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "↓ ${formatNumber(remainingTonnage.toInt())}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = contentColor
+                        )
+                    }
+                }
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    color = Teal50.copy(alpha = if (quota.isActive) 1f else 0.5f)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 9.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "بارگیری:",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = accentColor.copy(alpha = 0.8f)
+                        )
+                        Text(
+                            text = "↑ ${formatNumber(loadedTonnage.toInt())}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = accentColor
+                        )
+                    }
+                }
             }
 
             AnimatedVisibility(
@@ -881,58 +845,6 @@ fun QuotaCard(
                     modifier = Modifier.padding(top = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "پیشرفت بارگیری",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = contentColor.copy(alpha = 0.7f)
-                            )
-                            Text(
-                                text = "${(progress * 100).toInt()}%",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = accentColor,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        LinearProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)),
-                            color = accentColor,
-                            trackColor = accentColor.copy(alpha = 0.1f)
-                        )
-                    }
-
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            StatItem("تناژ کل", formatNumber(quota.totalTonnage.toInt()), accentColor)
-                            VerticalDivider(
-                                modifier = Modifier.height(24.dp),
-                                color = contentColor.copy(alpha = 0.1f)
-                            )
-                            StatItem("بارگیری شده", formatNumber(quota.loadedTonnage.toInt()), accentColor)
-                            VerticalDivider(
-                                modifier = Modifier.height(24.dp),
-                                color = contentColor.copy(alpha = 0.1f)
-                            )
-                            StatItem("تعداد حواله", formatNumber(quota.voucherCount), accentColor)
-                        }
-                    }
 
                     HorizontalDivider(
                         color = contentColor.copy(alpha = 0.1f)
@@ -947,7 +859,7 @@ fun QuotaCard(
                         ActionButton(
                             icon = Icons.Default.Edit,
                             label = "ویرایش",
-                            color = Blue700,
+                            color = Teal900,
                             onClick = { showEditDialog = true }
                         )
                         ActionButton(
@@ -1030,9 +942,8 @@ fun MinimalQuotaCard(
     quota: Quota,
     modifier: Modifier = Modifier
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
     val accentColor = if (quota.isActive) {
-        if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary
+        Teal900
     } else {
         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
     }
@@ -1045,9 +956,9 @@ fun MinimalQuotaCard(
         shape = RoundedCornerShape(CornerL),
         border = BorderStroke(
             1.dp,
-            if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+            if (quota.isActive) Teal900.copy(alpha = 0.2f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -1150,34 +1061,11 @@ fun ActionButton(
 }
 
 @Composable
-private fun StatItem(
-    label: String,
-    value: String,
-    color: Color
-) {
-    Column(horizontalAlignment = Alignment.Start) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = color.copy(alpha = 0.7f)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium,
-            color = color,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
 fun GroupingModeSelector(
     currentMode: WarehouseQuotaGroupingMode,
     onModeChange: (WarehouseQuotaGroupingMode) -> Unit,
     onModeLongClick: (WarehouseQuotaGroupingMode) -> Unit = {}
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1190,24 +1078,21 @@ fun GroupingModeSelector(
             icon = Icons.Default.LocalShipping,
             isSelected = currentMode == WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY,
             onClick = { onModeChange(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY) },
-            onLongClick = { onModeLongClick(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY) },
-            isDarkTheme = isDarkTheme
+            onLongClick = { onModeLongClick(WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY) }
         )
         GroupingModeButton(
             text = "صاحب کالا",
             icon = Icons.Default.Person,
             isSelected = currentMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER,
             onClick = { onModeChange(WarehouseQuotaGroupingMode.BY_CARGO_OWNER) },
-            onLongClick = { onModeLongClick(WarehouseQuotaGroupingMode.BY_CARGO_OWNER) },
-            isDarkTheme = isDarkTheme
+            onLongClick = { onModeLongClick(WarehouseQuotaGroupingMode.BY_CARGO_OWNER) }
         )
         GroupingModeButton(
             text = "انبار",
             icon = Icons.Default.Warehouse,
             isSelected = currentMode == WarehouseQuotaGroupingMode.BY_WAREHOUSE,
             onClick = { onModeChange(WarehouseQuotaGroupingMode.BY_WAREHOUSE) },
-            onLongClick = { onModeLongClick(WarehouseQuotaGroupingMode.BY_WAREHOUSE) },
-            isDarkTheme = isDarkTheme
+            onLongClick = { onModeLongClick(WarehouseQuotaGroupingMode.BY_WAREHOUSE) }
         )
     }
 }
@@ -1220,26 +1105,11 @@ private fun GroupingModeButton(
     isSelected: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit = {},
-    isDarkTheme: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val backgroundColor = if (isSelected) {
-        if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f) else MaterialTheme.colorScheme.primaryContainer
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-
-    val contentColor = if (isSelected) {
-        if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    val borderColor = if (isSelected) {
-        if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-    } else {
-        Color.Transparent
-    }
+    val backgroundColor = if (isSelected) Teal50 else Color.Transparent
+    val contentColor = if (isSelected) Teal900 else MaterialTheme.colorScheme.onSurfaceVariant
+    val borderColor = if (isSelected) Teal900.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
 
     Surface(
         modifier = modifier
@@ -1249,8 +1119,7 @@ private fun GroupingModeButton(
             ),
         shape = RoundedCornerShape(CornerL),
         color = backgroundColor,
-        border = if (borderColor != Color.Transparent) BorderStroke(1.dp, borderColor) else null,
-        tonalElevation = 1.dp
+        border = BorderStroke(1.dp, borderColor)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
@@ -1274,31 +1143,63 @@ private fun GroupingModeButton(
 }
 
 @Composable
-fun DeleteQuotaDialog(
-    quotaNumber: String,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+private fun EditFieldColumn(
+    label: String,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
 ) {
-    com.atk.atk_cargo.feature.reports.presentation.quota_details.components.DeleteQuotaDialog(
-        quotaNumber = quotaNumber,
-        onConfirm = onConfirm,
-        onDismiss = onDismiss
-    )
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        content()
+    }
 }
 
 @Composable
-fun ToggleQuotaStatusDialog(
-    quotaNumber: String,
-    isActive: Boolean,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+private fun EditFieldBox(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    isError: Boolean = false,
+    readOnly: Boolean = false,
+    ltr: Boolean = false,
+    onClick: (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null
 ) {
-    com.atk.atk_cargo.feature.reports.presentation.quota_details.components.ToggleQuotaStatusDialog(
-        quotaNumber = quotaNumber,
-        isActive = isActive,
-        onConfirm = onConfirm,
-        onDismiss = onDismiss
-    )
+    val borderColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+            .border(1.5.dp, borderColor, RoundedCornerShape(12.dp))
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 13.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+            readOnly = readOnly || onClick != null,
+            enabled = onClick == null,
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = if (ltr) TextAlign.Left else TextAlign.Right
+            ),
+            keyboardOptions = keyboardOptions,
+            cursorBrush = SolidColor(Teal900)
+        )
+        trailing?.invoke()
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1350,7 +1251,7 @@ fun EditQuotaDialog(
                 .heightIn(max = 700.dp)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(20.dp),
             tonalElevation = 6.dp,
             color = MaterialTheme.colorScheme.surface
         ) {
@@ -1363,187 +1264,143 @@ fun EditQuotaDialog(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                OutlinedTextField(
-                    value = editedData.quotaNumber,
-                    onValueChange = {
-                        editedData = editedData.copy(quotaNumber = formatNumberString(it))
-                    },
-                    label = { Text("شماره کوتاژ") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    isError = !isValidQuotaNumber(editedData.quotaNumber),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                EditFieldColumn(label = "شماره کوتاژ") {
+                    EditFieldBox(
+                        value = editedData.quotaNumber,
+                        onValueChange = {
+                            editedData = editedData.copy(quotaNumber = formatNumberString(it))
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        isError = !isValidQuotaNumber(editedData.quotaNumber)
                     )
-                )
+                }
                 if (!isValidQuotaNumber(editedData.quotaNumber)) {
                     Text(
                         "شماره کوتاژ باید حداقل 5 رقم باشد",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                        modifier = Modifier.padding(start = 4.dp, top = 4.dp)
                     )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedTextField(
-                    value = editedData.shipName,
-                    onValueChange = {
-                        editedData = editedData.copy(shipName = formatNumberString(it).uppercase(Locale.ROOT))
-                    },
-                    label = { Text("نام کشتی") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                EditFieldColumn(label = "نام کشتی") {
+                    EditFieldBox(
+                        value = editedData.shipName,
+                        onValueChange = {
+                            editedData = editedData.copy(shipName = formatNumberString(it).uppercase(Locale.ROOT))
+                        }
                     )
-                )
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedTextField(
-                    value = editedData.shippingCompany,
-                    onValueChange = {
-                        editedData = editedData.copy(shippingCompany = formatNumberString(it))
-                    },
-                    label = { Text("شرکت باربری") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                EditFieldColumn(label = "شرکت باربری") {
+                    EditFieldBox(
+                        value = editedData.shippingCompany,
+                        onValueChange = {
+                            editedData = editedData.copy(shippingCompany = formatNumberString(it))
+                        }
                     )
-                )
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedTextField(
-                    value = editedData.warehouse,
-                    onValueChange = {
-                        editedData = editedData.copy(warehouse = formatNumberString(it))
-                    },
-                    label = { Text("انبار") },
-                    singleLine = true,
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    OutlinedTextField(
-                        value = editedData.cargoType,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("نوع کالا") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                    EditFieldColumn(label = "انبار", modifier = Modifier.weight(1f)) {
+                        EditFieldBox(
+                            value = editedData.warehouse,
+                            onValueChange = {
+                                editedData = editedData.copy(warehouse = formatNumberString(it))
+                            }
                         )
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        cargoTypes.forEach { type ->
-                            DropdownMenuItem(
-                                text = { Text(type) },
-                                onClick = {
-                                    editedData = editedData.copy(cargoType = type)
-                                    expanded = false
+                    }
+
+                    EditFieldColumn(label = "نوع کالا", modifier = Modifier.weight(1f)) {
+                        ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = { expanded = !expanded }
+                        ) {
+                            EditFieldBox(
+                                value = editedData.cargoType,
+                                onValueChange = {},
+                                onClick = { expanded = !expanded },
+                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
+                                trailing = {
+                                    Icon(
+                                        imageVector = Icons.Default.KeyboardArrowDown,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                 }
                             )
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                cargoTypes.forEach { type ->
+                                    DropdownMenuItem(
+                                        text = { Text(type) },
+                                        onClick = {
+                                            editedData = editedData.copy(cargoType = type)
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedTextField(
-                    value = formatNumberString(editedData.totalTonnage.toInt().toString()),
-                    onValueChange = {
-                        val newValue = formatNumberString(it).toIntOrNull() ?: editedData.totalTonnage.toInt()
-                        editedData = editedData.copy(totalTonnage = newValue.toFloat())
-                    },
-                    label = { Text("تناژ کل") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                EditFieldColumn(label = "تناژ کل") {
+                    EditFieldBox(
+                        value = formatNumberString(editedData.totalTonnage.toInt().toString()),
+                        onValueChange = {
+                            val newValue = formatNumberString(it).toIntOrNull() ?: editedData.totalTonnage.toInt()
+                            editedData = editedData.copy(totalTonnage = newValue.toFloat())
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        ltr = true
                     )
-                )
+                }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(13.dp),
+                        border = BorderStroke(
+                            width = 1.5.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)
+                        )
+                    ) {
+                        Text("انصراف", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+
                     Button(
                         onClick = {
                             if (isValidQuotaNumber(editedData.quotaNumber)) {
                                 showConfirmationDialog = true
                             }
                         },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1.4f),
                         enabled = editedData != quotaData && isValidQuotaNumber(editedData.quotaNumber),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(13.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Teal900)
                     ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text("تایید و ذخیره")
-                        }
-                    }
-
-                    OutlinedButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-                        )
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text("انصراف")
-                        }
+                        Text("تایید و ذخیره", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -1564,7 +1421,7 @@ fun EditQuotaDialog(
                     .fillMaxWidth(0.9f)
                     .wrapContentHeight()
                     .padding(16.dp),
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(20.dp),
                 tonalElevation = 6.dp,
                 color = MaterialTheme.colorScheme.surface
             ) {
@@ -1598,7 +1455,8 @@ fun EditQuotaDialog(
                                 onDismiss()
                             },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Teal900)
                         ) {
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1665,7 +1523,7 @@ fun QuotaPercentageDialog(
                 .heightIn(max = 600.dp)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(20.dp),
             tonalElevation = 6.dp,
             color = MaterialTheme.colorScheme.surface
         ) {
@@ -1711,7 +1569,8 @@ fun QuotaPercentageDialog(
                             onDismiss()
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Teal900)
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1755,55 +1614,11 @@ fun QuotaPercentageDialog(
 
 @Composable
 private fun DialogHeader(quota: Quota) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            val infiniteTransition = rememberInfiniteTransition(label = "")
-            val scale by infiniteTransition.animateFloat(
-                initialValue = 1f,
-                targetValue = 1.2f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(800),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = ""
-            )
-
-            Icon(
-                imageVector = Icons.Default.AddTask,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .size(32.dp)
-                    .scale(scale)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Column {
-            Text(
-                text = "تنظیم درصد کوتاژ",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "شماره کوتاژ: ${quota.number}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-        }
-    }
+    QuotaDialogHeader(
+        icon = Icons.Default.AddTask,
+        title = "تنظیم درصد کوتاژ",
+        subtitle = "شماره کوتاژ: ${quota.number}"
+    )
 }
 
 private fun lerp(start: Int, end: Int, fraction: Float): Int {
@@ -1823,15 +1638,15 @@ private fun PercentageInputTab(
         val progress = percentage / 2.0
         Box(modifier = Modifier
             .fillMaxWidth()
-            .height(8.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+            .height(6.dp)
+            .clip(RoundedCornerShape(3.dp))
+            .background(Teal900.copy(alpha = 0.12f))
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(progress.toFloat())
                     .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(Teal900)
             )
         }
 
@@ -1839,53 +1654,20 @@ private fun PercentageInputTab(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                )
-            ) {
-                Row(
-                    modifier = Modifier.padding(4.dp)
-                ) {
-                    Button(
-                        onClick = { isFineMode = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isFineMode) MaterialTheme.colorScheme.primary else Color.Transparent,
-                            contentColor = if (isFineMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Text(
-                            text = "دقیق (0.01%)",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(4.dp))
-
-                    Button(
-                        onClick = { isFineMode = false },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (!isFineMode) MaterialTheme.colorScheme.primary else Color.Transparent,
-                            contentColor = if (!isFineMode) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Text(
-                            text = "سریع (0.1%)",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
+            PercentModePill(
+                text = "سریع (0.1%)",
+                isSelected = !isFineMode,
+                onClick = { isFineMode = false },
+                modifier = Modifier.weight(1f)
+            )
+            PercentModePill(
+                text = "دقیق (0.01%)",
+                isSelected = isFineMode,
+                onClick = { isFineMode = true },
+                modifier = Modifier.weight(1f)
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -1924,6 +1706,32 @@ private fun PercentageInputTab(
 }
 
 @Composable
+private fun PercentModePill(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        onClick = onClick,
+        shape = RoundedCornerShape(11.dp),
+        color = if (isSelected) Teal900 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 9.dp)
+        )
+    }
+}
+
+@Composable
 private fun IconButton(
     onClick: () -> Unit,
     enabled: Boolean,
@@ -1939,14 +1747,10 @@ private fun IconButton(
 
     Box(
         modifier = Modifier
-            .size(48.dp)
+            .size(46.dp)
             .scale(scale)
             .background(
-                color = if (enabled) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
-                },
+                color = if (enabled) Teal50 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
                 shape = CircleShape
             )
             .clickable(
@@ -1960,11 +1764,7 @@ private fun IconButton(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (enabled) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-            }
+            tint = if (enabled) Teal900 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
         )
     }
 }
@@ -1972,8 +1772,8 @@ private fun IconButton(
 @Composable
 private fun PercentageDisplay(percentage: Double) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(14.dp),
+        color = Teal50,
         modifier = Modifier.width(120.dp)
     ) {
         Box(
@@ -1983,8 +1783,8 @@ private fun PercentageDisplay(percentage: Double) {
             Text(
                 text = "%.2f%%".format(percentage),
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                fontWeight = FontWeight.ExtraBold,
+                color = Teal900
             )
         }
     }
@@ -1997,9 +1797,9 @@ private fun QuickSelectButtons(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        listOf(0.00, 0.50, 0.70, 1.00, 1.50).forEach { value ->
+        listOf(1.50, 1.00, 0.70, 0.50, 0.00).forEach { value ->
             QuickSelectButton(
                 value = value,
                 isSelected = currentPercentage == value,
@@ -2017,30 +1817,15 @@ private fun RowScope.QuickSelectButton(
 ) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        color = if (isSelected) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (isSelected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
-            }
-        ),
+        shape = RoundedCornerShape(10.dp),
+        color = if (isSelected) Teal900 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         modifier = Modifier.weight(1f)
     ) {
         Text(
             text = "%.2f%%".format(value),
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (isSelected) {
-                MaterialTheme.colorScheme.onPrimary
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .padding(vertical = 8.dp)
                 .fillMaxWidth(),
@@ -2055,8 +1840,8 @@ private fun ResultsPreview(calculatedValues: CalculationResult) {
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(16.dp)
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(13.dp)
             )
             .padding(16.dp)
     ) {
@@ -2133,7 +1918,7 @@ fun AnimatedNumber(
         (0..100).forEach { step ->
             val progress = step / 100f
             displayValue = lerp(startValue, targetValue, progress)
-            delay(5)
+            delay(5.milliseconds)
         }
         displayValue = targetValue
     }
@@ -2173,108 +1958,61 @@ fun calculateValues(
 }
 
 @Composable
-private fun EditQuotaDialogHeader(quotaNumber: String) {
+private fun QuotaDialogHeader(
+    icon: ImageVector,
+    title: String,
+    subtitle: String
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top
     ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            val infiniteTransition = rememberInfiniteTransition(label = "")
-            val scale by infiniteTransition.animateFloat(
-                initialValue = 1f,
-                targetValue = 1.2f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(800),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = ""
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
             )
-
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .size(32.dp)
-                    .scale(scale)
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Column {
-            Text(
-                text = "ویرایش اطلاعات کوتاژ",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "شماره کوتاژ: $quotaNumber",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .background(color = Teal50, shape = CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = Teal900,
+                modifier = Modifier.size(18.dp)
             )
         }
     }
 }
 
 @Composable
+private fun EditQuotaDialogHeader(quotaNumber: String) {
+    QuotaDialogHeader(
+        icon = Icons.Default.Edit,
+        title = "ویرایش اطلاعات کوتاژ",
+        subtitle = "شماره کوتاژ: $quotaNumber"
+    )
+}
+
+@Composable
 private fun ConfirmationDialogHeader() {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            val infiniteTransition = rememberInfiniteTransition(label = "")
-            val scale by infiniteTransition.animateFloat(
-                initialValue = 1f,
-                targetValue = 1.2f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(800),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = ""
-            )
-
-            Icon(
-                imageVector = Icons.Default.Warning,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .size(32.dp)
-                    .scale(scale)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Column {
-            Text(
-                text = "تأیید ذخیره‌سازی",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "لطفاً تصمیم خود را تأیید کنید",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-        }
-    }
+    QuotaDialogHeader(
+        icon = Icons.Default.Check,
+        title = "تأیید ذخیره‌سازی",
+        subtitle = "لطفاً تصمیم خود را تأیید کنید"
+    )
 }
