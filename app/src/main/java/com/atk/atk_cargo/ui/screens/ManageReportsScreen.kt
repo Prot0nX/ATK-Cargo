@@ -3,7 +3,9 @@ package com.atk.atk_cargo.ui.screens
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateScrollBy
@@ -76,6 +78,7 @@ import com.atk.atk_cargo.api.CargoInfo
 import com.atk.atk_cargo.api.ShiftInfo
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.validateServerSession
+import com.atk.atk_cargo.core.ui.components.PersianDatePickerDialog
 import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import com.atk.atk_cargo.feature.reports.presentation.components.FloatingActionButton
 import com.atk.atk_cargo.feature.reports.presentation.details.ShipDetails
@@ -99,6 +102,7 @@ import kotlinx.coroutines.delay
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
 
+@RequiresApi(Build.VERSION_CODES.HONEYCOMB)
 @Composable
 fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavController? = null) {
     val context = LocalContext.current
@@ -725,7 +729,7 @@ fun DatePickerDialog(
     onDismiss: () -> Unit,
     onDateSelected: (date: String) -> Unit
 ) {
-    com.atk.atk_cargo.core.ui.components.PersianDatePickerDialog(
+    PersianDatePickerDialog(
         isOpen = isOpen,
         title = title,
         initialDate = initialDate,
