@@ -399,18 +399,6 @@ fun ShipSelectionDialog(
                 ) {
                     Box(
                         modifier = Modifier
-                            .weight(0.8f)
-                            .height(50.dp)
-                            .clip(RoundedCornerShape(13.dp))
-                            .background(ShipDialogMutedBg)
-                            .clickable(onClick = onDismiss),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("انصراف", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ShipDialogCancelText)
-                    }
-
-                    Box(
-                        modifier = Modifier
                             .weight(1.2f)
                             .height(50.dp)
                             .clip(RoundedCornerShape(13.dp))
@@ -426,6 +414,18 @@ fun ShipSelectionDialog(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("تایید انتخاب (${selectedShips.size})", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ShipDialogOnAccent)
                         }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .weight(0.8f)
+                            .height(50.dp)
+                            .clip(RoundedCornerShape(13.dp))
+                            .background(ShipDialogMutedBg)
+                            .clickable(onClick = onDismiss),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("انصراف", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ShipDialogCancelText)
                     }
                 }
             }
