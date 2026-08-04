@@ -16,6 +16,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -92,14 +93,29 @@ import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlin.math.roundToInt
 
-private val AnalyticsAccent = Color(0xFF0D9488)
-private val AnalyticsAccentBg = Color(0xFFDCEFEA)
-private val AnalyticsAccentBorder = Color(0xFFB9DED7)
-private val AnalyticsCardBorder = Color(0xFFDCEEE9)
-private val AnalyticsMutedBg = Color(0xFFF3F4F5)
-private val AnalyticsMutedText = Color(0xFF8A8F98)
-private val AnalyticsTitleColor = Color(0xFF1F2937)
-private val AnalyticsScreenBg = Color(0xFFFCFCFD)
+private val AnalyticsAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val AnalyticsAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.16f) else Color(0xFFDCEFEA)
+
+private val AnalyticsAccentBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.35f) else Color(0xFFB9DED7)
+
+private val AnalyticsCardBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+
+private val AnalyticsMutedBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+
+private val AnalyticsMutedText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+private val AnalyticsTitleColor: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurface
+
+private val AnalyticsScreenBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surface
 
 @Composable
 fun ComprehensiveAnalyticsDialog(
@@ -133,7 +149,7 @@ fun ComprehensiveAnalyticsDialog(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color.White)
+                            .background(MaterialTheme.colorScheme.surface)
                             .padding(bottom = 12.dp)
                     ) {
                         AnalyticsHeaderCard(onClose = onDismiss)
@@ -640,7 +656,7 @@ private fun AnalyticsGroupingModeButton(
 ) {
     val backgroundColor = if (isSelected) AnalyticsAccentBg else Color.Transparent
     val contentColor = if (isSelected) AnalyticsAccent else AnalyticsMutedText
-    val borderColor = if (isSelected) AnalyticsAccentBorder else Color(0xFFE5E7EA)
+    val borderColor = if (isSelected) AnalyticsAccentBorder else MaterialTheme.colorScheme.outlineVariant
 
     Surface(
         modifier = modifier
@@ -706,7 +722,7 @@ private fun AnalyticsQuotaGroupExpansionPanel(
             ),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         border = BorderStroke(1.dp, AnalyticsCardBorder)
     ) {
@@ -935,11 +951,10 @@ private fun AnalyticsStatChip(
     label: String,
     modifier: Modifier = Modifier
 ) {
-    val isDark = MaterialTheme.colorScheme.surface == Color(0xFF0f172a)
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(9.dp),
-        color = if (isDark) Color(0xFF1e293b) else AnalyticsMutedBg
+        color = AnalyticsMutedBg
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
@@ -949,14 +964,14 @@ private fun AnalyticsStatChip(
             Text(
                 text = value,
                 style = MaterialTheme.typography.labelMedium,
-                color = if (isDark) Color(0xFF93c5fd) else AnalyticsTitleColor,
+                color = AnalyticsTitleColor,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.width(3.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = if (isDark) Color(0xFF93c5fd) else AnalyticsMutedText
+                color = AnalyticsMutedText
             )
         }
     }
@@ -968,14 +983,13 @@ private fun AnalyticsQuotaCard(
     groupingMode: QuotaGroupingMode,
     modifier: Modifier = Modifier
 ) {
-    val isDark = MaterialTheme.colorScheme.surface == Color(0xFF0f172a)
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isDark) MaterialTheme.colorScheme.surface else AnalyticsMutedBg
+            containerColor = AnalyticsMutedBg
         ),
-        border = BorderStroke(1.dp, if (isDark) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else Color(0xFFE9EAED))
+        border = BorderStroke(1.dp, AnalyticsCardBorder)
     ) {
         Row(
             modifier = Modifier
@@ -1064,7 +1078,7 @@ private fun AnalyticsQuotaCard(
                     Box(
                         modifier = Modifier
                             .background(
-                                color = if (isDark) Color(0xFF1e293b) else AnalyticsAccentBg,
+                                color = AnalyticsAccentBg,
                                 shape = RoundedCornerShape(8.dp)
                             )
                             .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -1072,7 +1086,7 @@ private fun AnalyticsQuotaCard(
                         Text(
                             text = "${formatNumber(quota.last_24h_vouchers)} حواله",
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (isDark) Color(0xFF93c5fd) else AnalyticsAccent,
+                            color = AnalyticsAccent,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -1080,7 +1094,7 @@ private fun AnalyticsQuotaCard(
                     Box(
                         modifier = Modifier
                             .background(
-                                color = if (isDark) Color(0xFF1e293b) else AnalyticsAccentBg,
+                                color = AnalyticsAccentBg,
                                 shape = RoundedCornerShape(8.dp)
                             )
                             .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -1088,7 +1102,7 @@ private fun AnalyticsQuotaCard(
                         Text(
                             text = "${formatNumber(quota.last_24h_weight.roundToInt())} تن",
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (isDark) Color(0xFF93c5fd) else AnalyticsAccent,
+                            color = AnalyticsAccent,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -1097,12 +1111,12 @@ private fun AnalyticsQuotaCard(
                         Box(
                             modifier = Modifier
                                 .background(
-                                    color = if (isDark) Color(0xFF1e293b) else Color.White,
+                                    color = MaterialTheme.colorScheme.surface,
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .border(
                                     width = 1.dp,
-                                    color = if (isDark) Color(0xFF2563eb).copy(alpha = 0.3f) else AnalyticsCardBorder,
+                                    color = AnalyticsCardBorder,
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -1110,7 +1124,7 @@ private fun AnalyticsQuotaCard(
                             Text(
                                 text = quota.cargoType,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (isDark) Color(0xFF60a5fa) else AnalyticsTitleColor,
+                                color = AnalyticsTitleColor,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -1132,7 +1146,7 @@ private fun AnalyticsOwnerSummaryCard(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         HorizontalDivider(
-            color = Color(0xFFF0F1F2),
+            color = AnalyticsCardBorder,
             modifier = Modifier.padding(horizontal = 12.dp)
         )
         Row(
@@ -1236,7 +1250,7 @@ private fun OwnerQuotasDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.White, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                         .padding(horizontal = 18.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically

@@ -149,10 +149,10 @@ private val QuotaTealAccentBg: Color
 private val QuotaOnTealAccent: Color
     @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
 
-private val QuotaDeepOrangeAccent: Color
+val QuotaDeepOrangeAccent: Color
     @Composable get() = if (isSystemInDarkTheme()) DeepOrange300 else DeepOrange900
 
-private val QuotaDeepOrangeAccentBg: Color
+val QuotaDeepOrangeAccentBg: Color
     @Composable get() = if (isSystemInDarkTheme()) DeepOrange900.copy(alpha = 0.18f) else DeepOrange100.copy(alpha = 0.6f)
 
 private val QuotaPurpleAccent: Color
