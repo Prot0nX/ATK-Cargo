@@ -1,6 +1,7 @@
 package com.atk.atk_cargo.feature.reports.presentation.quota_details.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,9 +34,28 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.atk.atk_cargo.ui.theme.Red100
+import com.atk.atk_cargo.ui.theme.Red400
 import com.atk.atk_cargo.ui.theme.Red700
 import com.atk.atk_cargo.ui.theme.Teal50
 import com.atk.atk_cargo.ui.theme.Teal900
+
+private val QuotaDialogTealAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Teal900
+
+private val QuotaDialogTealAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Teal50
+
+private val QuotaDialogRedAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Red400 else Red700
+
+private val QuotaDialogRedAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Red700.copy(alpha = 0.25f) else Red100
+
+private val QuotaDialogOnTealAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+
+private val QuotaDialogOnRedAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF450A0A) else Color.White
 
 @Composable
 private fun QuotaConfirmDialog(
@@ -46,6 +66,7 @@ private fun QuotaConfirmDialog(
     body: String,
     confirmLabel: String,
     confirmColor: Color,
+    onConfirmColor: Color = Color.White,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -106,8 +127,8 @@ private fun QuotaConfirmDialog(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(13.dp),
                             colors = ButtonDefaults.textButtonColors(
-                                containerColor = Teal900,
-                                contentColor = Color.White
+                                containerColor = QuotaDialogTealAccent,
+                                contentColor = QuotaDialogOnTealAccent
                             )
                         ) {
                             Text("انصراف", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
@@ -118,7 +139,7 @@ private fun QuotaConfirmDialog(
                             shape = RoundedCornerShape(13.dp),
                             colors = ButtonDefaults.textButtonColors(
                                 containerColor = confirmColor,
-                                contentColor = Color.White
+                                contentColor = onConfirmColor
                             )
                         ) {
                             Text(confirmLabel, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
@@ -137,13 +158,14 @@ fun DeleteQuotaDialog(
     onDismiss: () -> Unit
 ) {
     QuotaConfirmDialog(
-        iconBg = Red100,
-        iconTint = Red700,
+        iconBg = QuotaDialogRedAccentBg,
+        iconTint = QuotaDialogRedAccent,
         icon = Icons.Default.Delete,
         title = "حذف کوتاژ",
         body = "آیا از حذف کوتاژ شماره $quotaNumber و تمام حواله‌های مرتبط با آن اطمینان دارید؟ این عملیات قابل بازگشت نیست.",
         confirmLabel = "حذف",
-        confirmColor = Red700,
+        confirmColor = QuotaDialogRedAccent,
+        onConfirmColor = QuotaDialogOnRedAccent,
         onConfirm = onConfirm,
         onDismiss = onDismiss
     )
@@ -157,13 +179,14 @@ fun ToggleQuotaStatusDialog(
     onDismiss: () -> Unit
 ) {
     QuotaConfirmDialog(
-        iconBg = Teal50,
-        iconTint = Teal900,
+        iconBg = QuotaDialogTealAccentBg,
+        iconTint = QuotaDialogTealAccent,
         icon = Icons.Default.PowerSettingsNew,
         title = "تغییر وضعیت کوتاژ",
         body = "آیا از ${if (isActive) "غیرفعال" else "فعال"} کردن کوتاژ شماره $quotaNumber اطمینان دارید؟",
         confirmLabel = "تأیید",
-        confirmColor = Teal900,
+        confirmColor = QuotaDialogTealAccent,
+        onConfirmColor = QuotaDialogOnTealAccent,
         onConfirm = onConfirm,
         onDismiss = onDismiss
     )

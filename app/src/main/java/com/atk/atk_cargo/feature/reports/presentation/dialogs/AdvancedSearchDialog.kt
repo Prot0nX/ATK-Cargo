@@ -2,6 +2,7 @@ package com.atk.atk_cargo.feature.reports.presentation.dialogs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,12 +49,29 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
-private val SearchAccent = Color(0xFF0D9488)
-private val SearchAccentBg = Color(0xFFDCEFEA)
-private val SearchMutedBg = Color(0xFFF3F4F5)
-private val SearchMutedText = Color(0xFF8A8F98)
-private val SearchTitleColor = Color(0xFF1F2937)
-private val SearchModalGradientBottom = Color(0xFFF2FAF8)
+private val SearchAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val SearchOnAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+
+private val SearchAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.16f) else Color(0xFFDCEFEA)
+
+private val SearchMutedBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+
+private val SearchMutedText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+private val SearchTitleColor: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurface
+
+private val SearchModalGradientTop: Color
+    @Composable get() = MaterialTheme.colorScheme.surface
+
+private val SearchModalGradientBottom: Color
+    @Composable get() = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else Color(0xFFF2FAF8)
 
 @Composable
 fun AdvancedSearchDialog(
@@ -85,7 +103,7 @@ fun AdvancedSearchDialog(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
-                            Brush.verticalGradient(listOf(Color.White, SearchModalGradientBottom)),
+                            Brush.verticalGradient(listOf(SearchModalGradientTop, SearchModalGradientBottom)),
                             RoundedCornerShape(20.dp)
                         )
                         .padding(20.dp)
@@ -161,9 +179,9 @@ fun AdvancedSearchDialog(
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = SearchAccent,
-                                unfocusedBorderColor = Color(0xFFE5E7EA),
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
                             ),
                             textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Right),
                             leadingIcon = {
@@ -209,7 +227,7 @@ fun AdvancedSearchDialog(
                                 .padding(vertical = 13.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("انصراف", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF737780))
+                            Text("انصراف", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = SearchMutedText)
                         }
 
                         Box(
@@ -226,7 +244,7 @@ fun AdvancedSearchDialog(
                                 .padding(vertical = 13.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("جستجو", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("جستجو", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = SearchOnAccent)
                         }
                     }
                 }
@@ -263,7 +281,7 @@ private fun SearchTypeTabRow(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (isSelected) Color.White else Color.Transparent)
+                    .background(if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent)
                     .clickable { onSearchTypeSelected(tab.type) }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center

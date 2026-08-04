@@ -12,6 +12,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -96,15 +97,38 @@ import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlin.math.roundToInt
 
-private val QuotaAccent = Color(0xFF0D9488)
-private val QuotaAccentBg = Color(0xFFDCEFEA)
-private val QuotaAccentBorder = Color(0xFFB9DED7)
-private val QuotaCardBorder = Color(0xFFDCEEE9)
-private val QuotaMutedBg = Color(0xFFF3F4F5)
-private val QuotaMutedText = Color(0xFF8A8F98)
-private val QuotaTitleColor = Color(0xFF1F2937)
-private val QuotaScreenBg = Color(0xFFFCFCFD)
-private val QuotaModalGradientBottom = Color(0xFFF2FAF8)
+private val QuotaAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val QuotaOnAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+
+private val QuotaAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.16f) else Color(0xFFDCEFEA)
+
+private val QuotaAccentBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.35f) else Color(0xFFB9DED7)
+
+private val QuotaCardBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+
+private val QuotaMutedBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+
+private val QuotaMutedText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+private val QuotaTitleColor: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurface
+
+private val QuotaScreenBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surface
+
+private val QuotaModalGradientTop: Color
+    @Composable get() = MaterialTheme.colorScheme.surface
+
+private val QuotaModalGradientBottom: Color
+    @Composable get() = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else Color(0xFFF2FAF8)
 
 @Composable
 fun QuotaManagementDialog(
@@ -257,7 +281,7 @@ fun QuotaManagementHeaderCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(QuotaScreenBg)
             .padding(horizontal = 18.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -514,7 +538,7 @@ fun AdvancedFiltersDialog(
     var tempFilters by remember { mutableStateOf(filters) }
 
     val filterChipColors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.surface,
         labelColor = QuotaMutedText,
         selectedContainerColor = QuotaAccentBg,
         selectedLabelColor = QuotaAccent
@@ -522,7 +546,7 @@ fun AdvancedFiltersDialog(
     val filterChipBorder = androidx.compose.material3.FilterChipDefaults.filterChipBorder(
         enabled = true,
         selected = false,
-        borderColor = Color(0xFFE5E7EA),
+        borderColor = MaterialTheme.colorScheme.outlineVariant,
         selectedBorderColor = QuotaAccentBorder
     )
 
@@ -538,7 +562,7 @@ fun AdvancedFiltersDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        Brush.verticalGradient(listOf(Color.White, QuotaModalGradientBottom)),
+                        Brush.verticalGradient(listOf(QuotaModalGradientTop, QuotaModalGradientBottom)),
                         RoundedCornerShape(20.dp)
                     )
                     .padding(20.dp),
@@ -682,7 +706,7 @@ fun AdvancedFiltersDialog(
                             .padding(vertical = 13.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("پاک کردن", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF737780))
+                        Text("پاک کردن", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = QuotaMutedText)
                     }
 
                     Box(
@@ -697,7 +721,7 @@ fun AdvancedFiltersDialog(
                             .padding(vertical = 13.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("اعمال کردن", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("اعمال کردن", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = QuotaOnAccent)
                     }
                 }
             }
@@ -798,7 +822,7 @@ fun SortOptionsCard(
             expanded = showSortMenu,
             onDismissRequest = { onShowSortMenuChange(false) },
             modifier = Modifier.width(250.dp),
-            containerColor = Color.White
+            containerColor = MaterialTheme.colorScheme.surface
         ) {
             sortOptions.forEach { (sortTypeOption, label) ->
                 DropdownMenuItem(
@@ -879,8 +903,9 @@ fun QuotaTabItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val selectedBackground = MaterialTheme.colorScheme.surface
     val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) Color.White else Color.Transparent,
+        targetValue = if (isSelected) selectedBackground else Color.Transparent,
         animationSpec = tween(300),
         label = "background"
     )
@@ -1033,7 +1058,7 @@ fun IntegratedQuotaCard(
             ),
         shape = RoundedCornerShape(12.dp),
         color = QuotaMutedBg,
-        border = BorderStroke(1.dp, Color(0xFFE9EAED))
+        border = BorderStroke(1.dp, QuotaCardBorder)
     ) {
         Column {
             Surface(
@@ -1349,8 +1374,8 @@ fun TempTonnageSection(
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = QuotaAccent,
                                 focusedLabelColor = QuotaAccent,
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
                             )
                         )
 
@@ -1376,7 +1401,7 @@ fun TempTonnageSection(
                                     containerColor = if (tempTonnageValue.isNotEmpty())
                                         QuotaAccent
                                     else QuotaAccent.copy(alpha = 0.3f),
-                                    contentColor = Color.White
+                                    contentColor = QuotaOnAccent
                                 )
                             ) {
                                 Icon(
@@ -1434,15 +1459,16 @@ fun StatusButton(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isDarkTheme = isSystemInDarkTheme()
     val containerColor = if (isActive) {
-        Color(0xFF4CAF50).copy(alpha = 0.15f)
+        (if (isDarkTheme) Color(0xFF4ADE80) else Color(0xFF4CAF50)).copy(alpha = if (isDarkTheme) 0.2f else 0.15f)
     } else {
-        Color(0xFFF44336).copy(alpha = 0.15f)
+        (if (isDarkTheme) Color(0xFFF87171) else Color(0xFFF44336)).copy(alpha = if (isDarkTheme) 0.2f else 0.15f)
     }
     val contentColor = if (isActive) {
-        Color(0xFF2E7D32)
+        if (isDarkTheme) Color(0xFF86EFAC) else Color(0xFF2E7D32)
     } else {
-        Color(0xFFC62828)
+        if (isDarkTheme) Color(0xFFFCA5A5) else Color(0xFFC62828)
     }
 
     if (isLoading) {
@@ -1513,10 +1539,18 @@ fun QuotaShipExpansionPanel(
                 )
             ),
         shape = RoundedCornerShape(14.dp),
-        color = if (allQuotasInactive) Color(0xFFFDF1EF) else Color.White,
+        color = if (allQuotasInactive) {
+            if (isSystemInDarkTheme()) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f) else Color(0xFFFDF1EF)
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
         border = BorderStroke(
             width = 1.dp,
-            color = if (allQuotasInactive) Color(0xFFF0B9AE) else QuotaCardBorder
+            color = if (allQuotasInactive) {
+                if (isSystemInDarkTheme()) MaterialTheme.colorScheme.error.copy(alpha = 0.4f) else Color(0xFFF0B9AE)
+            } else {
+                QuotaCardBorder
+            }
         )
     ) {
         Column {
@@ -1628,11 +1662,10 @@ private fun AnalyticsStatChipMini(
     label: String,
     modifier: Modifier = Modifier
 ) {
-    val isDark = MaterialTheme.colorScheme.surface == Color(0xFF0f172a)
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
-        color = if (isDark) Color(0xFF1e293b) else QuotaAccentBg
+        color = QuotaAccentBg
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
@@ -1642,13 +1675,13 @@ private fun AnalyticsStatChipMini(
             Text(
                 text = value,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (isDark) Color(0xFF93c5fd) else QuotaAccent,
+                color = QuotaAccent,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (isDark) Color(0xFF93c5fd) else QuotaAccent
+                color = QuotaAccent
             )
         }
     }

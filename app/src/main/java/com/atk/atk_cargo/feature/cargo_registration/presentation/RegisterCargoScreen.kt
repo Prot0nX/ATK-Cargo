@@ -12,7 +12,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,10 +38,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -50,8 +55,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -70,14 +73,18 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -104,9 +111,6 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.Quot
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.ShipInfoSection
 import com.atk.atk_cargo.feature.startup.domain.AnimationManager
 import com.atk.atk_cargo.ui.theme.Amber700
-import com.atk.atk_cargo.ui.theme.Gray300
-import com.atk.atk_cargo.ui.theme.Gray500
-import com.atk.atk_cargo.ui.theme.Gray600
 import com.atk.atk_cargo.ui.theme.Green600
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.journeyapps.barcodescanner.ScanContract
@@ -115,13 +119,163 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
-private val RegisterAccent = Color(0xFF0D9488)
-private val RegisterAccentBg = Color(0xFFDCEFEA)
-private val RegisterAccentBorder = Color(0xFFB9DED7)
-private val RegisterCardBorder = Color(0xFFE4E6E9)
-private val RegisterMutedBg = Color(0xFFF3F4F5)
-private val RegisterMutedText = Color(0xFF8A8F98)
-private val RegisterTitleColor = Color(0xFF1F2937)
+private val RegisterAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val RegisterOnAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+
+private val RegisterAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Color(0xFFDCEFEA)
+
+private val RegisterAccentBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF1F6F63) else Color(0xFFB9DED7)
+
+private val RegisterCardBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant
+
+private val RegisterMutedBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+
+private val RegisterMutedText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+private val RegisterTitleColor: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurface
+
+@Composable
+private fun RegisterSearchField(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onSearch: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.height(52.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = RegisterMutedBg
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = RegisterAccent,
+                modifier = Modifier.size(20.dp)
+            )
+
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (searchQuery.isEmpty()) {
+                    Text(
+                        text = "جستجوی شماره حواله...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = RegisterMutedText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                BasicTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Search
+                    ),
+                    keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = RegisterTitleColor),
+                    cursorBrush = SolidColor(RegisterAccent)
+                )
+            }
+
+            if (searchQuery.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .clickable { onSearchQueryChange("") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "پاک کردن",
+                        tint = RegisterMutedText,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RegisterTabButton(
+    text: String,
+    count: Int,
+    icon: ImageVector,
+    accentColor: Color,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val backgroundColor = if (isSelected) accentColor.copy(alpha = 0.12f) else Color.Transparent
+    val contentColor = if (isSelected) accentColor else RegisterMutedText
+    val borderColor = if (isSelected) accentColor.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outlineVariant
+
+    Surface(
+        modifier = modifier
+            .fillMaxHeight()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        color = backgroundColor,
+        border = BorderStroke(1.dp, borderColor)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = contentColor,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = if (isSelected) accentColor.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ) {
+                Text(
+                    text = "$count",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+    }
+}
 
 suspend fun handleQuotaEntry(
     quotaCode: String,
@@ -302,7 +456,7 @@ fun RegisterCargoScreen(
                         Icon(
                             imageVector = Icons.Default.ConfirmationNumber,
                             contentDescription = "تغییر کوتاژ",
-                            tint = Color.White,
+                            tint = RegisterOnAccent,
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -427,30 +581,24 @@ fun RegisterCargoScreen(
                         .offset(y = (-8).dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Surface(
+                    Box(
                         modifier = Modifier
                             .size(32.dp)
+                            .clip(CircleShape)
+                            .background(RegisterMutedBg)
                             .clickable { isFormExpanded = !isFormExpanded },
-                        shape = CircleShape,
-                        color = Color.White,
-                        shadowElevation = 1.dp,
-                        border = BorderStroke(1.dp, RegisterCardBorder)
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = if (isFormExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                contentDescription = if (isFormExpanded) "بستن فرم" else "باز کردن فرم",
-                                tint = RegisterMutedText,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = if (isFormExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = if (isFormExpanded) "بستن فرم" else "باز کردن فرم",
+                            tint = RegisterMutedText,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
 
-                // نوار ابزار جستجو و بروزرسانی مدرن صنعتی
+                // نوار ابزار جستجو و بروزرسانی - هم‌زبان با ComprehensiveAnalyticsDialog
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -458,40 +606,11 @@ fun RegisterCargoScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp),
-                        placeholder = {
-                            Text(
-                                text = "جستجوی شماره حواله...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = null,
-                                tint = RegisterAccent,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        },
-                        shape = RoundedCornerShape(14.dp),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Search
-                        ),
-                        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            focusedBorderColor = RegisterAccent,
-                            unfocusedBorderColor = Color(0xFFE5E7EA)
-                        )
+                    RegisterSearchField(
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { searchQuery = it },
+                        onSearch = { focusManager.clearFocus() },
+                        modifier = Modifier.weight(1f)
                     )
 
                     var isRefreshing by remember { mutableStateOf(false) }
@@ -502,9 +621,11 @@ fun RegisterCargoScreen(
                         label = "rotation"
                     )
 
-                    Surface(
+                    Box(
                         modifier = Modifier
-                            .height(52.dp)
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(RegisterAccentBg)
                             .clickable(enabled = !isRefreshing) {
                                 if (!isRefreshing) {
                                     isRefreshing = true
@@ -516,133 +637,46 @@ fun RegisterCargoScreen(
                                     }
                                 }
                             },
-                        shape = RoundedCornerShape(14.dp),
-                        color = RegisterAccentBg,
-                        border = BorderStroke(1.dp, RegisterAccentBorder)
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "بروزرسانی",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = RegisterAccent
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "بروزرسانی",
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .rotate(rotation.value),
-                                tint = RegisterAccent
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "بروزرسانی",
+                            modifier = Modifier
+                                .size(22.dp)
+                                .rotate(rotation.value),
+                            tint = RegisterAccent
+                        )
                     }
                 }
 
                 var selectedTab by remember { mutableIntStateOf(0) }
-                
-                Surface(
+
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = RegisterMutedBg
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .height(48.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { selectedTab = 0 },
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (selectedTab == 0) Color.White else Color.Transparent,
-                            shadowElevation = if (selectedTab == 0) 1.dp else 0.dp
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(vertical = 10.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Assignment,
-                                    contentDescription = null,
-                                    tint = if (selectedTab == 0) Amber700 else Gray500,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "ورود شده",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (selectedTab == 0) Amber700 else Gray500
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = if (selectedTab == 0) Amber700.copy(alpha = 0.1f) else Gray300
-                                ) {
-                                    Text(
-                                        text = "${nonExitedCargos.size}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (selectedTab == 0) Amber700 else Gray600,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { selectedTab = 1 },
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (selectedTab == 1) Color.White else Color.Transparent,
-                            shadowElevation = if (selectedTab == 1) 1.dp else 0.dp
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(vertical = 10.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.LocalShipping,
-                                    contentDescription = null,
-                                    tint = if (selectedTab == 1) Green600 else Gray500,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "خروج شده",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (selectedTab == 1) Green600 else Gray500
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = if (selectedTab == 1) Green600.copy(alpha = 0.1f) else Gray300
-                                ) {
-                                    Text(
-                                        text = "${exitedCargos.size}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (selectedTab == 1) Green600 else Gray600,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    RegisterTabButton(
+                        text = "ورود شده",
+                        count = nonExitedCargos.size,
+                        icon = Icons.AutoMirrored.Filled.Assignment,
+                        accentColor = Amber700,
+                        isSelected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        modifier = Modifier.weight(1f)
+                    )
+                    RegisterTabButton(
+                        text = "خروج شده",
+                        count = exitedCargos.size,
+                        icon = Icons.Default.LocalShipping,
+                        accentColor = Green600,
+                        isSelected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
 
                 val currentItems = if (selectedTab == 0) {
@@ -662,7 +696,7 @@ fun RegisterCargoScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surface,
                     border = BorderStroke(1.dp, RegisterCardBorder)
                 ) {
                     if (filteredItems.isEmpty()) {

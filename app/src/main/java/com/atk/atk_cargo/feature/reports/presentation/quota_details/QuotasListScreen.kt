@@ -15,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -120,10 +121,14 @@ import com.atk.atk_cargo.feature.reports.presentation.quota_details.components.D
 import com.atk.atk_cargo.feature.reports.presentation.quota_details.components.ToggleQuotaStatusDialog
 import com.atk.atk_cargo.ui.theme.CornerL
 import com.atk.atk_cargo.ui.theme.DeepOrange100
+import com.atk.atk_cargo.ui.theme.DeepOrange300
 import com.atk.atk_cargo.ui.theme.DeepOrange900
+import com.atk.atk_cargo.ui.theme.Green300
 import com.atk.atk_cargo.ui.theme.Green600
 import com.atk.atk_cargo.ui.theme.Green700
+import com.atk.atk_cargo.ui.theme.Purple200
 import com.atk.atk_cargo.ui.theme.Purple700
+import com.atk.atk_cargo.ui.theme.Red400
 import com.atk.atk_cargo.ui.theme.Red500
 import com.atk.atk_cargo.ui.theme.Red900
 import com.atk.atk_cargo.ui.theme.Teal50
@@ -134,6 +139,36 @@ import kotlinx.coroutines.flow.StateFlow
 import java.util.Locale
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
+
+private val QuotaTealAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Teal900
+
+private val QuotaTealAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Teal50
+
+private val QuotaOnTealAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+
+val QuotaDeepOrangeAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) DeepOrange300 else DeepOrange900
+
+val QuotaDeepOrangeAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) DeepOrange900.copy(alpha = 0.18f) else DeepOrange100.copy(alpha = 0.6f)
+
+private val QuotaPurpleAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Purple200 else Purple700
+
+private val QuotaRedAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Red400 else Red500
+
+private val QuotaRedDeleteAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Red400 else Red900
+
+private val QuotaGreenAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Green300 else Green600
+
+private val QuotaGreenActionAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Green300 else Green700
 
 @SuppressLint("MutableCollectionMutableState")
 @Composable
@@ -414,7 +449,7 @@ private fun SortPill(
         modifier = modifier,
         onClick = onClick,
         shape = RoundedCornerShape(9.dp),
-        color = if (isSelected) Teal900 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        color = if (isSelected) QuotaTealAccent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
@@ -424,13 +459,13 @@ private fun SortPill(
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (isSelected) QuotaOnTealAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Bold
             )
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (isSelected) QuotaOnTealAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(11.dp)
             )
         }
@@ -475,7 +510,7 @@ fun QuotaGroupExpansionPanel(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, Teal900.copy(alpha = 0.2f)),
+        border = BorderStroke(1.dp, QuotaTealAccent.copy(alpha = 0.2f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -538,7 +573,7 @@ fun QuotaGroupExpansionPanel(
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(9.dp),
-                    color = DeepOrange100.copy(alpha = 0.6f)
+                    color = QuotaDeepOrangeAccentBg
                 ) {
                     Row(
                         modifier = Modifier
@@ -550,13 +585,13 @@ fun QuotaGroupExpansionPanel(
                         Text(
                             text = "بارگیری:",
                             style = MaterialTheme.typography.labelSmall,
-                            color = DeepOrange900.copy(alpha = 0.8f)
+                            color = QuotaDeepOrangeAccent.copy(alpha = 0.8f)
                         )
                         Text(
                             text = "↑ ${formatNumber(loadedWeight.toInt())}",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = DeepOrange900
+                            color = QuotaDeepOrangeAccent
                         )
                     }
                 }
@@ -656,9 +691,9 @@ fun QuotaCard(
         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
     }
     val accentColor = if (quota.isActive) {
-        Teal900
+        QuotaTealAccent
     } else {
-        Teal900.copy(alpha = 0.5f)
+        QuotaTealAccent.copy(alpha = 0.5f)
     }
     val loadedTonnage = quota.loadedTonnage
     val remainingTonnage = quota.remainingTonnage
@@ -696,7 +731,7 @@ fun QuotaCard(
                         Icon(
                             imageVector = if (quota.isActive) Icons.Default.CheckCircle else Icons.Default.Cancel,
                             contentDescription = if (quota.isActive) "فعال" else "غیرفعال",
-                            tint = if (quota.isActive) Green600 else Red500,
+                            tint = if (quota.isActive) QuotaGreenAccent else QuotaRedAccent,
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
@@ -812,7 +847,7 @@ fun QuotaCard(
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(8.dp),
-                    color = Teal50.copy(alpha = if (quota.isActive) 1f else 0.5f)
+                    color = QuotaTealAccentBg.copy(alpha = if (quota.isActive) 1f else 0.5f)
                 ) {
                     Row(
                         modifier = Modifier
@@ -859,25 +894,25 @@ fun QuotaCard(
                         ActionButton(
                             icon = Icons.Default.Edit,
                             label = "ویرایش",
-                            color = Teal900,
+                            color = QuotaTealAccent,
                             onClick = { showEditDialog = true }
                         )
                         ActionButton(
                             icon = Icons.Default.Build,
                             label = "درصد",
-                            color = Purple700,
+                            color = QuotaPurpleAccent,
                             onClick = { showPercentageDialog = true }
                         )
                         ActionButton(
                             icon = if (quota.isActive) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
                             label = if (quota.isActive) "غیرفعال" else "فعال",
-                            color = if (quota.isActive) Red500 else Green700,
+                            color = if (quota.isActive) QuotaRedAccent else QuotaGreenActionAccent,
                             onClick = { showToggleDialog = true }
                         )
                         ActionButton(
                             icon = Icons.Default.Delete,
                             label = "حذف",
-                            color = Red900,
+                            color = QuotaRedDeleteAccent,
                             onClick = { showDeleteDialog = true }
                         )
                     }
@@ -943,7 +978,7 @@ fun MinimalQuotaCard(
     modifier: Modifier = Modifier
 ) {
     val accentColor = if (quota.isActive) {
-        Teal900
+        QuotaTealAccent
     } else {
         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
     }
@@ -956,7 +991,7 @@ fun MinimalQuotaCard(
         shape = RoundedCornerShape(CornerL),
         border = BorderStroke(
             1.dp,
-            if (quota.isActive) Teal900.copy(alpha = 0.2f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            if (quota.isActive) QuotaTealAccent.copy(alpha = 0.2f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -982,7 +1017,7 @@ fun MinimalQuotaCard(
                 Icon(
                     imageVector = if (quota.isActive) Icons.Default.CheckCircle else Icons.Default.Cancel,
                     contentDescription = null,
-                    tint = if (quota.isActive) Green600 else Red500,
+                    tint = if (quota.isActive) QuotaGreenAccent else QuotaRedAccent,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -1107,9 +1142,9 @@ private fun GroupingModeButton(
     onLongClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val backgroundColor = if (isSelected) Teal50 else Color.Transparent
-    val contentColor = if (isSelected) Teal900 else MaterialTheme.colorScheme.onSurfaceVariant
-    val borderColor = if (isSelected) Teal900.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    val backgroundColor = if (isSelected) QuotaTealAccentBg else Color.Transparent
+    val contentColor = if (isSelected) QuotaTealAccent else MaterialTheme.colorScheme.onSurfaceVariant
+    val borderColor = if (isSelected) QuotaTealAccent.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
 
     Surface(
         modifier = modifier
@@ -1196,7 +1231,7 @@ private fun EditFieldBox(
                 textAlign = if (ltr) TextAlign.Left else TextAlign.Right
             ),
             keyboardOptions = keyboardOptions,
-            cursorBrush = SolidColor(Teal900)
+            cursorBrush = SolidColor(QuotaTealAccent)
         )
         trailing?.invoke()
     }
@@ -1398,7 +1433,7 @@ fun EditQuotaDialog(
                         modifier = Modifier.weight(1.4f),
                         enabled = editedData != quotaData && isValidQuotaNumber(editedData.quotaNumber),
                         shape = RoundedCornerShape(13.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Teal900)
+                        colors = ButtonDefaults.buttonColors(containerColor = QuotaTealAccent)
                     ) {
                         Text("تایید و ذخیره", fontWeight = FontWeight.Bold)
                     }
@@ -1456,7 +1491,7 @@ fun EditQuotaDialog(
                             },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Teal900)
+                            colors = ButtonDefaults.buttonColors(containerColor = QuotaTealAccent)
                         ) {
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1570,7 +1605,7 @@ fun QuotaPercentageDialog(
                         },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Teal900)
+                        colors = ButtonDefaults.buttonColors(containerColor = QuotaTealAccent)
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1640,13 +1675,13 @@ private fun PercentageInputTab(
             .fillMaxWidth()
             .height(6.dp)
             .clip(RoundedCornerShape(3.dp))
-            .background(Teal900.copy(alpha = 0.12f))
+            .background(QuotaTealAccent.copy(alpha = 0.12f))
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(progress.toFloat())
                     .fillMaxHeight()
-                    .background(Teal900)
+                    .background(QuotaTealAccent)
             )
         }
 
@@ -1716,13 +1751,13 @@ private fun PercentModePill(
         modifier = modifier,
         onClick = onClick,
         shape = RoundedCornerShape(11.dp),
-        color = if (isSelected) Teal900 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        color = if (isSelected) QuotaTealAccent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold,
-            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (isSelected) QuotaOnTealAccent else MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
@@ -1750,7 +1785,7 @@ private fun IconButton(
             .size(46.dp)
             .scale(scale)
             .background(
-                color = if (enabled) Teal50 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                color = if (enabled) QuotaTealAccentBg else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
                 shape = CircleShape
             )
             .clickable(
@@ -1764,7 +1799,7 @@ private fun IconButton(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (enabled) Teal900 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+            tint = if (enabled) QuotaTealAccent else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
         )
     }
 }
@@ -1773,7 +1808,7 @@ private fun IconButton(
 private fun PercentageDisplay(percentage: Double) {
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = Teal50,
+        color = QuotaTealAccentBg,
         modifier = Modifier.width(120.dp)
     ) {
         Box(
@@ -1784,7 +1819,7 @@ private fun PercentageDisplay(percentage: Double) {
                 text = "%.2f%%".format(percentage),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.ExtraBold,
-                color = Teal900
+                color = QuotaTealAccent
             )
         }
     }
@@ -1818,14 +1853,14 @@ private fun RowScope.QuickSelectButton(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(10.dp),
-        color = if (isSelected) Teal900 else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        color = if (isSelected) QuotaTealAccent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         modifier = Modifier.weight(1f)
     ) {
         Text(
             text = "%.2f%%".format(value),
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold,
-            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (isSelected) QuotaOnTealAccent else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
                 .padding(vertical = 8.dp)
                 .fillMaxWidth(),
@@ -1986,13 +2021,13 @@ private fun QuotaDialogHeader(
         Box(
             modifier = Modifier
                 .size(44.dp)
-                .background(color = Teal50, shape = CircleShape),
+                .background(color = QuotaTealAccentBg, shape = CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Teal900,
+                tint = QuotaTealAccent,
                 modifier = Modifier.size(18.dp)
             )
         }

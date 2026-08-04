@@ -379,7 +379,7 @@ private fun TopHeader(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
-                                    text = "تغییر کوتاژ",
+                                    text = "تغییر کشتی",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
