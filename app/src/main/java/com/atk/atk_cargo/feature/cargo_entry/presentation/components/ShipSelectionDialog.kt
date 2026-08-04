@@ -3,6 +3,7 @@ package com.atk.atk_cargo.feature.cargo_entry.presentation.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,14 +56,41 @@ import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.api.ActiveShipInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 
-private val ShipDialogAccent = Color(0xFF0D9488)
-private val ShipDialogAccentBg = Color(0xFFDCEFEA)
-private val ShipDialogAccentBorder = Color(0xFFB9DED7)
-private val ShipDialogCardBorder = Color(0xFFE4E6E9)
-private val ShipDialogMutedBg = Color(0xFFF3F4F5)
-private val ShipDialogMutedText = Color(0xFF8A8F98)
-private val ShipDialogTitleColor = Color(0xFF1F2937)
-private val ShipDialogGradientBottom = Color(0xFFF2FAF8)
+private val ShipDialogAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val ShipDialogOnAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+
+private val ShipDialogAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Color(0xFFDCEFEA)
+
+private val ShipDialogAccentBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF1F6F63) else Color(0xFFB9DED7)
+
+private val ShipDialogCardBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant
+
+private val ShipDialogMutedBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+
+private val ShipDialogMutedText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+private val ShipDialogTitleColor: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurface
+
+private val ShipDialogGradientBottom: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF0F2E2A) else Color(0xFFF2FAF8)
+
+private val ShipDialogGradientTop: Color
+    @Composable get() = MaterialTheme.colorScheme.surface
+
+private val ShipDialogFieldBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant
+
+private val ShipDialogCancelText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
 
 @Composable
 fun ShipSelectionDialog(
@@ -121,7 +149,7 @@ fun ShipSelectionDialog(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        Brush.verticalGradient(listOf(Color.White, ShipDialogGradientBottom)),
+                        Brush.verticalGradient(listOf(ShipDialogGradientTop, ShipDialogGradientBottom)),
                         RoundedCornerShape(24.dp)
                     )
                     .padding(20.dp),
@@ -188,10 +216,10 @@ fun ShipSelectionDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                         focusedBorderColor = ShipDialogAccent,
-                        unfocusedBorderColor = Color(0xFFE5E7EA)
+                        unfocusedBorderColor = ShipDialogFieldBorder
                     ),
                     leadingIcon = {
                         Icon(
@@ -222,7 +250,7 @@ fun ShipSelectionDialog(
                 if (cargoTypes.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(10.dp))
                     val chipColors = FilterChipDefaults.filterChipColors(
-                        containerColor = Color.White,
+                        containerColor = MaterialTheme.colorScheme.surface,
                         labelColor = ShipDialogMutedText,
                         iconColor = ShipDialogMutedText,
                         selectedContainerColor = ShipDialogAccentBg,
@@ -232,7 +260,7 @@ fun ShipSelectionDialog(
                     val chipBorder = FilterChipDefaults.filterChipBorder(
                         enabled = true,
                         selected = false,
-                        borderColor = Color(0xFFE5E7EA),
+                        borderColor = ShipDialogFieldBorder,
                         selectedBorderColor = ShipDialogAccentBorder
                     )
                     LazyRow(
@@ -294,7 +322,7 @@ fun ShipSelectionDialog(
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(14.dp),
-                                color = if (isSelected) shipColor.copy(alpha = 0.1f) else Color.White,
+                                color = if (isSelected) shipColor.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface,
                                 border = BorderStroke(
                                     if (isSelected) 1.5.dp else 1.dp,
                                     if (isSelected) shipColor.copy(alpha = 0.6f) else ShipDialogCardBorder
@@ -378,7 +406,7 @@ fun ShipSelectionDialog(
                             .clickable(onClick = onDismiss),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("انصراف", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF737780))
+                        Text("انصراف", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ShipDialogCancelText)
                     }
 
                     Box(
@@ -394,9 +422,9 @@ fun ShipSelectionDialog(
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Check, contentDescription = null, tint = ShipDialogOnAccent, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("تایید انتخاب (${selectedShips.size})", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("تایید انتخاب (${selectedShips.size})", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ShipDialogOnAccent)
                         }
                     }
                 }
