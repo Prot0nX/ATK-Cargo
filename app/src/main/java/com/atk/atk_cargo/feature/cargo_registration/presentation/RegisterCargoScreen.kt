@@ -13,6 +13,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -115,13 +116,29 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
-private val RegisterAccent = Color(0xFF0D9488)
-private val RegisterAccentBg = Color(0xFFDCEFEA)
-private val RegisterAccentBorder = Color(0xFFB9DED7)
-private val RegisterCardBorder = Color(0xFFE4E6E9)
-private val RegisterMutedBg = Color(0xFFF3F4F5)
-private val RegisterMutedText = Color(0xFF8A8F98)
-private val RegisterTitleColor = Color(0xFF1F2937)
+private val RegisterAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val RegisterOnAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+
+private val RegisterAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Color(0xFFDCEFEA)
+
+private val RegisterAccentBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF1F6F63) else Color(0xFFB9DED7)
+
+private val RegisterCardBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant
+
+private val RegisterMutedBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+
+private val RegisterMutedText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+private val RegisterTitleColor: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurface
 
 suspend fun handleQuotaEntry(
     quotaCode: String,
@@ -302,7 +319,7 @@ fun RegisterCargoScreen(
                         Icon(
                             imageVector = Icons.Default.ConfirmationNumber,
                             contentDescription = "تغییر کوتاژ",
-                            tint = Color.White,
+                            tint = RegisterOnAccent,
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -432,7 +449,7 @@ fun RegisterCargoScreen(
                             .size(32.dp)
                             .clickable { isFormExpanded = !isFormExpanded },
                         shape = CircleShape,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.surface,
                         shadowElevation = 1.dp,
                         border = BorderStroke(1.dp, RegisterCardBorder)
                     ) {
@@ -487,10 +504,10 @@ fun RegisterCargoScreen(
                         ),
                         keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
                             focusedBorderColor = RegisterAccent,
-                            unfocusedBorderColor = Color(0xFFE5E7EA)
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                         )
                     )
 
@@ -564,7 +581,7 @@ fun RegisterCargoScreen(
                                 .weight(1f)
                                 .clickable { selectedTab = 0 },
                             shape = RoundedCornerShape(8.dp),
-                            color = if (selectedTab == 0) Color.White else Color.Transparent,
+                            color = if (selectedTab == 0) MaterialTheme.colorScheme.surface else Color.Transparent,
                             shadowElevation = if (selectedTab == 0) 1.dp else 0.dp
                         ) {
                             Row(
@@ -606,7 +623,7 @@ fun RegisterCargoScreen(
                                 .weight(1f)
                                 .clickable { selectedTab = 1 },
                             shape = RoundedCornerShape(8.dp),
-                            color = if (selectedTab == 1) Color.White else Color.Transparent,
+                            color = if (selectedTab == 1) MaterialTheme.colorScheme.surface else Color.Transparent,
                             shadowElevation = if (selectedTab == 1) 1.dp else 0.dp
                         ) {
                             Row(
@@ -662,7 +679,7 @@ fun RegisterCargoScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surface,
                     border = BorderStroke(1.dp, RegisterCardBorder)
                 ) {
                     if (filteredItems.isEmpty()) {

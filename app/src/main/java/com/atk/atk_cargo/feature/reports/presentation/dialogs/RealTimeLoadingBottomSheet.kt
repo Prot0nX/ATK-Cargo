@@ -109,13 +109,26 @@ import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val RealTimeAccent = Color(0xFF0D9488)
-private val RealTimeAccentBg = Color(0xFFDCEFEA)
-private val RealTimeAccentBorder = Color(0xFFB9DED7)
-private val RealTimeCardBorder = Color(0xFFDCEEE9)
-private val RealTimeMutedBg = Color(0xFFF3F4F5)
-private val RealTimeMutedText = Color(0xFF8A8F98)
-private val RealTimeTitleColor = Color(0xFF1F2937)
+private val RealTimeAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val RealTimeAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Color(0xFFDCEFEA)
+
+private val RealTimeAccentBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF1F6F63) else Color(0xFFB9DED7)
+
+private val RealTimeCardBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant
+
+private val RealTimeMutedBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+
+private val RealTimeMutedText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+private val RealTimeTitleColor: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurface
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -566,7 +579,7 @@ fun ShipCard(
             .fillMaxWidth()
             .animateContentSize(),
         shape = RoundedCornerShape(14.dp),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, RealTimeCardBorder)
     ) {
         Column(modifier = Modifier.padding(vertical = 0.dp)) {
@@ -700,7 +713,7 @@ fun ShipCard(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.White)
+                        .background(MaterialTheme.colorScheme.surface)
                         .padding(16.dp)
                 ) {
                     content()
@@ -720,7 +733,7 @@ private fun DialogHeader(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = Color.White
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier
@@ -814,7 +827,7 @@ fun RealTimeLoadingCard(
             .animateContentSize(),
         shape = RoundedCornerShape(14.dp),
         color = RealTimeMutedBg,
-        border = BorderStroke(1.dp, Color(0xFFE9EAED)),
+        border = BorderStroke(1.dp, RealTimeCardBorder),
     ) {
         val verticalLineColor = RealTimeAccent
 
@@ -894,7 +907,7 @@ fun RealTimeLoadingCard(
 
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.surface,
                             border = BorderStroke(1.dp, RealTimeCardBorder),
                         ) {
                             Text(
@@ -1097,7 +1110,7 @@ fun StatisticItem(
             .padding(vertical = 4.dp),
         shape = RoundedCornerShape(14.dp),
         color = RealTimeMutedBg,
-        border = BorderStroke(1.dp, Color(0xFFE9EAED))
+        border = BorderStroke(1.dp, RealTimeCardBorder)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -1132,7 +1145,7 @@ fun StatisticItem(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(4.dp),
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.surface
                     ) {
                         Text(
                             text = "kg",
