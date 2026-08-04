@@ -10,6 +10,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,16 +66,30 @@ import com.atk.atk_cargo.feature.reports.presentation.dialogs.QuotaWarningDialog
 import com.atk.atk_cargo.feature.reports.presentation.quota_details.QuotasList
 import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
 import com.atk.atk_cargo.feature.reports.presentation.warehouse_details.WarehousesSection
+import com.atk.atk_cargo.ui.theme.Blue400
 import com.atk.atk_cargo.ui.theme.Blue700
 import com.atk.atk_cargo.ui.theme.DeepOrange100
+import com.atk.atk_cargo.ui.theme.DeepOrange300
 import com.atk.atk_cargo.ui.theme.DeepOrange900
-import com.atk.atk_cargo.ui.theme.Gray300
-import com.atk.atk_cargo.ui.theme.Gray500
-import com.atk.atk_cargo.ui.theme.Gray600
 import com.atk.atk_cargo.ui.theme.Teal50
 import com.atk.atk_cargo.ui.theme.Teal900
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlin.math.abs
+
+private val ShipDetailsTealAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Teal900
+
+private val ShipDetailsTealAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Teal50
+
+private val ShipDetailsDeepOrangeAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) DeepOrange300 else DeepOrange900
+
+private val ShipDetailsDeepOrangeAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) DeepOrange900.copy(alpha = 0.18f) else DeepOrange100.copy(alpha = 0.6f)
+
+private val ShipDetailsTabAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Blue400 else Blue700
 
 @Composable
 fun ShipDetails(
@@ -468,13 +483,13 @@ private fun ShipHeaderCard(shipDetails: Ship) {
                     modifier = Modifier
                         .size(34.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Teal50),
+                        .background(ShipDetailsTealAccentBg),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Description,
                         contentDescription = null,
-                        tint = Teal900,
+                        tint = ShipDetailsTealAccent,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -501,7 +516,7 @@ private fun ShipHeaderCard(shipDetails: Ship) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(13.dp),
-                color = DeepOrange100.copy(alpha = 0.6f)
+                color = ShipDetailsDeepOrangeAccentBg
             ) {
                 Row(
                     modifier = Modifier
@@ -514,27 +529,27 @@ private fun ShipHeaderCard(shipDetails: Ship) {
                         text = "${(progress * 100).toInt()}%",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.ExtraBold,
-                        color = DeepOrange900
+                        color = ShipDetailsDeepOrangeAccent
                     )
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .height(7.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(DeepOrange900.copy(alpha = 0.18f))
+                            .background(ShipDetailsDeepOrangeAccent.copy(alpha = 0.18f))
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(progress)
                                 .fillMaxHeight()
-                                .background(DeepOrange900)
+                                .background(ShipDetailsDeepOrangeAccent)
                         )
                     }
                     Text(
                         text = "مانده: ${formatNumber(shipDetails.remainingTonnage.toInt())}",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = DeepOrange900,
+                        color = ShipDetailsDeepOrangeAccent,
                         maxLines = 1
                     )
                     Text(
@@ -584,7 +599,7 @@ private fun WarehouseQuotasTabs(
                     Icon(
                         imageVector = Icons.Default.Receipt,
                         contentDescription = null,
-                        tint = if (selectedTabIndex == 0) Blue700 else Gray500,
+                        tint = if (selectedTabIndex == 0) ShipDetailsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -592,18 +607,18 @@ private fun WarehouseQuotasTabs(
                         text = "کوتاژها",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selectedTabIndex == 0) Blue700 else Gray500
+                        color = if (selectedTabIndex == 0) ShipDetailsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = if (selectedTabIndex == 0) Blue700.copy(alpha = 0.1f) else Gray300
+                        color = if (selectedTabIndex == 0) ShipDetailsTabAccent.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
                             text = "$quotasCount",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (selectedTabIndex == 0) Blue700 else Gray600,
+                            color = if (selectedTabIndex == 0) ShipDetailsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
@@ -626,7 +641,7 @@ private fun WarehouseQuotasTabs(
                     Icon(
                         imageVector = Icons.Default.Warehouse,
                         contentDescription = null,
-                        tint = if (selectedTabIndex == 1) Blue700 else Gray500,
+                        tint = if (selectedTabIndex == 1) ShipDetailsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -634,18 +649,18 @@ private fun WarehouseQuotasTabs(
                         text = "انبارها",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selectedTabIndex == 1) Blue700 else Gray500
+                        color = if (selectedTabIndex == 1) ShipDetailsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = if (selectedTabIndex == 1) Blue700.copy(alpha = 0.1f) else Gray300
+                        color = if (selectedTabIndex == 1) ShipDetailsTabAccent.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
                             text = "$warehousesCount",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (selectedTabIndex == 1) Blue700 else Gray600,
+                            color = if (selectedTabIndex == 1) ShipDetailsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }

@@ -10,17 +10,19 @@ use mysqli;
 use mysqli_stmt;
 use App\Core\Database;
 use App\Core\Logger;
+use App\Core\Request;
 
 class ChatController {
     private mysqli $conn;
     private Logger $logger;
+    private Request $request;
     private const MAX_MESSAGE_LENGTH = 1000;
     private const MESSAGE_FETCH_LIMIT = 100;
 
     public function __construct() {
         $this->conn = Database::getInstance()->getMysqliConnection();
         $this->logger = Logger::getInstance();
-        $this->ensureTablesExist();
+        $this->request = new Request();
     }
 
     private function ensureTablesExist(): void {
@@ -41,14 +43,14 @@ class ChatController {
         date_default_timezone_set('Asia/Tehran');
 
         try {
-            if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-                $action = $_GET['action'] ?? '';
-                $username = $_GET['username'] ?? '';
+            if ($this->request->isGet()) {
+                $action = (string)$this->request->get('action', '');
+                $username = (string)$this->request->get('username', '');
 
                 if ($action === 'getMessages') {
-                    $lastMessageId = (int)($_GET['lastMessageId'] ?? 0);
-                    $olderThanId = (int)($_GET['olderThanId'] ?? 0);
-                    $limit = (int)($_GET['limit'] ?? self::MESSAGE_FETCH_LIMIT);
+                    $lastMessageId = (int)$this->request->get('lastMessageId', 0);
+                    $olderThanId = (int)$this->request->get('olderThanId', 0);
+                    $limit = (int)$this->request->get('limit', self::MESSAGE_FETCH_LIMIT);
 
                     $this->sendJsonResponse([
                         'success' => true,
