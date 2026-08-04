@@ -10,15 +10,18 @@ use InvalidArgumentException;
 use mysqli;
 use App\Core\Database;
 use App\Core\Logger;
+use App\Core\Request;
 use SessionManager;
 
 class UtilityController {
     private mysqli $conn;
     private Logger $logger;
+    private Request $request;
 
     public function __construct() {
         $this->conn = Database::getInstance()->getMysqliConnection();
         $this->logger = Logger::getInstance();
+        $this->request = new Request();
     }
 
     /**
@@ -202,7 +205,7 @@ class UtilityController {
     public function checkUpdate(): void {
         header('Content-Type: application/json');
 
-        $apiKey = $_GET['api_key'] ?? '';
+        $apiKey = (string)$this->request->get('api_key', '');
         if ($apiKey !== 'atk_nk_9290VV42-38XQ02DI-F2WY4L2K-EJA7V682') {
             http_response_code(403);
             echo json_encode(['error' => 'دسترسی غیرمجاز'], JSON_UNESCAPED_UNICODE);
@@ -217,7 +220,7 @@ class UtilityController {
         }
 
         $config = include $configFile;
-        $currentVersion = $_GET['current_version'] ?? '';
+        $currentVersion = (string)$this->request->get('current_version', '');
         if (empty($currentVersion)) {
             http_response_code(400);
             echo json_encode(['error' => 'نسخه فعلی مشخص نشده است.'], JSON_UNESCAPED_UNICODE);

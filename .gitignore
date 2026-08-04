@@ -33,4 +33,8 @@ google-services.json
 *.hprof
 *.salive
 *.dm
-*.dm
+
+# Environment / Secret Files
+.env
+*.env
+
