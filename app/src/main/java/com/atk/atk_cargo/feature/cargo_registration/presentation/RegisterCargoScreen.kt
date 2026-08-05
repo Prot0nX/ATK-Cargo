@@ -3,6 +3,7 @@ package com.atk.atk_cargo.feature.cargo_registration.presentation
 import android.annotation.SuppressLint
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -108,6 +109,7 @@ import com.atk.atk_cargo.ui.theme.Gray300
 import com.atk.atk_cargo.ui.theme.Gray500
 import com.atk.atk_cargo.ui.theme.Gray600
 import com.atk.atk_cargo.ui.theme.Green600
+import com.atk.atk_cargo.ui.theme.Teal200
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
@@ -115,12 +117,35 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
-private val RegisterAccent = Color(0xFF0D9488)
-private val RegisterAccentBg = Color(0xFFDCEFEA)
-private val RegisterAccentBorder = Color(0xFFB9DED7)
-private val RegisterCardBorder = Color(0xFFE4E6E9)
-private val RegisterMutedBg = Color(0xFFF3F4F5)
-private val RegisterMutedText = Color(0xFF8A8F98)
+private val RegisterAccentLight = Color(0xFF0D9488)
+
+/** رنگ‌های تیل سازگار با تم روشن/تاریک برای صفحه ثبت و خروج حواله. */
+private class RegisterPalette(
+    val accent: Color,
+    val accentBg: Color,
+    val accentBorder: Color,
+    val cardBg: Color,
+    val cardBorder: Color,
+    val mutedBg: Color,
+    val mutedText: Color,
+    val titleColor: Color
+)
+
+@Composable
+private fun rememberRegisterPalette(): RegisterPalette {
+    val isDark = isSystemInDarkTheme()
+    val accent = if (isDark) Teal200 else RegisterAccentLight
+    return RegisterPalette(
+        accent = accent,
+        accentBg = accent.copy(alpha = if (isDark) 0.18f else 0.16f),
+        accentBorder = accent.copy(alpha = 0.4f),
+        cardBg = MaterialTheme.colorScheme.surface,
+        cardBorder = MaterialTheme.colorScheme.outlineVariant,
+        mutedBg = MaterialTheme.colorScheme.surfaceVariant,
+        mutedText = MaterialTheme.colorScheme.onSurfaceVariant,
+        titleColor = MaterialTheme.colorScheme.onSurface
+    )
+}
 
 suspend fun handleQuotaEntry(
     quotaCode: String,
@@ -180,6 +205,7 @@ fun RegisterCargoScreen(
     viewModel: CargoViewModel,
     onChangeSelectionClick: (() -> Unit)? = null
 ) {
+    val palette = rememberRegisterPalette()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val barcodeLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
@@ -289,7 +315,7 @@ fun RegisterCargoScreen(
                         },
                     shape = CircleShape,
                     colors = CardDefaults.cardColors(
-                        containerColor = RegisterAccent
+                        containerColor = palette.accent
                     ),
                     border = BorderStroke(4.dp, MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -431,9 +457,9 @@ fun RegisterCargoScreen(
                             .size(32.dp)
                             .clickable { isFormExpanded = !isFormExpanded },
                         shape = CircleShape,
-                        color = Color.White,
+                        color = palette.cardBg,
                         shadowElevation = 1.dp,
-                        border = BorderStroke(1.dp, RegisterCardBorder)
+                        border = BorderStroke(1.dp, palette.cardBorder)
                     ) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -442,7 +468,7 @@ fun RegisterCargoScreen(
                             Icon(
                                 imageVector = if (isFormExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                 contentDescription = if (isFormExpanded) "بستن فرم" else "باز کردن فرم",
-                                tint = RegisterMutedText,
+                                tint = palette.mutedText,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -474,7 +500,7 @@ fun RegisterCargoScreen(
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = null,
-                                tint = RegisterAccent,
+                                tint = palette.accent,
                                 modifier = Modifier.size(22.dp)
                             )
                         },
@@ -486,10 +512,10 @@ fun RegisterCargoScreen(
                         ),
                         keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            focusedBorderColor = RegisterAccent,
-                            unfocusedBorderColor = Color(0xFFE5E7EA)
+                            focusedContainerColor = palette.cardBg,
+                            unfocusedContainerColor = palette.cardBg,
+                            focusedBorderColor = palette.accent,
+                            unfocusedBorderColor = palette.cardBorder
                         )
                     )
 
@@ -516,8 +542,8 @@ fun RegisterCargoScreen(
                                 }
                             },
                         shape = RoundedCornerShape(14.dp),
-                        color = RegisterAccentBg,
-                        border = BorderStroke(1.dp, RegisterAccentBorder)
+                        color = palette.accentBg,
+                        border = BorderStroke(1.dp, palette.accentBorder)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 14.dp),
@@ -528,7 +554,7 @@ fun RegisterCargoScreen(
                                 text = "بروزرسانی",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = RegisterAccent
+                                color = palette.accent
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
@@ -537,20 +563,20 @@ fun RegisterCargoScreen(
                                 modifier = Modifier
                                     .size(20.dp)
                                     .rotate(rotation.value),
-                                tint = RegisterAccent
+                                tint = palette.accent
                             )
                         }
                     }
                 }
 
                 var selectedTab by remember { mutableIntStateOf(0) }
-                
+
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(12.dp),
-                    color = RegisterMutedBg
+                    color = palette.mutedBg
                 ) {
                     Row(
                         modifier = Modifier
@@ -563,7 +589,7 @@ fun RegisterCargoScreen(
                                 .weight(1f)
                                 .clickable { selectedTab = 0 },
                             shape = RoundedCornerShape(8.dp),
-                            color = if (selectedTab == 0) Color.White else Color.Transparent,
+                            color = if (selectedTab == 0) palette.cardBg else Color.Transparent,
                             shadowElevation = if (selectedTab == 0) 1.dp else 0.dp
                         ) {
                             Row(
@@ -574,7 +600,7 @@ fun RegisterCargoScreen(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Assignment,
                                     contentDescription = null,
-                                    tint = if (selectedTab == 0) Amber700 else Gray500,
+                                    tint = if (selectedTab == 0) Amber700 else palette.mutedText,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -582,18 +608,18 @@ fun RegisterCargoScreen(
                                     text = "ورود شده",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (selectedTab == 0) Amber700 else Gray500
+                                    color = if (selectedTab == 0) Amber700 else palette.mutedText
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
-                                    color = if (selectedTab == 0) Amber700.copy(alpha = 0.1f) else Gray300
+                                    color = if (selectedTab == 0) Amber700.copy(alpha = 0.15f) else palette.mutedBg
                                 ) {
                                     Text(
                                         text = "${nonExitedCargos.size}",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (selectedTab == 0) Amber700 else Gray600,
+                                        color = if (selectedTab == 0) Amber700 else palette.mutedText,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
@@ -605,7 +631,7 @@ fun RegisterCargoScreen(
                                 .weight(1f)
                                 .clickable { selectedTab = 1 },
                             shape = RoundedCornerShape(8.dp),
-                            color = if (selectedTab == 1) Color.White else Color.Transparent,
+                            color = if (selectedTab == 1) palette.cardBg else Color.Transparent,
                             shadowElevation = if (selectedTab == 1) 1.dp else 0.dp
                         ) {
                             Row(
@@ -616,7 +642,7 @@ fun RegisterCargoScreen(
                                 Icon(
                                     imageVector = Icons.Default.LocalShipping,
                                     contentDescription = null,
-                                    tint = if (selectedTab == 1) Green600 else Gray500,
+                                    tint = if (selectedTab == 1) Green600 else palette.mutedText,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -624,18 +650,18 @@ fun RegisterCargoScreen(
                                     text = "خروج شده",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (selectedTab == 1) Green600 else Gray500
+                                    color = if (selectedTab == 1) Green600 else palette.mutedText
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
-                                    color = if (selectedTab == 1) Green600.copy(alpha = 0.1f) else Gray300
+                                    color = if (selectedTab == 1) Green600.copy(alpha = 0.15f) else palette.mutedBg
                                 ) {
                                     Text(
                                         text = "${exitedCargos.size}",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (selectedTab == 1) Green600 else Gray600,
+                                        color = if (selectedTab == 1) Green600 else palette.mutedText,
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                     )
                                 }
@@ -661,8 +687,8 @@ fun RegisterCargoScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
-                    border = BorderStroke(1.dp, RegisterCardBorder)
+                    color = palette.cardBg,
+                    border = BorderStroke(1.dp, palette.cardBorder)
                 ) {
                     if (filteredItems.isEmpty()) {
                         Box(
@@ -674,7 +700,7 @@ fun RegisterCargoScreen(
                             Text(
                                 text = if (searchQuery.isNotEmpty()) "موردی یافت نشد" else "لیست خالی است",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = RegisterMutedText
+                                color = palette.mutedText
                             )
                         }
                     } else {
@@ -696,7 +722,7 @@ fun RegisterCargoScreen(
                                 )
                                 if (info != filteredItems.last()) {
                                     HorizontalDivider(
-                                        color = RegisterCardBorder,
+                                        color = palette.cardBorder,
                                         thickness = 1.dp
                                     )
                                 }

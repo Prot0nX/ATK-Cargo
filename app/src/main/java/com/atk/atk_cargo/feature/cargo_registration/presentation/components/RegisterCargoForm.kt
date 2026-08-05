@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -57,12 +59,9 @@ import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.ui.theme.Amber700
 import com.atk.atk_cargo.ui.theme.Green600
 import com.atk.atk_cargo.ui.theme.Red500
+import com.atk.atk_cargo.ui.theme.Teal200
 
-private val FormAccent = Color(0xFF0D9488)
-private val FormAccentBg = Color(0xFFDCEFEA)
-private val FormCardBorder = Color(0xFFE4E6E9)
-private val FormMutedText = Color(0xFF8A8F98)
-private val FormTitleColor = Color(0xFF1F2937)
+private val FormAccentLight = Color(0xFF0D9488)
 
 @Composable
 fun FormSection(
@@ -82,6 +81,14 @@ fun FormSection(
     isSubmitting: Boolean,
     onSubmit: () -> Unit,
 ) {
+    val isDark = isSystemInDarkTheme()
+    val formAccent = if (isDark) Teal200 else FormAccentLight
+    val formAccentBg = formAccent.copy(alpha = if (isDark) 0.18f else 0.16f)
+    val formCardBg = MaterialTheme.colorScheme.surface
+    val formCardBorder = MaterialTheme.colorScheme.outlineVariant
+    val formMutedText = MaterialTheme.colorScheme.onSurfaceVariant
+    val formTitleColor = MaterialTheme.colorScheme.onSurface
+
     val isDuplicate = remember(trackingNumber, cargoInfoList) {
         trackingNumber.isNotBlank() && cargoInfoList.any { it.trackingNumber == trackingNumber }
     }
@@ -141,9 +148,9 @@ fun FormSection(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            color = Color.White,
+            color = formCardBg,
             shadowElevation = 0.dp,
-            border = BorderStroke(1.dp, FormCardBorder)
+            border = BorderStroke(1.dp, formCardBorder)
         ) {
             Column(
                 modifier = Modifier
@@ -151,20 +158,62 @@ fun FormSection(
                     .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // سطر ۱: کنترلر تعداد نفرات و شماره حواله
+                // سطر ۱: شماره حواله و کنترلر تعداد نفرات
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // فیلد شماره حواله
+                    OutlinedTextField(
+                        value = trackingNumber,
+                        onValueChange = { newValue ->
+                            if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                onTrackingNumberChange(newValue)
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1.2f)
+                            .heightIn(min = 48.dp),
+                        placeholder = {
+                            Text(
+                                text = "شماره حواله",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = formMutedText
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Numbers,
+                                contentDescription = null,
+                                tint = formMutedText,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        isError = (isDuplicate && !canEditWeights) || !isTrackingNumberValid,
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(onDone = {
+                            if (isSubmitEnabled) onSubmit()
+                        }),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = formAccent,
+                            unfocusedBorderColor = formCardBorder
+                        )
+                    )
+
                     // کنترلر تعداد نفرات
                     Surface(
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        color = Color.White,
-                        border = BorderStroke(1.dp, FormCardBorder)
+                        color = formCardBg,
+                        border = BorderStroke(1.dp, formCardBorder)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxSize(),
@@ -186,7 +235,7 @@ fun FormSection(
                                 Icon(
                                     imageVector = Icons.Default.Remove,
                                     contentDescription = "کاهش نفرات",
-                                    tint = if (!isDuplicate && currentValue > 1) FormAccent else FormMutedText.copy(alpha = 0.4f),
+                                    tint = if (!isDuplicate && currentValue > 1) formAccent else formMutedText.copy(alpha = 0.4f),
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -201,13 +250,13 @@ fun FormSection(
                                     text = numberOfPeople.ifEmpty { "1" },
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = FormTitleColor
+                                    color = formTitleColor
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Icon(
                                     imageVector = Icons.Default.Person,
                                     contentDescription = null,
-                                    tint = FormAccent,
+                                    tint = formAccent,
                                     modifier = Modifier.size(15.dp)
                                 )
                             }
@@ -226,54 +275,12 @@ fun FormSection(
                                 Icon(
                                     imageVector = Icons.Default.Add,
                                     contentDescription = "افزایش نفرات",
-                                    tint = if (!isDuplicate && currentValue < 5) FormAccent else FormMutedText.copy(alpha = 0.4f),
+                                    tint = if (!isDuplicate && currentValue < 5) formAccent else formMutedText.copy(alpha = 0.4f),
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
                     }
-
-                    // فیلد شماره حواله
-                    OutlinedTextField(
-                        value = trackingNumber,
-                        onValueChange = { newValue ->
-                            if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                                onTrackingNumberChange(newValue)
-                            }
-                        },
-                        modifier = Modifier
-                            .weight(1.2f)
-                            .height(48.dp),
-                        placeholder = {
-                            Text(
-                                text = "شماره حواله",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = FormMutedText
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Numbers,
-                                contentDescription = null,
-                                tint = FormMutedText,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        },
-                        isError = (isDuplicate && !canEditWeights) || !isTrackingNumberValid,
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number,
-                            imeAction = ImeAction.Done
-                        ),
-                        keyboardActions = KeyboardActions(onDone = {
-                            if (isSubmitEnabled) onSubmit()
-                        }),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = FormAccent,
-                            unfocusedBorderColor = FormCardBorder
-                        )
-                    )
                 }
 
                 // سطر ۲: کسری بار و اضافه بار
@@ -350,8 +357,8 @@ fun FormSection(
                             .weight(1f)
                             .height(48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        color = Color.White,
-                        border = BorderStroke(1.dp, if (isSubmitEnabled) submitColor.copy(alpha = 0.4f) else FormCardBorder)
+                        color = formCardBg,
+                        border = BorderStroke(1.dp, if (isSubmitEnabled) submitColor.copy(alpha = 0.4f) else formCardBorder)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxSize(),
@@ -362,13 +369,13 @@ fun FormSection(
                                 text = if (isDuplicate) "ثبت تغییرات" else "ثبت حواله",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isSubmitEnabled) FormTitleColor else FormMutedText.copy(alpha = 0.5f)
+                                color = if (isSubmitEnabled) formTitleColor else formMutedText.copy(alpha = 0.5f)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
                                 imageVector = Icons.Default.AddCircle,
                                 contentDescription = null,
-                                tint = if (isSubmitEnabled) submitColor else FormMutedText.copy(alpha = 0.4f),
+                                tint = if (isSubmitEnabled) submitColor else formMutedText.copy(alpha = 0.4f),
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -383,8 +390,8 @@ fun FormSection(
                             .weight(1f)
                             .height(48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        color = Color.White,
-                        border = BorderStroke(1.dp, if (exitEnabled) Red500.copy(alpha = 0.4f) else FormCardBorder)
+                        color = formCardBg,
+                        border = BorderStroke(1.dp, if (exitEnabled) Red500.copy(alpha = 0.4f) else formCardBorder)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxSize(),
@@ -395,13 +402,13 @@ fun FormSection(
                                 text = "خروج حواله",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (exitEnabled) FormTitleColor else FormMutedText.copy(alpha = 0.5f)
+                                color = if (exitEnabled) formTitleColor else formMutedText.copy(alpha = 0.5f)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
                                 imageVector = Icons.Default.QrCodeScanner,
                                 contentDescription = null,
-                                tint = if (exitEnabled) Red500 else FormMutedText.copy(alpha = 0.4f),
+                                tint = if (exitEnabled) Red500 else formMutedText.copy(alpha = 0.4f),
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -455,7 +462,7 @@ fun FormSection(
                 currentCargo?.confirm == "در انتظار تائید" ->
                     Pair("این حواله هنوز تائید نشده و در انتظار تائید است.", MaterialTheme.colorScheme.error)
                 canEditWeights ->
-                    Pair("حواله تائید شده؛ امکان ثبت کسری/اضافه یا خروج وجود دارد.", FormAccent)
+                    Pair("حواله تائید شده؛ امکان ثبت کسری/اضافه یا خروج وجود دارد.", formAccent)
                 else ->
                     Pair("این حواله غیرقابل ویرایش است.", MaterialTheme.colorScheme.error)
             }
@@ -496,7 +503,7 @@ fun FormSection(
             exit = fadeOut() + shrinkVertically()
         ) {
             Surface(
-                color = FormAccentBg,
+                color = formAccentBg,
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -509,7 +516,7 @@ fun FormSection(
                     Icon(
                         imageVector = Icons.Default.Receipt,
                         contentDescription = null,
-                        tint = FormAccent,
+                        tint = formAccent,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -517,7 +524,7 @@ fun FormSection(
                         text = "قبض باسکول دریافت شد: $scaleReceiptNumber",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = FormAccent
+                        color = formAccent
                     )
                 }
             }
