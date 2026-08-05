@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,16 +56,38 @@ import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.feature.home.presentation.ProfileSettingsDialog
+import com.atk.atk_cargo.ui.theme.Teal200
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-private val ProfileAccent = Color(0xFF0D9488)
-private val ProfileAccentBg = Color(0xFFDCEFEA)
-private val ProfileCardBorder = Color(0xFFE4E6E9)
-private val ProfileMutedBg = Color(0xFFF3F4F5)
-private val ProfileMutedText = Color(0xFF8A8F98)
-private val ProfileTitleColor = Color(0xFF1F2937)
+private val ProfileAccentLight = Color(0xFF0D9488)
+
+/** رنگ‌های تیل سازگار با تم روشن/تاریک برای منوی پروفایل. */
+private class ProfilePalette(
+    val accent: Color,
+    val accentBg: Color,
+    val cardBg: Color,
+    val cardBorder: Color,
+    val mutedBg: Color,
+    val mutedText: Color,
+    val titleColor: Color
+)
+
+@Composable
+private fun rememberProfilePalette(): ProfilePalette {
+    val isDark = isSystemInDarkTheme()
+    val accent = if (isDark) Teal200 else ProfileAccentLight
+    return ProfilePalette(
+        accent = accent,
+        accentBg = accent.copy(alpha = if (isDark) 0.18f else 0.16f),
+        cardBg = MaterialTheme.colorScheme.surface,
+        cardBorder = MaterialTheme.colorScheme.outlineVariant,
+        mutedBg = MaterialTheme.colorScheme.surfaceVariant,
+        mutedText = MaterialTheme.colorScheme.onSurfaceVariant,
+        titleColor = MaterialTheme.colorScheme.onSurface
+    )
+}
 
 @Composable
 fun ProfileMenu(
@@ -72,6 +95,7 @@ fun ProfileMenu(
     userType: String,
     onLogoutClick: () -> Unit
 ) {
+    val palette = rememberProfilePalette()
     var expanded by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var currentUser by remember { mutableStateOf<User?>(null) }
@@ -103,8 +127,8 @@ fun ProfileMenu(
             .animateContentSize()
             .semantics { contentDescription = "منوی کاربر $username" },
         shape = RoundedCornerShape(18.dp),
-        color = Color.White,
-        border = BorderStroke(1.dp, ProfileCardBorder)
+        color = palette.cardBg,
+        border = BorderStroke(1.dp, palette.cardBorder)
     ) {
         Column(
             modifier = Modifier.padding(12.dp)
@@ -125,14 +149,14 @@ fun ProfileMenu(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .background(ProfileAccentBg),
+                            .background(palette.accentBg),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = null,
                             modifier = Modifier.size(24.dp),
-                            tint = ProfileAccent
+                            tint = palette.accent
                         )
                     }
 
@@ -143,7 +167,7 @@ fun ProfileMenu(
                             text = "$greeting، $username",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = ProfileTitleColor
+                            color = palette.titleColor
                         )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -151,13 +175,13 @@ fun ProfileMenu(
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = ProfileAccentBg
+                                color = palette.accentBg
                             ) {
                                 Text(
                                     text = getUserTypeDisplay(userType),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = ProfileAccent,
+                                    color = palette.accent,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
@@ -166,13 +190,13 @@ fun ProfileMenu(
                                     modifier = Modifier
                                         .size(4.dp)
                                         .clip(CircleShape)
-                                        .background(ProfileMutedText.copy(alpha = 0.5f))
+                                        .background(palette.mutedText.copy(alpha = 0.5f))
                                 )
                                 Text(
                                     text = "امتیاز سخت‌افزار: $hardwareScore",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Medium,
-                                    color = ProfileMutedText
+                                    color = palette.mutedText
                                 )
                             }
                         }
@@ -183,7 +207,7 @@ fun ProfileMenu(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(if (expanded) ProfileAccentBg else ProfileMutedBg)
+                        .background(if (expanded) palette.accentBg else palette.mutedBg)
                         .clickable { expanded = !expanded },
                     contentAlignment = Alignment.Center
                 ) {
@@ -193,7 +217,7 @@ fun ProfileMenu(
                         modifier = Modifier
                             .size(18.dp)
                             .rotate(rotationState),
-                        tint = if (expanded) ProfileAccent else ProfileMutedText
+                        tint = if (expanded) palette.accent else palette.mutedText
                     )
                 }
             }
@@ -205,7 +229,7 @@ fun ProfileMenu(
                 ) {
                     HorizontalDivider(
                         thickness = 1.dp,
-                        color = ProfileCardBorder
+                        color = palette.cardBorder
                     )
 
                     Row(
@@ -253,7 +277,7 @@ fun ProfileMenu(
 
                     HorizontalDivider(
                         thickness = 1.dp,
-                        color = ProfileCardBorder
+                        color = palette.cardBorder
                     )
 
                     ThemeColorPickerRow(
@@ -262,10 +286,12 @@ fun ProfileMenu(
 
                     HorizontalDivider(
                         thickness = 1.dp,
-                        color = ProfileCardBorder
+                        color = palette.cardBorder
                     )
 
                     ActionButtons(
+                        accent = palette.accent,
+                        accentBg = palette.accentBg,
                         onSettingsClick = {
                             showSettings = true
                             expanded = false
@@ -318,6 +344,8 @@ private fun getUserTypeDisplay(userType: String): String {
 
 @Composable
 private fun ActionButtons(
+    accent: Color,
+    accentBg: Color,
     onSettingsClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
@@ -331,7 +359,7 @@ private fun ActionButtons(
                 .height(48.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .clickable { onSettingsClick() },
-            color = ProfileAccentBg,
+            color = accentBg,
             shape = RoundedCornerShape(14.dp)
         ) {
             Row(
@@ -343,14 +371,14 @@ private fun ActionButtons(
                     imageVector = Icons.Default.Security,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
-                    tint = ProfileAccent
+                    tint = accent
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "رمز عبور",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = ProfileAccent
+                    color = accent
                 )
             }
         }
