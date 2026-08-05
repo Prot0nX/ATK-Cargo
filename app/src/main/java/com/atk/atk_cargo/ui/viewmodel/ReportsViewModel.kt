@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileNotFoundException
@@ -91,6 +92,10 @@ class ReportsViewModel(
             _snackbarMessages.emit(message)
         }
     }
+    private val _shipNotFoundEvent = MutableSharedFlow<Unit>()
+    val shipNotFoundEvent = _shipNotFoundEvent.asSharedFlow()
+    private fun isShipNotFoundError(e: Exception): Boolean =
+        e.message?.contains("یافت نشد") == true
     private val _exportResult = MutableStateFlow<String?>(null)
     private val _comprehensiveAnalytics = MutableStateFlow<ComprehensiveAnalytics?>(null)
     val comprehensiveAnalytics: StateFlow<ComprehensiveAnalytics?> = _comprehensiveAnalytics.asStateFlow()
@@ -442,21 +447,26 @@ class ReportsViewModel(
             _uiState.value = UiState.Loading
             
             try {
-                val shipDetailsDeferred = async { repository.getShipDetails(shipName) }
-                val shipQuotasDeferred = async { repository.getShipQuotas(shipName) }
-                
-                val shipDetails = shipDetailsDeferred.await()
-                val quotas = shipQuotasDeferred.await()
-                
-                _selectedShip.value = shipDetails
-                _currentShipName.value = shipName
-                _selectedShipQuotas.value = quotas
-                
-                _shipDetailsLoadingState.value = LoadingState.Idle
-                _shipQuotasLoadingState.value = LoadingState.Idle
-                _uiState.value = UiState.Success
-                
+                supervisorScope {
+                    val shipDetailsDeferred = async { repository.getShipDetails(shipName) }
+                    val shipQuotasDeferred = async { repository.getShipQuotas(shipName) }
+
+                    val shipDetails = shipDetailsDeferred.await()
+                    val quotas = shipQuotasDeferred.await()
+
+                    _selectedShip.value = shipDetails
+                    _currentShipName.value = shipName
+                    _selectedShipQuotas.value = quotas
+
+                    _shipDetailsLoadingState.value = LoadingState.Idle
+                    _shipQuotasLoadingState.value = LoadingState.Idle
+                    _uiState.value = UiState.Success
+                }
             } catch (e: Exception) {
+                if (isShipNotFoundError(e)) {
+                    _shipNotFoundEvent.emit(Unit)
+                    return@launch
+                }
                 val errorMessage = "خطا در بارگیری اطلاعات کشتی: ${e.message}"
                 _uiState.value = UiState.Error(errorMessage)
                 _shipDetailsLoadingState.value = LoadingState.Error(errorMessage)
@@ -468,14 +478,19 @@ class ReportsViewModel(
     fun refreshShipDataSilently(shipName: String) {
         viewModelScope.launch {
             try {
-                val shipDetailsDeferred = async { repository.getShipDetails(shipName) }
-                val shipQuotasDeferred = async { repository.getShipQuotas(shipName) }
-                
-                _selectedShip.value = shipDetailsDeferred.await()
-                _selectedShipQuotas.value = shipQuotasDeferred.await()
-                _currentShipName.value = shipName
-                
+                supervisorScope {
+                    val shipDetailsDeferred = async { repository.getShipDetails(shipName) }
+                    val shipQuotasDeferred = async { repository.getShipQuotas(shipName) }
+
+                    _selectedShip.value = shipDetailsDeferred.await()
+                    _selectedShipQuotas.value = shipQuotasDeferred.await()
+                    _currentShipName.value = shipName
+                }
             } catch (e: Exception) {
+                if (isShipNotFoundError(e)) {
+                    _shipNotFoundEvent.emit(Unit)
+                    return@launch
+                }
                 showSnackbar("خطا در بروزرسانی اطلاعات: ${e.message}")
             }
         }
