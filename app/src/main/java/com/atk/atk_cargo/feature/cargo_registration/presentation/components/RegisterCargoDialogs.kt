@@ -4,7 +4,6 @@ import android.content.ClipData
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.EaseInBack
 import androidx.compose.animation.core.EaseOutBack
@@ -128,7 +127,6 @@ private val DialogAccent = Color(0xFF0D9488)
 private val DialogAccentBg = Color(0xFFDCEFEA)
 private val DialogAccentBorder = Color(0xFFB9DED7)
 private val DialogMutedBg = Color(0xFFF3F4F5)
-private val DialogMutedText = Color(0xFF8A8F98)
 private val DialogTitleColor = Color(0xFF1F2937)
 
 private val CargoDetailsAccentLight = Color(0xFF0D9488)

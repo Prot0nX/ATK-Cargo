@@ -168,7 +168,7 @@ private fun TopHeader(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 2.dp
+            shadowElevation = 1.dp
         ) {
             Column(
                 modifier = Modifier
