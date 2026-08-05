@@ -198,6 +198,9 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
                             },
                             onSectionChanged = { section ->
                                 currentSelectedSection = section
+                            },
+                            onShipNotFound = {
+                                navController.popBackStack("shipsList", inclusive = false)
                             }
                         )
                     }

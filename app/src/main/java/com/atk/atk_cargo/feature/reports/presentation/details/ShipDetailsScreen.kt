@@ -96,7 +96,8 @@ fun ShipDetails(
     initialShipName: String,
     viewModel: ReportsViewModel,
     onWarehouseSelected: (String) -> Unit,
-    onSectionChanged: (Int) -> Unit
+    onSectionChanged: (Int) -> Unit,
+    onShipNotFound: () -> Unit = {}
 ) {
     val ship by viewModel.selectedShip.collectAsState()
     val selectedShipQuotas by viewModel.selectedShipQuotas.collectAsState()
@@ -121,6 +122,12 @@ fun ShipDetails(
     LaunchedEffect(initialShipName) {
         viewModel.clearCurrentShipData()
         viewModel.loadShipDataAsync(initialShipName)
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.shipNotFoundEvent.collect {
+            onShipNotFound()
+        }
     }
 
     LaunchedEffect(pagerState.currentPage) {
