@@ -2,6 +2,8 @@ package com.atk.atk_cargo.feature.cargo_entry.presentation.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,14 +27,12 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -45,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,6 +55,42 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.api.ActiveShipInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
+
+private val ShipDialogAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val ShipDialogOnAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+
+private val ShipDialogAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Color(0xFFDCEFEA)
+
+private val ShipDialogAccentBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF1F6F63) else Color(0xFFB9DED7)
+
+private val ShipDialogCardBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant
+
+private val ShipDialogMutedBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+
+private val ShipDialogMutedText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+private val ShipDialogTitleColor: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurface
+
+private val ShipDialogGradientBottom: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF0F2E2A) else Color(0xFFF2FAF8)
+
+private val ShipDialogGradientTop: Color
+    @Composable get() = MaterialTheme.colorScheme.surface
+
+private val ShipDialogFieldBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant
+
+private val ShipDialogCancelText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
 
 @Composable
 fun ShipSelectionDialog(
@@ -104,68 +141,68 @@ fun ShipSelectionDialog(
         Surface(
             modifier = Modifier
                 .fillMaxWidth(0.94f)
-                .fillMaxHeight(0.85f)
-                .clip(RoundedCornerShape(28.dp)),
-            shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
+                .fillMaxHeight(0.85f),
+            shape = RoundedCornerShape(24.dp),
+            color = Color.Transparent
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(listOf(ShipDialogGradientTop, ShipDialogGradientBottom)),
+                        RoundedCornerShape(24.dp)
+                    )
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Header Title Section
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.Top
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = CircleShape,
-                            modifier = Modifier.size(44.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.DirectionsBoat,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "انتخاب و مدیریت کشتی‌ها",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 19.sp
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "${selectedShips.size} از ${groupedShips.size} کشتی انتخاب شده",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(ShipDialogAccentBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsBoat,
+                            contentDescription = null,
+                            tint = ShipDialogAccent,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
 
-                    IconButton(
-                        onClick = onDismiss,
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Text(
+                            text = "انتخاب و مدیریت کشتی‌ها",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = ShipDialogTitleColor
+                        )
+                        Text(
+                            text = "${selectedShips.size} از ${groupedShips.size} کشتی انتخاب شده",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ShipDialogMutedText
+                        )
+                    }
+
+                    Box(
                         modifier = Modifier
-                            .size(36.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), CircleShape)
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(ShipDialogMutedBg)
+                            .clickable(onClick = onDismiss),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Clear,
                             contentDescription = "بستن",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
+                            tint = ShipDialogTitleColor,
+                            modifier = Modifier.size(15.dp)
                         )
                     }
                 }
@@ -177,24 +214,30 @@ fun ShipSelectionDialog(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.Transparent
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                        focusedBorderColor = ShipDialogAccent,
+                        unfocusedBorderColor = ShipDialogFieldBorder
                     ),
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "جستجو",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = ShipDialogAccent
                         )
                     },
                     trailingIcon = if (searchQuery.isNotEmpty()) {
                         {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Default.Clear, "پاک کردن", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .clickable { searchQuery = "" },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Clear, "پاک کردن", tint = ShipDialogMutedText, modifier = Modifier.size(16.dp))
                             }
                         }
                     } else null,
@@ -206,6 +249,20 @@ fun ShipSelectionDialog(
 
                 if (cargoTypes.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(10.dp))
+                    val chipColors = FilterChipDefaults.filterChipColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        labelColor = ShipDialogMutedText,
+                        iconColor = ShipDialogMutedText,
+                        selectedContainerColor = ShipDialogAccentBg,
+                        selectedLabelColor = ShipDialogAccent,
+                        selectedLeadingIconColor = ShipDialogAccent
+                    )
+                    val chipBorder = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = false,
+                        borderColor = ShipDialogFieldBorder,
+                        selectedBorderColor = ShipDialogAccentBorder
+                    )
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -217,7 +274,9 @@ fun ShipSelectionDialog(
                                 label = { Text("همه کالاها", style = MaterialTheme.typography.labelMedium) },
                                 leadingIcon = {
                                     Icon(Icons.Default.FilterList, contentDescription = null, modifier = Modifier.size(14.dp))
-                                }
+                                },
+                                colors = chipColors,
+                                border = chipBorder
                             )
                         }
                         items(cargoTypes) { cargo ->
@@ -226,7 +285,9 @@ fun ShipSelectionDialog(
                                 onClick = {
                                     selectedCargoFilter = if (selectedCargoFilter == cargo) null else cargo
                                 },
-                                label = { Text(cargo, style = MaterialTheme.typography.labelMedium) }
+                                label = { Text(cargo, style = MaterialTheme.typography.labelMedium) },
+                                colors = chipColors,
+                                border = chipBorder
                             )
                         }
                     }
@@ -245,7 +306,7 @@ fun ShipSelectionDialog(
                         Text(
                             text = "هیچ کشتی مطابق با جستجو پیدا نشد",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = ShipDialogMutedText
                         )
                     }
                 } else {
@@ -256,15 +317,15 @@ fun ShipSelectionDialog(
                         items(filteredShips, key = { it.key }) { (shipName, shipList) ->
                             val isSelected = selectedShips.contains(shipName)
                             val shipIndex = groupedShips.keys.indexOf(shipName)
-                            val shipColor = palette.getOrElse(if (shipIndex >= 0) shipIndex % palette.size else 0) { MaterialTheme.colorScheme.primary }
+                            val shipColor = palette.getOrElse(if (shipIndex >= 0) shipIndex % palette.size else 0) { ShipDialogAccent }
 
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(18.dp),
-                                color = if (isSelected) shipColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (isSelected) shipColor.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surface,
                                 border = BorderStroke(
                                     if (isSelected) 1.5.dp else 1.dp,
-                                    if (isSelected) shipColor else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                    if (isSelected) shipColor.copy(alpha = 0.6f) else ShipDialogCardBorder
                                 ),
                                 onClick = {
                                     selectedShips = if (isSelected) selectedShips - shipName else selectedShips + shipName
@@ -276,19 +337,18 @@ fun ShipSelectionDialog(
                                         .padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = shipColor.copy(alpha = 0.2f),
-                                        modifier = Modifier.size(44.dp)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(shipColor.copy(alpha = 0.16f), RoundedCornerShape(10.dp)),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(
-                                                imageVector = Icons.Default.DirectionsBoat,
-                                                contentDescription = null,
-                                                tint = shipColor,
-                                                modifier = Modifier.size(22.dp)
-                                            )
-                                        }
+                                        Icon(
+                                            imageVector = Icons.Default.DirectionsBoat,
+                                            contentDescription = null,
+                                            tint = shipColor,
+                                            modifier = Modifier.size(18.dp)
+                                        )
                                     }
 
                                     Spacer(modifier = Modifier.width(12.dp))
@@ -296,11 +356,9 @@ fun ShipSelectionDialog(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = shipName,
-                                            style = MaterialTheme.typography.titleMedium.copy(
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 16.sp
-                                            ),
-                                            color = MaterialTheme.colorScheme.onSurface,
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = ShipDialogTitleColor,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -310,7 +368,7 @@ fun ShipSelectionDialog(
                                         Text(
                                             text = "${shipList.size} کوتاژ فعال | $cargo ($warehouse)",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            color = ShipDialogMutedText,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -323,7 +381,7 @@ fun ShipSelectionDialog(
                                         },
                                         colors = CheckboxDefaults.colors(
                                             checkedColor = shipColor,
-                                            uncheckedColor = MaterialTheme.colorScheme.outline
+                                            uncheckedColor = ShipDialogMutedText.copy(alpha = 0.5f)
                                         )
                                     )
                                 }
@@ -337,32 +395,37 @@ fun ShipSelectionDialog(
                 // Bottom Action Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Button(
-                        onClick = {
-                            onSelectShip(selectedShips)
-                            onDismiss()
-                        },
-                        enabled = selectedShips.isNotEmpty(),
+                    Box(
                         modifier = Modifier
                             .weight(1.2f)
-                            .height(50.dp),
-                        shape = RoundedCornerShape(14.dp)
+                            .height(50.dp)
+                            .clip(RoundedCornerShape(13.dp))
+                            .background(if (selectedShips.isNotEmpty()) ShipDialogAccent else ShipDialogAccent.copy(alpha = 0.4f))
+                            .clickable(enabled = selectedShips.isNotEmpty()) {
+                                onSelectShip(selectedShips)
+                                onDismiss()
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("تایید انتخاب (${selectedShips.size})", fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = ShipDialogOnAccent, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("تایید انتخاب (${selectedShips.size})", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ShipDialogOnAccent)
+                        }
                     }
 
-                    OutlinedButton(
-                        onClick = onDismiss,
+                    Box(
                         modifier = Modifier
                             .weight(0.8f)
-                            .height(50.dp),
-                        shape = RoundedCornerShape(14.dp)
+                            .height(50.dp)
+                            .clip(RoundedCornerShape(13.dp))
+                            .background(ShipDialogMutedBg)
+                            .clickable(onClick = onDismiss),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text("انصراف")
+                        Text("انصراف", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ShipDialogCancelText)
                     }
                 }
             }

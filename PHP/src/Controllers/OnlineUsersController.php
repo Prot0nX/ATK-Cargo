@@ -8,12 +8,15 @@ namespace App\Controllers;
 use Exception;
 use SessionManager;
 use App\Core\Logger;
+use App\Core\Request;
 
 class OnlineUsersController {
     private Logger $logger;
+    private Request $request;
 
     public function __construct() {
         $this->logger = Logger::getInstance();
+        $this->request = new Request();
     }
 
     public function handleRequest(): void {
@@ -31,7 +34,7 @@ class OnlineUsersController {
 
         try {
             $sessionManager = new SessionManager();
-            $action = $_GET['action'] ?? $_POST['action'] ?? 'get_online_users';
+            $action = (string)($this->request->get('action') ?? $this->request->post('action') ?? 'get_online_users');
 
             switch ($action) {
                 case 'get_online_users':
@@ -125,8 +128,8 @@ class OnlineUsersController {
                     break;
 
                 case 'heartbeat':
-                    $username = $_POST['username'] ?? $_GET['username'] ?? '';
-                    $deviceId = $_POST['device_id'] ?? $_GET['device_id'] ?? '';
+                    $username = (string)($this->request->post('username') ?? $this->request->get('username') ?? '');
+                    $deviceId = (string)($this->request->post('device_id') ?? $this->request->get('device_id') ?? '');
 
                     if (empty($username) || empty($deviceId)) {
                         throw new Exception('اطلاعات کاربر و دستگاه الزامی است');

@@ -10,14 +10,17 @@ use InvalidArgumentException;
 use mysqli;
 use App\Core\Database;
 use App\Core\Logger;
+use App\Core\Request;
 
 class AnalyticsController {
     private mysqli $conn;
     private Logger $logger;
+    private Request $request;
 
     public function __construct() {
         $this->conn = Database::getInstance()->getMysqliConnection();
         $this->logger = Logger::getInstance();
+        $this->request = new Request();
     }
 
     /**
@@ -27,12 +30,12 @@ class AnalyticsController {
         header('Content-Type: application/json; charset=UTF-8');
         date_default_timezone_set('Asia/Tehran');
 
-        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        if (!$this->request->isGet()) {
             $this->sendJsonResponse(['error' => 'فقط متد GET مجاز است.'], 400);
         }
 
         try {
-            $action = $_GET['action'] ?? '';
+            $action = (string)$this->request->get('action', '');
 
             switch ($action) {
                 case 'getKotazhInfo':
@@ -69,16 +72,17 @@ class AnalyticsController {
             }
         }
 
-        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        if (!$this->request->isGet()) {
             $this->sendJsonResponse(['success' => false, 'error' => 'روش درخواست نامعتبر است'], 500);
         }
 
         try {
-            if (!isset($_GET['action'])) {
+            $action = $this->request->get('action');
+            if ($action === null) {
                 throw new InvalidArgumentException('عملیات مشخص نشده است');
             }
 
-            $action = $this->sanitizeInput($_GET['action']);
+            $action = $this->sanitizeInput((string)$action);
 
             switch ($action) {
                 case 'getActiveQuotasRemaining':
@@ -87,10 +91,11 @@ class AnalyticsController {
                     break;
 
                 case 'getShipQuotasRemaining':
-                    if (!isset($_GET['shipName'])) {
+                    $shipName = $this->request->get('shipName');
+                    if ($shipName === null) {
                         throw new InvalidArgumentException('نام کشتی مشخص نشده است');
                     }
-                    $result = $this->getShipQuotasRemaining($_GET['shipName']);
+                    $result = $this->getShipQuotasRemaining((string)$shipName);
                     $this->sendJsonResponse($result);
                     break;
 
@@ -107,7 +112,7 @@ class AnalyticsController {
     }
 
     private function handleKotazhRequest(): void {
-        $kotazh = trim((string)($_GET['kotazh'] ?? ''));
+        $kotazh = trim((string)($this->request->get('kotazh', '')));
         if (empty($kotazh)) {
             throw new InvalidArgumentException('کوتاژ نمی‌تواند خالی باشد.');
         }
@@ -138,7 +143,7 @@ class AnalyticsController {
     }
 
     private function handleRealTimeDataRequest(): void {
-        $shiftOffset = isset($_GET['shiftOffset']) ? (int)$_GET['shiftOffset'] : 0;
+        $shiftOffset = (int)($this->request->get('shiftOffset', 0));
         $targetTimestamp = time() + ($shiftOffset * 12 * 3600);
         $currentTimeString = date('H:i:s', $targetTimestamp);
 
@@ -225,7 +230,7 @@ class AnalyticsController {
     }
 
     private function handleComprehensiveAnalysisRequest(): void {
-        $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
+        $offset = (int)($this->request->get('offset', 0));
         
         $currentTime = time();
         if (date('H') < 7) {

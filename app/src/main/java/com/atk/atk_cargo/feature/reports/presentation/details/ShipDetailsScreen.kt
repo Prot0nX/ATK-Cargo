@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,14 +29,11 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -68,15 +66,30 @@ import com.atk.atk_cargo.feature.reports.presentation.dialogs.QuotaWarningDialog
 import com.atk.atk_cargo.feature.reports.presentation.quota_details.QuotasList
 import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
 import com.atk.atk_cargo.feature.reports.presentation.warehouse_details.WarehousesSection
+import com.atk.atk_cargo.ui.theme.Blue400
 import com.atk.atk_cargo.ui.theme.Blue700
-import com.atk.atk_cargo.ui.theme.Corner3XL
-import com.atk.atk_cargo.ui.theme.Gray300
-import com.atk.atk_cargo.ui.theme.Gray500
-import com.atk.atk_cargo.ui.theme.Gray600
-import com.atk.atk_cargo.ui.theme.PrimaryBlueLight
-import com.atk.atk_cargo.ui.theme.getCompletionColor
+import com.atk.atk_cargo.ui.theme.DeepOrange100
+import com.atk.atk_cargo.ui.theme.DeepOrange300
+import com.atk.atk_cargo.ui.theme.DeepOrange900
+import com.atk.atk_cargo.ui.theme.Teal50
+import com.atk.atk_cargo.ui.theme.Teal900
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlin.math.abs
+
+private val ShipDetailsTealAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Teal900
+
+private val ShipDetailsTealAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Teal50
+
+private val ShipDetailsDeepOrangeAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) DeepOrange300 else DeepOrange900
+
+private val ShipDetailsDeepOrangeAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) DeepOrange900.copy(alpha = 0.18f) else DeepOrange100.copy(alpha = 0.6f)
+
+private val ShipDetailsTabAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Blue400 else Blue700
 
 @Composable
 fun ShipDetails(
@@ -447,177 +460,106 @@ fun WarehousesAndQuotasTab(
 private fun ShipHeaderCard(shipDetails: Ship) {
     val loadedTonnage = shipDetails.totalTonnage - shipDetails.remainingTonnage
     val progress = calculateProgress(loadedTonnage, shipDetails.totalTonnage)
-    val isDarkTheme = isSystemInDarkTheme()
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(bottomStart = Corner3XL, bottomEnd = Corner3XL),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(ShipDetailsTealAccentBg),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = formatNumber(shipDetails.quotaCount),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Description,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = formatNumber(shipDetails.warehouses.size),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Warehouse,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Description,
+                        contentDescription = null,
+                        tint = ShipDetailsTealAccent,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = shipDetails.name,
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Icon(
-                        imageVector = Icons.Default.DirectionsBoat,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
+                    Text(
+                        text = "${formatNumber(shipDetails.warehouses.size)} انبار · ${formatNumber(shipDetails.quotaCount)} کوتاژ",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Row(
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                shape = RoundedCornerShape(13.dp),
+                color = ShipDetailsDeepOrangeAccentBg
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    StatChipShip(
-                        value = formatNumber(shipDetails.totalTonnage.toInt()),
-                        label = "کل",
-                        isDarkTheme = isDarkTheme
-                    )
-
-                    StatChipShip(
-                        value = formatNumber(shipDetails.remainingTonnage.toInt()),
-                        label = "مانده",
-                        isDarkTheme = isDarkTheme
-                    )
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 11.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Text(
+                        text = "${(progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = ShipDetailsDeepOrangeAccent
+                    )
                     Box(
                         modifier = Modifier
-                            .width(96.dp)
-                            .height(8.dp)
+                            .weight(1f)
+                            .height(7.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(
-                                if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.3f) 
-                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                            )
+                            .background(ShipDetailsDeepOrangeAccent.copy(alpha = 0.18f))
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(progress)
                                 .fillMaxHeight()
-                                .background(
-                                    getCompletionColor(progress * 100, isDarkTheme)
-                                )
+                                .background(ShipDetailsDeepOrangeAccent)
                         )
                     }
                     Text(
-                        text = "${(progress * 100).toInt()}%",
+                        text = "مانده: ${formatNumber(shipDetails.remainingTonnage.toInt())}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = ShipDetailsDeepOrangeAccent,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = "کل: ${formatNumber(shipDetails.totalTonnage.toInt())}",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = getCompletionColor(progress * 100, isDarkTheme)
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
                     )
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StatChipShip(value: String, label: String? = null, isDarkTheme: Boolean = false) {
-    val backgroundColor = if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer
-    val textColor = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary
-
-    Surface(
-        shape = RoundedCornerShape(9999.dp),
-        color = backgroundColor
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (label != null) {
-                Text(
-                    text = "$label: $value",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = textColor,
-                    fontWeight = FontWeight.Medium
-                )
-            } else {
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = textColor,
-                    fontWeight = FontWeight.Medium
-                )
             }
         }
     }
@@ -657,7 +599,7 @@ private fun WarehouseQuotasTabs(
                     Icon(
                         imageVector = Icons.Default.Receipt,
                         contentDescription = null,
-                        tint = if (selectedTabIndex == 0) Blue700 else Gray500,
+                        tint = if (selectedTabIndex == 0) ShipDetailsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -665,18 +607,18 @@ private fun WarehouseQuotasTabs(
                         text = "کوتاژها",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selectedTabIndex == 0) Blue700 else Gray500
+                        color = if (selectedTabIndex == 0) ShipDetailsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = if (selectedTabIndex == 0) Blue700.copy(alpha = 0.1f) else Gray300
+                        color = if (selectedTabIndex == 0) ShipDetailsTabAccent.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
                             text = "$quotasCount",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (selectedTabIndex == 0) Blue700 else Gray600,
+                            color = if (selectedTabIndex == 0) ShipDetailsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
@@ -699,7 +641,7 @@ private fun WarehouseQuotasTabs(
                     Icon(
                         imageVector = Icons.Default.Warehouse,
                         contentDescription = null,
-                        tint = if (selectedTabIndex == 1) Blue700 else Gray500,
+                        tint = if (selectedTabIndex == 1) ShipDetailsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -707,18 +649,18 @@ private fun WarehouseQuotasTabs(
                         text = "انبارها",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selectedTabIndex == 1) Blue700 else Gray500
+                        color = if (selectedTabIndex == 1) ShipDetailsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = if (selectedTabIndex == 1) Blue700.copy(alpha = 0.1f) else Gray300
+                        color = if (selectedTabIndex == 1) ShipDetailsTabAccent.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
                             text = "$warehousesCount",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (selectedTabIndex == 1) Blue700 else Gray600,
+                            color = if (selectedTabIndex == 1) ShipDetailsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
