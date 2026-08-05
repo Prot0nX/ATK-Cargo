@@ -1489,11 +1489,7 @@ fun CargoInfoDetailsDialog(
                                 containerColor = palette.accentBg,
                                 contentColor = palette.accent
                             ),
-                            shape = RoundedCornerShape(12.dp),
-                            elevation = ButtonDefaults.buttonElevation(
-                                defaultElevation = 2.dp,
-                                pressedElevation = 4.dp
-                            )
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
                                 text = "بستن",
