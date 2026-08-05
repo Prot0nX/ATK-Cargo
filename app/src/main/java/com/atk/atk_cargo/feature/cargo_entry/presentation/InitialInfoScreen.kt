@@ -12,6 +12,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -102,13 +103,39 @@ import com.atk.atk_cargo.feature.cargo_entry.domain.isValidShipName
 import com.atk.atk_cargo.feature.cargo_entry.domain.isValidWarehouseName
 import com.atk.atk_cargo.feature.cargo_entry.domain.isValidWeight
 import com.atk.atk_cargo.feature.cargo_registration.navigation.navigateToCargoRegistration
+import com.atk.atk_cargo.ui.theme.Teal200
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import java.util.Locale
 
+private val InitialInfoAccentLight = Color(0xFF0D9488)
+
+/** رنگ‌های تیل سازگار با تم روشن/تاریک برای صفحه ثبت اطلاعات اولیه بار. */
+private class InitialInfoPalette(
+    val accent: Color,
+    val accentBg: Color,
+    val cardBg: Color,
+    val cardBorder: Color,
+    val mutedBg: Color
+)
+
+@Composable
+private fun rememberInitialInfoPalette(): InitialInfoPalette {
+    val isDark = isSystemInDarkTheme()
+    val accent = if (isDark) Teal200 else InitialInfoAccentLight
+    return InitialInfoPalette(
+        accent = accent,
+        accentBg = accent.copy(alpha = if (isDark) 0.18f else 0.16f),
+        cardBg = MaterialTheme.colorScheme.surface,
+        cardBorder = MaterialTheme.colorScheme.outlineVariant,
+        mutedBg = MaterialTheme.colorScheme.surfaceVariant
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InitialInfoScreen(navController: NavController) {
+    val palette = rememberInitialInfoPalette()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
@@ -276,10 +303,10 @@ fun InitialInfoScreen(navController: NavController) {
                                         .height(56.dp),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        containerColor = palette.accent,
                                         contentColor = Color.White
                                     ),
-                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                                 ) {
                                     Text("مرحله بعد", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -333,10 +360,10 @@ fun InitialInfoScreen(navController: NavController) {
                                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                                                 shape = RoundedCornerShape(12.dp),
                                                 colors = OutlinedTextFieldDefaults.colors(
-                                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                                    focusedBorderColor = palette.accent,
+                                                    unfocusedBorderColor = palette.cardBorder,
+                                                    focusedContainerColor = palette.cardBg,
+                                                    unfocusedContainerColor = palette.cardBg,
                                                 ),
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -453,10 +480,10 @@ fun InitialInfoScreen(navController: NavController) {
                                             .height(52.dp),
                                         shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            containerColor = palette.accent,
                                             contentColor = Color.White
                                         ),
-                                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                                     ) {
                                         Text("مرحله بعد", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                                         Spacer(modifier = Modifier.width(8.dp))
@@ -561,10 +588,10 @@ fun InitialInfoScreen(navController: NavController) {
                                             .height(52.dp),
                                         shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            containerColor = palette.accent,
                                             contentColor = Color.White
                                         ),
-                                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
                                     ) {
                                         Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(20.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
@@ -701,6 +728,7 @@ fun ConfirmationDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val palette = rememberInitialInfoPalette()
     var isVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -714,7 +742,7 @@ fun ConfirmationDialog(
                 .scale(animateFloatAsState(if (isVisible) 1f else 0.9f, label = "").value)
                 .alpha(animateFloatAsState(if (isVisible) 1f else 0f, label = "").value),
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
+            color = palette.cardBg,
             tonalElevation = 8.dp
         ) {
             Column(
@@ -728,10 +756,10 @@ fun ConfirmationDialog(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                            .background(palette.accentBg, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.FactCheck, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.AutoMirrored.Filled.FactCheck, contentDescription = null, tint = palette.accent)
                     }
                     Column {
                         Text("تأیید نهایی", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
@@ -767,14 +795,16 @@ fun ConfirmationDialog(
                     OutlinedButton(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, palette.cardBorder)
                     ) {
                         Text("انصراف", style = MaterialTheme.typography.titleSmall)
                     }
                     Button(
                         onClick = onConfirm,
                         modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = palette.accent, contentColor = Color.White)
                     ) {
                         Text("تأیید و ثبت", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
                     }
@@ -790,6 +820,7 @@ fun DuplicateDialog(
     onReviewEdit: () -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
+    val palette = rememberInitialInfoPalette()
     var isVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -803,7 +834,7 @@ fun DuplicateDialog(
                 .scale(animateFloatAsState(if (isVisible) 1f else 0.9f, label = "").value)
                 .alpha(animateFloatAsState(if (isVisible) 1f else 0f, label = "").value),
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
+            color = palette.cardBg,
             tonalElevation = 8.dp
         ) {
             Column(
@@ -834,7 +865,8 @@ fun DuplicateDialog(
                     Button(
                         onClick = onReviewEdit,
                         modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = palette.accent, contentColor = Color.White)
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
@@ -843,7 +875,8 @@ fun DuplicateDialog(
                     OutlinedButton(
                         onClick = onNavigateToRegister,
                         modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, palette.cardBorder)
                     ) {
                         Text("مشاهده در لیست", style = MaterialTheme.typography.titleSmall)
                     }
@@ -861,6 +894,7 @@ fun PartialMatchDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    val palette = rememberInitialInfoPalette()
     var isVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -874,7 +908,7 @@ fun PartialMatchDialog(
                 .scale(animateFloatAsState(if (isVisible) 1f else 0.9f, label = "").value)
                 .alpha(animateFloatAsState(if (isVisible) 1f else 0f, label = "").value),
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
+            color = palette.cardBg,
             tonalElevation = 8.dp
         ) {
             Column(
@@ -885,10 +919,10 @@ fun PartialMatchDialog(
                 Box(
                     modifier = Modifier
                         .size(64.dp)
-                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                        .background(palette.accentBg, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(32.dp))
+                    Icon(Icons.Default.Info, contentDescription = null, tint = palette.accent, modifier = Modifier.size(32.dp))
                 }
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -905,14 +939,16 @@ fun PartialMatchDialog(
                     OutlinedButton(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, palette.cardBorder)
                     ) {
                         Text("انصراف")
                     }
                     Button(
                         onClick = onConfirm,
                         modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = palette.accent, contentColor = Color.White)
                     ) {
                         Text("تأیید و ادامه")
                     }
@@ -928,11 +964,12 @@ private fun EnhancedInfoGroup(
     icon: ImageVector,
     items: List<Pair<String, String>>
 ) {
+    val palette = rememberInitialInfoPalette()
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+            .background(palette.mutedBg.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            .border(1.dp, palette.cardBorder.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -940,8 +977,8 @@ private fun EnhancedInfoGroup(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
-            Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            Icon(icon, contentDescription = null, tint = palette.accent, modifier = Modifier.size(18.dp))
+            Text(title, style = MaterialTheme.typography.labelLarge, color = palette.accent, fontWeight = FontWeight.Bold)
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items.forEach { (label, value) ->
@@ -981,6 +1018,7 @@ fun ModernAlertDialog(
     isError: Boolean,
     onDismiss: () -> Unit
 ) {
+    val palette = rememberInitialInfoPalette()
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
 
@@ -991,7 +1029,7 @@ fun ModernAlertDialog(
                 .scale(animateFloatAsState(if (isVisible) 1f else 0.9f, label = "").value)
                 .alpha(animateFloatAsState(if (isVisible) 1f else 0f, label = "").value),
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
+            color = palette.cardBg,
             tonalElevation = 8.dp
         ) {
             Column(
@@ -1001,7 +1039,7 @@ fun ModernAlertDialog(
             ) {
                 Box(
                     modifier = Modifier.size(64.dp).background(
-                        if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
+                        if (isError) MaterialTheme.colorScheme.errorContainer else palette.accentBg,
                         CircleShape
                     ),
                     contentAlignment = Alignment.Center
@@ -1009,12 +1047,20 @@ fun ModernAlertDialog(
                     Icon(
                         if (isError) Icons.Default.Error else Icons.Default.CheckCircle,
                         contentDescription = null,
-                        tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        tint = if (isError) MaterialTheme.colorScheme.error else palette.accent,
                         modifier = Modifier.size(32.dp)
                     )
                 }
                 Text(message, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge)
-                Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(48.dp), shape = RoundedCornerShape(12.dp)) {
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isError) MaterialTheme.colorScheme.error else palette.accent,
+                        contentColor = Color.White
+                    )
+                ) {
                     Text("متوجه شدم")
                 }
             }
@@ -1029,15 +1075,16 @@ fun SummaryCard(
     icon: ImageVector,
     onEdit: () -> Unit
 ) {
+    val palette = rememberInitialInfoPalette()
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onEdit() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = palette.cardBg
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        border = BorderStroke(1.dp, palette.cardBorder.copy(alpha = 0.5f))
     ) {
         Row(
             modifier = Modifier
@@ -1053,10 +1100,10 @@ fun SummaryCard(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
+                        .background(palette.accentBg, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    Icon(icon, contentDescription = null, tint = palette.accent, modifier = Modifier.size(20.dp))
                 }
                 Column {
                     Text(title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1064,7 +1111,7 @@ fun SummaryCard(
                 }
             }
             IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = palette.accent, modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -1084,6 +1131,7 @@ fun CustomInput(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     isLtr: Boolean = false
 ) {
+    val palette = rememberInitialInfoPalette()
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = label,
@@ -1095,7 +1143,7 @@ fun CustomInput(
                 value = value,
                 onValueChange = onValueChange,
                 placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
-                leadingIcon = leadingIcon?.let { { Icon(it, contentDescription = null, tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary) } },
+                leadingIcon = leadingIcon?.let { { Icon(it, contentDescription = null, tint = if (isError) MaterialTheme.colorScheme.error else palette.accent) } },
                 suffix = suffix?.let { { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) } },
                 isError = isError,
                 supportingText = supportingText?.let { { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) } },
@@ -1105,12 +1153,12 @@ fun CustomInput(
                 keyboardActions = keyboardActions,
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedBorderColor = palette.accent,
+                    unfocusedBorderColor = palette.cardBorder,
+                    focusedContainerColor = palette.cardBg,
+                    unfocusedContainerColor = palette.cardBg,
                     errorBorderColor = MaterialTheme.colorScheme.error,
-                    cursorColor = MaterialTheme.colorScheme.primary
+                    cursorColor = palette.accent
                 )
             )
         }
