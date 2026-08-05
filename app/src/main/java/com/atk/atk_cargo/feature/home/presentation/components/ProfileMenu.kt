@@ -28,11 +28,8 @@ import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.rounded.Forum
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,7 +45,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -62,6 +58,13 @@ import com.atk.atk_cargo.feature.home.presentation.ProfileSettingsDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+
+private val ProfileAccent = Color(0xFF0D9488)
+private val ProfileAccentBg = Color(0xFFDCEFEA)
+private val ProfileCardBorder = Color(0xFFE4E6E9)
+private val ProfileMutedBg = Color(0xFFF3F4F5)
+private val ProfileMutedText = Color(0xFF8A8F98)
+private val ProfileTitleColor = Color(0xFF1F2937)
 
 @Composable
 fun ProfileMenu(
@@ -83,18 +86,6 @@ fun ProfileMenu(
         label = "expand_rotation"
     )
 
-    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    val cardBgColor = if (isDark) {
-        MaterialTheme.colorScheme.surfaceContainerHigh
-    } else {
-        MaterialTheme.colorScheme.surface
-    }
-    val cardBorderColor = if (isDark) {
-        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-    } else {
-        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-    }
-
     val greeting = remember {
         val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
         when (hour) {
@@ -106,15 +97,14 @@ fun ProfileMenu(
         }
     }
 
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize()
             .semantics { contentDescription = "منوی کاربر $username" },
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBgColor),
-        border = BorderStroke(1.5.dp, cardBorderColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(18.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, ProfileCardBorder)
     ) {
         Column(
             modifier = Modifier.padding(12.dp)
@@ -135,14 +125,14 @@ fun ProfileMenu(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.inverseSurface),
+                            .background(ProfileAccentBg),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = null,
                             modifier = Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.inverseOnSurface
+                            tint = ProfileAccent
                         )
                     }
 
@@ -153,7 +143,7 @@ fun ProfileMenu(
                             text = "$greeting، $username",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = ProfileTitleColor
                         )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -161,13 +151,13 @@ fun ProfileMenu(
                         ) {
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                                color = ProfileAccentBg
                             ) {
                                 Text(
                                     text = getUserTypeDisplay(userType),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    color = ProfileAccent,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
@@ -176,42 +166,35 @@ fun ProfileMenu(
                                     modifier = Modifier
                                         .size(4.dp)
                                         .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.outlineVariant)
+                                        .background(ProfileMutedText.copy(alpha = 0.5f))
                                 )
                                 Text(
                                     text = "امتیاز سخت‌افزار: $hardwareScore",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.secondary
+                                    color = ProfileMutedText
                                 )
                             }
                         }
                     }
                 }
 
-                IconButton(
-                    onClick = { expanded = !expanded },
-                    modifier = Modifier.size(40.dp)
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (expanded) ProfileAccentBg else ProfileMutedBg)
+                        .clickable { expanded = !expanded },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
+                    Icon(
+                        imageVector = Icons.Default.ExpandMore,
+                        contentDescription = if (expanded) "بستن منو" else "باز کردن منو",
                         modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (expanded) MaterialTheme.colorScheme.inverseSurface
-                                else Color.Transparent
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ExpandMore,
-                            contentDescription = if (expanded) "بستن منو" else "باز کردن منو",
-                            modifier = Modifier
-                                .size(18.dp)
-                                .rotate(rotationState),
-                            tint = if (expanded) MaterialTheme.colorScheme.inverseOnSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                            .size(18.dp)
+                            .rotate(rotationState),
+                        tint = if (expanded) ProfileAccent else ProfileMutedText
+                    )
                 }
             }
 
@@ -222,48 +205,55 @@ fun ProfileMenu(
                 ) {
                     HorizontalDivider(
                         thickness = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        color = ProfileCardBorder
                     )
 
-                    NotificationSettingRow(
-                        title = "اعلان‌های بارگیری",
-                        subtitle = "بررسی خودکار و هشدار تناژ",
-                        icon = Icons.Default.Inventory,
-                        enabled = loadingEnabled,
-                        onCheckedChange = { isEnabled ->
-                            val activity = context as? MainActivity
-                            CoroutineScope(Dispatchers.Main).launch {
-                                userPreferencesManager.setLoadingNotificationsEnabled(isEnabled)
-                                if (isEnabled) {
-                                    activity?.startLoadingNotificationService()
-                                } else {
-                                    activity?.stopLoadingNotificationService()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        NotificationSettingRow(
+                            title = "اعلان‌های بارگیری",
+                            subtitle = "بررسی خودکار و هشدار تناژ",
+                            icon = Icons.Default.Inventory,
+                            enabled = loadingEnabled,
+                            modifier = Modifier.weight(1f),
+                            onCheckedChange = { isEnabled ->
+                                val activity = context as? MainActivity
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    userPreferencesManager.setLoadingNotificationsEnabled(isEnabled)
+                                    if (isEnabled) {
+                                        activity?.startLoadingNotificationService()
+                                    } else {
+                                        activity?.stopLoadingNotificationService()
+                                    }
                                 }
                             }
-                        }
-                    )
+                        )
 
-                    NotificationSettingRow(
-                        title = "اعلان‌های گفتگو",
-                        subtitle = "پیام‌های جدید و منشن‌ها",
-                        icon = Icons.Rounded.Forum,
-                        enabled = chatEnabled,
-                        onCheckedChange = { isEnabled ->
-                            val activity = context as? MainActivity
-                            CoroutineScope(Dispatchers.Main).launch {
-                                userPreferencesManager.setChatNotificationsEnabled(isEnabled)
-                                if (isEnabled) {
-                                    activity?.startChatNotificationWorker()
-                                } else {
-                                    activity?.stopChatNotificationService()
+                        NotificationSettingRow(
+                            title = "اعلان‌های گفتگو",
+                            subtitle = "پیام‌های جدید و منشن‌ها",
+                            icon = Icons.Rounded.Forum,
+                            enabled = chatEnabled,
+                            modifier = Modifier.weight(1f),
+                            onCheckedChange = { isEnabled ->
+                                val activity = context as? MainActivity
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    userPreferencesManager.setChatNotificationsEnabled(isEnabled)
+                                    if (isEnabled) {
+                                        activity?.startChatNotificationWorker()
+                                    } else {
+                                        activity?.stopChatNotificationService()
+                                    }
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
 
                     HorizontalDivider(
                         thickness = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        color = ProfileCardBorder
                     )
 
                     ThemeColorPickerRow(
@@ -272,7 +262,7 @@ fun ProfileMenu(
 
                     HorizontalDivider(
                         thickness = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        color = ProfileCardBorder
                     )
 
                     ActionButtons(
@@ -341,7 +331,7 @@ private fun ActionButtons(
                 .height(48.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .clickable { onSettingsClick() },
-            color = MaterialTheme.colorScheme.primaryContainer,
+            color = ProfileAccentBg,
             shape = RoundedCornerShape(14.dp)
         ) {
             Row(
@@ -353,14 +343,14 @@ private fun ActionButtons(
                     imageVector = Icons.Default.Security,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    tint = ProfileAccent
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "رمز عبور",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = ProfileAccent
                 )
             }
         }
