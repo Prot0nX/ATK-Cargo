@@ -29,6 +29,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -114,6 +115,7 @@ import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoRequest
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.data.model.WarningStatus
+import com.atk.atk_cargo.ui.theme.Teal200
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
@@ -125,10 +127,39 @@ import kotlin.time.Duration.Companion.milliseconds
 private val DialogAccent = Color(0xFF0D9488)
 private val DialogAccentBg = Color(0xFFDCEFEA)
 private val DialogAccentBorder = Color(0xFFB9DED7)
-private val DialogCardBorder = Color(0xFFE4E6E9)
 private val DialogMutedBg = Color(0xFFF3F4F5)
 private val DialogMutedText = Color(0xFF8A8F98)
 private val DialogTitleColor = Color(0xFF1F2937)
+
+private val CargoDetailsAccentLight = Color(0xFF0D9488)
+
+/** رنگ‌های تیل سازگار با تم روشن/تاریک برای دیالوگ جزئیات حواله. */
+private class CargoDetailsPalette(
+    val accent: Color,
+    val accentBg: Color,
+    val accentBorder: Color,
+    val cardBg: Color,
+    val cardBorder: Color,
+    val mutedBg: Color,
+    val mutedText: Color,
+    val titleColor: Color
+)
+
+@Composable
+private fun rememberCargoDetailsPalette(): CargoDetailsPalette {
+    val isDark = isSystemInDarkTheme()
+    val accent = if (isDark) Teal200 else CargoDetailsAccentLight
+    return CargoDetailsPalette(
+        accent = accent,
+        accentBg = accent.copy(alpha = if (isDark) 0.18f else 0.16f),
+        accentBorder = accent.copy(alpha = 0.4f),
+        cardBg = MaterialTheme.colorScheme.surface,
+        cardBorder = MaterialTheme.colorScheme.outlineVariant,
+        mutedBg = MaterialTheme.colorScheme.surfaceVariant,
+        mutedText = MaterialTheme.colorScheme.onSurfaceVariant,
+        titleColor = MaterialTheme.colorScheme.onSurface
+    )
+}
 
 @Composable
 fun DuplicateTrackingNumbersDialog(
@@ -1224,6 +1255,7 @@ fun CargoInfoDetailsDialog(
     onDismiss: () -> Unit,
     onUpdateTypeChange: (String) -> Unit = {}
 ) {
+    val palette = rememberCargoDetailsPalette()
     var showDeleteConfirmation by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
@@ -1243,7 +1275,7 @@ fun CargoInfoDetailsDialog(
                 .fillMaxHeight(0.75f)
                 .clip(RoundedCornerShape(24.dp)),
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
+            color = palette.cardBg,
             tonalElevation = 8.dp
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -1254,17 +1286,17 @@ fun CargoInfoDetailsDialog(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Spacer(modifier = Modifier.height(24.dp))
-                    
+
                     Box(
                         modifier = Modifier
                             .size(64.dp)
                             .background(
-                                color = DialogAccentBg,
+                                color = palette.accentBg,
                                 shape = CircleShape
                             )
                             .border(
                                 width = 8.dp,
-                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                color = palette.cardBg.copy(alpha = 0.5f),
                                 shape = CircleShape
                             ),
                         contentAlignment = Alignment.Center
@@ -1273,7 +1305,7 @@ fun CargoInfoDetailsDialog(
                             modifier = Modifier
                                 .size(56.dp)
                                 .background(
-                                    color = DialogAccent,
+                                    color = palette.accent,
                                     shape = CircleShape
                                 ),
                             contentAlignment = Alignment.Center
@@ -1293,7 +1325,7 @@ fun CargoInfoDetailsDialog(
                         text = "جزئیات حواله",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = DialogAccent
+                        color = palette.accent
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -1303,8 +1335,8 @@ fun CargoInfoDetailsDialog(
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp),
                         shape = RoundedCornerShape(16.dp),
-                        color = DialogAccentBg,
-                        border = BorderStroke(1.dp, DialogAccentBorder)
+                        color = palette.accentBg,
+                        border = BorderStroke(1.dp, palette.accentBorder)
                     ) {
                         Box(
                             modifier = Modifier
@@ -1315,7 +1347,7 @@ fun CargoInfoDetailsDialog(
                                 text = "شماره حواله: ${info.trackingNumber}",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = DialogTitleColor,
+                                color = palette.titleColor,
                                 modifier = Modifier.align(Alignment.Center)
                             )
 
@@ -1330,7 +1362,7 @@ fun CargoInfoDetailsDialog(
                                     .align(Alignment.CenterStart)
                                     .size(36.dp),
                                 shape = RoundedCornerShape(8.dp),
-                                color = Color.White
+                                color = palette.cardBg
                             ) {
                                 Box(
                                     modifier = Modifier.fillMaxSize(),
@@ -1339,58 +1371,67 @@ fun CargoInfoDetailsDialog(
                                     Icon(
                                         imageVector = Icons.Default.ContentCopy,
                                         contentDescription = "کپی",
-                                        tint = DialogAccent,
+                                        tint = palette.accent,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
                             }
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(24.dp))
-                    
+
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
                             .padding(horizontal = 16.dp),
                         shape = RoundedCornerShape(24.dp),
-                        color = MaterialTheme.colorScheme.surface
+                        color = palette.cardBg
                     ) {
                         Column(modifier = Modifier.fillMaxSize()) {
                             Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = DialogMutedBg
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                color = palette.mutedBg
                             ) {
                                 Row(
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    DetailTabButton(
+                                    CargoDetailTabItem(
                                         title = "اطلاعات اصلی",
                                         icon = Icons.Default.Info,
                                         isSelected = selectedTab == 0,
                                         onClick = { selectedTab = 0 },
+                                        palette = palette,
                                         modifier = Modifier.weight(1f)
                                     )
-                                    
-                                    DetailTabButton(
+
+                                    CargoDetailTabItem(
                                         title = "وزن",
                                         icon = Icons.Default.Scale,
                                         isSelected = selectedTab == 1,
                                         onClick = { selectedTab = 1 },
+                                        palette = palette,
                                         modifier = Modifier.weight(1f)
                                     )
-                                    
-                                    DetailTabButton(
+
+                                    CargoDetailTabItem(
                                         title = "زمان و تاریخ",
                                         icon = Icons.Default.Schedule,
                                         isSelected = selectedTab == 2,
                                         onClick = { selectedTab = 2 },
+                                        palette = palette,
                                         modifier = Modifier.weight(1f)
                                     )
                                 }
                             }
-                            
+
                             AnimatedContent(
                                 targetState = selectedTab,
                                 transitionSpec = {
@@ -1430,8 +1471,8 @@ fun CargoInfoDetailsDialog(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    color = palette.cardBg,
+                    border = BorderStroke(1.dp, palette.cardBorder)
                 ) {
                     Row(
                         modifier = Modifier
@@ -1445,8 +1486,8 @@ fun CargoInfoDetailsDialog(
                                 .weight(1.2f)
                                 .height(46.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = DialogAccentBg,
-                                contentColor = DialogAccent
+                                containerColor = palette.accentBg,
+                                contentColor = palette.accent
                             ),
                             shape = RoundedCornerShape(12.dp),
                             elevation = ButtonDefaults.buttonElevation(
@@ -1515,58 +1556,38 @@ fun CargoInfoDetailsDialog(
 }
 
 @Composable
-private fun DetailTabButton(
+private fun CargoDetailTabItem(
     title: String,
     icon: ImageVector,
     isSelected: Boolean,
     onClick: () -> Unit,
+    palette: CargoDetailsPalette,
     modifier: Modifier = Modifier
 ) {
-    val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) DialogAccentBg else Color.Transparent,
-        label = "tab_bg"
-    )
-    val contentColor by animateColorAsState(
-        targetValue = if (isSelected) DialogAccent else DialogMutedText,
-        label = "tab_content"
-    )
-    
-    Box(
-        modifier = modifier
-            .clickable(onClick = onClick)
-            .background(backgroundColor)
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(8.dp),
+        color = if (isSelected) palette.cardBg else Color.Transparent,
+        shadowElevation = if (isSelected) 1.dp else 0.dp
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+        Row(
+            modifier = Modifier.padding(vertical = 10.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = contentColor,
-                modifier = Modifier.size(22.dp)
+                tint = if (isSelected) palette.accent else palette.mutedText,
+                modifier = Modifier.size(18.dp)
             )
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = title,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = contentColor
-            )
-        }
-        
-        if (isSelected) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .background(
-                        color = DialogAccent,
-                        shape = RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)
-                    )
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isSelected) palette.accent else palette.mutedText,
+                maxLines = 1
             )
         }
     }
@@ -1635,6 +1656,7 @@ private fun DetailInfoRow(
     onCopy: (() -> Unit)? = null,
     isLast: Boolean = false
 ) {
+    val palette = rememberCargoDetailsPalette()
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -1656,7 +1678,7 @@ private fun DetailInfoRow(
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -1665,7 +1687,7 @@ private fun DetailInfoRow(
                     Surface(
                         onClick = { onCopy?.invoke() },
                         shape = RoundedCornerShape(4.dp),
-                        color = DialogAccentBg,
+                        color = palette.accentBg,
                         modifier = Modifier.size(24.dp)
                     ) {
                         Box(
@@ -1675,7 +1697,7 @@ private fun DetailInfoRow(
                             Icon(
                                 imageVector = Icons.Default.ContentCopy,
                                 contentDescription = "کپی",
-                                tint = DialogAccent,
+                                tint = palette.accent,
                                 modifier = Modifier.size(14.dp)
                             )
                         }
