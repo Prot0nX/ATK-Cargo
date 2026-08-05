@@ -99,7 +99,6 @@ import com.atk.atk_cargo.feature.cargo_entry.presentation.components.ShipSelecti
 import com.atk.atk_cargo.feature.cargo_entry.presentation.components.StatusSnackbar
 import com.atk.atk_cargo.feature.cargo_registration.navigation.navigateToCargoRegistration
 import com.atk.atk_cargo.feature.home.navigation.navigateToHome
-import com.atk.atk_cargo.ui.theme.Gray200
 import com.google.gson.Gson
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
@@ -685,38 +684,48 @@ private fun ShipCardDesign(
     color: Color,
     onClick: () -> Unit
 ) {
-    val backgroundColor = color.copy(alpha = 0.1f)
-    val borderColor = color.copy(alpha = 0.15f)
-
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(20.dp),
-        color = backgroundColor,
-        border = BorderStroke(1.dp, borderColor),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, color.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             // Top Row: Title and Icon
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .background(color.copy(alpha = 0.16f), RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DirectionsBoat,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
                 // نام کشتی و نوع کالا
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = shipName,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 20.sp,
-                            letterSpacing = (-0.5).sp
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.3).sp
                         ),
                         color = color,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                     if (cargoType.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(1.dp))
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -724,87 +733,66 @@ private fun ShipCardDesign(
                             Icon(
                                 imageVector = Icons.Default.Category,
                                 contentDescription = null,
-                                tint = color.copy(alpha = 0.7f),
-                                modifier = Modifier.size(12.dp)
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(11.dp)
                             )
                             Text(
                                 text = cargoType,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                color = color,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                         }
                     }
                 }
-
-                Icon(
-                    imageVector = Icons.Default.DirectionsBoat,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(32.dp)
-                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Stats Row
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = color.copy(alpha = 0.15f), // slightly more opaque than 0.4 for better contrast
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    StatText("کل", total)
-                    CardVerticalDiv()
-                    StatText("خروج", completed)
-                    CardVerticalDiv()
-                    StatText("مانده", remaining)
-                }
+                StatChip(label = "کل", value = total, color = color, modifier = Modifier.weight(1f))
+                StatChip(label = "خروج", value = completed, color = color, modifier = Modifier.weight(1f))
+                StatChip(label = "مانده", value = remaining, color = color, modifier = Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-private fun StatText(label: String, value: Int) {
-    val isDarkTheme = isSystemInDarkTheme()
-    val textColor = if (isDarkTheme) Color.White else Color.Black
-    
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = "$label: ",
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.bodySmall,
-            color = textColor.copy(alpha = 0.7f)
-        )
-        Text(
-            text = "$value",
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = 14.sp
-            ),
-            fontWeight = FontWeight.Bold,
-            color = textColor
-        )
+private fun StatChip(
+    label: String,
+    value: Int,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(9.dp),
+        color = color.copy(alpha = 0.12f)
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(1.dp)
+        ) {
+            Text(
+                text = "$value",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
-}
-
-@Composable
-private fun CardVerticalDiv() {
-    Box(
-        modifier = Modifier
-            .width(1.dp)
-            .height(16.dp)
-            .background(Gray200.copy(alpha = 0.5f))
-    )
 }
 
 private fun extractLastDigits(quotaNumber: String): String {
