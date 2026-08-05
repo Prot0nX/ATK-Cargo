@@ -31,9 +31,9 @@ import androidx.compose.ui.unit.sp
 import com.atk.atk_cargo.api.Ship
 import com.atk.atk_cargo.api.ShipSortingMode
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
+import com.atk.atk_cargo.feature.reports.presentation.quota_details.QuotaDeepOrangeAccent
+import com.atk.atk_cargo.feature.reports.presentation.quota_details.QuotaDeepOrangeAccentBg
 import com.atk.atk_cargo.ui.theme.Blue700
-import com.atk.atk_cargo.ui.theme.DeepOrange100
-import com.atk.atk_cargo.ui.theme.DeepOrange900
 import com.atk.atk_cargo.ui.theme.Teal900
 
 @Composable
@@ -142,7 +142,7 @@ private fun ShipCardContent(
             Surface(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(10.dp),
-                color = DeepOrange100.copy(alpha = 0.6f)
+                color = QuotaDeepOrangeAccentBg
             ) {
                 Row(
                     modifier = Modifier
@@ -154,13 +154,13 @@ private fun ShipCardContent(
                     Text(
                         text = "بارگیری:",
                         style = MaterialTheme.typography.labelSmall,
-                        color = DeepOrange900.copy(alpha = 0.7f)
+                        color = QuotaDeepOrangeAccent.copy(alpha = 0.8f)
                     )
                     Text(
                         text = "↑ ${formatNumber(loadedTonnage.toInt())}",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = DeepOrange900
+                        color = QuotaDeepOrangeAccent
                     )
                 }
             }

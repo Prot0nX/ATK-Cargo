@@ -107,17 +107,38 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
-private val QuotasAccent = Color(0xFF0D9488)
-private val QuotasAccentBg = Color(0xFFDCEFEA)
-private val QuotasAccentBorder = Color(0xFFB9DED7)
-private val QuotasWarning = Color(0xFFC2760A)
-private val QuotasWarningBg = Color(0xFFF3E4D2)
-private val QuotasWarningBorder = Color(0xFFE7C79B)
-private val QuotasCardBorder = Color(0xFFE4E6E9)
-private val QuotasMutedBg = Color(0xFFF3F4F5)
-private val QuotasMutedText = Color(0xFF8A8F98)
-private val QuotasTitleColor = Color(0xFF1F2937)
-private val QuotasScreenBg = Color(0xFFFCFCFD)
+private val QuotasAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val QuotasAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.16f) else Color(0xFFDCEFEA)
+
+private val QuotasAccentBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.35f) else Color(0xFFB9DED7)
+
+private val QuotasWarning: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFFE8A855) else Color(0xFFC2760A)
+
+private val QuotasWarningBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFFE8A855).copy(alpha = 0.18f) else Color(0xFFF3E4D2)
+
+private val QuotasWarningBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFFE8A855).copy(alpha = 0.35f) else Color(0xFFE7C79B)
+
+private val QuotasCardBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+
+private val QuotasMutedBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+
+private val QuotasMutedText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+private val QuotasTitleColor: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurface
+
+private val QuotasScreenBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surface
 
 @Composable
 fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewModel) {
@@ -1098,7 +1119,7 @@ private fun QuotasHeader(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (viewMode == ViewMode.GROUPED) Color.White else Color.Transparent)
+                    .background(if (viewMode == ViewMode.GROUPED) MaterialTheme.colorScheme.surface else Color.Transparent)
                     .clickable { onViewModeChange(ViewMode.GROUPED) }
                     .size(34.dp),
                 contentAlignment = Alignment.Center
@@ -1115,7 +1136,7 @@ private fun QuotasHeader(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (viewMode == ViewMode.FLAT) Color.White else Color.Transparent)
+                    .background(if (viewMode == ViewMode.FLAT) MaterialTheme.colorScheme.surface else Color.Transparent)
                     .clickable { onViewModeChange(ViewMode.FLAT) }
                     .size(34.dp),
                 contentAlignment = Alignment.Center
@@ -1171,7 +1192,7 @@ private fun QuotasHeader(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 10.dp),
-        color = Color.White,
+        color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(14.dp),
         border = BorderStroke(1.dp, QuotasCardBorder)
     ) {

@@ -9,14 +9,17 @@ use Exception;
 use mysqli;
 use App\Core\Database;
 use App\Core\Logger;
+use App\Core\Request;
 
 class LicenseController {
     private mysqli $conn;
     private Logger $logger;
+    private Request $request;
 
     public function __construct() {
         $this->conn = Database::getInstance()->getMysqliConnection();
         $this->logger = Logger::getInstance();
+        $this->request = new Request();
     }
 
     /**
@@ -120,13 +123,13 @@ class LicenseController {
         header('Content-Security-Policy: default-src \'self\'');
         date_default_timezone_set('Asia/Tehran');
 
-        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        if (!$this->request->isGet()) {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'روش درخواست معتبر نیست'], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
-        $licenseKey = trim((string)($_GET['licenseKey'] ?? ''));
+        $licenseKey = trim((string)$this->request->get('licenseKey', ''));
 
         if (empty($licenseKey) || strlen($licenseKey) !== 32) {
             $this->sendJsonResponse([

@@ -12,6 +12,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -663,14 +664,44 @@ private fun RoleFilterChipRow(
     }
 }
 
-private val UserManagementAccent = Color(0xFF0D9488)
-private val UserCardBg = Color(0xFFFAFAFB)
-private val UserCardBorder = Color(0xFFE4E6E9)
-private val UserCardBorderHover = Color(0xFFA9DCD3)
-private val UserAvatarBg = Color(0xFFDCEFEA)
-private val UserRoleBadgeBg = Color(0xFFD9EFE9)
-private val ForceLogoutTint = Color(0xFFC2760A)
-private val ModalGradientBottom = Color(0xFFF2FAF8)
+private val UserManagementAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val UserManagementOnAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+
+private val UserCardBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+
+private val UserCardBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant
+
+private val UserCardBorderHover: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF1F6F63) else Color(0xFFA9DCD3)
+
+private val UserAvatarBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Color(0xFFDCEFEA)
+
+private val UserRoleBadgeBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Color(0xFFD9EFE9)
+
+private val ForceLogoutTint: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFFE8A34D) else Color(0xFFC2760A)
+
+private val ModalGradientBottom: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF0F2E2A) else Color(0xFFF2FAF8)
+
+private val ModalGradientTop: Color
+    @Composable get() = MaterialTheme.colorScheme.surface
+
+private val DialogMutedText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+private val DialogTitleColor: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurface
+
+private val DialogFieldBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant
 
 @Composable
 private fun RoleGroupHeader(
@@ -720,7 +751,7 @@ private fun RoleGroupHeader(
                     Text(
                         text = "$userCount نفر",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.White,
+                        color = UserManagementOnAccent,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
                     )
@@ -867,12 +898,12 @@ private fun EnterpriseUserCard(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false },
                         shape = RoundedCornerShape(14.dp),
-                        containerColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.surface
                     ) {
                         Column(modifier = Modifier.padding(6.dp).width(IntrinsicSize.Max)) {
                             UserMenuRow(
                                 label = "ویرایش اطلاعات",
-                                labelColor = Color(0xFF1F2937),
+                                labelColor = DialogTitleColor,
                                 icon = Icons.Default.Edit,
                                 iconTint = UserManagementAccent,
                                 enabled = !isProtectedUser,
@@ -883,7 +914,7 @@ private fun EnterpriseUserCard(
                             )
                             UserMenuRow(
                                 label = "خروج اجباری",
-                                labelColor = Color(0xFF1F2937),
+                                labelColor = DialogTitleColor,
                                 icon = Icons.AutoMirrored.Filled.ExitToApp,
                                 iconTint = ForceLogoutTint,
                                 enabled = !isProtectedUser && !isCurrentUser,
@@ -1063,7 +1094,7 @@ fun EnhancedAddUserDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        Brush.verticalGradient(listOf(Color.White, ModalGradientBottom)),
+                        Brush.verticalGradient(listOf(ModalGradientTop, ModalGradientBottom)),
                         RoundedCornerShape(20.dp)
                     )
                     .verticalScroll(rememberScrollState())
@@ -1081,12 +1112,12 @@ fun EnhancedAddUserDialog(
                             "ایجاد کاربر جدید",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF1F2937)
+                            color = DialogTitleColor
                         )
                         Text(
                             "افزودن کاربر به سیستم",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF8A8F98)
+                            color = DialogMutedText
                         )
                     }
 
@@ -1193,12 +1224,12 @@ fun EnhancedAddUserDialog(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(13.dp))
-                            .border(1.5.dp, Color(0xFFE0E2E6), RoundedCornerShape(13.dp))
+                            .border(1.5.dp, DialogFieldBorder, RoundedCornerShape(13.dp))
                             .clickable(enabled = !isLoading, onClick = onDismiss)
                             .padding(vertical = 13.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("انصراف", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF737780))
+                        Text("انصراف", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = DialogMutedText)
                     }
 
                     Box(
@@ -1249,10 +1280,10 @@ fun EnhancedAddUserDialog(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
                                 strokeWidth = 2.dp,
-                                color = Color.White
+                                color = UserManagementOnAccent
                             )
                         } else {
-                            Text("تایید و ثبت", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("تایید و ثبت", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = UserManagementOnAccent)
                         }
                     }
                 }
@@ -1279,7 +1310,7 @@ private fun DesignTextField(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF8A8F98)
+            color = DialogMutedText
         )
         OutlinedTextField(
             value = value,
@@ -1295,9 +1326,9 @@ private fun DesignTextField(
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = UserManagementAccent,
-                unfocusedBorderColor = Color(0xFFE5E7EA),
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White
+                unfocusedBorderColor = DialogFieldBorder,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
             )
         )
     }

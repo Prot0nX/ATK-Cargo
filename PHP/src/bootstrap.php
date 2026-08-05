@@ -6,7 +6,12 @@ declare(strict_types=1);
 // تعیین مسیر اصلی پوشه PHP
 define('APP_ROOT', dirname(__DIR__));
 
-// ثبت Autoloader برای کلاس‌های App
+// بارگذاری Autoloader رسمی Composer در صورت وجود
+if (file_exists(APP_ROOT . '/vendor/autoload.php')) {
+    require_once APP_ROOT . '/vendor/autoload.php';
+}
+
+// ثبت Autoloader سفارشی برای کلاس‌های App (جهت پشتیبانی دائم)
 spl_autoload_register(function (string $class) {
     $prefix = 'App\\';
     $base_dir = APP_ROOT . '/src/';
