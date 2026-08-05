@@ -3,7 +3,6 @@ package com.atk.atk_cargo.feature.cargo_registration.presentation
 import android.annotation.SuppressLint
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -15,6 +14,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -105,9 +105,6 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.Quot
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.ShipInfoSection
 import com.atk.atk_cargo.feature.startup.domain.AnimationManager
 import com.atk.atk_cargo.ui.theme.Amber700
-import com.atk.atk_cargo.ui.theme.Gray300
-import com.atk.atk_cargo.ui.theme.Gray500
-import com.atk.atk_cargo.ui.theme.Gray600
 import com.atk.atk_cargo.ui.theme.Green600
 import com.atk.atk_cargo.ui.theme.Teal200
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
