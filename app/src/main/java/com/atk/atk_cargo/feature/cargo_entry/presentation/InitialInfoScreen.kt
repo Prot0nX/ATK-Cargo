@@ -74,6 +74,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -141,14 +142,14 @@ fun InitialInfoScreen(navController: NavController) {
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
 
-    var currentStep by remember { mutableIntStateOf(0) }
-    var shipName by remember { mutableStateOf("") }
-    var loadingWarehouse by remember { mutableStateOf("") }
-    var cargoType by remember { mutableStateOf("ذرت") }
-    var shippingCompany by remember { mutableStateOf("") }
-    var cargoWeight by remember { mutableStateOf("") }
-    var loadingQuotaNumber by remember { mutableStateOf("") }
-    var cargoOwner by remember { mutableStateOf("") }
+    var currentStep by rememberSaveable { mutableIntStateOf(0) }
+    var shipName by rememberSaveable { mutableStateOf("") }
+    var loadingWarehouse by rememberSaveable { mutableStateOf("") }
+    var cargoType by rememberSaveable { mutableStateOf("") }
+    var shippingCompany by rememberSaveable { mutableStateOf("") }
+    var cargoWeight by rememberSaveable { mutableStateOf("") }
+    var loadingQuotaNumber by rememberSaveable { mutableStateOf("") }
+    var cargoOwner by rememberSaveable { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
     var dialogMessage by remember { mutableStateOf("") }
