@@ -109,6 +109,40 @@ import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
+
+private val QuotasAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val QuotasAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.16f) else Color(0xFFDCEFEA)
+
+private val QuotasAccentBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.35f) else Color(0xFFB9DED7)
+
+private val QuotasWarning: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFFE8A855) else Color(0xFFC2760A)
+
+private val QuotasWarningBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFFE8A855).copy(alpha = 0.18f) else Color(0xFFF3E4D2)
+
+private val QuotasWarningBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFFE8A855).copy(alpha = 0.35f) else Color(0xFFE7C79B)
+
+private val QuotasCardBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+
+private val QuotasMutedBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+
+private val QuotasMutedText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+private val QuotasTitleColor: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurface
+
+private val QuotasScreenBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surface
 
 @Composable
 fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewModel) {
@@ -329,14 +363,14 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
     LaunchedEffect(selectedShipNames, activeShips) {
         // اگر کشتی‌های فعال بارگذاری شده و هیچ کشتی انتخاب نشده باشد
         if (activeShips.isNotEmpty() && selectedShipNames.isEmpty()) {
-            delay(500) // تاخیر کوتاه برای اطمینان از بارگذاری کامل UI
+            delay(500.milliseconds) // تاخیر کوتاه برای اطمینان از بارگذاری کامل UI
             showShipSelectionDialog = true
         }
     }
 
     LaunchedEffect(Unit) {
         while (true) {
-            delay(30000)
+            delay(30000.milliseconds)
             // اگر دیالوگ ورود کوتاژ باز است، بروزرسانی نکن
             if (!isQuotaEntryDialogOpen) {
                 refreshData()
@@ -502,7 +536,7 @@ private fun GroupedShipList(
     var isDialogOpen by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         while (true) {
-            delay(30000)
+            delay(30000.milliseconds)
             // اگر دیالوگ ورود کوتاژ باز است، بروزرسانی نکن
             if (!isDialogOpen) {
                 updateCounter++
@@ -835,7 +869,6 @@ private fun ActiveQuotasDialog(
     val filteredShips = convertedShips.filter { it.entryVouchers + it.exitVouchers > 0 }
 
     val groupedShips = filteredShips.groupBy { it.shipName }
-    val totalQuotas = filteredShips.size
     val totalVouchers = filteredShips.sumOf { it.entryVouchers + it.exitVouchers }
     val completedVouchers = filteredShips.sumOf { it.exitVouchers }
     val totalNetWeight = filteredShips.sumOf { it.totalNetWeight }
@@ -863,17 +896,8 @@ private fun ActiveQuotasDialog(
             dismissOnClickOutside = true
         )
     ) {
-        val dialogElevation by animateDpAsState(
-            targetValue = if (dialogVisible) 8.dp else 0.dp,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            label = "dialog_elevation"
-        )
-
         val dialogScale by animateFloatAsState(
-            targetValue = if (dialogVisible) 1f else 0.9f,
+            targetValue = if (dialogVisible) 1f else 0.96f,
             animationSpec = tween(
                 durationMillis = 300,
                 easing = FastOutSlowInEasing
@@ -881,19 +905,14 @@ private fun ActiveQuotasDialog(
             label = "dialog_scale"
         )
 
-        Card(
+        Surface(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.9f)
+                .fillMaxSize()
                 .graphicsLayer {
                     scaleX = dialogScale
                     scaleY = dialogScale
                 },
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = dialogElevation)
+            color = QuotasScreenBg
         ) {
             Column(
                 modifier = Modifier
@@ -1046,149 +1065,143 @@ private fun QuotasHeader(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(QuotasAccentBg),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Category,
+                contentDescription = null,
+                tint = QuotasAccent,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+
         // عنوان و آمار
         Row(
+            modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "آمار بارگیری",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = QuotasTitleColor
             )
 
             Spacer(modifier = Modifier.width(8.dp))
 
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.8f)
+                shape = RoundedCornerShape(100),
+                color = QuotasAccentBg
             ) {
                 Text(
                     text = "${formatNumber(totalNetWeight)} kg",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = QuotasAccent,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                 )
             }
         }
 
-        // دکمه‌های تغییر حالت نمایش و بستن
+        // دکمه‌های تغییر حالت نمایش
         Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(QuotasMutedBg)
+                .padding(3.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // دکمه‌های تغییر حالت نمایش
-            Row(
+            // دکمه نمایش گروه‌بندی شده
+            Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                    .padding(3.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (viewMode == ViewMode.GROUPED) MaterialTheme.colorScheme.surface else Color.Transparent)
+                    .clickable { onViewModeChange(ViewMode.GROUPED) }
+                    .size(34.dp),
+                contentAlignment = Alignment.Center
             ) {
-                // دکمه نمایش گروه‌بندی شده
-                IconButton(
-                    onClick = { onViewModeChange(ViewMode.GROUPED) },
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            if (viewMode == ViewMode.GROUPED)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else
-                                Color.Transparent
-                        )
-                        .size(38.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Category,
-                        contentDescription = "نمایش گروه‌بندی شده",
-                        tint = if (viewMode == ViewMode.GROUPED)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                // دکمه نمایش لیستی
-                IconButton(
-                    onClick = { onViewModeChange(ViewMode.FLAT) },
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            if (viewMode == ViewMode.FLAT)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else
-                                Color.Transparent
-                        )
-                        .size(38.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ViewList,
-                        contentDescription = "نمایش لیستی",
-                        tint = if (viewMode == ViewMode.FLAT)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Category,
+                    contentDescription = "نمایش گروه‌بندی شده",
+                    tint = if (viewMode == ViewMode.GROUPED) QuotasAccent else QuotasMutedText,
+                    modifier = Modifier.size(18.dp)
+                )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            // دکمه نمایش لیستی
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (viewMode == ViewMode.FLAT) MaterialTheme.colorScheme.surface else Color.Transparent)
+                    .clickable { onViewModeChange(ViewMode.FLAT) }
+                    .size(34.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ViewList,
+                    contentDescription = "نمایش لیستی",
+                    tint = if (viewMode == ViewMode.FLAT) QuotasAccent else QuotasMutedText,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
 
-            // دکمه بروزرسانی
-            if (!isLoading) {
-                IconButton(
-                    onClick = onRefresh,
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        .size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "بروزرسانی",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
+        // دکمه بروزرسانی
+        if (!isLoading) {
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(QuotasMutedBg)
+                    .clickable(onClick = onRefresh)
+                    .size(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "بروزرسانی",
+                    tint = QuotasMutedText,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
 
         // دکمه بستن
-        IconButton(
-            onClick = onDismiss,
+        Box(
             modifier = Modifier
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                .size(32.dp)
+                .background(QuotasMutedBg)
+                .clickable(onClick = onDismiss)
+                .size(32.dp),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = "بستن",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = QuotasTitleColor,
                 modifier = Modifier.size(16.dp)
             )
         }
-
     }
 
     // کارت آمار با طراحی جدید و کوچکتر
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-        ),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            .padding(top = 10.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, QuotasCardBorder)
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 8.dp, horizontal = 12.dp)
+            modifier = Modifier.padding(vertical = 10.dp, horizontal = 12.dp)
         ) {
             // نوار پیشرفت با درصد
             val progressPercentage = if (totalVouchers > 0) {
@@ -1196,8 +1209,8 @@ private fun QuotasHeader(
             } else 0f
 
             val progressColor = when {
-                progressPercentage >= 90f -> MaterialTheme.colorScheme.primary
-                progressPercentage >= 60f -> MaterialTheme.colorScheme.tertiary
+                progressPercentage >= 90f -> QuotasAccent
+                progressPercentage >= 60f -> QuotasWarning
                 else -> MaterialTheme.colorScheme.error
             }
 
@@ -1206,7 +1219,7 @@ private fun QuotasHeader(
                     .fillMaxWidth()
                     .height(6.dp)
                     .clip(RoundedCornerShape(3.dp))
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(QuotasMutedBg)
             ) {
                 Box(
                     modifier = Modifier
@@ -1223,7 +1236,7 @@ private fun QuotasHeader(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // آمار در یک ردیف
             Row(
@@ -1235,24 +1248,24 @@ private fun QuotasHeader(
                 StatItem(
                     value = totalVouchers,
                     label = "کل حواله‌ها",
-                    color = MaterialTheme.colorScheme.primary
+                    color = QuotasAccent
                 )
 
                 VerticalDivider(
                     modifier = Modifier.height(24.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                    color = QuotasCardBorder
                 )
 
                 // کارت آمار حواله‌های خروجی
                 StatItem(
                     value = completedVouchers,
                     label = "خروجی",
-                    color = MaterialTheme.colorScheme.tertiary
+                    color = QuotasWarning
                 )
 
                 VerticalDivider(
                     modifier = Modifier.height(24.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                    color = QuotasCardBorder
                 )
 
                 // کارت آمار حواله‌های باقیمانده
@@ -1265,7 +1278,7 @@ private fun QuotasHeader(
                 if (progressPercentage > 0) {
                     VerticalDivider(
                         modifier = Modifier.height(24.dp),
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                        color = QuotasCardBorder
                     )
 
                     Text(
@@ -1299,7 +1312,7 @@ private fun StatItem(
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = QuotasMutedText
         )
     }
 }
@@ -1317,7 +1330,7 @@ private fun FilterBar(
             selected = filterState == FilterState.ALL,
             onClick = { onFilterStateChange(FilterState.ALL) },
             label = "همه",
-            containerColor = MaterialTheme.colorScheme.primary,
+            containerColor = QuotasTitleColor,
             modifier = Modifier.weight(1f)
         )
 
@@ -1325,7 +1338,7 @@ private fun FilterBar(
             selected = filterState == FilterState.PENDING,
             onClick = { onFilterStateChange(FilterState.PENDING) },
             label = "در حال انجام",
-            containerColor = MaterialTheme.colorScheme.error,
+            containerColor = QuotasWarning,
             modifier = Modifier.weight(1f)
         )
 
@@ -1333,7 +1346,7 @@ private fun FilterBar(
             selected = filterState == FilterState.COMPLETED,
             onClick = { onFilterStateChange(FilterState.COMPLETED) },
             label = "تکمیل شده",
-            containerColor = MaterialTheme.colorScheme.tertiary,
+            containerColor = QuotasAccent,
             modifier = Modifier.weight(1f)
         )
     }
@@ -1492,24 +1505,24 @@ private fun ShipCard(
     var expandedWarehouse by remember { mutableStateOf<String?>(null) }
 
     val cardColor = when {
-        progressPercentage >= 100f -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-        progressPercentage >= 75f -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f)
-        progressPercentage >= 50f -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.7f)
+        progressPercentage >= 100f -> QuotasAccentBg
+        progressPercentage >= 75f -> QuotasAccentBg.copy(alpha = 0.6f)
+        progressPercentage >= 50f -> QuotasWarningBg
         else -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
     }
 
     val borderColor = when {
-        progressPercentage >= 100f -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-        progressPercentage >= 75f -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
-        progressPercentage >= 50f -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
+        progressPercentage >= 100f -> QuotasAccentBorder
+        progressPercentage >= 75f -> QuotasAccentBorder
+        progressPercentage >= 50f -> QuotasWarningBorder
         else -> MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
     }
 
     val onBackgroundColor = when {
-        progressPercentage >= 100f -> MaterialTheme.colorScheme.onPrimaryContainer
-        progressPercentage >= 75f -> MaterialTheme.colorScheme.onSecondaryContainer
-        progressPercentage >= 50f -> MaterialTheme.colorScheme.onTertiaryContainer
-        else -> MaterialTheme.colorScheme.onErrorContainer
+        progressPercentage >= 100f -> QuotasAccent
+        progressPercentage >= 75f -> QuotasAccent
+        progressPercentage >= 50f -> QuotasWarning
+        else -> MaterialTheme.colorScheme.error
     }
 
     Card(
@@ -1706,8 +1719,8 @@ private fun ShipHeader(
                 // نمایش برچسب تکمیل شده برای کشتی‌هایی که همه حواله‌هایشان خروج شده
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                    color = QuotasAccentBg,
+                    border = BorderStroke(1.dp, QuotasAccentBorder)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -1716,7 +1729,7 @@ private fun ShipHeader(
                         Icon(
                             imageVector = Icons.Outlined.CheckCircle,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = QuotasAccent,
                             modifier = Modifier.size(12.dp)
                         )
 
@@ -1726,7 +1739,7 @@ private fun ShipHeader(
                             text = "تکمیل شده",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.primary
+                            color = QuotasAccent
                         )
                     }
                 }
@@ -1847,15 +1860,15 @@ private fun FlatQuotaCard(
     val isCompleted = remainingVouchers == 0
 
     val cardColor = when {
-        isCompleted -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+        isCompleted -> QuotasAccentBg.copy(alpha = 0.5f)
         remainingVouchers > 0 -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
-        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)
+        else -> QuotasMutedBg.copy(alpha = 0.5f)
     }
 
     val borderColor = when {
-        isCompleted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+        isCompleted -> QuotasAccentBorder
         remainingVouchers > 0 -> MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+        else -> QuotasCardBorder
     }
 
     Card(
@@ -1885,22 +1898,22 @@ private fun FlatQuotaCard(
                             .clip(CircleShape)
                             .background(
                                 color = if (isCompleted)
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                                    QuotasAccentBg
                                 else if (remainingVouchers > 0)
                                     MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
                                 else
-                                    MaterialTheme.colorScheme.surfaceVariant
+                                    QuotasMutedBg
                             )
                     ) {
                         Icon(
                             imageVector = Icons.Default.DirectionsBoat,
                             contentDescription = null,
                             tint = if (isCompleted)
-                                MaterialTheme.colorScheme.primary
+                                QuotasAccent
                             else if (remainingVouchers > 0)
                                 MaterialTheme.colorScheme.error
                             else
-                                MaterialTheme.colorScheme.onSurfaceVariant,
+                                QuotasMutedText,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -1967,7 +1980,7 @@ private fun FlatQuotaCard(
                                 Icon(
                                     imageVector = Icons.Outlined.CheckCircle,
                                     contentDescription = "تکمیل شده",
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = QuotasAccent,
                                     modifier = Modifier.size(12.dp)
                                 )
 
@@ -2020,7 +2033,7 @@ private fun FlatQuotaCard(
                     if (isCompleted) {
                         Surface(
                             shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer
+                            color = QuotasAccentBg
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
@@ -2030,7 +2043,7 @@ private fun FlatQuotaCard(
                                     text = "تکمیل شده",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    color = QuotasAccent
                                 )
                             }
                         }
@@ -2056,9 +2069,9 @@ private fun FlatQuotaCard(
                         text = "${quota.exitVouchers}/$totalVouchers حواله",
                         style = MaterialTheme.typography.bodySmall,
                         color = if (isCompleted)
-                            MaterialTheme.colorScheme.primary
+                            QuotasAccent
                         else
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            QuotasMutedText
                     )
 
                     Spacer(modifier = Modifier.height(2.dp))
@@ -2069,9 +2082,9 @@ private fun FlatQuotaCard(
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                         fontWeight = FontWeight.Bold,
                         color = if (isCompleted)
-                            MaterialTheme.colorScheme.primary
+                            QuotasAccent
                         else
-                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                            QuotasMutedText.copy(alpha = 0.8f)
                     )
                 }
             }
@@ -2138,11 +2151,11 @@ private fun FlatQuotaCard(
                         text = "${progressPercentage.toInt()}%",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isCompleted)
-                            MaterialTheme.colorScheme.primary
+                            QuotasAccent
                         else if (remainingVouchers > 0)
                             MaterialTheme.colorScheme.error
                         else
-                            MaterialTheme.colorScheme.onSurfaceVariant,
+                            QuotasMutedText,
                         textAlign = TextAlign.End,
                         modifier = Modifier.width(36.dp)
                     )
@@ -2158,7 +2171,7 @@ private fun FlatQuotaCard(
                         .fillMaxWidth()
                         .height(6.dp)
                         .clip(RoundedCornerShape(3.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .background(QuotasMutedBg)
                 ) {
                     Box(
                         modifier = Modifier
@@ -2168,8 +2181,8 @@ private fun FlatQuotaCard(
                                 brush = if (isCompleted) {
                                     Brush.horizontalGradient(
                                         colors = listOf(
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                                            MaterialTheme.colorScheme.primary
+                                            QuotasAccent.copy(alpha = 0.7f),
+                                            QuotasAccent
                                         )
                                     )
                                 } else if (remainingVouchers > 0) {
@@ -2271,7 +2284,7 @@ fun StatusSnackbar(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    com.atk.atk_cargo.feature.cargo_entry.presentation.components.StatusSnackbar(
+    StatusSnackbar(
         message = message,
         isVisible = isVisible,
         onDismiss = onDismiss,
@@ -2286,7 +2299,7 @@ fun ShipSelectionDialog(
     onSelectShip: (Set<String>) -> Unit,
     onDismiss: () -> Unit
 ) {
-    com.atk.atk_cargo.feature.cargo_entry.presentation.components.ShipSelectionDialog(
+    ShipSelectionDialog(
         ships = ships,
         selectedShipNames = selectedShipNames,
         onSelectShip = onSelectShip,

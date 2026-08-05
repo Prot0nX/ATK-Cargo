@@ -16,6 +16,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,8 +36,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -56,6 +59,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,6 +77,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -87,6 +92,30 @@ import com.atk.atk_cargo.api.QuotaGroupingMode
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlin.math.roundToInt
+
+private val AnalyticsAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val AnalyticsAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.16f) else Color(0xFFDCEFEA)
+
+private val AnalyticsAccentBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.35f) else Color(0xFFB9DED7)
+
+private val AnalyticsCardBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+
+private val AnalyticsMutedBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+
+private val AnalyticsMutedText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+private val AnalyticsTitleColor: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurface
+
+private val AnalyticsScreenBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surface
 
 @Composable
 fun ComprehensiveAnalyticsDialog(
@@ -113,71 +142,56 @@ fun ComprehensiveAnalyticsDialog(
             )
         ) {
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth(0.92f)
-                    .fillMaxHeight(0.9f),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp
+                modifier = Modifier.fillMaxSize(),
+                color = AnalyticsScreenBg
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                ) {
-                    AnalyticsHeaderCard(onClose = onDismiss)
-
+                Column(modifier = Modifier.fillMaxSize()) {
                     Column(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp)
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface)
+                            .padding(bottom = 12.dp)
                     ) {
-                        Spacer(modifier = Modifier.height(4.dp))
-
+                        AnalyticsHeaderCard(onClose = onDismiss)
                         AnalyticsDateNavigation(viewModel = viewModel)
+                    }
+                    HorizontalDivider(color = AnalyticsCardBorder.copy(alpha = 0.7f))
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .weight(1f)
-                        ) {
-                            when (loadingState) {
-                                is ReportsViewModel.LoadingState.Loading -> {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
+                    Box(modifier = Modifier.fillMaxSize().weight(1f)) {
+                        when (loadingState) {
+                            is ReportsViewModel.LoadingState.Loading -> {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(16.dp)
                                     ) {
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                                        ) {
-                                            CircularProgressIndicator(
-                                                color = MaterialTheme.colorScheme.primary
-                                            )
-                                            Text(
-                                                text = "در حال بارگذاری تحلیل‌ها...",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                            )
-                                        }
-                                    }
-                                }
-                                is ReportsViewModel.LoadingState.Error -> {
-                                    val error = (loadingState as ReportsViewModel.LoadingState.Error).message
-                                    ErrorStateCard(errorMessage = error)
-                                }
-                                ReportsViewModel.LoadingState.Success -> {
-                                    analyticsData?.quotaCompletionAnalysis?.let { quotaData ->
-                                        QuotaAnalysis(
-                                            completionData = quotaData,
-                                            viewModel = viewModel
+                                        CircularProgressIndicator(color = AnalyticsAccent)
+                                        Text(
+                                            text = "در حال بارگذاری تحلیل‌ها...",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                                         )
-                                    } ?: EmptyStateCard("داده‌ای برای کوتاژها یافت نشد")
-                                }
-                                ReportsViewModel.LoadingState.Idle -> {
-                                    LaunchedEffect(Unit) {
-                                        viewModel.loadComprehensiveAnalytics()
                                     }
+                                }
+                            }
+                            is ReportsViewModel.LoadingState.Error -> {
+                                val error = (loadingState as ReportsViewModel.LoadingState.Error).message
+                                ErrorStateCard(errorMessage = error)
+                            }
+                            ReportsViewModel.LoadingState.Success -> {
+                                analyticsData?.quotaCompletionAnalysis?.let { quotaData ->
+                                    QuotaAnalysis(
+                                        completionData = quotaData,
+                                        viewModel = viewModel
+                                    )
+                                } ?: EmptyStateCard("داده‌ای برای کوتاژها یافت نشد")
+                            }
+                            ReportsViewModel.LoadingState.Idle -> {
+                                LaunchedEffect(Unit) {
+                                    viewModel.loadComprehensiveAnalytics()
                                 }
                             }
                         }
@@ -199,78 +213,72 @@ private fun AnalyticsDateNavigation(
     val formattedDate = dateInfo?.jalaliDate ?: ""
     val dayName = dateInfo?.dayName ?: ""
 
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+            .padding(horizontal = 18.dp)
+            .padding(top = 12.dp)
+            .clip(RoundedCornerShape(13.dp))
+            .background(AnalyticsMutedBg)
+            .padding(horizontal = 6.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        IconButton(
+            onClick = { viewModel.setAnalyticsDateOffset(offset + 1) },
+            enabled = offset < 0,
+            modifier = Modifier.size(26.dp)
         ) {
-            IconButton(
-                onClick = { viewModel.setAnalyticsDateOffset(offset + 1) },
-                enabled = offset < 0
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "روز بعد",
+                tint = if (offset < 0) AnalyticsAccent else AnalyticsMutedText.copy(alpha = 0.4f),
+                modifier = Modifier.size(16.dp)
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.weight(1f)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                Text(
+                    text = if (offset == 0) "امروز" else if (offset == -1) "دیروز" else dayName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = AnalyticsTitleColor
+                )
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "روز بعد",
-                    tint = if (offset < 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                    modifier = Modifier.size(28.dp)
+                    imageVector = Icons.Default.CalendarToday,
+                    contentDescription = null,
+                    tint = AnalyticsMutedText,
+                    modifier = Modifier.size(12.dp)
                 )
             }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.weight(1f)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarToday,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = if (offset == 0) "امروز" else if (offset == -1) "دیروز" else dayName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                if (formattedDate.isNotEmpty()) {
-                    Text(
-                        text = formattedDate,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            IconButton(
-                onClick = { viewModel.setAnalyticsDateOffset(offset - 1) },
-                enabled = offset > -7
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "روز قبل",
-                    tint = if (offset > -7) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                    modifier = Modifier.size(28.dp)
+            if (formattedDate.isNotEmpty()) {
+                Text(
+                    text = formattedDate,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AnalyticsMutedText
                 )
             }
+        }
+
+        IconButton(
+            onClick = { viewModel.setAnalyticsDateOffset(offset - 1) },
+            enabled = offset > -7,
+            modifier = Modifier.size(26.dp)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = "روز قبل",
+                tint = if (offset > -7) AnalyticsAccent else AnalyticsMutedText.copy(alpha = 0.4f),
+                modifier = Modifier.size(16.dp)
+            )
         }
     }
 }
@@ -279,69 +287,56 @@ private fun AnalyticsDateNavigation(
 private fun AnalyticsHeaderCard(
     onClose: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.primary
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(AnalyticsMutedBg)
+                .clickable(onClick = onClose),
+            contentAlignment = Alignment.Center
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f),
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Analytics,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "بستن",
+                tint = AnalyticsTitleColor,
+                modifier = Modifier.size(16.dp)
+            )
+        }
 
-                Column {
-                    Text(
-                        text = "تحلیل جامع عملیات",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(AnalyticsAccentBg),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Analytics,
+                contentDescription = null,
+                tint = AnalyticsAccent,
+                modifier = Modifier.size(16.dp)
+            )
+        }
 
-                    Text(
-                        text = "گزارشات 24 ساعته",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                    )
-                }
-            }
-
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.1f),
-                modifier = Modifier.size(40.dp)
-            ) {
-                IconButton(
-                    onClick = onClose,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "بستن",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(
+                text = "تحلیل جامع عملیات",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = AnalyticsTitleColor
+            )
+            Text(
+                text = "گزارشات ۲۴ ساعته",
+                style = MaterialTheme.typography.labelSmall,
+                color = AnalyticsMutedText
+            )
         }
     }
 }
@@ -355,58 +350,65 @@ private fun SearchField(
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
     Surface(
-        modifier = modifier.height(48.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
+        modifier = modifier.height(44.dp),
+        shape = RoundedCornerShape(11.dp),
+        color = AnalyticsMutedBg
     ) {
-        TextField(
-            value = searchQuery,
-            onValueChange = onSearchQueryChange,
-            modifier = Modifier.fillMaxSize(),
-            placeholder = {
-                Text(
-                    text = placeholder,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    textAlign = TextAlign.Right,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            leadingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { onSearchQueryChange("") }) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "پاک کردن",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = AnalyticsMutedText,
+                modifier = Modifier.size(18.dp)
+            )
+
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (searchQuery.isEmpty()) {
+                    Text(
+                        text = placeholder,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AnalyticsMutedText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
-            },
-            trailingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.size(20.dp)
+
+                BasicTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+                    textStyle = MaterialTheme.typography.bodySmall.copy(
+                        color = AnalyticsTitleColor
+                    ),
+                    cursorBrush = SolidColor(AnalyticsAccent)
                 )
-            },
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            singleLine = true,
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                disabledContainerColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-                cursorColor = MaterialTheme.colorScheme.primary,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-            ),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Right)
-        )
+            }
+
+            if (searchQuery.isNotEmpty()) {
+                IconButton(
+                    onClick = { onSearchQueryChange("") },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "پاک کردن",
+                        tint = AnalyticsMutedText,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -520,7 +522,7 @@ fun QuotaAnalysis(
                 Icon(
                     imageVector = Icons.Default.Share,
                     contentDescription = "اشتراک گذاری کل",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = AnalyticsAccent
                 )
             }
         }
@@ -652,9 +654,9 @@ private fun AnalyticsGroupingModeButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
-    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-    val borderColor = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+    val backgroundColor = if (isSelected) AnalyticsAccentBg else Color.Transparent
+    val contentColor = if (isSelected) AnalyticsAccent else AnalyticsMutedText
+    val borderColor = if (isSelected) AnalyticsAccentBorder else MaterialTheme.colorScheme.outlineVariant
 
     Surface(
         modifier = modifier
@@ -662,8 +664,7 @@ private fun AnalyticsGroupingModeButton(
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
         color = backgroundColor,
-        border = if (!isSelected) BorderStroke(1.dp, borderColor) else null,
-        tonalElevation = if (isSelected) 4.dp else 1.dp
+        border = BorderStroke(1.dp, borderColor)
     ) {
         Row(
             modifier = Modifier
@@ -676,14 +677,14 @@ private fun AnalyticsGroupingModeButton(
                 imageVector = icon,
                 contentDescription = text,
                 tint = contentColor,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(14.dp)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelMedium,
                 color = contentColor,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
@@ -719,11 +720,11 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                     stiffness = Spring.StiffnessLow
                 )
             ),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        border = BorderStroke(1.dp, AnalyticsCardBorder)
     ) {
         Column {
             Surface(
@@ -843,45 +844,43 @@ private fun AnalyticsQuotaGroupExpansionPanel(
 
                         Box(
                             modifier = Modifier
-                                .size(38.dp)
+                                .size(28.dp)
                                 .background(
-                                    color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                                        Color(0xFF1e293b) else Color(0xFFEFF6FF),
-                                    shape = RoundedCornerShape(12.dp)
+                                    color = AnalyticsAccentBg,
+                                    shape = RoundedCornerShape(8.dp)
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = groupIcon,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
+                                tint = AnalyticsAccent,
+                                modifier = Modifier.size(14.dp)
                             )
                         }
                     }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Start,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         AnalyticsStatChip(
-                            value = formatNumber(totalVouchers),
-                            label = "حواله"
+                            value = "${quotas.size}",
+                            label = "کوتاژ",
+                            modifier = Modifier.weight(1f)
                         )
-
-                        Spacer(modifier = Modifier.width(8.dp))
 
                         AnalyticsStatChip(
                             value = formatNumber(totalWeight.roundToInt()),
-                            label = "تن"
+                            label = "تن",
+                            modifier = Modifier.weight(1f)
                         )
 
-                        Spacer(modifier = Modifier.width(8.dp))
-
                         AnalyticsStatChip(
-                            value = "${quotas.size}",
-                            label = "کوتاژ"
+                            value = formatNumber(totalVouchers),
+                            label = "حواله",
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -905,11 +904,10 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                         .heightIn(max = 400.dp)
                         .verticalScroll(rememberScrollState())
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(top = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
                     if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
                         val ownerSummaries = quotas.groupBy { it.cargoOwner ?: "نامشخص" }
@@ -936,7 +934,8 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                         quotas.forEach { quota ->
                             AnalyticsQuotaCard(
                                 quota = quota,
-                                groupingMode = groupingMode
+                                groupingMode = groupingMode,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                             )
                         }
                     }
@@ -954,29 +953,25 @@ private fun AnalyticsStatChip(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-            Color(0xFF1e293b) else Color(0xFFEFF6FF),
-        border = BorderStroke(0.5.dp, if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-            Color(0xFF334155) else Color(0xFF93C5FD))
+        shape = RoundedCornerShape(9.dp),
+        color = AnalyticsMutedBg
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = value,
                 style = MaterialTheme.typography.labelMedium,
-                color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                    Color(0xFF93c5fd) else Color(0xFF1E40AF),
+                color = AnalyticsTitleColor,
                 fontWeight = FontWeight.Bold
             )
+            Spacer(modifier = Modifier.width(3.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                    Color(0xFF93c5fd) else Color(0xFF1E40AF)
+                color = AnalyticsMutedText
             )
         }
     }
@@ -992,9 +987,9 @@ private fun AnalyticsQuotaCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = AnalyticsMutedBg
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+        border = BorderStroke(1.dp, AnalyticsCardBorder)
     ) {
         Row(
             modifier = Modifier
@@ -1016,7 +1011,7 @@ private fun AnalyticsQuotaCard(
                         text = quota.loadingQuotaNumber,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = AnalyticsTitleColor
                     )
 
                     Text(
@@ -1027,7 +1022,7 @@ private fun AnalyticsQuotaCard(
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = AnalyticsAccent
                     )
                 }
 
@@ -1044,13 +1039,13 @@ private fun AnalyticsQuotaCard(
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary,
+                            tint = AnalyticsMutedText,
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
                             text = quota.cargoOwner ?: "نامشخص",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = AnalyticsMutedText,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1063,13 +1058,13 @@ private fun AnalyticsQuotaCard(
                         Icon(
                             imageVector = Icons.Default.Warehouse,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.tertiary,
+                            tint = AnalyticsMutedText,
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
                             text = quota.warehouse ?: "نامشخص",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = AnalyticsMutedText,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1077,54 +1072,38 @@ private fun AnalyticsQuotaCard(
                 }
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
                             .background(
-                                color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                                    Color(0xFF334155) else Color(0xFFF9FAFB),
-                                shape = RoundedCornerShape(4.dp)
+                                color = AnalyticsAccentBg,
+                                shape = RoundedCornerShape(8.dp)
                             )
-                            .border(
-                                width = 1.dp,
-                                color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                                    Color(0xFF475569) else Color(0xFFE5E7EB),
-                                shape = RoundedCornerShape(4.dp)
-                            )
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = "${formatNumber(quota.last_24h_vouchers)} حواله",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                                Color(0xFF94a3b8) else Color(0xFF6B7280),
-                            fontWeight = FontWeight.Medium
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AnalyticsAccent,
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
                     Box(
                         modifier = Modifier
                             .background(
-                                color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                                    Color(0xFF334155) else Color(0xFFF9FAFB),
-                                shape = RoundedCornerShape(4.dp)
+                                color = AnalyticsAccentBg,
+                                shape = RoundedCornerShape(8.dp)
                             )
-                            .border(
-                                width = 1.dp,
-                                color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                                    Color(0xFF475569) else Color(0xFFE5E7EB),
-                                shape = RoundedCornerShape(4.dp)
-                            )
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = "${formatNumber(quota.last_24h_weight.roundToInt())} تن",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                                Color(0xFF94a3b8) else Color(0xFF6B7280),
-                            fontWeight = FontWeight.Medium
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AnalyticsAccent,
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
@@ -1132,23 +1111,20 @@ private fun AnalyticsQuotaCard(
                         Box(
                             modifier = Modifier
                                 .background(
-                                    color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                                        Color(0xFF1e293b) else Color(0xFFEFF6FF),
-                                    shape = RoundedCornerShape(4.dp)
+                                    color = MaterialTheme.colorScheme.surface,
+                                    shape = RoundedCornerShape(8.dp)
                                 )
                                 .border(
                                     width = 1.dp,
-                                    color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                                        Color(0xFF2563eb).copy(alpha = 0.3f) else Color(0xFF3B82F6).copy(alpha = 0.2f),
-                                    shape = RoundedCornerShape(4.dp)
+                                    color = AnalyticsCardBorder,
+                                    shape = RoundedCornerShape(8.dp)
                                 )
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = quota.cargoType,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                                    Color(0xFF60a5fa) else Color(0xFF2563EB),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AnalyticsTitleColor,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -1168,72 +1144,80 @@ private fun AnalyticsOwnerSummaryCard(
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = {},
-                onLongClick = onLongClick
-            ),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-    ) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        HorizontalDivider(
+            color = AnalyticsCardBorder,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = onLongClick
+                )
+                .padding(vertical = 9.dp, horizontal = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.weight(1f)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.weight(1f)
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .background(color = AnalyticsMutedBg, shape = RoundedCornerShape(7.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .background(
-                            color = if (MaterialTheme.colorScheme.surface == Color(0xFF0f172a))
-                                Color(0xFF334155) else Color(0xFFF3F4F6),
-                            shape = RoundedCornerShape(6.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-                Text(
-                    text = owner,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = AnalyticsAccent,
+                    modifier = Modifier.size(13.dp)
                 )
             }
-            
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Text(
+                text = owner,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = AnalyticsTitleColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .background(AnalyticsAccentBg, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 9.dp, vertical = 5.dp)
             ) {
-                AnalyticsStatChip(
-                    value = formatNumber(voucherCount),
-                    label = "حواله"
+                Text(
+                    text = "${formatNumber(totalWeight.toInt())} تن",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AnalyticsAccent,
+                    fontWeight = FontWeight.Bold
                 )
-                AnalyticsStatChip(
-                    value = formatNumber(totalWeight.toInt()),
-                    label = "تن"
+            }
+            Box(
+                modifier = Modifier
+                    .background(AnalyticsAccentBg, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 9.dp, vertical = 5.dp)
+            ) {
+                Text(
+                    text = "${formatNumber(voucherCount)} حواله",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AnalyticsAccent,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
+    }
     }
 }
 
@@ -1245,94 +1229,103 @@ private fun OwnerQuotasDialog(
 ) {
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false
+        )
     ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
+        ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .fillMaxHeight(0.75f),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp
+                .fillMaxWidth()
+                .fillMaxHeight(0.6f),
+            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+            color = AnalyticsScreenBg
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(20.dp)
-            ) {
+            Column(modifier = Modifier.fillMaxSize()) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(AnalyticsMutedBg)
+                            .clickable(onClick = onDismiss),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "بستن",
+                            tint = AnalyticsTitleColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(AnalyticsAccentBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = AnalyticsAccent,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                         Text(
                             text = "کوتاژهای مرتبط",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = AnalyticsTitleColor
                         )
                         Text(
                             text = owner,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AnalyticsMutedText,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .background(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = CircleShape
-                            )
-                            .size(36.dp)
+                }
+
+                HorizontalDivider(color = AnalyticsCardBorder.copy(alpha = 0.7f))
+
+                if (quotas.isEmpty()) {
+                    EmptyStateCard("کوتاژی برای این صاحب کالا یافت نشد")
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "بستن",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        items(
+                            items = quotas,
+                            key = { quota -> quota.loadingQuotaNumber + "_" + quota.shipName }
+                        ) { quota ->
+                            AnalyticsQuotaCard(
+                                quota = quota,
+                                groupingMode = QuotaGroupingMode.BY_SHIP
+                            )
+                        }
                     }
-                }
-                
-                Spacer(modifier = Modifier.height(20.dp))
-                
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 8.dp)
-                ) {
-                    items(
-                        items = quotas,
-                        key = { quota -> quota.loadingQuotaNumber + "_" + quota.shipName }
-                    ) { quota ->
-                        AnalyticsQuotaCard(
-                            quota = quota,
-                            groupingMode = QuotaGroupingMode.BY_SHIP
-                        )
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(12.dp)
-                ) {
-                    Text(
-                        text = "بستن",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
                 }
             }
+        }
         }
     }
 }

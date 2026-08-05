@@ -12,16 +12,22 @@ use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Logger;
+use App\Services\CargoService;
+use App\Repositories\CargoRepository;
 
 class CargoController {
     private mysqli $conn;
     private Request $request;
     private Logger $logger;
+    private CargoService $cargoService;
+    private CargoRepository $cargoRepo;
 
-    public function __construct() {
+    public function __construct(?CargoService $cargoService = null, ?CargoRepository $cargoRepo = null) {
         $this->conn = Database::getInstance()->getMysqliConnection();
         $this->request = new Request();
         $this->logger = Logger::getInstance();
+        $this->cargoRepo = $cargoRepo ?? new CargoRepository();
+        $this->cargoService = $cargoService ?? new CargoService($this->cargoRepo);
     }
 
     /**
@@ -48,290 +54,10 @@ class CargoController {
             $params[$field] = isset($params[$field]) ? $this->sanitizeString((string)$params[$field]) : '';
         }
 
-        $shipName = $params['shipName'];
-        $trackingNumber = $params['trackingNumber'];
-        $loadingQuotaNumber = $params['loadingQuotaNumber'];
-
         try {
-            $this->conn->autocommit(FALSE);
-            $this->conn->query("SET SESSION sql_mode = 'STRICT_TRANS_TABLES'");
-            $this->conn->query("SET SESSION innodb_lock_wait_timeout = 5");
-
-            $yesterdayStart = date('Y-m-d 00:00:00', strtotime('-1 day'));
-            $currentTime = jdate("H:i");
-            $currentDate = jdate("Y/m/d");
-
-            // ۱. بررسی وجود حواله تکراری در ۲۴ ساعت گذشته برای این کشتی
-            $check24hQuery = "SELECT loadingQuotaNumber, loadingWarehouse, shippingCompany, exitTime, exitDate, status, entryTime 
-                              FROM CargoInfo 
-                              WHERE shipName = ? AND trackingNumber = ? AND updated_at >= ? 
-                              ORDER BY id DESC LIMIT 1";
-            
-            $check24hStmt = $this->conn->prepare($check24hQuery);
-            if (!$check24hStmt) {
-                throw new Exception("خطا در آماده‌سازی دستور بررسی ۲۴ ساعته: " . $this->conn->error);
-            }
-            $check24hStmt->bind_param("sss", $shipName, $trackingNumber, $yesterdayStart);
-            $check24hStmt->execute();
-            $existing24hCargo = $check24hStmt->get_result()->fetch_assoc();
-            $check24hStmt->close();
-
-            if ($existing24hCargo && $existing24hCargo['loadingQuotaNumber'] !== $loadingQuotaNumber) {
-                if ($params['duplicateConfirmation'] !== "proceed") {
-                    $warningParts = [
-                        "شماره حواله ({$trackingNumber}) در 24 ساعت گذشته برای کشتی [ {$shipName} ] قبلاً ثبت شده است:\n\n",
-                        "شماره کوتاژ ثبت شده: {$existing24hCargo['loadingQuotaNumber']}\n",
-                        "انبار ثبت شده: {$existing24hCargo['loadingWarehouse']}\n"
-                    ];
-                    
-                    $optionalLabels = [
-                        'shippingCompany' => 'شرکت باربری',
-                        'entryTime' => 'ساعت ورود',
-                        'exitTime' => 'ساعت خروج',
-                        'exitDate' => 'تاریخ خروج'
-                    ];
-                    
-                    foreach ($optionalLabels as $field => $label) {
-                        if (!empty($existing24hCargo[$field])) {
-                            $warningParts[] = "$label: {$existing24hCargo[$field]}\n";
-                        }
-                    }
-                    $warningParts[] = "وضعیت فعلی حواله: {$existing24hCargo['status']}";
-
-                    $this->sendSuccessResponse([
-                        "warning" => true,
-                        "message" => implode('', $warningParts),
-                        "existing_cargo" => $existing24hCargo,
-                        "requires_confirmation" => true
-                    ], 409);
-                }
-            }
-
-            // ۲. بررسی وجود حواله با کلیدهای اصلی
-            $query = "SELECT id, status, confirm, exitDate, exitTime, entryTime FROM CargoInfo WHERE 
-                      shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND 
-                      shippingCompany = ? AND loadingQuotaNumber = ? AND trackingNumber = ? 
-                      ORDER BY id DESC LIMIT 1";
-            
-            $stmt = $this->conn->prepare($query);
-            if (!$stmt) {
-                throw new Exception("خطا در آماده‌سازی دستور بازیابی حواله: " . $this->conn->error);
-            }
-            $stmt->bind_param("ssssss", 
-                $shipName, 
-                $params['loadingWarehouse'], 
-                $params['cargoType'], 
-                $params['shippingCompany'], 
-                $loadingQuotaNumber, 
-                $trackingNumber
-            );
-            $stmt->execute();
-            $existingCargo = $stmt->get_result()->fetch_assoc();
-            $stmt->close();
-
-            $shouldInsertNew = !$existingCargo;
-
-            if ($existingCargo) {
-                $isNewEntryAttempt = empty($params['netWeight']) && empty($params['shortageWeight']) && empty($params['excessWeight']);
-                
-                if ($isNewEntryAttempt) {
-                    if ($params['duplicateConfirmation'] !== "proceed") {
-                        $cargoStatus = $existingCargo['status'];
-                        $cargoDate = $cargoStatus === "خروج" ? $existingCargo['exitDate'] : ($existingCargo['exitDate'] ?: $currentDate);
-                        $cargoTime = $cargoStatus === "خروج" ? $existingCargo['exitTime'] : ($existingCargo['entryTime'] ?: $currentTime);
-                        
-                        $warningMessage = "شماره حواله \"{$trackingNumber}\" برای شماره کوتاژ \"{$loadingQuotaNumber}\" برای کشتی [ {$shipName} ] قبلاً در تاریخ {$cargoDate} و ساعت {$cargoTime} در وضعیت [ {$cargoStatus} ] ثبت شده است.\n\nآیا اطمینان دارید که می‌خواهید حواله جدید با همین مشخصات ثبت کنید؟";
-                        
-                        $this->sendSuccessResponse([
-                            "warning" => true,
-                            "message" => $warningMessage,
-                            "existing_cargo" => $existingCargo,
-                            "requires_confirmation" => true
-                        ], 409);
-                    } else {
-                        $shouldInsertNew = true;
-                    }
-                }
-            }
-
-            // ۳. درج حواله جدید یا به‌روزرسانی حواله موجود
-            if ($shouldInsertNew) {
-                $numberOfPeople = filter_var($params['numberOfPeople'], FILTER_VALIDATE_INT);
-                if ($numberOfPeople === false || $numberOfPeople < 1) {
-                    throw new Exception("تعداد نفرات باید عددی بزرگتر از صفر باشد");
-                }
-
-                $insertQuery = "INSERT INTO CargoInfo (
-                    trackingNumber, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, 
-                    status, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber, 
-                    numberOfPeople, username, userType
-                ) VALUES (?, ?, ?, ?, ?, ?, 'ورود', ?, ?, ?, ?, ?, ?, ?, ?)";
-                
-                $insertStmt = $this->conn->prepare($insertQuery);
-                if (!$insertStmt) {
-                    throw new Exception("خطا در آماده‌سازی دستور درج: " . $this->conn->error);
-                }
-                
-                $insertStmt->bind_param("ssssssssssssss", 
-                    $trackingNumber, 
-                    $currentTime, 
-                    $params['netWeight'], 
-                    $params['scaleReceiptNumber'], 
-                    $params['shortageWeight'], 
-                    $params['excessWeight'], 
-                    $shipName, 
-                    $params['loadingWarehouse'], 
-                    $params['cargoType'], 
-                    $params['shippingCompany'], 
-                    $loadingQuotaNumber, 
-                    $numberOfPeople, 
-                    $params['username'], 
-                    $params['userType']
-                );
-                
-                if (!$insertStmt->execute()) {
-                    throw new Exception("خطا در اجرای دستور درج: " . $insertStmt->error);
-                }
-                $insertStmt->close();
-                $this->conn->commit();
-
-                $this->logger->info("New cargo entry tracking: $trackingNumber, ship: $shipName, user: {$params['username']}");
-
-                $this->sendSuccessResponse([
-                    "success" => true, 
-                    "message" => "حواله جدید با شماره {$trackingNumber} و تعداد نفرات {$numberOfPeople} در ساعت $currentTime توسط کاربر {$params['username']} با نقش {$params['userType']} با موفقیت ثبت شد"
-                ]);
-            } else {
-                // به‌روزرسانی حواله موجود
-                $cargoId = $existingCargo['id'];
-                
-                if ($existingCargo['status'] === "ورود") {
-                    if (!empty($params['netWeight'])) {
-                        if ($existingCargo['confirm'] !== "تائید شده") {
-                            throw new Exception("حواله مورد نظر توسط بارشمار هنوز تائید نشده است!");
-                        }
-                        
-                        $this->validateExitData($params['netWeight'], $params['scaleReceiptNumber']);
-                        
-                        // کسر تناژ موقت در صورت فعال بودن
-                        $netWeightValue = floatval($params['netWeight']);
-                        $tempTonnageQuery = "SELECT temp_tonnage_status, temp_tonnage_amount FROM InitialInfo 
-                                           WHERE shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND 
-                                                 shippingCompany = ? AND loadingQuotaNumber = ? LIMIT 1";
-                        $tempTonnageStmt = $this->conn->prepare($tempTonnageQuery);
-                        $tempTonnageStmt->bind_param("sssss", 
-                            $shipName, 
-                            $params['loadingWarehouse'], 
-                            $params['cargoType'], 
-                            $params['shippingCompany'], 
-                            $loadingQuotaNumber
-                        );
-                        $tempTonnageStmt->execute();
-                        $tempTonnageData = $tempTonnageStmt->get_result()->fetch_assoc();
-                        $tempTonnageStmt->close();
-                        
-                        if ($tempTonnageData && $tempTonnageData['temp_tonnage_status'] == 1 && $tempTonnageData['temp_tonnage_amount'] > 0) {
-                            $newTempTonnage = max(0, $tempTonnageData['temp_tonnage_amount'] - $netWeightValue);
-                            $updateTempTonnageQuery = "UPDATE InitialInfo SET temp_tonnage_amount = ? 
-                                                     WHERE shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND 
-                                                           shippingCompany = ? AND loadingQuotaNumber = ?";
-                            $updateTempTonnageStmt = $this->conn->prepare($updateTempTonnageQuery);
-                            $updateTempTonnageStmt->bind_param("dsssss", 
-                                $newTempTonnage, 
-                                $shipName, 
-                                $params['loadingWarehouse'], 
-                                $params['cargoType'], 
-                                $params['shippingCompany'], 
-                                $loadingQuotaNumber
-                            );
-                            $updateTempTonnageStmt->execute();
-                            $updateTempTonnageStmt->close();
-                        }
-                        
-                        // به‌روزرسانی برای وضعیت خروج
-                        $updateQuery = "UPDATE CargoInfo SET 
-                            netWeight = ?, scaleReceiptNumber = ?, exitTime = ?, exitDate = ?, 
-                            status = 'خروج', username = ?, userType = ? 
-                        WHERE id = ?";
-                        
-                        $updateStmt = $this->conn->prepare($updateQuery);
-                        $updateStmt->bind_param("ssssssi", 
-                            $params['netWeight'], 
-                            $params['scaleReceiptNumber'], 
-                            $currentTime, 
-                            $currentDate, 
-                            $params['username'], 
-                            $params['userType'], 
-                            $cargoId
-                        );
-                    } elseif (!empty($params['shortageWeight']) || !empty($params['excessWeight'])) {
-                        // به‌روزرسانی کسری یا اضافه بار
-                        $updateQuery = "UPDATE CargoInfo SET 
-                            shortageWeight = ?, excessWeight = ?, username = ?, userType = ? 
-                        WHERE id = ?";
-                        
-                        $updateStmt = $this->conn->prepare($updateQuery);
-                        $updateStmt->bind_param("ssssi", 
-                            $params['shortageWeight'], 
-                            $params['excessWeight'], 
-                            $params['username'], 
-                            $params['userType'], 
-                            $cargoId
-                        );
-                    } else {
-                        throw new Exception("برای حواله در وضعیت ورود، باید وزن خالص یا کسری/اضافه بار وارد شود");
-                    }
-                } elseif ($existingCargo['status'] === "خروج") {
-                    if ($params['confirmation'] !== "yes") {
-                        $this->sendSuccessResponse([
-                            "message" => "شماره حواله {$trackingNumber} در تاریخ {$existingCargo['exitDate']} و ساعت {$existingCargo['exitTime']} خروج کرده و سرویس بسته شده است!", 
-                            "status" => "confirmation_needed", 
-                            "exitDate" => $existingCargo['exitDate'], 
-                            "exitTime" => $existingCargo['exitTime']
-                        ]);
-                    }
-                    
-                    $this->validateExitData($params['netWeight'], $params['scaleReceiptNumber']);
-                    
-                    // به‌روزرسانی حواله خروج یافته
-                    $updateQuery = "UPDATE CargoInfo SET 
-                        netWeight = ?, scaleReceiptNumber = ?, exitTime = ?, exitDate = ?, 
-                        username = ?, userType = ? 
-                    WHERE id = ?";
-                    
-                    $updateStmt = $this->conn->prepare($updateQuery);
-                    $updateStmt->bind_param("ssssssi", 
-                        $params['netWeight'], 
-                        $params['scaleReceiptNumber'], 
-                        $currentTime, 
-                        $currentDate, 
-                        $params['username'], 
-                        $params['userType'], 
-                        $cargoId
-                    );
-                } else {
-                    throw new Exception("وضعیت نامعتبر حواله");
-                }
-
-                if (!$updateStmt->execute()) {
-                    throw new Exception("خطا در اجرای دستور به‌روزرسانی: " . $updateStmt->error);
-                }
-                $updateStmt->close();
-                $this->conn->commit();
-
-                $this->logger->info("Cargo updated tracking: $trackingNumber, status: exit, user: {$params['username']}");
-
-                $this->sendSuccessResponse([
-                    "success" => true,
-                    "message" => "عملیات با موفقیت انجام شد",
-                    "exitDate" => $currentDate,
-                    "exitTime" => $currentTime,
-                    "trackingNumber" => $trackingNumber,
-                    "loadingQuotaNumber" => $loadingQuotaNumber
-                ]);
-            }
+            $result = $this->cargoService->saveOrUpdateCargo($params);
+            $this->sendJsonResponse($result['data'], $result['code'] ?? 200);
         } catch (Exception $e) {
-            $this->conn->rollback();
             $this->logger->error("Error in CargoController saveOrUpdate: " . $e->getMessage());
             $this->sendErrorResponse($e->getMessage());
         }
@@ -377,60 +103,44 @@ class CargoController {
             $status = $this->validateStringField($data['status'] ?? null, 'وضعیت');
             $confirm = $this->validateStringField($data['confirm'] ?? null, 'تایید', false);
 
-            // بررسی وجود رکورد
-            $checkStmt = $this->conn->prepare("SELECT id FROM CargoInfo WHERE id = ? LIMIT 1");
-            $checkStmt->bind_param("i", $id);
-            $checkStmt->execute();
-            $checkResult = $checkStmt->get_result();
-            if ($checkResult->num_rows === 0) {
-                $checkStmt->close();
+            $existing = $this->cargoRepo->findCargoById((int)$id);
+            if (!$existing) {
                 $this->sendJsonResponse(['error' => true, 'message' => 'رکوردی با این شناسه یافت نشد.'], 404);
             }
-            $checkStmt->close();
 
-            // بررسی تکراری نبودن قبض باسکول
-            $dupStmt = $this->conn->prepare("SELECT id FROM CargoInfo WHERE scaleReceiptNumber = ? AND id != ? LIMIT 1");
-            $dupStmt->bind_param("si", $scaleReceiptNumber, $id);
-            $dupStmt->execute();
-            if ($dupStmt->get_result()->num_rows > 0) {
-                $dupStmt->close();
+            if ($this->cargoRepo->isScaleReceiptDuplicate($scaleReceiptNumber, (int)$id)) {
                 $this->sendJsonResponse(['error' => true, 'message' => 'شماره قبض باسکول تکراری است.'], 400);
             }
-            $dupStmt->close();
 
-            $updateQuery = "UPDATE CargoInfo SET 
-                trackingNumber = ?, numberOfPeople = ?, username = ?, userType = ?, 
-                entryTime = ?, netWeight = ?, scaleReceiptNumber = ?, shortageWeight = ?, 
-                excessWeight = ?, exitTime = ?, exitDate = ?, status = ?, confirm = ? 
-                WHERE id = ?";
+            $updateData = [
+                'trackingNumber' => $trackingNumber,
+                'numberOfPeople' => $numberOfPeople,
+                'username' => $username,
+                'userType' => $userType,
+                'entryTime' => $entryTime,
+                'netWeight' => $netWeight,
+                'scaleReceiptNumber' => $scaleReceiptNumber,
+                'shortageWeight' => $shortageWeight,
+                'excessWeight' => $excessWeight,
+                'exitTime' => $exitTime,
+                'exitDate' => $exitDate,
+                'status' => $status,
+                'confirm' => $confirm
+            ];
 
-            $updateStmt = $this->conn->prepare($updateQuery);
-            $updateStmt->bind_param("sssssssssssssi", 
-                $trackingNumber, $numberOfPeople, $username, $userType, 
-                $entryTime, $netWeight, $scaleReceiptNumber, $shortageWeight, 
-                $excessWeight, $exitTime, $exitDate, $status, $confirm, $id
-            );
-
-            if ($updateStmt->execute()) {
-                $affected = $updateStmt->affected_rows;
-                $updateStmt->close();
-                if ($affected > 0) {
-                    $this->sendJsonResponse([
-                        'error' => false,
-                        'status' => 'success',
-                        'message' => 'اطلاعات با موفقیت بروزرسانی شد.'
-                    ]);
-                } else {
-                    $this->sendJsonResponse([
-                        'error' => false,
-                        'status' => 'no_change',
-                        'message' => 'تغییری در اطلاعات ایجاد نشد.'
-                    ]);
-                }
+            $updated = $this->cargoRepo->updateCargoFull((int)$id, $updateData);
+            if ($updated) {
+                $this->sendJsonResponse([
+                    'error' => false,
+                    'status' => 'success',
+                    'message' => 'اطلاعات با موفقیت بروزرسانی شد.'
+                ]);
             } else {
-                $err = $updateStmt->error;
-                $updateStmt->close();
-                throw new Exception("خطا در اجرای کوئری بروزرسانی: " . $err);
+                $this->sendJsonResponse([
+                    'error' => false,
+                    'status' => 'no_change',
+                    'message' => 'تغییری در اطلاعات ایجاد نشد.'
+                ]);
             }
         } catch (InvalidArgumentException $e) {
             $this->sendJsonResponse(['error' => true, 'message' => $e->getMessage()], 400);
@@ -477,29 +187,9 @@ class CargoController {
         }
 
         try {
-            $this->conn->begin_transaction();
-
-            $query = "UPDATE CargoInfo 
-                      SET confirm = 'تائید شده', 
-                          confirm_username = ?, 
-                          confirm_usertype = ?, 
-                          updated_at = NOW() 
-                      WHERE id = ? AND (confirm IS NULL OR confirm != 'تائید شده')";
-
-            $stmt = $this->conn->prepare($query);
-            $stmt->bind_param("ssi", $username, $userType, $cargoId);
-            $stmt->execute();
-
-            if ($stmt->affected_rows > 0) {
-                $stmt->close();
-                $infoStmt = $this->conn->prepare("SELECT trackingNumber, loadingQuotaNumber FROM CargoInfo WHERE id = ?");
-                $infoStmt->bind_param("i", $cargoId);
-                $infoStmt->execute();
-                $cargoData = $infoStmt->get_result()->fetch_assoc();
-                $infoStmt->close();
-
-                $this->conn->commit();
-
+            $res = $this->cargoRepo->confirmCargo($cargoId, $username, $userType);
+            if ($res['affected'] > 0) {
+                $cargoData = $this->cargoRepo->findCargoById($cargoId);
                 $confirmTime = date('H:i:s');
                 $confirmDate = date('Y/m/d');
 
@@ -522,15 +212,7 @@ class CargoController {
                 echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
                 exit;
             } else {
-                $stmt->close();
-                $checkStmt = $this->conn->prepare("SELECT id FROM CargoInfo WHERE id = ?");
-                $checkStmt->bind_param("i", $cargoId);
-                $checkStmt->execute();
-                $exists = $checkStmt->get_result()->num_rows > 0;
-                $checkStmt->close();
-
-                $this->conn->commit();
-
+                $exists = $this->cargoRepo->findCargoById($cargoId) !== null;
                 if ($exists) {
                     $this->sendJsonResponse(["status" => "error", "message" => "حواله قبلاً تأیید شده است یا تغییری اعمال نشد"], 200);
                 } else {
@@ -538,7 +220,6 @@ class CargoController {
                 }
             }
         } catch (Exception $e) {
-            $this->conn->rollback();
             $this->logger->error("Error in confirmCargo: " . $e->getMessage());
             $this->sendJsonResponse(["status" => "error", "message" => $e->getMessage()], 500);
         }
@@ -565,44 +246,10 @@ class CargoController {
         }
 
         try {
-            $selectStmt = $this->conn->prepare("SELECT netWeight, status, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber FROM CargoInfo WHERE id = ?");
-            $selectStmt->bind_param("i", $cargoId);
-            $selectStmt->execute();
-            $cargoData = $selectStmt->get_result()->fetch_assoc();
-            $selectStmt->close();
-
-            if (!$cargoData) {
-                $this->sendJsonResponse(["status" => "error", "message" => "حواله یافت نشد یا قبلاً حذف شده است"], 404);
-            }
-
-            $deleteStmt = $this->conn->prepare("DELETE FROM CargoInfo WHERE id = ?");
-            $deleteStmt->bind_param("i", $cargoId);
-            $deleteStmt->execute();
-            $affectedRows = $deleteStmt->affected_rows;
-            $deleteStmt->close();
-
-            if ($affectedRows > 0 && $cargoData['status'] === 'خروج' && !empty($cargoData['netWeight'])) {
-                $netWeightValue = (float)$cargoData['netWeight'];
-                $tempStmt = $this->conn->prepare("SELECT temp_tonnage_status, temp_tonnage_amount FROM InitialInfo WHERE shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND shippingCompany = ? AND loadingQuotaNumber = ? LIMIT 1");
-                $tempStmt->bind_param("sssss", $cargoData['shipName'], $cargoData['loadingWarehouse'], $cargoData['cargoType'], $cargoData['shippingCompany'], $cargoData['loadingQuotaNumber']);
-                $tempStmt->execute();
-                $tempData = $tempStmt->get_result()->fetch_assoc();
-                $tempStmt->close();
-
-                if ($tempData && (int)$tempData['temp_tonnage_status'] === 1) {
-                    $newTemp = (float)$tempData['temp_tonnage_amount'] + $netWeightValue;
-                    $updateTempStmt = $this->conn->prepare("UPDATE InitialInfo SET temp_tonnage_amount = ? WHERE shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND shippingCompany = ? AND loadingQuotaNumber = ?");
-                    $updateTempStmt->bind_param("dsssss", $newTemp, $cargoData['shipName'], $cargoData['loadingWarehouse'], $cargoData['cargoType'], $cargoData['shippingCompany'], $cargoData['loadingQuotaNumber']);
-                    $updateTempStmt->execute();
-                    $updateTempStmt->close();
-                }
-            }
-
-            if ($affectedRows === 0) {
-                $this->sendJsonResponse(["status" => "error", "message" => "حواله یافت نشد یا قبلاً حذف شده است"], 404);
-            } else {
-                $this->sendJsonResponse(["status" => "success", "message" => "حواله با موفقیت حذف شد"]);
-            }
+            $res = $this->cargoService->deleteCargoInfo($cargoId);
+            $code = $res['code'] ?? 200;
+            unset($res['code']);
+            $this->sendJsonResponse($res, $code);
         } catch (Exception $e) {
             $this->logger->error("Error in deleteCargoInfo: " . $e->getMessage());
             $this->sendJsonResponse(["status" => "error", "message" => "خطا در حذف حواله: " . $e->getMessage()], 500);
@@ -618,23 +265,17 @@ class CargoController {
         header('X-Frame-Options: DENY');
         header('X-XSS-Protection: 1; mode=block');
 
-        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        if (!$this->request->isGet()) {
             $this->sendJsonResponse(['error' => 'روش درخواست نامعتبر است'], 405);
         }
 
         try {
-            $receipt = isset($_GET['receipt']) ? trim((string)$_GET['receipt']) : '';
+            $receipt = trim((string)$this->request->get('receipt', ''));
             if ($receipt === '') {
                 throw new InvalidArgumentException('لطفاً شماره قبض باسکول را وارد کنید.');
             }
 
-            $query = "SELECT id, trackingNumber, numberOfPeople, username, userType, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, exitTime, exitDate, status, confirm, confirmation, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber FROM CargoInfo WHERE scaleReceiptNumber = ? LIMIT 1";
-            $stmt = $this->conn->prepare($query);
-            $stmt->bind_param("s", $receipt);
-            $stmt->execute();
-            $cargoInfo = $stmt->get_result()->fetch_assoc();
-            $stmt->close();
-
+            $cargoInfo = $this->cargoRepo->searchByScaleReceipt($receipt);
             if ($cargoInfo) {
                 $formattedCargoInfo = [
                     'id' => (int)$cargoInfo['id'],
@@ -679,24 +320,19 @@ class CargoController {
         header('X-Frame-Options: DENY');
         header('X-XSS-Protection: 1; mode=block');
 
-        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        if (!$this->request->isGet()) {
             $this->sendJsonResponse(['error' => 'روش درخواست نامعتبر است'], 405);
         }
 
         try {
-            $tracking = isset($_GET['tracking']) ? trim((string)$_GET['tracking']) : '';
+            $tracking = trim((string)$this->request->get('tracking', ''));
             if ($tracking === '') {
                 throw new InvalidArgumentException('لطفاً شماره حواله را وارد کنید.');
             }
 
-            $query = "SELECT id, trackingNumber, numberOfPeople, username, userType, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, exitTime, exitDate, status, confirm, confirmation, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber FROM CargoInfo WHERE trackingNumber = ? ORDER BY entryTime DESC";
-            $stmt = $this->conn->prepare($query);
-            $stmt->bind_param("s", $tracking);
-            $stmt->execute();
-            $result = $stmt->get_result();
-
+            $rows = $this->cargoRepo->searchByTracking($tracking);
             $cargoInfoList = [];
-            while ($row = $result->fetch_assoc()) {
+            foreach ($rows as $row) {
                 $cargoInfoList[] = [
                     'cargoInfo' => [
                         'id' => (int)$row['id'],
@@ -722,7 +358,6 @@ class CargoController {
                     ]
                 ];
             }
-            $stmt->close();
 
             if (!empty($cargoInfoList)) {
                 $this->sendJsonResponse([
@@ -750,7 +385,8 @@ class CargoController {
         $requiredParams = ['quotaNumber', 'shippingCompany', 'warehouse', 'cargoType'];
         $missingParams = [];
         foreach ($requiredParams as $param) {
-            if (!isset($_GET[$param]) || trim((string)$_GET[$param]) === '') {
+            $val = $this->request->get($param);
+            if ($val === null || trim((string)$val) === '') {
                 $missingParams[] = $param;
             }
         }
@@ -762,14 +398,12 @@ class CargoController {
             ], 400);
         }
 
-        $quotaNumber = $this->sanitizeString((string)$_GET['quotaNumber']);
-        $shippingCompany = $this->sanitizeString((string)$_GET['shippingCompany']);
-        $warehouse = $this->sanitizeString((string)$_GET['warehouse']);
-        $cargoType = $this->sanitizeString((string)$_GET['cargoType']);
+        $quotaNumber = $this->sanitizeString((string)$this->request->get('quotaNumber'));
+        $shippingCompany = $this->sanitizeString((string)$this->request->get('shippingCompany'));
+        $warehouse = $this->sanitizeString((string)$this->request->get('warehouse'));
+        $cargoType = $this->sanitizeString((string)$this->request->get('cargoType'));
 
         try {
-            $this->conn->begin_transaction();
-
             $today = jdate('Y/m/d');
             $yesterday = jdate('Y/m/d', time() - 86400);
 
@@ -780,7 +414,6 @@ class CargoController {
 
             if ($initialResult->num_rows === 0) {
                 $stmt->close();
-                $this->conn->rollback();
                 $this->sendJsonResponse([
                     "status" => "error",
                     "message" => "اطلاعات وارد شده (شامل نوع کالا) مطابقت ندارد. لطفاً مقادیر را بررسی کنید."
@@ -840,8 +473,6 @@ class CargoController {
             }
             $trackStmt->close();
 
-            $this->conn->commit();
-
             $this->sendJsonResponse([
                 "status" => "success",
                 "initialInfo" => $initialInfo,
@@ -849,7 +480,6 @@ class CargoController {
                 "allTrackingNumbers" => $allTrackingNumbers
             ]);
         } catch (Exception $e) {
-            $this->conn->rollback();
             $this->logger->error("Error in getInitialInfo: " . $e->getMessage());
             $this->sendJsonResponse([
                 "status" => "error",
@@ -909,6 +539,40 @@ class CargoController {
         }
     }
 
+    /**
+     * دریافت لیست کشتی‌های فعال (getActiveShips.php)
+     */
+    public function getActiveShips(): void {
+        header('Content-Type: application/json; charset=UTF-8');
+
+        try {
+            $activeShips = $this->cargoService->getActiveShips();
+            $this->sendJsonResponse($activeShips);
+        } catch (Exception $e) {
+            $this->logger->error("Error in getActiveShips: " . $e->getMessage());
+            $this->sendJsonResponse(["status" => "error", "message" => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * بررسی تکراری بودن شماره قبض باسکول (check_scale_receipt.php)
+     */
+    public function checkScaleReceipt(): void {
+        header('Content-Type: application/json; charset=utf-8');
+
+        $scaleReceiptNumber = $this->sanitizeString((string)$this->request->get('scaleReceiptNumber', ''));
+
+        try {
+            $res = $this->cargoService->checkScaleReceipt($scaleReceiptNumber);
+            $code = $res['code'] ?? 200;
+            unset($res['code']);
+            $this->sendJsonResponse($res, $code);
+        } catch (Exception $e) {
+            $this->logger->error("Error in checkScaleReceipt: " . $e->getMessage());
+            $this->sendJsonResponse(['error' => $e->getMessage()], 500);
+        }
+    }
+
     private function sanitizeString(string $input): string {
         return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
     }
@@ -934,126 +598,18 @@ class CargoController {
         return $sanitized;
     }
 
-    private function validateExitData(string $netWeight, string $scaleReceiptNumber): void {
-        if (!filter_var($netWeight, FILTER_VALIDATE_FLOAT) || floatval($netWeight) <= 0) {
-            throw new Exception("وزن خالص باید عددی مثبت و بزرگتر از صفر باشد.");
-        }
-        if (empty($scaleReceiptNumber)) {
-            throw new Exception("شماره قبض باسکول نمی‌تواند خالی باشد.");
-        }
-        if (!ctype_digit($scaleReceiptNumber)) {
-            throw new Exception("شماره قبض باسکول باید فقط شامل اعداد باشد.");
-        }
-    }
-
     private function sendJsonResponse(array $data, int $statusCode = 200): void {
         http_response_code($statusCode);
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         exit;
     }
 
-    private function sendSuccessResponse(array $data, int $statusCode = 200): void {
-        http_response_code($statusCode);
-        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-        exit;
-    }
-
-    /**
-     * دریافت لیست کشتی‌های فعال (getActiveShips.php)
-     */
-    public function getActiveShips(): void {
-        header('Content-Type: application/json; charset=UTF-8');
-
-        try {
-            $stmt = $this->conn->prepare("SELECT shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber FROM InitialInfo WHERE isActive = 1");
-            if (!$stmt) {
-                throw new Exception("خطا در آماده‌سازی دستور SQL: " . $this->conn->error);
-            }
-
-            if (!$stmt->execute()) {
-                throw new Exception("خطا در اجرای دستور SQL: " . $stmt->error);
-            }
-
-            $result = $stmt->get_result();
-            $activeShips = [];
-
-            while ($row = $result->fetch_assoc()) {
-                $activeShips[] = [
-                    'shipName' => $row['shipName'],
-                    'loadingWarehouse' => $row['loadingWarehouse'],
-                    'cargoType' => $row['cargoType'],
-                    'shippingCompany' => $row['shippingCompany'],
-                    'loadingQuotaNumber' => $row['loadingQuotaNumber']
-                ];
-            }
-            $stmt->close();
-
-            $this->sendJsonResponse($activeShips);
-        } catch (Exception $e) {
-            $this->logger->error("Error in getActiveShips: " . $e->getMessage());
-            $this->sendJsonResponse(["status" => "error", "message" => $e->getMessage()], 400);
-        }
-    }
-
-    /**
-     * بررسی تکراری بودن شماره قبض باسکول (check_scale_receipt.php)
-     */
-    public function checkScaleReceipt(): void {
-        header('Content-Type: application/json; charset=utf-8');
-
-        $scaleReceiptNumber = $this->sanitizeString($_GET['scaleReceiptNumber'] ?? '');
-
-        if (empty($scaleReceiptNumber)) {
-            $this->sendJsonResponse(['error' => 'شماره قبض باسکول الزامی است.'], 400);
-        }
-
-        if (!ctype_digit($scaleReceiptNumber) || strlen($scaleReceiptNumber) !== 8) {
-            $this->sendJsonResponse(['error' => 'شماره قبض باسکول معتبر نیست. لطفاً دوباره اسکن کنید.'], 400);
-        }
-
-        $firstTwoDigits = substr($scaleReceiptNumber, 0, 2);
-        if ($firstTwoDigits < '44' || $firstTwoDigits > '55') {
-            $this->sendJsonResponse(['error' => 'شماره قبض باسکول معتبر نیست. لطفاً دوباره اسکن کنید.'], 400);
-        }
-
-        try {
-            $stmt = $this->conn->prepare("SELECT trackingNumber, netWeight, loadingQuotaNumber FROM CargoInfo WHERE scaleReceiptNumber = ? LIMIT 1");
-            if (!$stmt) {
-                throw new Exception("خطا در آماده‌سازی دستور SQL");
-            }
-
-            $stmt->bind_param("s", $scaleReceiptNumber);
-            if (!$stmt->execute()) {
-                throw new Exception("خطا در اجرای دستور SQL");
-            }
-
-            $result = $stmt->get_result();
-
-            if ($row = $result->fetch_assoc()) {
-                $stmt->close();
-                $this->sendJsonResponse([
-                    'exists' => true,
-                    'message' => 'شماره قبض باسکول تکراری است.',
-                    'trackingNumber' => $row['trackingNumber'],
-                    'netWeight' => $row['netWeight'],
-                    'loadingQuotaNumber' => $row['loadingQuotaNumber']
-                ]);
-            } else {
-                $stmt->close();
-                $this->sendJsonResponse(['exists' => false, 'message' => 'شماره قبض باسکول معتبر است.']);
-            }
-        } catch (Exception $e) {
-            $this->logger->error("Error in checkScaleReceipt: " . $e->getMessage());
-            $this->sendJsonResponse(['error' => $e->getMessage()], 500);
-        }
-    }
-
     private function sendErrorResponse(string $message): void {
-        $this->sendSuccessResponse([
+        http_response_code(500);
+        echo json_encode([
             'error' => true,
             'message' => $message
-        ], 500);
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        exit;
     }
 }
-
-
