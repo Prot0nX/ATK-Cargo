@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,6 +52,13 @@ import com.atk.atk_cargo.ui.theme.ThemeRedDark
 import com.atk.atk_cargo.ui.theme.ThemeSlateBlue
 import com.atk.atk_cargo.ui.theme.ThemeTeal
 import kotlinx.coroutines.launch
+
+private val PickerAccent = Color(0xFF0D9488)
+private val PickerAccentBg = Color(0xFFDCEFEA)
+private val PickerCardBorder = Color(0xFFE4E6E9)
+private val PickerMutedBg = Color(0xFFF3F4F5)
+private val PickerMutedText = Color(0xFF8A8F98)
+private val PickerTitleColor = Color(0xFF1F2937)
 
 private data class ThemeColorOption(
     val color: Color,
@@ -85,13 +91,12 @@ fun ThemeColorPickerRow(
 ) {
     val currentColorLong by userPreferencesManager.themeColor.collectAsState(initial = 0xFF137fecL)
     val coroutineScope = rememberCoroutineScope()
-    val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(if (isDark) Color.White.copy(alpha = 0.03f) else Color.Black.copy(alpha = 0.02f))
+            .background(PickerMutedBg)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -102,15 +107,15 @@ fun ThemeColorPickerRow(
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(PickerAccentBg),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Edit,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = PickerAccent
                 )
             }
             Column {
@@ -118,12 +123,12 @@ fun ThemeColorPickerRow(
                     text = "رنگ اصلی برنامه",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = PickerTitleColor
                 )
                 Text(
                     text = "تم رنگی رابط کاربری",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = PickerMutedText
                 )
             }
         }

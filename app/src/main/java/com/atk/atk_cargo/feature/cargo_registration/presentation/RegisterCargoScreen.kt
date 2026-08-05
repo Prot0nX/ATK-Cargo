@@ -121,7 +121,6 @@ private val RegisterAccentBorder = Color(0xFFB9DED7)
 private val RegisterCardBorder = Color(0xFFE4E6E9)
 private val RegisterMutedBg = Color(0xFFF3F4F5)
 private val RegisterMutedText = Color(0xFF8A8F98)
-private val RegisterTitleColor = Color(0xFF1F2937)
 
 suspend fun handleQuotaEntry(
     quotaCode: String,
@@ -301,7 +300,7 @@ fun RegisterCargoScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.ConfirmationNumber,
-                            contentDescription = "تغییر کوتاژ",
+                            contentDescription = "تغییر کشتی",
                             tint = Color.White,
                             modifier = Modifier.size(28.dp)
                         )

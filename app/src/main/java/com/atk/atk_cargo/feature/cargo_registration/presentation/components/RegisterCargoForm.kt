@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
@@ -37,8 +36,6 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -51,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -59,6 +57,12 @@ import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.ui.theme.Amber700
 import com.atk.atk_cargo.ui.theme.Green600
 import com.atk.atk_cargo.ui.theme.Red500
+
+private val FormAccent = Color(0xFF0D9488)
+private val FormAccentBg = Color(0xFFDCEFEA)
+private val FormCardBorder = Color(0xFFE4E6E9)
+private val FormMutedText = Color(0xFF8A8F98)
+private val FormTitleColor = Color(0xFF1F2937)
 
 @Composable
 fun FormSection(
@@ -133,43 +137,103 @@ fun FormSection(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
-        // هدر کارت فرم
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 6.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ListAlt,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        // کارت ورودی‌های اصلی M3
+        // کارت ورودی‌های اصلی
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 2.dp,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            color = Color.White,
+            shadowElevation = 0.dp,
+            border = BorderStroke(1.dp, FormCardBorder)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // سطر ۱: شماره حواله و کنترلر تعداد نفرات
+                // سطر ۱: کنترلر تعداد نفرات و شماره حواله
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // فیلد شماره حواله مدرن M3
+                    // کنترلر تعداد نفرات
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.White,
+                        border = BorderStroke(1.dp, FormCardBorder)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val currentValue = numberOfPeople.toIntOrNull() ?: 1
+
+                            // دکمه کاهش (-)
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clickable(enabled = !isDuplicate && currentValue > 1) {
+                                        if (currentValue > 1) {
+                                            onNumberOfPeopleChange((currentValue - 1).toString())
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Remove,
+                                    contentDescription = "کاهش نفرات",
+                                    tint = if (!isDuplicate && currentValue > 1) FormAccent else FormMutedText.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+
+                            // مقدار نفرات
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = numberOfPeople.ifEmpty { "1" },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = FormTitleColor
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = FormAccent,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
+
+                            // دکمه افزایش (+)
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clickable(enabled = !isDuplicate && currentValue < 5) {
+                                        if (currentValue < 5) {
+                                            onNumberOfPeopleChange((currentValue + 1).toString())
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "افزایش نفرات",
+                                    tint = if (!isDuplicate && currentValue < 5) FormAccent else FormMutedText.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // فیلد شماره حواله
                     OutlinedTextField(
                         value = trackingNumber,
                         onValueChange = { newValue ->
@@ -179,13 +243,20 @@ fun FormSection(
                         },
                         modifier = Modifier
                             .weight(1.2f)
-                            .height(56.dp),
-                        label = { Text("شماره حواله") },
+                            .height(48.dp),
+                        placeholder = {
+                            Text(
+                                text = "شماره حواله",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = FormMutedText
+                            )
+                        },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Numbers,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = FormMutedText,
+                                modifier = Modifier.size(18.dp)
                             )
                         },
                         isError = (isDuplicate && !canEditWeights) || !isTrackingNumberValid,
@@ -199,86 +270,10 @@ fun FormSection(
                         }),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            focusedBorderColor = FormAccent,
+                            unfocusedBorderColor = FormCardBorder
                         )
                     )
-
-                    // کنترلر صنعتی تعداد نفرات (56dp Touch Target)
-                    Surface(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val currentValue = numberOfPeople.toIntOrNull() ?: 1
-
-                            // دکمه افزایش (+)
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clickable(enabled = !isDuplicate && currentValue < 5) {
-                                        if (currentValue < 5) {
-                                            onNumberOfPeopleChange((currentValue + 1).toString())
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "افزایش نفرات",
-                                    tint = if (!isDuplicate && currentValue < 5) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-
-                            // مقدار نفرات
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = numberOfPeople.ifEmpty { "1" },
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-
-                            // دکمه کاهش (-)
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clickable(enabled = !isDuplicate && currentValue > 1) {
-                                        if (currentValue > 1) {
-                                            onNumberOfPeopleChange((currentValue - 1).toString())
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Remove,
-                                    contentDescription = "کاهش نفرات",
-                                    tint = if (!isDuplicate && currentValue > 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        }
-                    }
                 }
 
                 // سطر ۲: کسری بار و اضافه بار
@@ -341,69 +336,73 @@ fun FormSection(
                     }
                 }
 
-                // سطر ۳: دکمه‌های اقدام (Sticky Action Area - 56dp height)
+                // سطر ۳: دکمه‌های اقدام
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // دکمه ثبت
-                    Button(
+                    val submitColor = if (isDuplicate) Amber700 else Green600
+                    Surface(
                         onClick = onSubmit,
                         enabled = isSubmitEnabled,
                         modifier = Modifier
                             .weight(1f)
-                            .height(56.dp),
+                            .height(48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isDuplicate) Amber700 else Green600,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                        )
+                        color = Color.White,
+                        border = BorderStroke(1.dp, if (isSubmitEnabled) submitColor.copy(alpha = 0.4f) else FormCardBorder)
                     ) {
                         Row(
+                            modifier = Modifier.fillMaxSize(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
+                            Text(
+                                text = if (isDuplicate) "ثبت تغییرات" else "ثبت حواله",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSubmitEnabled) FormTitleColor else FormMutedText.copy(alpha = 0.5f)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
                             Icon(
                                 imageVector = Icons.Default.AddCircle,
                                 contentDescription = null,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (isDuplicate) "ثبت تغییرات" else "ثبت حواله",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                tint = if (isSubmitEnabled) submitColor else FormMutedText.copy(alpha = 0.4f),
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
 
                     // دکمه خروج
-                    Button(
+                    val exitEnabled = isCargoConfirmed && !isCargoExited
+                    Surface(
                         onClick = onScanBarcode,
-                        enabled = isCargoConfirmed && !isCargoExited,
+                        enabled = exitEnabled,
                         modifier = Modifier
                             .weight(1f)
-                            .height(56.dp),
+                            .height(48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Red500,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                        )
+                        color = Color.White,
+                        border = BorderStroke(1.dp, if (exitEnabled) Red500.copy(alpha = 0.4f) else FormCardBorder)
                     ) {
                         Row(
+                            modifier = Modifier.fillMaxSize(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
+                            Text(
+                                text = "خروج حواله",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (exitEnabled) FormTitleColor else FormMutedText.copy(alpha = 0.5f)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
                             Icon(
                                 imageVector = Icons.Default.QrCodeScanner,
                                 contentDescription = null,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "خروج حواله",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                tint = if (exitEnabled) Red500 else FormMutedText.copy(alpha = 0.4f),
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
@@ -451,13 +450,13 @@ fun FormSection(
             exit = fadeOut() + shrinkVertically()
         ) {
             val (messageText, messageColor) = when {
-                currentCargo?.status == "خروج" -> 
+                currentCargo?.status == "خروج" ->
                     Pair("این حواله قبلاً خروج شده است!", MaterialTheme.colorScheme.error)
-                currentCargo?.confirm == "در انتظار تائید" -> 
+                currentCargo?.confirm == "در انتظار تائید" ->
                     Pair("این حواله هنوز تائید نشده و در انتظار تائید است.", MaterialTheme.colorScheme.error)
-                canEditWeights -> 
-                    Pair("حواله تائید شده؛ امکان ثبت کسری/اضافه یا خروج وجود دارد.", MaterialTheme.colorScheme.primary)
-                else -> 
+                canEditWeights ->
+                    Pair("حواله تائید شده؛ امکان ثبت کسری/اضافه یا خروج وجود دارد.", FormAccent)
+                else ->
                     Pair("این حواله غیرقابل ویرایش است.", MaterialTheme.colorScheme.error)
             }
 
@@ -497,7 +496,7 @@ fun FormSection(
             exit = fadeOut() + shrinkVertically()
         ) {
             Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
+                color = FormAccentBg,
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -510,7 +509,7 @@ fun FormSection(
                     Icon(
                         imageVector = Icons.Default.Receipt,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        tint = FormAccent,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -518,7 +517,7 @@ fun FormSection(
                         text = "قبض باسکول دریافت شد: $scaleReceiptNumber",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        color = FormAccent
                     )
                 }
             }

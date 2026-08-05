@@ -91,7 +91,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -122,6 +121,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import kotlin.time.Duration.Companion.milliseconds
+
+private val DialogAccent = Color(0xFF0D9488)
+private val DialogAccentBg = Color(0xFFDCEFEA)
+private val DialogAccentBorder = Color(0xFFB9DED7)
+private val DialogCardBorder = Color(0xFFE4E6E9)
+private val DialogMutedBg = Color(0xFFF3F4F5)
+private val DialogMutedText = Color(0xFF8A8F98)
+private val DialogTitleColor = Color(0xFF1F2937)
 
 @Composable
 fun DuplicateTrackingNumbersDialog(
@@ -507,47 +514,51 @@ fun QuotaEntryDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    modifier = Modifier.size(40.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(DialogAccentBg),
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.ConfirmationNumber,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.padding(8.dp)
+                                        tint = DialogAccent,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
-                                
+
                                 Text(
                                     text = "تغییر کوتاژ",
                                     style = MaterialTheme.typography.headlineSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = DialogTitleColor
                                 )
                             }
-                            
-                            IconButton(
-                                onClick = { if (!isLoading) onDismiss() },
-                                enabled = !isLoading,
-                                modifier = Modifier.size(32.dp)
+
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(DialogMutedBg)
+                                    .clickable(enabled = !isLoading) { onDismiss() },
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "بستن",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    tint = DialogTitleColor,
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
                         }
 
-                        Card(
+                        Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
-                            ),
+                            color = DialogAccentBg,
                             shape = RoundedCornerShape(16.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            border = BorderStroke(1.dp, DialogAccentBorder)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -559,10 +570,10 @@ fun QuotaEntryDialog(
                                 Icon(
                                     imageVector = Icons.Default.DirectionsBoat,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    tint = DialogAccent,
                                     modifier = Modifier.size(24.dp)
                                 )
-                                
+
                                 Column(
                                     verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
@@ -570,12 +581,12 @@ fun QuotaEntryDialog(
                                         text = "کشتی: $shipName",
                                         style = MaterialTheme.typography.bodyLarge,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        color = DialogAccent
                                     )
                                     Text(
                                         text = "کوتاژ فعلی: $currentQuota",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                                        color = DialogAccent.copy(alpha = 0.8f)
                                     )
                                 }
                             }
@@ -661,7 +672,11 @@ fun QuotaEntryDialog(
                                 .weight(1f)
                                 .height(48.dp),
                             enabled = !isLoading,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = DialogAccent,
+                                disabledContainerColor = DialogAccent.copy(alpha = 0.4f)
+                            )
                         ) {
                             if (isLoading) {
                                 Row(
@@ -671,7 +686,7 @@ fun QuotaEntryDialog(
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(14.dp),
                                         strokeWidth = 2.dp,
-                                        color = MaterialTheme.colorScheme.onPrimary
+                                        color = Color.White
                                     )
                                     Text(
                                         text = "پردازش...",
@@ -703,27 +718,11 @@ fun QuotaEntryDialog(
                                 .height(48.dp),
                             enabled = !isLoading,
                             shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            border = BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                            ),
-                            shadowElevation = 0.dp,
-                            tonalElevation = 0.dp
+                            color = DialogAccentBg,
+                            border = BorderStroke(1.dp, DialogAccentBorder)
                         ) {
                             Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        brush = Brush.linearGradient(
-                                            colors = listOf(
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-                                            ),
-                                            start = Offset(0f, 0f),
-                                            end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
-                                        )
-                                    ),
+                                modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Row(
@@ -734,18 +733,12 @@ fun QuotaEntryDialog(
                                         imageVector = Icons.Default.QrCodeScanner,
                                         contentDescription = null,
                                         modifier = Modifier.size(16.dp),
-                                        tint = if (isLoading) 
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                        else 
-                                            MaterialTheme.colorScheme.primary
+                                        tint = if (isLoading) DialogAccent.copy(alpha = 0.5f) else DialogAccent
                                     )
                                     Text(
                                         text = "اسکن",
                                         style = MaterialTheme.typography.labelMedium,
-                                        color = if (isLoading) 
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                        else 
-                                            MaterialTheme.colorScheme.primary,
+                                        color = if (isLoading) DialogAccent.copy(alpha = 0.5f) else DialogAccent,
                                         fontWeight = FontWeight.Medium
                                     )
                                 }
@@ -790,8 +783,8 @@ private fun DialogContent(
                 Icon(
                     imageVector = Icons.Default.ConfirmationNumber,
                     contentDescription = null,
-                    tint = if (isError) MaterialTheme.colorScheme.error 
-                          else MaterialTheme.colorScheme.primary,
+                    tint = if (isError) MaterialTheme.colorScheme.error
+                          else DialogAccent,
                     modifier = Modifier.size(20.dp)
                 )
             },
@@ -822,12 +815,12 @@ private fun DialogContent(
             isError = isError,
             enabled = !isLoading,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = if (isError) MaterialTheme.colorScheme.error 
-                                   else MaterialTheme.colorScheme.primary,
+                focusedBorderColor = if (isError) MaterialTheme.colorScheme.error
+                                   else DialogAccent,
                 unfocusedBorderColor = if (isError) MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
-                                     else MaterialTheme.colorScheme.outline,
-                focusedLabelColor = if (isError) MaterialTheme.colorScheme.error 
-                                  else MaterialTheme.colorScheme.primary,
+                                     else Color(0xFFE5E7EA),
+                focusedLabelColor = if (isError) MaterialTheme.colorScheme.error
+                                  else DialogAccent,
                 unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 errorBorderColor = MaterialTheme.colorScheme.error,
                 errorLabelColor = MaterialTheme.colorScheme.error,
@@ -852,7 +845,7 @@ private fun DialogContent(
                 text = "${quotaEntry.length}/4",
                 style = MaterialTheme.typography.bodySmall,
                 color = when {
-                    quotaEntry.length == 4 -> MaterialTheme.colorScheme.primary
+                    quotaEntry.length == 4 -> DialogAccent
                     quotaEntry.length > 4 -> MaterialTheme.colorScheme.error
                     else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 }
@@ -944,11 +937,9 @@ private fun DialogContent(
                 )
             )
         ) {
-            Card(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
-                ),
+                color = DialogAccentBg,
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Row(
@@ -961,13 +952,13 @@ private fun DialogContent(
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary
+                        color = DialogAccent
                     )
-                    
+
                     Text(
                         text = "در حال بررسی کوتاژ...",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = DialogAccent,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -1182,6 +1173,7 @@ fun DialogPassword(
                                 errorMessage = "رمز عبور نمی‌تواند خالی باشد"
                             }
                         },
+                        colors = ButtonDefaults.buttonColors(containerColor = DialogAccent),
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("تائید")
@@ -1217,7 +1209,7 @@ private fun AnimatedIcon() {
     Icon(
         imageVector = Icons.Filled.CheckCircle,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.primary,
+        tint = DialogAccent,
         modifier = Modifier
             .size(64.dp)
             .scale(scale)
@@ -1267,7 +1259,7 @@ fun CargoInfoDetailsDialog(
                         modifier = Modifier
                             .size(64.dp)
                             .background(
-                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
+                                color = DialogAccentBg,
                                 shape = CircleShape
                             )
                             .border(
@@ -1281,7 +1273,7 @@ fun CargoInfoDetailsDialog(
                             modifier = Modifier
                                 .size(56.dp)
                                 .background(
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = DialogAccent,
                                     shape = CircleShape
                                 ),
                             contentAlignment = Alignment.Center
@@ -1289,30 +1281,30 @@ fun CargoInfoDetailsDialog(
                             Icon(
                                 imageVector = Icons.Default.PriorityHigh,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
+                                tint = Color.White,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(12.dp))
-                    
+
                     Text(
                         text = "جزئیات حواله",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = DialogAccent
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp),
                         shape = RoundedCornerShape(16.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                        color = DialogAccentBg,
+                        border = BorderStroke(1.dp, DialogAccentBorder)
                     ) {
                         Box(
                             modifier = Modifier
@@ -1323,10 +1315,10 @@ fun CargoInfoDetailsDialog(
                                 text = "شماره حواله: ${info.trackingNumber}",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = DialogTitleColor,
                                 modifier = Modifier.align(Alignment.Center)
                             )
-                            
+
                             Surface(
                                 onClick = {
                                     coroutineScope.launch {
@@ -1338,7 +1330,7 @@ fun CargoInfoDetailsDialog(
                                     .align(Alignment.CenterStart)
                                     .size(36.dp),
                                 shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surface
+                                color = Color.White
                             ) {
                                 Box(
                                     modifier = Modifier.fillMaxSize(),
@@ -1347,7 +1339,7 @@ fun CargoInfoDetailsDialog(
                                     Icon(
                                         imageVector = Icons.Default.ContentCopy,
                                         contentDescription = "کپی",
-                                        tint = MaterialTheme.colorScheme.primary,
+                                        tint = DialogAccent,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -1368,7 +1360,7 @@ fun CargoInfoDetailsDialog(
                         Column(modifier = Modifier.fillMaxSize()) {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                color = DialogMutedBg
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth()
@@ -1453,8 +1445,8 @@ fun CargoInfoDetailsDialog(
                                 .weight(1.2f)
                                 .height(46.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                containerColor = DialogAccentBg,
+                                contentColor = DialogAccent
                             ),
                             shape = RoundedCornerShape(12.dp),
                             elevation = ButtonDefaults.buttonElevation(
@@ -1531,11 +1523,11 @@ private fun DetailTabButton(
     modifier: Modifier = Modifier
 ) {
     val backgroundColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else Color.Transparent,
+        targetValue = if (isSelected) DialogAccentBg else Color.Transparent,
         label = "tab_bg"
     )
     val contentColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        targetValue = if (isSelected) DialogAccent else DialogMutedText,
         label = "tab_content"
     )
     
@@ -1572,7 +1564,7 @@ private fun DetailTabButton(
                     .fillMaxWidth()
                     .height(3.dp)
                     .background(
-                        color = MaterialTheme.colorScheme.primary,
+                        color = DialogAccent,
                         shape = RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp)
                     )
             )
@@ -1673,7 +1665,7 @@ private fun DetailInfoRow(
                     Surface(
                         onClick = { onCopy?.invoke() },
                         shape = RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                        color = DialogAccentBg,
                         modifier = Modifier.size(24.dp)
                     ) {
                         Box(
@@ -1683,7 +1675,7 @@ private fun DetailInfoRow(
                             Icon(
                                 imageVector = Icons.Default.ContentCopy,
                                 contentDescription = "کپی",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = DialogAccent,
                                 modifier = Modifier.size(14.dp)
                             )
                         }
@@ -1990,8 +1982,8 @@ fun DuplicateConfirmationDialog(
                         Button(
                             onClick = onConfirm,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
+                                containerColor = DialogAccent,
+                                contentColor = Color.White
                             ),
                             shape = RoundedCornerShape(12.dp),
                             elevation = ButtonDefaults.buttonElevation(
