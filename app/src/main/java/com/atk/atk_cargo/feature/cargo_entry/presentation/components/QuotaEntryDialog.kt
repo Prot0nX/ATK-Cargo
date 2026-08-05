@@ -5,31 +5,36 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -51,7 +57,37 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.api.ActiveShipInfo
+import com.atk.atk_cargo.ui.theme.Teal200
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
+
+private val QuotaEntryAccentLight = Color(0xFF0D9488)
+
+/** رنگ‌های تیل سازگار با تم روشن/تاریک برای دیالوگ ورود 4 رقم آخر کوتاژ. */
+private class QuotaEntryPalette(
+    val accent: Color,
+    val accentBg: Color,
+    val accentBorder: Color,
+    val cardBg: Color,
+    val cardBorder: Color,
+    val mutedText: Color,
+    val titleColor: Color
+)
+
+@Composable
+private fun rememberQuotaEntryPalette(): QuotaEntryPalette {
+    val isDark = isSystemInDarkTheme()
+    val accent = if (isDark) Teal200 else QuotaEntryAccentLight
+    return QuotaEntryPalette(
+        accent = accent,
+        accentBg = accent.copy(alpha = if (isDark) 0.18f else 0.16f),
+        accentBorder = accent.copy(alpha = 0.4f),
+        cardBg = MaterialTheme.colorScheme.surface,
+        cardBorder = MaterialTheme.colorScheme.outlineVariant,
+        mutedText = MaterialTheme.colorScheme.onSurfaceVariant,
+        titleColor = MaterialTheme.colorScheme.onSurface
+    )
+}
 
 @Composable
 fun QuotaEntryDialog(
@@ -62,6 +98,7 @@ fun QuotaEntryDialog(
     shipName: String,
     ships: List<ActiveShipInfo>
 ) {
+    val palette = rememberQuotaEntryPalette()
     var quotaEntry by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
@@ -72,7 +109,7 @@ fun QuotaEntryDialog(
             quotaEntry = ""
             isError = false
             errorMessage = ""
-            delay(100)
+            delay(100.milliseconds)
             focusRequester.requestFocus()
         }
     }
@@ -86,96 +123,97 @@ fun QuotaEntryDialog(
                 usePlatformDefaultWidth = false
             )
         ) {
-            Card(
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth(0.85f)
                     .wrapContentHeight(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                shape = RoundedCornerShape(24.dp),
+                color = palette.cardBg,
+                tonalElevation = 6.dp,
+                shadowElevation = 8.dp
             ) {
-                // Header Section
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primaryContainer)
-                        .padding(16.dp)
-                ) {
+                Column(modifier = Modifier.padding(24.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.DirectionsBoat,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(palette.accentBg, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DirectionsBoat,
+                                contentDescription = null,
+                                tint = palette.accent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = shipName,
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            fontWeight = FontWeight.Bold,
+                            color = palette.titleColor
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    QuotaEntryContent(
+                        quotaEntry = quotaEntry,
+                        isError = isError,
+                        errorMessage = errorMessage,
+                        focusRequester = focusRequester,
+                        palette = palette,
+                        onQuotaChange = { newValue ->
+                            if (newValue.length <= 4 && newValue.all { it.isDigit() }) {
+                                quotaEntry = newValue
+                                isError = false
+                                errorMessage = ""
+                            }
+                        },
+                        onDone = {
+                            validateAndSubmit(quotaEntry, ships, onConfirm) { msg ->
+                                isError = true
+                                errorMessage = msg
+                            }
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    QuotaEntryActions(
+                        quotaEntry = quotaEntry,
+                        palette = palette,
+                        onConfirm = {
+                            validateAndSubmit(quotaEntry, ships, onConfirm) { msg ->
+                                isError = true
+                                errorMessage = msg
+                            }
+                        },
+                        onScanBarcode = onScanBarcode,
+                        onDismiss = onDismiss
+                    )
                 }
-
-                // Input Section
-                DialogContent(
-                    quotaEntry = quotaEntry,
-                    isError = isError,
-                    errorMessage = errorMessage,
-                    focusRequester = focusRequester,
-                    onQuotaChange = { newValue ->
-                        if (newValue.length <= 4 && newValue.all { it.isDigit() }) {
-                            quotaEntry = newValue
-                            isError = false
-                            errorMessage = ""
-                        }
-                    },
-                    onDone = {
-                        validateAndSubmit(quotaEntry, ships, onConfirm) { msg ->
-                            isError = true
-                            errorMessage = msg
-                        }
-                    }
-                )
-
-                // Actions Section
-                DialogActions(
-                    quotaEntry = quotaEntry,
-                    onConfirm = {
-                        validateAndSubmit(quotaEntry, ships, onConfirm) { msg ->
-                            isError = true
-                            errorMessage = msg
-                        }
-                    },
-                    onScanBarcode = onScanBarcode,
-                    onDismiss = onDismiss
-                )
             }
         }
     }
 }
 
 @Composable
-private fun DialogContent(
+private fun QuotaEntryContent(
     quotaEntry: String,
     isError: Boolean,
     errorMessage: String,
     focusRequester: FocusRequester,
+    palette: QuotaEntryPalette,
     onQuotaChange: (String) -> Unit,
     onDone: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.padding(
-            start = 16.dp,
-            end = 16.dp,
-            top = 16.dp,
-            bottom = 8.dp
-        )
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
             value = quotaEntry,
             onValueChange = onQuotaChange,
@@ -193,7 +231,7 @@ private fun DialogContent(
                     "4 رقم آخر کوتاژ",
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    color = palette.mutedText.copy(alpha = 0.6f)
                 )
             },
             isError = isError,
@@ -203,7 +241,23 @@ private fun DialogContent(
                 imeAction = ImeAction.Done
             ),
             keyboardActions = KeyboardActions(onDone = { onDone() }),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = if (isError) MaterialTheme.colorScheme.error else palette.accent,
+                unfocusedBorderColor = if (isError) MaterialTheme.colorScheme.error.copy(alpha = 0.5f) else palette.cardBorder,
+                focusedContainerColor = palette.cardBg,
+                unfocusedContainerColor = palette.cardBg,
+                cursorColor = palette.accent,
+                errorBorderColor = MaterialTheme.colorScheme.error
+            )
+        )
+
+        Text(
+            text = "${quotaEntry.length}/4",
+            style = MaterialTheme.typography.bodySmall,
+            color = if (quotaEntry.length == 4) palette.accent else palette.mutedText.copy(alpha = 0.7f),
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
         )
 
         AnimatedVisibility(
@@ -211,57 +265,95 @@ private fun DialogContent(
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
-            Text(
-                text = errorMessage,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-            )
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun DialogActions(
+private fun QuotaEntryActions(
     quotaEntry: String,
+    palette: QuotaEntryPalette,
     onConfirm: () -> Unit,
     onScanBarcode: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Button(
-            onClick = onConfirm,
-            modifier = Modifier.weight(1f),
-            enabled = quotaEntry.length == 4
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("تأیید")
+            Button(
+                onClick = onConfirm,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                enabled = quotaEntry.length == 4,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = palette.accent,
+                    contentColor = Color.White,
+                    disabledContainerColor = palette.accent.copy(alpha = 0.4f)
+                )
+            ) {
+                Text("تأیید", fontWeight = FontWeight.Bold)
+            }
+
+            Surface(
+                onClick = onScanBarcode,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = palette.accentBg,
+                border = BorderStroke(1.dp, palette.accentBorder)
+            ) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.QrCodeScanner,
+                            contentDescription = null,
+                            tint = palette.accent,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text("اسکن", color = palette.accent, fontWeight = FontWeight.Medium)
+                    }
+                }
+            }
         }
-        Button(
-            onClick = onScanBarcode,
-            modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-        ) {
-            Icon(
-                Icons.Default.QrCodeScanner,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("اسکن")
-        }
+
         TextButton(
             onClick = onDismiss,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text("انصراف")
+            Text("انصراف", color = palette.mutedText)
         }
     }
 }

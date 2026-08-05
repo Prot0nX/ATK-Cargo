@@ -124,8 +124,7 @@ private class RegisterPalette(
     val cardBg: Color,
     val cardBorder: Color,
     val mutedBg: Color,
-    val mutedText: Color,
-    val titleColor: Color
+    val mutedText: Color
 )
 
 @Composable
@@ -139,8 +138,7 @@ private fun rememberRegisterPalette(): RegisterPalette {
         cardBg = MaterialTheme.colorScheme.surface,
         cardBorder = MaterialTheme.colorScheme.outlineVariant,
         mutedBg = MaterialTheme.colorScheme.surfaceVariant,
-        mutedText = MaterialTheme.colorScheme.onSurfaceVariant,
-        titleColor = MaterialTheme.colorScheme.onSurface
+        mutedText = MaterialTheme.colorScheme.onSurfaceVariant
     )
 }
 
