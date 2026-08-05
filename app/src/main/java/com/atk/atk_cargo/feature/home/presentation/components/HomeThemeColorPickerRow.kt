@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.ui.theme.Teal200
 import com.atk.atk_cargo.ui.theme.ThemeBlue
 import com.atk.atk_cargo.ui.theme.ThemeBlueDark
 import com.atk.atk_cargo.ui.theme.ThemeBlueOcean
@@ -52,7 +53,6 @@ import com.atk.atk_cargo.ui.theme.ThemeRed
 import com.atk.atk_cargo.ui.theme.ThemeRedDark
 import com.atk.atk_cargo.ui.theme.ThemeSlateBlue
 import com.atk.atk_cargo.ui.theme.ThemeTeal
-import com.atk.atk_cargo.ui.theme.Teal200
 import kotlinx.coroutines.launch
 
 private val PickerAccentLight = Color(0xFF0D9488)
