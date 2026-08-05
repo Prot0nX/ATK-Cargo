@@ -55,11 +55,12 @@ import com.atk.atk_cargo.feature.reports.presentation.dialogs.RealTimeLoadingBot
 import com.atk.atk_cargo.feature.reports.presentation.ships.components.ShipCard
 import com.atk.atk_cargo.feature.reports.presentation.ships.components.ShipSortingSelector
 import com.atk.atk_cargo.feature.reports.presentation.ships.components.sortShips
+import com.atk.atk_cargo.ui.theme.Blue400
 import com.atk.atk_cargo.ui.theme.Blue700
-import com.atk.atk_cargo.ui.theme.Gray300
-import com.atk.atk_cargo.ui.theme.Gray500
-import com.atk.atk_cargo.ui.theme.Gray600
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+
+private val ShipsTabAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Blue400 else Blue700
 
 @Composable
 fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
@@ -201,7 +202,7 @@ fun ShipsTabSelector(
                     Icon(
                         imageVector = Icons.Default.DirectionsBoat,
                         contentDescription = null,
-                        tint = if (selectedTabIndex == 0) Blue700 else Gray500,
+                        tint = if (selectedTabIndex == 0) ShipsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -209,18 +210,18 @@ fun ShipsTabSelector(
                         text = "کشتی فعال",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selectedTabIndex == 0) Blue700 else Gray500
+                        color = if (selectedTabIndex == 0) ShipsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = if (selectedTabIndex == 0) Blue700.copy(alpha = 0.1f) else Gray300
+                        color = if (selectedTabIndex == 0) ShipsTabAccent.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
                             text = "$activeShipsCount",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (selectedTabIndex == 0) Blue700 else Gray600,
+                            color = if (selectedTabIndex == 0) ShipsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
@@ -243,7 +244,7 @@ fun ShipsTabSelector(
                     Icon(
                         imageVector = Icons.Default.Archive,
                         contentDescription = null,
-                        tint = if (selectedTabIndex == 1) Blue700 else Gray500,
+                        tint = if (selectedTabIndex == 1) ShipsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -251,18 +252,18 @@ fun ShipsTabSelector(
                         text = "کشتی غیرفعال",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selectedTabIndex == 1) Blue700 else Gray500
+                        color = if (selectedTabIndex == 1) ShipsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Surface(
                         shape = RoundedCornerShape(10.dp),
-                        color = if (selectedTabIndex == 1) Blue700.copy(alpha = 0.1f) else Gray300
+                        color = if (selectedTabIndex == 1) ShipsTabAccent.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
                             text = "$inactiveShipsCount",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (selectedTabIndex == 1) Blue700 else Gray600,
+                            color = if (selectedTabIndex == 1) ShipsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }

@@ -9,17 +9,34 @@ ini_set('display_errors', 1);
 
 date_default_timezone_set('Asia/Tehran');
 
+session_start();
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 require_once __DIR__ . '/config/config.php';
 
-$ADMIN_PASSWORD_HASH = '$2y$10$bUbu4IBE6ZJKpLL5lxc9puyUEUJg3o9F/zzI896I2U6vUPA5OjI.S'; 
-
-session_start();
+$ADMIN_PASSWORD_HASH = $_ENV['ADMIN_PASSWORD_HASH'] ?? getenv('ADMIN_PASSWORD_HASH') ?: ''; 
 
 $is_authenticated = isset($_SESSION['perm_manager_auth']) && $_SESSION['perm_manager_auth'] === true;
 
+// اعتبارسنجی CSRF برای تمامی درخواست‌های POST
+$csrf_valid = true;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $submittedToken = $_POST['csrf_token'] ?? '';
+    if (!hash_equals($_SESSION['csrf_token'], $submittedToken)) {
+        $csrf_valid = false;
+    }
+}
+
 // هندل کردن لاگین
 if (isset($_POST['login'])) {
-    if (password_verify($_POST['password'], $ADMIN_PASSWORD_HASH)) {
+    if (!$csrf_valid) {
+        $login_error = "توکن امنیتی (CSRF) نامعتبر است. لطفاً صفحه را بازنشانی کنید.";
+    } elseif (empty($ADMIN_PASSWORD_HASH)) {
+        $login_error = "خطای پیکربندی: متغیر ADMIN_PASSWORD_HASH در فایل .env تنظیم نشده است.";
+    } elseif (password_verify($_POST['password'], $ADMIN_PASSWORD_HASH)) {
         $_SESSION['perm_manager_auth'] = true;
         $_SESSION['last_activity'] = time();
         header("Location: PermissionManager.php");
@@ -71,36 +88,40 @@ if (!isset($all_data['roles'])) {
 
 // هندل کردن ذخیره‌سازی
 if ($is_authenticated && isset($_POST['save_permissions'])) {
-    $type = $_POST['target_type']; // 'role' or 'user'
-    $target_name = $_POST['target_name']; // role name or username
-    
-    $features = [
-        'initial_info', 'select_info', 'cargo_counter', 'manage_ships', 
-        'manage_users', 'admin_chat', 'edit_cargo', 'delete_cargo', 
-        'view_reports', 'active_quotas', 'tonnage_warning'
-    ];
-
-    $new_perms = [];
-    foreach ($features as $feature) {
-        $new_perms[$feature] = isset($_POST["perm_{$feature}"]);
-    }
-
-    if ($type === 'role') {
-        $all_data['roles'][$target_name] = $new_perms;
+    if (!$csrf_valid) {
+        $error_msg = "توکن امنیتی (CSRF) نامعتبر است. لطفاً صفحه را بازنشانی کنید.";
     } else {
-        // اگر تمام گزینه‌ها غیرفعال بود و کاربر خواست "تنظیم اختصاصی" را حذف کند
-        if (isset($_POST['delete_user_custom']) && $_POST['delete_user_custom'] == '1') {
-            unset($all_data['users'][$target_name]);
-        } else {
-            $all_data['users'][$target_name] = $new_perms;
+        $type = $_POST['target_type']; // 'role' or 'user'
+        $target_name = $_POST['target_name']; // role name or username
+        
+        $features = [
+            'initial_info', 'select_info', 'cargo_counter', 'manage_ships', 
+            'manage_users', 'admin_chat', 'edit_cargo', 'delete_cargo', 
+            'view_reports', 'active_quotas', 'tonnage_warning'
+        ];
+
+        $new_perms = [];
+        foreach ($features as $feature) {
+            $new_perms[$feature] = isset($_POST["perm_{$feature}"]);
         }
-    }
 
-    if (is_writable(dirname($permissions_file))) {
-        file_put_contents($permissions_file, json_encode($all_data, JSON_PRETTY_PRINT));
-        $success_msg = "تنظیمات " . ($type === 'role' ? "نقش" : "کاربر") . " با موفقیت به‌روزرسانی شد.";
-    } else {
-        $error_msg = "خطای دسترسی در فایل تنظیمات!";
+        if ($type === 'role') {
+            $all_data['roles'][$target_name] = $new_perms;
+        } else {
+            // اگر تمام گزینه‌ها غیرفعال بود و کاربر خواست "تنظیم اختصاصی" را حذف کند
+            if (isset($_POST['delete_user_custom']) && $_POST['delete_user_custom'] == '1') {
+                unset($all_data['users'][$target_name]);
+            } else {
+                $all_data['users'][$target_name] = $new_perms;
+            }
+        }
+
+        if (is_writable(dirname($permissions_file))) {
+            file_put_contents($permissions_file, json_encode($all_data, JSON_PRETTY_PRINT));
+            $success_msg = "تنظیمات " . ($type === 'role' ? "نقش" : "کاربر") . " با موفقیت به‌روزرسانی شد.";
+        } else {
+            $error_msg = "خطای دسترسی در فایل تنظیمات!";
+        }
     }
 }
 
@@ -167,6 +188,7 @@ $feature_labels = [
                 <p class="login-subtitle">جهت دسترسی به تنظیمات امنیتی، رمز عبور را وارد کنید</p>
                 
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <div class="login-input-wrapper">
                         <input type="password" name="password" class="login-input" placeholder="••••••••" required autofocus>
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -233,8 +255,13 @@ $feature_labels = [
                     </div>
                 </div>
 
-                <form method="POST" id="permForm">
-                    <input type="hidden" name="target_type" id="target_type" value="role">
+                <div class="main-content">
+                <!-- Form Box -->
+                <form method="POST" class="form-card" id="permissionsForm">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                    <div class="form-card-header">
+                        <input type="hidden" name="target_type" id="target_type" value="role">
+                    </div>
                     
                     <div class="control-group" id="roleSelectorGroup">
                         <label>انتخاب نقش کاربری:</label>
