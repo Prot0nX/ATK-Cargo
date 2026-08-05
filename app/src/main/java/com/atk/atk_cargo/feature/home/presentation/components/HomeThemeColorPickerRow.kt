@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,14 +52,10 @@ import com.atk.atk_cargo.ui.theme.ThemeRed
 import com.atk.atk_cargo.ui.theme.ThemeRedDark
 import com.atk.atk_cargo.ui.theme.ThemeSlateBlue
 import com.atk.atk_cargo.ui.theme.ThemeTeal
+import com.atk.atk_cargo.ui.theme.Teal200
 import kotlinx.coroutines.launch
 
-private val PickerAccent = Color(0xFF0D9488)
-private val PickerAccentBg = Color(0xFFDCEFEA)
-private val PickerCardBorder = Color(0xFFE4E6E9)
-private val PickerMutedBg = Color(0xFFF3F4F5)
-private val PickerMutedText = Color(0xFF8A8F98)
-private val PickerTitleColor = Color(0xFF1F2937)
+private val PickerAccentLight = Color(0xFF0D9488)
 
 private data class ThemeColorOption(
     val color: Color,
@@ -91,12 +88,15 @@ fun ThemeColorPickerRow(
 ) {
     val currentColorLong by userPreferencesManager.themeColor.collectAsState(initial = 0xFF137fecL)
     val coroutineScope = rememberCoroutineScope()
+    val isDark = isSystemInDarkTheme()
+    val accent = if (isDark) Teal200 else PickerAccentLight
+    val accentBg = accent.copy(alpha = if (isDark) 0.2f else 0.16f)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(PickerMutedBg)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -108,14 +108,14 @@ fun ThemeColorPickerRow(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(PickerAccentBg),
+                    .background(accentBg),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Edit,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
-                    tint = PickerAccent
+                    tint = accent
                 )
             }
             Column {
@@ -123,12 +123,12 @@ fun ThemeColorPickerRow(
                     text = "رنگ اصلی برنامه",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    color = PickerTitleColor
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "تم رنگی رابط کاربری",
                     style = MaterialTheme.typography.labelSmall,
-                    color = PickerMutedText
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
