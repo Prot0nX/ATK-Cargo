@@ -38,3 +38,4 @@ google-services.json
 .env
 *.env
 
+/app/release/baselineProfiles
