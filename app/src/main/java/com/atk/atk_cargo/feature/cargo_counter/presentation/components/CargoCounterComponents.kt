@@ -15,6 +15,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,14 +37,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -74,13 +73,13 @@ import com.atk.atk_cargo.feature.cargo_counter.presentation.CargoSnackbarMessage
 import com.atk.atk_cargo.feature.cargo_counter.presentation.ShipFilterTab
 import com.atk.atk_cargo.feature.startup.domain.AnimationManager
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
-import com.atk.atk_cargo.ui.theme.Blue50
-import com.atk.atk_cargo.ui.theme.Blue500
-import com.atk.atk_cargo.ui.theme.Purple50
-import com.atk.atk_cargo.ui.theme.Purple500
-import com.atk.atk_cargo.ui.theme.Red50
-import com.atk.atk_cargo.ui.theme.Red500
+import com.atk.atk_cargo.ui.theme.Blue400
+import com.atk.atk_cargo.ui.theme.Blue700
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
+
+private val CargoCounterTabAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Blue400 else Blue700
 
 @Composable
 fun TabBar(
@@ -90,10 +89,10 @@ fun TabBar(
     loadingCount: Int,
     completedCount: Int
 ) {
+    val activeColor = CargoCounterTabAccent
+
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
     ) {
@@ -110,58 +109,37 @@ fun TabBar(
                     ShipFilterTab.LOADING -> loadingCount
                     ShipFilterTab.COMPLETED -> completedCount
                 }
-                
-                val semantic = ATKCargoTheme.semanticColors
-                val activeColor = when (tab) {
-                    ShipFilterTab.ALL -> MaterialTheme.colorScheme.primary
-                    ShipFilterTab.LOADING -> semantic.shipLoading
-                    ShipFilterTab.COMPLETED -> semantic.shipCompleted
-                }
 
                 Surface(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { onTabSelected(tab) },
-                    shape = ATKCargoTheme.appShapes.small,
+                    shape = RoundedCornerShape(8.dp),
                     color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
-                    shadowElevation = if (isSelected) ATKCargoTheme.elevation.level1 else ATKCargoTheme.elevation.level0
+                    shadowElevation = if (isSelected) 1.dp else 0.dp
                 ) {
                     Row(
-                        modifier = Modifier.padding(vertical = ATKCargoTheme.spacing.s),
+                        modifier = Modifier.padding(vertical = 10.dp),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val icon = when (tab) {
-                            ShipFilterTab.ALL -> Icons.Default.DirectionsBoat
-                            ShipFilterTab.LOADING -> Icons.Default.LocalShipping
-                            ShipFilterTab.COMPLETED -> Icons.Default.Check
-                        }
-                        
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = if (isSelected) activeColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(ATKCargoTheme.dimensions.iconMedium)
-                        )
-                        Spacer(modifier = Modifier.width(ATKCargoTheme.spacing.s))
                         Text(
                             text = tab.title,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             color = if (isSelected) activeColor else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.width(ATKCargoTheme.spacing.s))
-                        // Badge تعداد
+                        Spacer(modifier = Modifier.width(8.dp))
                         Surface(
-                            shape = ATKCargoTheme.appShapes.chip,
-                            color = if (isSelected) activeColor.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) activeColor.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Text(
                                 text = "$count",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isSelected) activeColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = ATKCargoTheme.spacing.xs, vertical = ATKCargoTheme.spacing.xxs)
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
                     }
@@ -901,6 +879,20 @@ private fun WarehouseList(
 }
 
 @Composable
+private fun snackbarAccent(type: MessageType, isDark: Boolean): Color = when (type) {
+    MessageType.SUCCESS -> if (isDark) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+    MessageType.ERROR -> if (isDark) Color(0xFFF87171) else Color(0xFFDC2626)
+    MessageType.WARNING -> if (isDark) Color(0xFFFBBF24) else Color(0xFFB45309)
+}
+
+@Composable
+private fun snackbarAccentBg(type: MessageType, isDark: Boolean, accent: Color): Color = when (type) {
+    MessageType.SUCCESS -> if (isDark) accent.copy(alpha = 0.16f) else Color(0xFFDCEFEA)
+    MessageType.ERROR -> if (isDark) accent.copy(alpha = 0.16f) else Color(0xFFFDE8E8)
+    MessageType.WARNING -> if (isDark) accent.copy(alpha = 0.16f) else Color(0xFFFEF3E2)
+}
+
+@Composable
 fun StatusSnackbar(
     message: CargoSnackbarMessage,
     isVisible: Boolean,
@@ -928,14 +920,23 @@ fun StatusSnackbar(
     LaunchedEffect(isVisible) {
         if (isVisible) {
             animatedVisibility = true
-            delay(3000)
+            delay(3000.milliseconds)
             animatedVisibility = false
-            delay(300)
+            delay(300.milliseconds)
             onDismiss()
         }
     }
 
     if (isVisible || animatedVisibility) {
+        val isDark = isSystemInDarkTheme()
+        val accent = snackbarAccent(message.type, isDark)
+        val accentBg = snackbarAccentBg(message.type, isDark, accent)
+        val icon = when (message.type) {
+            MessageType.SUCCESS -> Icons.Outlined.CheckCircle
+            MessageType.ERROR -> Icons.Default.Close
+            MessageType.WARNING -> Icons.Default.Info
+        }
+
         Box(
             modifier = modifier
                 .fillMaxSize()
@@ -949,48 +950,35 @@ fun StatusSnackbar(
                     .offset(y = translateY)
                     .alpha(alpha),
                 shape = RoundedCornerShape(16.dp),
-                color = when (message.type) {
-                    MessageType.SUCCESS -> Blue50
-                    MessageType.ERROR -> Red50
-                    MessageType.WARNING -> Purple50
-                },
-                border = BorderStroke(1.dp, when (message.type) {
-                    MessageType.SUCCESS -> Blue500.copy(alpha = 0.2f)
-                    MessageType.ERROR -> Red500.copy(alpha = 0.2f)
-                    MessageType.WARNING -> Purple500.copy(alpha = 0.2f)
-                }),
-                shadowElevation = 2.dp
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, accent.copy(alpha = if (isDark) 0.35f else 0.3f)),
+                shadowElevation = 6.dp
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(
-                        imageVector = when (message.type) {
-                            MessageType.SUCCESS -> Icons.Outlined.CheckCircle
-                            MessageType.ERROR -> Icons.Default.Close
-                            MessageType.WARNING -> Icons.Default.Info
-                        },
-                        contentDescription = null,
-                        tint = when (message.type) {
-                            MessageType.SUCCESS -> Blue500
-                            MessageType.ERROR -> Red500
-                            MessageType.WARNING -> Purple500
-                        },
-                        modifier = Modifier.size(20.dp)
-                    )
-
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(accentBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = accent,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
 
                     Text(
                         text = message.text,
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        color = when (message.type) {
-                            MessageType.SUCCESS -> Blue500
-                            MessageType.ERROR -> Red500
-                            MessageType.WARNING -> Purple500
-                        }
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
