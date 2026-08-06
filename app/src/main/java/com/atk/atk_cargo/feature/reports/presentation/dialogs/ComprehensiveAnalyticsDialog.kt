@@ -341,7 +341,7 @@ private fun AnalyticsHeaderCard(
 private fun SearchField(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    modifier: Modifier = Modifier.fillMaxWidth(),
+    modifier: Modifier = Modifier,
     placeholder: String = "جستجو بر اساس نام کشتی، شماره...",
     keyboardType: KeyboardType = KeyboardType.Text
 ) {

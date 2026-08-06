@@ -46,7 +46,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -108,7 +107,6 @@ fun ShipDetails(
     val shipDetailsLoadingState by viewModel.shipDetailsLoadingState.collectAsState()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val pagerState = rememberPagerState(pageCount = { 1 })
-    val coroutineScope = rememberCoroutineScope()
     val warnings = remember(selectedShipQuotas) {
         selectedShipQuotas.mapNotNull { quota -> calculateWarningStatus(quota) }
     }
