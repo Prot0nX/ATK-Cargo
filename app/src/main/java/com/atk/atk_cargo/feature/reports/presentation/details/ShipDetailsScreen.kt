@@ -65,21 +65,17 @@ import com.atk.atk_cargo.feature.reports.presentation.dialogs.QuotaWarningDialog
 import com.atk.atk_cargo.feature.reports.presentation.quota_details.QuotasList
 import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
 import com.atk.atk_cargo.feature.reports.presentation.warehouse_details.WarehousesSection
-import com.atk.atk_cargo.ui.theme.Blue400
-import com.atk.atk_cargo.ui.theme.Blue700
 import com.atk.atk_cargo.ui.theme.DeepOrange100
 import com.atk.atk_cargo.ui.theme.DeepOrange300
 import com.atk.atk_cargo.ui.theme.DeepOrange900
-import com.atk.atk_cargo.ui.theme.Teal50
-import com.atk.atk_cargo.ui.theme.Teal900
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlin.math.abs
 
 private val ShipDetailsTealAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Teal900
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 private val ShipDetailsTealAccentBg: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Teal50
+    @Composable get() = MaterialTheme.colorScheme.primaryContainer
 
 private val ShipDetailsDeepOrangeAccent: Color
     @Composable get() = if (isSystemInDarkTheme()) DeepOrange300 else DeepOrange900
@@ -88,7 +84,7 @@ private val ShipDetailsDeepOrangeAccentBg: Color
     @Composable get() = if (isSystemInDarkTheme()) DeepOrange900.copy(alpha = 0.18f) else DeepOrange100.copy(alpha = 0.6f)
 
 private val ShipDetailsTabAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Blue400 else Blue700
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 @Composable
 fun ShipDetails(

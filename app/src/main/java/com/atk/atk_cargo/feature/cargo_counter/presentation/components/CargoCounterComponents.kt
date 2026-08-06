@@ -73,13 +73,11 @@ import com.atk.atk_cargo.feature.cargo_counter.presentation.CargoSnackbarMessage
 import com.atk.atk_cargo.feature.cargo_counter.presentation.ShipFilterTab
 import com.atk.atk_cargo.feature.startup.domain.AnimationManager
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
-import com.atk.atk_cargo.ui.theme.Blue400
-import com.atk.atk_cargo.ui.theme.Blue700
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
 private val CargoCounterTabAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Blue400 else Blue700
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 @Composable
 fun TabBar(

@@ -59,9 +59,6 @@ import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.ui.theme.Amber700
 import com.atk.atk_cargo.ui.theme.Green600
 import com.atk.atk_cargo.ui.theme.Red500
-import com.atk.atk_cargo.ui.theme.Teal200
-
-private val FormAccentLight = Color(0xFF0D9488)
 
 @Composable
 fun FormSection(
@@ -82,7 +79,7 @@ fun FormSection(
     onSubmit: () -> Unit,
 ) {
     val isDark = isSystemInDarkTheme()
-    val formAccent = if (isDark) Teal200 else FormAccentLight
+    val formAccent = MaterialTheme.colorScheme.primary
     val formAccentBg = formAccent.copy(alpha = if (isDark) 0.18f else 0.16f)
     val formCardBg = MaterialTheme.colorScheme.surface
     val formCardBorder = MaterialTheme.colorScheme.outlineVariant

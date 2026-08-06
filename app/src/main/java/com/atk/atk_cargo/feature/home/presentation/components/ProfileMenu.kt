@@ -56,12 +56,9 @@ import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.feature.home.presentation.ProfileSettingsDialog
-import com.atk.atk_cargo.ui.theme.Teal200
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-
-private val ProfileAccentLight = Color(0xFF0D9488)
 
 /** رنگ‌های تیل سازگار با تم روشن/تاریک برای منوی پروفایل. */
 private class ProfilePalette(
@@ -77,7 +74,7 @@ private class ProfilePalette(
 @Composable
 private fun rememberProfilePalette(): ProfilePalette {
     val isDark = isSystemInDarkTheme()
-    val accent = if (isDark) Teal200 else ProfileAccentLight
+    val accent = MaterialTheme.colorScheme.primary
     return ProfilePalette(
         accent = accent,
         accentBg = accent.copy(alpha = if (isDark) 0.18f else 0.16f),

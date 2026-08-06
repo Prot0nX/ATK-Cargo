@@ -106,15 +106,12 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.Ship
 import com.atk.atk_cargo.feature.startup.domain.AnimationManager
 import com.atk.atk_cargo.ui.theme.Amber700
 import com.atk.atk_cargo.ui.theme.Green600
-import com.atk.atk_cargo.ui.theme.Teal200
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
-
-private val RegisterAccentLight = Color(0xFF0D9488)
 
 /** رنگ‌های تیل سازگار با تم روشن/تاریک برای صفحه ثبت و خروج حواله. */
 private class RegisterPalette(
@@ -130,7 +127,7 @@ private class RegisterPalette(
 @Composable
 private fun rememberRegisterPalette(): RegisterPalette {
     val isDark = isSystemInDarkTheme()
-    val accent = if (isDark) Teal200 else RegisterAccentLight
+    val accent = MaterialTheme.colorScheme.primary
     return RegisterPalette(
         accent = accent,
         accentBg = accent.copy(alpha = if (isDark) 0.18f else 0.16f),

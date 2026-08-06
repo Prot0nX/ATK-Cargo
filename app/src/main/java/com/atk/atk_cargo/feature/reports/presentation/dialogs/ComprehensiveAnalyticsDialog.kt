@@ -90,13 +90,13 @@ import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlin.math.roundToInt
 
 private val AnalyticsAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 private val AnalyticsAccentBg: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.16f) else Color(0xFFDCEFEA)
+    @Composable get() = MaterialTheme.colorScheme.primaryContainer
 
 private val AnalyticsAccentBorder: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.35f) else Color(0xFFB9DED7)
+    @Composable get() = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
 
 private val AnalyticsCardBorder: Color
     @Composable get() = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)

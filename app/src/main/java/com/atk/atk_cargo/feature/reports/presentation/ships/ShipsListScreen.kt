@@ -55,12 +55,10 @@ import com.atk.atk_cargo.feature.reports.presentation.dialogs.RealTimeLoadingBot
 import com.atk.atk_cargo.feature.reports.presentation.ships.components.ShipCard
 import com.atk.atk_cargo.feature.reports.presentation.ships.components.ShipSortingSelector
 import com.atk.atk_cargo.feature.reports.presentation.ships.components.sortShips
-import com.atk.atk_cargo.ui.theme.Blue400
-import com.atk.atk_cargo.ui.theme.Blue700
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 
 private val ShipsTabAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Blue400 else Blue700
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 @Composable
 fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {

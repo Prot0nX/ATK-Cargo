@@ -101,24 +101,22 @@ import com.atk.atk_cargo.api.Warehouse
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.domain.persianDateFormat
 import com.atk.atk_cargo.feature.reports.presentation.warehouse_details.components.DateTimePicker
-import com.atk.atk_cargo.ui.theme.Teal50
-import com.atk.atk_cargo.ui.theme.Teal900
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 
 private val WarehouseTealAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Teal900
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 private val WarehouseTealAccentBg: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Teal50
+    @Composable get() = MaterialTheme.colorScheme.primaryContainer
 
 private val WarehouseAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 private val WarehouseAccentBg: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.16f) else Color(0xFFDCEFEA)
+    @Composable get() = MaterialTheme.colorScheme.primaryContainer
 
 private val WarehouseAccentBorder: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.35f) else Color(0xFFB9DED7)
+    @Composable get() = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
 
 private val WarehouseCardBorder: Color
     @Composable get() = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
@@ -586,7 +584,7 @@ fun QuotaChip(
     )
 
     val accent = WarehouseAccent
-    val onAccent = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+    val onAccent = MaterialTheme.colorScheme.onPrimary
 
     val backgroundColor by animateColorAsState(
         targetValue = when {
