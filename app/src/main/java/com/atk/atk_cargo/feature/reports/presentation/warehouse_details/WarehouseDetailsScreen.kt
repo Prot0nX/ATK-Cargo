@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -43,6 +42,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
@@ -50,6 +50,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DirectionsBoat
@@ -57,9 +58,8 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.Filter
 import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.Scale
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -81,12 +81,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
@@ -102,37 +101,43 @@ import com.atk.atk_cargo.api.Warehouse
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.domain.persianDateFormat
 import com.atk.atk_cargo.feature.reports.presentation.warehouse_details.components.DateTimePicker
-import com.atk.atk_cargo.ui.theme.Blue100
-import com.atk.atk_cargo.ui.theme.Blue300
-import com.atk.atk_cargo.ui.theme.Blue400
-import com.atk.atk_cargo.ui.theme.Blue50
-import com.atk.atk_cargo.ui.theme.Blue700
-import com.atk.atk_cargo.ui.theme.Blue900
-import com.atk.atk_cargo.ui.theme.Corner2XL
-import com.atk.atk_cargo.ui.theme.Corner3XL
-import com.atk.atk_cargo.ui.theme.CornerL
-import com.atk.atk_cargo.ui.theme.CornerM
-import com.atk.atk_cargo.ui.theme.CornerXL
-import com.atk.atk_cargo.ui.theme.Gray100
-import com.atk.atk_cargo.ui.theme.Gray200
-import com.atk.atk_cargo.ui.theme.Gray400
-import com.atk.atk_cargo.ui.theme.Gray50
-import com.atk.atk_cargo.ui.theme.Gray500
-import com.atk.atk_cargo.ui.theme.PrimaryBlue
-import com.atk.atk_cargo.ui.theme.PrimaryBlueLight
-import com.atk.atk_cargo.ui.theme.Slate200
-import com.atk.atk_cargo.ui.theme.Slate300
-import com.atk.atk_cargo.ui.theme.Slate600
-import com.atk.atk_cargo.ui.theme.Slate700
-import com.atk.atk_cargo.ui.theme.Slate800
-import com.atk.atk_cargo.ui.theme.SurfaceVariantDark
+import com.atk.atk_cargo.ui.theme.Teal50
+import com.atk.atk_cargo.ui.theme.Teal900
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+
+private val WarehouseTealAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Teal900
+
+private val WarehouseTealAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Teal50
+
+private val WarehouseAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val WarehouseAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.16f) else Color(0xFFDCEFEA)
+
+private val WarehouseAccentBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.35f) else Color(0xFFB9DED7)
+
+private val WarehouseCardBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+
+private val WarehouseMutedBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+
+private val WarehouseMutedText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+private val WarehouseTitleColor: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurface
 
 @Composable
 fun WarehouseDetails(
     shipName: String,
     warehouseName: String,
-    viewModel: ReportsViewModel
+    viewModel: ReportsViewModel,
+    onBack: () -> Unit = {}
 ) {
     val warehouse by viewModel.selectedWarehouse.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
@@ -148,6 +153,7 @@ fun WarehouseDetails(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         Column(
@@ -155,6 +161,13 @@ fun WarehouseDetails(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            WarehouseDetailHeader(
+                warehouseName = warehouse?.name ?: warehouseName,
+                shipName = shipName,
+                onBack = onBack
+            )
+            HorizontalDivider(color = WarehouseCardBorder.copy(alpha = 0.7f))
+
             WarehouseContent(
                 warehouse = warehouse,
                 uiState = uiState,
@@ -219,6 +232,82 @@ fun WarehouseDetails(
 }
 
 @Composable
+private fun WarehouseDetailHeader(
+    warehouseName: String,
+    shipName: String,
+    onBack: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(WarehouseMutedBg)
+                .clickable(onClick = onBack),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "بازگشت",
+                tint = WarehouseTitleColor,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(WarehouseAccentBg),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warehouse,
+                contentDescription = null,
+                tint = WarehouseAccent,
+                modifier = Modifier.size(16.dp)
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(
+                text = warehouseName,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = WarehouseTitleColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DirectionsBoat,
+                    contentDescription = null,
+                    tint = WarehouseMutedText,
+                    modifier = Modifier.size(11.dp)
+                )
+                Text(
+                    text = shipName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = WarehouseMutedText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun WarehouseContent(
     warehouse: Warehouse?,
     uiState: ReportsViewModel.UiState,
@@ -247,20 +336,15 @@ fun WarehouseContent(
             }
             is ReportsViewModel.UiState.Success -> {
                 warehouse?.let { warehouseDetails ->
-                    WarehouseMainCard(
-                        warehouseName = warehouseDetails.name,
-                        shipName = shipName
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                            .padding(horizontal = 16.dp),
                         shape = RoundedCornerShape(16.dp),
-                        color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else Color(0xFFE0E7FF).copy(alpha = 0.8f),
-                        border = BorderStroke(1.dp, if (isSystemInDarkTheme()) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else Color(0xFFC7D2FE))
+                        color = WarehouseMutedBg,
+                        border = BorderStroke(1.dp, WarehouseCardBorder)
                     ) {
                         Row(
                             modifier = Modifier
@@ -274,26 +358,26 @@ fun WarehouseContent(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 modifier = Modifier.padding(start = 8.dp)
                             ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else Color(0xFFEEF2FF),
-                                    modifier = Modifier.size(32.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(WarehouseAccentBg),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.Filter,
-                                            contentDescription = null,
-                                            tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFF4F46E5),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.Filter,
+                                        contentDescription = null,
+                                        tint = WarehouseAccent,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 }
 
                                 Text(
                                     text = "فیلتر و جستجو",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.onSurface else Color(0xFF374151)
+                                    color = WarehouseTitleColor
                                 )
                             }
 
@@ -361,8 +445,8 @@ fun ExportOptions(onExport: (String) -> Unit) {
     Surface(
         onClick = { onExport("pdf") },
         shape = RoundedCornerShape(12.dp),
-        color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else Color.White,
-        border = BorderStroke(1.dp, if (isSystemInDarkTheme()) MaterialTheme.colorScheme.outline.copy(alpha = 0.2f) else Color(0xFFF3F4F6)),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, WarehouseCardBorder),
         shadowElevation = 1.dp
     ) {
         Row(
@@ -375,120 +459,14 @@ fun ExportOptions(onExport: (String) -> Unit) {
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else Color(0xFF2563EB)
+                color = WarehouseAccent
             )
 
             Icon(
                 imageVector = Icons.Default.PictureAsPdf,
                 contentDescription = "خروجی PDF",
-                tint = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else Color(0xFF2563EB),
+                tint = WarehouseAccent,
                 modifier = Modifier.size(18.dp)
-            )
-        }
-    }
-}
-
-
-
-@Composable
-fun WarehouseMainCard(warehouseName: String, shipName: String) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                InfoCard(
-                    icon = Icons.Default.DirectionsBoat,
-                    title = "کشتی",
-                    value = shipName,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f)
-                )
-
-                InfoCard(
-                    icon = Icons.Default.Store,
-                    title = "انبار",
-                    value = warehouseName,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun InfoCard(
-    icon: ImageVector,
-    title: String,
-    value: String,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.height(96.dp),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = color
-                )
-
-                Surface(
-                    shape = CircleShape,
-                    color = color.copy(alpha = 0.1f),
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = color,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-            }
-
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
             )
         }
     }
@@ -504,18 +482,18 @@ fun QuotaSelector(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
+        border = BorderStroke(1.dp, WarehouseCardBorder),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 0.dp
         )
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -526,25 +504,33 @@ fun QuotaSelector(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Description,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(WarehouseAccentBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Description,
+                            contentDescription = null,
+                            tint = WarehouseAccent,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
 
                     Text(
                         text = "انتخاب شماره کوتاژ",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = WarehouseTitleColor
                     )
                 }
 
                 Text(
                     text = "${quotas.size} کوتاژ",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    color = WarehouseMutedText.copy(alpha = 0.7f)
                 )
             }
 
@@ -599,20 +585,23 @@ fun QuotaChip(
         label = "dot alpha"
     )
 
+    val accent = WarehouseAccent
+    val onAccent = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+
     val backgroundColor by animateColorAsState(
         targetValue = when {
-            isSelected -> MaterialTheme.colorScheme.primary
-            isPressed -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f)
-            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            isSelected -> accent
+            isPressed -> WarehouseMutedBg.copy(alpha = 0.8f)
+            else -> WarehouseMutedBg
         },
         label = "background color"
     )
 
     val contentColor by animateColorAsState(
         targetValue = if (isSelected) {
-            MaterialTheme.colorScheme.onPrimary
+            onAccent
         } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
+            WarehouseMutedText
         },
         label = "content color"
     )
@@ -636,7 +625,7 @@ fun QuotaChip(
             },
         shape = CircleShape,
         color = backgroundColor,
-        border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)),
+        border = if (isSelected) null else BorderStroke(1.dp, WarehouseCardBorder),
         interactionSource = interactionSource,
         shadowElevation = if (isSelected) 4.dp else 0.dp
     ) {
@@ -661,9 +650,9 @@ fun QuotaChip(
                     }
                     .background(
                         color = when {
-                            isSelected -> Color.White
-                            quota.isActive -> if (isSystemInDarkTheme()) Color(0xFF60A5FA) else Color(0xFF2563EB)
-                            else -> if (isSystemInDarkTheme()) Color(0xFFF87171) else Color(0xFFEF4444)
+                            isSelected -> onAccent
+                            quota.isActive -> accent
+                            else -> MaterialTheme.colorScheme.error
                         },
                         shape = CircleShape
                     )
@@ -675,19 +664,15 @@ fun QuotaChip(
 @Composable
 fun VoucherDetailsButton(summary: FilteredSummary) {
     var showVoucherDetailsDialog by remember { mutableStateOf(false) }
-    val isDark = isSystemInDarkTheme()
 
     Surface(
         onClick = { showVoucherDetailsDialog = true },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = if (isDark) MaterialTheme.colorScheme.surface else Color(0xFFEFF6FF).copy(alpha = 0.8f),
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (isDark) Color(0xFF374151) else Color(0xFFDBEAFE)
-        )
+        shape = RoundedCornerShape(16.dp),
+        color = WarehouseMutedBg,
+        border = BorderStroke(width = 1.dp, color = WarehouseCardBorder)
     ) {
         Row(
             modifier = Modifier
@@ -701,20 +686,19 @@ fun VoucherDetailsButton(summary: FilteredSummary) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = if (isDark) Color(0xFF374151) else Color.White,
-                    shadowElevation = 2.dp,
-                    modifier = Modifier.size(48.dp)
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(WarehouseAccentBg),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Description,
-                            contentDescription = null,
-                            tint = if (isDark) Color(0xFF60A5FA) else Color(0xFF2563EB),
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Description,
+                        contentDescription = null,
+                        tint = WarehouseAccent,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -722,7 +706,7 @@ fun VoucherDetailsButton(summary: FilteredSummary) {
                         text = "مشاهده جزئیات حواله‌ها",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDark) Color.White else Color(0xFF111827)
+                        color = WarehouseTitleColor
                     )
 
                     Row(
@@ -733,39 +717,38 @@ fun VoucherDetailsButton(summary: FilteredSummary) {
                             text = "${formatNumber(summary.voucherCount)} حواله",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
-                            color = if (isDark) Color(0xFF93C5FD) else Color(0xFF2563EB)
+                            color = WarehouseAccent
                         )
 
                         Text(
                             text = "•",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                            color = if (isDark) Color(0xFF6B7280) else Color(0xFF9CA3AF).copy(alpha = 0.5f)
+                            color = WarehouseMutedText.copy(alpha = 0.5f)
                         )
 
                         Text(
                             text = formatNumber(summary.totalNetWeight.toInt()),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
-                            color = if (isDark) Color(0xFF9CA3AF) else Color(0xFF6B7280)
+                            color = WarehouseMutedText
                         )
                     }
                 }
             }
 
-            Surface(
-                shape = CircleShape,
-                color = if (isDark) Color(0xFF374151) else Color.White,
-                shadowElevation = 2.dp,
-                modifier = Modifier.size(40.dp)
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface),
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        tint = if (isDark) Color(0xFF9CA3AF) else Color(0xFF4B5563),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = WarehouseMutedText,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }
@@ -783,7 +766,6 @@ fun VoucherDetailsDialog(
     summary: FilteredSummary,
     onDismiss: () -> Unit
 ) {
-    val isDarkTheme = isSystemInDarkTheme()
     var searchQuery by remember { mutableStateOf("") }
     var sortType by remember { mutableStateOf(VoucherSortType.DATE_DESC) }
 
@@ -816,16 +798,12 @@ fun VoucherDetailsDialog(
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             dismissOnBackPress = true,
-            dismissOnClickOutside = true
+            dismissOnClickOutside = false
         )
     ) {
         Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .fillMaxHeight(0.9f),
-            shape = RoundedCornerShape(Corner3XL),
-            color = MaterialTheme.colorScheme.background,
-            shadowElevation = 24.dp
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.surface
         ) {
             Column(
                 modifier = Modifier.fillMaxSize()
@@ -833,76 +811,70 @@ fun VoucherDetailsDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(WarehouseMutedBg)
+                            .clickable(onClick = onDismiss),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(CornerL),
-                            color = if (isDarkTheme) Blue900.copy(alpha = 0.3f) else Blue100.copy(alpha = 0.8f),
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Description,
-                                    contentDescription = null,
-                                    tint = PrimaryBlue,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                        }
-
-                        Column {
-                            Text(
-                                text = "جزئیات حواله‌ها",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-
-                            Text(
-                                text = "${formatNumber(filteredVoucherDetails.size)} از ${formatNumber(summary.voucherCount)} حواله",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = PrimaryBlue,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "بستن",
+                            tint = WarehouseTitleColor,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
 
-                    Surface(
-                        onClick = onDismiss,
-                        shape = CircleShape,
-                        color = if (isDarkTheme) Slate800 else Gray100,
-                        modifier = Modifier.size(36.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(WarehouseAccentBg),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "بستن",
-                                tint = if (isDarkTheme) Slate300 else Gray500,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.Description,
+                            contentDescription = null,
+                            tint = WarehouseAccent,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        Text(
+                            text = "جزئیات حواله‌ها",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = WarehouseTitleColor
+                        )
+                        Text(
+                            text = "${formatNumber(filteredVoucherDetails.size)} از ${formatNumber(summary.voucherCount)} حواله",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = WarehouseMutedText
+                        )
                     }
                 }
+
+                HorizontalDivider(color = WarehouseCardBorder.copy(alpha = 0.7f))
 
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     VoucherSearchAndFilter(
                         searchQuery = searchQuery,
                         onSearchChange = { searchQuery = it },
                         sortType = sortType,
                         onSortTypeChange = { sortType = it },
-                        isDarkTheme = isDarkTheme
+                        modifier = Modifier.padding(top = 12.dp)
                     )
 
                     if (filteredVoucherDetails.isEmpty()) {
@@ -910,8 +882,7 @@ fun VoucherDetailsDialog(
                     } else {
                         Row(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp),
+                                .fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -919,7 +890,7 @@ fun VoucherDetailsDialog(
                                 text = "لیست حواله‌ها",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDarkTheme) Slate300 else Slate700
+                                color = WarehouseTitleColor
                             )
 
                             Row(
@@ -929,13 +900,13 @@ fun VoucherDetailsDialog(
                                 Text(
                                     text = "مرتب‌سازی: ${sortType.persianName}",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (isDarkTheme) Gray500 else Gray400
+                                    color = WarehouseMutedText
                                 )
 
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Sort,
                                     contentDescription = null,
-                                    tint = if (isDarkTheme) Gray500 else Gray400,
+                                    tint = WarehouseMutedText,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
@@ -943,14 +914,14 @@ fun VoucherDetailsDialog(
 
                         LazyColumn(
                             modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
                             contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp)
                         ) {
                             items(
                                 items = filteredVoucherDetails,
                                 key = { it.trackingNumber + "_" + it.scaleReceiptNumber }
                             ) { voucher ->
-                                VoucherItem(voucher, isDarkTheme)
+                                VoucherItem(voucher)
                             }
                         }
                     }
@@ -966,7 +937,6 @@ fun VoucherSearchAndFilter(
     onSearchChange: (String) -> Unit,
     sortType: VoucherSortType,
     onSortTypeChange: (VoucherSortType) -> Unit,
-    isDarkTheme: Boolean,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -976,16 +946,15 @@ fun VoucherSearchAndFilter(
         SearchTextField(
             value = searchQuery,
             onValueChange = onSearchChange,
-            placeholder = "جستجو در حواله‌ها...",
-            isDarkTheme = isDarkTheme
+            placeholder = "جستجو در حواله‌ها..."
         )
 
         Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(top = 8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(top = 4.dp)
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 listOf(VoucherSortType.DATE_ASC, VoucherSortType.DATE_DESC).forEach { sortOption ->
@@ -993,14 +962,13 @@ fun VoucherSearchAndFilter(
                         type = sortOption,
                         isSelected = sortType == sortOption,
                         onClick = { onSortTypeChange(sortOption) },
-                        isDarkTheme = isDarkTheme,
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 listOf(VoucherSortType.WEIGHT_ASC, VoucherSortType.WEIGHT_DESC).forEach { sortOption ->
@@ -1008,7 +976,6 @@ fun VoucherSearchAndFilter(
                         type = sortOption,
                         isSelected = sortType == sortOption,
                         onClick = { onSortTypeChange(sortOption) },
-                        isDarkTheme = isDarkTheme,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -1022,67 +989,68 @@ fun SearchTextField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    isDarkTheme: Boolean,
     modifier: Modifier = Modifier
 ) {
-    var isFocused by remember { mutableStateOf(false) }
-
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CornerXL),
-        color = if (isDarkTheme) SurfaceVariantDark else Color.White,
-        shadowElevation = 1.dp,
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (isFocused) {
-                PrimaryBlue.copy(alpha = 0.5f)
-            } else {
-                if (isDarkTheme) Slate700 else Gray200
-            }
-        )
+        modifier = modifier
+            .fillMaxWidth()
+            .height(44.dp),
+        shape = RoundedCornerShape(11.dp),
+        color = WarehouseMutedBg
     ) {
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            singleLine = true,
-            cursorBrush = SolidColor(PrimaryBlue),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                color = if (isDarkTheme) Color.White else Slate800,
-                textDirection = TextDirection.Rtl
-            ),
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .onFocusChanged { isFocused = it.isFocused },
-            decorationBox = { innerTextField ->
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        if (value.isEmpty()) {
-                            Text(
-                                text = placeholder,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (isDarkTheme) Gray500 else Gray400
-                            )
-                        }
-                        innerTextField()
-                    }
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = WarehouseMutedText,
+                modifier = Modifier.size(18.dp)
+            )
 
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                        tint = if (isFocused) PrimaryBlue else if (isDarkTheme) Gray500 else Gray400,
-                        modifier = Modifier.size(20.dp)
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                if (value.isEmpty()) {
+                    Text(
+                        text = placeholder,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = WarehouseMutedText,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
+
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodySmall.copy(
+                        color = WarehouseTitleColor,
+                        textDirection = TextDirection.Rtl
+                    ),
+                    cursorBrush = SolidColor(WarehouseAccent)
+                )
             }
-        )
+
+            if (value.isNotEmpty()) {
+                Icon(
+                    imageVector = Icons.Default.Clear,
+                    contentDescription = "پاک کردن",
+                    tint = WarehouseMutedText,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .clickable { onValueChange("") }
+                )
+            }
+        }
     }
 }
 
@@ -1101,7 +1069,7 @@ fun EmptyVoucherList() {
             Icon(
                 imageVector = Icons.Default.Inventory,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                tint = WarehouseMutedText.copy(alpha = 0.5f),
                 modifier = Modifier.size(80.dp)
             )
 
@@ -1110,7 +1078,7 @@ fun EmptyVoucherList() {
             Text(
                 text = "حواله‌ای یافت نشد",
                 style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = WarehouseMutedText
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -1118,7 +1086,7 @@ fun EmptyVoucherList() {
             Text(
                 text = "لطفا فیلترها را تغییر دهید یا جستجوی دیگری انجام دهید",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                color = WarehouseMutedText.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center
             )
         }
@@ -1126,7 +1094,7 @@ fun EmptyVoucherList() {
 }
 
 @Composable
-fun VoucherItem(voucher: VoucherDetail, isDarkTheme: Boolean) {
+fun VoucherItem(voucher: VoucherDetail) {
     var expanded by remember { mutableStateOf(false) }
     val rotationState by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
@@ -1144,16 +1112,15 @@ fun VoucherItem(voucher: VoucherDetail, isDarkTheme: Boolean) {
                     stiffness = Spring.StiffnessLow
                 )
             ),
-        shape = RoundedCornerShape(CornerXL),
-        color = if (isDarkTheme) SurfaceVariantDark else Color.White,
-        shadowElevation = 1.dp,
-        border = BorderStroke(1.dp, if (isDarkTheme) Slate700 else Gray100)
+        shape = RoundedCornerShape(12.dp),
+        color = WarehouseMutedBg,
+        border = BorderStroke(1.dp, WarehouseCardBorder)
     ) {
         Column {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -1164,15 +1131,15 @@ fun VoucherItem(voucher: VoucherDetail, isDarkTheme: Boolean) {
                     Box(
                         modifier = Modifier
                             .size(8.dp)
-                            .background(PrimaryBlue, CircleShape)
+                            .background(WarehouseAccent, CircleShape)
                     )
 
                     Column {
                         Text(
                             text = voucher.trackingNumber,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
-                            color = if (isDarkTheme) Color.White else Slate800
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = WarehouseTitleColor
                         )
 
                         Row(
@@ -1182,13 +1149,13 @@ fun VoucherItem(voucher: VoucherDetail, isDarkTheme: Boolean) {
                             Text(
                                 text = "قبض باسکول:",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (isDarkTheme) Gray500 else Gray400
+                                color = WarehouseMutedText
                             )
 
                             Text(
                                 text = voucher.scaleReceiptNumber,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (isDarkTheme) Gray400 else Gray500
+                                color = WarehouseMutedText
                             )
                         }
                     }
@@ -1196,28 +1163,28 @@ fun VoucherItem(voucher: VoucherDetail, isDarkTheme: Boolean) {
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(CornerM),
-                        color = if (isDarkTheme) Blue900.copy(alpha = 0.2f) else Blue50
+                    Box(
+                        modifier = Modifier
+                            .background(WarehouseAccentBg, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 9.dp, vertical = 5.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
                                 text = formatNumber(voucher.netWeight.toInt()),
-                                style = MaterialTheme.typography.titleSmall,
+                                style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = PrimaryBlue
+                                color = WarehouseAccent
                             )
 
                             Text(
                                 text = "کیلوگرم",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = PrimaryBlue.copy(alpha = 0.7f)
+                                color = WarehouseAccent.copy(alpha = 0.7f)
                             )
                         }
                     }
@@ -1225,9 +1192,9 @@ fun VoucherItem(voucher: VoucherDetail, isDarkTheme: Boolean) {
                     Icon(
                         imageVector = Icons.Default.ExpandLess,
                         contentDescription = if (expanded) "بستن" else "باز کردن",
-                        tint = Gray400,
+                        tint = WarehouseMutedText,
                         modifier = Modifier
-                            .size(24.dp)
+                            .size(20.dp)
                             .rotate(rotationState)
                     )
                 }
@@ -1238,21 +1205,22 @@ fun VoucherItem(voucher: VoucherDetail, isDarkTheme: Boolean) {
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
-                VoucherExpandedDetails(voucher, isDarkTheme)
+                VoucherExpandedDetails(voucher)
             }
         }
     }
 }
 
 @Composable
-fun VoucherExpandedDetails(voucher: VoucherDetail, isDarkTheme: Boolean) {
+fun VoucherExpandedDetails(voucher: VoucherDetail) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (isDarkTheme) Slate800.copy(alpha = 0.5f) else Gray50)
-            .padding(16.dp),
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        HorizontalDivider(color = WarehouseCardBorder)
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1265,17 +1233,17 @@ fun VoucherExpandedDetails(voucher: VoucherDetail, isDarkTheme: Boolean) {
                 Text(
                     text = "ساعت ورود",
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isDarkTheme) Gray500 else Gray400
+                    color = WarehouseMutedText
                 )
                 Surface(
                     shape = RoundedCornerShape(4.dp),
-                    color = if (isDarkTheme) Blue900.copy(alpha = 0.4f) else Blue100
+                    color = WarehouseAccentBg
                 ) {
                     Text(
                         text = voucher.entryTime,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) Blue300 else Blue700,
+                        color = WarehouseAccent,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                     )
                 }
@@ -1289,59 +1257,49 @@ fun VoucherExpandedDetails(voucher: VoucherDetail, isDarkTheme: Boolean) {
                     text = persianDateFormat(voucher.exitDate),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (isDarkTheme) Slate300 else Slate700
+                    color = WarehouseTitleColor
                 )
-                Surface(
-                    shape = CircleShape,
-                    color = if (isDarkTheme) Slate700 else Color.White,
-                    shadowElevation = 1.dp,
-                    modifier = Modifier.size(32.dp)
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarToday,
-                            contentDescription = null,
-                            tint = PrimaryBlue,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "ساعت خروج",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isDarkTheme) Gray500 else Gray400
-                )
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = if (isDarkTheme) Blue900.copy(alpha = 0.4f) else Blue100
-                ) {
-                    Text(
-                        text = voucher.exitTime,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) Blue300 else Blue700,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    Icon(
+                        imageVector = Icons.Default.CalendarToday,
+                        contentDescription = null,
+                        tint = WarehouseAccent,
+                        modifier = Modifier.size(14.dp)
                     )
                 }
             }
         }
 
-        HorizontalDivider(
-            color = if (isDarkTheme) Slate700 else Gray200,
-            thickness = 1.dp
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "ساعت خروج",
+                style = MaterialTheme.typography.labelSmall,
+                color = WarehouseMutedText
+            )
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = WarehouseAccentBg
+            ) {
+                Text(
+                    text = voucher.exitTime,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = WarehouseAccent,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                )
+            }
+        }
+
+        HorizontalDivider(color = WarehouseCardBorder)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1354,13 +1312,13 @@ fun VoucherExpandedDetails(voucher: VoucherDetail, isDarkTheme: Boolean) {
             ) {
                 Surface(
                     shape = RoundedCornerShape(4.dp),
-                    color = PrimaryBlue.copy(alpha = 0.1f)
+                    color = WarehouseAccentBg
                 ) {
                     Text(
                         text = "تاییدکننده",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = PrimaryBlue,
+                        color = WarehouseAccent,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -1368,7 +1326,7 @@ fun VoucherExpandedDetails(voucher: VoucherDetail, isDarkTheme: Boolean) {
                     text = voucher.confirmUsername ?: "-",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (isDarkTheme) Slate200 else Slate700
+                    color = WarehouseTitleColor
                 )
             }
 
@@ -1378,13 +1336,13 @@ fun VoucherExpandedDetails(voucher: VoucherDetail, isDarkTheme: Boolean) {
             ) {
                 Surface(
                     shape = RoundedCornerShape(4.dp),
-                    color = PrimaryBlue.copy(alpha = 0.1f)
+                    color = WarehouseAccentBg
                 ) {
                     Text(
                         text = "باسکولچی",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = PrimaryBlue,
+                        color = WarehouseAccent,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -1392,7 +1350,7 @@ fun VoucherExpandedDetails(voucher: VoucherDetail, isDarkTheme: Boolean) {
                     text = voucher.username ?: "-",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = if (isDarkTheme) Slate200 else Slate700
+                    color = WarehouseTitleColor
                 )
             }
         }
@@ -1411,7 +1369,6 @@ fun SortChip(
     type: VoucherSortType,
     isSelected: Boolean,
     onClick: () -> Unit,
-    isDarkTheme: Boolean,
     modifier: Modifier = Modifier
 ) {
     val icon = when (type) {
@@ -1421,33 +1378,36 @@ fun SortChip(
         VoucherSortType.WEIGHT_DESC -> Icons.AutoMirrored.Filled.TrendingDown
     }
 
+    val backgroundColor = if (isSelected) WarehouseAccentBg else Color.Transparent
+    val contentColor = if (isSelected) WarehouseAccent else WarehouseMutedText
+    val borderColor = if (isSelected) WarehouseAccentBorder else WarehouseCardBorder
+
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(CornerL),
-        color = if (isSelected) PrimaryBlue else if (isDarkTheme) SurfaceVariantDark else Color.White,
-        shadowElevation = if (isSelected) 4.dp else 2.dp,
-        border = if (!isSelected) BorderStroke(1.dp, if (isDarkTheme) Slate700 else Color.Transparent) else null,
+        shape = RoundedCornerShape(12.dp),
+        color = backgroundColor,
+        border = BorderStroke(1.dp, borderColor),
         modifier = modifier
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = type.persianName,
                 style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (isSelected) Color.White else if (isDarkTheme) Slate300 else Slate600
+                fontWeight = FontWeight.SemiBold,
+                color = contentColor
             )
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(6.dp))
 
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (isSelected) Color.White else if (isDarkTheme) Slate300 else Slate600,
-                modifier = Modifier.size(16.dp)
+                tint = contentColor,
+                modifier = Modifier.size(14.dp)
             )
         }
     }
@@ -1488,7 +1448,7 @@ private fun WarehouseCard(
     val totalTonnage = warehouse.totalTonnage
     val loadedTonnage = warehouse.loadedTonnage
     val remainingTonnage = warehouse.remainingTonnage
-    val isDarkTheme = isSystemInDarkTheme()
+    val accentColor = WarehouseTealAccent
 
     Card(
         modifier = Modifier
@@ -1497,104 +1457,111 @@ private fun WarehouseCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
+        shape = RoundedCornerShape(12.dp),
         border = BorderStroke(
-            1.dp,
-            if (isDarkTheme) MaterialTheme.colorScheme.outline.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
         ),
-        shape = RoundedCornerShape(Corner2XL),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Text(
-                    text = warehouse.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = formatNumber(totalTonnage.toInt()),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Scale,
-                            contentDescription = null,
-                            tint = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
-                }
-            }
-
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(
-                        text = "بارگیری:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = formatNumber(loadedTonnage.toInt()),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isDarkTheme) Blue400 else MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
                     Icon(
-                        imageVector = Icons.Default.ArrowUpward,
+                        imageVector = Icons.Default.Warehouse,
                         contentDescription = null,
-                        tint = if (isDarkTheme) Blue400 else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp)
+                        tint = accentColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = warehouse.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = "کل:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                    Text(
+                        text = formatNumber(totalTonnage.toInt()),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Surface(
+                    modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(8.dp),
-                    color = if (isDarkTheme) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.primaryContainer
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 9.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "مانده: ${formatNumber(remainingTonnage.toInt())}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
+                            text = "مانده:",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Icon(
-                            imageVector = Icons.Default.ArrowDownward,
-                            contentDescription = null,
-                            tint = if (isDarkTheme) PrimaryBlueLight else MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp)
+                        Text(
+                            text = "↓ ${formatNumber(remainingTonnage.toInt())}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(8.dp),
+                    color = WarehouseTealAccentBg
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 9.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "بارگیری:",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = accentColor.copy(alpha = 0.8f)
+                        )
+                        Text(
+                            text = "↑ ${formatNumber(loadedTonnage.toInt())}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = accentColor
                         )
                     }
                 }
