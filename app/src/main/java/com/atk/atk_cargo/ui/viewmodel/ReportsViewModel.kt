@@ -857,17 +857,7 @@ class ReportsViewModel(
         val totalExitVouchers = loadingData.sumOf { it.exitVouchers }
         val shareText = StringBuilder()
         val shiftType = shiftInfo?.type ?: "نامشخص"
-        val calendar = Calendar.getInstance()
-
-        if (shiftType == "شب") {
-            val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
-            val currentMinute = calendar.get(Calendar.MINUTE)
-            if (currentHour < 7 || (currentHour == 7 && currentMinute < 30)) {
-                calendar.add(Calendar.DAY_OF_MONTH, -1)
-            }
-        }
-
-        val jalaliDate = gregorianToJalali(calendar)
+        val jalaliDate = shiftInfo?.startDate ?: gregorianToJalali(Calendar.getInstance())
         shareText.append("بارگیری [$shiftType] $jalaliDate - کل: $totalExitVouchers حواله\n\n")
 
         val combinedData = mutableListOf<Triple<String, String, Int>>()
