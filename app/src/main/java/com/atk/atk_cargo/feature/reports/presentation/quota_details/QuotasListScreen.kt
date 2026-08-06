@@ -131,8 +131,6 @@ import com.atk.atk_cargo.ui.theme.Purple700
 import com.atk.atk_cargo.ui.theme.Red400
 import com.atk.atk_cargo.ui.theme.Red500
 import com.atk.atk_cargo.ui.theme.Red900
-import com.atk.atk_cargo.ui.theme.Teal50
-import com.atk.atk_cargo.ui.theme.Teal900
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
@@ -141,13 +139,13 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
 private val QuotaTealAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Teal900
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 private val QuotaTealAccentBg: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Teal50
+    @Composable get() = MaterialTheme.colorScheme.primaryContainer
 
 private val QuotaOnTealAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+    @Composable get() = MaterialTheme.colorScheme.onPrimary
 
 val QuotaDeepOrangeAccent: Color
     @Composable get() = if (isSystemInDarkTheme()) DeepOrange300 else DeepOrange900

@@ -665,10 +665,10 @@ private fun RoleFilterChipRow(
 }
 
 private val UserManagementAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 private val UserManagementOnAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+    @Composable get() = MaterialTheme.colorScheme.onPrimary
 
 private val UserCardBg: Color
     @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
@@ -677,13 +677,13 @@ private val UserCardBorder: Color
     @Composable get() = MaterialTheme.colorScheme.outlineVariant
 
 private val UserCardBorderHover: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF1F6F63) else Color(0xFFA9DCD3)
+    @Composable get() = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
 
 private val UserAvatarBg: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Color(0xFFDCEFEA)
+    @Composable get() = MaterialTheme.colorScheme.primaryContainer
 
 private val UserRoleBadgeBg: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Color(0xFFD9EFE9)
+    @Composable get() = MaterialTheme.colorScheme.primaryContainer
 
 private val ForceLogoutTint: Color
     @Composable get() = if (isSystemInDarkTheme()) Color(0xFFE8A34D) else Color(0xFFC2760A)

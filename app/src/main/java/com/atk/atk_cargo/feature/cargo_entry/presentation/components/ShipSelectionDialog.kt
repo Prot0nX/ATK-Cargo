@@ -57,16 +57,16 @@ import com.atk.atk_cargo.api.ActiveShipInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 
 private val ShipDialogAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 private val ShipDialogOnAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+    @Composable get() = MaterialTheme.colorScheme.onPrimary
 
 private val ShipDialogAccentBg: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Color(0xFFDCEFEA)
+    @Composable get() = MaterialTheme.colorScheme.primaryContainer
 
 private val ShipDialogAccentBorder: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF1F6F63) else Color(0xFFB9DED7)
+    @Composable get() = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
 
 private val ShipDialogCardBorder: Color
     @Composable get() = MaterialTheme.colorScheme.outlineVariant

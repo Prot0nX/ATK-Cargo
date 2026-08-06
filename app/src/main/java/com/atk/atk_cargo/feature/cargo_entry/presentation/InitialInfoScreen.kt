@@ -104,12 +104,9 @@ import com.atk.atk_cargo.feature.cargo_entry.domain.isValidShipName
 import com.atk.atk_cargo.feature.cargo_entry.domain.isValidWarehouseName
 import com.atk.atk_cargo.feature.cargo_entry.domain.isValidWeight
 import com.atk.atk_cargo.feature.cargo_registration.navigation.navigateToCargoRegistration
-import com.atk.atk_cargo.ui.theme.Teal200
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import java.util.Locale
-
-private val InitialInfoAccentLight = Color(0xFF0D9488)
 
 /** رنگ‌های تیل سازگار با تم روشن/تاریک برای صفحه ثبت اطلاعات اولیه بار. */
 private class InitialInfoPalette(
@@ -123,7 +120,7 @@ private class InitialInfoPalette(
 @Composable
 private fun rememberInitialInfoPalette(): InitialInfoPalette {
     val isDark = isSystemInDarkTheme()
-    val accent = if (isDark) Teal200 else InitialInfoAccentLight
+    val accent = MaterialTheme.colorScheme.primary
     return InitialInfoPalette(
         accent = accent,
         accentBg = accent.copy(alpha = if (isDark) 0.18f else 0.16f),

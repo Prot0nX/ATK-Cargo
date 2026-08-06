@@ -70,10 +70,10 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
 private val CargoCounterAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 private val CargoCounterAccentBg: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.16f) else Color(0xFFDCEFEA)
+    @Composable get() = MaterialTheme.colorScheme.primaryContainer
 
 enum class ShipFilterTab(val title: String) {
     ALL("همه کشتی‌ها"),

@@ -50,13 +50,13 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
 private val SearchAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 private val SearchOnAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+    @Composable get() = MaterialTheme.colorScheme.onPrimary
 
 private val SearchAccentBg: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.16f) else Color(0xFFDCEFEA)
+    @Composable get() = MaterialTheme.colorScheme.primaryContainer
 
 private val SearchMutedBg: Color
     @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)

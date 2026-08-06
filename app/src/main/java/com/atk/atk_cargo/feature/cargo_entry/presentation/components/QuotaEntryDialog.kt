@@ -57,11 +57,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.api.ActiveShipInfo
-import com.atk.atk_cargo.ui.theme.Teal200
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
-
-private val QuotaEntryAccentLight = Color(0xFF0D9488)
 
 /** رنگ‌های تیل سازگار با تم روشن/تاریک برای دیالوگ ورود 4 رقم آخر کوتاژ. */
 private class QuotaEntryPalette(
@@ -77,7 +74,7 @@ private class QuotaEntryPalette(
 @Composable
 private fun rememberQuotaEntryPalette(): QuotaEntryPalette {
     val isDark = isSystemInDarkTheme()
-    val accent = if (isDark) Teal200 else QuotaEntryAccentLight
+    val accent = MaterialTheme.colorScheme.primary
     return QuotaEntryPalette(
         accent = accent,
         accentBg = accent.copy(alpha = if (isDark) 0.18f else 0.16f),

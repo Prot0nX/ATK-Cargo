@@ -36,14 +36,12 @@ import androidx.compose.ui.window.Dialog
 import com.atk.atk_cargo.ui.theme.Red100
 import com.atk.atk_cargo.ui.theme.Red400
 import com.atk.atk_cargo.ui.theme.Red700
-import com.atk.atk_cargo.ui.theme.Teal50
-import com.atk.atk_cargo.ui.theme.Teal900
 
 private val QuotaDialogTealAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Teal900
+    @Composable get() = MaterialTheme.colorScheme.primary
 
 private val QuotaDialogTealAccentBg: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF134E4A) else Teal50
+    @Composable get() = MaterialTheme.colorScheme.primaryContainer
 
 private val QuotaDialogRedAccent: Color
     @Composable get() = if (isSystemInDarkTheme()) Red400 else Red700
@@ -52,7 +50,7 @@ private val QuotaDialogRedAccentBg: Color
     @Composable get() = if (isSystemInDarkTheme()) Red700.copy(alpha = 0.25f) else Red100
 
 private val QuotaDialogOnTealAccent: Color
-    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
+    @Composable get() = MaterialTheme.colorScheme.onPrimary
 
 private val QuotaDialogOnRedAccent: Color
     @Composable get() = if (isSystemInDarkTheme()) Color(0xFF450A0A) else Color.White

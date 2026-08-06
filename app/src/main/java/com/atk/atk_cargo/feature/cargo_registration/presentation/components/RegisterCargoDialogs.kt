@@ -114,7 +114,6 @@ import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoRequest
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.data.model.WarningStatus
-import com.atk.atk_cargo.ui.theme.Teal200
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
@@ -123,13 +122,14 @@ import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import kotlin.time.Duration.Companion.milliseconds
 
-private val DialogAccent = Color(0xFF0D9488)
-private val DialogAccentBg = Color(0xFFDCEFEA)
-private val DialogAccentBorder = Color(0xFFB9DED7)
+private val DialogAccent: Color
+    @Composable get() = MaterialTheme.colorScheme.primary
+private val DialogAccentBg: Color
+    @Composable get() = MaterialTheme.colorScheme.primaryContainer
+private val DialogAccentBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
 private val DialogMutedBg = Color(0xFFF3F4F5)
 private val DialogTitleColor = Color(0xFF1F2937)
-
-private val CargoDetailsAccentLight = Color(0xFF0D9488)
 
 /** رنگ‌های تیل سازگار با تم روشن/تاریک برای دیالوگ جزئیات حواله. */
 private class CargoDetailsPalette(
@@ -146,7 +146,7 @@ private class CargoDetailsPalette(
 @Composable
 private fun rememberCargoDetailsPalette(): CargoDetailsPalette {
     val isDark = isSystemInDarkTheme()
-    val accent = if (isDark) Teal200 else CargoDetailsAccentLight
+    val accent = MaterialTheme.colorScheme.primary
     return CargoDetailsPalette(
         accent = accent,
         accentBg = accent.copy(alpha = if (isDark) 0.18f else 0.16f),

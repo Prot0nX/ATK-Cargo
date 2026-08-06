@@ -28,9 +28,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.atk.atk_cargo.ui.theme.Teal200
-
-private val NotificationAccentLight = Color(0xFF0D9488)
 
 @Composable
 fun NotificationSettingRow(
@@ -42,7 +39,7 @@ fun NotificationSettingRow(
     modifier: Modifier = Modifier
 ) {
     val isDark = isSystemInDarkTheme()
-    val accent = if (isDark) Teal200 else NotificationAccentLight
+    val accent = MaterialTheme.colorScheme.primary
     val accentBg = accent.copy(alpha = if (isDark) 0.2f else 0.16f)
     val cardBorder = MaterialTheme.colorScheme.outlineVariant
     val mutedBg = MaterialTheme.colorScheme.surfaceVariant
