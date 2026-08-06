@@ -11,8 +11,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -71,6 +71,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -90,6 +91,27 @@ import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
+
+private val CargoAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val CargoAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.16f) else Color(0xFFDCEFEA)
+
+private val CargoAccentBorder: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.35f) else Color(0xFFB9DED7)
+
+private val CargoCardBorder: Color
+    @Composable get() = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+
+private val CargoMutedBg: Color
+    @Composable get() = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+
+private val CargoMutedText: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurfaceVariant
+
+private val CargoTitleColor: Color
+    @Composable get() = MaterialTheme.colorScheme.onSurface
 
 @Composable
 fun InitialInfoSection(
@@ -116,8 +138,8 @@ fun InitialInfoSection(
                 Surface(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                    color = CargoAccentBg,
+                    border = BorderStroke(1.dp, CargoAccentBorder)
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
@@ -127,7 +149,7 @@ fun InitialInfoSection(
                         Icon(
                             imageVector = Icons.Default.DirectionsBoat,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = CargoAccent,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -138,7 +160,7 @@ fun InitialInfoSection(
                                 text = initialInfo?.shipName ?: "",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = CargoAccent
                             )
                             val cargoTypeValue = initialInfo?.cargoType ?: ""
                             if (cargoTypeValue.isNotBlank()) {
@@ -149,7 +171,7 @@ fun InitialInfoSection(
                                     Icon(
                                         imageVector = Icons.Default.Category,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                        tint = CargoAccent.copy(alpha = 0.7f),
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Text(
@@ -157,7 +179,7 @@ fun InitialInfoSection(
                                         style = MaterialTheme.typography.bodySmall.copy(
                                             fontWeight = FontWeight.Medium
                                         ),
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                                        color = CargoAccent.copy(alpha = 0.85f),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -169,25 +191,20 @@ fun InitialInfoSection(
 
 
 
-                Surface(
+                Box(
                     modifier = Modifier
                         .size(40.dp)
+                        .clip(CircleShape)
+                        .background(CargoMutedBg)
                         .clickable { isExpanded = !isExpanded },
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Icon(
-                            imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = if (isExpanded) "بستن" else "باز کردن",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = if (isExpanded) "بستن" else "باز کردن",
+                        tint = CargoMutedText,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 
@@ -216,11 +233,11 @@ private fun InfoGrid(initialInfo: InitialInfo) {
             .padding(vertical = 8.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = CargoMutedBg
         ),
         border = BorderStroke(
             width = 1.dp,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+            color = CargoCardBorder
         )
     ) {
         Column(
@@ -278,7 +295,7 @@ private fun InfoGridItem(
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.background
+        color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier.padding(10.dp),
@@ -287,7 +304,7 @@ private fun InfoGridItem(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = CargoAccent,
                 modifier = Modifier.size(20.dp)
             )
 
@@ -299,7 +316,7 @@ private fun InfoGridItem(
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    color = CargoMutedText
                 )
 
                 Spacer(modifier = Modifier.height(2.dp))
@@ -308,7 +325,7 @@ private fun InfoGridItem(
                     text = value,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = CargoTitleColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -353,10 +370,8 @@ private fun InfoGridCard(
 ) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-        shadowElevation = 0.5.dp
+        shape = RoundedCornerShape(9.dp),
+        color = CargoMutedBg
     ) {
         Row(
             modifier = Modifier
@@ -368,7 +383,7 @@ private fun InfoGridCard(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = CargoAccent,
                 modifier = Modifier.size(16.dp)
             )
 
@@ -377,7 +392,7 @@ private fun InfoGridCard(
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = CargoTitleColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -396,7 +411,7 @@ fun CargoInfoCard(cargoInfo: CargoInfo, onClick: () -> Unit) {
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+        border = BorderStroke(1.dp, CargoCardBorder),
         shadowElevation = 1.dp
     ) {
         Row(
@@ -411,7 +426,7 @@ fun CargoInfoCard(cargoInfo: CargoInfo, onClick: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.width(80.dp)
             ) {
-                val statusColor = if (isExited) ATKCargoTheme.semanticColors.cargoExit else MaterialTheme.colorScheme.primary
+                val statusColor = if (isExited) ATKCargoTheme.semanticColors.cargoExit else CargoAccent
                 Surface(
                     shape = ATKCargoTheme.appShapes.chip,
                     color = statusColor.copy(alpha = 0.1f),
@@ -465,7 +480,7 @@ fun CargoInfoCard(cargoInfo: CargoInfo, onClick: () -> Unit) {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = "تأیید شده",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = CargoAccent,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -513,64 +528,57 @@ fun SearchAndRefreshSection(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(modifier = Modifier.weight(1f)) {
-                BasicTextField(
-                    value = searchQuery,
-                    onValueChange = { newValue ->
-                        onSearchQueryChange(newValue)
-                    },
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp),
+                shape = RoundedCornerShape(11.dp),
+                color = CargoMutedBg
+            ) {
+                Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outline,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .padding(start = 40.dp, end = 16.dp),
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Left
-                    ),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    decorationBox = { innerTextField ->
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            if (searchQuery.isEmpty()) {
-                                Text(
-                                    text = "جستجوی شماره حواله",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
-                )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterStart)
-                        .padding(start = 12.dp)
+                        .fillMaxSize()
+                        .padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Search,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
+                        tint = CargoMutedText,
+                        modifier = Modifier.size(18.dp)
                     )
+
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (searchQuery.isEmpty()) {
+                            Text(
+                                text = "جستجوی شماره حواله",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CargoMutedText
+                            )
+                        }
+
+                        BasicTextField(
+                            value = searchQuery,
+                            onValueChange = onSearchQueryChange,
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = MaterialTheme.typography.bodySmall.copy(
+                                color = CargoTitleColor,
+                                textAlign = TextAlign.Left
+                            ),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                    }
                 }
             }
 
             Surface(
                 modifier = Modifier
-                    .height(48.dp)
+                    .height(44.dp)
                     .clickable(enabled = !isRefreshing) {
                         if (!isRefreshing) {
                             isRefreshing = true
@@ -582,11 +590,12 @@ fun SearchAndRefreshSection(
                             }
                         }
                     },
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.primaryContainer
+                shape = RoundedCornerShape(11.dp),
+                color = CargoAccentBg,
+                border = BorderStroke(1.dp, CargoAccentBorder)
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    modifier = Modifier.padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -594,7 +603,7 @@ fun SearchAndRefreshSection(
                         text = "بروزرسانی",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = CargoAccent
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
@@ -603,7 +612,7 @@ fun SearchAndRefreshSection(
                         modifier = Modifier
                             .size(18.dp)
                             .rotate(rotation.value),
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = CargoAccent
                     )
                 }
             }
@@ -626,7 +635,7 @@ fun TabsSection(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            color = CargoMutedBg
         ) {
             Row(
                 modifier = Modifier
@@ -805,8 +814,8 @@ private fun GroupStats(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+        color = CargoAccentBg,
+        border = BorderStroke(1.dp, CargoAccentBorder),
     ) {
         Row(
             modifier = Modifier
@@ -828,7 +837,7 @@ private fun GroupStats(
                 modifier = Modifier
                     .width(1.dp)
                     .height(24.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                    .background(CargoAccentBorder)
             )
 
             Box(
@@ -845,7 +854,7 @@ private fun GroupStats(
                 modifier = Modifier
                     .width(1.dp)
                     .height(24.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                    .background(CargoAccentBorder)
             )
 
             Box(
@@ -988,13 +997,13 @@ private fun ModernDialogHeader(trackingNumber: String, isConfirmed: Boolean) {
             Surface(
                 shape = RoundedCornerShape(20.dp),
                 color = if (isConfirmed)
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    CargoAccentBg
                 else
                     MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
                 border = BorderStroke(
                     1.dp,
                     if (isConfirmed)
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        CargoAccentBorder
                     else
                         MaterialTheme.colorScheme.error.copy(alpha = 0.2f)
                 )
@@ -1008,7 +1017,7 @@ private fun ModernDialogHeader(trackingNumber: String, isConfirmed: Boolean) {
                         imageVector = if (isConfirmed) Icons.Default.CheckCircle else Icons.Default.Clear,
                         contentDescription = null,
                         tint = if (isConfirmed)
-                            MaterialTheme.colorScheme.primary
+                            CargoAccent
                         else
                             MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(14.dp)
@@ -1018,7 +1027,7 @@ private fun ModernDialogHeader(trackingNumber: String, isConfirmed: Boolean) {
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium,
                         color = if (isConfirmed)
-                            MaterialTheme.colorScheme.primary
+                            CargoAccent
                         else
                             MaterialTheme.colorScheme.error
                     )
@@ -1026,21 +1035,19 @@ private fun ModernDialogHeader(trackingNumber: String, isConfirmed: Boolean) {
             }
         }
 
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-            modifier = Modifier.size(48.dp)
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(CargoAccentBg),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Inventory,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.Inventory,
+                contentDescription = null,
+                tint = CargoAccent,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
@@ -1050,7 +1057,7 @@ private fun ModernCargoStatusSection(info: CargoInfo) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        color = CargoMutedBg
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -1065,16 +1072,16 @@ private fun ModernCargoStatusSection(info: CargoInfo) {
                     text = "وضعیت حواله",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = CargoTitleColor
                 )
                 Icon(
                     imageVector = Icons.Default.DirectionsBoat,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = CargoAccent,
                     modifier = Modifier.size(20.dp)
                 )
             }
-            
+
             ModernCargoStatusTimeline(info)
         }
     }
@@ -1137,7 +1144,7 @@ fun ModernTimelineStep(
             modifier = Modifier.size(40.dp),
             shape = CircleShape,
             color = when {
-                isCompleted -> MaterialTheme.colorScheme.primary
+                isCompleted -> CargoAccent
                 else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             },
             shadowElevation = if (isCompleted) 8.dp else 0.dp
@@ -1149,20 +1156,20 @@ fun ModernTimelineStep(
                     imageVector = icon,
                     contentDescription = null,
                     tint = when {
-                        isCompleted -> MaterialTheme.colorScheme.onPrimary
+                        isCompleted -> if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
                         else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     },
                     modifier = Modifier.size(20.dp)
                 )
             }
         }
-        
+
         Text(
             text = step,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = if (isCompleted) FontWeight.Bold else FontWeight.Normal,
             color = when {
-                isCompleted -> MaterialTheme.colorScheme.primary
+                isCompleted -> CargoAccent
                 else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             },
             textAlign = TextAlign.Center
@@ -1178,7 +1185,7 @@ private fun ModernWeightInfoSection(info: CargoInfo) {
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+            CargoAccentBorder
         )
     ) {
         Column(
@@ -1194,16 +1201,16 @@ private fun ModernWeightInfoSection(info: CargoInfo) {
                     text = "اطلاعات وزن",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = CargoTitleColor
                 )
                 Icon(
                     imageVector = Icons.Default.Scale,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = CargoAccent,
                     modifier = Modifier.size(20.dp)
                 )
             }
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1215,7 +1222,7 @@ private fun ModernWeightInfoSection(info: CargoInfo) {
                     label = "وزن خالص",
                     value = info.netWeight,
                     icon = Icons.Default.Scale,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = CargoAccent,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -1234,7 +1241,7 @@ private fun ModernWeightInfoSection(info: CargoInfo) {
                         label = "اضافه",
                         value = info.excessWeight,
                         icon = Icons.AutoMirrored.Filled.TrendingUp,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = CargoAccent,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -1298,7 +1305,7 @@ private fun ModernCargoDetailsGrid(info: CargoInfo) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        color = CargoMutedBg
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -1318,21 +1325,21 @@ private fun ModernCargoDetailsGrid(info: CargoInfo) {
                     Icon(
                         imageVector = Icons.Default.Category,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = CargoAccent,
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
                         text = "جزئیات حواله",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = CargoTitleColor
                     )
                 }
-                
+
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
                     contentDescription = if (isExpanded) "بستن" else "نمایش بیشتر",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = CargoMutedText,
                     modifier = Modifier
                         .size(20.dp)
                         .rotate(rotation)
@@ -1419,7 +1426,7 @@ private fun ModernInfoCard(
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+            CargoCardBorder
         )
     ) {
         Column(
@@ -1433,22 +1440,22 @@ private fun ModernInfoCard(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    tint = CargoMutedText,
                     modifier = Modifier.size(12.dp)
                 )
                 Text(
                     text = label,
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    color = CargoMutedText
                 )
             }
-            
+
             Text(
                 text = value,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = CargoTitleColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -1471,8 +1478,8 @@ fun ModernDialogActions(onDismiss: () -> Unit, onConfirm: () -> Unit, showConfir
                     .weight(2f)
                     .height(48.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = CargoAccent,
+                    contentColor = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
                 ),
                 shape = RoundedCornerShape(12.dp),
                 elevation = ButtonDefaults.buttonElevation(
@@ -1504,8 +1511,8 @@ fun ModernDialogActions(onDismiss: () -> Unit, onConfirm: () -> Unit, showConfir
                 .weight(1f)
                 .height(48.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                containerColor = CargoMutedBg,
+                contentColor = CargoMutedText
             ),
             shape = RoundedCornerShape(12.dp)
         ) {

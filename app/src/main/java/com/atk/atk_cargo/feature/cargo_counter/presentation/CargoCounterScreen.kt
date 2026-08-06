@@ -1,6 +1,7 @@
 package com.atk.atk_cargo.feature.cargo_counter.presentation
 
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material3.Button
@@ -34,6 +36,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -65,6 +68,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
+
+private val CargoCounterAccent: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF) else Color(0xFF0D9488)
+
+private val CargoCounterAccentBg: Color
+    @Composable get() = if (isSystemInDarkTheme()) Color(0xFF2DD4BF).copy(alpha = 0.16f) else Color(0xFFDCEFEA)
 
 enum class ShipFilterTab(val title: String) {
     ALL("همه کشتی‌ها"),
@@ -389,15 +398,23 @@ fun CargoCounterScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.DirectionsBoat,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(80.dp)
-                                )
-                                
+                                Box(
+                                    modifier = Modifier
+                                        .size(88.dp)
+                                        .clip(RoundedCornerShape(24.dp))
+                                        .background(CargoCounterAccentBg),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DirectionsBoat,
+                                        contentDescription = null,
+                                        tint = CargoCounterAccent,
+                                        modifier = Modifier.size(40.dp)
+                                    )
+                                }
+
                                 Spacer(modifier = Modifier.height(16.dp))
-                                
+
                                 Text(
                                     text = "لطفاً کشتی مورد نظر را انتخاب کنید",
                                     style = MaterialTheme.typography.titleMedium,
@@ -405,13 +422,14 @@ fun CargoCounterScreen(
                                     textAlign = TextAlign.Center,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                 )
-                                
-                                Spacer(modifier = Modifier.height(8.dp))
-                                
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
                                 Button(
                                     onClick = { showShipSelectionDialog = true },
+                                    shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                        containerColor = CargoCounterAccent
                                     )
                                 ) {
                                     Icon(
@@ -419,10 +437,10 @@ fun CargoCounterScreen(
                                         contentDescription = null,
                                         modifier = Modifier.size(16.dp)
                                     )
-                                    
+
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    
-                                    Text("انتخاب کشتی")
+
+                                    Text("انتخاب کشتی", fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
