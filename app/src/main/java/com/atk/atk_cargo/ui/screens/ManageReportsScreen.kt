@@ -213,7 +213,8 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
                         WarehouseDetails(
                             shipName = shipName,
                             warehouseName = warehouseName,
-                            viewModel = viewModel
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() }
                         )
                     }
                     composable("quotaDetails/{quotaNumber}") { backStackEntry ->
