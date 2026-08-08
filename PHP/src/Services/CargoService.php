@@ -9,6 +9,7 @@ use Exception;
 use InvalidArgumentException;
 use App\Repositories\CargoRepository;
 use App\Core\Logger;
+use App\Core\MicroCache;
 
 class CargoService {
     private CargoRepository $repo;
@@ -271,7 +272,9 @@ class CargoService {
     }
 
     public function getActiveShips(): array {
-        return $this->repo->getActiveShipsList();
+        return MicroCache::remember('cargo_active_ships', 8, function () {
+            return $this->repo->getActiveShipsList();
+        });
     }
 
     public function checkScaleReceipt(string $receipt): array {

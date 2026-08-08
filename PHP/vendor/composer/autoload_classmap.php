@@ -19,6 +19,7 @@ return array(
     'App\\Core\\Database' => $baseDir . '/src/Core/Database.php',
     'App\\Core\\DatabaseManager' => $baseDir . '/src/Core/DatabaseManager.php',
     'App\\Core\\Logger' => $baseDir . '/src/Core/Logger.php',
+    'App\\Core\\MicroCache' => $baseDir . '/src/Core/MicroCache.php',
     'App\\Core\\Request' => $baseDir . '/src/Core/Request.php',
     'App\\Core\\Response' => $baseDir . '/src/Core/Response.php',
     'App\\Exceptions\\ApiException' => $baseDir . '/src/Exceptions/ApiException.php',

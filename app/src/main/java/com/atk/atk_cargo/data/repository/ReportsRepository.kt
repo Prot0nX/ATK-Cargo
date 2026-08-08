@@ -2,6 +2,7 @@ package com.atk.atk_cargo.data.repository
 
 import android.util.Log
 import com.atk.atk_cargo.api.ApiService
+import com.atk.atk_cargo.data.model.ActiveShipInfo
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoResponse
 import com.atk.atk_cargo.data.model.ComprehensiveAnalysisResponse
@@ -398,6 +399,19 @@ class ReportsRepository(private val apiService: ApiService) {
             }
         } catch (e: Exception) {
             throw Exception("Error fetching filtered summary: ${e.message}")
+        }
+    }
+
+    suspend fun getActiveShips(): List<ActiveShipInfo> = withContext(Dispatchers.IO) {
+        try {
+            val response = apiService.getActiveShips()
+            if (response.isSuccessful) {
+                response.body() ?: throw Exception("داده‌های دریافتی خالی است")
+            } else {
+                throw Exception("خطا در دریافت اطلاعات کشتی‌های فعال")
+            }
+        } catch (e: Exception) {
+            throw Exception("خطا در ارتباط با سرور: ${e.message}")
         }
     }
 
