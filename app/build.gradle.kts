@@ -69,8 +69,6 @@ android {
             multiDexEnabled = true
         }
 
-        // بیلدتایپ اختصاصی برای تولید Baseline Profile — کاملاً مجزا از release،
-        // فقط برای پروفایل‌گیری محلی استفاده می‌شود و به کلید امضای release دست نمی‌زند
         create("benchmark") {
             initWith(getByName("release"))
             matchingFallbacks += listOf("release")
@@ -204,9 +202,7 @@ android {
     ndkVersion = "26.1.10909125"
 }
 
-// پیکربندی Baseline Profile برای بهبود زمان راه‌اندازی سرد
 baselineProfile {
-    // در صورت وجود دستگاه/امولاتور متصل به‌صورت خودکار از آن استفاده می‌کند
     automaticGenerationDuringBuild = false
 }
 
