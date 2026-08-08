@@ -723,13 +723,13 @@ private fun IndustrialFooterInfo() {
         verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xxs)
     ) {
         Text(
-            text = "شرکت آریا تاید کاسپین • کلیه حقوق محفوظ است",
+            text = "شرکت امین تجار خوزستان • کلیه حقوق محفوظ است",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.outline,
             textAlign = TextAlign.Center
         )
         Text(
-            text = "پشتیبانی فنی: مرکز کنترل دیسپچینگ صنعتی",
+            text = "پشتیبانی فنی: Prot0nX",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
