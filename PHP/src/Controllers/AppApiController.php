@@ -129,7 +129,11 @@ class AppApiController {
                     break;
 
                 case 'getGroupedQuotas':
-                    $groupedQuotas = $this->getGroupedQuotas();
+                    $shipNameFilter = $this->request->get('shipName');
+                    $shipNameFilter = ($shipNameFilter !== null && trim((string)$shipNameFilter) !== '')
+                        ? $this->sanitizeInput((string)$shipNameFilter)
+                        : null;
+                    $groupedQuotas = $this->getGroupedQuotas($shipNameFilter);
                     $this->sendJsonResponse($groupedQuotas);
                     break;
 
@@ -987,12 +991,19 @@ class AppApiController {
         return $quotas;
     }
 
-    public function getAllQuotasList(): array {
+    public function getAllQuotasList(?string $shipName = null): array {
         $query = "SELECT id, loadingQuotaNumber as number, shipName, loadingWarehouse, cargoType, cargoWeight as totalTonnage,
             isActive, shippingCompany, cargoOwner, percentage, is_enabled, temp_tonnage_status, temp_tonnage_amount
-        FROM InitialInfo ORDER BY shipName ASC, isActive DESC, loadingQuotaNumber ASC";
+        FROM InitialInfo";
+        if ($shipName !== null && $shipName !== '') {
+            $query .= " WHERE shipName = ?";
+        }
+        $query .= " ORDER BY shipName ASC, isActive DESC, loadingQuotaNumber ASC";
 
         $stmt = $this->db->prepare($query);
+        if ($shipName !== null && $shipName !== '') {
+            $stmt->bind_param("s", $shipName);
+        }
         $stmt->execute();
         $result = $stmt->get_result();
         $quotas = [];
@@ -1284,8 +1295,8 @@ class AppApiController {
         }
     }
 
-    public function getGroupedQuotas(): array {
-        $quotas = $this->getAllQuotasList();
+    public function getGroupedQuotas(?string $shipName = null): array {
+        $quotas = $this->getAllQuotasList($shipName);
         $grouped = [];
         foreach ($quotas as $quota) {
             $shipName = $quota['shipName'] ?: 'نامشخص';

@@ -19,6 +19,7 @@ jxl = "2.6.12"
 konfetti-compose = "2.0.5"
 kotlin = "2.2.20"
 compose-compiler = "1.5.15"
+ksp = "2.2.20-2.0.3"
 kotlinx-coroutines-android = "1.10.2"
 kotlinx-serialization-json = "1.9.0"
 koin = "3.5.6"
@@ -175,3 +176,4 @@ jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = 
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "androidx-baselineprofile-plugin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
