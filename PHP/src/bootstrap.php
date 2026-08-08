@@ -6,33 +6,33 @@ declare(strict_types=1);
 // تعیین مسیر اصلی پوشه PHP
 define('APP_ROOT', dirname(__DIR__));
 
-// بارگذاری Autoloader رسمی Composer در صورت وجود
+// بارگذاری Autoloader رسمی Composer در صورت وجود (شامل نگاشت PSR-4 برای App\ -> src/)
 if (file_exists(APP_ROOT . '/vendor/autoload.php')) {
     require_once APP_ROOT . '/vendor/autoload.php';
-}
+} else {
+    // Autoloader سفارشی صرفاً به‌عنوان جایگزین، فقط وقتی Composer در دسترس نیست
+    spl_autoload_register(function (string $class) {
+        $prefix = 'App\\';
+        $base_dir = APP_ROOT . '/src/';
 
-// ثبت Autoloader سفارشی برای کلاس‌های App (جهت پشتیبانی دائم)
-spl_autoload_register(function (string $class) {
-    $prefix = 'App\\';
-    $base_dir = APP_ROOT . '/src/';
-    
-    // بررسی اینکه کلاس از فضای نام App استفاده می‌کند
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
-    
-    // دریافت نام نسبی کلاس
-    $relative_class = substr($class, $len);
-    
-    // تبدیل جداکننده‌های فضای نام به جداکننده مسیر دایرکتوری و اضافه کردن پسوند php
-    $file = $base_dir . str_replace('\\', '/', $relative_class) . '.php';
-    
-    // بارگذاری فایل در صورت وجود
-    if (file_exists($file)) {
-        require_once $file;
-    }
-});
+        // بررسی اینکه کلاس از فضای نام App استفاده می‌کند
+        $len = strlen($prefix);
+        if (strncmp($prefix, $class, $len) !== 0) {
+            return;
+        }
+
+        // دریافت نام نسبی کلاس
+        $relative_class = substr($class, $len);
+
+        // تبدیل جداکننده‌های فضای نام به جداکننده مسیر دایرکتوری و اضافه کردن پسوند php
+        $file = $base_dir . str_replace('\\', '/', $relative_class) . '.php';
+
+        // بارگذاری فایل در صورت وجود
+        if (file_exists($file)) {
+            require_once $file;
+        }
+    });
+}
 
 // تنظیم منطقه زمانی تهران
 date_default_timezone_set('Asia/Tehran');

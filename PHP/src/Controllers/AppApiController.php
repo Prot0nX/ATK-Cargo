@@ -110,6 +110,9 @@ class AppApiController {
                         (string)$endDateTime
                     );
                     header('Content-Type: application/json; charset=UTF-8');
+                    if (extension_loaded('zlib') && !ini_get('zlib.output_compression') && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
+                        ob_start('ob_gzhandler');
+                    }
                     echo $filteredSummary;
                     exit;
 
@@ -273,6 +276,9 @@ class AppApiController {
     private function sendJsonResponse($data, int $statusCode = 200): void {
         header('Content-Type: application/json; charset=UTF-8');
         http_response_code($statusCode);
+        if (extension_loaded('zlib') && !ini_get('zlib.output_compression') && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
+            ob_start('ob_gzhandler');
+        }
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         exit;
     }
@@ -371,12 +377,12 @@ class AppApiController {
         $quotaNumber = $this->sanitizeInput($quotaNumber);
         $shipName = $this->sanitizeInput($shipName);
 
-        $query = "SELECT loadingQuotaNumber, shipName, shippingCompany, cargoType, loadingWarehouse 
-        FROM InitialInfo WHERE loadingQuotaNumber LIKE ? AND shipName = ? ORDER BY loadingQuotaNumber";
+        $query = "SELECT loadingQuotaNumber, shipName, shippingCompany, cargoType, loadingWarehouse
+        FROM InitialInfo WHERE loadingQuotaNumberReversed LIKE ? AND shipName = ? ORDER BY loadingQuotaNumber";
 
         $stmt = $this->db->prepare($query);
-        $likeQuotaNumber = '%' . $quotaNumber;
-        $stmt->bind_param("ss", $likeQuotaNumber, $shipName);
+        $reversedLikeQuotaNumber = strrev($quotaNumber) . '%';
+        $stmt->bind_param("ss", $reversedLikeQuotaNumber, $shipName);
         $stmt->execute();
         $result = $stmt->get_result();
 
@@ -487,9 +493,9 @@ class AppApiController {
         FROM InitialInfo i
         LEFT JOIN (
             SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType, SUM(c.netWeight) as loadedWeight
-            FROM CargoInfo c WHERE c.status = 'خروج'
+            FROM CargoInfo c WHERE c.status = 'خروج' AND c.shipName = ?
             GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
-        ) loaded ON 
+        ) loaded ON
             loaded.loadingQuotaNumber = i.loadingQuotaNumber AND loaded.shipName = i.shipName
             AND loaded.loadingWarehouse = i.loadingWarehouse AND loaded.shippingCompany = i.shippingCompany
             AND loaded.cargoType = i.cargoType
@@ -497,7 +503,7 @@ class AppApiController {
         GROUP BY i.shipName, i.loadingWarehouse";
 
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("s", $shipName);
+        $stmt->bind_param("ss", $shipName, $shipName);
         $stmt->execute();
         $result = $stmt->get_result();
 
@@ -587,6 +593,20 @@ class AppApiController {
         $stmt->execute();
         $result = $stmt->get_result();
 
+        $exitDatesByQuota = [];
+        $exitQuery = "SELECT DISTINCT loadingQuotaNumber, exitDate, exitTime FROM CargoInfo c WHERE c.shipName = ?
+            AND c.loadingWarehouse = ? AND c.status = 'خروج' ORDER BY loadingQuotaNumber, exitDate, exitTime";
+        $exitStmt = $this->db->prepare($exitQuery);
+        $exitStmt->bind_param("ss", $shipName, $warehouseName);
+        $exitStmt->execute();
+        $exitResultAll = $exitStmt->get_result();
+        while ($exitRow = $exitResultAll->fetch_assoc()) {
+            $exitDatesByQuota[$exitRow['loadingQuotaNumber']][] = [
+                'date' => $exitRow['exitDate'],
+                'time' => $exitRow['exitTime']
+            ];
+        }
+
         $quotas = [];
         $totalTonnage = 0;
         $totalRemainingTonnage = 0;
@@ -596,6 +616,9 @@ class AppApiController {
         $uniqueCargoTypes = [];
         $uniqueShippingCompanies = [];
         $uniqueCargoOwners = [];
+        $seenCargoTypes = [];
+        $seenShippingCompanies = [];
+        $seenCargoOwners = [];
         $activeQuotasCount = 0;
 
         while ($row = $result->fetch_assoc()) {
@@ -605,13 +628,16 @@ class AppApiController {
             $cargoOwner = $row['cargoOwner'] ?? 'نامشخص';
             $isActive = (bool)$row['isActive'];
 
-            if (!in_array($cargoType, $uniqueCargoTypes)) {
+            if (!isset($seenCargoTypes[$cargoType])) {
+                $seenCargoTypes[$cargoType] = true;
                 $uniqueCargoTypes[] = $cargoType;
             }
-            if (!in_array($shippingCompany, $uniqueShippingCompanies)) {
+            if (!isset($seenShippingCompanies[$shippingCompany])) {
+                $seenShippingCompanies[$shippingCompany] = true;
                 $uniqueShippingCompanies[] = $shippingCompany;
             }
-            if (!in_array($cargoOwner, $uniqueCargoOwners) && $cargoOwner !== 'نامشخص') {
+            if ($cargoOwner !== 'نامشخص' && !isset($seenCargoOwners[$cargoOwner])) {
+                $seenCargoOwners[$cargoOwner] = true;
                 $uniqueCargoOwners[] = $cargoOwner;
             }
 
@@ -624,20 +650,9 @@ class AppApiController {
             $quotaRemainingTonnage = $quotaTotalTonnage - $quotaLoadedTonnage;
             $percentageLoaded = ($quotaTotalTonnage > 0) ? ($quotaLoadedTonnage / $quotaTotalTonnage) * 100 : 0;
 
-            $exitQuery = "SELECT DISTINCT exitDate, exitTime FROM CargoInfo c WHERE c.loadingQuotaNumber = ? 
-            AND c.shipName = ? AND c.loadingWarehouse = ? AND c.status = 'خروج' ORDER BY exitDate, exitTime";
-            $exitStmt = $this->db->prepare($exitQuery);
-            $exitStmt->bind_param("sss", $quotaNumber, $shipName, $warehouseName);
-            $exitStmt->execute();
-            $exitResult = $exitStmt->get_result();
-
-            $exitDates = [];
-            while ($exitRow = $exitResult->fetch_assoc()) {
-                $exitDates[] = [
-                    'date' => $exitRow['exitDate'],
-                    'time' => $exitRow['exitTime']
-                ];
-                $allExitDates[] = $exitRow['exitDate'];
+            $exitDates = $exitDatesByQuota[$quotaNumber] ?? [];
+            foreach ($exitDates as $exitDateEntry) {
+                $allExitDates[] = $exitDateEntry['date'];
             }
 
             $quotas[] = [
@@ -704,14 +719,22 @@ class AppApiController {
             $endDateTime .= ':00';
         }
 
+        $startDate = substr($startDateTime, 0, 10);
+        $startTime = substr($startDateTime, 11, 8);
+        $endDate = substr($endDateTime, 0, 10);
+        $endTime = substr($endDateTime, 11, 8);
+
+        $dateRangeCondition = "(c.exitDate > ? OR (c.exitDate = ? AND c.exitTime >= ?))
+            AND (c.exitDate < ? OR (c.exitDate = ? AND c.exitTime < ?))";
+
         $summaryQuery = "SELECT COALESCE(SUM(c.netWeight), 0) as totalNetWeight, COUNT(DISTINCT c.trackingNumber) as voucherCount,
             MIN(c.exitTime) as firstExitTime, MAX(c.exitTime) as lastExitTime, MIN(c.exitDate) as firstExitDate, MAX(c.exitDate) as lastExitDate
         FROM CargoInfo c
         WHERE c.loadingQuotaNumber = ? AND c.shipName = ? AND c.loadingWarehouse = ? AND c.status = 'خروج'
-            AND CONCAT(c.exitDate, ' ', c.exitTime) >= ? AND CONCAT(c.exitDate, ' ', c.exitTime) < ?";
+            AND $dateRangeCondition";
 
         $stmt = $this->db->prepare($summaryQuery);
-        $stmt->bind_param("sssss", $selectedQuota, $shipName, $warehouseName, $startDateTime, $endDateTime);
+        $stmt->bind_param("sssssssss", $selectedQuota, $shipName, $warehouseName, $startDate, $startDate, $startTime, $endDate, $endDate, $endTime);
         $stmt->execute();
         $summaryResult = $stmt->get_result();
         $summary = $summaryResult->fetch_assoc();
@@ -721,11 +744,11 @@ class AppApiController {
         FROM CargoInfo c
         JOIN InitialInfo i ON c.loadingQuotaNumber = i.loadingQuotaNumber AND c.shipName = i.shipName
         WHERE c.loadingQuotaNumber = ? AND c.shipName = ? AND c.loadingWarehouse = ? AND c.status = 'خروج'
-            AND CONCAT(c.exitDate, ' ', c.exitTime) >= ? AND CONCAT(c.exitDate, ' ', c.exitTime) < ?
+            AND $dateRangeCondition
         ORDER BY c.exitDate, c.exitTime";
 
         $stmtDetails = $this->db->prepare($detailsQuery);
-        $stmtDetails->bind_param("sssss", $selectedQuota, $shipName, $warehouseName, $startDateTime, $endDateTime);
+        $stmtDetails->bind_param("sssssssss", $selectedQuota, $shipName, $warehouseName, $startDate, $startDate, $startTime, $endDate, $endDate, $endTime);
         $stmtDetails->execute();
         $detailsResult = $stmtDetails->get_result();
 
@@ -739,11 +762,11 @@ class AppApiController {
             }
             $totalWeights[$row['cargoType']] += floatval($row['netWeight']);
 
-            if (!empty($row['username']) && !in_array($row['username'], $uniqueUsers)) {
-                $uniqueUsers[] = $row['username'];
+            if (!empty($row['username'])) {
+                $uniqueUsers[$row['username']] = true;
             }
-            if (!empty($row['confirm_username']) && !in_array($row['confirm_username'], $uniqueUsers)) {
-                $uniqueUsers[] = $row['confirm_username'];
+            if (!empty($row['confirm_username'])) {
+                $uniqueUsers[$row['confirm_username']] = true;
             }
 
             $voucherDetails[] = [
@@ -801,16 +824,16 @@ class AppApiController {
             SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType,
                 SUM(c.netWeight) as loadedTonnage, COUNT(DISTINCT c.trackingNumber) as exitVoucherCount,
                 MIN(c.exitDate) as startDate, MAX(c.exitDate) as endDate
-            FROM CargoInfo c WHERE c.status = 'خروج'
+            FROM CargoInfo c WHERE c.status = 'خروج' AND c.loadingQuotaNumber = ?
             GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
-        ) exit_data ON 
+        ) exit_data ON
             exit_data.loadingQuotaNumber = i.loadingQuotaNumber AND exit_data.shipName = i.shipName
             AND exit_data.loadingWarehouse = i.loadingWarehouse AND exit_data.shippingCompany = i.shippingCompany
             AND exit_data.cargoType = i.cargoType
         WHERE i.loadingQuotaNumber = ?";
 
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("s", $quotaNumber);
+        $stmt->bind_param("ss", $quotaNumber, $quotaNumber);
         $stmt->execute();
         $result = $stmt->get_result();
 
@@ -1093,18 +1116,19 @@ class AppApiController {
         FROM InitialInfo i
         LEFT JOIN (
             SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType, SUM(c.netWeight) as loadedTonnage
-            FROM CargoInfo c WHERE c.status = 'خروج'
+            FROM CargoInfo c WHERE c.status = 'خروج' AND c.loadingQuotaNumber = ?
             GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
-        ) exit_data ON 
+        ) exit_data ON
             exit_data.loadingQuotaNumber = i.loadingQuotaNumber AND exit_data.shipName = i.shipName
             AND exit_data.loadingWarehouse = i.loadingWarehouse AND exit_data.shippingCompany = i.shippingCompany
             AND exit_data.cargoType = i.cargoType
         WHERE " . implode(" AND ", $whereConditions) . " LIMIT 1";
 
+        $derivedParams = array_merge([$quotaNumber], $params);
+        $derivedTypes = "s" . $types;
+
         $stmt = $this->db->prepare($query);
-        if (count($params) > 0) {
-            $stmt->bind_param($types, ...$params);
-        }
+        $stmt->bind_param($derivedTypes, ...$derivedParams);
         $stmt->execute();
         $result = $stmt->get_result();
 

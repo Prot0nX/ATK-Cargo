@@ -462,8 +462,8 @@ class CargoController {
             }
             $cargoStmt->close();
 
-            $trackStmt = $this->conn->prepare("SELECT DISTINCT trackingNumber FROM CargoInfo WHERE shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ?");
-            $trackStmt->bind_param("sss", $shippingCompany, $warehouse, $cargoType);
+            $trackStmt = $this->conn->prepare("SELECT DISTINCT trackingNumber FROM CargoInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ?");
+            $trackStmt->bind_param("ssss", $quotaNumber, $shippingCompany, $warehouse, $cargoType);
             $trackStmt->execute();
             $trackResult = $trackStmt->get_result();
 
@@ -600,6 +600,9 @@ class CargoController {
 
     private function sendJsonResponse(array $data, int $statusCode = 200): void {
         http_response_code($statusCode);
+        if (extension_loaded('zlib') && !ini_get('zlib.output_compression') && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
+            ob_start('ob_gzhandler');
+        }
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         exit;
     }

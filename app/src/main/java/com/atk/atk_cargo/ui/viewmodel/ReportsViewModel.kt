@@ -198,53 +198,27 @@ class ReportsViewModel(
             _filteredQuotas.value = when (_groupingMode.value) {
                 QuotaGroupingMode.BY_SHIP -> {
                     filtered.groupBy { it.shipName }
-                        .map { (shipName, quotas) ->
-                            Triple(
-                                shipName,
-                                quotas.size,
-                                quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
-                            )
-                        }
+                        .entries
                         .sortedWith(
-                            compareByDescending<Triple<String, Int, Float>> { it.second }
-                                .thenByDescending { it.third }
+                            compareByDescending<Map.Entry<String, List<QuotaCompletionData>>> { it.value.size }
+                                .thenByDescending { entry -> entry.value.sumOf { it.last_24h_weight.toDouble() } }
                         )
-                        .flatMap { (shipName, _, _) ->
-                            filtered.filter { it.shipName == shipName }
-                        }
+                        .flatMap { it.value }
                 }
                 QuotaGroupingMode.BY_CARRIER -> {
                     filtered.groupBy { it.shippingCompany }
-                        .map { (carrier, quotas) ->
-                            Triple(
-                                carrier,
-                                quotas.size,
-                                quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
-                            )
-                        }
+                        .entries
                         .sortedWith(
-                            compareByDescending<Triple<String, Int, Float>> { it.second }
-                                .thenByDescending { it.third }
+                            compareByDescending<Map.Entry<String, List<QuotaCompletionData>>> { it.value.size }
+                                .thenByDescending { entry -> entry.value.sumOf { it.last_24h_weight.toDouble() } }
                         )
-                        .flatMap { (carrier, _, _) ->
-                            filtered.filter { it.shippingCompany == carrier }
-                        }
+                        .flatMap { it.value }
                 }
                 QuotaGroupingMode.BY_CARGO_OWNER -> {
                     filtered.groupBy { "${it.shipName}|${it.warehouse ?: "نامشخص"}|${it.cargoType ?: "نامشخص"}" }
-                        .map { (compositeKey, quotas) ->
-                            Triple(
-                                compositeKey,
-                                quotas.size,
-                                quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
-                            )
-                        }
-                        .sortedWith(
-                            compareBy<Triple<String, Int, Float>> { it.first }
-                        )
-                        .flatMap { (compositeKey, _, _) ->
-                            filtered.filter { "${it.shipName}|${it.warehouse ?: "نامشخص"}|${it.cargoType ?: "نامشخص"}" == compositeKey }
-                        }
+                        .entries
+                        .sortedWith(compareBy { it.key })
+                        .flatMap { it.value }
                 }
             }
         }

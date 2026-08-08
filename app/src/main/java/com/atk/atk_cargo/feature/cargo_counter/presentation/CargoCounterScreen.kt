@@ -42,7 +42,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.atk.atk_cargo.api.ActiveShipInfo
@@ -335,10 +338,13 @@ fun CargoCounterScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(30000.milliseconds)
-            updateStatistics()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                delay(30000.milliseconds)
+                updateStatistics()
+            }
         }
     }
 

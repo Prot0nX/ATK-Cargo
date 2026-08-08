@@ -550,7 +550,10 @@ fun QuotaSelector(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
                 ) {
-                    items(quotas) { quota ->
+                    items(
+                        items = quotas,
+                        key = { "${it.number}|${it.shipName}|${it.warehouse}|${it.shippingCompany}|${it.cargoType}" }
+                    ) { quota ->
                         QuotaChip(
                             quota = quota,
                             isSelected = selectedQuota == quota.number,
