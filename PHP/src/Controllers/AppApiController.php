@@ -10,6 +10,7 @@ use mysqli;
 use mysqli_stmt;
 use App\Core\Database;
 use App\Core\DatabaseManager;
+use App\Core\MicroCache;
 use App\Core\Request;
 use App\Core\Response;
 
@@ -408,60 +409,76 @@ class AppApiController {
     }
 
     public function getShipsList(): array {
-        $query = "SELECT
-            i.shipName, i.cargoType, COUNT(DISTINCT i.loadingWarehouse) as warehouseCount,
-            COUNT(DISTINCT CONCAT(i.loadingQuotaNumber, '-', i.loadingWarehouse, '-', i.shippingCompany, '-', i.cargoType)) as quotaCount,
-            COUNT(DISTINCT i.shippingCompany) as shippingCompanyCount, COUNT(DISTINCT i.cargoType) as cargoTypeCount,
-            SUM(i.cargoWeight) as totalTonnage, COALESCE(SUM(loaded.loadedWeight), 0) as loadedTonnage,
-            (SUM(i.cargoWeight) - COALESCE(SUM(loaded.loadedWeight), 0)) as remainingTonnage,
-            CASE WHEN SUM(i.cargoWeight) > 0 THEN ROUND((COALESCE(SUM(loaded.loadedWeight), 0) / SUM(i.cargoWeight)) * 100, 2) ELSE 0.00 END as percentageLoaded,
-            MAX(i.isActive) as isActive
-        FROM InitialInfo i
-        LEFT JOIN (
-            SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType, SUM(c.netWeight) as loadedWeight
-            FROM CargoInfo c WHERE c.status = 'خروج'
-            GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
-        ) loaded ON 
-            loaded.loadingQuotaNumber = i.loadingQuotaNumber AND loaded.shipName = i.shipName
-            AND loaded.loadingWarehouse = i.loadingWarehouse AND loaded.shippingCompany = i.shippingCompany
-            AND loaded.cargoType = i.cargoType
-        GROUP BY i.shipName, i.cargoType
-        ORDER BY isActive DESC, shipName ASC";
+        // نتیجه‌ی کوئری (بدون timestamp) به مدت کوتاهی کش می‌شود تا این کوئری سنگین
+        // که هم توسط action=getShipsList و هم action=getRealTimeData صدا زده می‌شود
+        // روی هر poll دوباره روی دیتابیس اجرا نشود؛ timestamp همیشه لحظه‌ای محاسبه می‌شود.
+        $shipsData = MicroCache::remember('app_api_ships_list', 8, function () {
+            $query = "SELECT
+                i.shipName, i.cargoType, COUNT(DISTINCT i.loadingWarehouse) as warehouseCount,
+                COUNT(DISTINCT CONCAT(i.loadingQuotaNumber, '-', i.loadingWarehouse, '-', i.shippingCompany, '-', i.cargoType)) as quotaCount,
+                COUNT(DISTINCT i.shippingCompany) as shippingCompanyCount, COUNT(DISTINCT i.cargoType) as cargoTypeCount,
+                SUM(i.cargoWeight) as totalTonnage, COALESCE(SUM(loaded.loadedWeight), 0) as loadedTonnage,
+                (SUM(i.cargoWeight) - COALESCE(SUM(loaded.loadedWeight), 0)) as remainingTonnage,
+                CASE WHEN SUM(i.cargoWeight) > 0 THEN ROUND((COALESCE(SUM(loaded.loadedWeight), 0) / SUM(i.cargoWeight)) * 100, 2) ELSE 0.00 END as percentageLoaded,
+                MAX(i.isActive) as isActive
+            FROM InitialInfo i
+            LEFT JOIN (
+                SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType, SUM(c.netWeight) as loadedWeight
+                FROM CargoInfo c WHERE c.status = 'خروج'
+                GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
+            ) loaded ON
+                loaded.loadingQuotaNumber = i.loadingQuotaNumber AND loaded.shipName = i.shipName
+                AND loaded.loadingWarehouse = i.loadingWarehouse AND loaded.shippingCompany = i.shippingCompany
+                AND loaded.cargoType = i.cargoType
+            GROUP BY i.shipName, i.cargoType
+            ORDER BY isActive DESC, shipName ASC";
 
-        $stmt = $this->db->prepare($query);
-        $stmt->execute();
-        $result = $stmt->get_result();
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            $result = $stmt->get_result();
 
-        $activeShips = [];
-        $inactiveShips = [];
-        $totalActiveTonnage = 0;
-        $totalRemainingTonnage = 0;
-        $totalLoadedTonnage = 0;
+            $activeShips = [];
+            $inactiveShips = [];
+            $totalActiveTonnage = 0;
+            $totalRemainingTonnage = 0;
+            $totalLoadedTonnage = 0;
 
-        while ($row = $result->fetch_assoc()) {
-            $ship = [
-                'name' => $row['shipName'],
-                'cargoType' => $row['cargoType'],
-                'warehouseCount' => (int)$row['warehouseCount'],
-                'quotaCount' => (int)$row['quotaCount'],
-                'shippingCompanyCount' => (int)$row['shippingCompanyCount'],
-                'cargoTypeCount' => (int)$row['cargoTypeCount'],
-                'totalTonnage' => (float)$row['totalTonnage'],
-                'remainingTonnage' => (float)$row['remainingTonnage'],
-                'loadedTonnage' => (float)$row['loadedTonnage'],
-                'percentageLoaded' => (float)$row['percentageLoaded'],
-                'isActive' => (bool)$row['isActive']
-            ];
+            while ($row = $result->fetch_assoc()) {
+                $ship = [
+                    'name' => $row['shipName'],
+                    'cargoType' => $row['cargoType'],
+                    'warehouseCount' => (int)$row['warehouseCount'],
+                    'quotaCount' => (int)$row['quotaCount'],
+                    'shippingCompanyCount' => (int)$row['shippingCompanyCount'],
+                    'cargoTypeCount' => (int)$row['cargoTypeCount'],
+                    'totalTonnage' => (float)$row['totalTonnage'],
+                    'remainingTonnage' => (float)$row['remainingTonnage'],
+                    'loadedTonnage' => (float)$row['loadedTonnage'],
+                    'percentageLoaded' => (float)$row['percentageLoaded'],
+                    'isActive' => (bool)$row['isActive']
+                ];
 
-            if ($ship['isActive']) {
-                $activeShips[] = $ship;
-                $totalActiveTonnage += $ship['totalTonnage'];
-                $totalRemainingTonnage += $ship['remainingTonnage'];
-                $totalLoadedTonnage += $ship['loadedTonnage'];
-            } else {
-                $inactiveShips[] = $ship;
+                if ($ship['isActive']) {
+                    $activeShips[] = $ship;
+                    $totalActiveTonnage += $ship['totalTonnage'];
+                    $totalRemainingTonnage += $ship['remainingTonnage'];
+                    $totalLoadedTonnage += $ship['loadedTonnage'];
+                } else {
+                    $inactiveShips[] = $ship;
+                }
             }
-        }
+
+            return [
+                'activeShips' => $activeShips,
+                'inactiveShips' => $inactiveShips,
+                'totalActiveTonnage' => $totalActiveTonnage,
+                'totalRemainingTonnage' => $totalRemainingTonnage,
+                'totalLoadedTonnage' => $totalLoadedTonnage,
+            ];
+        });
+
+        $activeShips = $shipsData['activeShips'];
+        $inactiveShips = $shipsData['inactiveShips'];
 
         return [
             'data' => [
@@ -471,9 +488,9 @@ class AppApiController {
                     'totalShips' => count($activeShips) + count($inactiveShips),
                     'activeShipsCount' => count($activeShips),
                     'inactiveShipsCount' => count($inactiveShips),
-                    'totalActiveTonnage' => $totalActiveTonnage,
-                    'totalRemainingTonnage' => $totalRemainingTonnage,
-                    'totalLoadedTonnage' => $totalLoadedTonnage,
+                    'totalActiveTonnage' => $shipsData['totalActiveTonnage'],
+                    'totalRemainingTonnage' => $shipsData['totalRemainingTonnage'],
+                    'totalLoadedTonnage' => $shipsData['totalLoadedTonnage'],
                     'timestamp' => date('Y-m-d H:i:s')
                 ]
             ]

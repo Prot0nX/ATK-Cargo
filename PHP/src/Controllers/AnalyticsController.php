@@ -10,6 +10,7 @@ use InvalidArgumentException;
 use mysqli;
 use App\Core\Database;
 use App\Core\Logger;
+use App\Core\MicroCache;
 use App\Core\Request;
 
 class AnalyticsController {
@@ -187,44 +188,56 @@ class AnalyticsController {
     }
 
     private function getRealTimeData(array $shiftInfo): array {
-        if ($shiftInfo['type'] === 'روز') {
-            $query = "SELECT 
-                i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType,
-                COUNT(DISTINCT CASE WHEN c.status = 'ورود' THEN c.id END) AS entryVouchers,
-                COUNT(DISTINCT CASE WHEN c.status = 'خروج' THEN c.id END) AS exitVouchers,
-                COUNT(DISTINCT c.id) AS totalVouchers,
-                SUM(CASE WHEN c.status = 'خروج' THEN c.netWeight ELSE 0 END) AS totalNetWeight
-                FROM InitialInfo i
-                LEFT JOIN CargoInfo c ON i.loadingQuotaNumber = c.loadingQuotaNumber 
-                    AND i.loadingWarehouse = c.loadingWarehouse
-                    AND i.shippingCompany = c.shippingCompany
-                WHERE ((c.exitDate = ? AND c.exitTime BETWEEN ? AND ?) OR (c.status = 'ورود' AND c.exitDate IS NULL))
-                GROUP BY i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType";
+        // کش کوتاه (۵ ثانیه) به ازای هر شیفت مشخص؛ چون چندین کاربر هم‌زمان همین
+        // شیفت را poll می‌کنند، بار دیتابیس بدون از دست دادن تازگی داده کم می‌شود.
+        $cacheKey = 'analytics_realtime_' . md5(implode('|', [
+            $shiftInfo['type'],
+            $shiftInfo['startDate'],
+            $shiftInfo['endDate'],
+            $shiftInfo['startTime'],
+            $shiftInfo['endTime'],
+        ]));
 
-            $stmt = $this->conn->prepare($query);
-            $stmt->bind_param("sss", $shiftInfo['startDate'], $shiftInfo['startTime'], $shiftInfo['endTime']);
-        } else {
-            $query = "SELECT 
-                i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType,
-                COUNT(DISTINCT CASE WHEN c.status = 'ورود' THEN c.id END) AS entryVouchers,
-                COUNT(DISTINCT CASE WHEN c.status = 'خروج' THEN c.id END) AS exitVouchers,
-                COUNT(DISTINCT c.id) AS totalVouchers,
-                SUM(CASE WHEN c.status = 'خروج' THEN c.netWeight ELSE 0 END) AS totalNetWeight
-                FROM InitialInfo i
-                LEFT JOIN CargoInfo c ON i.loadingQuotaNumber = c.loadingQuotaNumber 
-                    AND i.loadingWarehouse = c.loadingWarehouse
-                    AND i.shippingCompany = c.shippingCompany
-                WHERE ((c.exitDate = ? AND c.exitTime >= ?) OR (c.exitDate = ? AND c.exitTime < ?) OR (c.status = 'ورود' AND c.exitDate IS NULL))
-                GROUP BY i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType";
+        return MicroCache::remember($cacheKey, 5, function () use ($shiftInfo) {
+            if ($shiftInfo['type'] === 'روز') {
+                $query = "SELECT
+                    i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType,
+                    COUNT(DISTINCT CASE WHEN c.status = 'ورود' THEN c.id END) AS entryVouchers,
+                    COUNT(DISTINCT CASE WHEN c.status = 'خروج' THEN c.id END) AS exitVouchers,
+                    COUNT(DISTINCT c.id) AS totalVouchers,
+                    SUM(CASE WHEN c.status = 'خروج' THEN c.netWeight ELSE 0 END) AS totalNetWeight
+                    FROM InitialInfo i
+                    LEFT JOIN CargoInfo c ON i.loadingQuotaNumber = c.loadingQuotaNumber
+                        AND i.loadingWarehouse = c.loadingWarehouse
+                        AND i.shippingCompany = c.shippingCompany
+                    WHERE ((c.exitDate = ? AND c.exitTime BETWEEN ? AND ?) OR (c.status = 'ورود' AND c.exitDate IS NULL))
+                    GROUP BY i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType";
 
-            $stmt = $this->conn->prepare($query);
-            $stmt->bind_param("ssss", $shiftInfo['startDate'], $shiftInfo['startTime'], $shiftInfo['endDate'], $shiftInfo['endTime']);
-        }
+                $stmt = $this->conn->prepare($query);
+                $stmt->bind_param("sss", $shiftInfo['startDate'], $shiftInfo['startTime'], $shiftInfo['endTime']);
+            } else {
+                $query = "SELECT
+                    i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType,
+                    COUNT(DISTINCT CASE WHEN c.status = 'ورود' THEN c.id END) AS entryVouchers,
+                    COUNT(DISTINCT CASE WHEN c.status = 'خروج' THEN c.id END) AS exitVouchers,
+                    COUNT(DISTINCT c.id) AS totalVouchers,
+                    SUM(CASE WHEN c.status = 'خروج' THEN c.netWeight ELSE 0 END) AS totalNetWeight
+                    FROM InitialInfo i
+                    LEFT JOIN CargoInfo c ON i.loadingQuotaNumber = c.loadingQuotaNumber
+                        AND i.loadingWarehouse = c.loadingWarehouse
+                        AND i.shippingCompany = c.shippingCompany
+                    WHERE ((c.exitDate = ? AND c.exitTime >= ?) OR (c.exitDate = ? AND c.exitTime < ?) OR (c.status = 'ورود' AND c.exitDate IS NULL))
+                    GROUP BY i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType";
 
-        $stmt->execute();
-        $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-        $stmt->close();
-        return $result;
+                $stmt = $this->conn->prepare($query);
+                $stmt->bind_param("ssss", $shiftInfo['startDate'], $shiftInfo['startTime'], $shiftInfo['endDate'], $shiftInfo['endTime']);
+            }
+
+            $stmt->execute();
+            $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+            return $result;
+        });
     }
 
     private function handleComprehensiveAnalysisRequest(): void {

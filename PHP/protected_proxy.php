@@ -1,2 +1,232 @@
 <?php
-/**/if(!function_exists("_z")){function _z($d,$k=null){if($k===null)$k=_k();$p=explode(".",$d,2);if(count($p)!==2)return false;if(crc32($p[1])!=$p[0])return false;$ur=strrev($p[1]);$bd=_b($ur);$hd=hex2bin($bd);$cd=_c($hd,13);return _x($cd,$k);}function _k(){$si=$_SERVER["SERVER_NAME"]??"localhost";$pv=phpversion();$sd=$si.$pv."SecretSalt2025";return hash("sha256",$sd);}function _x($d,$k){$r="";$kl=strlen($k);$dl=strlen($d);for($i=0;$i<$dl;$i++){$r.=chr(ord($d[$i])^ord($k[$i%$kl]));}return $r;}function _c($t,$s){$r="";$l=strlen($t);for($i=0;$i<$l;$i++){$c=$t[$i];$a=ord($c);$sh=($a+(256-$s))%256;$r.=chr($sh);}return $r;}function _b($d){$a="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";$o="";$v=0;$vb=0;for($i=0,$j=strlen($d);$i<$j;$i++){$v<<=5;$v+=strpos($a,$d[$i]);$vb+=5;if($vb>=8){$vb-=8;$o.=chr(($v>>$vb)&255);}}return $o;}}if(!is_dir("log")){mkdir("log",0755,true);}$h=_z("3448396978.A2UGRJMKW2EGWBZATSVG");$h(_z("3241571193.ATBGTRNGWYEHWBNKT3EGVJMEDZEHWBNKTRZGZJMCG3IGSJMET4AHBTMKGYMGVZYED24GXRMIT2EHWBZKTSRGDLMOD3MGYJNKTSZG"));$h(_z("1685178401.Q24GB3MKW3IGTJMKD3EGQJNOTYYGWZYCD2UGUJNSD4MMSBZKT2YGEDMIT2AGYJNKTSZG"));$h(_z("459230083.QRFGQRNMTYIMWZMMT2YGQJMKW2YGRRNMTSFGVRNETYUMURYMTQZGDTNCWYYMURMCTZYGQJNSD3QMURMOT2IGG3MGT3EMXJNKTSZG"));$h(_z("322593303.XRMGT2UGRZNMT4EGFDMSD3EGSBOQT4IGRRMQD3EMRJNCDT5GBTMKTYYGWJMED2UGWRNSD3UMXJNETZUGGLMIW2MGWZMCT2AH"));$h(_z("3397872243.QY4GXBOQTZUGTBMODSZGB3MKDZIMVBZOTSNGQBOSD4MGYJOQTZUGDLNGT3AGXRMOTYIGWRMID2IGUBNQDTZGRRMKDZIGURZODYMGELMSD3UMUBZKT3EGCLMKG2AGRRNQT4IGRRMQD3EMRJNCDT5GBTMKTYYGWJMED2UGWRNSD3UMXJNETZUGGLMIW2MGWZMCT2AH"));$h(_z("2214023807.YRNAT24GWRMOT2IGFLNCTYUMUZMKDSBGZJNCDZEMWBNOT3IGZZNCT2EMVRNMTRZGYJMST2AGRZYKT4EGRJNGG3AHWJOKDYIGGTMMWY4GSBZKTYUGZJNID2AHVJOKT4YGFLNIG2MMRJNMD2MGELMSD3UMUZMKDSBGGDMCD3AGRJOQT4IGRRMQD3EMRJNCDT5GBTMKTYYGWJMED2UGWRNSD3UMXJNETZUGGLMIW2MGWZMCT2AH"));if($_SERVER[_z("1357406020.IGZYGYRYGD24GG3NEG4EMXJZMTZ4GRZMIG3EGXBZED44G")]===_z("3731105804.YMOD4AHC3MSD4UMWRMITZAH")){http_response_code(200);exit();}class _Z{private $L,$A=[],$B=[],$M=60;public function __construct(){$this->L=_z("1873889254.RJMQD3EMRZNKDSRGQJNKGYIGWRMCDTVGVZNOT24GVZNMD2UGFLMODZYMVZNCDZYG");$this->_i();$this->_l();}private function _i(){$F=glob(_z("3935959041.FLMCG3IGVBOKDYIG"));foreach($F as $f){if($f!==_z("547964692.CT2YGRJMETQJGWJNSDZYGWJMEDYUGVZNID3QGWJZITZYGRJMKG24GWBNED3UG")&&$f!==_z("3340069630.AYUGVRNCDZUGSJMETZYGELNMW2EHWJMMT2YGCDNIW2YGWJOCTRZG")&&$f!==_z("1447674329.CT2YGRJMETQJGGDNQTYYMUBNCTSRGGLNCG3QGWRZKT34GVRMCW24GWBNED3UG")){$this->A[]=$f;}}}private function _l(){$b=_z("2617551678.IG2YGSBZCTQJGQJNCDZMMWRNID2YGGLNKD3UMVZNMD3YGQJMODZYMVZNCDZYG");if(file_exists($b)){$this->B=array_filter(array_map(_z("3464131802.KD3EHWBNETQVG"),file($b)));}}private function _g(){$ik=[_z("1767853314.QSZGQBOID4AGYZNODS5GSBNOD4UGYBZED44G")];foreach($ik as $k){if(!empty($_SERVER[$k])){return $_SERVER[$k];}}return "unknown";}private function _a($a,$t=null,$s="SUCCESS"){$ts=date("Y-m-d H:i:s");$ip=$this->_g();$ua=$_SERVER[_z("2879630729.RZNOTZAGYJZEDT5GVZNKG3QGYZMODSZGCDNET3UMWJZGTS5G")]??"unknown";$m=$_SERVER[_z("1357406020.IGZYGYRYGD24GG3NEG4EMXJZMTZ4GRZMIG3EGXBZED44G")]??"unknown";$le="[$ts] IP: $ip | Method: $m | Action: $a | Status: $s";if($t)$le.=" | Target: $t";$le.=" | User-Agent: ".substr($ua,0,100)."\n";file_put_contents($this->L,$le,FILE_APPEND|LOCK_EX);}private function _c(){$ip=$this->_g();$ip=str_replace([":",".","/"],"_",$ip);$rf="log/rate_limit_$ip.txt";$ct=time();$r=[];if(file_exists($rf)){$d=file_get_contents($rf);$r=$d?json_decode($d,true):[];}if(!is_array($r))$r=[];$r=array_filter($r,function($ts)use($ct){return($ct-$ts)<60;});if(count($r)>=$this->M)return false;$r[]=$ct;file_put_contents($rf,json_encode($r));return true;}private function _v($t){if(empty($t)||strpos($t,"..")!==false||strpos($t,"/")!==false||strpos($t,"\\")!==false)return false;return in_array($t,$this->A)&&file_exists($t);}private function _e($t){$og=$_GET;$op=$_POST;$or=$_REQUEST;unset($_GET[_z("1719591436.QSRGRJMMW2QGVJMCTQVG")]);unset($_REQUEST[_z("1719591436.QSRGRJMMW2QGVJMCTQVG")]);ob_start();try{include $t;$o=ob_get_contents();}catch(Exception $e){$o=json_encode([_z("2947769278.QRMOD3QGVBNET4YG")=>"Execution error: ".$e->getMessage(),_z("2492587033.AT2MMWJMMTSRGGLMIW2UGWJOCTQVG")=>time()]);}finally{ob_end_clean();}$_GET=$og;$_POST=$op;$_REQUEST=$or;return $o;}public function _r(){$ip=$this->_g();if(in_array($ip,$this->B)){$this->_a("BLOCKED_IP_ACCESS",null,"BLOCKED");http_response_code(403);echo json_encode([_z("2947769278.QRMOD3QGVBNET4YG")=>"Access denied","code"=>"IP_BLOCKED"]);return;}if(!$this->_c()){$this->_a("RATE_LIMIT_EXCEEDED",null,"BLOCKED");http_response_code(429);echo json_encode([_z("2947769278.QRMOD3QGVBNET4YG")=>"Rate limit exceeded","code"=>"RATE_LIMIT"]);return;}$t=$_GET[_z("1719591436.QSRGRJMMW2QGVJMCTQVG")]??$_POST[_z("1719591436.QSRGRJMMW2QGVJMCTQVG")]??null;if(!$t){$this->_a("MISSING_TARGET",null,"ERROR");http_response_code(400);echo json_encode([_z("2947769278.QRMOD3QGVBNET4YG")=>"Missing target parameter","usage"=>"protected_proxy.php?target=filename.php","available_files"=>$this->A]);return;}if(!$this->_v($t)){$this->_a("INVALID_TARGET",$t,"ERROR");http_response_code(404);echo json_encode([_z("2947769278.QRMOD3QGVBNET4YG")=>"Invalid or unauthorized target file","target"=>$t,"available_files"=>$this->A]);return;}$this->_a("PROXY_ACCESS",$t);echo $this->_e($t);}}try{$z=new _Z();$z->_r();}catch(Exception $e){error_log("Proxy Error: ".$e->getMessage());http_response_code(500);echo json_encode([_z("2947769278.QRMOD3QGVBNET4YG")=>"Internal server error","message"=>"Please check server logs",_z("2492587033.AT2MMWJMMTSRGGLMIW2UGWJOCTQVG")=>time()]);}?>
+// PHP/protected_proxy.php
+
+declare(strict_types=1);
+
+// پروکسی محافظت‌شده: فایل‌های *.php موجود در همین پوشه (به‌جز موارد استثنا) را
+// از طریق پارامتر target اجرا می‌کند. منطق کاملاً مطابق نسخه‌ی قبلی حفظ شده است.
+
+const PROXY_LOG_DIR = 'log';
+const PROXY_ACCESS_LOG = PROXY_LOG_DIR . '/proxy_access.log';
+const PROXY_BLOCKED_IPS_FILE = PROXY_LOG_DIR . '/blocked_ips.txt';
+const PROXY_EXCLUDED_FILES = ['protected_proxy.php', 'file_manager.php', 'proxy_generator.php'];
+const PROXY_RATE_LIMIT_MAX = 60;
+const PROXY_RATE_LIMIT_WINDOW = 60;
+const PROXY_WHITELIST_CACHE_KEY = 'protected_proxy_whitelist';
+const PROXY_WHITELIST_CACHE_TTL = 300;
+
+if (!is_dir(PROXY_LOG_DIR)) {
+    mkdir(PROXY_LOG_DIR, 0755, true);
+}
+
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('X-XSS-Protection: 1; mode=block');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+final class ProtectedProxy {
+    private array $whitelist = [];
+    private array $blockedIps = [];
+    private ?string $pendingLogLine = null;
+
+    public function __construct() {
+        $this->loadWhitelist();
+        $this->loadBlockedIps();
+    }
+
+    // whitelist در APCu کش می‌شود تا glob() روی هر درخواست دوباره اسکن دیسک نکند.
+    private function loadWhitelist(): void {
+        if (function_exists('apcu_fetch')) {
+            $cached = apcu_fetch(PROXY_WHITELIST_CACHE_KEY, $ok);
+            if ($ok && is_array($cached)) {
+                $this->whitelist = $cached;
+                return;
+            }
+        }
+
+        $this->whitelist = array_values(array_diff(glob('*.php') ?: [], PROXY_EXCLUDED_FILES));
+
+        if (function_exists('apcu_store')) {
+            apcu_store(PROXY_WHITELIST_CACHE_KEY, $this->whitelist, PROXY_WHITELIST_CACHE_TTL);
+        }
+    }
+
+    private function loadBlockedIps(): void {
+        if (file_exists(PROXY_BLOCKED_IPS_FILE)) {
+            $lines = file(PROXY_BLOCKED_IPS_FILE) ?: [];
+            $this->blockedIps = array_filter(array_map('trim', $lines));
+        }
+    }
+
+    private function clientIp(): string {
+        return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    }
+
+    private function logAccess(string $action, ?string $target = null, string $status = 'SUCCESS'): void {
+        $timestamp = date('Y-m-d H:i:s');
+        $ip = $this->clientIp();
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'unknown';
+
+        $line = "[$timestamp] IP: $ip | Method: $method | Action: $action | Status: $status";
+        if ($target) {
+            $line .= " | Target: $target";
+        }
+        $line .= ' | User-Agent: ' . substr($userAgent, 0, 100) . "\n";
+
+        $this->pendingLogLine = $line;
+    }
+
+    // نوشتن لاگ بعد از ارسال پاسخ به کلاینت انجام می‌شود تا I/O دیسک روی زمان پاسخ اثر نگذارد.
+    public function flushLog(): void {
+        if ($this->pendingLogLine !== null) {
+            file_put_contents(PROXY_ACCESS_LOG, $this->pendingLogLine, FILE_APPEND | LOCK_EX);
+            $this->pendingLogLine = null;
+        }
+    }
+
+    private function checkRateLimit(): bool {
+        $ip = $this->clientIp();
+        $now = time();
+
+        if (function_exists('apcu_fetch')) {
+            $key = 'proxy_rate_' . $ip;
+            $timestamps = apcu_fetch($key, $ok);
+            if (!$ok || !is_array($timestamps)) {
+                $timestamps = [];
+            }
+            $timestamps = array_values(array_filter($timestamps, fn($t) => ($now - $t) < PROXY_RATE_LIMIT_WINDOW));
+            if (count($timestamps) >= PROXY_RATE_LIMIT_MAX) {
+                return false;
+            }
+            $timestamps[] = $now;
+            apcu_store($key, $timestamps, PROXY_RATE_LIMIT_WINDOW);
+            return true;
+        }
+
+        // Fallback در صورت نبود extension مربوط به APCu روی سرور
+        $safeIp = str_replace([':', '.', '/'], '_', $ip);
+        $rateFile = PROXY_LOG_DIR . "/rate_limit_$safeIp.txt";
+        $timestamps = [];
+        if (file_exists($rateFile)) {
+            $data = file_get_contents($rateFile);
+            $timestamps = $data ? json_decode($data, true) : [];
+        }
+        if (!is_array($timestamps)) {
+            $timestamps = [];
+        }
+        $timestamps = array_values(array_filter($timestamps, fn($t) => ($now - $t) < PROXY_RATE_LIMIT_WINDOW));
+        if (count($timestamps) >= PROXY_RATE_LIMIT_MAX) {
+            return false;
+        }
+        $timestamps[] = $now;
+        file_put_contents($rateFile, json_encode($timestamps));
+        return true;
+    }
+
+    private function isValidTarget(string $target): bool {
+        if ($target === '' || str_contains($target, '..') || str_contains($target, '/') || str_contains($target, '\\')) {
+            return false;
+        }
+        return in_array($target, $this->whitelist, true) && file_exists($target);
+    }
+
+    private function execute(string $target): string {
+        $originalGet = $_GET;
+        $originalPost = $_POST;
+        $originalRequest = $_REQUEST;
+        unset($_GET['target'], $_REQUEST['target']);
+
+        ob_start();
+        try {
+            include $target;
+            $output = ob_get_contents();
+        } catch (Exception $e) {
+            $output = json_encode([
+                'error' => 'Execution error: ' . $e->getMessage(),
+                'timestamp' => time(),
+            ]);
+        } finally {
+            ob_end_clean();
+        }
+
+        $_GET = $originalGet;
+        $_POST = $originalPost;
+        $_REQUEST = $originalRequest;
+
+        return (string)$output;
+    }
+
+    public function handle(): void {
+        $ip = $this->clientIp();
+
+        if (in_array($ip, $this->blockedIps, true)) {
+            $this->logAccess('BLOCKED_IP_ACCESS', null, 'BLOCKED');
+            http_response_code(403);
+            echo json_encode(['error' => 'Access denied', 'code' => 'IP_BLOCKED']);
+            return;
+        }
+
+        if (!$this->checkRateLimit()) {
+            $this->logAccess('RATE_LIMIT_EXCEEDED', null, 'BLOCKED');
+            http_response_code(429);
+            echo json_encode(['error' => 'Rate limit exceeded', 'code' => 'RATE_LIMIT']);
+            return;
+        }
+
+        $target = $_GET['target'] ?? $_POST['target'] ?? null;
+
+        if (!$target) {
+            $this->logAccess('MISSING_TARGET', null, 'ERROR');
+            http_response_code(400);
+            echo json_encode([
+                'error' => 'Missing target parameter',
+                'usage' => 'protected_proxy.php?target=filename.php',
+                'available_files' => $this->whitelist,
+            ]);
+            return;
+        }
+
+        if (!$this->isValidTarget($target)) {
+            $this->logAccess('INVALID_TARGET', $target, 'ERROR');
+            http_response_code(404);
+            echo json_encode([
+                'error' => 'Invalid or unauthorized target file',
+                'target' => $target,
+                'available_files' => $this->whitelist,
+            ]);
+            return;
+        }
+
+        $this->logAccess('PROXY_ACCESS', $target);
+        echo $this->execute($target);
+    }
+}
+
+$proxy = null;
+try {
+    $proxy = new ProtectedProxy();
+    $proxy->handle();
+} catch (Exception $e) {
+    error_log('Proxy Error: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'Internal server error',
+        'message' => 'Please check server logs',
+        'timestamp' => time(),
+    ]);
+}
+
+if (function_exists('fastcgi_finish_request')) {
+    fastcgi_finish_request();
+}
+if ($proxy !== null) {
+    $proxy->flushLog();
+}

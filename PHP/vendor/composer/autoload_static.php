@@ -39,6 +39,7 @@ class ComposerStaticInit5f285832cbbfb0bffdb861048ac414db
         'App\\Core\\Database' => __DIR__ . '/../..' . '/src/Core/Database.php',
         'App\\Core\\DatabaseManager' => __DIR__ . '/../..' . '/src/Core/DatabaseManager.php',
         'App\\Core\\Logger' => __DIR__ . '/../..' . '/src/Core/Logger.php',
+        'App\\Core\\MicroCache' => __DIR__ . '/../..' . '/src/Core/MicroCache.php',
         'App\\Core\\Request' => __DIR__ . '/../..' . '/src/Core/Request.php',
         'App\\Core\\Response' => __DIR__ . '/../..' . '/src/Core/Response.php',
         'App\\Exceptions\\ApiException' => __DIR__ . '/../..' . '/src/Exceptions/ApiException.php',

@@ -4,10 +4,12 @@ import android.Manifest
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import androidx.core.content.edit
 import com.atk.atk_cargo.R
 import com.atk.atk_cargo.api.RetrofitClient.apiService
@@ -117,8 +119,13 @@ class LoadingNotificationService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .build()
-            
-        startForeground(FOREGROUND_ID, notification)
+
+        ServiceCompat.startForeground(
+            this,
+            FOREGROUND_ID,
+            notification,
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+        )
     }
     
     override fun onBind(intent: Intent?): IBinder? {

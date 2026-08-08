@@ -8,6 +8,8 @@ namespace App\Core;
 class Logger {
     private static ?self $instance = null;
     private string $logDir;
+    private array $buffer = [];
+    private bool $shutdownRegistered = false;
 
     private function __construct() {
         $this->logDir = APP_ROOT . '/logs';
@@ -30,12 +32,25 @@ class Logger {
         $timestamp = date('Y-m-d H:i:s');
         $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
         $sanitizedMessage = $this->sanitizeMessage($message);
-        
+
         $logMessage = sprintf("[%s] [%s] [%s] [IP: %s] %s%s", $timestamp, $level, strtoupper($category), $ip, $sanitizedMessage, PHP_EOL);
         $logFile = sprintf("%s/%s.log", $this->logDir, $category);
-        
-        // نوشتن در فایل به صورت append
-        file_put_contents($logFile, $logMessage, FILE_APPEND | LOCK_EX);
+
+        // پیام‌ها در حافظه بافر می‌شوند و فقط یک‌بار در انتهای اسکریپت (هر فایل لاگ
+        // جداگانه) نوشته می‌شوند تا قفل فایل روی مسیر اصلی پردازش درخواست تکرار نشود.
+        $this->buffer[$logFile] = ($this->buffer[$logFile] ?? '') . $logMessage;
+
+        if (!$this->shutdownRegistered) {
+            $this->shutdownRegistered = true;
+            register_shutdown_function([$this, 'flush']);
+        }
+    }
+
+    public function flush(): void {
+        foreach ($this->buffer as $logFile => $contents) {
+            file_put_contents($logFile, $contents, FILE_APPEND | LOCK_EX);
+        }
+        $this->buffer = [];
     }
 
     public function info(string $message, string $category = 'app'): void {

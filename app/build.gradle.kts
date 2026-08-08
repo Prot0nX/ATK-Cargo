@@ -15,7 +15,7 @@ android {
     defaultConfig {
         applicationId = "com.atk.atk_cargo"
         minSdk = 28
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 10
         versionName = "3.0.34"
 

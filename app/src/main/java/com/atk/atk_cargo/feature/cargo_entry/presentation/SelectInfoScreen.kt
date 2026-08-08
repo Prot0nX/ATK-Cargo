@@ -89,6 +89,7 @@ import com.atk.atk_cargo.api.MatchingQuota
 import com.atk.atk_cargo.api.MessageType
 import com.atk.atk_cargo.api.RealTimeLoadingData
 import com.atk.atk_cargo.api.RetrofitClient
+import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
@@ -107,6 +108,9 @@ import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
+
+// دسترسی به شبکه از طریق Repository، نه مستقیم از RetrofitClient در کد UI
+private val reportsRepository by lazy { ReportsRepository(RetrofitClient.apiService) }
 
 private val QuotasAccent: Color
     @Composable get() = MaterialTheme.colorScheme.primary
@@ -228,19 +232,9 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
     fun updateStatistics() {
         coroutineScope.launch {
             try {
-                val response = RetrofitClient.apiService.getRealTimeLoadingData()
-
-                if (response.isSuccessful) {
-                    val realTimeDataResponse = response.body()
-                    if (realTimeDataResponse != null) {
-                        showUpdateMessage("اطلاعات با موفقیت بروزرسانی شد", MessageType.SUCCESS)
-                        viewModel.updateInfoValues()
-                    } else {
-                        showUpdateMessage("داده‌های دریافتی خالی است", MessageType.WARNING)
-                    }
-                } else {
-                    showUpdateMessage("خطا در دریافت اطلاعات: ${response.code()}", MessageType.ERROR)
-                }
+                reportsRepository.getRealTimeLoadingData()
+                showUpdateMessage("اطلاعات با موفقیت بروزرسانی شد", MessageType.SUCCESS)
+                viewModel.updateInfoValues()
             } catch (_: Exception) {
                 showUpdateMessage("خطا در ارتباط با سرور", MessageType.ERROR)
             } finally {
@@ -268,13 +262,7 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
     fun fetchRealTimeData() {
         coroutineScope.launch {
             try {
-                val response = RetrofitClient.apiService.getRealTimeLoadingData()
-                if (response.isSuccessful) {
-                    val responseData = response.body()
-                    if (responseData != null) {
-                        realTimeDataList = responseData.data
-                    }
-                }
+                realTimeDataList = reportsRepository.getRealTimeLoadingData().data
             } catch (_: Exception) {
                 // خطایی رخ داده، اما ادامه می‌دهیم با داده‌های ActiveShipInfo
             }
@@ -829,17 +817,7 @@ private fun ActiveQuotasDialog(
     LaunchedEffect(Unit) {
         try {
             isLoading = true
-            val response = RetrofitClient.apiService.getRealTimeLoadingData()
-            if (response.isSuccessful) {
-                val responseData = response.body()
-                if (responseData != null) {
-                    realTimeData = responseData.data
-                } else {
-                    errorMessage = "داده‌های دریافتی خالی است"
-                }
-            } else {
-                errorMessage = "خطا در دریافت اطلاعات: ${response.code()}"
-            }
+            realTimeData = reportsRepository.getRealTimeLoadingData().data
         } catch (e: Exception) {
             errorMessage = "خطا در ارتباط با سرور: ${e.message}"
         } finally {
@@ -916,18 +894,8 @@ private fun ActiveQuotasDialog(
                         coroutineScope.launch {
                             try {
                                 isLoading = true
-                                val response = RetrofitClient.apiService.getRealTimeLoadingData()
-                                if (response.isSuccessful) {
-                                    val responseData = response.body()
-                                    if (responseData != null) {
-                                        realTimeData = responseData.data
-                                        errorMessage = null
-                                    } else {
-                                        errorMessage = "داده‌های دریافتی خالی است"
-                                    }
-                                } else {
-                                    errorMessage = "خطا در دریافت اطلاعات: ${response.code()}"
-                                }
+                                realTimeData = reportsRepository.getRealTimeLoadingData().data
+                                errorMessage = null
                             } catch (e: Exception) {
                                 errorMessage = "خطا در ارتباط با سرور: ${e.message}"
                             } finally {
@@ -2229,18 +2197,10 @@ private suspend fun loadActiveShips(
     onSuccess: (List<ActiveShipInfo>) -> Unit
 ) {
     try {
-        val response = RetrofitClient.apiService.getActiveShips()
-
-        if (response.isSuccessful) {
-            response.body()?.let { ships ->
-                onSuccess(ships)
-            } ?: throw Exception("داده‌های دریافتی خالی است")
-        } else {
-            throw Exception("خطا در دریافت اطلاعات کشتی‌های فعال")
-        }
+        onSuccess(reportsRepository.getActiveShips())
     } catch (e: Exception) {
         Log.e("LoadActiveShips", "استثنا در بارگیری کشتی‌های فعال", e)
-        throw Exception("خطا در ارتباط با سرور: ${e.message}")
+        throw e
     }
 }
 

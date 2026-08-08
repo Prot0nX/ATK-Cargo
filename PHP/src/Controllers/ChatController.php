@@ -10,6 +10,7 @@ use mysqli;
 use mysqli_stmt;
 use App\Core\Database;
 use App\Core\Logger;
+use App\Core\MicroCache;
 use App\Core\Request;
 
 class ChatController {
@@ -238,24 +239,28 @@ class ChatController {
 
     private function getUnreadCount(string $username): int {
         if (!$this->isAdmin($username)) return 0;
-        
-        $query = "
-            SELECT COUNT(*) as count 
-            FROM admin_chat_messages c 
-            WHERE c.username != ? 
-            AND NOT EXISTS (
-                SELECT 1 FROM admin_chat_reads r 
-                WHERE r.message_id = c.id AND r.username = ?
-            )
-        ";
-        try {
-            $stmt = $this->prepareAndExecute($query, 'ss', $username, $username);
-            $result = $stmt->get_result()->fetch_assoc();
-            $stmt->close();
-            return (int)($result['count'] ?? 0);
-        } catch (Exception $e) {
-            return 0;
-        }
+
+        // badge تعداد نخوانده معمولاً هر چند ثانیه poll می‌شود؛ کش کوتاه بار دیتابیس
+        // را کم می‌کند بدون اینکه تأخیر محسوسی در نمایش badge ایجاد شود.
+        return MicroCache::remember('chat_unread_' . $username, 4, function () use ($username) {
+            $query = "
+                SELECT COUNT(*) as count
+                FROM admin_chat_messages c
+                WHERE c.username != ?
+                AND NOT EXISTS (
+                    SELECT 1 FROM admin_chat_reads r
+                    WHERE r.message_id = c.id AND r.username = ?
+                )
+            ";
+            try {
+                $stmt = $this->prepareAndExecute($query, 'ss', $username, $username);
+                $result = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                return (int)($result['count'] ?? 0);
+            } catch (Exception $e) {
+                return 0;
+            }
+        });
     }
 
     private function isMessageOwner(int $messageId, string $username): bool {

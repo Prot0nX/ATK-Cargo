@@ -10,6 +10,7 @@ use InvalidArgumentException;
 use mysqli;
 use App\Core\Database;
 use App\Core\Logger;
+use App\Core\MicroCache;
 use App\Core\Request;
 use SessionManager;
 
@@ -297,18 +298,23 @@ class UtilityController {
             $permissions_file = APP_ROOT . '/config/permissions.json';
             $userPermissions = [];
 
-            if (file_exists($permissions_file)) {
-                $allData = json_decode((string)file_get_contents($permissions_file), true);
-
-                if (isset($allData['roles'])) {
-                    if (isset($allData['users'][$username])) {
-                        $userPermissions = $allData['users'][$username];
-                    } elseif (isset($allData['roles'][$userType])) {
-                        $userPermissions = $allData['roles'][$userType];
-                    }
-                } else {
-                    $userPermissions = $allData[$userType] ?? [];
+            // محتوای permissions.json برای همه‌ی کاربران یکسان است؛ خواندن و پارس آن
+            // به مدت کوتاهی کش می‌شود تا روی هر sync دوباره از دیسک خوانده نشود.
+            $allData = MicroCache::remember('permissions_file_data', 15, function () use ($permissions_file) {
+                if (file_exists($permissions_file)) {
+                    return json_decode((string)file_get_contents($permissions_file), true) ?: [];
                 }
+                return [];
+            });
+
+            if (isset($allData['roles'])) {
+                if (isset($allData['users'][$username])) {
+                    $userPermissions = $allData['users'][$username];
+                } elseif (isset($allData['roles'][$userType])) {
+                    $userPermissions = $allData['roles'][$userType];
+                }
+            } else {
+                $userPermissions = $allData[$userType] ?? [];
             }
 
             $this->sendSyncResponse(true, 'Permissions synced successfully.', [

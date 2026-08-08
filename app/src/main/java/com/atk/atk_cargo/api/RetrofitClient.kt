@@ -7,6 +7,7 @@ import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonToken
 import com.google.gson.stream.JsonWriter
+import okhttp3.ConnectionPool
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -15,7 +16,10 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    private const val TIMEOUT_SECONDS = 30L
+    // اتصال باید سریع برقرار شود؛ خواندن/نوشتن ممکن است بار سنگین‌تری داشته باشد
+    private const val CONNECT_TIMEOUT_SECONDS = 10L
+    private const val READ_TIMEOUT_SECONDS = 30L
+    private const val WRITE_TIMEOUT_SECONDS = 30L
 
     // Base URL from Secrets
     private val BASE_URL = Secrets.getBaseUrl()
@@ -73,16 +77,19 @@ object RetrofitClient {
         chain.proceed(request)
     }
 
+    // چون چند صفحه هم‌زمان به همین هاست poll می‌کنند، pool بزرگ‌تر از پیش‌فرض OkHttp
+    // (۵ اتصال) باعث می‌شود اتصالات idle بین pollها دوباره استفاده شوند نه بسته/باز.
+    private val connectionPool = ConnectionPool(10, 5, TimeUnit.MINUTES)
+
     // Configure OkHttpClient
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor)
         .addInterceptor(headersInterceptor)
-        .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .connectionPool(connectionPool)
+        .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
-        .apply {
-        }
         .build()
 
     // Configure and create Retrofit instance
@@ -102,7 +109,9 @@ object RetrofitClient {
 
 // Retrofit client for Third Party API
 object ThirdPartyRetrofitClient {
-    private const val TIMEOUT_SECONDS = 30L
+    private const val CONNECT_TIMEOUT_SECONDS = 10L
+    private const val READ_TIMEOUT_SECONDS = 30L
+    private const val WRITE_TIMEOUT_SECONDS = 30L
     private const val BASE_URL = "https://pishrodarya.ir/WorknetWebSite/service/api/"
 
     // Headers interceptor for Third Party API
@@ -122,9 +131,9 @@ object ThirdPartyRetrofitClient {
     // Configure OkHttpClient
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(headersInterceptor)
-        .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .retryOnConnectionFailure(true)
         .build()
 
