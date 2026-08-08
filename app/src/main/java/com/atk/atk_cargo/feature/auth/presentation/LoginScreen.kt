@@ -77,6 +77,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.atk.atk_cargo.R
 import com.atk.atk_cargo.feature.auth.viewmodel.AuthViewModel
 import com.atk.atk_cargo.feature.auth.viewmodel.LoginFormState
@@ -148,17 +149,17 @@ private fun CompactLoginLayout(
             .fillMaxSize()
             .verticalScroll(scrollState)
             .imePadding()
-            .padding(horizontal = ATKCargoTheme.spacing.l, vertical = ATKCargoTheme.spacing.m),
+            .padding(horizontal = ATKCargoTheme.spacing.xl, vertical = ATKCargoTheme.spacing.xxl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.l)
         ) {
-            // هدر تصویر برندینگ
-            IndustrialCompactHeaderWithImage()
-            Spacer(modifier = Modifier.height(ATKCargoTheme.spacing.l))
+            // کارت برندینگ (لوگو، نام سامانه و توضیح کوتاه)
+            LoginBrandingCard()
 
             // کارت فرم ورود
             IndustrialLoginFormCard(
@@ -280,48 +281,64 @@ private fun ExpandedLoginLayout(
     }
 }
 
+/**
+ * کارت برندینگ سبک با آیکون لوگو، نام سامانه و توضیح کوتاه (مطابق طراحی جدید).
+ */
 @Composable
-private fun IndustrialCompactHeaderWithImage() {
+private fun LoginBrandingCard() {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(180.dp),
-        shape = RoundedCornerShape(ATKCargoTheme.dimensions.cardCornerRadius),
-        elevation = CardDefaults.cardElevation(defaultElevation = ATKCargoTheme.elevation.level2)
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = ATKCargoTheme.semanticColors.cardBackground
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(
+            width = ATKCargoTheme.dimensions.borderWidthThin,
+            color = ATKCargoTheme.semanticColors.borderSubtle
+        )
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // تصویر پس‌زمینه هدر
-            Image(
-                painter = painterResource(R.drawable.login_bg),
-                contentDescription = "تصویر پس‌زمینه هدر سامانه ورود",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-
-            // گرادینت تاریک شفاف جهت خوانایی عالی متن و آیکون
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                                MaterialTheme.colorScheme.surface
-                            )
-                        )
-                    )
-            )
-
-            // محتوای متنی و آیکون هدر
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(ATKCargoTheme.spacing.l),
-                contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = ATKCargoTheme.spacing.xl, vertical = ATKCargoTheme.spacing.xxl),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.s)
+        ) {
+            Surface(
+                modifier = Modifier.size(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primary
             ) {
-                IndustrialBrandingHeaderContent(isCompact = true)
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.LocalShipping,
+                        contentDescription = "لوگوی سامانه ATK Cargo",
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
             }
+
+            Text(
+                text = "ATK Cargo",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "ENTERPRISE LOGISTICS",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                letterSpacing = 1.8.sp
+            )
+            Text(
+                text = "سامانه جامع مدیریت عملیات بارگیری",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
@@ -443,13 +460,11 @@ private fun IndustrialLoginFormCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(ATKCargoTheme.dimensions.cardCornerRadius),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = ATKCargoTheme.semanticColors.cardBackground
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = ATKCargoTheme.elevation.level2
-        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = androidx.compose.foundation.BorderStroke(
             width = ATKCargoTheme.dimensions.borderWidthThin,
             color = ATKCargoTheme.semanticColors.borderSubtle
@@ -482,13 +497,14 @@ private fun IndustrialLoginFormCard(
                 value = formState.username,
                 onValueChange = onUsernameChanged,
                 label = "نام کاربری",
-                placeholder = "مثال: ali",
+                placeholder = "نام کاربری",
                 fieldDescription = "فیلد نام کاربری",
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = "آیکون پرسنل",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(ATKCargoTheme.dimensions.iconSmall)
                     )
                 },
                 keyboardType = KeyboardType.Text,
@@ -503,29 +519,33 @@ private fun IndustrialLoginFormCard(
                 value = formState.password,
                 onValueChange = onPasswordChanged,
                 label = "رمز عبور (فقط عدد)",
-                placeholder = "پین‌کد عددی را وارد کنید",
+                placeholder = "••••",
                 fieldDescription = "فیلد رمز عبور عددی",
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = "آیکون قفل امنیتی",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                },
                 trailingIcon = {
-                    IconButton(
-                        onClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onPasswordToggle()
-                        },
-                        modifier = Modifier.size(ATKCargoTheme.dimensions.touchTargetMin)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xs)
                     ) {
+                        IconButton(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onPasswordToggle()
+                            },
+                            modifier = Modifier.size(ATKCargoTheme.dimensions.touchTargetMin)
+                        ) {
+                            Icon(
+                                imageVector = if (formState.isPasswordVisible)
+                                    Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = if (formState.isPasswordVisible)
+                                    "پنهان‌سازی رمز عبور" else "نمایش رمز عبور",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         Icon(
-                            imageVector = if (formState.isPasswordVisible)
-                                Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                            contentDescription = if (formState.isPasswordVisible)
-                                "پنهان‌سازی رمز عبور" else "نمایش رمز عبور",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = "آیکون قفل امنیتی",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(ATKCargoTheme.dimensions.iconSmall)
                         )
                     }
                 },
@@ -591,7 +611,7 @@ private fun IndustrialLoginFormCard(
                 }
             }
 
-            // Action Button (56dp Industrial Target Height)
+            // Action Button (پرشده، تخت و بدون سایه، مطابق طراحی جدید)
             Button(
                 onClick = {
                     keyboardController?.hide()
@@ -604,7 +624,7 @@ private fun IndustrialLoginFormCard(
                     .semantics {
                         contentDescription = if (isLoading) "در حال تایید و ورود به سامانه..." else "دکمه ورود به سامانه"
                     },
-                shape = RoundedCornerShape(ATKCargoTheme.dimensions.buttonCornerRadius),
+                shape = RoundedCornerShape(13.dp),
                 enabled = isLoginEnabled,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -613,7 +633,7 @@ private fun IndustrialLoginFormCard(
                     disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                 ),
                 elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = ATKCargoTheme.elevation.level2,
+                    defaultElevation = ATKCargoTheme.elevation.level0,
                     pressedElevation = ATKCargoTheme.elevation.level0
                 )
             ) {
@@ -652,7 +672,7 @@ private fun IndustrialInputField(
     label: String,
     placeholder: String,
     fieldDescription: String,
-    leadingIcon: @Composable () -> Unit,
+    leadingIcon: @Composable (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
     isPassword: Boolean = false,
     passwordVisible: Boolean = false,
@@ -673,6 +693,7 @@ private fun IndustrialInputField(
             modifier = Modifier.padding(horizontal = ATKCargoTheme.spacing.xxs)
         )
 
+        // فیلد پرشده و بدون حاشیه (Pill Input) مطابق طراحی جدید
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
@@ -693,7 +714,7 @@ private fun IndustrialInputField(
                     else Modifier
                 )
                 .semantics { contentDescription = fieldDescription },
-            shape = RoundedCornerShape(ATKCargoTheme.dimensions.buttonCornerRadius),
+            shape = RoundedCornerShape(13.dp),
             visualTransformation = if (isPassword && !passwordVisible)
                 PasswordVisualTransformation()
             else
@@ -705,8 +726,8 @@ private fun IndustrialInputField(
             keyboardActions = keyboardActions,
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = ATKCargoTheme.semanticColors.borderStrong,
+                focusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
+                unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
                 focusedContainerColor = ATKCargoTheme.semanticColors.inputBackground,
                 unfocusedContainerColor = ATKCargoTheme.semanticColors.inputBackground,
                 cursorColor = MaterialTheme.colorScheme.primary,
@@ -718,23 +739,12 @@ private fun IndustrialInputField(
 
 @Composable
 private fun IndustrialFooterInfo() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(ATKCargoTheme.spacing.xxs)
-    ) {
-        Text(
-            text = "شرکت امین تجار خوزستان • کلیه حقوق محفوظ است",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.outline,
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = "پشتیبانی فنی: Prot0nX",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center
-        )
-    }
+    Text(
+        text = "شرکت امین تجار خوزستان • کلیه حقوق محفوظ است",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.outline,
+        textAlign = TextAlign.Center
+    )
 }
 
 @Preview(name = "Compact - Industrial Light Header Image", showBackground = true, locale = "fa")
