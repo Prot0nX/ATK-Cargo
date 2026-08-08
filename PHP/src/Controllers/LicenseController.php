@@ -178,6 +178,9 @@ class LicenseController {
 
     private function sendJsonResponse(array $data, int $statusCode = 200): void {
         http_response_code($statusCode);
+        if (extension_loaded('zlib') && !ini_get('zlib.output_compression') && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
+            ob_start('ob_gzhandler');
+        }
         echo json_encode($data, JSON_UNESCAPED_UNICODE);
         exit;
     }

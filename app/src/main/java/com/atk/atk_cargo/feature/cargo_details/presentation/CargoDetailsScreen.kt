@@ -49,6 +49,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.atk.atk_cargo.api.CargoViewModel
@@ -293,19 +296,22 @@ fun CargoDetailsScreen(
         viewModel.updateInfoValues()
     }
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(30000.milliseconds)
-            if (quotaNumber.isNotBlank()) {
-                refreshData(
-                    viewModel = viewModel,
-                    quotaNumber = quotaNumber,
-                    shippingCompany = shippingCompany,
-                    warehouse = warehouse,
-                    cargoType = cargoType
-                ) {
-                    viewModel.updateInfoValues()
-                    showUpdateMessage("اطلاعات با موفقیت بروزرسانی شد", MessageType.SUCCESS)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                delay(30000.milliseconds)
+                if (quotaNumber.isNotBlank()) {
+                    refreshData(
+                        viewModel = viewModel,
+                        quotaNumber = quotaNumber,
+                        shippingCompany = shippingCompany,
+                        warehouse = warehouse,
+                        cargoType = cargoType
+                    ) {
+                        viewModel.updateInfoValues()
+                        showUpdateMessage("اطلاعات با موفقیت بروزرسانی شد", MessageType.SUCCESS)
+                    }
                 }
             }
         }

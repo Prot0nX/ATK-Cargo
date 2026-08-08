@@ -37,7 +37,11 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.awaitCancellation
 import com.atk.atk_cargo.api.ChatViewModel
 import com.atk.atk_cargo.api.ChatViewModelFactory
 import com.atk.atk_cargo.api.UserPreferencesManager
@@ -72,7 +76,19 @@ fun ChatScreen(
         notificationManager?.cancelAll()
         viewModel.markAllMessagesAsRead()
     }
-    
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.startPolling()
+            try {
+                awaitCancellation()
+            } finally {
+                viewModel.pausePolling()
+            }
+        }
+    }
+
     val shipsData by viewModel.ships.collectAsState()
     val shipQuotas by viewModel.shipQuotas.collectAsState()
     val fontSize by viewModel.chatFontSize.collectAsState()

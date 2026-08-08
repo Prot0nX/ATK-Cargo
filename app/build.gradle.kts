@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.androidx.baselineprofile)
     id("kotlin-parcelize")
     id("kotlin-kapt")
 }
@@ -66,6 +67,16 @@ android {
 
             // بهینه‌سازی APK
             multiDexEnabled = true
+        }
+
+        // بیلدتایپ اختصاصی برای تولید Baseline Profile — کاملاً مجزا از release،
+        // فقط برای پروفایل‌گیری محلی استفاده می‌شود و به کلید امضای release دست نمی‌زند
+        create("benchmark") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            signingConfig = signingConfigs.getByName("debug")
+            isDebuggable = false
+            isProfileable = true
         }
     }
 
@@ -193,7 +204,15 @@ android {
     ndkVersion = "26.1.10909125"
 }
 
+// پیکربندی Baseline Profile برای بهبود زمان راه‌اندازی سرد
+baselineProfile {
+    // در صورت وجود دستگاه/امولاتور متصل به‌صورت خودکار از آن استفاده می‌کند
+    automaticGenerationDuringBuild = false
+}
+
 dependencies {
+    baselineProfile(project(":baselineprofile"))
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.foundation.layout)
     // ==================== Core Library Desugaring ====================
     coreLibraryDesugaring(libs.desugar.jdk.libs.v215)

@@ -57,7 +57,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -78,6 +77,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import com.atk.atk_cargo.api.ActiveShipInfo
 import com.atk.atk_cargo.api.CargoViewModel
@@ -174,10 +176,15 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
     var snackbarMessage by remember { mutableStateOf<SnackbarMessage?>(null) }
     var showShipSelectionDialog by remember { mutableStateOf(false) }
     val selectedShipNames by viewModel.selectedShipNames.collectAsState(initial = emptySet())
-    val filteredShips = activeShips.filter { selectedShipNames.contains(it.shipName) }
-    val groupedShips = filteredShips.groupBy { it.shipName }
+    val filteredShips = remember(activeShips, selectedShipNames) {
+        activeShips.filter { selectedShipNames.contains(it.shipName) }
+    }
+    val groupedShips = remember(filteredShips) {
+        filteredShips.groupBy { it.shipName }
+    }
     var showActiveQuotasDialog by remember { mutableStateOf(false) }
     var isQuotaEntryDialogOpen by remember { mutableStateOf(false) }
+    var realTimeDataList by remember { mutableStateOf<List<RealTimeLoadingData>>(emptyList()) }
 
     fun updateShipColors(ships: List<ActiveShipInfo>) {
         colorSelector.reset()
@@ -254,6 +261,22 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
             } catch (_: Exception) {
                 showUpdateMessage("خطا در بروزرسانی داده‌ها", MessageType.ERROR)
                 isRefreshing = false
+            }
+        }
+    }
+
+    fun fetchRealTimeData() {
+        coroutineScope.launch {
+            try {
+                val response = RetrofitClient.apiService.getRealTimeLoadingData()
+                if (response.isSuccessful) {
+                    val responseData = response.body()
+                    if (responseData != null) {
+                        realTimeDataList = responseData.data
+                    }
+                }
+            } catch (_: Exception) {
+                // خطایی رخ داده، اما ادامه می‌دهیم با داده‌های ActiveShipInfo
             }
         }
     }
@@ -353,6 +376,7 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
 
     LaunchedEffect(Unit) {
         refreshData()
+        fetchRealTimeData()
     }
 
     LaunchedEffect(selectedShipNames, activeShips) {
@@ -363,12 +387,16 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
         }
     }
 
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(30000.milliseconds)
-            // اگر دیالوگ ورود کوتاژ باز است، بروزرسانی نکن
-            if (!isQuotaEntryDialogOpen) {
-                refreshData()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                delay(30000.milliseconds)
+                // اگر دیالوگ ورود کوتاژ باز است، بروزرسانی نکن
+                if (!isQuotaEntryDialogOpen) {
+                    refreshData()
+                    fetchRealTimeData()
+                }
             }
         }
     }
@@ -443,6 +471,7 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                 } else {
                     GroupedShipList(
                         groupedShips = groupedShips,
+                        realTimeDataList = realTimeDataList,
                         onEnter = { ship, enteredQuota ->
                             handleQuotaEntry(ship, enteredQuota)
                         },
@@ -499,53 +528,22 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
 @Composable
 private fun GroupedShipList(
     groupedShips: Map<String, List<ActiveShipInfo>>,
+    realTimeDataList: List<RealTimeLoadingData>,
     onEnter: (ActiveShipInfo, String) -> Unit,
     shipColorMap: Map<String, Color>,
     onDialogStateChange: (Boolean) -> Unit
 ) {
-    // لود داده‌های لحظه‌ای برای هر کشتی
-    val coroutineScope = rememberCoroutineScope()
-    var realTimeDataList by remember { mutableStateOf<List<RealTimeLoadingData>>(emptyList()) }
-
-    // برای به‌روزرسانی داده‌های لحظه‌ای
-    var updateCounter by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(updateCounter) {
-        coroutineScope.launch {
-            try {
-                val response = RetrofitClient.apiService.getRealTimeLoadingData()
-                if (response.isSuccessful) {
-                    val responseData = response.body()
-                    if (responseData != null) {
-                        realTimeDataList = responseData.data
-                    }
-                }
-            } catch (_: Exception) {
-                // خطایی رخ داده، اما ادامه می‌دهیم با داده‌های ActiveShipInfo
-            } finally {
-            }
-        }
-    }
-
-    // برای به‌روزرسانی خودکار داده‌ها
     var isDialogOpen by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(30000.milliseconds)
-            // اگر دیالوگ ورود کوتاژ باز است، بروزرسانی نکن
-            if (!isDialogOpen) {
-                updateCounter++
-            }
-        }
-    }
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         groupedShips.forEach { (shipName, ships) ->
-            item {
+            item(key = shipName) {
                 // یافتن داده‌های لحظه‌ای مربوط به این کشتی
-                val shipRealTimeData = realTimeDataList.filter { it.shipName == shipName }
+                val shipRealTimeData = remember(realTimeDataList, shipName) {
+                    realTimeDataList.filter { it.shipName == shipName }
+                }
 
                 if (shipRealTimeData.isNotEmpty()) {
                     // استفاده از داده‌های لحظه‌ای
@@ -850,12 +848,14 @@ private fun ActiveQuotasDialog(
     }
 
     // فیلتر کشتی‌ها برای نمایش فقط کشتی‌هایی که حداقل یک ورود یا خروج دارند
-    val filteredShips = convertedShips.filter { it.entryVouchers + it.exitVouchers > 0 }
+    val filteredShips = remember(convertedShips) {
+        convertedShips.filter { it.entryVouchers + it.exitVouchers > 0 }
+    }
 
-    val groupedShips = filteredShips.groupBy { it.shipName }
-    val totalVouchers = filteredShips.sumOf { it.entryVouchers + it.exitVouchers }
-    val completedVouchers = filteredShips.sumOf { it.exitVouchers }
-    val totalNetWeight = filteredShips.sumOf { it.totalNetWeight }
+    val groupedShips = remember(filteredShips) { filteredShips.groupBy { it.shipName } }
+    val totalVouchers = remember(filteredShips) { filteredShips.sumOf { it.entryVouchers + it.exitVouchers } }
+    val completedVouchers = remember(filteredShips) { filteredShips.sumOf { it.exitVouchers } }
+    val totalNetWeight = remember(filteredShips) { filteredShips.sumOf { it.totalNetWeight } }
 
     // فیلتر وضعیت - پیش‌فرض "در حال انجام"
     var filterState by remember { mutableStateOf(FilterState.PENDING) }
@@ -1400,15 +1400,18 @@ private fun GroupedShipsContent(
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
             // مرتب‌سازی کشتی‌ها بر اساس تعداد حواله‌های باقیمانده (نزولی)
-            items(filteredShips.sortedWith(
-                compareByDescending<Map.Entry<String, List<ActiveShipInfo>>> { (_, ships) ->
-                    val total = ships.sumOf { it.entryVouchers + it.exitVouchers }
-                    val completed = ships.sumOf { it.exitVouchers }
-                    total - completed  // حواله‌های باقیمانده
-                }.thenByDescending { (_, ships) ->
-                    ships.sumOf { it.entryVouchers + it.exitVouchers }  // کل حواله‌ها
-                }
-            ).toList()) { (shipName, ships) ->
+            items(
+                items = filteredShips.sortedWith(
+                    compareByDescending<Map.Entry<String, List<ActiveShipInfo>>> { (_, ships) ->
+                        val total = ships.sumOf { it.entryVouchers + it.exitVouchers }
+                        val completed = ships.sumOf { it.exitVouchers }
+                        total - completed  // حواله‌های باقیمانده
+                    }.thenByDescending { (_, ships) ->
+                        ships.sumOf { it.entryVouchers + it.exitVouchers }  // کل حواله‌ها
+                    }
+                ).toList(),
+                key = { it.key }
+            ) { (shipName, ships) ->
                 ShipCard(
                     shipName = shipName,
                     ships = ships,
@@ -1817,14 +1820,17 @@ private fun FlatQuotasContent(
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
             // مرتب‌سازی بر اساس حواله‌های باقیمانده (نزولی)، سپس کشتی و انبار
-            items(filteredQuotas.sortedWith(
-                compareByDescending<ActiveShipInfo> { ship ->
-                    val total = ship.entryVouchers + ship.exitVouchers
-                    val remaining = total - ship.exitVouchers
-                    remaining  // حواله‌های باقیمانده
-                }.thenBy { it.shipName }
-                    .thenBy { it.loadingWarehouse }
-            )) { quota ->
+            items(
+                items = filteredQuotas.sortedWith(
+                    compareByDescending<ActiveShipInfo> { ship ->
+                        val total = ship.entryVouchers + ship.exitVouchers
+                        val remaining = total - ship.exitVouchers
+                        remaining  // حواله‌های باقیمانده
+                    }.thenBy { it.shipName }
+                        .thenBy { it.loadingWarehouse }
+                ),
+                key = { "${it.loadingQuotaNumber}|${it.shipName}|${it.loadingWarehouse}|${it.shippingCompany}|${it.cargoType}" }
+            ) { quota ->
                 FlatQuotaCard(
                     quota = quota,
                     searchQuery = searchQuery

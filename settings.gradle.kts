@@ -21,3 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "ATK-Cargo"
 include(":app")
+include(":baselineprofile")

@@ -120,7 +120,7 @@ class ChatViewModel(
         }
     }
 
-    private fun startPolling() {
+    fun startPolling() {
         if (isPolling) return
         isPolling = true
         viewModelScope.launch {
@@ -135,6 +135,10 @@ class ChatViewModel(
                 }
             }
         }
+    }
+
+    fun pausePolling() {
+        isPolling = false
     }
 
     fun refreshMessages() {

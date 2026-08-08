@@ -25,19 +25,6 @@ class ChatController {
         $this->request = new Request();
     }
 
-    private function ensureTablesExist(): void {
-        $query = "CREATE TABLE IF NOT EXISTS admin_chat_reads (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            message_id INT NOT NULL,
-            username VARCHAR(50) NOT NULL,
-            read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY unique_read (message_id, username),
-            FOREIGN KEY (message_id) REFERENCES admin_chat_messages(id) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-        
-        $this->conn->query($query);
-    }
-
     public function handleChatRequest(): void {
         header('Content-Type: application/json; charset=UTF-8');
         date_default_timezone_set('Asia/Tehran');
@@ -307,6 +294,9 @@ class ChatController {
 
     private function sendJsonResponse(array $data, int $statusCode = 200): void {
         http_response_code($statusCode);
+        if (extension_loaded('zlib') && !ini_get('zlib.output_compression') && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
+            ob_start('ob_gzhandler');
+        }
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         exit;
     }
