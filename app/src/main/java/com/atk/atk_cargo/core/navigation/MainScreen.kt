@@ -1,9 +1,9 @@
 package com.atk.atk_cargo.core.navigation
 
 // ===== FEATURE NAVIGATION IMPORTS =====
-import android.annotation.SuppressLint
-import android.widget.Toast
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.tween
@@ -36,25 +36,23 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.atk.atk_cargo.MainActivity
-import com.atk.atk_cargo.api.LogoutRequest
 import com.atk.atk_cargo.api.PermissionPoller
-import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.core.startup.LocalNotificationPermissionRequester
+import com.atk.atk_cargo.core.startup.LocalStartupViewModel
 import com.atk.atk_cargo.feature.admin.presentation.UserManagementDialog
 import com.atk.atk_cargo.feature.auth.presentation.LoginScreen
 import com.atk.atk_cargo.feature.cargo_counter.navigation.CargoCounterRoute
@@ -72,12 +70,9 @@ import com.atk.atk_cargo.feature.reports.navigation.cargoDetailsScreen
 import com.atk.atk_cargo.ui.screens.ManageReportsScreen
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 
-@SuppressLint("ContextCastToActivity", "HardwareIds")
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
@@ -91,16 +86,16 @@ fun MainScreen() {
     val userPermissions = livePermissions.ifEmpty { storedPermissions }
 
     var showUserManagement by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val mainActivity = LocalContext.current as MainActivity
-    val isSessionValid by mainActivity.isSessionValid.collectAsState()
+    val startupViewModel = LocalStartupViewModel.current
+    val isSessionValid by startupViewModel.isSessionValid.collectAsState()
+    val pendingNavigationDestination by startupViewModel.pendingNavigationDestination.collectAsState()
 
-    LaunchedEffect(mainActivity.pendingNavigationDestination, isSessionValid) {
-        if (isSessionValid && mainActivity.pendingNavigationDestination == "admin_chat") {
+    LaunchedEffect(pendingNavigationDestination, isSessionValid) {
+        if (isSessionValid && pendingNavigationDestination == "admin_chat") {
             try {
                 navController.navigateToAdminChat()
-                mainActivity.pendingNavigationDestination = null
+                startupViewModel.consumePendingNavigation()
             } catch (_: Exception) {
             }
         }
@@ -136,10 +131,12 @@ fun MainScreen() {
                                     .weight(1f)
                             ) {
                                 if (!isSessionValid) {
+                                    val requestNotificationPermission = LocalNotificationPermissionRequester.current
                                     LoginScreen(
                                         onLoginSuccess = {
-                                            mainActivity.updateSessionValidity(true)
-                                            mainActivity.startLoadingNotificationService()
+                                            startupViewModel.updateSessionValidity(true)
+                                            requestNotificationPermission()
+                                            startupViewModel.startLoadingNotificationService()
                                         }
                                     )
                                 } else {
@@ -152,86 +149,24 @@ fun MainScreen() {
                                             username = username,
                                             userType = userType,
                                             userPermissions = userPermissions,
-                                            onLogoutClick = {
-                                                coroutineScope.launch {
-                                                    try {
-                                                        val deviceId = userPreferencesManager.deviceId.first()
-                                                        val sessionToken = userPreferencesManager.sessionToken.first()
-                                                        val logoutRequest = LogoutRequest(
-                                                            username = username,
-                                                            deviceId = deviceId,
-                                                            sessionToken = sessionToken.takeIf { it.isNotEmpty() }
-                                                        )
-
-                                                        val response = RetrofitClient.apiService.logout(logoutRequest)
-                                                        if (response.isSuccessful && response.body()?.success == true) {
-                                                            userPreferencesManager.clearUserCredentials()
-                                                            Toast.makeText(mainActivity, "خروج با موفقیت انجام شد", Toast.LENGTH_SHORT).show()
-                                                        } else {
-                                                            val errorMessage = when (response.code()) {
-                                                                400 -> "❌ درخواست نامعتبر"
-                                                                401 -> "🔐 جلسه منقضی شده است"
-                                                                404 -> "⚠️ جلسه فعالی یافت نشد"
-                                                                500 -> "🔧 خطای داخلی سرور"
-                                                                else -> "خطا در خروج (کد: ${response.code()})"
-                                                            }
-                                                            userPreferencesManager.clearUserCredentials()
-                                                            Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
-                                                        }
-                                                    } catch (_: Exception) {
-                                                        userPreferencesManager.clearUserCredentials()
-                                                        Toast.makeText(mainActivity, "خروج انجام شد", Toast.LENGTH_SHORT).show()
-                                                    }
-                                                }
-                                            },
                                             onManageUsersClick = { showUserManagement = true },
                                             warningsCount = 0
                                         )
+                                        val initialInfoTransitions = standardTransitions(initialScale = 0.90f, targetScale = 1.06f)
                                         composable<InitialInfoRoute>(
-                                            enterTransition = {
-                                                fadeIn(animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        scaleIn(initialScale = 0.90f, animationSpec = tween(425, easing = EaseOutCubic))
-                                            },
-                                            exitTransition = {
-                                                fadeOut(animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        scaleOut(targetScale = 1.06f, animationSpec = tween(275, easing = EaseInCubic))
-                                            },
-                                            popEnterTransition = {
-                                                fadeIn(animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        scaleIn(initialScale = 0.90f, animationSpec = tween(425, easing = EaseOutCubic))
-                                            },
-                                            popExitTransition = {
-                                                fadeOut(animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        scaleOut(targetScale = 1.06f, animationSpec = tween(275, easing = EaseInCubic))
-                                            }
+                                            enterTransition = initialInfoTransitions.enter,
+                                            exitTransition = initialInfoTransitions.exit,
+                                            popEnterTransition = initialInfoTransitions.popEnter,
+                                            popExitTransition = initialInfoTransitions.popExit
                                         ) {
                                             InitialInfoScreen(navController = navController)
                                         }
+                                        val selectInfoTransitions = standardTransitions(initialScale = 0.88f, targetScale = 1.08f)
                                         composable<SelectInfoRoute>(
-                                            enterTransition = {
-                                                fadeIn(animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        scaleIn(initialScale = 0.88f, animationSpec = tween(425, easing = EaseOutCubic))
-                                            },
-                                            exitTransition = {
-                                                fadeOut(animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        scaleOut(targetScale = 1.08f, animationSpec = tween(275, easing = EaseInCubic))
-                                            },
-                                            popEnterTransition = {
-                                                fadeIn(animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        scaleIn(initialScale = 0.88f, animationSpec = tween(425, easing = EaseOutCubic))
-                                            },
-                                            popExitTransition = {
-                                                fadeOut(animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        scaleOut(targetScale = 1.08f, animationSpec = tween(275, easing = EaseInCubic))
-                                            }
+                                            enterTransition = selectInfoTransitions.enter,
+                                            exitTransition = selectInfoTransitions.exit,
+                                            popEnterTransition = selectInfoTransitions.popEnter,
+                                            popExitTransition = selectInfoTransitions.popExit
                                         ) {
                                             val cargoViewModel: CargoViewModel = koinViewModel()
                                             com.atk.atk_cargo.feature.cargo_entry.presentation.CargoOperationScreen(navController = navController, viewModel = cargoViewModel)
@@ -239,77 +174,32 @@ fun MainScreen() {
                                         cargoRegistrationScreen(
                                             navController = navController
                                         )
+                                        val cargoCounterTransitions = standardTransitions(initialScale = 0.90f, targetScale = 1.06f)
                                         composable<CargoCounterRoute>(
-                                            enterTransition = {
-                                                fadeIn(animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        scaleIn(initialScale = 0.90f, animationSpec = tween(425, easing = EaseOutCubic))
-                                            },
-                                            exitTransition = {
-                                                fadeOut(animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        scaleOut(targetScale = 1.06f, animationSpec = tween(275, easing = EaseInCubic))
-                                            },
-                                            popEnterTransition = {
-                                                fadeIn(animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        scaleIn(initialScale = 0.90f, animationSpec = tween(425, easing = EaseOutCubic))
-                                            },
-                                            popExitTransition = {
-                                                fadeOut(animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        scaleOut(targetScale = 1.06f, animationSpec = tween(275, easing = EaseInCubic))
-                                            }
+                                            enterTransition = cargoCounterTransitions.enter,
+                                            exitTransition = cargoCounterTransitions.exit,
+                                            popEnterTransition = cargoCounterTransitions.popEnter,
+                                            popExitTransition = cargoCounterTransitions.popExit
                                         ) {
                                             val cargoViewModel: CargoViewModel = koinViewModel()
                                             com.atk.atk_cargo.feature.cargo_counter.presentation.CargoCounterOperationScreen(navController = navController, viewModel = cargoViewModel)
                                         }
+                                        val manageShipsTransitions = standardTransitions(initialScale = 0.86f, targetScale = 1.10f)
                                         composable<ManageShipsRoute>(
-                                            enterTransition = {
-                                                fadeIn(animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        scaleIn(initialScale = 0.86f, animationSpec = tween(425, easing = EaseOutCubic))
-                                            },
-                                            exitTransition = {
-                                                fadeOut(animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        scaleOut(targetScale = 1.10f, animationSpec = tween(275, easing = EaseInCubic))
-                                            },
-                                            popEnterTransition = {
-                                                fadeIn(animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        scaleIn(initialScale = 0.86f, animationSpec = tween(425, easing = EaseOutCubic))
-                                            },
-                                            popExitTransition = {
-                                                fadeOut(animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        scaleOut(targetScale = 1.10f, animationSpec = tween(275, easing = EaseInCubic))
-                                            }
+                                            enterTransition = manageShipsTransitions.enter,
+                                            exitTransition = manageShipsTransitions.exit,
+                                            popEnterTransition = manageShipsTransitions.popEnter,
+                                            popExitTransition = manageShipsTransitions.popExit
                                         ) {
                                             val reportsViewModel: ReportsViewModel = koinViewModel()
                                             ManageReportsScreen(viewModel = reportsViewModel, navController = navController)
                                         }
+                                        val adminChatTransitions = standardTransitions(initialScale = 0.90f, targetScale = 1.10f)
                                         composable<AdminChatRoute>(
-                                            enterTransition = {
-                                                fadeIn(animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        scaleIn(initialScale = 0.90f, animationSpec = tween(425, easing = EaseOutCubic))
-                                            },
-                                            exitTransition = {
-                                                fadeOut(animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        scaleOut(targetScale = 1.10f, animationSpec = tween(275, easing = EaseInCubic))
-                                            },
-                                            popEnterTransition = {
-                                                fadeIn(animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(425, easing = EaseOutCubic)) +
-                                                        scaleIn(initialScale = 0.90f, animationSpec = tween(425, easing = EaseOutCubic))
-                                            },
-                                            popExitTransition = {
-                                                fadeOut(animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(275, easing = EaseInCubic)) +
-                                                        scaleOut(targetScale = 1.10f, animationSpec = tween(275, easing = EaseInCubic))
-                                            }
+                                            enterTransition = adminChatTransitions.enter,
+                                            exitTransition = adminChatTransitions.exit,
+                                            popEnterTransition = adminChatTransitions.popEnter,
+                                            popExitTransition = adminChatTransitions.popExit
                                         ) {
                                             ChatScreen(
                                                 userPreferencesManager = userPreferencesManager,
@@ -380,3 +270,34 @@ fun MainScreen() {
         }
     }
 }
+
+/** انیمیشن‌های ورود/خروج مسیرهای NavHost که قبلاً به‌صورت ۶ بلاک ۶۰ خطی تکراری نوشته می‌شدند. */
+private data class RouteTransitions(
+    val enter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition,
+    val exit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition,
+    val popEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition,
+    val popExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition
+)
+
+private fun standardTransitions(initialScale: Float, targetScale: Float): RouteTransitions = RouteTransitions(
+    enter = {
+        fadeIn(animationSpec = tween(425, easing = EaseOutCubic)) +
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(425, easing = EaseOutCubic)) +
+                scaleIn(initialScale = initialScale, animationSpec = tween(425, easing = EaseOutCubic))
+    },
+    exit = {
+        fadeOut(animationSpec = tween(275, easing = EaseInCubic)) +
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(275, easing = EaseInCubic)) +
+                scaleOut(targetScale = targetScale, animationSpec = tween(275, easing = EaseInCubic))
+    },
+    popEnter = {
+        fadeIn(animationSpec = tween(425, easing = EaseOutCubic)) +
+                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Right, animationSpec = tween(425, easing = EaseOutCubic)) +
+                scaleIn(initialScale = initialScale, animationSpec = tween(425, easing = EaseOutCubic))
+    },
+    popExit = {
+        fadeOut(animationSpec = tween(275, easing = EaseInCubic)) +
+                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, animationSpec = tween(275, easing = EaseInCubic)) +
+                scaleOut(targetScale = targetScale, animationSpec = tween(275, easing = EaseInCubic))
+    }
+)

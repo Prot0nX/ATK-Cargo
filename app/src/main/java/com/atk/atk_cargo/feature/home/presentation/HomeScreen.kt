@@ -96,11 +96,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.atk.atk_cargo.MainActivity
-import com.atk.atk_cargo.api.LogoutRequest
-import com.atk.atk_cargo.api.RetrofitClient
-import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.core.startup.LocalStartupViewModel
 import com.atk.atk_cargo.data.model.MenuItem
+import com.atk.atk_cargo.data.repository.ChatRepository
+import com.atk.atk_cargo.feature.auth.domain.LogoutUseCase
 import com.atk.atk_cargo.feature.cargo_counter.navigation.navigateToCargoCounter
 import com.atk.atk_cargo.feature.cargo_entry.navigation.navigateToInitialInfo
 import com.atk.atk_cargo.feature.cargo_entry.navigation.navigateToSelectInfo
@@ -108,9 +107,7 @@ import com.atk.atk_cargo.feature.chat.navigation.navigateToAdminChat
 import com.atk.atk_cargo.feature.home.domain.getMenuItemsForUserType
 import com.atk.atk_cargo.feature.home.presentation.components.ProfileMenu
 import com.atk.atk_cargo.feature.reports.navigation.navigateToManageShips
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -122,17 +119,13 @@ fun HomeScreen(
     userType: String,
     userPermissions: Map<String, Boolean>,
     isSessionValid: Boolean,
-    onLogoutClick: () -> Unit,
     onManageUsersClick: () -> Unit
 ) {
     var selectedMenuItem by remember { mutableStateOf<MenuItem?>(null) }
     var showGridAnimation by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    val mainActivity = context as MainActivity
-    val userPreferencesManager = koinInject<UserPreferencesManager>()
-    val coroutineScope = rememberCoroutineScope()
+    val chatRepository = koinInject<ChatRepository>()
 
-    val unreadCountByMe by mainActivity.getChatRepository().unreadCount.collectAsState(initial = 0)
+    val unreadCountByMe by chatRepository.unreadCount.collectAsState(initial = 0)
 
     AnimatedContent(
         targetState = isSessionValid && username.isNotEmpty(),
@@ -197,48 +190,10 @@ fun HomeScreen(
                 Header(
                     username = username,
                     userType = userType,
-                    onLogoutClick = {
-                        coroutineScope.launch {
-                            try {
-                                showGridAnimation = false
-                                delay(200.milliseconds)
-
-                                val deviceId = userPreferencesManager.deviceId.first()
-                                val sessionToken = userPreferencesManager.sessionToken.first()
-                                val logoutRequest = LogoutRequest(
-                                    username = username,
-                                    deviceId = deviceId,
-                                    sessionToken = sessionToken.takeIf { it.isNotEmpty() }
-                                )
-
-                                val response = RetrofitClient.apiService.logout(logoutRequest)
-                                if (response.isSuccessful && response.body()?.success == true) {
-                                    userPreferencesManager.clearUserCredentials()
-                                    mainActivity.updateSessionValidity(false)
-                                    onLogoutClick()
-                                } else {
-                                    val errorMessage = when (response.code()) {
-                                        400 -> "❌ درخواست نامعتبر"
-                                        401 -> "🔐 جلسه منقضی شده است"
-                                        404 -> "⚠️ جلسه فعالی یافت نشد"
-                                        500 -> "🔧 خطای داخلی سرور"
-                                        else -> "خطا در خروج (کد: ${response.code()})"
-                                    }
-                                    Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
-                                    userPreferencesManager.clearUserCredentials()
-                                    mainActivity.updateSessionValidity(false)
-                                    onLogoutClick()
-                                }
-                            } catch (_: Exception) {
-                                userPreferencesManager.clearUserCredentials()
-                                mainActivity.updateSessionValidity(false)
-                                onLogoutClick()
-                            }
-                        }
-                    },
-                    userPreferencesManager = userPreferencesManager,
-                    coroutineScope = coroutineScope,
-                    mainActivity = mainActivity
+                    onBeforeLogout = {
+                        showGridAnimation = false
+                        delay(200.milliseconds)
+                    }
                 )
 
                 if (isLoggedIn) {
@@ -296,13 +251,14 @@ fun HomeScreen(
 private fun Header(
     username: String,
     userType: String,
-    onLogoutClick: () -> Unit,
-    userPreferencesManager: UserPreferencesManager,
-    coroutineScope: CoroutineScope,
-    mainActivity: MainActivity
+    onBeforeLogout: suspend () -> Unit
 ) {
     val headerScale = remember { Animatable(0.97f) }
     val headerOpacity = remember { Animatable(0f) }
+    val startupViewModel = LocalStartupViewModel.current
+    val logoutUseCase = koinInject<LogoutUseCase>()
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         launch {
@@ -338,37 +294,11 @@ private fun Header(
                     userType = userType,
                     onLogoutClick = {
                         coroutineScope.launch {
-                            try {
-                                val deviceId = userPreferencesManager.deviceId.first()
-                                val sessionToken = userPreferencesManager.sessionToken.first()
-                                val logoutRequest = LogoutRequest(
-                                    username = username,
-                                    deviceId = deviceId,
-                                    sessionToken = sessionToken.takeIf { it.isNotEmpty() }
-                                )
-
-                                val response = RetrofitClient.apiService.logout(logoutRequest)
-                                if (response.isSuccessful && response.body()?.success == true) {
-                                    userPreferencesManager.clearUserCredentials()
-                                    mainActivity.updateSessionValidity(false)
-                                    onLogoutClick()
-                                } else {
-                                    val errorMessage = when (response.code()) {
-                                        400 -> "❌ درخواست نامعتبر"
-                                        401 -> "🔐 جلسه منقضی شده است"
-                                        404 -> "⚠️ جلسه فعالی یافت نشد"
-                                        500 -> "🔧 خطای داخلی سرور"
-                                        else -> "خطا در خروج (کد: ${response.code()})"
-                                    }
-                                    Toast.makeText(mainActivity, errorMessage, Toast.LENGTH_SHORT).show()
-                                    userPreferencesManager.clearUserCredentials()
-                                    mainActivity.updateSessionValidity(false)
-                                    onLogoutClick()
-                                }
-                            } catch (_: Exception) {
-                                userPreferencesManager.clearUserCredentials()
-                                mainActivity.updateSessionValidity(false)
-                                onLogoutClick()
+                            onBeforeLogout()
+                            val result = logoutUseCase(username)
+                            startupViewModel.updateSessionValidity(false)
+                            result.getOrNull()?.let { message ->
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
