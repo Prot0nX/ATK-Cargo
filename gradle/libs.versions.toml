@@ -8,6 +8,7 @@ coil-compose = "2.7.0"
 constraintlayout = "2.2.1"
 core = "2.2.0"
 core-ktx = "1.17.0"
+core-splashscreen = "1.0.1"
 datastore-preferences = "1.1.7"
 desugar_jdk_libs = "2.1.5"
 foundation = "1.9.1"
@@ -88,6 +89,7 @@ androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", versi
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "camera-camera2" }
 androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
 androidx-core-ktx-v1160 = { module = "androidx.core:core-ktx", version.ref = "core-ktx" }
+androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "core-splashscreen" }
 
 # Compose BOM
 androidx-datastore-core = { module = "androidx.datastore:datastore-core", version.ref = "datastore-preferences" }

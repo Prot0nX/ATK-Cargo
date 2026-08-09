@@ -66,6 +66,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import org.koin.compose.koinInject
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -142,7 +143,7 @@ internal val QuotasScreenBg: Color
 @Composable
 fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewModel) {
     val context = LocalContext.current
-    val userPreferencesManager = remember { UserPreferencesManager(context) }
+    val userPreferencesManager = koinInject<UserPreferencesManager>()
 
     LaunchedEffect(Unit) {
         try {

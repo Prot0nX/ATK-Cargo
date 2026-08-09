@@ -15,9 +15,12 @@ import kotlinx.coroutines.withContext
 
 class ChatRepository(
     private val chatDao: ChatDao,
-    private val apiService: ApiService,
+    apiServiceProvider: () -> ApiService,
     private val userPreferencesManager: com.atk.atk_cargo.api.UserPreferencesManager
 ) {
+    // ساخت OkHttpClient/Retrofit (کاری نسبتاً سنگین) تا اولین استفاده‌ی واقعی
+    // به تعویق می‌افتد تا در onCreate روی main thread اجرا نشود
+    private val apiService: ApiService by lazy(apiServiceProvider)
 
     // دریافت پیام‌ها از دیتابیس به صورت جریان داده (Flow)
     val messages: Flow<List<ChatMessageEntity>> = chatDao.getAllMessages()

@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import org.koin.compose.koinInject
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -210,7 +211,7 @@ fun CargoCounterScreen(
     sharedViewModel: com.atk.atk_cargo.api.CargoViewModel? = null
 ) {
     val context = LocalContext.current
-    val userPreferencesManager = remember { UserPreferencesManager(context) }
+    val userPreferencesManager = koinInject<UserPreferencesManager>()
     
     LaunchedEffect(Unit) {
         try {

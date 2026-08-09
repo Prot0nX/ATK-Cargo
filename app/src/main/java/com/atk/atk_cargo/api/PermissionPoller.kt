@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -72,6 +73,19 @@ class PermissionPoller(
         pollingJob?.cancel()
         pollingJob = null
         Log.d(TAG, "Permission polling stopped")
+    }
+
+    /**
+     * پایان کامل چرخه حیات — pollerScope را نیز cancel می‌کند.
+     * باید هنگام خروج Composable از ترکیب‌بندی (onDispose) فراخوانی شود،
+     * در غیر این صورت SupervisorJob و coroutine scope اختصاصی برای همیشه
+     * زنده می‌مانند حتی پس از توقف polling.
+     */
+    fun destroy() {
+        pollingJob?.cancel()
+        pollingJob = null
+        pollerScope.cancel()
+        Log.d(TAG, "PermissionPoller destroyed")
     }
 
     /**

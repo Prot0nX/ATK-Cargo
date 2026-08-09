@@ -250,7 +250,7 @@ class ChatViewModelFactory(
             val database = AppDatabase.getDatabase(context)
             val repository = ChatRepository(
                 database.chatDao(),
-                RetrofitClient.apiService,
+                { RetrofitClient.apiService },
                 userPreferencesManager
             )
             @Suppress("UNCHECKED_CAST")

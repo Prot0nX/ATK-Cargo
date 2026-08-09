@@ -19,9 +19,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -56,6 +56,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.android.ext.android.inject
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.milliseconds
@@ -81,8 +82,19 @@ class MainActivity : ComponentActivity() {
     private var isVersionAllowedState by mutableStateOf(true)
     private var isServerSyncing by mutableStateOf(false)
 
+    // باید در زمان ساخت Activity (نه داخل onCreate) ثبت شود؛ برخلاف
+    // ActivityCompat.requestPermissions قدیمی، این API نتیجه را واقعاً برمی‌گرداند
+    private val notificationPermissionLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        Log.d("MainActivity", "مجوز POST_NOTIFICATIONS: ${if (isGranted) "اعطا شد" else "رد شد"}")
+    }
+
     @SuppressLint("CoroutineCreationDuringComposition", "BatteryLife")
     override fun onCreate(savedInstanceState: Bundle?) {
+        // باید قبل از super.onCreate فراخوانی شود؛ پنجره‌ی سفید پیش‌فرض سیستم را با
+        // پس‌زمینه/آیکون برند جایگزین می‌کند تا Compose برای اولین فریم آماده شود
+        installSplashScreen()
         super.onCreate(savedInstanceState)
 
         try {
@@ -90,15 +102,23 @@ class MainActivity : ComponentActivity() {
 
             // بررسی intent برای باز کردن دیالوگ هشدار تناژ کوتاژ
             handleIntent(intent)
-            intent.getStringExtra("navigate_to")?.let { 
+            intent.getStringExtra("navigate_to")?.let {
                 pendingNavigationDestination = it
                 intent.removeExtra("navigate_to")
             }
 
+            // خواندن blocking و یک‌باره‌ی رنگ تم قبل از setContent — بدون این کار،
+            // فریم اول با رنگ پیش‌فرض رندر می‌شد و به‌محض emit شدن مقدار واقعی از
+            // DataStore، کل درخت UI recompose می‌شد (پرش رنگ قابل مشاهده)
+            val initialThemeColor = kotlinx.coroutines.runBlocking {
+                userPreferencesManager.themeColor.first()
+            }
+
             setContent {
-                val themeColorLong by userPreferencesManager.themeColor.collectAsState(initial = 0xFF137fecL)
+                val themeColorLong by userPreferencesManager.themeColor.collectAsState(initial = initialThemeColor)
                 val primaryColor = Color(themeColorLong)
                 ATKCargoTheme(primaryColor = primaryColor) {
+                    val retryScope = androidx.compose.runtime.rememberCoroutineScope()
 
                     // ===== راه‌اندازی موازی تمام فرآیندهای پس‌زمینه =====
                     LaunchedEffect(Unit) {
@@ -108,26 +128,39 @@ class MainActivity : ComponentActivity() {
                                 AppNotificationManager(this@MainActivity).setupChannels()
                             }
 
-                            // بلاک پردازش‌های شبکه
-                            val networkJob = async {
-                                val versionJob = async { updateManager.isCurrentVersionAllowed() }
+                            // بلاک پردازش‌های شبکه — روی Dispatchers.IO تا ساخت اولیه‌ی
+                            // OkHttpClient/Retrofit (که با اولین دسترسی به apiService رخ
+                            // می‌دهد) روی main thread قبل از اولین فریم اجرا نشود
+                            val networkJob = async(Dispatchers.IO) {
+                                // بررسی نسخه‌ی مجاز و وجود آپدیت با یک تک درخواست مشترک به check_update.php
+                                val versionAndUpdateJob = async { updateManager.checkVersionAndUpdate() }
                                 val securityJob = async { performAppSecurityCheck() }
-                                val updateJob = async { checkForUpdate() }
                                 val sessionJob = async { checkUserSessionAsync() }
 
-                                val isVersionAllowed = versionJob.await()
-                                if (!isVersionAllowed) return@async Pair(false, false)
+                                val versionResult = versionAndUpdateJob.await()
+                                if (!versionResult.isVersionAllowed) {
+                                    // چون securityJob/sessionJob فرزند همین coroutine هستند، تا
+                                    // پایان کارشان return@async کامل نمی‌شود مگر صریحاً cancel شوند —
+                                    // در غیر این صورت این return هیچ زمانی صرفه‌جویی نمی‌کرد
+                                    securityJob.cancel()
+                                    sessionJob.cancel()
+                                    return@async Pair(false, false)
+                                }
 
+                                applyUpdateResult(versionResult.hasUpdate)
                                 securityJob.await()
-                                updateJob.await()
                                 val sessionValid = sessionJob.await()
 
                                 return@async Pair(true, sessionValid)
                             }
 
-                            // تایمر دقیق پخش Splash
+                            // تایمر تطبیقی Splash: حداقل نمایش برای جلوگیری از پرش بصری،
+                            // سپس به‌محض آماده شدن شبکه بسته می‌شود (حداکثر تا سقف SPLASH_MAX_DURATION)
                             val splashTimer = launch {
-                                delay(4500.milliseconds)
+                                delay(SPLASH_MIN_DURATION.milliseconds)
+                                withTimeoutOrNull((SPLASH_MAX_DURATION - SPLASH_MIN_DURATION).milliseconds) {
+                                    networkJob.join()
+                                }
                                 isSplashVisible = false
                             }
 
@@ -169,10 +202,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    LaunchedEffect(Unit) {
-                        handleIntent(intent)
-                    }
-
                     // ===== منطق نمایش صفحات =====
                     when {
                         // ۱. Splash Screen: تا زمانی که ویدیو تمام شود یا کاربر رد کند
@@ -193,7 +222,10 @@ class MainActivity : ComponentActivity() {
                         !isSecurityCheckPassed || isSecurityCheckLoading -> {
                             SecurityBlockScreen(
                                 isLoading = isSecurityCheckLoading,
-                                errorType = securityErrorType ?: SecurityErrorType.TAMPERED
+                                errorType = securityErrorType ?: SecurityErrorType.TAMPERED,
+                                onRetry = {
+                                    retryScope.launch { performAppSecurityCheck() }
+                                }
                             )
                         }
                         // ۴. محتوای اصلی برنامه
@@ -209,8 +241,10 @@ class MainActivity : ComponentActivity() {
 
             observeApplicationStates()
 
-        } catch (_: Exception) {
-            // خطای کلی در راه‌اندازی برنامه
+        } catch (e: Exception) {
+            // خطای کلی در راه‌اندازی برنامه — باید لاگ شود، وگرنه کاربر فقط یک صفحه‌ی
+            // سفید بدون هیچ نشانه‌ای می‌بیند و عیب‌یابی در میدان غیرممکن می‌شود
+            Log.e("MainActivity", "خطای بحرانی در راه‌اندازی برنامه: ${e.message}", e)
         }
     }
 
@@ -224,7 +258,7 @@ class MainActivity : ComponentActivity() {
             val database = com.atk.atk_cargo.data.db.AppDatabase.getDatabase(this)
             chatRepository = com.atk.atk_cargo.data.repository.ChatRepository(
                 database.chatDao(),
-                RetrofitClient.apiService,
+                { RetrofitClient.apiService },
                 userPreferencesManager
             )
 
@@ -238,21 +272,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun initializeHardwarePerformanceEvaluation() {
-        lifecycleScope.launch {
-            try {
-                val userPreferencesManager = UserPreferencesManager(this@MainActivity)
-                val hardwareEvaluator = HardwarePerformanceEvaluator(this@MainActivity, userPreferencesManager)
+        // heuristic ارزان و همزمان است (بدون I/O، بدون بنچمارک CPU/GPU/حافظه، بدون
+        // System.gc())؛ نیازی به coroutine یا کش DataStore برای تعیین امتیاز ندارد —
+        // فقط نتیجه برای نمایش در پروفایل کاربر ذخیره می‌شود
+        val performanceScore = HardwarePerformanceEvaluator(this).evaluatePerformance()
+        AnimationManager.setPerformanceScore(performanceScore)
 
-                // استفاده از تابع suspend برای ارزیابی عملکرد با قابلیت کش
-                val performanceScore = hardwareEvaluator.evaluatePerformance()
-
-                // تنظیم امتیاز عملکرد در مدیر انیمیشن‌ها
-                AnimationManager.setPerformanceScore(performanceScore)
-            } catch (e: Exception) {
-                Log.e("HardwarePerformance", "خطا در ارزیابی عملکرد سخت‌افزار: ${e.message}")
-                // در صورت خطا، امتیاز متوسط تنظیم می‌شود
-                AnimationManager.setPerformanceScore(50)
-            }
+        lifecycleScope.launch(Dispatchers.IO) {
+            userPreferencesManager.saveHardwareScore(performanceScore)
         }
     }
 
@@ -296,6 +323,12 @@ class MainActivity : ComponentActivity() {
         try {
             val pm = getSystemService(POWER_SERVICE) as PowerManager
             if (pm.isIgnoringBatteryOptimizations(packageName)) return
+
+            // فقط یک بار در طول عمر نصب برنامه از کاربر بپرس — نه در هر راه‌اندازی؛
+            // اگر یک بار «نه» بگوید، تکرار مکرر این دیالوگ هم آزاردهنده است و هم
+            // ریسک policy در Google Play دارد (REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+            if (userPreferencesManager.hasBatteryOptimizationBeenRequested()) return
+            userPreferencesManager.markBatteryOptimizationRequested()
 
             withContext(Dispatchers.Main) {
                 try {
@@ -365,9 +398,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private suspend fun checkForUpdate() {
-        isUpdateAvailable = updateManager.checkForUpdate()
-        if (isUpdateAvailable) {
+    private fun applyUpdateResult(hasUpdate: Boolean) {
+        isUpdateAvailable = hasUpdate
+        if (hasUpdate) {
             updateInfo = updateManager.updateInfo.value
         }
     }
@@ -404,23 +437,32 @@ class MainActivity : ComponentActivity() {
     }
 
     private suspend fun checkUserSessionAsync(): Boolean {
+        val username = userPreferencesManager.username.first()
+        if (username.isEmpty()) return false
+
         return try {
-            val username = userPreferencesManager.username.first()
             val deviceId = userPreferencesManager.deviceId.first()
             val sessionToken = userPreferencesManager.sessionToken.first()
+            val apiService = RetrofitClient.apiService
+            val sessionRequest = SessionCheckRequest(username, deviceId, sessionToken.takeIf { it.isNotEmpty() })
 
-            if (username.isNotEmpty()) {
-                val apiService = RetrofitClient.apiService
-                val sessionRequest = SessionCheckRequest(username, deviceId, sessionToken.takeIf { it.isNotEmpty() })
-
-                val response = apiService.checkSession(sessionRequest)
-                response.isSuccessful && response.body()?.success == true
-            } else {
-                false
+            val response = apiService.checkSession(sessionRequest)
+            val isValid = response.isSuccessful && response.body()?.success == true
+            if (isValid) {
+                userPreferencesManager.saveLastSessionVerifiedTimestamp(System.currentTimeMillis())
             }
+            // پاسخ صریح سرور (از جمله ۴۰۹ نشست تکراری) همیشه fail-closed است — هرگز
+            // grace period نمی‌گیرد، وگرنه منطق «یک دستگاه در هر زمان» دور زده می‌شود
+            isValid
+        } catch (e: java.io.IOException) {
+            // فقط خطای شبکه‌ی واقعی (نه رد صریح سرور) واجد شرایط grace period محدود است —
+            // همان سیاست fail-closed-با-مهلت که برای بخش امنیتی هم استفاده می‌شود (C-2)
+            val lastVerified = userPreferencesManager.getLastSessionVerifiedTimestamp()
+            val withinGracePeriod = lastVerified > 0L &&
+                    (System.currentTimeMillis() - lastVerified) < SESSION_OFFLINE_GRACE_PERIOD_MS
+            withinGracePeriod
         } catch (_: Exception) {
-            // در صورت خطا، جلسه را معتبر فرض می‌کنیم تا کاربر بتواند به کار خود ادامه دهد
-            true
+            false
         }
     }
 
@@ -440,8 +482,6 @@ class MainActivity : ComponentActivity() {
 
         // بررسی سطح دسترسی کاربر قبل از راه‌اندازی سرویس
         lifecycleScope.launch {
-            val userPreferencesManager = UserPreferencesManager(this@MainActivity)
-            
             // اگر نوتیفیکیشن‌های بارگیری غیرفعال باشند، سرویس را متوقف می‌کنیم
             if (!userPreferencesManager.loadingNotificationsEnabled.first()) {
                 stopLoadingNotificationService()
@@ -575,16 +615,17 @@ class MainActivity : ComponentActivity() {
             ) == PackageManager.PERMISSION_GRANTED
 
             if (!hasPermission) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    NOTIFICATION_PERMISSION_REQUEST_CODE
-                )
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }
 
     companion object {
-        private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 100
+        // حداقل زمان نمایش Splash (جلوگیری از پرش بصری) و سقف حداکثر انتظار برای شبکه
+        private const val SPLASH_MIN_DURATION = 1200L
+        private const val SPLASH_MAX_DURATION = 4500L
+
+        // مهلت آفلاین برای نشست کاربر — همسان با OFFLINE_GRACE_PERIOD_MS در SecurityVerifier (C-2)
+        private const val SESSION_OFFLINE_GRACE_PERIOD_MS = 3 * 24 * 60 * 60 * 1000L // ۳ روز
     }
 }

@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -116,8 +117,9 @@ private object UIConfig {
 
 @Composable
 fun SecurityBlockScreen(
-    isLoading: Boolean, 
-    errorType: SecurityErrorType = SecurityErrorType.TAMPERED
+    isLoading: Boolean,
+    errorType: SecurityErrorType = SecurityErrorType.TAMPERED,
+    onRetry: (() -> Unit)? = null
 ) {
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
@@ -394,11 +396,20 @@ fun SecurityBlockScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
+                    // دکمه‌ی تلاش مجدد — فقط برای خطاهایی که ممکن است موقتی باشند
+                    // (قطعی شبکه)، نه برای خطاهای تأییدشده مثل TAMPERED یا LICENSE_INACTIVE
+                    if (onRetry != null &&
+                        (errorType == SecurityErrorType.NETWORK_ERROR || errorType == SecurityErrorType.UNKNOWN_ERROR)
+                    ) {
+                        RetryButton(onClick = onRetry)
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
                     // دکمه مدرن و انیمیشنی خروج از برنامه
                     InteractiveExitButton(
                         onClick = { android.os.Process.killProcess(android.os.Process.myPid()) }
                     )
-                    
+
                     Spacer(modifier = Modifier.height(20.dp))
                 }
             }
@@ -984,6 +995,58 @@ private fun AnimatedUpdateIcon(isDark: Boolean) {
                     .size(40.dp)
                     .offset(y = arrowOffset.dp / 3),
                 tint = primaryColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun RetryButton(
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val buttonScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "retryButtonScale"
+    )
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    Button(
+        onClick = onClick,
+        interactionSource = interactionSource,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = primaryColor
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .scale(buttonScale),
+        shape = RoundedCornerShape(UIConfig.CornerRadiusMedium)
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+                tint = Color.White
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "تلاش مجدد",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                ),
+                color = Color.White
             )
         }
     }

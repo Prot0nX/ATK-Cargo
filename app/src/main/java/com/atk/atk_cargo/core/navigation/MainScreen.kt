@@ -2,9 +2,7 @@ package com.atk.atk_cargo.core.navigation
 
 // ===== FEATURE NAVIGATION IMPORTS =====
 import android.annotation.SuppressLint
-import android.os.Build
 import android.widget.Toast
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.EaseInCubic
 import androidx.compose.animation.core.EaseOutCubic
@@ -13,7 +11,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +30,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -58,7 +56,6 @@ import com.atk.atk_cargo.api.PermissionPoller
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.feature.admin.presentation.UserManagementDialog
-import com.atk.atk_cargo.feature.auth.navigation.loginScreen
 import com.atk.atk_cargo.feature.auth.presentation.LoginScreen
 import com.atk.atk_cargo.feature.cargo_counter.navigation.CargoCounterRoute
 import com.atk.atk_cargo.feature.cargo_entry.navigation.InitialInfoRoute
@@ -72,22 +69,19 @@ import com.atk.atk_cargo.feature.home.navigation.HomeRoute
 import com.atk.atk_cargo.feature.home.navigation.homeScreen
 import com.atk.atk_cargo.feature.reports.navigation.ManageShipsRoute
 import com.atk.atk_cargo.feature.reports.navigation.cargoDetailsScreen
-import com.atk.atk_cargo.feature.startup.presentation.SplashScreen
 import com.atk.atk_cargo.ui.screens.ManageReportsScreen
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
-import java.util.UUID
+import org.koin.compose.koinInject
 
 @SuppressLint("ContextCastToActivity", "HardwareIds")
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
-    var showSplash by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    val userPreferencesManager = remember { UserPreferencesManager(context) }
+    val userPreferencesManager = koinInject<UserPreferencesManager>()
     val username by userPreferencesManager.username.collectAsState(initial = "")
     val userType by userPreferencesManager.userType.collectAsState(initial = "")
 
@@ -120,20 +114,14 @@ fun MainScreen() {
         }
     }
 
+    DisposableEffect(permissionPoller) {
+        onDispose { permissionPoller.destroy() }
+    }
+
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) }
         ) { paddingValues ->
-            AnimatedContent(
-                targetState = showSplash,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(durationMillis = 500)) togetherWith
-                            fadeOut(animationSpec = tween(durationMillis = 500))
-                }, label = ""
-            ) { isSplashScreen ->
-                if (isSplashScreen) {
-                    SplashScreen(onSkip = { showSplash = false })
-                } else {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -159,12 +147,6 @@ fun MainScreen() {
                                         navController = navController,
                                         startDestination = HomeRoute
                                     ) {
-                                        loginScreen(
-                                            onLoginSuccess = {
-                                                mainActivity.updateSessionValidity(true)
-                                                mainActivity.startLoadingNotificationService()
-                                            }
-                                        )
                                         homeScreen(
                                             navController = navController,
                                             username = username,
@@ -173,7 +155,7 @@ fun MainScreen() {
                                             onLogoutClick = {
                                                 coroutineScope.launch {
                                                     try {
-                                                        val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+                                                        val deviceId = userPreferencesManager.deviceId.first()
                                                         val sessionToken = userPreferencesManager.sessionToken.first()
                                                         val logoutRequest = LogoutRequest(
                                                             username = username,
@@ -389,8 +371,6 @@ fun MainScreen() {
                             }
                         }
                     }
-                }
-            }
         }
 
         if (showUserManagement) {

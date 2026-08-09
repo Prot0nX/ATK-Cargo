@@ -9,16 +9,17 @@ import com.atk.atk_cargo.api.AppNotificationManager
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
 import kotlinx.coroutines.flow.first
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 class ChatNotificationWorker(
     context: Context,
     workerParams: WorkerParameters
-) : CoroutineWorker(context, workerParams) {
+) : CoroutineWorker(context, workerParams), KoinComponent {
+    private val userPreferencesManager: UserPreferencesManager by inject()
 
     override suspend fun doWork(): ListenableWorker.Result {
         return try {
-            val userPreferencesManager = UserPreferencesManager(applicationContext)
-            
             // Check if user is logged in
             val username = userPreferencesManager.username.first()
             if (username.isEmpty()) {

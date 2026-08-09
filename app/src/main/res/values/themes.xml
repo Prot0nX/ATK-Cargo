@@ -3,6 +3,13 @@
 
     <style name="Theme.ATKCargo" parent="android:Theme.Material.Light.NoActionBar" />
 
+    <!-- تم موقتِ راه‌اندازی: تا آماده شدن اولین فریم Compose جایگزین پنجره‌ی سفید پیش‌فرض می‌شود -->
+    <style name="Theme.ATKCargo.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#137FEC</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.ATKCargo</item>
+    </style>
+
     <style name="Theme.ATKCargo.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>

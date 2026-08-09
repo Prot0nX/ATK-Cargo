@@ -2,6 +2,7 @@ package com.atk.atk_cargo.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -13,7 +14,11 @@ import androidx.compose.ui.unit.sp
 fun createTypography(): Typography {
     val vazirmatn = VazirmatnFontFamily.create()
 
-    return Typography(
+    // بدون remember، هر recomposition والد (مثلاً تغییر رنگ تم) باعث ساخت
+    // دوباره‌ی ۱۵+ شیء TextStyle می‌شد؛ چون فقط به هویت فونت (که خودش
+    // remember شده) وابسته است، همین کافی است
+    return remember(vazirmatn) {
+    Typography(
         displayLarge = TextStyle(
             fontFamily = vazirmatn,
             fontWeight = FontWeight.Bold,
@@ -120,4 +125,5 @@ fun createTypography(): Typography {
             letterSpacing = 0.5.sp
         )
     )
+    }
 }

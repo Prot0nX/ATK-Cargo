@@ -55,7 +55,6 @@
         android:theme="@style/Theme.ATKCargo"
         android:enableOnBackInvokedCallback="true"
         android:hardwareAccelerated="true"
-        android:largeHeap="true"
         tools:targetApi="34">
 
         <!-- اکتیویتی اصلی با نقطه ورود -->
@@ -63,7 +62,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:theme="@style/Theme.ATKCargo"
+            android:theme="@style/Theme.ATKCargo.Splash"
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

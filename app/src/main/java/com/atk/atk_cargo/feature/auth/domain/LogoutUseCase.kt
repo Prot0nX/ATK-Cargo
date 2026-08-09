@@ -1,11 +1,9 @@
 package com.atk.atk_cargo.feature.auth.domain
 
-import android.os.Build
 import com.atk.atk_cargo.api.ApiService
 import com.atk.atk_cargo.api.LogoutRequest
 import com.atk.atk_cargo.api.UserPreferencesManager
 import kotlinx.coroutines.flow.first
-import java.util.UUID
 
 class LogoutUseCase(
     private val apiService: ApiService,
@@ -13,7 +11,7 @@ class LogoutUseCase(
 ) {
     suspend operator fun invoke(username: String): Result<String?> {
         return try {
-            val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+            val deviceId = userPreferencesManager.deviceId.first()
             val sessionToken = userPreferencesManager.sessionToken.first()
             val logoutRequest = LogoutRequest(
                 username = username,

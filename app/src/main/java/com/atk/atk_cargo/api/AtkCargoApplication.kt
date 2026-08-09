@@ -1,9 +1,7 @@
 package com.atk.atk_cargo.api
 
 import android.app.Application
-import android.util.Log
-import androidx.work.Configuration
-import androidx.work.WorkManager
+import com.atk.atk_cargo.BuildConfig
 import com.atk.atk_cargo.di.appModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -16,18 +14,17 @@ class AtkCargoApplication : Application() {
 
         // Initialize Koin DI
         startKoin {
-            androidLogger()
+            // لاگ verbose فقط در build های debug — در release نباید فعال باشد
+            if (BuildConfig.DEBUG) {
+                androidLogger()
+            }
             androidContext(this@AtkCargoApplication)
             modules(appModule)
         }
 
-        try {
-            val config = Configuration.Builder()
-                .setMinimumLoggingLevel(Log.INFO)
-                .build()
-            WorkManager.initialize(this, config)
-        } catch (e: Exception) {
-            Log.e("AtkCargoApplication", "Error initializing WorkManager: ${e.message}")
-        }
+        // WorkManager توسط androidx.startup.InitializationProvider به‌صورت خودکار
+        // و پیش از این نقطه مقداردهی می‌شود؛ فراخوانی دستی WorkManager.initialize()
+        // اینجا همیشه IllegalStateException می‌داد (بی‌صدا catch می‌شد) و Configuration
+        // سفارشی هرگز اعمال نمی‌شد
     }
 }

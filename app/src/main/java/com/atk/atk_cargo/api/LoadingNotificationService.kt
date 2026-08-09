@@ -24,13 +24,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.milliseconds
 
-class LoadingNotificationService : Service() {
+class LoadingNotificationService : Service(), KoinComponent {
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private lateinit var notificationManager: AppNotificationManager
-    private lateinit var userPreferencesManager: UserPreferencesManager
+    private val userPreferencesManager: UserPreferencesManager by inject()
     
     // تنظیمات فاصله زمانی بین درخواست‌ها (به دقیقه)
     companion object {
@@ -65,8 +67,7 @@ class LoadingNotificationService : Service() {
     override fun onCreate() {
         super.onCreate()
         notificationManager = AppNotificationManager(this)
-        userPreferencesManager = UserPreferencesManager(this)
-        
+
         // ایجاد کانال‌های جدید اعلان
         notificationManager.setupChannels()
     }
