@@ -13,6 +13,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.atk.atk_cargo.security.CryptoManager
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -26,110 +27,58 @@ class UserPreferencesManager(
 ) {
     private val dataStore: DataStore<Preferences> = context.dataStore
 
-    val username = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
+    // خواندن IOException یک‌بار در یک نقطه (به‌جای ۹+ بار تکرار همان ۷ خط catch)؛
+    // خطای دیگری غیر از IOException همچنان پرتاب می‌شود، فقط خطای عدم دسترسی به
+    // دیسک با preferences خالی جایگزین می‌شود
+    private val safePreferences: Flow<Preferences> = dataStore.data.catch { exception ->
+        if (exception is IOException) {
+            emit(emptyPreferences())
+        } else {
+            throw exception
         }
-        .map { preferences ->
-            val encrypted = preferences[USERNAME_KEY] ?: ""
-            cryptoManager.decrypt(encrypted)
-        }
+    }
 
-    val userType = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[USER_TYPE_KEY] ?: ""
-        }
+    private fun <T> preference(key: Preferences.Key<T>, default: T): Flow<T> =
+        safePreferences.map { it[key] ?: default }
 
-    val permissions = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            val encryptedJson = preferences[PERMISSIONS_KEY] ?: ""
-            val json = cryptoManager.decrypt(encryptedJson).ifEmpty { "{}" }
-            try {
-                val type = object : TypeToken<Map<String, Boolean>>() {}.type
-                Gson().fromJson<Map<String, Boolean>>(json, type) ?: emptyMap()
-            } catch (_: Exception) {
-                emptyMap()
-            }
-        }
+    val username: Flow<String> = preference(USERNAME_KEY, "").map { cryptoManager.decrypt(it) }
 
-    val deviceId = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[DEVICE_ID_KEY] ?: ""
-        }
+    val userType: Flow<String> = preference(USER_TYPE_KEY, "")
 
-    val sessionToken = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
+    val permissions: Flow<Map<String, Boolean>> = preference(PERMISSIONS_KEY, "").map { encryptedJson ->
+        val json = cryptoManager.decrypt(encryptedJson).ifEmpty { "{}" }
+        try {
+            val type = object : TypeToken<Map<String, Boolean>>() {}.type
+            Gson().fromJson<Map<String, Boolean>>(json, type) ?: emptyMap()
+        } catch (_: Exception) {
+            emptyMap()
         }
-        .map { preferences ->
-            val encrypted = preferences[SESSION_TOKEN_KEY] ?: ""
-            cryptoManager.decrypt(encrypted)
-        }
+    }
 
-    val hardwareScore = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[HARDWARE_SCORE_KEY] ?: -1
-        }
+    val deviceId: Flow<String> = preference(DEVICE_ID_KEY, "")
 
-    val loadingNotificationsEnabled = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[LOADING_NOTIFICATIONS_ENABLED_KEY] ?: true
-        }
+    val sessionToken: Flow<String> = preference(SESSION_TOKEN_KEY, "").map { cryptoManager.decrypt(it) }
 
-    val chatNotificationsEnabled = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[CHAT_NOTIFICATIONS_ENABLED_KEY] ?: true
-        }
+    val hardwareScore: Flow<Int> = preference(HARDWARE_SCORE_KEY, -1)
+
+    val loadingNotificationsEnabled: Flow<Boolean> = preference(LOADING_NOTIFICATIONS_ENABLED_KEY, true)
+
+    val chatNotificationsEnabled: Flow<Boolean> = preference(CHAT_NOTIFICATIONS_ENABLED_KEY, true)
+
+    val chatFontSize: Flow<Int> = preference(CHAT_FONT_SIZE_KEY, 14)
+
+    val chatMyBubbleColor: Flow<Long> = preference(CHAT_MY_BUBBLE_COLOR_KEY, 0xFF1E88E5) // Blue
+
+    val chatOtherBubbleColor: Flow<Long> = preference(CHAT_OTHER_BUBBLE_COLOR_KEY, 0xFFFFFFFF) // White
+
+    val chatBackgroundId: Flow<Int> = preference(CHAT_BACKGROUND_ID_KEY, 0)
+
+    val chatBubbleShape: Flow<Int> = preference(CHAT_BUBBLE_SHAPE_KEY, 0)
+
+    val lastNotifiedMessageId: Flow<Int> = preference(LAST_NOTIFIED_MESSAGE_ID_KEY, 0)
+
+    // ===== رنگ تم برنامه =====
+    val themeColor: Flow<Long> = preference(APP_THEME_COLOR_KEY, 0xFF137fecL)
 
     suspend fun saveUserCredentials(username: String, userType: String, deviceId: String = "", sessionToken: String = "", permissions: Map<String, Boolean>? = null) {
         dataStore.edit { preferences ->
@@ -181,17 +130,7 @@ class UserPreferencesManager(
     }
 
     suspend fun hasBatteryOptimizationBeenRequested(): Boolean {
-        return dataStore.data
-            .catch { exception ->
-                if (exception is IOException) {
-                    emit(emptyPreferences())
-                } else {
-                    throw exception
-                }
-            }
-            .map { preferences ->
-                preferences[BATTERY_OPTIMIZATION_REQUESTED_KEY] ?: false
-            }.first()
+        return preference(BATTERY_OPTIMIZATION_REQUESTED_KEY, false).first()
     }
 
     suspend fun markBatteryOptimizationRequested() {
@@ -201,17 +140,7 @@ class UserPreferencesManager(
     }
 
     suspend fun getLastSessionVerifiedTimestamp(): Long {
-        return dataStore.data
-            .catch { exception ->
-                if (exception is IOException) {
-                    emit(emptyPreferences())
-                } else {
-                    throw exception
-                }
-            }
-            .map { preferences ->
-                preferences[LAST_SESSION_VERIFIED_TIMESTAMP_KEY] ?: 0L
-            }.first()
+        return preference(LAST_SESSION_VERIFIED_TIMESTAMP_KEY, 0L).first()
     }
 
     suspend fun saveLastSessionVerifiedTimestamp(timestamp: Long) {
@@ -246,21 +175,6 @@ class UserPreferencesManager(
         context.getSharedPreferences("LoadingCheckPrefs", Context.MODE_PRIVATE).edit().clear().apply()
     }
 
-    val chatFontSize = dataStore.data
-        .map { preferences ->
-            preferences[CHAT_FONT_SIZE_KEY] ?: 14
-        }
-
-    val chatMyBubbleColor = dataStore.data
-        .map { preferences ->
-            preferences[CHAT_MY_BUBBLE_COLOR_KEY] ?: 0xFF1E88E5 // Blue
-        }
-
-    val chatOtherBubbleColor = dataStore.data
-        .map { preferences ->
-            preferences[CHAT_OTHER_BUBBLE_COLOR_KEY] ?: 0xFFFFFFFF // White
-        }
-
     suspend fun saveChatSettings(fontSize: Int, myColor: Long, otherColor: Long, backgroundId: Int, bubbleShape: Int) {
         dataStore.edit { preferences ->
             preferences[CHAT_FONT_SIZE_KEY] = fontSize
@@ -271,39 +185,11 @@ class UserPreferencesManager(
         }
     }
 
-    val chatBackgroundId = dataStore.data
-        .map { preferences ->
-            preferences[CHAT_BACKGROUND_ID_KEY] ?: 0
-        }
-
-    val chatBubbleShape = dataStore.data
-        .map { preferences ->
-            preferences[CHAT_BUBBLE_SHAPE_KEY] ?: 0
-        }
-
-    val lastNotifiedMessageId = dataStore.data
-        .map { preferences ->
-            preferences[LAST_NOTIFIED_MESSAGE_ID_KEY] ?: 0
-        }
-
     suspend fun saveLastNotifiedMessageId(id: Int) {
         dataStore.edit { preferences ->
             preferences[LAST_NOTIFIED_MESSAGE_ID_KEY] = id
         }
     }
-
-    // ===== رنگ تم برنامه =====
-    val themeColor = dataStore.data
-        .catch { exception ->
-            if (exception is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw exception
-            }
-        }
-        .map { preferences ->
-            preferences[APP_THEME_COLOR_KEY] ?: 0xFF137fecL
-        }
 
     suspend fun saveThemeColor(color: Long) {
         dataStore.edit { preferences ->

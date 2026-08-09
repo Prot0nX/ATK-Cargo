@@ -52,10 +52,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.atk.atk_cargo.MainActivity
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.core.startup.LocalNotificationPermissionRequester
+import com.atk.atk_cargo.core.startup.LocalStartupViewModel
 import com.atk.atk_cargo.feature.home.presentation.ProfileSettingsDialog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -98,6 +99,8 @@ fun ProfileMenu(
     var showSettings by remember { mutableStateOf(false) }
     var currentUser by remember { mutableStateOf<User?>(null) }
     val context = LocalContext.current
+    val startupViewModel = LocalStartupViewModel.current
+    val requestNotificationPermission = LocalNotificationPermissionRequester.current
     val userPreferencesManager = koinInject<UserPreferencesManager>()
     val hardwareScore by userPreferencesManager.hardwareScore.collectAsState(initial = -1)
     val loadingEnabled by userPreferencesManager.loadingNotificationsEnabled.collectAsState(initial = true)
@@ -241,13 +244,13 @@ fun ProfileMenu(
                             enabled = loadingEnabled,
                             modifier = Modifier.weight(1f),
                             onCheckedChange = { isEnabled ->
-                                val activity = context as? MainActivity
                                 CoroutineScope(Dispatchers.Main).launch {
                                     userPreferencesManager.setLoadingNotificationsEnabled(isEnabled)
                                     if (isEnabled) {
-                                        activity?.startLoadingNotificationService()
+                                        requestNotificationPermission()
+                                        startupViewModel.startLoadingNotificationService()
                                     } else {
-                                        activity?.stopLoadingNotificationService()
+                                        startupViewModel.stopLoadingNotificationService()
                                     }
                                 }
                             }
@@ -260,13 +263,12 @@ fun ProfileMenu(
                             enabled = chatEnabled,
                             modifier = Modifier.weight(1f),
                             onCheckedChange = { isEnabled ->
-                                val activity = context as? MainActivity
                                 CoroutineScope(Dispatchers.Main).launch {
                                     userPreferencesManager.setChatNotificationsEnabled(isEnabled)
                                     if (isEnabled) {
-                                        activity?.startChatNotificationWorker()
+                                        startupViewModel.startChatNotificationWorker()
                                     } else {
-                                        activity?.stopChatNotificationService()
+                                        startupViewModel.stopChatNotificationService()
                                     }
                                 }
                             }

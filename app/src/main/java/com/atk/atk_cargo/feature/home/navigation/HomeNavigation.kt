@@ -20,7 +20,6 @@ fun NavGraphBuilder.homeScreen(
     username: String,
     userType: String,
     userPermissions: Map<String, Boolean>,
-    onLogoutClick: () -> Unit,
     onManageUsersClick: () -> Unit,
     warningsCount: Int
 ) {
@@ -31,7 +30,6 @@ fun NavGraphBuilder.homeScreen(
             userType = userType,
             userPermissions = userPermissions,
             isSessionValid = true,
-            onLogoutClick = onLogoutClick,
             onManageUsersClick = onManageUsersClick
         )
     }
