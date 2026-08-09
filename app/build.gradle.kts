@@ -218,6 +218,7 @@ dependencies {
 
     // ==================== AndroidX Core Libraries ====================
     implementation(libs.androidx.core.ktx.v1160)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.appcompat.v171)
     implementation(libs.androidx.activity.compose.v1101)
     implementation(libs.androidx.constraintlayout)
@@ -281,11 +282,6 @@ dependencies {
 
     // ==================== Animation & UI Effects ====================
     implementation(libs.lottie.compose)
-
-    // ==================== Video Player ====================
-    implementation(libs.androidx.media3.exoplayer)
-    implementation(libs.androidx.media3.ui)
-    implementation(libs.androidx.media3.common)
 
     // ==================== Charts & Visualization ====================
     implementation(libs.core)

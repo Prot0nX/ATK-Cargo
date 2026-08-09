@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import org.koin.compose.koinInject
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -97,7 +98,7 @@ fun ProfileMenu(
     var showSettings by remember { mutableStateOf(false) }
     var currentUser by remember { mutableStateOf<User?>(null) }
     val context = LocalContext.current
-    val userPreferencesManager = remember { UserPreferencesManager(context) }
+    val userPreferencesManager = koinInject<UserPreferencesManager>()
     val hardwareScore by userPreferencesManager.hardwareScore.collectAsState(initial = -1)
     val loadingEnabled by userPreferencesManager.loadingNotificationsEnabled.collectAsState(initial = true)
     val chatEnabled by userPreferencesManager.chatNotificationsEnabled.collectAsState(initial = true)

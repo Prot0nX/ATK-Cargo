@@ -6,7 +6,6 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
-import android.os.Build
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -76,6 +75,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import org.koin.compose.koinInject
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -112,7 +112,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 
 @SuppressLint("HardwareIds")
@@ -130,7 +129,7 @@ fun HomeScreen(
     var showGridAnimation by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val mainActivity = context as MainActivity
-    val userPreferencesManager = remember { UserPreferencesManager(context) }
+    val userPreferencesManager = koinInject<UserPreferencesManager>()
     val coroutineScope = rememberCoroutineScope()
 
     val unreadCountByMe by mainActivity.getChatRepository().unreadCount.collectAsState(initial = 0)
@@ -138,11 +137,11 @@ fun HomeScreen(
     AnimatedContent(
         targetState = isSessionValid && username.isNotEmpty(),
         transitionSpec = {
-            fadeIn(animationSpec = tween(500)) + slideInVertically(
-                animationSpec = tween(500),
+            fadeIn(animationSpec = tween(200)) + slideInVertically(
+                animationSpec = tween(200),
                 initialOffsetY = { fullHeight -> -fullHeight }
-            ) togetherWith fadeOut(animationSpec = tween(500)) + slideOutVertically(
-                animationSpec = tween(500),
+            ) togetherWith fadeOut(animationSpec = tween(200)) + slideOutVertically(
+                animationSpec = tween(200),
                 targetOffsetY = { fullHeight -> fullHeight }
             )
         },
@@ -204,7 +203,7 @@ fun HomeScreen(
                                 showGridAnimation = false
                                 delay(200.milliseconds)
 
-                                val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+                                val deviceId = userPreferencesManager.deviceId.first()
                                 val sessionToken = userPreferencesManager.sessionToken.first()
                                 val logoutRequest = LogoutRequest(
                                     username = username,
@@ -244,7 +243,6 @@ fun HomeScreen(
 
                 if (isLoggedIn) {
                     LaunchedEffect(Unit) {
-                        delay(150.milliseconds)
                         showGridAnimation = true
                     }
 
@@ -341,7 +339,7 @@ private fun Header(
                     onLogoutClick = {
                         coroutineScope.launch {
                             try {
-                                val deviceId = Build.DISPLAY ?: UUID.randomUUID().toString()
+                                val deviceId = userPreferencesManager.deviceId.first()
                                 val sessionToken = userPreferencesManager.sessionToken.first()
                                 val logoutRequest = LogoutRequest(
                                     username = username,

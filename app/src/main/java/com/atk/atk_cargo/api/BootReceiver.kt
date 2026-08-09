@@ -7,14 +7,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class BootReceiver : BroadcastReceiver() {
+class BootReceiver : BroadcastReceiver(), KoinComponent {
+    private val userPreferencesManager: UserPreferencesManager by inject()
+
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-
-            // بررسی سطح دسترسی کاربر قبل از راه‌اندازی سرویس
-            val userPreferencesManager = UserPreferencesManager(context.applicationContext)
-            
             CoroutineScope(Dispatchers.IO).launch {
                                     try {
                     val userType = userPreferencesManager.userType.first()

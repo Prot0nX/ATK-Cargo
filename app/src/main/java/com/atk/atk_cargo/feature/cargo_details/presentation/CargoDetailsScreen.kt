@@ -46,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import org.koin.compose.koinInject
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -221,7 +222,7 @@ fun CargoDetailsScreen(
     onChangeSelectionClick: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
-    val userPreferencesManager = remember { UserPreferencesManager(context) }
+    val userPreferencesManager = koinInject<UserPreferencesManager>()
     val effectiveRepository = remember(repository) {
         repository ?: ReportsRepository(RetrofitClient.apiService)
     }

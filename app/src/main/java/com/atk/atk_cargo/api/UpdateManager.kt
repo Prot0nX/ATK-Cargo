@@ -28,10 +28,6 @@ import org.json.JSONObject
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
-import java.net.HttpURLConnection
-import java.net.InetSocketAddress
-import java.net.Socket
-import java.net.URL
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import kotlin.math.pow
@@ -100,34 +96,32 @@ class UpdateManager(
         }
     }
 
-    private suspend fun isInternetAvailable(): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                // First attempt: Check Google DNS
-                try {
-                    Socket().use { socket ->
-                        socket.connect(InetSocketAddress("8.8.8.8", 53), 5000)
-                        return@withContext true
-                    }
-                } catch (_: IOException) {
-                    // If Google DNS fails, try soft98.ir
-                    val url = URL("https://soft98.ir")
-                    val connection = url.openConnection() as HttpURLConnection
-                    connection.connectTimeout = 5000
-                    connection.connect()
-                    connection.disconnect()
-                    return@withContext true
-                }
-            } catch (_: Exception) {
-                return@withContext false
-            }
-        }
+    /**
+     * بررسی وجود اتصال شبکه از طریق ConnectivityManager (بدون هیچ درخواست شبکه‌ای).
+     * قبلاً این بررسی با پروب سوکت به 8.8.8.8 و fallback به https://soft98.ir انجام می‌شد
+     * که هم کند بود (در شبکه‌های فیلترشده) و هم به یک دامنه‌ی شخص ثالث بی‌ربط متکی بود.
+     */
+    private fun isInternetAvailable(): Boolean {
+        val connectivityManager = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+            ?: return true
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
-    suspend fun checkForUpdate(): Boolean {
+    /**
+     * نتیجه‌ی یکجای بررسی نسخه: هم مجاز بودن نسخه‌ی جاری (min_allowed_version)
+     * و هم وجود آپدیت جدید (latest_version) — با یک تک درخواست به check_update.php
+     * (قبلاً این دو بررسی هر کدام یک درخواست HTTP جداگانه به همان endpoint می‌زدند)
+     */
+    data class VersionCheckResult(
+        val isVersionAllowed: Boolean,
+        val hasUpdate: Boolean
+    )
+
+    suspend fun checkVersionAndUpdate(): VersionCheckResult {
         if (!isInternetAvailable()) {
-            _downloadState.value = DownloadState.Error("لطفاً اتصال اینترنت خود را بررسی کنید")
-            return false
+            return VersionCheckResult(isVersionAllowed = true, hasUpdate = false)
         }
 
         return withContext(Dispatchers.IO) {
@@ -147,12 +141,24 @@ class UpdateManager(
                         response.code == 426 -> {
                             val error = JSONObject(responseBody).optString("error", "نسخه برنامه منسوخ شده است")
                             _downloadState.value = DownloadState.Error(error)
-                            false
+                            VersionCheckResult(isVersionAllowed = false, hasUpdate = false)
                         }
                         response.isSuccessful -> {
                             val jsonResponse = JSONObject(responseBody)
-                            
-                            // بررسی وجود نسخه جدید - پشتیبانی از هر دو فرمت (snake_case و camelCase)
+
+                            // ===== حداقل نسخه‌ی مجاز =====
+                            val minAllowed = jsonResponse.optString("min_allowed_version", "").ifEmpty {
+                                jsonResponse.optString("minAllowedVersion", "")
+                            }
+                            _minAllowedVersion.value = minAllowed.ifEmpty { null }
+                            val isVersionAllowed = if (minAllowed.isNotEmpty()) {
+                                // compare > 0 => current newer; ==0 => equal; <0 => current older
+                                compareVersions(currentAppVersion, minAllowed) >= 0
+                            } else {
+                                true
+                            }
+
+                            // ===== بررسی وجود نسخه جدید - پشتیبانی از هر دو فرمت (snake_case و camelCase) =====
                             val latestVersion = jsonResponse.optString("latest_version", "").ifEmpty {
                                 jsonResponse.optString("latestVersion", "")
                             }
@@ -171,7 +177,7 @@ class UpdateManager(
                                 val excludedVersionsList = versionConstraints?.optJSONArray("excluded_versions")?.let { array ->
                                     List(array.length()) { array.getString(it) }
                                 } ?: emptyList()
-                                
+
                                 // پشتیبانی از هر دو فرمت برای تمام فیلدها
                                 val downloadUrl = jsonResponse.optString("download_url", "").ifEmpty {
                                     jsonResponse.optString("downloadUrl", "")
@@ -185,7 +191,7 @@ class UpdateManager(
                                 val updateMessage = jsonResponse.optString("update_message", "").ifEmpty {
                                     jsonResponse.optString("updateMessage", "")
                                 }
-                                val forceUpdate = jsonResponse.optBoolean("force_update", 
+                                val forceUpdate = jsonResponse.optBoolean("force_update",
                                     jsonResponse.optBoolean("forceUpdate", false))
                                 var updateSize = jsonResponse.optString("update_size", "").ifEmpty {
                                     jsonResponse.optString("updateSize", "0")
@@ -209,7 +215,7 @@ class UpdateManager(
                                         }
                                     }
                                 } catch (_: Exception) { /* در صورت خطا، مقدار قبلی حفظ می‌شود */ }
-                                
+
                                 _updateInfo.value = UpdateInfo(
                                     latestVersion = latestVersion,
                                     downloadUrl = downloadUrl,
@@ -224,56 +230,19 @@ class UpdateManager(
                                     excludedVersions = excludedVersionsList
                                 )
                             }
-                            hasUpdate
+                            VersionCheckResult(isVersionAllowed, hasUpdate)
                         }
                         else -> {
                             val errorMsg = "خطا در بررسی بروزرسانی: ${response.code}"
                             _downloadState.value = DownloadState.Error(errorMsg)
-                            false
+                            VersionCheckResult(isVersionAllowed = true, hasUpdate = false)
                         }
                     }
                 }
             } catch (e: Exception) {
                 val errorMsg = "خطا در بررسی بروزرسانی: ${e.localizedMessage}"
                 _downloadState.value = DownloadState.Error(errorMsg)
-                false
-            }
-        }
-    }
-
-    suspend fun isCurrentVersionAllowed(): Boolean {
-        if (!isInternetAvailable()) {
-            return true
-        }
-        return withContext(Dispatchers.IO) {
-            try {
-                val currentAppVersion = getCurrentAppVersion()
-                val encodedVersion = URLEncoder.encode(currentAppVersion, "UTF-8")
-                val encodedApiKey = URLEncoder.encode(Constants.API_KEY, "UTF-8")
-
-                val request = Request.Builder()
-                    .url("${Constants.BASE_URL}/check_update.php?current_version=$encodedVersion&api_key=$encodedApiKey")
-                    .build()
-
-                client.newCall(request).execute().use { response ->
-                    val responseBody = response.body.string()
-                    if (!response.isSuccessful) return@withContext true
-
-                    val jsonResponse = JSONObject(responseBody)
-                    val minAllowed = jsonResponse.optString("min_allowed_version", "").ifEmpty {
-                        jsonResponse.optString("minAllowedVersion", "")
-                    }
-                    _minAllowedVersion.value = minAllowed.ifEmpty { null }
-
-                    if (minAllowed.isNotEmpty()) {
-                        val compare = compareVersions(currentAppVersion, minAllowed)
-                        // compare > 0 => current newer; ==0 => equal; <0 => current older
-                        return@withContext compare >= 0
-                    }
-                    true
-                }
-            } catch (_: Exception) {
-                true
+                VersionCheckResult(isVersionAllowed = true, hasUpdate = false)
             }
         }
     }

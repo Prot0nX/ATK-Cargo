@@ -18,4 +18,5 @@ object Secrets {
     external fun getLicenseCheckUrl(): String
     external fun getLicenseInfoUrl(): String
     external fun getLicenseKey(): String
+    external fun getApiKey(): String
 }

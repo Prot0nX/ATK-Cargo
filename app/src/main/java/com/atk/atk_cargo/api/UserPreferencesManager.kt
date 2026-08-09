@@ -180,60 +180,56 @@ class UserPreferencesManager(
         }
     }
 
+    suspend fun hasBatteryOptimizationBeenRequested(): Boolean {
+        return dataStore.data
+            .catch { exception ->
+                if (exception is IOException) {
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
+            }
+            .map { preferences ->
+                preferences[BATTERY_OPTIMIZATION_REQUESTED_KEY] ?: false
+            }.first()
+    }
+
+    suspend fun markBatteryOptimizationRequested() {
+        dataStore.edit { preferences ->
+            preferences[BATTERY_OPTIMIZATION_REQUESTED_KEY] = true
+        }
+    }
+
+    suspend fun getLastSessionVerifiedTimestamp(): Long {
+        return dataStore.data
+            .catch { exception ->
+                if (exception is IOException) {
+                    emit(emptyPreferences())
+                } else {
+                    throw exception
+                }
+            }
+            .map { preferences ->
+                preferences[LAST_SESSION_VERIFIED_TIMESTAMP_KEY] ?: 0L
+            }.first()
+    }
+
+    suspend fun saveLastSessionVerifiedTimestamp(timestamp: Long) {
+        dataStore.edit { preferences ->
+            preferences[LAST_SESSION_VERIFIED_TIMESTAMP_KEY] = timestamp
+        }
+    }
+
     suspend fun logout() {
         dataStore.edit { preferences ->
             preferences[IS_LOGGED_IN_KEY] = false
         }
     }
 
-    suspend fun saveHardwareScore(score: Int, deviceSpecs: String) {
+    suspend fun saveHardwareScore(score: Int) {
         dataStore.edit { preferences ->
             preferences[HARDWARE_SCORE_KEY] = score
-            preferences[DEVICE_SPECS_KEY] = deviceSpecs
-            preferences[SCORE_TIMESTAMP_KEY] = System.currentTimeMillis()
         }
-    }
-
-    suspend fun getHardwareScore(): Int {
-        return dataStore.data
-            .catch { exception ->
-                if (exception is IOException) {
-                    emit(emptyPreferences())
-                } else {
-                    throw exception
-                }
-            }
-            .map { preferences ->
-                preferences[HARDWARE_SCORE_KEY] ?: -1
-            }.first()
-    }
-
-    suspend fun getDeviceSpecs(): String {
-        return dataStore.data
-            .catch { exception ->
-                if (exception is IOException) {
-                    emit(emptyPreferences())
-                } else {
-                    throw exception
-                }
-            }
-            .map { preferences ->
-                preferences[DEVICE_SPECS_KEY] ?: ""
-            }.first()
-    }
-
-    suspend fun getScoreTimestamp(): Long {
-        return dataStore.data
-            .catch { exception ->
-                if (exception is IOException) {
-                    emit(emptyPreferences())
-                } else {
-                    throw exception
-                }
-            }
-            .map { preferences ->
-                preferences[SCORE_TIMESTAMP_KEY] ?: 0L
-            }.first()
     }
 
     suspend fun clearUserCredentials() {
@@ -322,9 +318,9 @@ class UserPreferencesManager(
         private val SESSION_TOKEN_KEY = stringPreferencesKey("session_token")
         private val PERMISSIONS_KEY = stringPreferencesKey("user_permissions")
         private val HARDWARE_SCORE_KEY = intPreferencesKey("hardware_score")
-        private val DEVICE_SPECS_KEY = stringPreferencesKey("device_specs")
-        private val SCORE_TIMESTAMP_KEY = longPreferencesKey("score_timestamp")
         private val IS_LOGGED_IN_KEY = booleanPreferencesKey("is_logged_in")
+        private val BATTERY_OPTIMIZATION_REQUESTED_KEY = booleanPreferencesKey("battery_optimization_requested")
+        private val LAST_SESSION_VERIFIED_TIMESTAMP_KEY = longPreferencesKey("last_session_verified_timestamp")
 
         // Chat Settings
         private val CHAT_FONT_SIZE_KEY = intPreferencesKey("chat_font_size")
@@ -335,17 +331,10 @@ class UserPreferencesManager(
 
         // Notification
         private val LAST_NOTIFIED_MESSAGE_ID_KEY = intPreferencesKey("last_notified_message_id")
-        private val LAST_READ_MESSAGE_ID_KEY = intPreferencesKey("last_read_message_id")
         private val LOADING_NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("loading_notifications_enabled")
         private val CHAT_NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("chat_notifications_enabled")
 
         // Theme
         val APP_THEME_COLOR_KEY = longPreferencesKey("app_theme_color")
-    }
-
-    suspend fun saveLastReadMessageId(id: Int) {
-        dataStore.edit { preferences ->
-            preferences[LAST_READ_MESSAGE_ID_KEY] = id
-        }
     }
 }

@@ -11,13 +11,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -35,12 +35,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.atk.atk_cargo.R
 import kotlinx.coroutines.delay
 
@@ -92,6 +90,11 @@ fun SplashScreen(onSkip: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .alpha(screenAlpha.value)
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(SplashBrandColor, SplashBrandColorDark)
+                )
+            )
             .pointerInput(Unit) {
                 detectTapGestures { _ ->
                     if (!isSkipped) {
@@ -104,57 +107,15 @@ fun SplashScreen(onSkip: () -> Unit) {
                 }
             }
     ) {
-        val exoPlayer = remember {
-            ExoPlayer.Builder(context)
-                .build()
-                .apply {
-                    val mediaItem = MediaItem.fromUri("android.resource://${context.packageName}/${R.raw.splash}")
-                    setMediaItem(mediaItem)
-                    prepare()
-                    playWhenReady = true
-                    repeatMode = Player.REPEAT_MODE_ONE
-                    volume = 0f
-                }
-        }
+        val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_logo))
 
-        LaunchedEffect(isSkipped) {
-            if (isSkipped) {
-                delay(200)
-                exoPlayer.pause()
-            }
-        }
-
-        DisposableEffect(Unit) {
-            onDispose {
-                exoPlayer.release()
-            }
-        }
-
-        AndroidView(
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    player = exoPlayer
-                    useController = false
-                    setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
-
-        Box(
+        LottieAnimation(
+            composition = composition,
+            iterations = LottieConstants.IterateForever,
             modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.4f)
-                        ),
-                        startY = 0f,
-                        endY = Float.POSITIVE_INFINITY
-                    )
-                )
+                .fillMaxWidth()
+                .align(Alignment.Center)
+                .padding(horizontal = 32.dp)
         )
 
         SplashScreenContent(
@@ -163,6 +124,9 @@ fun SplashScreen(onSkip: () -> Unit) {
         )
     }
 }
+
+private val SplashBrandColor = Color(0xFF137FEC)
+private val SplashBrandColorDark = Color(0xFF0B4F94)
 
 @Composable
 private fun SplashScreenContent(

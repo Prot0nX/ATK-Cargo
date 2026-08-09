@@ -74,6 +74,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import org.koin.compose.koinInject
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -107,7 +108,7 @@ fun UserManagementDialog(
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val userPreferencesManager = remember { UserPreferencesManager(context) }
+    val userPreferencesManager = koinInject<UserPreferencesManager>()
 
     val currentUsername by userPreferencesManager.username.collectAsState(initial = "")
     val currentUserType by userPreferencesManager.userType.collectAsState(initial = "")

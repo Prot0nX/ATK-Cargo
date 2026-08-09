@@ -103,11 +103,13 @@ class AuthController {
 
         if (!$sessionResult['success']) {
             // خطا به دلیل ورود همزمان از دستگاه دیگر
+            // کد 409 برگردانده می‌شود تا کلاینت اندروید بتواند از مسیر اختصاصی
+            // LoginResult.ConflictSession استفاده کند (مطابق قرارداد قبلی API)
             Response::json([
                 'success' => false,
                 'message' => $sessionResult['message'],
                 'userType' => null
-            ], 200); // برای پایداری کلاینت اندروید، ترجیحاً پاسخ 200 یا وضعیت‌های سازگار ارسال می‌شود
+            ], 409);
         }
 
         // ورود موفق

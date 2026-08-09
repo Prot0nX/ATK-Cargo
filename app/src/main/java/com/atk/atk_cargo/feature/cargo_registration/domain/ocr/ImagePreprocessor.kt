@@ -1,55 +1,57 @@
 package com.atk.atk_cargo.feature.cargo_registration.domain.ocr
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
-import android.graphics.Paint
 import androidx.camera.core.ImageProxy
 import com.google.mlkit.vision.common.InputImage
 import kotlin.math.sqrt
 
+/**
+ * روی هر فریم دوربین اجرا می‌شود، پس تعداد بافرهای موقت عمداً به حداقل رسیده:
+ * یک Bitmap (همان فریم دوربین، بدون کپی دوم) + یک آرایه‌ی پیکسل اصلی + یک بافر
+ * scratch مشترک بین فیلترهای میانه و لبه (به‌جای آرایه‌ی جداگانه در هرکدام).
+ * نسخه‌ی قبلی یک Bitmap دوم (Canvas+ColorMatrix) و دو آرایه‌ی موقت اضافه می‌ساخت.
+ */
 fun preprocessImage(imageProxy: ImageProxy): InputImage {
     val bitmap = imageProxy.toBitmap()
     val width = bitmap.width
     val height = bitmap.height
 
-    // ایجاد بیت‌مپ برای پردازش
-    val outputBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(outputBitmap)
-    
-    // مرحله 1: افزایش کنتراست و شارپنس برای بهبود خوانایی متن
-    val enhancementMatrix = ColorMatrix(floatArrayOf(
-        2.5f, 0f, 0f, 0f, -50f,    // افزایش کنتراست کانال قرمز
-        0f, 2.5f, 0f, 0f, -50f,    // افزایش کنتراست کانال سبز
-        0f, 0f, 2.5f, 0f, -50f,    // افزایش کنتراست کانال آبی
-        0f, 0f, 0f, 1.2f, 0f       // افزایش کنتراست آلفا
-    ))
-    
-    val enhancementPaint = Paint().apply {
-        colorFilter = ColorMatrixColorFilter(enhancementMatrix)
-    }
-    
-    // اعمال فیلتر بهبود کنتراست
-    canvas.drawBitmap(bitmap, 0f, 0f, enhancementPaint)
-    
-    // مرحله 2: تبدیل به تصویر باینری با آستانه‌گذاری محلی
     val pixels = IntArray(width * height)
-    outputBitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-    
-    // استفاده از الگوریتم آستانه‌گذاری سازگار
+    bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+    // مرحله 1: افزایش کنتراست مستقیم روی آرایه‌ی پیکسل (معادل ColorMatrix قبلی)
+    applyContrastEnhancement(pixels)
+
+    // مرحله 2: تبدیل به تصویر باینری با آستانه‌گذاری محلی
     adaptiveThresholding(pixels, width, height)
-    
+
+    val scratch = IntArray(width * height)
+
     // مرحله 3: حذف نویز با فیلتر میانه
-    medianFilter(pixels, width, height)
-    
+    medianFilter(pixels, scratch, width, height)
+
     // مرحله 4: تقویت لبه‌ها برای بهبود تشخیص اعداد
-    enhanceEdges(pixels, width, height)
-    
-    // اعمال پیکسل‌های پردازش شده روی تصویر خروجی
-    outputBitmap.setPixels(pixels, 0, width, 0, 0, width, height)
-    
-    return InputImage.fromBitmap(outputBitmap, imageProxy.imageInfo.rotationDegrees)
+    enhanceEdges(pixels, scratch, width, height)
+
+    bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
+
+    return InputImage.fromBitmap(bitmap, imageProxy.imageInfo.rotationDegrees)
+}
+
+private fun applyContrastEnhancement(pixels: IntArray) {
+    for (i in pixels.indices) {
+        val pixel = pixels[i]
+        val a = ((pixel ushr 24) and 0xFF) * 1.2f
+        val r = ((pixel shr 16) and 0xFF) * 2.5f - 50f
+        val g = ((pixel shr 8) and 0xFF) * 2.5f - 50f
+        val b = (pixel and 0xFF) * 2.5f - 50f
+
+        val ac = a.toInt().coerceIn(0, 255)
+        val rc = r.toInt().coerceIn(0, 255)
+        val gc = g.toInt().coerceIn(0, 255)
+        val bc = b.toInt().coerceIn(0, 255)
+
+        pixels[i] = (ac shl 24) or (rc shl 16) or (gc shl 8) or bc
+    }
 }
 
 private fun adaptiveThresholding(pixels: IntArray, width: Int, height: Int) {
@@ -84,8 +86,8 @@ private fun adaptiveThresholding(pixels: IntArray, width: Int, height: Int) {
     }
 }
 
-private fun medianFilter(pixels: IntArray, width: Int, height: Int) {
-    val output = pixels.copyOf()
+private fun medianFilter(pixels: IntArray, output: IntArray, width: Int, height: Int) {
+    System.arraycopy(pixels, 0, output, 0, pixels.size)
     val windowSize = 3
     val window = IntArray(windowSize * windowSize)
     
@@ -112,8 +114,8 @@ private fun medianFilter(pixels: IntArray, width: Int, height: Int) {
     }
 }
 
-private fun enhanceEdges(pixels: IntArray, width: Int, height: Int) {
-    val output = pixels.copyOf()
+private fun enhanceEdges(pixels: IntArray, output: IntArray, width: Int, height: Int) {
+    System.arraycopy(pixels, 0, output, 0, pixels.size)
     val sobelX = arrayOf(
         intArrayOf(-1, 0, 1),
         intArrayOf(-2, 0, 2),

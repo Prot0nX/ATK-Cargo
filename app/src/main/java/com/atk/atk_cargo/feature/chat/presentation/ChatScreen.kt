@@ -135,8 +135,6 @@ fun ChatScreen(
 
     LaunchedEffect(messages) {
         if (messages.isNotEmpty()) {
-            val maxId = messages.maxOfOrNull { it.id } ?: 0
-            userPreferencesManager.saveLastReadMessageId(maxId)
             viewModel.markAllMessagesAsRead()
         }
     }

@@ -3,6 +3,7 @@ package com.atk.atk_cargo.security
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import android.util.Log
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -60,7 +61,10 @@ class CryptoManager {
             
             Base64.encodeToString(combined, Base64.DEFAULT)
         } catch (e: Exception) {
-            rawString
+            // در صورت خطا، رشته‌ی خام هرگز نباید برگردانده شود (نشت محرمانگی)؛
+            // رشته‌ی خالی باعث می‌شود مقدار ذخیره‌شده نامعتبر باشد و کاربر مجدداً وارد شود.
+            Log.e("CryptoManager", "خطا در رمزنگاری: ${e.message}")
+            ""
         }
     }
 
@@ -78,7 +82,10 @@ class CryptoManager {
             val decryptedBytes = cipher.doFinal(encryptedBytes)
             String(decryptedBytes, Charsets.UTF_8)
         } catch (e: Exception) {
-            encryptedBase64
+            // در صورت خطا، متن رمزشده (ciphertext) هرگز نباید به‌عنوان مقدار رمزگشایی‌شده
+            // برگردانده شود؛ این مقدار قابل استفاده نیست و می‌تواند به سرور ارسال شود.
+            Log.e("CryptoManager", "خطا در رمزگشایی: ${e.message}")
+            ""
         }
     }
 

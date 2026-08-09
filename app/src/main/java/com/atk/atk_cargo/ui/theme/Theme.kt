@@ -4,8 +4,18 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+
+// توکن‌های ثابت طراحی — بدون پارامتر و مستقل از تم/دستگاه هستند، پس نیازی
+// به ساخت دوباره در هر recomposition ندارند
+private val AppSpacing = Spacing()
+private val AppDimensions = Dimensions()
+private val AppShapesTokens = AppShapes()
+private val AppElevation = Elevation()
+private val AppMotion = Motion()
+private val AppComponentStyles = ComponentStyles()
 
 /**
  * تابع رنگ‌بندی درصد تکمیل (جهت سازگاری با بخش‌های موجود).
@@ -34,31 +44,26 @@ fun ATKCargoTheme(
     primaryColor: Color = PrimaryBlue,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) {
-        buildAppDarkColorScheme(primaryColor)
-    } else {
-        buildAppLightColorScheme(primaryColor)
+    val colorScheme = remember(darkTheme, primaryColor) {
+        if (darkTheme) {
+            buildAppDarkColorScheme(primaryColor)
+        } else {
+            buildAppLightColorScheme(primaryColor)
+        }
     }
 
     val semanticColors = if (darkTheme) DarkSemanticColors else LightSemanticColors
     val typography = createTypography()
     val adaptiveConfig = rememberAdaptiveLayoutConfig()
 
-    val spacing = Spacing()
-    val dimensions = Dimensions()
-    val appShapes = AppShapes()
-    val elevation = Elevation()
-    val motion = Motion()
-    val componentStyles = ComponentStyles()
-
     CompositionLocalProvider(
-        LocalSpacing provides spacing,
-        LocalDimensions provides dimensions,
-        LocalAppShapes provides appShapes,
-        LocalElevation provides elevation,
-        LocalMotion provides motion,
+        LocalSpacing provides AppSpacing,
+        LocalDimensions provides AppDimensions,
+        LocalAppShapes provides AppShapesTokens,
+        LocalElevation provides AppElevation,
+        LocalMotion provides AppMotion,
         LocalSemanticColors provides semanticColors,
-        LocalComponentStyles provides componentStyles,
+        LocalComponentStyles provides AppComponentStyles,
         LocalAdaptiveLayout provides adaptiveConfig
     ) {
         MaterialTheme(
