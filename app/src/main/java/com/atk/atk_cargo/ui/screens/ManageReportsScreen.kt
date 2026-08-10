@@ -3,6 +3,7 @@ package com.atk.atk_cargo.ui.screens
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -178,14 +179,18 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
                         ShipsList(
                             viewModel = viewModel,
                             onShipSelected = { shipName ->
-                                navController.navigate("shipDetails/$shipName") {
+                                // نام کشتی از سرور می‌آید و کلاینت روی محتوایش کنترلی
+                                // ندارد؛ بدون encode، نامی حاوی '/'، '?' یا '#' مسیر
+                                // ناوبری را می‌شکند.
+                                navController.navigate("shipDetails/${Uri.encode(shipName)}") {
                                     launchSingleTop = true
                                 }
                             }
                         )
                     }
                     composable("shipDetails/{shipName}") { backStackEntry ->
-                        val shipName = backStackEntry.arguments?.getString("shipName") ?: return@composable
+                        val shipName = backStackEntry.arguments?.getString("shipName")
+                            ?.let { Uri.decode(it) } ?: return@composable
                         LaunchedEffect(Unit) {
                             isInShipDetailsScreen = true
                         }
@@ -193,7 +198,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
                             initialShipName = shipName,
                             viewModel = viewModel,
                             onWarehouseSelected = { warehouseName ->
-                                navController.navigate("warehouseDetails/$shipName/$warehouseName") {
+                                navController.navigate("warehouseDetails/${Uri.encode(shipName)}/${Uri.encode(warehouseName)}") {
                                     launchSingleTop = true
                                 }
                             },
@@ -206,8 +211,10 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
                         )
                     }
                     composable("warehouseDetails/{shipName}/{warehouseName}") { backStackEntry ->
-                        val shipName = backStackEntry.arguments?.getString("shipName") ?: return@composable
-                        val warehouseName = backStackEntry.arguments?.getString("warehouseName") ?: return@composable
+                        val shipName = backStackEntry.arguments?.getString("shipName")
+                            ?.let { Uri.decode(it) } ?: return@composable
+                        val warehouseName = backStackEntry.arguments?.getString("warehouseName")
+                            ?.let { Uri.decode(it) } ?: return@composable
                         LaunchedEffect(Unit) {
                             isInShipDetailsScreen = false
                         }

@@ -1,5 +1,6 @@
 package com.atk.atk_cargo.api
 
+import android.content.Context
 import com.atk.atk_cargo.BuildConfig
 import com.google.gson.GsonBuilder
 import com.google.gson.Strictness
@@ -7,12 +8,14 @@ import com.google.gson.TypeAdapter
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonToken
 import com.google.gson.stream.JsonWriter
+import okhttp3.Cache
 import okhttp3.ConnectionPool
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.File
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
@@ -20,9 +23,19 @@ object RetrofitClient {
     private const val CONNECT_TIMEOUT_SECONDS = 10L
     private const val READ_TIMEOUT_SECONDS = 30L
     private const val WRITE_TIMEOUT_SECONDS = 30L
+    private const val HTTP_CACHE_SIZE_BYTES = 10L * 1024 * 1024
 
     // Base URL from Secrets
     private val BASE_URL = Secrets.getBaseUrl()
+
+    // باید پیش از اولین دسترسی به apiService فراخوانی شود (در AtkCargoApplication.onCreate)
+    // تا کش HTTP دیسک فعال شود؛ okHttpClient با lazy مقداردهی می‌شود، پس این مقدار
+    // به‌موقع در دسترس okHttpClient قرار می‌گیرد.
+    private var appContext: Context? = null
+
+    fun init(context: Context) {
+        appContext = context.applicationContext
+    }
 
     // Float Type Adapter for better handling of float values
     private class FloatTypeAdapter : TypeAdapter<Float>() {
@@ -69,9 +82,18 @@ object RetrofitClient {
     // Headers interceptor
     private val headersInterceptor = Interceptor { chain ->
         val original = chain.request()
-        val request = original.newBuilder()
+        val builder = original.newBuilder()
             .addHeader("Accept", "application/json")
             .addHeader("Content-Type", "application/json")
+
+        // هویت نشست فعلی برای احراز هویت endpointهای محافظت‌شده (مثل app_api.php)
+        // در صورت وجود به هر درخواست افزوده می‌شود؛ قبل از ورود کاربر این مقادیر
+        // خالی هستند و هدرها اضافه نمی‌شوند.
+        AuthSession.username.takeIf { it.isNotEmpty() }?.let { builder.addHeader("X-Username", it) }
+        AuthSession.deviceId.takeIf { it.isNotEmpty() }?.let { builder.addHeader("X-Device-Id", it) }
+        AuthSession.sessionToken.takeIf { it.isNotEmpty() }?.let { builder.addHeader("X-Session-Token", it) }
+
+        val request = builder
             .method(original.method, original.body)
             .build()
         chain.proceed(request)
@@ -81,16 +103,26 @@ object RetrofitClient {
     // (۵ اتصال) باعث می‌شود اتصالات idle بین pollها دوباره استفاده شوند نه بسته/باز.
     private val connectionPool = ConnectionPool(10, 5, TimeUnit.MINUTES)
 
-    // Configure OkHttpClient
-    private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(loggingInterceptor)
-        .addInterceptor(headersInterceptor)
-        .connectionPool(connectionPool)
-        .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .retryOnConnectionFailure(true)
-        .build()
+    // Configure OkHttpClient — lazy تا appContext قبل از ساخته‌شدن این کلاینت
+    // (توسط RetrofitClient.init در AtkCargoApplication.onCreate) فرصت مقداردهی داشته باشد
+    private val okHttpClient: OkHttpClient by lazy {
+        val builder = OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .addInterceptor(headersInterceptor)
+            .connectionPool(connectionPool)
+            .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+
+        // فقط برای GETهایی که سرور صریحاً Cache-Control/ETag می‌فرستد (مثل
+        // getShipsList) اثر دارد؛ endpointهای نوشتن/حذف بدون این هدرها کش نمی‌شوند.
+        appContext?.let { ctx ->
+            builder.cache(Cache(File(ctx.cacheDir, "http_cache"), HTTP_CACHE_SIZE_BYTES))
+        }
+
+        builder.build()
+    }
 
     // Configure and create Retrofit instance
     private val retrofit: Retrofit by lazy {

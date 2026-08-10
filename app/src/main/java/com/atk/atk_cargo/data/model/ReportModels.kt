@@ -68,9 +68,12 @@ data class Ship(
     val quotaCount: Int,
     val totalTonnage: Float,
     val remainingTonnage: Float,
-    val totalVoucherCount: Int,
+    // getShipsList (استفاده‌شده در لیست کشتی‌ها) این دو فیلد را ارسال نمی‌کند؛
+    // بدون مقدار پیش‌فرض، Gson با reflection قید non-null کاتلین را دور می‌زد و
+    // warehouses را null می‌گذاشت (کرش پنهان در هر کد آینده‌ای که آن را بخواند)
+    val totalVoucherCount: Int = 0,
     val isActive: Boolean,
-    val warehouses: List<Warehouse>
+    val warehouses: List<Warehouse> = emptyList()
 )
 
 @Immutable

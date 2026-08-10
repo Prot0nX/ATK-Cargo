@@ -9,6 +9,7 @@ use Exception;
 use InvalidArgumentException;
 use mysqli;
 use App\Core\Database;
+use App\Core\MicroCache;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Logger;
@@ -130,6 +131,7 @@ class CargoController {
 
             $updated = $this->cargoRepo->updateCargoFull((int)$id, $updateData);
             if ($updated) {
+                MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
                 $this->sendJsonResponse([
                     'error' => false,
                     'status' => 'success',
@@ -189,6 +191,7 @@ class CargoController {
         try {
             $res = $this->cargoRepo->confirmCargo($cargoId, $username, $userType);
             if ($res['affected'] > 0) {
+                MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
                 $cargoData = $this->cargoRepo->findCargoById($cargoId);
                 $confirmTime = date('H:i:s');
                 $confirmDate = date('Y/m/d');
@@ -531,6 +534,7 @@ class CargoController {
                 throw new Exception("خطا در اجرای دستور SQL: " . $stmt->error);
             }
             $stmt->close();
+            MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
 
             $this->sendJsonResponse(["status" => "success", "message" => "اطلاعات با موفقیت ثبت شد."]);
         } catch (Exception $e) {

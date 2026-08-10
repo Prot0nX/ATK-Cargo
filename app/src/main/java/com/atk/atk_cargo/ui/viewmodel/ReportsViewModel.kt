@@ -226,9 +226,8 @@ class ReportsViewModel(
 
     private val _initialQuotas = MutableStateFlow<List<QuotaCompletionData>>(emptyList())
 
-    init {
-        loadShips()
-    }
+    // بارگذاری اولیه توسط ShipsListScreen (LaunchedEffect) انجام می‌شود؛ فراخوانی
+    // این‌جا هم باعث دو درخواست هم‌زمان روی سنگین‌ترین کوئری سرور می‌شد.
 
     fun formatNumber(number: Number): String {
         return NumberFormat.getNumberInstance(Locale.US).format(number)

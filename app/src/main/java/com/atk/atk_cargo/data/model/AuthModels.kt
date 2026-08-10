@@ -28,7 +28,11 @@ data class LoginResponse(
     val message: String,
     @SerializedName("userType")
     val userType: String? = null,
-    @SerializedName("sessionToken")
+    // سرور (AuthController::login) این فیلد را با کلید session_token (snake_case)
+    // می‌فرستد، نه sessionToken؛ بدون این SerializedName مقدار همیشه null بود و
+    // توکن نشست هرگز واقعاً ذخیره نمی‌شد (تا امروز هم بی‌اثر بود چون جایی توکن
+    // را واقعاً اعتبارسنجی نمی‌کرد).
+    @SerializedName("session_token")
     val sessionToken: String? = null,
     @SerializedName("permissions")
     val permissions: Map<String, Boolean>? = null

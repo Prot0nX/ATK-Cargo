@@ -6,9 +6,29 @@ import android.content.Intent
 import android.widget.Toast
 import com.atk.atk_cargo.api.CargoInfo
 import com.atk.atk_cargo.api.Quota
+import com.atk.atk_cargo.api.Ship
+import com.atk.atk_cargo.api.ShipSortingMode
+import java.text.Collator
 import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.roundToInt
+
+// Collator (نه مقایسه‌ی پیش‌فرض String که بر مبنای کد یونیکد است) برای این‌که
+// ترتیب الفبایی فارسی درست باشد (مثلاً "آ" در برابر "ا"، "ی")
+private val persianCollator: Collator = Collator.getInstance(Locale("fa", "IR")).apply {
+    strength = Collator.PRIMARY
+}
+
+fun sortShips(ships: List<Ship>, sortingMode: ShipSortingMode): List<Ship> {
+    return when (sortingMode) {
+        ShipSortingMode.REMAINING_TONNAGE_ASC -> ships.sortedBy { it.remainingTonnage }
+        ShipSortingMode.REMAINING_TONNAGE_DESC -> ships.sortedByDescending { it.remainingTonnage }
+        ShipSortingMode.LOADED_TONNAGE_ASC -> ships.sortedBy { it.totalTonnage - it.remainingTonnage }
+        ShipSortingMode.LOADED_TONNAGE_DESC -> ships.sortedByDescending { it.totalTonnage - it.remainingTonnage }
+        ShipSortingMode.NAME_ASC -> ships.sortedWith(compareBy(persianCollator) { it.name })
+        ShipSortingMode.NAME_DESC -> ships.sortedWith(compareByDescending(persianCollator) { it.name })
+    }
+}
 
 fun formatWeightWithDetail(weightInKg: Float): String {
     val simplifiedWeight = when {

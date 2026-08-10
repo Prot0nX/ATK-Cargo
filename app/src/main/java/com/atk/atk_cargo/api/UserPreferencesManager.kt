@@ -96,12 +96,18 @@ class UserPreferencesManager(
                 preferences[PERMISSIONS_KEY] = cryptoManager.encrypt(json)
             }
         }
+        // AuthSession باید بلافاصله (نه با تأخیر خواندن مجدد DataStore) به‌روز شود
+        // چون درخواست‌های بعدی API فوراً به این مقادیر برای هدرهای احراز هویت نیاز دارند
+        AuthSession.username = username
+        if (deviceId.isNotEmpty()) AuthSession.deviceId = deviceId
+        if (sessionToken.isNotEmpty()) AuthSession.sessionToken = sessionToken
     }
 
     suspend fun saveSessionToken(sessionToken: String) {
         dataStore.edit { preferences ->
             preferences[SESSION_TOKEN_KEY] = cryptoManager.encrypt(sessionToken)
         }
+        AuthSession.sessionToken = sessionToken
     }
 
     suspend fun savePermissions(permissions: Map<String, Boolean>) {
@@ -169,6 +175,7 @@ class UserPreferencesManager(
             preferences.remove(PERMISSIONS_KEY)
             preferences[IS_LOGGED_IN_KEY] = false
         }
+        AuthSession.clear()
 
         // پاکسازی ترجیحات مربوط به بارگیری
         context.getSharedPreferences("loading_alerts", Context.MODE_PRIVATE).edit().clear().apply()

@@ -13,14 +13,36 @@ use App\Core\DatabaseManager;
 use App\Core\MicroCache;
 use App\Core\Request;
 use App\Core\Response;
+use App\Services\SessionService;
 
 class AppApiController {
     private DatabaseManager $db;
     private Request $request;
+    private SessionService $sessionService;
 
     public function __construct() {
         $this->db = new DatabaseManager();
         $this->request = new Request();
+        $this->sessionService = new SessionService();
+    }
+
+    /**
+     * تمام عملیات این کنترلر شامل داده‌های تجاری (نام کشتی‌ها، تناژ، کوتاژها) است
+     * و باید فقط برای کاربران دارای نشست فعال در دسترس باشد. هویت از هدرهای
+     * درخواست خوانده می‌شود (نه از پارامترهای GET) تا در لاگ‌های دسترسی/پروکسی
+     * ذخیره نشود.
+     */
+    private function requireAuthenticatedSession(): void {
+        $username = (string)($this->request->getHeader('X-Username') ?? '');
+        $deviceId = (string)($this->request->getHeader('X-Device-Id') ?? '');
+        $token = (string)($this->request->getHeader('X-Session-Token') ?? '');
+
+        if (!$this->sessionService->isValidToken($username, $deviceId, $token)) {
+            header('Content-Type: application/json; charset=UTF-8');
+            http_response_code(401);
+            echo json_encode(['error' => 'نشست معتبر نیست. لطفاً دوباره وارد شوید.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
     }
 
     public function handle(): void {
@@ -28,6 +50,8 @@ class AppApiController {
             if (!$this->request->isGet()) {
                 throw new Exception('روش درخواست نامعتبر است');
             }
+
+            $this->requireAuthenticatedSession();
 
             $action = $this->request->get('action');
             if (!$action) {
@@ -39,7 +63,15 @@ class AppApiController {
             switch ($action) {
                 case 'getShipsList':
                     $ships = $this->getShipsList();
-                    $this->sendJsonResponse($ships);
+                    // ETag فقط از activeShips/inactiveShips (بخشی که کلاینت واقعاً
+                    // مصرف می‌کند) محاسبه می‌شود، نه از statistics.timestamp که
+                    // همیشه لحظه‌ای است و هر بار ETag را بی‌دلیل عوض می‌کرد.
+                    $etagSource = [
+                        'activeShips' => $ships['data']['activeShips'] ?? [],
+                        'inactiveShips' => $ships['data']['inactiveShips'] ?? [],
+                    ];
+                    // TTL هم‌راستا با MicroCache (۸ ثانیه) در getShipsList
+                    $this->sendCacheableJsonResponse($ships, $etagSource, 8);
                     break;
 
                 case 'getShipDetails':
@@ -278,6 +310,20 @@ class AppApiController {
         return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
     }
 
+    /**
+     * برای مقادیری که در یک شرط تساوی (WHERE = ?) با prepared statement مقایسه
+     * می‌شوند (مثل نام کشتی) نباید htmlspecialchars اعمال شود، وگرنه نامی مثل
+     * "M&V" به "M&amp;V" تبدیل و مقایسه با دیتابیس شکسته می‌شود. SQL Injection
+     * توسط prepared statement مهار می‌شود، نه توسط escape کردن ورودی.
+     */
+    private function validateIdentifier(string $input, int $maxLength = 150): string {
+        $value = trim($input);
+        if ($value === '' || mb_strlen($value) > $maxLength) {
+            throw new Exception('مقدار ورودی نامعتبر است');
+        }
+        return $value;
+    }
+
     private function sendJsonResponse($data, int $statusCode = 200): void {
         header('Content-Type: application/json; charset=UTF-8');
         http_response_code($statusCode);
@@ -286,6 +332,25 @@ class AppApiController {
         }
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         exit;
+    }
+
+    /**
+     * فقط برای پاسخ‌های GET غیرقابل تغییر (idempotent) استفاده شود، هرگز برای
+     * عملیات نوشتن/حذف. ETag از $etagSource (نه کل $data) محاسبه می‌شود تا
+     * فیلدهای همیشه‌متغیر (مثل timestamp) باعث نادیده گرفتن کش نشوند.
+     */
+    private function sendCacheableJsonResponse($data, array $etagSource, int $maxAgeSeconds): void {
+        $etag = '"' . md5(json_encode($etagSource, JSON_UNESCAPED_UNICODE)) . '"';
+        header('Cache-Control: private, max-age=' . $maxAgeSeconds);
+        header("ETag: $etag");
+
+        $ifNoneMatch = $this->request->getHeader('If-None-Match');
+        if ($ifNoneMatch !== null && trim($ifNoneMatch) === $etag) {
+            http_response_code(304);
+            exit;
+        }
+
+        $this->sendJsonResponse($data);
     }
 
     private function calculateLoadableTonnage(float $remainingTonnage, float $totalTonnage, ?float $percentage, bool $isPercentageRestricted): float {
@@ -382,8 +447,12 @@ class AppApiController {
         $quotaNumber = $this->sanitizeInput($quotaNumber);
         $shipName = $this->sanitizeInput($shipName);
 
+        // ستونی به نام loadingQuotaNumberReversed هرگز در جدول InitialInfo وجود
+        // نداشته (این endpoint از ابتدا با خطای "Unknown column" شکست می‌خورد)؛
+        // REVERSE() همان منطق تطبیق معکوس رقم‌ها را بدون نیاز به ستون واقعی انجام می‌دهد.
+        // InitialInfo حجم کمی دارد (چند صد ردیف)، پس نبود ایندکس روی این شرط مشکلی ایجاد نمی‌کند.
         $query = "SELECT loadingQuotaNumber, shipName, shippingCompany, cargoType, loadingWarehouse
-        FROM InitialInfo WHERE loadingQuotaNumberReversed LIKE ? AND shipName = ? ORDER BY loadingQuotaNumber";
+        FROM InitialInfo WHERE REVERSE(loadingQuotaNumber) LIKE ? AND shipName = ? ORDER BY loadingQuotaNumber";
 
         $stmt = $this->db->prepare($query);
         $reversedLikeQuotaNumber = strrev($quotaNumber) . '%';
@@ -416,7 +485,10 @@ class AppApiController {
         // نتیجه‌ی کوئری (بدون timestamp) به مدت کوتاهی کش می‌شود تا این کوئری سنگین
         // که هم توسط action=getShipsList و هم action=getRealTimeData صدا زده می‌شود
         // روی هر poll دوباره روی دیتابیس اجرا نشود؛ timestamp همیشه لحظه‌ای محاسبه می‌شود.
-        $shipsData = MicroCache::remember('app_api_ships_list', 8, function () {
+        // TTL از ۸ به ۲۰ ثانیه افزایش یافت: با ایندکس‌های جدید روی CargoInfo این
+        // کوئری دیگر سنگین نیست، و نوشتن‌هایی که خروجی این کوئری را عوض می‌کنند
+        // (editQuota/toggleQuotaStatus/deleteQuota) صریحاً کش را invalidate می‌کنند.
+        $shipsData = MicroCache::remember(MicroCache::SHIPS_LIST_KEY, 20, function () {
             $query = "SELECT
                 i.shipName, i.cargoType, COUNT(DISTINCT i.loadingWarehouse) as warehouseCount,
                 COUNT(DISTINCT CONCAT(i.loadingQuotaNumber, '-', i.loadingWarehouse, '-', i.shippingCompany, '-', i.cargoType)) as quotaCount,
@@ -502,7 +574,7 @@ class AppApiController {
     }
 
     public function getShipDetails(string $shipName): array {
-        $shipName = $this->sanitizeInput($shipName);
+        $shipName = $this->validateIdentifier($shipName);
 
         $query = "SELECT 
             i.shipName, i.loadingWarehouse, COUNT(DISTINCT i.loadingQuotaNumber) as quotaCount,
@@ -1220,6 +1292,7 @@ class AppApiController {
             $stmtCargoInfo->execute();
 
             $this->db->commit();
+            MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
             return true;
         } catch (Exception $e) {
             $this->db->rollback();
@@ -1245,7 +1318,11 @@ class AppApiController {
             $stmt = $this->db->prepare($query);
             $stmt->bind_param("s", $quotaNumber);
         }
-        return $stmt->execute();
+        $success = $stmt->execute();
+        if ($success) {
+            MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
+        }
+        return $success;
     }
 
     public function updateQuotaPercentageRestriction(string $quotaNumber, int $isEnabled): bool {
@@ -1288,6 +1365,7 @@ class AppApiController {
             $initialStmt->execute();
 
             $this->db->commit();
+            MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
             return true;
         } catch (Exception $e) {
             $this->db->rollback();

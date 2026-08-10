@@ -1,9 +1,6 @@
 package com.atk.atk_cargo.feature.reports.presentation.ships
 
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,134 +36,139 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.atk.atk_cargo.api.ShiftInfo
 import com.atk.atk_cargo.api.Ship
+import com.atk.atk_cargo.core.ui.components.ErrorState
+import com.atk.atk_cargo.feature.reports.domain.sortShips
 import com.atk.atk_cargo.feature.reports.presentation.components.EmptyShipsState
-import com.atk.atk_cargo.feature.reports.presentation.dialogs.RealTimeLoadingBottomSheet
 import com.atk.atk_cargo.feature.reports.presentation.ships.components.ShipCard
 import com.atk.atk_cargo.feature.reports.presentation.ships.components.ShipSortingSelector
-import com.atk.atk_cargo.feature.reports.presentation.ships.components.sortShips
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 
-private val ShipsTabAccent: Color
-    @Composable get() = MaterialTheme.colorScheme.primary
+private data class ShipsTabItem(
+    val title: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val count: Int
+)
+
+
+private fun Ship.matchesSearch(query: String): Boolean {
+    if (query.isBlank()) return true
+    return name.contains(query, ignoreCase = true) || cargoType?.contains(query, ignoreCase = true) == true
+}
 
 @Composable
 fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
     val shipsData by viewModel.ships.collectAsState()
-    var searchTerm by remember { mutableStateOf("") }
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val realTimeLoadingData by viewModel.realTimeLoadingData.collectAsState()
-    var showRealTimeDialog by remember { mutableStateOf(false) }
-    val shiftInfo by viewModel.shiftInfo.collectAsState()
-    val isDarkTheme = isSystemInDarkTheme()
-    val defaultColor = MaterialTheme.colorScheme.primary
+    val uiState by viewModel.uiState.collectAsState()
+    var searchTerm by rememberSaveable { mutableStateOf("") }
+    var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
+    val activeListState = rememberLazyListState()
+    val inactiveListState = rememberLazyListState()
     val currentShipSortingMode by viewModel.shipSortingMode.collectAsState()
-    val filteredActiveShips by remember(shipsData.activeShips, searchTerm, currentShipSortingMode) {
-        derivedStateOf {
-            val filtered = shipsData.activeShips.filter {
-                it.name.contains(searchTerm, ignoreCase = true)
-            }
-            Log.d("ShipsList_Log", "کشتی‌های فعال فیلتر شده: ${filtered.size} - با عبارت جستجو: '$searchTerm'")
-            sortShips(filtered, currentShipSortingMode)
-        }
+    // سه ورودی remember(...) از قبل به‌عنوان کلید داده شده‌اند، پس derivedStateOf
+    // اضافه چیزی نگه نمی‌دارد (فقط یک لایه‌ی observer بی‌فایده است)
+    val filteredActiveShips = remember(shipsData.activeShips, searchTerm, currentShipSortingMode) {
+        val filtered = shipsData.activeShips.filter { it.matchesSearch(searchTerm) }
+        sortShips(filtered, currentShipSortingMode)
     }
-    val filteredInactiveShips by remember(shipsData.inactiveShips, searchTerm, currentShipSortingMode) {
-        derivedStateOf {
-            val filtered = shipsData.inactiveShips.filter {
-                it.name.contains(searchTerm, ignoreCase = true)
-            }
-            Log.d("ShipsList_Log", "کشتی‌های غیرفعال فیلتر شده: ${filtered.size} - با عبارت جستجو: '$searchTerm'")
-            sortShips(filtered, currentShipSortingMode)
-        }
+    val filteredInactiveShips = remember(shipsData.inactiveShips, searchTerm, currentShipSortingMode) {
+        val filtered = shipsData.inactiveShips.filter { it.matchesSearch(searchTerm) }
+        sortShips(filtered, currentShipSortingMode)
     }
 
     LaunchedEffect(Unit) {
-        try {
-            viewModel.loadShips()
-        } catch (e: Exception) {
-            Log.e("ShipsList_Log", "خطا در بارگذاری لیست کشتی‌ها: ${e.message}", e)
-        }
+        viewModel.loadShips()
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        SearchField(
+            searchQuery = searchTerm,
+            onSearchQueryChange = { searchTerm = it },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        ShipsTabSelector(
+            selectedTabIndex = selectedTabIndex,
+            onTabSelected = { selectedTabIndex = it },
+            activeShipsCount = filteredActiveShips.size,
+            inactiveShipsCount = filteredInactiveShips.size
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        ShipSortingSelector(
+            currentMode = currentShipSortingMode,
+            onModeChange = viewModel::setShipSortingMode
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .weight(1f)
+                .fillMaxWidth()
         ) {
-            SearchField(
-                searchQuery = searchTerm,
-                onSearchQueryChange = { searchTerm = it },
-                modifier = Modifier.fillMaxWidth()
-            )
+            when (uiState) {
+                is ReportsViewModel.UiState.Loading if shipsData.activeShips.isEmpty() && shipsData.inactiveShips.isEmpty() -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            ShipsTabSelector(
-                selectedTabIndex = selectedTabIndex,
-                onTabSelected = { selectedTabIndex = it },
-                activeShipsCount = filteredActiveShips.size,
-                inactiveShipsCount = filteredInactiveShips.size
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            ShipSortingSelector(
-                currentMode = currentShipSortingMode,
-                onModeChange = viewModel::setShipSortingMode
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-            ) {
-                when (selectedTabIndex) {
-                    0 -> ShipsTabContent(
-                        ships = filteredActiveShips,
-                        isActive = true,
-                        onShipSelected = { shipName ->
-                            viewModel.setCurrentShipName(shipName)
-                            onShipSelected(shipName)
-                        }
+                is ReportsViewModel.UiState.Error if shipsData.activeShips.isEmpty() && shipsData.inactiveShips.isEmpty() -> {
+                    ErrorState(
+                        modifier = Modifier.fillMaxSize(),
+                        message = (uiState as ReportsViewModel.UiState.Error).message,
+                        onRetryClick = viewModel::loadShips
                     )
-                    1 -> ShipsTabContent(
-                        ships = filteredInactiveShips,
-                        isActive = false,
-                        onShipSelected = { shipName ->
-                            viewModel.setCurrentShipName(shipName)
-                            onShipSelected(shipName)
-                        }
-                    )
+                }
+
+                else -> {
+                    when (selectedTabIndex) {
+                        0 -> ShipsTabContent(
+                            ships = filteredActiveShips,
+                            isActive = true,
+                            listState = activeListState,
+                            onShipSelected = { shipName ->
+                                viewModel.setCurrentShipName(shipName)
+                                onShipSelected(shipName)
+                            }
+                        )
+
+                        1 -> ShipsTabContent(
+                            ships = filteredInactiveShips,
+                            isActive = false,
+                            listState = inactiveListState,
+                            onShipSelected = { shipName ->
+                                viewModel.setCurrentShipName(shipName)
+                                onShipSelected(shipName)
+                            }
+                        )
+                    }
                 }
             }
         }
     }
-
-    RealTimeLoadingBottomSheet(
-        isOpen = showRealTimeDialog,
-        onDismiss = { showRealTimeDialog = false },
-        loadingData = realTimeLoadingData,
-        shiftInfo = shiftInfo ?: ShiftInfo("", "", "", "", ""),
-        onRefresh = { viewModel.loadRealTimeData(isDarkTheme, defaultColor) },
-        viewModel = viewModel
-    )
 }
 
 @Composable
@@ -173,6 +179,14 @@ fun ShipsTabSelector(
     inactiveShipsCount: Int,
     modifier: Modifier = Modifier
 ) {
+    val tabs = remember(activeShipsCount, inactiveShipsCount) {
+        listOf(
+            ShipsTabItem("کشتی فعال", Icons.Default.DirectionsBoat, activeShipsCount),
+            ShipsTabItem("کشتی غیرفعال", Icons.Default.Archive, inactiveShipsCount)
+        )
+    }
+    val accentColor = MaterialTheme.colorScheme.primary
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -184,86 +198,53 @@ fun ShipsTabSelector(
                 .padding(6.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Surface(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onTabSelected(0) },
-                shape = RoundedCornerShape(8.dp),
-                color = if (selectedTabIndex == 0) MaterialTheme.colorScheme.surface else Color.Transparent,
-                shadowElevation = if (selectedTabIndex == 0) 1.dp else 0.dp
-            ) {
-                Row(
-                    modifier = Modifier.padding(vertical = 10.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DirectionsBoat,
-                        contentDescription = null,
-                        tint = if (selectedTabIndex == 0) ShipsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "کشتی فعال",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selectedTabIndex == 0) ShipsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = if (selectedTabIndex == 0) ShipsTabAccent.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Text(
-                            text = "$activeShipsCount",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (selectedTabIndex == 0) ShipsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-            }
+            tabs.forEachIndexed { index, tab ->
+                val isSelected = selectedTabIndex == index
+                val tabColor = if (isSelected) accentColor else MaterialTheme.colorScheme.onSurfaceVariant
 
-            Surface(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onTabSelected(1) },
-                shape = RoundedCornerShape(8.dp),
-                color = if (selectedTabIndex == 1) MaterialTheme.colorScheme.surface else Color.Transparent,
-                shadowElevation = if (selectedTabIndex == 1) 1.dp else 0.dp
-            ) {
-                Row(
-                    modifier = Modifier.padding(vertical = 10.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .selectable(
+                            selected = isSelected,
+                            role = Role.Tab,
+                            onClick = { onTabSelected(index) }
+                        ),
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
+                    shadowElevation = if (isSelected) 1.dp else 0.dp
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Archive,
-                        contentDescription = null,
-                        tint = if (selectedTabIndex == 1) ShipsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "کشتی غیرفعال",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selectedTabIndex == 1) ShipsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = if (selectedTabIndex == 1) ShipsTabAccent.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
+                    Row(
+                        modifier = Modifier.padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "$inactiveShipsCount",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (selectedTabIndex == 1) ShipsTabAccent else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        Icon(
+                            imageVector = tab.icon,
+                            contentDescription = null,
+                            tint = tabColor,
+                            modifier = Modifier.size(20.dp)
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = tab.title,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = tabColor
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) accentColor.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                text = "${tab.count}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = tabColor,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -276,19 +257,25 @@ fun ShipsTabContent(
     ships: List<Ship>,
     isActive: Boolean,
     onShipSelected: (String) -> Unit,
+    listState: LazyListState = rememberLazyListState(),
     modifier: Modifier = Modifier
 ) {
     if (ships.isEmpty()) {
         EmptyShipsState(isActive = isActive)
     } else {
         LazyColumn(
+            state = listState,
             modifier = modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(2.dp),
             contentPadding = PaddingValues(vertical = 2.dp)
         ) {
             items(
                 items = ships,
-                key = { ship -> ship.name }
+                // یک کشتی می‌تواند با چند نوع محموله (cargoType) چند ردیف با نام یکسان
+                // در پاسخ سرور داشته باشد (GROUP BY shipName, cargoType)؛ کلید باید
+                // ترکیبی باشد وگرنه LazyColumn با کلید تکراری کرش می‌کند.
+                key = { ship -> "${ship.name}|${ship.cargoType.orEmpty()}" },
+                contentType = { "ship" }
             ) { ship ->
                 ShipCard(
                     ship = ship,
@@ -305,7 +292,7 @@ fun SearchField(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "جستجو بر اساس نام کشتی، شماره...",
+    placeholder: String = "جستجو بر اساس نام کشتی یا نوع محموله...",
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
     Surface(
