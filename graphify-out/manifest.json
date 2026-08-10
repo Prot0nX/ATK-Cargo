@@ -1,0 +1,1432 @@
+{
+  ".claude/settings.json": {
+    "mtime": 1786375825.882866,
+    "ast_hash": "3447c6808989c4e2ad8140abd6787af8",
+    "semantic_hash": "3447c6808989c4e2ad8140abd6787af8"
+  },
+  ".claude/settings.local.json": {
+    "mtime": 1786213996.9625347,
+    "ast_hash": "8440f3dc89a291719c6dcaf326032d02",
+    "semantic_hash": "8440f3dc89a291719c6dcaf326032d02"
+  },
+  "PHP/PermissionManager.php": {
+    "mtime": 1785901829.939719,
+    "ast_hash": "178c4b1b293a0fff08b6bcc49cd13f3d",
+    "semantic_hash": "178c4b1b293a0fff08b6bcc49cd13f3d"
+  },
+  "PHP/SessionManager.php": {
+    "mtime": 1784565252.9437556,
+    "ast_hash": "fee0e72b3144a5836e053d3074e01ec3",
+    "semantic_hash": "fee0e72b3144a5836e053d3074e01ec3"
+  },
+  "PHP/User/SessionManager.php": {
+    "mtime": 1784565252.9442537,
+    "ast_hash": "3695538c5d51da69853f3ab2854919c7",
+    "semantic_hash": "3695538c5d51da69853f3ab2854919c7"
+  },
+  "PHP/User/jdf.php": {
+    "mtime": 1785901829.939719,
+    "ast_hash": "00bd93e48db2e25fcc4bd06f40359405",
+    "semantic_hash": "00bd93e48db2e25fcc4bd06f40359405"
+  },
+  "PHP/User/online_users_api.php": {
+    "mtime": 1784646605.1237502,
+    "ast_hash": "4a8a2e2bb9c2479a12e86c3503ce49ff",
+    "semantic_hash": "4a8a2e2bb9c2479a12e86c3503ce49ff"
+  },
+  "PHP/User/online_users_script.js": {
+    "mtime": 1780771347.340851,
+    "ast_hash": "2e261cc5053d887cc960fd0b15026521",
+    "semantic_hash": "2e261cc5053d887cc960fd0b15026521"
+  },
+  "PHP/app_api.php": {
+    "mtime": 1786363064.0509243,
+    "ast_hash": "ccfea35de6beb7a00262a8c23e7e1cc2",
+    "semantic_hash": "ccfea35de6beb7a00262a8c23e7e1cc2"
+  },
+  "PHP/chat_api.php": {
+    "mtime": 1784646605.1242511,
+    "ast_hash": "db1b369210397f5b3ef35c6780ab6f8d",
+    "semantic_hash": "db1b369210397f5b3ef35c6780ab6f8d"
+  },
+  "PHP/checkExistence.php": {
+    "mtime": 1784646605.1247523,
+    "ast_hash": "834de7d6a1855433f4b19c40116b7baf",
+    "semantic_hash": "834de7d6a1855433f4b19c40116b7baf"
+  },
+  "PHP/check_Auth.php": {
+    "mtime": 1784565252.9452553,
+    "ast_hash": "e0a988b28db47bdc804b0f557cf9f047",
+    "semantic_hash": "e0a988b28db47bdc804b0f557cf9f047"
+  },
+  "PHP/check_logout.php": {
+    "mtime": 1784565252.9457543,
+    "ast_hash": "6653c18c79cd4e2d9d48c28b0fd2edc3",
+    "semantic_hash": "6653c18c79cd4e2d9d48c28b0fd2edc3"
+  },
+  "PHP/check_password.php": {
+    "mtime": 1784646605.1252518,
+    "ast_hash": "4c6b79840174c693b7d4f5e64f897a68",
+    "semantic_hash": "4c6b79840174c693b7d4f5e64f897a68"
+  },
+  "PHP/check_scale_receipt.php": {
+    "mtime": 1784646605.1257522,
+    "ast_hash": "9958eeecf260110856dc51cffda7f6bf",
+    "semantic_hash": "9958eeecf260110856dc51cffda7f6bf"
+  },
+  "PHP/check_session.php": {
+    "mtime": 1784565252.9462538,
+    "ast_hash": "0ddb578e2a304058fbfe54ffe1506358",
+    "semantic_hash": "0ddb578e2a304058fbfe54ffe1506358"
+  },
+  "PHP/check_signature.php": {
+    "mtime": 1784646605.1262531,
+    "ast_hash": "11d804d5970bc65f5eb0fd883fb3abb0",
+    "semantic_hash": "11d804d5970bc65f5eb0fd883fb3abb0"
+  },
+  "PHP/check_table_structure.php": {
+    "mtime": 1780552886.5167,
+    "ast_hash": "bfa47dd1c9eaf8c28c4294ce7d11eeb9",
+    "semantic_hash": "bfa47dd1c9eaf8c28c4294ce7d11eeb9"
+  },
+  "PHP/check_update.php": {
+    "mtime": 1784646605.1272511,
+    "ast_hash": "8ddf754f62a9fb45385fdaeb806c98ad",
+    "semantic_hash": "8ddf754f62a9fb45385fdaeb806c98ad"
+  },
+  "PHP/composer.json": {
+    "mtime": 1785901829.939719,
+    "ast_hash": "866dbf3a88bd59f6ebe65630b08ce4ba",
+    "semantic_hash": "866dbf3a88bd59f6ebe65630b08ce4ba"
+  },
+  "PHP/config/config.php": {
+    "mtime": 1786202444.852446,
+    "ast_hash": "d827fdfca420b0f4545a0f5305251f4a",
+    "semantic_hash": "d827fdfca420b0f4545a0f5305251f4a"
+  },
+  "PHP/config/permissions.json": {
+    "mtime": 1784569728.8242657,
+    "ast_hash": "1d3c260485bfd3cc31531f4b51eb6604",
+    "semantic_hash": "1d3c260485bfd3cc31531f4b51eb6604"
+  },
+  "PHP/confirm_cargo.php": {
+    "mtime": 1784646605.1272511,
+    "ast_hash": "10357b0fe44a53393d070ad0fa5dfbc9",
+    "semantic_hash": "10357b0fe44a53393d070ad0fa5dfbc9"
+  },
+  "PHP/deleteCargoInfo.php": {
+    "mtime": 1784646605.1277516,
+    "ast_hash": "2eb525606ea69cf9369b8f02f4a65ade",
+    "semantic_hash": "2eb525606ea69cf9369b8f02f4a65ade"
+  },
+  "PHP/file_manager.php": {
+    "mtime": 1785901829.9412284,
+    "ast_hash": "15869d1e7f5385854a20a2671489b34d",
+    "semantic_hash": "15869d1e7f5385854a20a2671489b34d"
+  },
+  "PHP/generateDailyStats.php": {
+    "mtime": 1779392477.7065618,
+    "ast_hash": "50849cf19ad1f1d3893014859c40af6c",
+    "semantic_hash": "50849cf19ad1f1d3893014859c40af6c"
+  },
+  "PHP/getActiveShips.php": {
+    "mtime": 1784646605.1287525,
+    "ast_hash": "63baef139c4d4bf3da37029341040720",
+    "semantic_hash": "63baef139c4d4bf3da37029341040720"
+  },
+  "PHP/getInitialInfo.php": {
+    "mtime": 1784646605.1302514,
+    "ast_hash": "2448a38c68a1ac1f2221fa44ccd43013",
+    "semantic_hash": "2448a38c68a1ac1f2221fa44ccd43013"
+  },
+  "PHP/get_csrf_token.php": {
+    "mtime": 1779392477.707562,
+    "ast_hash": "624e296f2339aaafcc92c6ae3338cf3c",
+    "semantic_hash": "624e296f2339aaafcc92c6ae3338cf3c"
+  },
+  "PHP/get_license_info.php": {
+    "mtime": 1784646605.1307518,
+    "ast_hash": "4be995bcad0f5b9e90cd85224db39388",
+    "semantic_hash": "4be995bcad0f5b9e90cd85224db39388"
+  },
+  "PHP/jdf.php": {
+    "mtime": 1779392477.708062,
+    "ast_hash": "0fb4cf9eb0ee019e1fea8b87d206363d",
+    "semantic_hash": "0fb4cf9eb0ee019e1fea8b87d206363d"
+  },
+  "PHP/protected_proxy.php": {
+    "mtime": 1786363064.051429,
+    "ast_hash": "5eec6c7787e8985b28a7467014cb76b7",
+    "semantic_hash": "5eec6c7787e8985b28a7467014cb76b7"
+  },
+  "PHP/proxy_generator.php": {
+    "mtime": 1779392477.708562,
+    "ast_hash": "19d8dbcfd41b8266f0f4af42da8c3226",
+    "semantic_hash": "19d8dbcfd41b8266f0f4af42da8c3226"
+  },
+  "PHP/quota_remaining_api.php": {
+    "mtime": 1784646605.1317523,
+    "ast_hash": "92fb55a30e486bae421ddc8d97b2989a",
+    "semantic_hash": "92fb55a30e486bae421ddc8d97b2989a"
+  },
+  "PHP/realTimeLoadingData.php": {
+    "mtime": 1784646605.1332507,
+    "ast_hash": "88671bb9e2e42919c55e6212292354b9",
+    "semantic_hash": "88671bb9e2e42919c55e6212292354b9"
+  },
+  "PHP/saveInitialInfo.php": {
+    "mtime": 1784646605.1337512,
+    "ast_hash": "63d06860967381789f43599023f1fc4f",
+    "semantic_hash": "63d06860967381789f43599023f1fc4f"
+  },
+  "PHP/saveOrUpdateCargoInfo.php": {
+    "mtime": 1784565252.947754,
+    "ast_hash": "89c7229c4d5b27fa91cba5a3b210e79b",
+    "semantic_hash": "89c7229c4d5b27fa91cba5a3b210e79b"
+  },
+  "PHP/search_by_scaleReceipt.php": {
+    "mtime": 1784646605.1337512,
+    "ast_hash": "5b392523755af11c4031b8927987af7c",
+    "semantic_hash": "5b392523755af11c4031b8927987af7c"
+  },
+  "PHP/search_by_tracking.php": {
+    "mtime": 1784646605.1342528,
+    "ast_hash": "a35a1412457600c88542d8c2a8d9ddda",
+    "semantic_hash": "a35a1412457600c88542d8c2a8d9ddda"
+  },
+  "PHP/src/Controllers/AnalyticsController.php": {
+    "mtime": 1786202444.8529468,
+    "ast_hash": "767d5737f25b63a03213c2941ca493eb",
+    "semantic_hash": "767d5737f25b63a03213c2941ca493eb"
+  },
+  "PHP/src/Controllers/AppApiController.php": {
+    "mtime": 1786363064.0524247,
+    "ast_hash": "d1b9a7bb57282a66c50c7f63867e1bc2",
+    "semantic_hash": "d1b9a7bb57282a66c50c7f63867e1bc2"
+  },
+  "PHP/src/Controllers/AuthController.php": {
+    "mtime": 1786287444.8199944,
+    "ast_hash": "bc07d5fad05347bf6a22732b71745edc",
+    "semantic_hash": "bc07d5fad05347bf6a22732b71745edc"
+  },
+  "PHP/src/Controllers/CargoController.php": {
+    "mtime": 1786363064.0529244,
+    "ast_hash": "5e69cb79426771d82d29da4d791b2211",
+    "semantic_hash": "5e69cb79426771d82d29da4d791b2211"
+  },
+  "PHP/src/Controllers/ChatController.php": {
+    "mtime": 1786202444.8554535,
+    "ast_hash": "bf332b2b730e0255c9c88e90982a13e8",
+    "semantic_hash": "bf332b2b730e0255c9c88e90982a13e8"
+  },
+  "PHP/src/Controllers/LicenseController.php": {
+    "mtime": 1786202444.8559537,
+    "ast_hash": "8fe6338f36a361449636c852e6470d1e",
+    "semantic_hash": "8fe6338f36a361449636c852e6470d1e"
+  },
+  "PHP/src/Controllers/OnlineUsersController.php": {
+    "mtime": 1786202444.8564537,
+    "ast_hash": "9ba5abf5475a2fa5d98e4a9cd865d922",
+    "semantic_hash": "9ba5abf5475a2fa5d98e4a9cd865d922"
+  },
+  "PHP/src/Controllers/UserController.php": {
+    "mtime": 1784700717.5464144,
+    "ast_hash": "df265e50940f8cdd077e2edcd9ecef93",
+    "semantic_hash": "df265e50940f8cdd077e2edcd9ecef93"
+  },
+  "PHP/src/Controllers/UtilityController.php": {
+    "mtime": 1786202444.8569539,
+    "ast_hash": "6d72c4edbf23f3edca2db1e6882b9e43",
+    "semantic_hash": "6d72c4edbf23f3edca2db1e6882b9e43"
+  },
+  "PHP/src/Core/Config.php": {
+    "mtime": 1785901829.9457457,
+    "ast_hash": "153b1e016a36db0ae06448cb11db0914",
+    "semantic_hash": "153b1e016a36db0ae06448cb11db0914"
+  },
+  "PHP/src/Core/Database.php": {
+    "mtime": 1784565252.9502542,
+    "ast_hash": "d3d89fc0e384f95cfc5e8e71086659dd",
+    "semantic_hash": "d3d89fc0e384f95cfc5e8e71086659dd"
+  },
+  "PHP/src/Core/DatabaseManager.php": {
+    "mtime": 1786363064.053424,
+    "ast_hash": "719cb09b4386453ad5878c54f07a4c4a",
+    "semantic_hash": "719cb09b4386453ad5878c54f07a4c4a"
+  },
+  "PHP/src/Core/Logger.php": {
+    "mtime": 1786202444.8574536,
+    "ast_hash": "27eefa819d652ff00b3b10c2b4909ce9",
+    "semantic_hash": "27eefa819d652ff00b3b10c2b4909ce9"
+  },
+  "PHP/src/Core/MicroCache.php": {
+    "mtime": 1786363064.0539243,
+    "ast_hash": "b2cbc5cd8062b85a77bffaeb508eef10",
+    "semantic_hash": "b2cbc5cd8062b85a77bffaeb508eef10"
+  },
+  "PHP/src/Core/Request.php": {
+    "mtime": 1786202444.8584535,
+    "ast_hash": "2bcdec86707b073571561cf0622fdb85",
+    "semantic_hash": "2bcdec86707b073571561cf0622fdb85"
+  },
+  "PHP/src/Core/Response.php": {
+    "mtime": 1784568872.498069,
+    "ast_hash": "fbb43aa0d057cf8c5c709a079823a29b",
+    "semantic_hash": "fbb43aa0d057cf8c5c709a079823a29b"
+  },
+  "PHP/src/Exceptions/ApiException.php": {
+    "mtime": 1784565252.9512537,
+    "ast_hash": "e98aaf7eeee9d12f18375fd5161e383e",
+    "semantic_hash": "e98aaf7eeee9d12f18375fd5161e383e"
+  },
+  "PHP/src/Exceptions/DatabaseException.php": {
+    "mtime": 1784565252.951754,
+    "ast_hash": "3d55bc474db02c5e568cf0134270f5b5",
+    "semantic_hash": "3d55bc474db02c5e568cf0134270f5b5"
+  },
+  "PHP/src/Repositories/CargoRepository.php": {
+    "mtime": 1786363064.0544245,
+    "ast_hash": "1bd51c2d1cd50e05ac234d3d38073e77",
+    "semantic_hash": "1bd51c2d1cd50e05ac234d3d38073e77"
+  },
+  "PHP/src/Repositories/SessionRepository.php": {
+    "mtime": 1786363064.0549242,
+    "ast_hash": "a751fb1bdd4747cc8327791748b11106",
+    "semantic_hash": "a751fb1bdd4747cc8327791748b11106"
+  },
+  "PHP/src/Repositories/UserRepository.php": {
+    "mtime": 1784646605.1397612,
+    "ast_hash": "3efa0896d98dd91abbb9a6dfa381a9e4",
+    "semantic_hash": "3efa0896d98dd91abbb9a6dfa381a9e4"
+  },
+  "PHP/src/Services/CargoService.php": {
+    "mtime": 1786363064.055424,
+    "ast_hash": "5a59e358f182626d2f90f5a116545184",
+    "semantic_hash": "5a59e358f182626d2f90f5a116545184"
+  },
+  "PHP/src/Services/SessionService.php": {
+    "mtime": 1786363064.055926,
+    "ast_hash": "c115953eeec0b414693c7ad5cb320243",
+    "semantic_hash": "c115953eeec0b414693c7ad5cb320243"
+  },
+  "PHP/src/Services/UserService.php": {
+    "mtime": 1785901861.6454108,
+    "ast_hash": "14eedac7a863f8bea2f5f8c08f6919d3",
+    "semantic_hash": "14eedac7a863f8bea2f5f8c08f6919d3"
+  },
+  "PHP/src/Validators/InputValidator.php": {
+    "mtime": 1784565252.9532537,
+    "ast_hash": "fd030b9a022c65209fd0c1356c3c78a3",
+    "semantic_hash": "fd030b9a022c65209fd0c1356c3c78a3"
+  },
+  "PHP/src/bootstrap.php": {
+    "mtime": 1786202444.8594575,
+    "ast_hash": "6ccd7b7b06bdf62f0c328a861fe8ecc6",
+    "semantic_hash": "6ccd7b7b06bdf62f0c328a861fe8ecc6"
+  },
+  "PHP/sync_permissions.php": {
+    "mtime": 1784646605.140949,
+    "ast_hash": "9c3c3d2e121958f793caadc696de1453",
+    "semantic_hash": "9c3c3d2e121958f793caadc696de1453"
+  },
+  "PHP/tests/CargoServiceTest.php": {
+    "mtime": 1785901829.9477482,
+    "ast_hash": "96fd2415f4aad1aa8f432340e9a427d4",
+    "semantic_hash": "96fd2415f4aad1aa8f432340e9a427d4"
+  },
+  "PHP/tests/InputValidatorTest.php": {
+    "mtime": 1785901829.9482489,
+    "ast_hash": "6c5aaa082ddacec94510f874dbd22b3c",
+    "semantic_hash": "6c5aaa082ddacec94510f874dbd22b3c"
+  },
+  "PHP/tests/SessionServiceTest.php": {
+    "mtime": 1785901829.9482489,
+    "ast_hash": "941c0a6511e67372cb4eb681a4a6a672",
+    "semantic_hash": "941c0a6511e67372cb4eb681a4a6a672"
+  },
+  "PHP/tests/run_tests.php": {
+    "mtime": 1785901829.9487488,
+    "ast_hash": "d9924099c5d38d250887a29a7455c76b",
+    "semantic_hash": "d9924099c5d38d250887a29a7455c76b"
+  },
+  "PHP/updateCargoInfo.php": {
+    "mtime": 1784646605.1429746,
+    "ast_hash": "8f8abf9f117c8e680e1cfb3afe8fd7c0",
+    "semantic_hash": "8f8abf9f117c8e680e1cfb3afe8fd7c0"
+  },
+  "PHP/update_chat_table.sql": {
+    "mtime": 1785901829.9492488,
+    "ast_hash": "0af8515379891ad92722ae69517ec843",
+    "semantic_hash": "0af8515379891ad92722ae69517ec843"
+  },
+  "PHP/update_config.php": {
+    "mtime": 1779392477.71207,
+    "ast_hash": "43591f2657926569148477e2682442cd",
+    "semantic_hash": "43591f2657926569148477e2682442cd"
+  },
+  "PHP/update_fcm_token.php": {
+    "mtime": 1784646605.1440525,
+    "ast_hash": "f1bfa28bc041f53cdf57286751e96bb5",
+    "semantic_hash": "f1bfa28bc041f53cdf57286751e96bb5"
+  },
+  "PHP/users_api.php": {
+    "mtime": 1784565252.954254,
+    "ast_hash": "ad4830e46a21560c49c1b832c3c77389",
+    "semantic_hash": "ad4830e46a21560c49c1b832c3c77389"
+  },
+  "PHP/validate_license.php": {
+    "mtime": 1784646605.144557,
+    "ast_hash": "68b93a5dddee0fc6c73bd0ce1fd8a828",
+    "semantic_hash": "68b93a5dddee0fc6c73bd0ce1fd8a828"
+  },
+  "PHP/vendor/autoload.php": {
+    "mtime": 1785901829.9492488,
+    "ast_hash": "77f657dd9e487b9e5b94007a23ae7853",
+    "semantic_hash": "77f657dd9e487b9e5b94007a23ae7853"
+  },
+  "PHP/vendor/composer/ClassLoader.php": {
+    "mtime": 1785901829.9497485,
+    "ast_hash": "f4790d0053c6b6a427000c1f011e3d1a",
+    "semantic_hash": "f4790d0053c6b6a427000c1f011e3d1a"
+  },
+  "PHP/vendor/composer/InstalledVersions.php": {
+    "mtime": 1785901829.9502509,
+    "ast_hash": "9069f5694081fa02f06f68a172ca9d0e",
+    "semantic_hash": "9069f5694081fa02f06f68a172ca9d0e"
+  },
+  "PHP/vendor/composer/autoload_classmap.php": {
+    "mtime": 1786202444.8599937,
+    "ast_hash": "6cdce602c529d82927b1ddc8270545b4",
+    "semantic_hash": "6cdce602c529d82927b1ddc8270545b4"
+  },
+  "PHP/vendor/composer/autoload_namespaces.php": {
+    "mtime": 1785901829.95075,
+    "ast_hash": "b331c025a2fe911124f4d544d6c2a0c3",
+    "semantic_hash": "b331c025a2fe911124f4d544d6c2a0c3"
+  },
+  "PHP/vendor/composer/autoload_psr4.php": {
+    "mtime": 1785901829.9517477,
+    "ast_hash": "58d84d9cccb64f50a52f5f02319dca63",
+    "semantic_hash": "58d84d9cccb64f50a52f5f02319dca63"
+  },
+  "PHP/vendor/composer/autoload_real.php": {
+    "mtime": 1785901829.9517477,
+    "ast_hash": "15a872948f8728e7118ef4eff611249c",
+    "semantic_hash": "15a872948f8728e7118ef4eff611249c"
+  },
+  "PHP/vendor/composer/autoload_static.php": {
+    "mtime": 1786202444.8604982,
+    "ast_hash": "a4bf4f6a5d50836270f54090b6a6c567",
+    "semantic_hash": "a4bf4f6a5d50836270f54090b6a6c567"
+  },
+  "PHP/vendor/composer/installed.json": {
+    "mtime": 1785901829.9522474,
+    "ast_hash": "be3df3dc396f3359e3001c671ea5904f",
+    "semantic_hash": "be3df3dc396f3359e3001c671ea5904f"
+  },
+  "PHP/vendor/composer/installed.php": {
+    "mtime": 1785901829.9527485,
+    "ast_hash": "f924496f44596cf39123557dbb373b41",
+    "semantic_hash": "f924496f44596cf39123557dbb373b41"
+  },
+  "PHP/vendor/composer/platform_check.php": {
+    "mtime": 1785901829.9527485,
+    "ast_hash": "addb83979823d0da0980c5007460b079",
+    "semantic_hash": "addb83979823d0da0980c5007460b079"
+  },
+  "app/build.gradle.kts": {
+    "mtime": 1786287444.8204947,
+    "ast_hash": "16a67553faa10fa8283b72702dd90c92",
+    "semantic_hash": "16a67553faa10fa8283b72702dd90c92"
+  },
+  "app/release/output-metadata.json": {
+    "mtime": 1786295212.3597362,
+    "ast_hash": "62b6edf70468ffe4b90e356689133674",
+    "semantic_hash": "62b6edf70468ffe4b90e356689133674"
+  },
+  "app/src/androidTest/java/com/atk/atk_cargo/ExampleInstrumentedTest.kt": {
+    "mtime": 1779392477.7165792,
+    "ast_hash": "cc52bb2504946e052e07951236f2baa8",
+    "semantic_hash": "cc52bb2504946e052e07951236f2baa8"
+  },
+  "app/src/main/cpp/secrets.cpp": {
+    "mtime": 1786295199.8696828,
+    "ast_hash": "0016008a2e849da0883de861891f5c69",
+    "semantic_hash": "0016008a2e849da0883de861891f5c69"
+  },
+  "app/src/main/java/com/atk/atk_cargo/MainActivity.kt": {
+    "mtime": 1786290171.3204672,
+    "ast_hash": "5e432e185549ec551d196d83e22642b4",
+    "semantic_hash": "5e432e185549ec551d196d83e22642b4"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/ApiService.kt": {
+    "mtime": 1785320275.6643813,
+    "ast_hash": "7f6771bce7cc82ac3f7e98e4b005fca4",
+    "semantic_hash": "7f6771bce7cc82ac3f7e98e4b005fca4"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/AppNotificationManager.kt": {
+    "mtime": 1784646605.1460567,
+    "ast_hash": "08e98d6c8b7b914f89f41402953e70ef",
+    "semantic_hash": "08e98d6c8b7b914f89f41402953e70ef"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/AtkCargoApplication.kt": {
+    "mtime": 1786363064.0569272,
+    "ast_hash": "3e496693af9c2668cd372ead77cf0a77",
+    "semantic_hash": "3e496693af9c2668cd372ead77cf0a77"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/AuthSession.kt": {
+    "mtime": 1786363064.057423,
+    "ast_hash": "08a9e05828ff1d0e836ca6f3034459a0",
+    "semantic_hash": "08a9e05828ff1d0e836ca6f3034459a0"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/BootReceiver.kt": {
+    "mtime": 1786287444.8234944,
+    "ast_hash": "17377ce5734c273767c8df67f38ae265",
+    "semantic_hash": "17377ce5734c273767c8df67f38ae265"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/ChatMessage.kt": {
+    "mtime": 1779392477.7401123,
+    "ast_hash": "2fa2f78e4914c9f14926f4472375c7f5",
+    "semantic_hash": "2fa2f78e4914c9f14926f4472375c7f5"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/ChatRequests.kt": {
+    "mtime": 1779392477.7401123,
+    "ast_hash": "44d28935f4f5b39d54f4f27e2fde7d95",
+    "semantic_hash": "44d28935f4f5b39d54f4f27e2fde7d95"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/ChatViewModel.kt": {
+    "mtime": 1786287444.8239946,
+    "ast_hash": "8a6053e70848f128e8f25b0c465aca60",
+    "semantic_hash": "8a6053e70848f128e8f25b0c465aca60"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/Constants.kt": {
+    "mtime": 1786287444.8239946,
+    "ast_hash": "81d31b1ac6c32ec71377b03a5be5e18c",
+    "semantic_hash": "81d31b1ac6c32ec71377b03a5be5e18c"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/DataModel.kt": {
+    "mtime": 1785271769.785646,
+    "ast_hash": "d3da0f1923029d9b433f85424ecc2b6f",
+    "semantic_hash": "d3da0f1923029d9b433f85424ecc2b6f"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/LoadingNotificationService.kt": {
+    "mtime": 1786287444.8244946,
+    "ast_hash": "7c6a53ee9b68aeec36cba73124710a50",
+    "semantic_hash": "7c6a53ee9b68aeec36cba73124710a50"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/NotificationActionReceiver.kt": {
+    "mtime": 1779392477.7426171,
+    "ast_hash": "4a93b7901930d6ce7f3849a51fa74cef",
+    "semantic_hash": "4a93b7901930d6ce7f3849a51fa74cef"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/PermissionPoller.kt": {
+    "mtime": 1786287444.8250692,
+    "ast_hash": "6abae5e20c5a0d94000d4b58a84d09c6",
+    "semantic_hash": "6abae5e20c5a0d94000d4b58a84d09c6"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/RetrofitClient.kt": {
+    "mtime": 1786363064.057423,
+    "ast_hash": "808e1730851634611bec99892a0684c4",
+    "semantic_hash": "808e1730851634611bec99892a0684c4"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/Secrets.kt": {
+    "mtime": 1786287444.8255744,
+    "ast_hash": "c75e76334922e38b16bb5a4030287f06",
+    "semantic_hash": "c75e76334922e38b16bb5a4030287f06"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/SessionValidator.kt": {
+    "mtime": 1779392477.7436173,
+    "ast_hash": "35df62ec790decd512126b5d7ab45193",
+    "semantic_hash": "35df62ec790decd512126b5d7ab45193"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/UpdateManager.kt": {
+    "mtime": 1786287444.8260741,
+    "ast_hash": "50fbc360aecee571450719686460f352",
+    "semantic_hash": "50fbc360aecee571450719686460f352"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/UpdateManagerFactory.kt": {
+    "mtime": 1779392477.7451172,
+    "ast_hash": "66e87afc727ad9567921606b11c617e1",
+    "semantic_hash": "66e87afc727ad9567921606b11c617e1"
+  },
+  "app/src/main/java/com/atk/atk_cargo/api/UserPreferencesManager.kt": {
+    "mtime": 1786363064.0584242,
+    "ast_hash": "794a671ba045305833053b0e9df85e39",
+    "semantic_hash": "794a671ba045305833053b0e9df85e39"
+  },
+  "app/src/main/java/com/atk/atk_cargo/core/extensions/ColorExtensions.kt": {
+    "mtime": 1784213643.2495258,
+    "ast_hash": "5e4e58ab3b51ba2efdc5e980871310d9",
+    "semantic_hash": "5e4e58ab3b51ba2efdc5e980871310d9"
+  },
+  "app/src/main/java/com/atk/atk_cargo/core/extensions/NumberExtensions.kt": {
+    "mtime": 1785271781.496157,
+    "ast_hash": "4f4787fbaae8f83d5c087e5d7b8b8599",
+    "semantic_hash": "4f4787fbaae8f83d5c087e5d7b8b8599"
+  },
+  "app/src/main/java/com/atk/atk_cargo/core/navigation/MainScreen.kt": {
+    "mtime": 1786291167.0937977,
+    "ast_hash": "11ba04a9cd32008a140eac6eaae34d37",
+    "semantic_hash": "11ba04a9cd32008a140eac6eaae34d37"
+  },
+  "app/src/main/java/com/atk/atk_cargo/core/navigation/NavRoutes.kt": {
+    "mtime": 1784213643.2513773,
+    "ast_hash": "632cab6d012ae23ffb19977510763864",
+    "semantic_hash": "632cab6d012ae23ffb19977510763864"
+  },
+  "app/src/main/java/com/atk/atk_cargo/core/startup/StartupComposition.kt": {
+    "mtime": 1786290171.3655932,
+    "ast_hash": "45926a3e93a0b9d725a7a8b599bf112e",
+    "semantic_hash": "45926a3e93a0b9d725a7a8b599bf112e"
+  },
+  "app/src/main/java/com/atk/atk_cargo/core/startup/StartupViewModel.kt": {
+    "mtime": 1786290171.3661003,
+    "ast_hash": "dba06351a7c89ed166d0c49521e3343d",
+    "semantic_hash": "dba06351a7c89ed166d0c49521e3343d"
+  },
+  "app/src/main/java/com/atk/atk_cargo/core/ui/components/ConfirmationDialog.kt": {
+    "mtime": 1784665973.8727376,
+    "ast_hash": "228d2513f7cdaacac57570151a43d409",
+    "semantic_hash": "228d2513f7cdaacac57570151a43d409"
+  },
+  "app/src/main/java/com/atk/atk_cargo/core/ui/components/DateRangePicker.kt": {
+    "mtime": 1784666024.2898557,
+    "ast_hash": "dd5d509643057dc9460c0d39a25bf6a1",
+    "semantic_hash": "dd5d509643057dc9460c0d39a25bf6a1"
+  },
+  "app/src/main/java/com/atk/atk_cargo/core/ui/components/EmptyState.kt": {
+    "mtime": 1784665979.4312549,
+    "ast_hash": "231c7dda12f97486f433dc3b74139645",
+    "semantic_hash": "231c7dda12f97486f433dc3b74139645"
+  },
+  "app/src/main/java/com/atk/atk_cargo/core/ui/components/ErrorState.kt": {
+    "mtime": 1784665983.6565154,
+    "ast_hash": "0c3686bddb68816bc77ce0a6aedb32ef",
+    "semantic_hash": "0c3686bddb68816bc77ce0a6aedb32ef"
+  },
+  "app/src/main/java/com/atk/atk_cargo/core/ui/components/LoadingOverlay.kt": {
+    "mtime": 1784665987.451013,
+    "ast_hash": "55bfea5280813485ac0710be7c089dd8",
+    "semantic_hash": "55bfea5280813485ac0710be7c089dd8"
+  },
+  "app/src/main/java/com/atk/atk_cargo/core/ui/components/SearchBar.kt": {
+    "mtime": 1784665991.0136726,
+    "ast_hash": "940943e793a8e75e5d62e696c2684c18",
+    "semantic_hash": "940943e793a8e75e5d62e696c2684c18"
+  },
+  "app/src/main/java/com/atk/atk_cargo/core/ui/components/SnackbarMessage.kt": {
+    "mtime": 1784665997.2005777,
+    "ast_hash": "5c17c97f68f44b595cc3ea81202108ff",
+    "semantic_hash": "5c17c97f68f44b595cc3ea81202108ff"
+  },
+  "app/src/main/java/com/atk/atk_cargo/core/ui/components/StatisticsCard.kt": {
+    "mtime": 1784666179.6563213,
+    "ast_hash": "ea0174745af785a3e00306990a3774cf",
+    "semantic_hash": "ea0174745af785a3e00306990a3774cf"
+  },
+  "app/src/main/java/com/atk/atk_cargo/data/ColorPicker.kt": {
+    "mtime": 1779392477.74662,
+    "ast_hash": "84f05bdc94a3cb582269cf06ad35a0a7",
+    "semantic_hash": "84f05bdc94a3cb582269cf06ad35a0a7"
+  },
+  "app/src/main/java/com/atk/atk_cargo/data/db/AppDatabase.kt": {
+    "mtime": 1784565252.959754,
+    "ast_hash": "6cc7adbbd2e5234c5389f4de2c2aecca",
+    "semantic_hash": "6cc7adbbd2e5234c5389f4de2c2aecca"
+  },
+  "app/src/main/java/com/atk/atk_cargo/data/db/ChatDao.kt": {
+    "mtime": 1779392477.7486312,
+    "ast_hash": "9ee9a487133be1dc4b89882ef7f27c10",
+    "semantic_hash": "9ee9a487133be1dc4b89882ef7f27c10"
+  },
+  "app/src/main/java/com/atk/atk_cargo/data/db/ChatMessageEntity.kt": {
+    "mtime": 1779392477.7486312,
+    "ast_hash": "f0af0e1a83fcde18a742a884fdbba84c",
+    "semantic_hash": "f0af0e1a83fcde18a742a884fdbba84c"
+  },
+  "app/src/main/java/com/atk/atk_cargo/data/model/AuthModels.kt": {
+    "mtime": 1786363064.0589237,
+    "ast_hash": "7672268a611733d9657d1438e81b7a9d",
+    "semantic_hash": "7672268a611733d9657d1438e81b7a9d"
+  },
+  "app/src/main/java/com/atk/atk_cargo/data/model/CargoModels.kt": {
+    "mtime": 1784646605.1475577,
+    "ast_hash": "919709362150257c7b32bbf83b7b02b1",
+    "semantic_hash": "919709362150257c7b32bbf83b7b02b1"
+  },
+  "app/src/main/java/com/atk/atk_cargo/data/model/ReportModels.kt": {
+    "mtime": 1786363064.0594244,
+    "ast_hash": "fa43e1c64769f30f8372c189b3ea2cc4",
+    "semantic_hash": "fa43e1c64769f30f8372c189b3ea2cc4"
+  },
+  "app/src/main/java/com/atk/atk_cargo/data/repository/ChatRepository.kt": {
+    "mtime": 1786287444.827574,
+    "ast_hash": "4ccb81b77339bb45db3aeeffaffb05f9",
+    "semantic_hash": "4ccb81b77339bb45db3aeeffaffb05f9"
+  },
+  "app/src/main/java/com/atk/atk_cargo/data/repository/ReportsRepository.kt": {
+    "mtime": 1786363064.0604243,
+    "ast_hash": "faac8e3085cac8bcb40c1792c2e7b9dc",
+    "semantic_hash": "faac8e3085cac8bcb40c1792c2e7b9dc"
+  },
+  "app/src/main/java/com/atk/atk_cargo/di/AppModule.kt": {
+    "mtime": 1786290171.3219779,
+    "ast_hash": "7ac4aff3e5e89a39d8f410699ee77387",
+    "semantic_hash": "7ac4aff3e5e89a39d8f410699ee77387"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/admin/presentation/UserManagementDialogsSection.kt": {
+    "mtime": 1786208528.0485313,
+    "ast_hash": "287dc66baabf146258eeaf2f5674bdba",
+    "semantic_hash": "287dc66baabf146258eeaf2f5674bdba"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/admin/presentation/UserManagementScreen.kt": {
+    "mtime": 1786287444.8285742,
+    "ast_hash": "192df073c96c52b622aaf6f1cb80c501",
+    "semantic_hash": "192df073c96c52b622aaf6f1cb80c501"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/auth/data/AuthRepository.kt": {
+    "mtime": 1784646605.1490567,
+    "ast_hash": "d14e51a7e1459e1a5b69058f81e6633b",
+    "semantic_hash": "d14e51a7e1459e1a5b69058f81e6633b"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/auth/data/AuthRepositoryImpl.kt": {
+    "mtime": 1784646605.1495564,
+    "ast_hash": "62dd33e72b0751d86a69b1f84cf5549c",
+    "semantic_hash": "62dd33e72b0751d86a69b1f84cf5549c"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/auth/domain/LoginUseCase.kt": {
+    "mtime": 1784646605.1495564,
+    "ast_hash": "1ad21fecf715b43c4517f70880c9df92",
+    "semantic_hash": "1ad21fecf715b43c4517f70880c9df92"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/auth/domain/LogoutUseCase.kt": {
+    "mtime": 1786287444.8290746,
+    "ast_hash": "fc90cd97165108a5b475665ccc373d46",
+    "semantic_hash": "fc90cd97165108a5b475665ccc373d46"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/auth/presentation/LoginScreen.kt": {
+    "mtime": 1786291200.081287,
+    "ast_hash": "89c666301aa013e692138c3c5e28214d",
+    "semantic_hash": "89c666301aa013e692138c3c5e28214d"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/auth/viewmodel/AuthViewModel.kt": {
+    "mtime": 1784646605.1525564,
+    "ast_hash": "ed79b5d5d63237ac8e014e015e3eafb3",
+    "semantic_hash": "ed79b5d5d63237ac8e014e015e3eafb3"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo/domain/CargoSnackbarQueue.kt": {
+    "mtime": 1784213643.263507,
+    "ast_hash": "987cc502f023cd843cd5b5f72b53c9a8",
+    "semantic_hash": "987cc502f023cd843cd5b5f72b53c9a8"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo/domain/QuotaValidationUseCase.kt": {
+    "mtime": 1784213643.263997,
+    "ast_hash": "d1ba301c4fd700611f7d3c8da5765bb8",
+    "semantic_hash": "d1ba301c4fd700611f7d3c8da5765bb8"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo/domain/usecase/CheckQuotaUseCase.kt": {
+    "mtime": 1784665078.8695319,
+    "ast_hash": "077c0a723877695752f56d3797c633b3",
+    "semantic_hash": "077c0a723877695752f56d3797c633b3"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo/domain/usecase/SubmitCargoUseCase.kt": {
+    "mtime": 1784665014.9658406,
+    "ast_hash": "28251dd71a4fbb77bc3057bafef72f76",
+    "semantic_hash": "28251dd71a4fbb77bc3057bafef72f76"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_counter/navigation/CargoCounterNavigation.kt": {
+    "mtime": 1785310521.5795162,
+    "ast_hash": "1395d4f8b3d5299b33ff49a58c83c4ff",
+    "semantic_hash": "1395d4f8b3d5299b33ff49a58c83c4ff"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_counter/presentation/CargoCounterOperationScreen.kt": {
+    "mtime": 1785308337.505344,
+    "ast_hash": "a59cbedc155471913c3efaeab48cf320",
+    "semantic_hash": "a59cbedc155471913c3efaeab48cf320"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_counter/presentation/CargoCounterScreen.kt": {
+    "mtime": 1786287444.8295782,
+    "ast_hash": "75b3b88bc0e5fbeebb0b41d896f35cba",
+    "semantic_hash": "75b3b88bc0e5fbeebb0b41d896f35cba"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_counter/presentation/components/CargoCounterComponents.kt": {
+    "mtime": 1786029517.0065377,
+    "ast_hash": "32d6b4206c266e08ebe73b4ae4f80506",
+    "semantic_hash": "32d6b4206c266e08ebe73b4ae4f80506"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_details/presentation/CargoDetailsScreen.kt": {
+    "mtime": 1786287444.8301494,
+    "ast_hash": "9d90381d11f0195e1b35a0faf74721f3",
+    "semantic_hash": "9d90381d11f0195e1b35a0faf74721f3"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_details/presentation/components/CargoDetailsComponents.kt": {
+    "mtime": 1786212580.5075781,
+    "ast_hash": "fd5c660ffcd5f69748c84cc944ecab65",
+    "semantic_hash": "fd5c660ffcd5f69748c84cc944ecab65"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_details/presentation/components/CargoDetailsDialogSection.kt": {
+    "mtime": 1786212580.4293587,
+    "ast_hash": "561c464af2971203af777473f2bef669",
+    "semantic_hash": "561c464af2971203af777473f2bef669"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/domain/InitialInfoValidator.kt": {
+    "mtime": 1784213643.2684963,
+    "ast_hash": "487590592b6be8d9fb5cea3a72992bb4",
+    "semantic_hash": "487590592b6be8d9fb5cea3a72992bb4"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/navigation/CargoEntryNavigation.kt": {
+    "mtime": 1785310521.5955334,
+    "ast_hash": "8051e745ea3ed842bfa6431923640589",
+    "semantic_hash": "8051e745ea3ed842bfa6431923640589"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/ActiveQuotasDialogSection.kt": {
+    "mtime": 1786205957.6308155,
+    "ast_hash": "1fb4c1589025ff39d7144fd41c8ea4e1",
+    "semantic_hash": "1fb4c1589025ff39d7144fd41c8ea4e1"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/CargoOperationScreen.kt": {
+    "mtime": 1785307693.9830368,
+    "ast_hash": "c49a78397279ad8cb955e8f7646f68b2",
+    "semantic_hash": "c49a78397279ad8cb955e8f7646f68b2"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/InitialInfoScreen.kt": {
+    "mtime": 1786029517.008044,
+    "ast_hash": "e1080c2a5d30326531817f96b7f591f4",
+    "semantic_hash": "e1080c2a5d30326531817f96b7f591f4"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/SelectInfoScreen.kt": {
+    "mtime": 1786287444.8311598,
+    "ast_hash": "8f8bba89a3a2515e1099ae75d266ce3f",
+    "semantic_hash": "8f8bba89a3a2515e1099ae75d266ce3f"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/components/QuotaEntryDialog.kt": {
+    "mtime": 1786029517.009544,
+    "ast_hash": "ce00e0b4caa3a09fc543e27936c3b6aa",
+    "semantic_hash": "ce00e0b4caa3a09fc543e27936c3b6aa"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/components/QuotaSelectionDialog.kt": {
+    "mtime": 1784668700.7843688,
+    "ast_hash": "b3c0ccaa1438de8644855dc8ab69e8ac",
+    "semantic_hash": "b3c0ccaa1438de8644855dc8ab69e8ac"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/components/SelectInfoHeaderSection.kt": {
+    "mtime": 1784664276.377392,
+    "ast_hash": "988fbda40b65d79adc69b7019b04d97d",
+    "semantic_hash": "988fbda40b65d79adc69b7019b04d97d"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/components/SelectInfoSnackbar.kt": {
+    "mtime": 1786029517.0100439,
+    "ast_hash": "df6eecfb93f5133651d20ea1b1fbb33a",
+    "semantic_hash": "df6eecfb93f5133651d20ea1b1fbb33a"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/components/ShipSelectionDialog.kt": {
+    "mtime": 1786029517.0105438,
+    "ast_hash": "9eb90ab6d2c68ea02e2d090ad26cb6f1",
+    "semantic_hash": "9eb90ab6d2c68ea02e2d090ad26cb6f1"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/domain/format/NumberFormatter.kt": {
+    "mtime": 1784213643.2716384,
+    "ast_hash": "876337bda29cf522c9a299841b135521",
+    "semantic_hash": "876337bda29cf522c9a299841b135521"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/domain/ocr/ImagePreprocessor.kt": {
+    "mtime": 1786287444.8316677,
+    "ast_hash": "c58c51641395374352f5fb3143b7eb18",
+    "semantic_hash": "c58c51641395374352f5fb3143b7eb18"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/domain/ocr/TextAnalyzer.kt": {
+    "mtime": 1784213643.2725892,
+    "ast_hash": "c7075dcf0f88f26a7331961e3fbf70da",
+    "semantic_hash": "c7075dcf0f88f26a7331961e3fbf70da"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/navigation/CargoRegistrationNavigation.kt": {
+    "mtime": 1784565252.968255,
+    "ast_hash": "504d10f7848874f365ecd53aa207483f",
+    "semantic_hash": "504d10f7848874f365ecd53aa207483f"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/RegisterCargoScreen.kt": {
+    "mtime": 1786029517.0110443,
+    "ast_hash": "d6c7cc5f9e34b57f8d2a8336024026a4",
+    "semantic_hash": "d6c7cc5f9e34b57f8d2a8336024026a4"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/CameraSection.kt": {
+    "mtime": 1785274493.5683265,
+    "ast_hash": "cf030cf69a8559f383af44688dd73cc9",
+    "semantic_hash": "cf030cf69a8559f383af44688dd73cc9"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/CargoInfoDetailsDialogSection.kt": {
+    "mtime": 1786207809.3447876,
+    "ast_hash": "8662c31c2ffddf2ce2379c7ce3c5586f",
+    "semantic_hash": "8662c31c2ffddf2ce2379c7ce3c5586f"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/RegisterCargoDialogs.kt": {
+    "mtime": 1786212580.480551,
+    "ast_hash": "4886168a235107c2e8cb40d3700db6cf",
+    "semantic_hash": "4886168a235107c2e8cb40d3700db6cf"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/RegisterCargoForm.kt": {
+    "mtime": 1786212580.4378808,
+    "ast_hash": "407f97201484926e15ddfa480618b96c",
+    "semantic_hash": "407f97201484926e15ddfa480618b96c"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/ShipInfoSection.kt": {
+    "mtime": 1785912741.56811,
+    "ast_hash": "f3bd557c8ef264f631d8ae0ab7a0533e",
+    "semantic_hash": "f3bd557c8ef264f631d8ae0ab7a0533e"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/dialogs/DuplicateTrackingNumbersDialog.kt": {
+    "mtime": 1784664679.0223045,
+    "ast_hash": "f30aaf9a4f61f4bcb6459a21d9d196b2",
+    "semantic_hash": "f30aaf9a4f61f4bcb6459a21d9d196b2"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/dialogs/ExitStatusDialog.kt": {
+    "mtime": 1785271793.6894503,
+    "ast_hash": "49e9dcb8430c567c6efa5ffb185496f5",
+    "semantic_hash": "49e9dcb8430c567c6efa5ffb185496f5"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/dialogs/NetWeightDialog.kt": {
+    "mtime": 1784664943.796104,
+    "ast_hash": "300cbb68cef26d12c280c06737e7e847",
+    "semantic_hash": "300cbb68cef26d12c280c06737e7e847"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/chat/domain/ChatDomain.kt": {
+    "mtime": 1784669297.3996036,
+    "ast_hash": "e67d41ca3cffc416d97da7836234f4b4",
+    "semantic_hash": "e67d41ca3cffc416d97da7836234f4b4"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/chat/navigation/ChatNavigation.kt": {
+    "mtime": 1784213643.2770946,
+    "ast_hash": "7fb15c2982e1d736ef34c4be0209c8e2",
+    "semantic_hash": "7fb15c2982e1d736ef34c4be0209c8e2"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/chat/presentation/ChatScreen.kt": {
+    "mtime": 1786287444.8316677,
+    "ast_hash": "a025598f4ccfb4967dc6e59fb3435d49",
+    "semantic_hash": "a025598f4ccfb4967dc6e59fb3435d49"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/chat/presentation/components/ChatInputBar.kt": {
+    "mtime": 1784565252.9717574,
+    "ast_hash": "37e7d7260129b9dc2bda744ccc9f00d2",
+    "semantic_hash": "37e7d7260129b9dc2bda744ccc9f00d2"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/chat/presentation/components/ChatToolbar.kt": {
+    "mtime": 1784663634.210243,
+    "ast_hash": "6365263fbc53b9b0c00ff8c2a7818702",
+    "semantic_hash": "6365263fbc53b9b0c00ff8c2a7818702"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/chat/presentation/components/MessageBubble.kt": {
+    "mtime": 1784565252.972757,
+    "ast_hash": "9863d2f9cdcaa9dbf983856e131e1b60",
+    "semantic_hash": "9863d2f9cdcaa9dbf983856e131e1b60"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/home/domain/HomeQuotaParser.kt": {
+    "mtime": 1785688597.7818809,
+    "ast_hash": "0a2b2830d95256fdf67f40aa51848319",
+    "semantic_hash": "0a2b2830d95256fdf67f40aa51848319"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/home/navigation/HomeNavigation.kt": {
+    "mtime": 1786290171.3229783,
+    "ast_hash": "1f9ffed6789da6ee7bd3f1e201f965da",
+    "semantic_hash": "1f9ffed6789da6ee7bd3f1e201f965da"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/home/presentation/HomeScreen.kt": {
+    "mtime": 1786290171.3234782,
+    "ast_hash": "216e75049f4359a85b6a91d8c193661a",
+    "semantic_hash": "216e75049f4359a85b6a91d8c193661a"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/home/presentation/ProfileSettingsDialogSection.kt": {
+    "mtime": 1786210788.0517318,
+    "ast_hash": "8c2effe0501d88aa4e9a9837c6929535",
+    "semantic_hash": "8c2effe0501d88aa4e9a9837c6929535"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/home/presentation/components/HomeNotificationSettingRow.kt": {
+    "mtime": 1786029517.013044,
+    "ast_hash": "15fe3ef53c4e745208c39c8845e98438",
+    "semantic_hash": "15fe3ef53c4e745208c39c8845e98438"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/home/presentation/components/HomeThemeColorPickerRow.kt": {
+    "mtime": 1786029517.0135438,
+    "ast_hash": "ae48636bba25c15911851c0f0606b6f4",
+    "semantic_hash": "ae48636bba25c15911851c0f0606b6f4"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/home/presentation/components/ProfileMenu.kt": {
+    "mtime": 1786290171.3234782,
+    "ast_hash": "357121027cd5878c6588def23b73c198",
+    "semantic_hash": "357121027cd5878c6588def23b73c198"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/domain/ExportPdfUseCase.kt": {
+    "mtime": 1785271795.8817735,
+    "ast_hash": "44caa9891484b3feadcae29c609474a6",
+    "semantic_hash": "44caa9891484b3feadcae29c609474a6"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/domain/ReportsDomain.kt": {
+    "mtime": 1786363064.0604243,
+    "ast_hash": "cb2b48f77c3f058235b6e0df97c4f631",
+    "semantic_hash": "cb2b48f77c3f058235b6e0df97c4f631"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/navigation/ReportsNavigation.kt": {
+    "mtime": 1784565252.9737568,
+    "ast_hash": "427dfa120f06ce1c4e25b4a4caecb97a",
+    "semantic_hash": "427dfa120f06ce1c4e25b4a4caecb97a"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/components/ReportsCommonWidgets.kt": {
+    "mtime": 1784663634.2112436,
+    "ast_hash": "a4ae7c246d1432b30cffdaa4ef39f5cc",
+    "semantic_hash": "a4ae7c246d1432b30cffdaa4ef39f5cc"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/details/ShipDetailsScreen.kt": {
+    "mtime": 1786029517.014544,
+    "ast_hash": "f0a51b9481cfab58aa3918acfd741086",
+    "semantic_hash": "f0a51b9481cfab58aa3918acfd741086"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/AdvancedSearchDialog.kt": {
+    "mtime": 1786029517.015544,
+    "ast_hash": "7628bd3cc0505055c895d000b2de05cb",
+    "semantic_hash": "7628bd3cc0505055c895d000b2de05cb"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/CargoEditSearchDialogsSection.kt": {
+    "mtime": 1786209044.7625456,
+    "ast_hash": "e89afa68720888c3fa06958c021c8b66",
+    "semantic_hash": "e89afa68720888c3fa06958c021c8b66"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/ComprehensiveAnalyticsDialog.kt": {
+    "mtime": 1786212580.4975693,
+    "ast_hash": "240e09a24bc7f6afa9151b468c1edc10",
+    "semantic_hash": "240e09a24bc7f6afa9151b468c1edc10"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/QuotaAnalysisSection.kt": {
+    "mtime": 1786210423.4450164,
+    "ast_hash": "f8ea72807c34539fa66f2f3431e35729",
+    "semantic_hash": "f8ea72807c34539fa66f2f3431e35729"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/QuotaManagementDialog.kt": {
+    "mtime": 1786029517.017044,
+    "ast_hash": "87c5d56d1b20719033439e1d3753033a",
+    "semantic_hash": "87c5d56d1b20719033439e1d3753033a"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/QuotaWarningDialog.kt": {
+    "mtime": 1784663634.2177434,
+    "ast_hash": "3cdb27ad49fdfce119e1ec27d931c930",
+    "semantic_hash": "3cdb27ad49fdfce119e1ec27d931c930"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/RealTimeLoadingBottomSheet.kt": {
+    "mtime": 1786363064.0614293,
+    "ast_hash": "09329956851fee943ca9a3321b3db984",
+    "semantic_hash": "09329956851fee943ca9a3321b3db984"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/RealTimeLoadingCardSection.kt": {
+    "mtime": 1786211142.075152,
+    "ast_hash": "40e564921dbc29dd5935606100d74d5d",
+    "semantic_hash": "40e564921dbc29dd5935606100d74d5d"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/SearchDialogs.kt": {
+    "mtime": 1786212580.4454837,
+    "ast_hash": "1f6ab992559cf738d84b61bf8b136215",
+    "semantic_hash": "1f6ab992559cf738d84b61bf8b136215"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/QuotaDetailsScreen.kt": {
+    "mtime": 1785771576.5008464,
+    "ast_hash": "d0d16a7b19bbd1c742aac7a1ed055766",
+    "semantic_hash": "d0d16a7b19bbd1c742aac7a1ed055766"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/QuotaPercentageDialogSection.kt": {
+    "mtime": 1786207391.6209755,
+    "ast_hash": "22cb526da15b3ce0a88be87c1fe303a6",
+    "semantic_hash": "22cb526da15b3ce0a88be87c1fe303a6"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/QuotasListScreen.kt": {
+    "mtime": 1786212580.490063,
+    "ast_hash": "7b2678961b383a12f20bfac5c1f31739",
+    "semantic_hash": "7b2678961b383a12f20bfac5c1f31739"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/components/QuotasListDialogs.kt": {
+    "mtime": 1786029517.019044,
+    "ast_hash": "d47aa33d739fe9d3c6b21e8ec177c52d",
+    "semantic_hash": "d47aa33d739fe9d3c6b21e8ec177c52d"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/ships/ShipsListScreen.kt": {
+    "mtime": 1786363064.0629807,
+    "ast_hash": "bc851de4a02cc03a892b2abb9fb457ec",
+    "semantic_hash": "bc851de4a02cc03a892b2abb9fb457ec"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/ships/components/ShipCard.kt": {
+    "mtime": 1786363064.0634801,
+    "ast_hash": "cfe55d97805800413685ca9aaaadd819",
+    "semantic_hash": "cfe55d97805800413685ca9aaaadd819"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/warehouse_details/VoucherDetailsDialogSection.kt": {
+    "mtime": 1786209598.8317816,
+    "ast_hash": "3d2aa994f7b461f4ae51703db28a3724",
+    "semantic_hash": "3d2aa994f7b461f4ae51703db28a3724"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/warehouse_details/WarehouseDetailsScreen.kt": {
+    "mtime": 1786212580.453492,
+    "ast_hash": "d802b6a32108c46dc671f8586019291f",
+    "semantic_hash": "d802b6a32108c46dc671f8586019291f"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/warehouse_details/components/WarehouseDateTimePicker.kt": {
+    "mtime": 1784669331.7243621,
+    "ast_hash": "5f73fae76f96de1dfafdae69ee04b46a",
+    "semantic_hash": "5f73fae76f96de1dfafdae69ee04b46a"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/startup/domain/AnimationManager.kt": {
+    "mtime": 1784213643.2890956,
+    "ast_hash": "7ab4982148328589b5c06099684c592e",
+    "semantic_hash": "7ab4982148328589b5c06099684c592e"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/startup/domain/HardwarePerformanceEvaluator.kt": {
+    "mtime": 1786287444.8336647,
+    "ast_hash": "dc2d33aad69dc71051a3504b1df933de",
+    "semantic_hash": "dc2d33aad69dc71051a3504b1df933de"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/startup/presentation/ServerSyncingScreen.kt": {
+    "mtime": 1784565252.9817686,
+    "ast_hash": "5c806ae1d6a201e2c0a62ee5f18e60ba",
+    "semantic_hash": "5c806ae1d6a201e2c0a62ee5f18e60ba"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/startup/presentation/SplashScreen.kt": {
+    "mtime": 1786287444.8336647,
+    "ast_hash": "551ecc1d50b61a771a29021b50d72f4c",
+    "semantic_hash": "551ecc1d50b61a771a29021b50d72f4c"
+  },
+  "app/src/main/java/com/atk/atk_cargo/feature/update/presentation/UpdateDialog.kt": {
+    "mtime": 1784565252.9822683,
+    "ast_hash": "d00ac5eccd974d2e2900b73e053e12a6",
+    "semantic_hash": "d00ac5eccd974d2e2900b73e053e12a6"
+  },
+  "app/src/main/java/com/atk/atk_cargo/security/CryptoManager.kt": {
+    "mtime": 1786287444.8346727,
+    "ast_hash": "6296a17a62e0c9b82529d50a7856d2a2",
+    "semantic_hash": "6296a17a62e0c9b82529d50a7856d2a2"
+  },
+  "app/src/main/java/com/atk/atk_cargo/security/SecurityScreen.kt": {
+    "mtime": 1786287444.8351789,
+    "ast_hash": "107431f72726a0c23b5acc6f57f3eeda",
+    "semantic_hash": "107431f72726a0c23b5acc6f57f3eeda"
+  },
+  "app/src/main/java/com/atk/atk_cargo/security/SecurityVerifier.kt": {
+    "mtime": 1786287444.8361843,
+    "ast_hash": "7b185b75ed3683af9033507d5ffcc403",
+    "semantic_hash": "7b185b75ed3683af9033507d5ffcc403"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/screens/ManageReportsScreen.kt": {
+    "mtime": 1786363064.0644813,
+    "ast_hash": "013256bdd0027a73d81d3783dbde0a48",
+    "semantic_hash": "013256bdd0027a73d81d3783dbde0a48"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/AdaptiveLayout.kt": {
+    "mtime": 1784665936.5680053,
+    "ast_hash": "4690cf17592812578cdf73d6c3388199",
+    "semantic_hash": "4690cf17592812578cdf73d6c3388199"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/Color.kt": {
+    "mtime": 1784663825.9119823,
+    "ast_hash": "1d52f6e547a2bd4f38653c5defec0f3b",
+    "semantic_hash": "1d52f6e547a2bd4f38653c5defec0f3b"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/ColorScheme.kt": {
+    "mtime": 1784665940.6830423,
+    "ast_hash": "79d18a0fa73ed928252cfe2327c8f255",
+    "semantic_hash": "79d18a0fa73ed928252cfe2327c8f255"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/ComponentDefaults.kt": {
+    "mtime": 1784665932.5256248,
+    "ast_hash": "ef72e8933db063603b81d50cc04a3668",
+    "semantic_hash": "ef72e8933db063603b81d50cc04a3668"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/ComponentStyles.kt": {
+    "mtime": 1784665934.5495555,
+    "ast_hash": "b2423baaed641b79a4b32e3de7975c16",
+    "semantic_hash": "b2423baaed641b79a4b32e3de7975c16"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/Dimensions.kt": {
+    "mtime": 1784666178.17067,
+    "ast_hash": "06b3b81e98b69aa6072b7cb22460c2dd",
+    "semantic_hash": "06b3b81e98b69aa6072b7cb22460c2dd"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/Elevation.kt": {
+    "mtime": 1784665925.1100373,
+    "ast_hash": "9355d8b3490b08bb2f12ef63d840fa5b",
+    "semantic_hash": "9355d8b3490b08bb2f12ef63d840fa5b"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/ExtendedTheme.kt": {
+    "mtime": 1784665942.2909007,
+    "ast_hash": "b309d1ed1d6987a886212b02b4ce3d15",
+    "semantic_hash": "b309d1ed1d6987a886212b02b4ce3d15"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/Font.kt": {
+    "mtime": 1779392477.7501366,
+    "ast_hash": "9287f4c536fe65996854462ed58ef1a4",
+    "semantic_hash": "9287f4c536fe65996854462ed58ef1a4"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/Motion.kt": {
+    "mtime": 1784665926.9709883,
+    "ast_hash": "8d6337be610c03ae3c65cdd01e2b25ea",
+    "semantic_hash": "8d6337be610c03ae3c65cdd01e2b25ea"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/SemanticColors.kt": {
+    "mtime": 1784665929.7792108,
+    "ast_hash": "ab1ab19b501299b4dae570e6d6e1899c",
+    "semantic_hash": "ab1ab19b501299b4dae570e6d6e1899c"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/Shapes.kt": {
+    "mtime": 1784665923.8213882,
+    "ast_hash": "e2abf2c2a5c3cc80278188a0c07be9ed",
+    "semantic_hash": "e2abf2c2a5c3cc80278188a0c07be9ed"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/Spacing.kt": {
+    "mtime": 1784665919.4991498,
+    "ast_hash": "ed279bf81ad9b867522b960b538e7350",
+    "semantic_hash": "ed279bf81ad9b867522b960b538e7350"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/Theme.kt": {
+    "mtime": 1786287444.8371923,
+    "ast_hash": "3acdef34e8ee267cd29ff69fabd89b41",
+    "semantic_hash": "3acdef34e8ee267cd29ff69fabd89b41"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/theme/Typography.kt": {
+    "mtime": 1786287444.8376887,
+    "ast_hash": "c9ed3c2be08c10d802e8b86b20277d68",
+    "semantic_hash": "c9ed3c2be08c10d802e8b86b20277d68"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/viewmodel/CargoViewModel.kt": {
+    "mtime": 1785306817.4345045,
+    "ast_hash": "62978b77e48e10b1404887a542b7b379",
+    "semantic_hash": "62978b77e48e10b1404887a542b7b379"
+  },
+  "app/src/main/java/com/atk/atk_cargo/ui/viewmodel/ReportsViewModel.kt": {
+    "mtime": 1786363064.0649805,
+    "ast_hash": "04d8de21b593b827cd35692428f1dc58",
+    "semantic_hash": "04d8de21b593b827cd35692428f1dc58"
+  },
+  "app/src/main/java/com/atk/atk_cargo/utils/JalaliDateUtils.kt": {
+    "mtime": 1779392477.7516375,
+    "ast_hash": "743aef1e6b2e6e5b87fcbb76793b9b50",
+    "semantic_hash": "743aef1e6b2e6e5b87fcbb76793b9b50"
+  },
+  "app/src/main/java/com/atk/atk_cargo/utils/SecurityUtils.kt": {
+    "mtime": 1784646605.1550555,
+    "ast_hash": "36d5366772839863e63ec4bcb5bf9141",
+    "semantic_hash": "36d5366772839863e63ec4bcb5bf9141"
+  },
+  "app/src/main/java/com/atk/atk_cargo/workers/ChatNotificationWorker.kt": {
+    "mtime": 1786287444.8381908,
+    "ast_hash": "7196fd1e8e24a9e46dda74c049bed3c2",
+    "semantic_hash": "7196fd1e8e24a9e46dda74c049bed3c2"
+  },
+  "app/src/main/res/raw/download_animation.json": {
+    "mtime": 1779392477.7761815,
+    "ast_hash": "d7eb485fff68ae343910a4288c08579a",
+    "semantic_hash": "d7eb485fff68ae343910a4288c08579a"
+  },
+  "app/src/main/res/raw/info.json": {
+    "mtime": 1779392477.7766812,
+    "ast_hash": "65bdc06e3a6b5de3cbb5cbc17db3d43f",
+    "semantic_hash": "65bdc06e3a6b5de3cbb5cbc17db3d43f"
+  },
+  "app/src/main/res/raw/lottie_error.json": {
+    "mtime": 1779392477.7766812,
+    "ast_hash": "2c4bd762831a20cb7b3e318265fe4988",
+    "semantic_hash": "2c4bd762831a20cb7b3e318265fe4988"
+  },
+  "app/src/main/res/raw/lottie_logo.json": {
+    "mtime": 1779392477.7771811,
+    "ast_hash": "d63b27e7506e9377e2cd360fcb2512ee",
+    "semantic_hash": "d63b27e7506e9377e2cd360fcb2512ee"
+  },
+  "app/src/main/res/raw/lottie_success.json": {
+    "mtime": 1779392477.777681,
+    "ast_hash": "ec2cf4ad5745d8e863f222016496f9db",
+    "semantic_hash": "ec2cf4ad5745d8e863f222016496f9db"
+  },
+  "app/src/main/res/raw/lottie_warning.json": {
+    "mtime": 1779392477.777681,
+    "ast_hash": "64f637e2469c2b7f04bf9d23e3ca837c",
+    "semantic_hash": "64f637e2469c2b7f04bf9d23e3ca837c"
+  },
+  "app/src/main/res/raw/ship.json": {
+    "mtime": 1779392477.778181,
+    "ast_hash": "7e0010c2e19840b4f28a8497c7705d08",
+    "semantic_hash": "7e0010c2e19840b4f28a8497c7705d08"
+  },
+  "app/src/main/res/raw/update_animation.json": {
+    "mtime": 1779392477.781186,
+    "ast_hash": "ded8a7f0af0cca83bf1a10dd33193436",
+    "semantic_hash": "ded8a7f0af0cca83bf1a10dd33193436"
+  },
+  "app/src/test/java/com/atk/atk_cargo/ExampleUnitTest.kt": {
+    "mtime": 1779392477.785186,
+    "ast_hash": "373a35fed5eb12e2075e9f1b766f733c",
+    "semantic_hash": "373a35fed5eb12e2075e9f1b766f733c"
+  },
+  "app/src/test/java/com/atk/atk_cargo/SecurityUtilsTest.kt": {
+    "mtime": 1784213643.2950997,
+    "ast_hash": "dbffc19a7f168d6d313a54a48d3ecef2",
+    "semantic_hash": "dbffc19a7f168d6d313a54a48d3ecef2"
+  },
+  "app/src/test/java/com/atk/atk_cargo/feature/reports/domain/ReportsDomainTest.kt": {
+    "mtime": 1786363064.0659819,
+    "ast_hash": "247d21993f1df4c70901fd42d4a67a12",
+    "semantic_hash": "247d21993f1df4c70901fd42d4a67a12"
+  },
+  "baselineprofile/build.gradle.kts": {
+    "mtime": 1786202444.8705995,
+    "ast_hash": "ec998c8fce269a17fca11b018eec1762",
+    "semantic_hash": "ec998c8fce269a17fca11b018eec1762"
+  },
+  "baselineprofile/src/main/java/com/atk/atk_cargo/baselineprofile/BaselineProfileGenerator.kt": {
+    "mtime": 1786293168.073461,
+    "ast_hash": "42bba29b76b33d9531d7cd898364e65e",
+    "semantic_hash": "42bba29b76b33d9531d7cd898364e65e"
+  },
+  "build.gradle.kts": {
+    "mtime": 1786204108.1881657,
+    "ast_hash": "05e3d9b0be20000f33cd5c5bfbbe395a",
+    "semantic_hash": "05e3d9b0be20000f33cd5c5bfbbe395a"
+  },
+  "gradlew": {
+    "mtime": 1779392477.786686,
+    "ast_hash": "c6ea21dea2d500b277296894708cf792",
+    "semantic_hash": "c6ea21dea2d500b277296894708cf792"
+  },
+  "settings.gradle.kts": {
+    "mtime": 1786202444.8736,
+    "ast_hash": "37316e5d205ae46a53d96fbcf865ce57",
+    "semantic_hash": "37316e5d205ae46a53d96fbcf865ce57"
+  },
+  ".agents/rules/graphify.md": {
+    "mtime": 1786374927.6064386,
+    "ast_hash": "a0e4d192b9e2e17256124dbfc8e24e6a",
+    "semantic_hash": "a0e4d192b9e2e17256124dbfc8e24e6a"
+  },
+  ".agents/workflows/graphify.md": {
+    "mtime": 1786374927.606931,
+    "ast_hash": "a831cf3669f1e6ab85d8a80ebe655f99",
+    "semantic_hash": "a831cf3669f1e6ab85d8a80ebe655f99"
+  },
+  ".claude/CLAUDE.md": {
+    "mtime": 1786375798.957147,
+    "ast_hash": "c232166e6492ba1ed955030b16979b05",
+    "semantic_hash": "c232166e6492ba1ed955030b16979b05"
+  },
+  ".claude/skills/graphify/SKILL.md": {
+    "mtime": 1786375798.9561472,
+    "ast_hash": "3953c31b4ef6d89d3b1cb43f0110817d",
+    "semantic_hash": "3953c31b4ef6d89d3b1cb43f0110817d"
+  },
+  ".claude/skills/graphify/references/add-watch.md": {
+    "mtime": 1786374718.454522,
+    "ast_hash": "d59d027fe449f06aa03905a01184e779",
+    "semantic_hash": "d59d027fe449f06aa03905a01184e779"
+  },
+  ".claude/skills/graphify/references/exports.md": {
+    "mtime": 1786374718.454522,
+    "ast_hash": "9da2a2152e60a22f07f05fed5158f287",
+    "semantic_hash": "9da2a2152e60a22f07f05fed5158f287"
+  },
+  ".claude/skills/graphify/references/extraction-spec.md": {
+    "mtime": 1786374718.4549763,
+    "ast_hash": "42fef56a01698118f7fd722acdadea34",
+    "semantic_hash": "42fef56a01698118f7fd722acdadea34"
+  },
+  ".claude/skills/graphify/references/github-and-merge.md": {
+    "mtime": 1786374718.4549763,
+    "ast_hash": "cde13df085e4c492aeb7ba298a996d0d",
+    "semantic_hash": "cde13df085e4c492aeb7ba298a996d0d"
+  },
+  ".claude/skills/graphify/references/hooks.md": {
+    "mtime": 1786374718.4555223,
+    "ast_hash": "3f545db6ce646650bb9de588f5512a27",
+    "semantic_hash": "3f545db6ce646650bb9de588f5512a27"
+  },
+  ".claude/skills/graphify/references/query.md": {
+    "mtime": 1786374718.4555223,
+    "ast_hash": "3c46f8ad006874260614ed8657d02307",
+    "semantic_hash": "3c46f8ad006874260614ed8657d02307"
+  },
+  ".claude/skills/graphify/references/transcribe.md": {
+    "mtime": 1786374718.4560225,
+    "ast_hash": "67b6a5fa6c0974e18f60db9f8932fbd8",
+    "semantic_hash": "67b6a5fa6c0974e18f60db9f8932fbd8"
+  },
+  ".claude/skills/graphify/references/update.md": {
+    "mtime": 1786374718.4565265,
+    "ast_hash": "9378bd03d56baaf78bd738ab3848f142",
+    "semantic_hash": "9378bd03d56baaf78bd738ab3848f142"
+  },
+  "CLAUDE.md": {
+    "mtime": 1786375145.2387545,
+    "ast_hash": "8a6643a420fdad6bfb583523bc6cef16",
+    "semantic_hash": "8a6643a420fdad6bfb583523bc6cef16"
+  },
+  "PHP/User/index.html": {
+    "mtime": 1780771348.3570936,
+    "ast_hash": "24294d9f4c9fcbbc60cb74ffdcea32d2",
+    "semantic_hash": "24294d9f4c9fcbbc60cb74ffdcea32d2"
+  },
+  "PHP/User/online_users_manager.html": {
+    "mtime": 1780771347.5567636,
+    "ast_hash": "ab0036090443b1f7e2566ff3acad72f5",
+    "semantic_hash": "ab0036090443b1f7e2566ff3acad72f5"
+  },
+  "PHP/index.html": {
+    "mtime": 1779392477.708062,
+    "ast_hash": "ab2775d9f3004231fb1e666a0fab3fbf",
+    "semantic_hash": "ab2775d9f3004231fb1e666a0fab3fbf"
+  },
+  "PHP/protected_proxy.html": {
+    "mtime": 1779392477.708562,
+    "ast_hash": "1f456f7e38ab00aab8ce63ab0d2030ec",
+    "semantic_hash": "1f456f7e38ab00aab8ce63ab0d2030ec"
+  },
+  "app/dictionary.txt": {
+    "mtime": 1779392477.7135794,
+    "ast_hash": "6eb3de0864d75f80d788f6025e6974bf",
+    "semantic_hash": "6eb3de0864d75f80d788f6025e6974bf"
+  },
+  "app/proguard-dictionary.txt": {
+    "mtime": 1779392477.7140794,
+    "ast_hash": "2e9ac1f87d32190dc3b8a620f76df638",
+    "semantic_hash": "2e9ac1f87d32190dc3b8a620f76df638"
+  },
+  "app/security-dictionary.txt": {
+    "mtime": 1779392477.7155795,
+    "ast_hash": "68002da3611adcd5fe80d08ba1d4ef2a",
+    "semantic_hash": "68002da3611adcd5fe80d08ba1d4ef2a"
+  },
+  "app/src/main/cpp/CMakeLists.txt": {
+    "mtime": 1786202444.8630025,
+    "ast_hash": "debd01714b0c34941d5a98638dbc254c",
+    "semantic_hash": "debd01714b0c34941d5a98638dbc254c"
+  },
+  "app/src/release/generated/baselineProfiles/baseline-prof.txt": {
+    "mtime": 1786292607.8205953,
+    "ast_hash": "4ee850e94a0d8082f3a7c8eabe544b5e",
+    "semantic_hash": "4ee850e94a0d8082f3a7c8eabe544b5e"
+  },
+  "lifeguard.yaml": {
+    "mtime": 1779392477.787186,
+    "ast_hash": "b6e7cb08876aa24a3d0a54561da973e9",
+    "semantic_hash": "b6e7cb08876aa24a3d0a54561da973e9"
+  },
+  "\u06af\u0632\u0627\u0631\u0634-\u0628\u0631\u0631\u0633\u06cc-\u0644\u06cc\u0633\u062a-\u06a9\u0634\u062a\u06cc\u200c\u0647\u0627.md": {
+    "mtime": 1786363064.0664823,
+    "ast_hash": "48497d17da0e402c6c73c405e256469e",
+    "semantic_hash": "48497d17da0e402c6c73c405e256469e"
+  },
+  "\u06af\u0632\u0627\u0631\u0634-\u0628\u0631\u0631\u0633\u06cc-\u06a9\u0648\u062a\u0627\u0698\u0647\u0627-\u0648-\u0627\u0646\u0628\u0627\u0631\u0647\u0627.md": {
+    "mtime": 1786358393.960379,
+    "ast_hash": "cb510823a9f08bfc31dc5c035bff32c3",
+    "semantic_hash": "cb510823a9f08bfc31dc5c035bff32c3"
+  },
+  "\u06af\u0632\u0627\u0631\u0634-\u0628\u0647\u06cc\u0646\u0647\u200c\u0633\u0627\u0632\u06cc-\u0639\u0645\u0644\u06a9\u0631\u062f.md": {
+    "mtime": 1786212697.8412247,
+    "ast_hash": "91b28f3385af5a2ddffe949676a81ec7",
+    "semantic_hash": "91b28f3385af5a2ddffe949676a81ec7"
+  },
+  "\u06af\u0632\u0627\u0631\u0634-\u0645\u0633\u06cc\u0631-\u0631\u0627\u0647\u200c\u0627\u0646\u062f\u0627\u0632\u06cc.md": {
+    "mtime": 1786292822.49125,
+    "ast_hash": "9ed3e14e84bdc116f167e8925e71165d",
+    "semantic_hash": "9ed3e14e84bdc116f167e8925e71165d"
+  }
+}
