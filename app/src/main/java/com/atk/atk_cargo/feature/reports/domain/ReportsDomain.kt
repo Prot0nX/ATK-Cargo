@@ -23,8 +23,8 @@ fun sortShips(ships: List<Ship>, sortingMode: ShipSortingMode): List<Ship> {
     return when (sortingMode) {
         ShipSortingMode.REMAINING_TONNAGE_ASC -> ships.sortedBy { it.remainingTonnage }
         ShipSortingMode.REMAINING_TONNAGE_DESC -> ships.sortedByDescending { it.remainingTonnage }
-        ShipSortingMode.LOADED_TONNAGE_ASC -> ships.sortedBy { it.totalTonnage - it.remainingTonnage }
-        ShipSortingMode.LOADED_TONNAGE_DESC -> ships.sortedByDescending { it.totalTonnage - it.remainingTonnage }
+        ShipSortingMode.LOADED_TONNAGE_ASC -> ships.sortedBy { it.loadedTonnage }
+        ShipSortingMode.LOADED_TONNAGE_DESC -> ships.sortedByDescending { it.loadedTonnage }
         ShipSortingMode.NAME_ASC -> ships.sortedWith(compareBy(persianCollator) { it.name })
         ShipSortingMode.NAME_DESC -> ships.sortedWith(compareByDescending(persianCollator) { it.name })
     }

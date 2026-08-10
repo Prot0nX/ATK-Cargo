@@ -71,8 +71,6 @@ private fun ShipCardContent(
     ship: Ship,
     modifier: Modifier = Modifier
 ) {
-    val loadedTonnage = ship.totalTonnage - ship.remainingTonnage
-
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -163,7 +161,7 @@ private fun ShipCardContent(
                         color = QuotaDeepOrangeAccent.copy(alpha = 0.8f)
                     )
                     Text(
-                        text = "↑ ${formatNumber(loadedTonnage.roundToInt())}",
+                        text = "↑ ${formatNumber(ship.loadedTonnage.roundToInt())}",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = QuotaDeepOrangeAccent

@@ -68,6 +68,10 @@ data class Ship(
     val quotaCount: Int,
     val totalTonnage: Float,
     val remainingTonnage: Float,
+    // هر دو getShipsList و getShipDetails این فیلد را از قبل محاسبه‌شده ارسال
+    // می‌کنند؛ کلاینت دیگر نباید totalTonnage - remainingTonnage را دوباره
+    // حساب کند (منطق تکراری بین سرور و کلاینت)
+    val loadedTonnage: Float = 0f,
     // getShipsList (استفاده‌شده در لیست کشتی‌ها) این دو فیلد را ارسال نمی‌کند؛
     // بدون مقدار پیش‌فرض، Gson با reflection قید non-null کاتلین را دور می‌زد و
     // warehouses را null می‌گذاشت (کرش پنهان در هر کد آینده‌ای که آن را بخواند)
