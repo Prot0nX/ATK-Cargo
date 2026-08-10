@@ -7,20 +7,6 @@ import androidx.test.uiautomator.Until
 import org.junit.Rule
 import org.junit.Test
 
-/**
- * تولید Baseline Profile برای بهبود زمان راه‌اندازی سرد اپلیکیشن.
- *
- * این تست کل مسیر بحرانی راه‌اندازی را پروفایل می‌کند: Application -> Splash ->
- * صفحه‌ی لاگین (تایپ + submit) -> HomeScreen. قبلاً فقط startActivityAndWait()
- * فراخوانی می‌شد که تنها اولین فریم را پوشش می‌داد.
- *
- * برای پروفایل کردن مسیر موفق تا HomeScreen، یک نام‌کاربری/رمز معتبر باید از طریق
- * آرگومان instrumentation فراهم شود (چون این ماژول دسترسی به سرور واقعی ندارد):
- *   -Pandroid.testInstrumentationRunnerArguments.baselineProfileUsername=...
- *   -Pandroid.testInstrumentationRunnerArguments.baselineProfilePassword=...
- * در نبود این آرگومان‌ها، تست فقط تا صفحه‌ی لاگین (تایپ و submit) پیش می‌رود؛
- * صفحه‌ی خطای اعتبارسنجی هم بخشی از مسیر بحرانی است و همچنان پروفایل می‌شود.
- */
 class BaselineProfileGenerator {
 
     @get:Rule
