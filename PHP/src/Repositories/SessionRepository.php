@@ -34,6 +34,25 @@ class SessionRepository {
     }
 
     /**
+     * بررسی معتبر بودن دقیق یک جلسه (نام کاربری + دستگاه + توکن + فعال بودن)
+     * برای احراز هویت درخواست‌های API (مثل app_api.php) استفاده می‌شود.
+     */
+    public function isValidToken(string $username, string $deviceId, string $token): bool {
+        $stmt = $this->db->prepare("
+            SELECT id FROM user_sessions
+            WHERE username = :username AND device_id = :device_id
+              AND session_token = :token AND is_active = 1
+            LIMIT 1
+        ");
+        $stmt->execute([
+            ':username' => $username,
+            ':device_id' => $deviceId,
+            ':token' => $token,
+        ]);
+        return (bool)$stmt->fetch();
+    }
+
+    /**
      * دریافت جلسه فعال بر اساس نام کاربری و دستگاه
      */
     public function getActiveSessionByDevice(string $username, string $deviceId): ?array {

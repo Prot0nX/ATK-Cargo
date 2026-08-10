@@ -73,16 +73,11 @@ class ReportsRepository(private val apiService: ApiService) {
     }
 
     suspend fun getShipsList(): ShipsData = withContext(Dispatchers.IO) {
-        try {
-            val response = apiService.getShipsList()
-            if (response.isSuccessful) {
-                val shipsData = response.body()?.data ?: ShipsData(emptyList(), emptyList())
-                shipsData
-            } else {
-                ShipsData(emptyList(), emptyList())
-            }
-        } catch (e: Exception) {
-            ShipsData(emptyList(), emptyList())
+        val response = apiService.getShipsList()
+        if (response.isSuccessful) {
+            response.body()?.data ?: throw Exception("پاسخ سرور خالی است")
+        } else {
+            throw Exception("خطا در دریافت لیست کشتی‌ها: کد ${response.code()}")
         }
     }
 

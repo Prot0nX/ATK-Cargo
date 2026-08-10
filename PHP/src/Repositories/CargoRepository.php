@@ -62,20 +62,24 @@ class CargoRepository {
         ) VALUES (?, ?, ?, ?, ?, ?, 'ورود', ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) return false;
-        $stmt->bind_param("ssssssssssssss", 
-            $params['trackingNumber'], 
-            $currentTime, 
-            $params['netWeight'], 
-            $params['scaleReceiptNumber'], 
-            $params['shortageWeight'], 
-            $params['excessWeight'], 
-            $params['shipName'], 
-            $params['loadingWarehouse'], 
-            $params['cargoType'], 
-            $params['shippingCompany'], 
-            $params['loadingQuotaNumber'], 
-            $numberOfPeople, 
-            $params['username'], 
+        // netWeight روی رکورد تازه‌ثبت‌شده (وضعیت «ورود») هنوز مقداری ندارد و
+        // کلاینت رشته‌ی خالی می‌فرستد؛ باید NULL واقعی درج شود، نه '' که در
+        // ستون عددی (INT) با sql_mode=STRICT_TRANS_TABLES با خطا رد می‌شود.
+        $netWeight = ($params['netWeight'] === '' || $params['netWeight'] === null) ? null : $params['netWeight'];
+        $stmt->bind_param("ssssssssssssss",
+            $params['trackingNumber'],
+            $currentTime,
+            $netWeight,
+            $params['scaleReceiptNumber'],
+            $params['shortageWeight'],
+            $params['excessWeight'],
+            $params['shipName'],
+            $params['loadingWarehouse'],
+            $params['cargoType'],
+            $params['shippingCompany'],
+            $params['loadingQuotaNumber'],
+            $numberOfPeople,
+            $params['username'],
             $params['userType']
         );
         $res = $stmt->execute();

@@ -128,6 +128,11 @@ fun RealTimeLoadingBottomSheet(
     onRefresh: () -> Unit,
     viewModel: ReportsViewModel
 ) {
+    // وقتی بسته است نباید StateFlowهای دیگر را collect یا loadingData را
+    // پردازش کند؛ در غیر این صورت هر آپدیت داده‌ی Real-Time این کامپوزبل را
+    // حتی وقتی روی صفحه نمایش داده نمی‌شود بازترسیم می‌کند.
+    if (!isOpen) return
+
     val shipColorMap by viewModel.shipColorMap.collectAsState()
     val shiftOffset by viewModel.realTimeShiftOffset.collectAsState()
     val isDarkTheme = isSystemInDarkTheme()

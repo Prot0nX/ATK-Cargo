@@ -9,7 +9,14 @@ declare(strict_types=1);
 const PROXY_LOG_DIR = 'log';
 const PROXY_ACCESS_LOG = PROXY_LOG_DIR . '/proxy_access.log';
 const PROXY_BLOCKED_IPS_FILE = PROXY_LOG_DIR . '/blocked_ips.txt';
-const PROXY_EXCLUDED_FILES = ['protected_proxy.php', 'file_manager.php', 'proxy_generator.php'];
+// فایل‌های تشخیصی/توسعه که هرگز نباید از بیرون قابل اجرا باشند، حتی اگر در آینده
+// فایل PHP جدیدی به این پوشه اضافه شود و از فهرست استثنا جا بماند
+const PROXY_EXCLUDED_FILES = [
+    'protected_proxy.php',
+    'file_manager.php',
+    'proxy_generator.php',
+    'check_table_structure.php',
+];
 const PROXY_RATE_LIMIT_MAX = 60;
 const PROXY_RATE_LIMIT_WINDOW = 60;
 const PROXY_WHITELIST_CACHE_KEY = 'protected_proxy_whitelist';
@@ -22,9 +29,10 @@ if (!is_dir(PROXY_LOG_DIR)) {
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 header('X-XSS-Protection: 1; mode=block');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+// این پروکسی توسط اپ اندروید (بدون هدر Origin) مصرف می‌شود؛ هیچ کلاینت مرورگری
+// از دامنه‌ی دیگری نباید به این API دسترسی متقابل (cross-origin) داشته باشد.
+// در صورت نیاز به پنل وبی که از دامنه‌ی دیگر سرویس می‌شود، دامنه‌ی آن باید صریحاً
+// به‌جای '*' اضافه شود، نه به‌صورت باز.
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
     http_response_code(200);
@@ -188,8 +196,6 @@ final class ProtectedProxy {
             http_response_code(400);
             echo json_encode([
                 'error' => 'Missing target parameter',
-                'usage' => 'protected_proxy.php?target=filename.php',
-                'available_files' => $this->whitelist,
             ]);
             return;
         }
@@ -199,8 +205,6 @@ final class ProtectedProxy {
             http_response_code(404);
             echo json_encode([
                 'error' => 'Invalid or unauthorized target file',
-                'target' => $target,
-                'available_files' => $this->whitelist,
             ]);
             return;
         }

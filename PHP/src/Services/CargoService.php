@@ -124,6 +124,7 @@ class CargoService {
                     throw new Exception("خطا در اجرای دستور درج حواله");
                 }
                 $conn->commit();
+                $this->invalidateShipsListCache();
 
                 $this->logger->info("New cargo entry tracking: $trackingNumber, ship: $shipName, user: {$params['username']}");
 
@@ -220,6 +221,7 @@ class CargoService {
                 }
 
                 $conn->commit();
+                $this->invalidateShipsListCache();
                 $this->logger->info("Cargo updated tracking: $trackingNumber, status: exit, user: {$params['username']}");
 
                 return [
@@ -268,7 +270,18 @@ class CargoService {
             return ["status" => "error", "message" => "حواله یافت نشد یا قبلاً حذف شده است", "code" => 404];
         }
 
+        $this->invalidateShipsListCache();
         return ["status" => "success", "message" => "حواله با موفقیت حذف شد", "code" => 200];
+    }
+
+    /**
+     * لیست کشتی‌ها (تناژ/تعداد کوتاژ هر کشتی) بعد از هر نوشتنی که CargoInfo یا
+     * InitialInfo را تغییر می‌دهد باید invalidate شود تا کاربر تا ۲۰ ثانیه
+     * (TTL کش getShipsList) داده‌ی قدیمی نبیند.
+     */
+    private function invalidateShipsListCache(): void {
+        MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
+        MicroCache::forget('cargo_active_ships');
     }
 
     public function getActiveShips(): array {

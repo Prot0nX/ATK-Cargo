@@ -24,6 +24,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -35,6 +37,7 @@ import com.atk.atk_cargo.feature.reports.presentation.quota_details.QuotaDeepOra
 import com.atk.atk_cargo.feature.reports.presentation.quota_details.QuotaDeepOrangeAccentBg
 import com.atk.atk_cargo.ui.theme.Blue700
 import com.atk.atk_cargo.ui.theme.Teal900
+import kotlin.math.roundToInt
 
 @Composable
 fun ShipCard(
@@ -44,10 +47,13 @@ fun ShipCard(
     modifier: Modifier = Modifier
 ) {
     Surface(
+        onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .clickable { onClick() },
+            .semantics(mergeDescendants = true) {
+                contentDescription = "کشتی ${ship.name}، مانده ${formatNumber(ship.remainingTonnage.roundToInt())} کیلوگرم"
+            },
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(
@@ -92,7 +98,7 @@ private fun ShipCardContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = formatNumber(ship.totalTonnage.toInt()),
+                        text = formatNumber(ship.totalTonnage.roundToInt()),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -157,7 +163,7 @@ private fun ShipCardContent(
                         color = QuotaDeepOrangeAccent.copy(alpha = 0.8f)
                     )
                     Text(
-                        text = "↑ ${formatNumber(loadedTonnage.toInt())}",
+                        text = "↑ ${formatNumber(loadedTonnage.roundToInt())}",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = QuotaDeepOrangeAccent
@@ -165,9 +171,11 @@ private fun ShipCardContent(
                 }
             }
 
-            // مانده
+            // مانده — مقدار منفی یعنی بارگیری بیش از تناژ کل (اضافه‌بارگیری یا
+            // ناسازگاری داده) و باید به‌صورت هشدار مشخص باشد، نه مثل حالت عادی
             StatBox(
-                value = "↓ ${formatNumber(ship.remainingTonnage.toInt())}",
+                value = "↓ ${formatNumber(ship.remainingTonnage.roundToInt())}",
+                isWarning = ship.remainingTonnage < 0f,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -177,12 +185,15 @@ private fun ShipCardContent(
 @Composable
 private fun StatBox(
     value: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isWarning: Boolean = false
 ) {
+    val contentColor = if (isWarning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        color = if (isWarning) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
     ) {
         Row(
             modifier = Modifier
@@ -194,26 +205,15 @@ private fun StatBox(
             Text(
                 text = "مانده:",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (isWarning) contentColor else MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = contentColor
             )
         }
-    }
-}
-
-fun sortShips(ships: List<Ship>, sortingMode: ShipSortingMode): List<Ship> {
-    return when (sortingMode) {
-        ShipSortingMode.REMAINING_TONNAGE_ASC -> ships.sortedBy { it.remainingTonnage }
-        ShipSortingMode.REMAINING_TONNAGE_DESC -> ships.sortedByDescending { it.remainingTonnage }
-        ShipSortingMode.LOADED_TONNAGE_ASC -> ships.sortedBy { it.totalTonnage - it.remainingTonnage }
-        ShipSortingMode.LOADED_TONNAGE_DESC -> ships.sortedByDescending { it.totalTonnage - it.remainingTonnage }
-        ShipSortingMode.NAME_ASC -> ships.sortedBy { it.name }
-        ShipSortingMode.NAME_DESC -> ships.sortedByDescending { it.name }
     }
 }
 

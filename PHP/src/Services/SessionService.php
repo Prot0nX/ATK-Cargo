@@ -143,6 +143,23 @@ class SessionService {
     }
 
     /**
+     * بررسی دقیق اعتبار یک نشست (نام کاربری + دستگاه + توکن) برای گیت احراز
+     * هویت درخواست‌های API. برخلاف isSessionActive، اینجا مطابقت توکن هم بررسی
+     * می‌شود تا صرف دانستن نام کاربری/شناسه دستگاه برای عبور از گیت کافی نباشد.
+     */
+    public function isValidToken(string $username, string $deviceId, string $token): bool {
+        if ($username === '' || $deviceId === '' || $token === '') {
+            return false;
+        }
+
+        $valid = $this->sessionRepository->isValidToken($username, $deviceId, $token);
+        if ($valid) {
+            $this->sessionRepository->updateLastActivity($username, $deviceId);
+        }
+        return $valid;
+    }
+
+    /**
      * بررسی معتبر بودن جلسه کاربر
      */
     public function isSessionActive(string $username, ?string $deviceId = null): bool {
