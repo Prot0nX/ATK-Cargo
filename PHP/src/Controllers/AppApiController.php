@@ -489,13 +489,14 @@ class AppApiController {
         // کوئری دیگر سنگین نیست، و نوشتن‌هایی که خروجی این کوئری را عوض می‌کنند
         // (editQuota/toggleQuotaStatus/deleteQuota) صریحاً کش را invalidate می‌کنند.
         $shipsData = MicroCache::remember(MicroCache::SHIPS_LIST_KEY, 20, function () {
+            // shippingCompanyCount، cargoTypeCount, percentageLoaded و بلاک statistics
+            // قبلاً هم در پاسخ محاسبه می‌شدند هم به کلاینت ارسال، اما مدل Ship/ShipsData
+            // اندروید هیچ‌کدام را map نمی‌کرد (هدر و پردازش Gson بی‌فایده). حذف شدند.
             $query = "SELECT
                 i.shipName, i.cargoType, COUNT(DISTINCT i.loadingWarehouse) as warehouseCount,
                 COUNT(DISTINCT CONCAT(i.loadingQuotaNumber, '-', i.loadingWarehouse, '-', i.shippingCompany, '-', i.cargoType)) as quotaCount,
-                COUNT(DISTINCT i.shippingCompany) as shippingCompanyCount, COUNT(DISTINCT i.cargoType) as cargoTypeCount,
                 SUM(i.cargoWeight) as totalTonnage, COALESCE(SUM(loaded.loadedWeight), 0) as loadedTonnage,
                 (SUM(i.cargoWeight) - COALESCE(SUM(loaded.loadedWeight), 0)) as remainingTonnage,
-                CASE WHEN SUM(i.cargoWeight) > 0 THEN ROUND((COALESCE(SUM(loaded.loadedWeight), 0) / SUM(i.cargoWeight)) * 100, 2) ELSE 0.00 END as percentageLoaded,
                 MAX(i.isActive) as isActive
             FROM InitialInfo i
             LEFT JOIN (
@@ -515,9 +516,6 @@ class AppApiController {
 
             $activeShips = [];
             $inactiveShips = [];
-            $totalActiveTonnage = 0;
-            $totalRemainingTonnage = 0;
-            $totalLoadedTonnage = 0;
 
             while ($row = $result->fetch_assoc()) {
                 $ship = [
@@ -525,20 +523,14 @@ class AppApiController {
                     'cargoType' => $row['cargoType'],
                     'warehouseCount' => (int)$row['warehouseCount'],
                     'quotaCount' => (int)$row['quotaCount'],
-                    'shippingCompanyCount' => (int)$row['shippingCompanyCount'],
-                    'cargoTypeCount' => (int)$row['cargoTypeCount'],
                     'totalTonnage' => (float)$row['totalTonnage'],
                     'remainingTonnage' => (float)$row['remainingTonnage'],
                     'loadedTonnage' => (float)$row['loadedTonnage'],
-                    'percentageLoaded' => (float)$row['percentageLoaded'],
                     'isActive' => (bool)$row['isActive']
                 ];
 
                 if ($ship['isActive']) {
                     $activeShips[] = $ship;
-                    $totalActiveTonnage += $ship['totalTonnage'];
-                    $totalRemainingTonnage += $ship['remainingTonnage'];
-                    $totalLoadedTonnage += $ship['loadedTonnage'];
                 } else {
                     $inactiveShips[] = $ship;
                 }
@@ -547,28 +539,13 @@ class AppApiController {
             return [
                 'activeShips' => $activeShips,
                 'inactiveShips' => $inactiveShips,
-                'totalActiveTonnage' => $totalActiveTonnage,
-                'totalRemainingTonnage' => $totalRemainingTonnage,
-                'totalLoadedTonnage' => $totalLoadedTonnage,
             ];
         });
 
-        $activeShips = $shipsData['activeShips'];
-        $inactiveShips = $shipsData['inactiveShips'];
-
         return [
             'data' => [
-                'activeShips' => $activeShips,
-                'inactiveShips' => $inactiveShips,
-                'statistics' => [
-                    'totalShips' => count($activeShips) + count($inactiveShips),
-                    'activeShipsCount' => count($activeShips),
-                    'inactiveShipsCount' => count($inactiveShips),
-                    'totalActiveTonnage' => $shipsData['totalActiveTonnage'],
-                    'totalRemainingTonnage' => $shipsData['totalRemainingTonnage'],
-                    'totalLoadedTonnage' => $shipsData['totalLoadedTonnage'],
-                    'timestamp' => date('Y-m-d H:i:s')
-                ]
+                'activeShips' => $shipsData['activeShips'],
+                'inactiveShips' => $shipsData['inactiveShips'],
             ]
         ];
     }

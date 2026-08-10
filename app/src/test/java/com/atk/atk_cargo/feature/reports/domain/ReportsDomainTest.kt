@@ -10,13 +10,15 @@ class ReportsDomainTest {
     private fun ship(
         name: String,
         totalTonnage: Float,
-        remainingTonnage: Float
+        remainingTonnage: Float,
+        loadedTonnage: Float = totalTonnage - remainingTonnage
     ) = Ship(
         name = name,
         warehouseCount = 1,
         quotaCount = 1,
         totalTonnage = totalTonnage,
         remainingTonnage = remainingTonnage,
+        loadedTonnage = loadedTonnage,
         isActive = true
     )
 
