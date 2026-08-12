@@ -46,7 +46,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import org.koin.compose.koinInject
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,6 +74,7 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.Quot
 import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import java.net.URLDecoder
 import kotlin.time.Duration.Companion.milliseconds
 
