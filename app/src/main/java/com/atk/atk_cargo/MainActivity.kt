@@ -45,8 +45,6 @@ class MainActivity : ComponentActivity() {
     private val userPreferencesManager: UserPreferencesManager by inject()
     private val startupViewModel: StartupViewModel by viewModel()
 
-    // باید در زمان ساخت Activity (نه داخل onCreate) ثبت شود؛ برخلاف
-    // ActivityCompat.requestPermissions قدیمی، این API نتیجه را واقعاً برمی‌گرداند
     private val notificationPermissionLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { isGranted ->
