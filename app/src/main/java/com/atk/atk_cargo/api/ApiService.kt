@@ -156,7 +156,9 @@ interface ApiService {
         @Query("endDateTime") endDateTime: String
     ): Response<FilteredSummaryResponse>
 
-    @GET("protected_proxy.php")
+    // POST به‌جای GET: این عملیات داده را تغییر می‌دهد و نباید قابل بازپخش/کش
+    // باشد (نگاه کنید به AppApiController::WRITE_ACTIONS سمت سرور).
+    @POST("protected_proxy.php")
     suspend fun editQuota(
         @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "editQuota",
@@ -170,32 +172,33 @@ interface ApiService {
         @Query("totalTonnage") totalTonnage: Float
     ): Response<SuccessResponse>
 
-    @GET("protected_proxy.php")
+    // این سه endpoint عمداً فقط با id (کلید یکتای InitialInfo) کار می‌کنند،
+    // نه quotaNumber که یکتا نیست (سرور دیگر quotaNumber را برای این‌ها نمی‌پذیرد).
+    @POST("protected_proxy.php")
     suspend fun updateQuotaPercentage(
         @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "updateQuotaPercentage",
-        @Query("quotaNumber") quotaNumber: String,
+        @Query("id") id: Int,
         @Query("percentage") percentage: Double,
         @Query("isEnabled") isEnabled: Int
     ): Response<SuccessResponse>
 
-    @GET("protected_proxy.php")
+    @POST("protected_proxy.php")
     suspend fun toggleQuotaStatus(
         @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "toggleQuotaStatus",
-        @Query("id") id: Int,
-        @Query("quotaNumber") quotaNumber: String
+        @Query("id") id: Int
     ): Response<SuccessResponse>
 
-    @GET("protected_proxy.php")
+    @POST("protected_proxy.php")
     suspend fun updateQuotaPercentageRestriction(
         @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "updateQuotaPercentageRestriction",
-        @Query("quotaNumber") quotaNumber: String,
+        @Query("id") id: Int,
         @Query("isEnabled") isEnabled: Int
     ): Response<SuccessResponse>
 
-    @GET("protected_proxy.php")
+    @POST("protected_proxy.php")
     suspend fun deleteQuota(
         @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "deleteQuota",
@@ -224,7 +227,7 @@ interface ApiService {
         @Query("shipName") shipName: String
     ): Response<Map<String, Map<String, List<QuotaItem>>>>
 
-    @GET("protected_proxy.php")
+    @POST("protected_proxy.php")
     suspend fun updateTemporaryTonnage(
         @Query("target") target: String = "app_api.php",
         @Query("action") action: String = "updateTemporaryTonnage",

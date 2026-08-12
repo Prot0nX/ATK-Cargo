@@ -807,10 +807,7 @@ class CargoViewModel(
 
     suspend fun toggleQuotaStatus(id: Int, quotaNumber: String) {
         try {
-            val response = apiService.toggleQuotaStatus(
-                id = id,
-                quotaNumber = quotaNumber
-            )
+            val response = apiService.toggleQuotaStatus(id = id)
             if (response.isSuccessful) {
                 val responseBody = response.body()
                 if (responseBody?.success == true) {

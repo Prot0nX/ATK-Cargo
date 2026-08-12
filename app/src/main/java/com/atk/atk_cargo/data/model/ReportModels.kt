@@ -28,6 +28,7 @@ data class WarningStatus(
 
 @Immutable
 data class QuotaPercentageData(
+    val id: Int,
     val quotaNumber: String,
     val percentage: Double,
     val calculations: CalculationResult,
@@ -123,8 +124,11 @@ data class Warehouse(
     val totalTonnage: Float,
     val loadedTonnage: Float,
     val remainingTonnage: Float,
-    val quotas: List<Quota>,
-    val availableExitDates: List<String>
+    // getShipDetails (استفاده‌شده در این صفحه) این دو فیلد را ارسال نمی‌کند؛
+    // بدون مقدار پیش‌فرض، Gson با reflection قید non-null کاتلین را دور می‌زد
+    // و این فیلدها را null می‌گذاشت (کرش پنهان در هر کد آینده‌ای که بخواندشان)
+    val quotas: List<Quota> = emptyList(),
+    val availableExitDates: List<String> = emptyList()
 )
 
 @Immutable

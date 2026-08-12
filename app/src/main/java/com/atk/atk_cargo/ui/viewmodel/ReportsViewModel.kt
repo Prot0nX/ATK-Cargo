@@ -34,6 +34,7 @@ import com.atk.atk_cargo.data.model.Warehouse
 import com.atk.atk_cargo.data.model.WarehouseQuotaGroupingMode
 import com.atk.atk_cargo.data.model.adjustColorForTheme
 import com.atk.atk_cargo.data.model.cardColors
+import com.atk.atk_cargo.data.repository.HttpStatusException
 import com.atk.atk_cargo.data.repository.ReportsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -95,7 +96,7 @@ class ReportsViewModel(
     private val _shipNotFoundEvent = MutableSharedFlow<Unit>()
     val shipNotFoundEvent = _shipNotFoundEvent.asSharedFlow()
     private fun isShipNotFoundError(e: Exception): Boolean =
-        e.message?.contains("یافت نشد") == true
+        e is HttpStatusException && e.statusCode == 404
     private val _exportResult = MutableStateFlow<String?>(null)
     private val _comprehensiveAnalytics = MutableStateFlow<ComprehensiveAnalytics?>(null)
     val comprehensiveAnalytics: StateFlow<ComprehensiveAnalytics?> = _comprehensiveAnalytics.asStateFlow()
@@ -418,7 +419,9 @@ class ReportsViewModel(
     fun loadShipDataAsync(shipName: String) {
         viewModelScope.launch {
             _uiState.value = UiState.Loading
-            
+            _isLoadingShipDetails.value = true
+            _isLoadingShipQuotas.value = true
+
             try {
                 supervisorScope {
                     val shipDetailsDeferred = async { repository.getShipDetails(shipName) }
@@ -444,6 +447,9 @@ class ReportsViewModel(
                 _uiState.value = UiState.Error(errorMessage)
                 _shipDetailsLoadingState.value = LoadingState.Error(errorMessage)
                 _shipQuotasLoadingState.value = LoadingState.Error(errorMessage)
+            } finally {
+                _isLoadingShipDetails.value = false
+                _isLoadingShipQuotas.value = false
             }
         }
     }
@@ -547,7 +553,7 @@ class ReportsViewModel(
         viewModelScope.launch {
             try {
                 val success = repository.updateQuotaPercentage(
-                    quotaNumber = data.quotaNumber,
+                    id = data.id,
                     percentage = data.percentage
                 )
                 if (success) {
@@ -564,10 +570,12 @@ class ReportsViewModel(
         }
     }
 
+    // quotaNumber دیگر برای درخواست سرور استفاده نمی‌شود (سرور فقط با id کار
+    // می‌کند)؛ پارامتر برای سازگاری با فراخوان‌های موجود در UI نگه داشته شده است.
     fun toggleQuotaStatus(id: Int, quotaNumber: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             try {
-                val success = repository.toggleQuotaStatus(id, quotaNumber)
+                val success = repository.toggleQuotaStatus(id)
                 if (success) {
                     _currentShipName.value?.let { shipName ->
                         refreshShipDataSilently(shipName)
@@ -585,11 +593,55 @@ class ReportsViewModel(
         }
     }
 
-    fun toggleQuotaPercentageRestriction(quotaNumber: String, isRestricted: Boolean, onComplete: () -> Unit) {
+    /**
+     * غیرفعال کردن دسته‌ای کوتاژهای هشداردار (دکمه‌ی گروهی دیالوگ هشدار).
+     * برخلاف toggleQuotaStatus (که به ازای هر فراخوانی یک رفرش کامل انجام
+     * می‌دهد و برای N کوتاژ به N×۴ درخواست HTTP می‌رسد و سقف Rate Limit
+     * پروکسی -۶۰ درخواست در دقیقه- را رد می‌کند)، اینجا همه‌ی toggleها ابتدا
+     * اجرا و فقط یک‌بار در پایان رفرش می‌شوند. هر id قبل از ارسال با آخرین
+     * وضعیت شناخته‌شده‌ی کوتاژها چک می‌شود تا کوتاژی که بین محاسبه‌ی هشدار و
+     * کلیک کاربر از جای دیگری غیرفعال شده، دوباره فعال نشود.
+     */
+    fun deactivateQuotasInBulk(quotaIds: List<Int>, onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val stillActiveIds = quotaIds.filter { id ->
+                    id > 0 && _selectedShipQuotas.value.find { it.id == id }?.isActive != false
+                }
+
+                var successCount = 0
+                var failureCount = 0
+                stillActiveIds.forEach { id ->
+                    try {
+                        if (repository.toggleQuotaStatus(id)) successCount++ else failureCount++
+                    } catch (e: Exception) {
+                        failureCount++
+                    }
+                }
+
+                _currentShipName.value?.let { shipName ->
+                    refreshShipDataSilently(shipName)
+                }
+                loadShips()
+
+                showSnackbar(
+                    when {
+                        failureCount == 0 && successCount > 0 -> "$successCount کوتاژ با موفقیت غیرفعال شد"
+                        successCount > 0 -> "$successCount کوتاژ غیرفعال شد، $failureCount مورد ناموفق بود"
+                        else -> "خطا در غیرفعال کردن کوتاژها"
+                    }
+                )
+            } finally {
+                onComplete()
+            }
+        }
+    }
+
+    fun toggleQuotaPercentageRestriction(id: Int, isRestricted: Boolean, onComplete: () -> Unit) {
         viewModelScope.launch {
             try {
                 val success = repository.updateQuotaPercentageRestriction(
-                    quotaNumber = quotaNumber,
+                    id = id,
                     isEnabled = if (isRestricted) 1 else 0
                 )
                 if (success) {

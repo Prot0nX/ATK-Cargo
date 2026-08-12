@@ -1,0 +1,14 @@
+# این پوشه شامل لاگ دسترسی پروکسی (IP، User-Agent، مسیر هر درخواست)،
+# blocked_ips.txt و فایل‌های موقت rate-limit است؛ نباید هرگز از طریق HTTP
+# قابل خواندن باشد.
+
+# Apache 2.4+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+# Apache 2.2 (fallback)
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

@@ -14,9 +14,20 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 // Collator (نه مقایسه‌ی پیش‌فرض String که بر مبنای کد یونیکد است) برای این‌که
-// ترتیب الفبایی فارسی درست باشد (مثلاً "آ" در برابر "ا"، "ی")
-private val persianCollator: Collator = Collator.getInstance(Locale("fa", "IR")).apply {
+// ترتیب الفبایی فارسی درست باشد (مثلاً "آ" در برابر "ا"، "ی"). public است چون
+// در چند صفحه (QuotasListScreen و ...) برای مرتب‌سازی الفبایی استفاده می‌شود.
+val persianCollator: Collator = Collator.getInstance(Locale("fa", "IR")).apply {
     strength = Collator.PRIMARY
+}
+
+// آستانه‌های هشدار کوتاژ (ShipDetailsScreen.calculateWarningStatus)؛ قبلاً
+// عدد خام داخل کد UI بودند و تغییرشان نیازمند بیلد و انتشار دوباره‌ی اپ بود.
+object QuotaWarningThresholds {
+    /** کوتاژ بدون محدودیت درصد (percentage == 0) وقتی مانده‌اش زیر این مقدار برود هشدار می‌گیرد. */
+    const val ZERO_PERCENT_REMAINING_KG = 5000f
+
+    /** فاصله‌ی مجاز مانده تا سقف محدودیت درصد، پیش از نمایش هشدار. */
+    const val PERCENTAGE_CAP_PROXIMITY_KG = 9000f
 }
 
 fun sortShips(ships: List<Ship>, sortingMode: ShipSortingMode): List<Ship> {

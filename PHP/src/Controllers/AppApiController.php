@@ -13,17 +13,23 @@ use App\Core\DatabaseManager;
 use App\Core\MicroCache;
 use App\Core\Request;
 use App\Core\Response;
+use App\Exceptions\ApiException;
+use App\Repositories\UserRepository;
+use App\Services\PermissionService;
 use App\Services\SessionService;
 
 class AppApiController {
     private DatabaseManager $db;
     private Request $request;
     private SessionService $sessionService;
+    private PermissionService $permissionService;
+    private ?string $authenticatedUsername = null;
 
     public function __construct() {
         $this->db = new DatabaseManager();
         $this->request = new Request();
         $this->sessionService = new SessionService();
+        $this->permissionService = new PermissionService();
     }
 
     /**
@@ -43,11 +49,45 @@ class AppApiController {
             echo json_encode(['error' => 'نشست معتبر نیست. لطفاً دوباره وارد شوید.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
+
+        $this->authenticatedUsername = $username;
     }
+
+    /**
+     * گیت سطح دسترسی برای actionهای نوشتنی (ویرایش/حذف/تغییر وضعیت کوتاژ).
+     * requireAuthenticatedSession فقط معتبر بودن نشست را تضمین می‌کند، نه
+     * اینکه کاربر مجاز به این عملیات خاص باشد؛ این متد آن شکاف را می‌بندد.
+     */
+    private function requirePermission(string $feature): void {
+        $username = $this->authenticatedUsername ?? '';
+        $userRepository = new UserRepository();
+        $user = $userRepository->getByUsername($username);
+        $userType = (string)($user['userType'] ?? '');
+
+        if (!$this->permissionService->hasPermission($username, $userType, $feature)) {
+            header('Content-Type: application/json; charset=UTF-8');
+            http_response_code(403);
+            echo json_encode(['error' => 'شما مجوز انجام این عملیات را ندارید.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    }
+
+    // این actionها داده را تغییر می‌دهند یا حذف می‌کنند و باید فقط با POST
+    // فراخوانی شوند: قابل بازپخش نبودن (URL به‌تنهایی کافی برای اجرای دوباره
+    // نیست)، عدم امکان کش شدن توسط پروکسی/OkHttp (که فقط GET را کش می‌کنند)،
+    // و نبود پارامترهای حساس در Query String لاگ‌های وب‌سرور.
+    private const WRITE_ACTIONS = [
+        'editQuota',
+        'updateQuotaPercentage',
+        'toggleQuotaStatus',
+        'updateQuotaPercentageRestriction',
+        'deleteQuota',
+        'updateTemporaryTonnage',
+    ];
 
     public function handle(): void {
         try {
-            if (!$this->request->isGet()) {
+            if (!$this->request->isGet() && !$this->request->isPost()) {
                 throw new Exception('روش درخواست نامعتبر است');
             }
 
@@ -59,6 +99,14 @@ class AppApiController {
             }
 
             $action = $this->sanitizeInput((string)$action);
+
+            $isWriteAction = in_array($action, self::WRITE_ACTIONS, true);
+            if ($isWriteAction && !$this->request->isPost()) {
+                throw new Exception('این عملیات باید با متد POST ارسال شود');
+            }
+            if (!$isWriteAction && !$this->request->isGet()) {
+                throw new Exception('این عملیات باید با متد GET ارسال شود');
+            }
 
             switch ($action) {
                 case 'getShipsList':
@@ -80,7 +128,7 @@ class AppApiController {
                         throw new Exception('نام کشتی مشخص نشده است');
                     }
                     $shipDetails = $this->getShipDetails((string)$shipName);
-                    $this->sendJsonResponse($shipDetails);
+                    $this->sendCacheableJsonResponse($shipDetails, $shipDetails, 6);
                     break;
 
                 case 'getWarehouseDetails':
@@ -112,7 +160,7 @@ class AppApiController {
                         throw new Exception('نام کشتی مشخص نشده است');
                     }
                     $quotasList = $this->getQuotasList((string)$shipName);
-                    $this->sendJsonResponse($quotasList);
+                    $this->sendCacheableJsonResponse($quotasList, $quotasList, 6);
                     break;
 
                 case 'getFilteredQuotas':
@@ -170,6 +218,7 @@ class AppApiController {
                     break;
 
                 case 'updateTemporaryTonnage':
+                    $this->requirePermission('manage_quotas');
                     $quotaNumber = $this->request->get('quotaNumber');
                     $enabled = $this->request->get('enabled');
                     if ($quotaNumber === null || $enabled === null) {
@@ -186,6 +235,7 @@ class AppApiController {
                     break;
 
                 case 'editQuota':
+                    $this->requirePermission('manage_quotas');
                     $params = $this->request->all();
                     $required = ['id', 'oldQuotaNumber', 'newQuotaNumber', 'shipName', 'shippingCompany', 'warehouse', 'cargoType', 'totalTonnage'];
                     foreach ($required as $field) {
@@ -207,36 +257,39 @@ class AppApiController {
                     break;
 
                 case 'updateQuotaPercentage':
-                    $quotaNumber = $this->request->get('quotaNumber');
+                    $this->requirePermission('manage_quotas');
+                    $id = $this->request->get('id');
                     $percentage = $this->request->get('percentage');
-                    if ($quotaNumber === null || $percentage === null) {
-                        throw new Exception('پارامترهای ورودی ناقص هستند');
+                    if (!$id || intval($id) <= 0 || $percentage === null) {
+                        throw new Exception('شناسه کوتاژ یا درصد مشخص نشده است');
                     }
-                    $result = $this->updateQuotaPercentage((string)$quotaNumber, floatval($percentage));
+                    $result = $this->updateQuotaPercentage(intval($id), floatval($percentage));
                     $this->sendJsonResponse(['success' => $result]);
                     break;
 
                 case 'toggleQuotaStatus':
-                    $quotaNumber = $this->request->get('quotaNumber');
-                    if ($quotaNumber === null) {
-                        throw new Exception('شماره کوتاژ مشخص نشده است');
+                    $this->requirePermission('manage_quotas');
+                    $id = $this->request->get('id');
+                    if (!$id || intval($id) <= 0) {
+                        throw new Exception('شناسه کوتاژ مشخص نشده است');
                     }
-                    $id = $this->request->get('id') ? intval($this->request->get('id')) : 0;
-                    $result = $this->toggleQuotaStatus((string)$quotaNumber, $id);
+                    $result = $this->toggleQuotaStatus(intval($id));
                     $this->sendJsonResponse(['success' => $result]);
                     break;
 
                 case 'updateQuotaPercentageRestriction':
-                    $quotaNumber = $this->request->get('quotaNumber');
+                    $this->requirePermission('manage_quotas');
+                    $id = $this->request->get('id');
                     $isEnabled = $this->request->get('isEnabled');
-                    if ($quotaNumber === null || $isEnabled === null) {
-                        throw new Exception('پارامترهای ورودی ناقص هستند');
+                    if (!$id || intval($id) <= 0 || $isEnabled === null) {
+                        throw new Exception('شناسه کوتاژ یا مقدار محدودیت مشخص نشده است');
                     }
-                    $result = $this->updateQuotaPercentageRestriction((string)$quotaNumber, intval($isEnabled));
+                    $result = $this->updateQuotaPercentageRestriction(intval($id), intval($isEnabled));
                     $this->sendJsonResponse(['success' => $result]);
                     break;
 
                 case 'deleteQuota':
+                    $this->requirePermission('manage_quotas');
                     $quotaNumber = $this->request->get('quotaNumber');
                     $shipName = $this->request->get('shipName');
                     $warehouse = $this->request->get('warehouse');
@@ -301,6 +354,14 @@ class AppApiController {
                 default:
                     throw new Exception('عملیات نامعتبر است');
             }
+        } catch (ApiException $e) {
+            // ApiException برای خطاهایی که کد وضعیت HTTP معنادار دارند (مثلاً
+            // «یافت نشد» → 404) استفاده می‌شود؛ کلاینت به‌جای تطبیق رشته‌ی
+            // فارسی پیام خطا، بر اساس details['code'] یا کد وضعیت تصمیم می‌گیرد.
+            $this->sendJsonResponse(
+                ['error' => $e->getMessage()] + ($e->getDetails() ?? []),
+                $e->getStatusCode()
+            );
         } catch (Exception $e) {
             $this->sendJsonResponse(['error' => $e->getMessage()], 500);
         }
@@ -326,6 +387,7 @@ class AppApiController {
 
     private function sendJsonResponse($data, int $statusCode = 200): void {
         header('Content-Type: application/json; charset=UTF-8');
+        header('Cache-Control: no-store');
         http_response_code($statusCode);
         if (extension_loaded('zlib') && !ini_get('zlib.output_compression') && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
             ob_start('ob_gzhandler');
@@ -351,6 +413,18 @@ class AppApiController {
         }
 
         $this->sendJsonResponse($data);
+    }
+
+    // کلیدهای کش پرکاربردترین دو endpoint این صفحه (جزئیات کشتی + لیست کوتاژها)،
+    // هر کدام به‌ازای هر نام کشتی جداگانه؛ در نوشتن‌هایی که خروجی این دو را
+    // تغییر می‌دهند (editQuota/deleteQuota/toggleQuotaStatus/updateQuotaPercentage*)
+    // صریحاً forget می‌شوند تا کاربر داده‌ی بیات نبیند.
+    private function shipDetailsCacheKey(string $shipName): string {
+        return 'app_api_ship_details_' . $shipName;
+    }
+
+    private function quotasListCacheKey(string $shipName): string {
+        return 'app_api_quotas_list_' . $shipName;
     }
 
     private function calculateLoadableTonnage(float $remainingTonnage, float $totalTonnage, ?float $percentage, bool $isPercentageRestricted): float {
@@ -553,12 +627,15 @@ class AppApiController {
     public function getShipDetails(string $shipName): array {
         $shipName = $this->validateIdentifier($shipName);
 
-        $query = "SELECT 
+        return MicroCache::remember($this->shipDetailsCacheKey($shipName), 6, function () use ($shipName) {
+            return $this->computeShipDetails($shipName);
+        });
+    }
+
+    private function computeShipDetails(string $shipName): array {
+        $query = "SELECT
             i.shipName, i.loadingWarehouse, COUNT(DISTINCT i.loadingQuotaNumber) as quotaCount,
-            COUNT(DISTINCT i.shippingCompany) as shippingCompanyCount, COUNT(DISTINCT i.cargoType) as cargoTypeCount,
-            COUNT(DISTINCT CONCAT(i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType)) as uniqueQuotaCombinations,
             SUM(i.cargoWeight) as totalTonnage, COALESCE(SUM(loaded.loadedWeight), 0) as loadedTonnage,
-            (SELECT COUNT(DISTINCT c.trackingNumber) FROM CargoInfo c WHERE c.shipName = i.shipName AND c.status = 'خروج') as totalVoucherCount,
             MAX(i.isActive) as isActive
         FROM InitialInfo i
         LEFT JOIN (
@@ -577,44 +654,51 @@ class AppApiController {
         $stmt->execute();
         $result = $stmt->get_result();
 
+        // totalVoucherCount مستقل از هر انبار است (فقط به shipName وابسته)؛
+        // قبلاً به‌صورت زیرکوئری همبسته داخل SELECT اصلی بود و به ازای هر
+        // ردیف گروه (هر انبار) دوباره اجرا می‌شد، با اینکه نتیجه‌اش همیشه
+        // یکسان است. یک بار جدا محاسبه می‌شود.
+        $voucherStmt = $this->db->prepare(
+            "SELECT COUNT(DISTINCT trackingNumber) as totalVoucherCount FROM CargoInfo WHERE shipName = ? AND status = 'خروج'"
+        );
+        $voucherStmt->bind_param("s", $shipName);
+        $voucherStmt->execute();
+        $totalVoucherCount = (int)($voucherStmt->get_result()->fetch_assoc()['totalVoucherCount'] ?? 0);
+
         $warehouses = [];
         $totalQuotaCount = 0;
         $totalTonnage = 0;
         $totalRemainingTonnage = 0;
-        $totalVoucherCount = 0;
         $isActive = false;
 
         while ($row = $result->fetch_assoc()) {
             $warehouseTotalTonnage = floatval($row['totalTonnage']);
             $warehouseLoadedTonnage = floatval($row['loadedTonnage']);
             $warehouseRemainingTonnage = $warehouseTotalTonnage - $warehouseLoadedTonnage;
-            $warehousePercentageLoaded = ($warehouseTotalTonnage > 0) ? ($warehouseLoadedTonnage / $warehouseTotalTonnage) * 100 : 0;
 
             $warehouses[] = [
                 'name' => $row['loadingWarehouse'],
                 'quotaCount' => intval($row['quotaCount']),
-                'uniqueQuotaCombinations' => intval($row['uniqueQuotaCombinations']),
-                'shippingCompanyCount' => intval($row['shippingCompanyCount']),
-                'cargoTypeCount' => intval($row['cargoTypeCount']),
                 'totalTonnage' => $warehouseTotalTonnage,
                 'remainingTonnage' => $warehouseRemainingTonnage,
-                'loadedTonnage' => $warehouseLoadedTonnage,
-                'percentageLoaded' => number_format($warehousePercentageLoaded, 2, '.', '')
+                'loadedTonnage' => $warehouseLoadedTonnage
             ];
 
             $totalQuotaCount += intval($row['quotaCount']);
             $totalTonnage += $warehouseTotalTonnage;
             $totalRemainingTonnage += $warehouseRemainingTonnage;
-            $totalVoucherCount = intval($row['totalVoucherCount']);
-            $isActive = (bool)$row['isActive'];
+            // MAX(i.isActive) فقط داخل هر گروه (هر انبار) اعمال می‌شود، نه بین
+            // انبارها؛ برای اینکه یک انبار کاملاً غیرفعال، کشتی‌ای با انبارهای
+            // دیگر فعال را به‌اشتباه isActive=false نشان ندهد، نتیجه با OR
+            // منطقی بین انبارها ترکیب می‌شود، نه بازنویسی ساده.
+            $isActive = $isActive || (bool)$row['isActive'];
         }
 
         if (empty($warehouses)) {
-            throw new Exception("کشتی با نام '$shipName' یافت نشد.");
+            throw new ApiException("کشتی با نام '$shipName' یافت نشد.", 404, ['code' => 'SHIP_NOT_FOUND']);
         }
 
         $totalLoadedTonnage = $totalTonnage - $totalRemainingTonnage;
-        $totalPercentageLoaded = ($totalTonnage > 0) ? ($totalLoadedTonnage / $totalTonnage) * 100 : 0;
 
         return [
             'name' => $shipName,
@@ -623,17 +707,15 @@ class AppApiController {
             'totalTonnage' => $totalTonnage,
             'remainingTonnage' => $totalRemainingTonnage,
             'loadedTonnage' => $totalLoadedTonnage,
-            'percentageLoaded' => number_format($totalPercentageLoaded, 2, '.', ''),
             'totalVoucherCount' => $totalVoucherCount,
             'isActive' => $isActive,
-            'warehouses' => $warehouses,
-            'lastUpdated' => date('Y-m-d H:i:s')
+            'warehouses' => $warehouses
         ];
     }
 
     public function getWarehouseDetails(string $shipName, string $warehouseName): array {
-        $shipName = $this->sanitizeInput($shipName);
-        $warehouseName = $this->sanitizeInput($warehouseName);
+        $shipName = $this->validateIdentifier($shipName);
+        $warehouseName = $this->validateIdentifier($warehouseName);
 
         $query = "SELECT 
             i.loadingQuotaNumber, i.cargoType, i.shippingCompany, i.cargoOwner,
@@ -947,9 +1029,9 @@ class AppApiController {
     }
 
     public function getFilteredQuotas(string $shipName, string $startDateTime, string $endDateTime): array {
-        $shipName = $this->sanitizeInput($shipName);
-        $startDateTime = $this->sanitizeInput($startDateTime);
-        $endDateTime = $this->sanitizeInput($endDateTime);
+        $shipName = $this->validateIdentifier($shipName);
+        $startDateTime = $this->validateIdentifier($startDateTime);
+        $endDateTime = $this->validateIdentifier($endDateTime);
 
         if (strlen($startDateTime) === 16) {
             $startDateTime .= ':00';
@@ -958,30 +1040,24 @@ class AppApiController {
             $endDateTime .= ':00';
         }
 
+        // all_vouchers قبلاً یک LEFT JOIN مستقل با همان شرط/GROUP BY/ON exit_data
+        // بود و دقیقاً همان عدد را دوباره محاسبه می‌کرد؛ حذف شد (نگاه کنید به
+        // computeQuotasList برای همین اصلاح).
         $query = "SELECT i.id, i.loadingQuotaNumber as number, i.shipName, i.loadingWarehouse, i.cargoType,
             i.cargoWeight as totalTonnage, i.isActive, i.shippingCompany, i.cargoOwner, i.percentage, i.is_enabled,
-            COALESCE(exit_data.loadedTonnage, 0) as loadedTonnage, COALESCE(all_vouchers.voucherCount, 0) as voucherCount,
-            COALESCE(exit_data.exitVoucherCount, 0) as exitVoucherCount, COALESCE(exit_data.lastExitDate, '') as lastExitDate
+            COALESCE(exit_data.loadedTonnage, 0) as loadedTonnage,
+            COALESCE(exit_data.exitVoucherCount, 0) as exitVoucherCount
         FROM InitialInfo i
         LEFT JOIN (
             SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType,
-                SUM(c.netWeight) as loadedTonnage, COUNT(DISTINCT c.trackingNumber) as exitVoucherCount, MAX(c.exitDate) as lastExitDate
+                SUM(c.netWeight) as loadedTonnage, COUNT(DISTINCT c.trackingNumber) as exitVoucherCount
             FROM CargoInfo c WHERE c.status = 'خروج' AND c.shipName = ?
                 AND ((c.exitDate > ? OR (c.exitDate = ? AND c.exitTime >= ?)) AND (c.exitDate < ? OR (c.exitDate = ? AND c.exitTime <= ?)))
             GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
-        ) exit_data ON 
+        ) exit_data ON
             exit_data.loadingQuotaNumber = i.loadingQuotaNumber AND exit_data.shipName = i.shipName
             AND exit_data.loadingWarehouse = i.loadingWarehouse AND exit_data.shippingCompany = i.shippingCompany
             AND exit_data.cargoType = i.cargoType
-        LEFT JOIN (
-            SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType, COUNT(DISTINCT c.trackingNumber) as voucherCount
-            FROM CargoInfo c WHERE c.status = 'خروج' AND c.shipName = ?
-                AND ((c.exitDate > ? OR (c.exitDate = ? AND c.exitTime >= ?)) AND (c.exitDate < ? OR (c.exitDate = ? AND c.exitTime <= ?)))
-            GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
-        ) all_vouchers ON 
-            all_vouchers.loadingQuotaNumber = i.loadingQuotaNumber AND all_vouchers.shipName = i.shipName
-            AND all_vouchers.loadingWarehouse = i.loadingWarehouse AND all_vouchers.shippingCompany = i.shippingCompany
-            AND all_vouchers.cargoType = i.cargoType
         WHERE i.shipName = ?
         ORDER BY i.isActive DESC, i.loadingQuotaNumber ASC";
 
@@ -991,8 +1067,7 @@ class AppApiController {
         $endTime = substr($endDateTime, 11, 8);
 
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("sssssssssssssss", 
-            $shipName, $startDate, $startDate, $startTime, $endDate, $endDate, $endTime,
+        $stmt->bind_param("ssssssss",
             $shipName, $startDate, $startDate, $startTime, $endDate, $endDate, $endTime,
             $shipName
         );
@@ -1006,11 +1081,7 @@ class AppApiController {
             $remainingTonnage = $totalTonnage - $loadedTonnage;
             $percentage = $row['percentage'] !== null ? floatval($row['percentage']) : null;
             $isPercentageRestricted = (bool)$row['is_enabled'];
-            $percentageLoaded = ($totalTonnage > 0) ? ($loadedTonnage / $totalTonnage) * 100 : 0;
-
-            $loadableTonnage = $this->calculateLoadableTonnage($remainingTonnage, $totalTonnage, $percentage, $isPercentageRestricted);
             $exitVoucherCount = intval($row['exitVoucherCount']);
-            $avgVoucherWeight = ($exitVoucherCount > 0) ? ($loadedTonnage / $exitVoucherCount) : 0;
 
             $quotas[] = [
                 'id' => (int)$row['id'],
@@ -1021,20 +1092,12 @@ class AppApiController {
                 'totalTonnage' => $totalTonnage,
                 'remainingTonnage' => $remainingTonnage,
                 'loadedTonnage' => $loadedTonnage,
-                'percentageLoaded' => round($percentageLoaded, 2),
-                'voucherCount' => intval($row['voucherCount']),
-                'entryVoucherCount' => 0,
-                'exitVoucherCount' => $exitVoucherCount,
-                'pendingVoucherCount' => 0,
+                'voucherCount' => $exitVoucherCount,
                 'isActive' => (bool)$row['isActive'],
                 'shippingCompany' => $row['shippingCompany'] ?? '',
                 'cargoOwner' => $row['cargoOwner'] ?? '',
                 'percentage' => $percentage,
-                'isPercentageRestricted' => $isPercentageRestricted,
-                'loadableTonnage' => $loadableTonnage,
-                'avgVoucherWeight' => round($avgVoucherWeight, 2),
-                'lastExitDate' => $row['lastExitDate'],
-                'quotaKey' => $row['number'] . '|' . $row['shipName'] . '|' . $row['loadingWarehouse'] . '|' . $row['shippingCompany'] . '|' . $row['cargoType']
+                'isPercentageRestricted' => $isPercentageRestricted
             ];
         }
         return $quotas;
@@ -1093,32 +1156,34 @@ class AppApiController {
     }
 
     public function getQuotasList(string $shipName): array {
-        $shipName = $this->sanitizeInput($shipName);
+        $shipName = $this->validateIdentifier($shipName);
 
+        return MicroCache::remember($this->quotasListCacheKey($shipName), 6, function () use ($shipName) {
+            return $this->computeQuotasList($shipName);
+        });
+    }
+
+    private function computeQuotasList(string $shipName): array {
+        // all_vouchers قبلاً یک LEFT JOIN مستقل با همان شرط/GROUP BY/ON
+        // exit_data بود و دقیقاً همان عدد را دوباره محاسبه می‌کرد (COUNT
+        // DISTINCT trackingNumber با status='خروج')؛ حذف شد و exitVoucherCount
+        // برای هر دو فیلد voucherCount/exitVoucherCount استفاده می‌شود.
         $query = "SELECT i.id, i.loadingQuotaNumber as number, i.shipName, i.loadingWarehouse, i.cargoType, i.cargoWeight as totalTonnage, i.isActive, i.shippingCompany, i.cargoOwner, i.percentage, i.is_enabled,
-            COALESCE(exit_data.loadedTonnage, 0) as loadedTonnage, COALESCE(all_vouchers.voucherCount, 0) as voucherCount, COALESCE(exit_data.exitVoucherCount, 0) as exitVoucherCount, COALESCE(exit_data.lastExitDate, '') as lastExitDate
+            COALESCE(exit_data.loadedTonnage, 0) as loadedTonnage, COALESCE(exit_data.exitVoucherCount, 0) as exitVoucherCount
         FROM InitialInfo i
         LEFT JOIN (
-            SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType, SUM(c.netWeight) as loadedTonnage, COUNT(DISTINCT c.trackingNumber) as exitVoucherCount, MAX(c.exitDate) as lastExitDate
+            SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType, SUM(c.netWeight) as loadedTonnage, COUNT(DISTINCT c.trackingNumber) as exitVoucherCount
             FROM CargoInfo c WHERE c.status = 'خروج' AND c.shipName = ?
             GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
-        ) exit_data ON 
+        ) exit_data ON
             exit_data.loadingQuotaNumber = i.loadingQuotaNumber AND exit_data.shipName = i.shipName
             AND exit_data.loadingWarehouse = i.loadingWarehouse AND exit_data.shippingCompany = i.shippingCompany
             AND exit_data.cargoType = i.cargoType
-        LEFT JOIN (
-            SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType, COUNT(DISTINCT c.trackingNumber) as voucherCount
-            FROM CargoInfo c WHERE c.status = 'خروج' AND c.shipName = ?
-            GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
-        ) all_vouchers ON 
-            all_vouchers.loadingQuotaNumber = i.loadingQuotaNumber AND all_vouchers.shipName = i.shipName
-            AND all_vouchers.loadingWarehouse = i.loadingWarehouse AND all_vouchers.shippingCompany = i.shippingCompany
-            AND all_vouchers.cargoType = i.cargoType
         WHERE i.shipName = ?
         ORDER BY i.isActive DESC, i.loadingQuotaNumber ASC";
 
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("sss", $shipName, $shipName, $shipName);
+        $stmt->bind_param("ss", $shipName, $shipName);
         $stmt->execute();
         $result = $stmt->get_result();
         $quotas = [];
@@ -1129,11 +1194,7 @@ class AppApiController {
             $remainingTonnage = $totalTonnage - $loadedTonnage;
             $percentage = $row['percentage'] !== null ? floatval($row['percentage']) : null;
             $isPercentageRestricted = (bool)$row['is_enabled'];
-            $percentageLoaded = ($totalTonnage > 0) ? ($loadedTonnage / $totalTonnage) * 100 : 0;
-
-            $loadableTonnage = $this->calculateLoadableTonnage($remainingTonnage, $totalTonnage, $percentage, $isPercentageRestricted);
             $exitVoucherCount = intval($row['exitVoucherCount']);
-            $avgVoucherWeight = ($exitVoucherCount > 0) ? ($loadedTonnage / $exitVoucherCount) : 0;
 
             $quotas[] = [
                 'id' => (int)$row['id'],
@@ -1144,20 +1205,12 @@ class AppApiController {
                 'totalTonnage' => $totalTonnage,
                 'remainingTonnage' => $remainingTonnage,
                 'loadedTonnage' => $loadedTonnage,
-                'percentageLoaded' => round($percentageLoaded, 2),
-                'voucherCount' => intval($row['voucherCount']),
-                'entryVoucherCount' => 0,
-                'exitVoucherCount' => $exitVoucherCount,
-                'pendingVoucherCount' => 0,
+                'voucherCount' => $exitVoucherCount,
                 'isActive' => (bool)$row['isActive'],
                 'shippingCompany' => $row['shippingCompany'] ?? '',
                 'cargoOwner' => $row['cargoOwner'] ?? '',
                 'percentage' => $percentage,
-                'isPercentageRestricted' => $isPercentageRestricted,
-                'loadableTonnage' => $loadableTonnage,
-                'avgVoucherWeight' => round($avgVoucherWeight, 2),
-                'lastExitDate' => $row['lastExitDate'],
-                'quotaKey' => $row['number'] . '|' . $row['shipName'] . '|' . $row['loadingWarehouse'] . '|' . $row['shippingCompany'] . '|' . $row['cargoType']
+                'isPercentageRestricted' => $isPercentageRestricted
             ];
         }
         return $quotas;
@@ -1270,6 +1323,12 @@ class AppApiController {
 
             $this->db->commit();
             MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
+            MicroCache::forget($this->shipDetailsCacheKey($oldData['shipName']));
+            MicroCache::forget($this->quotasListCacheKey($oldData['shipName']));
+            if ($shipName !== $oldData['shipName']) {
+                MicroCache::forget($this->shipDetailsCacheKey($shipName));
+                MicroCache::forget($this->quotasListCacheKey($shipName));
+            }
             return true;
         } catch (Exception $e) {
             $this->db->rollback();
@@ -1277,45 +1336,74 @@ class AppApiController {
         }
     }
 
-    public function updateQuotaPercentage(string $quotaNumber, float $percentage): bool {
-        $isEnabled = ($percentage > 0.00) ? 1 : 0;
-        $query = "UPDATE InitialInfo SET percentage = ?, is_enabled = ? WHERE loadingQuotaNumber = ?";
-        $stmt = $this->db->prepare($query);
-        $stmt->bind_param("dis", $percentage, $isEnabled, $quotaNumber);
-        return $stmt->execute();
+    // هر سه تابع زیر عمداً فقط با id (کلید یکتای InitialInfo) کار می‌کنند، نه
+    // loadingQuotaNumber که یکتا نیست. اگر بر اساس شماره کوتاژ فیلتر شود، عملیات
+    // روی تمام ردیف‌های هم‌شماره (حتی متعلق به کشتی/انبار/شرکت دیگر) اعمال می‌شود.
+    /**
+     * نام کشتی مرتبط با یک ردیف InitialInfo، فقط برای invalidate کردن کش
+     * per-ship بعد از یک نوشتن که تنها id را دارد (نه shipName).
+     */
+    private function getShipNameById(int $id): ?string {
+        $stmt = $this->db->prepare("SELECT shipName FROM InitialInfo WHERE id = ?");
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        return $row['shipName'] ?? null;
     }
 
-    public function toggleQuotaStatus(string $quotaNumber, int $id = 0): bool {
-        if ($id > 0) {
-            $query = "UPDATE InitialInfo SET isActive = NOT isActive WHERE id = ?";
-            $stmt = $this->db->prepare($query);
-            $stmt->bind_param("i", $id);
-        } else {
-            $query = "UPDATE InitialInfo SET isActive = NOT isActive WHERE loadingQuotaNumber = ?";
-            $stmt = $this->db->prepare($query);
-            $stmt->bind_param("s", $quotaNumber);
+    private function forgetShipCaches(?string $shipName): void {
+        if ($shipName === null) {
+            return;
         }
+        MicroCache::forget($this->shipDetailsCacheKey($shipName));
+        MicroCache::forget($this->quotasListCacheKey($shipName));
+    }
+
+    public function updateQuotaPercentage(int $id, float $percentage): bool {
+        $shipName = $this->getShipNameById($id);
+        $isEnabled = ($percentage > 0.00) ? 1 : 0;
+        $query = "UPDATE InitialInfo SET percentage = ?, is_enabled = ? WHERE id = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param("dii", $percentage, $isEnabled, $id);
         $success = $stmt->execute();
         if ($success) {
-            MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
+            $this->forgetShipCaches($shipName);
         }
         return $success;
     }
 
-    public function updateQuotaPercentageRestriction(string $quotaNumber, int $isEnabled): bool {
-        $query = "UPDATE InitialInfo SET is_enabled = ? WHERE loadingQuotaNumber = ?";
+    public function toggleQuotaStatus(int $id): bool {
+        $shipName = $this->getShipNameById($id);
+        $query = "UPDATE InitialInfo SET isActive = NOT isActive WHERE id = ?";
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("is", $isEnabled, $quotaNumber);
-        return $stmt->execute();
+        $stmt->bind_param("i", $id);
+        $success = $stmt->execute();
+        if ($success) {
+            MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
+            $this->forgetShipCaches($shipName);
+        }
+        return $success;
+    }
+
+    public function updateQuotaPercentageRestriction(int $id, int $isEnabled): bool {
+        $shipName = $this->getShipNameById($id);
+        $query = "UPDATE InitialInfo SET is_enabled = ? WHERE id = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param("ii", $isEnabled, $id);
+        $success = $stmt->execute();
+        if ($success) {
+            $this->forgetShipCaches($shipName);
+        }
+        return $success;
     }
 
     public function deleteQuota(string $quotaNumber, string $shipName, string $warehouse, string $shippingCompany, string $cargoType): bool {
         try {
-            $quotaNumber = $this->sanitizeInput($quotaNumber);
-            $shipName = $this->sanitizeInput($shipName);
-            $warehouse = $this->sanitizeInput($warehouse);
-            $shippingCompany = $this->sanitizeInput($shippingCompany);
-            $cargoType = $this->sanitizeInput($cargoType);
+            $quotaNumber = $this->validateIdentifier($quotaNumber);
+            $shipName = $this->validateIdentifier($shipName);
+            $warehouse = $this->validateIdentifier($warehouse);
+            $shippingCompany = $this->validateIdentifier($shippingCompany);
+            $cargoType = $this->validateIdentifier($cargoType);
 
             $this->db->beginTransaction();
 
@@ -1331,9 +1419,9 @@ class AppApiController {
                 return false;
             }
 
-            $cargoQuery = "DELETE FROM CargoInfo WHERE loadingQuotaNumber = ? AND shipName = ? AND loadingWarehouse = ? AND shippingCompany = ?";
+            $cargoQuery = "DELETE FROM CargoInfo WHERE loadingQuotaNumber = ? AND shipName = ? AND loadingWarehouse = ? AND shippingCompany = ? AND cargoType = ?";
             $cargoStmt = $this->db->prepare($cargoQuery);
-            $cargoStmt->bind_param("ssss", $quotaNumber, $shipName, $warehouse, $shippingCompany);
+            $cargoStmt->bind_param("sssss", $quotaNumber, $shipName, $warehouse, $shippingCompany, $cargoType);
             $cargoStmt->execute();
 
             $initialQuery = "DELETE FROM InitialInfo WHERE loadingQuotaNumber = ? AND shipName = ? AND loadingWarehouse = ? AND shippingCompany = ? AND cargoType = ?";
@@ -1343,6 +1431,7 @@ class AppApiController {
 
             $this->db->commit();
             MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
+            $this->forgetShipCaches($shipName);
             return true;
         } catch (Exception $e) {
             $this->db->rollback();
@@ -1369,7 +1458,7 @@ class AppApiController {
     }
 
     public function updateTemporaryTonnage(string $quotaNumber, int $enabledVal, ?float $tonnageVal): array {
-        $quotaNumber = $this->sanitizeInput($quotaNumber);
+        $quotaNumber = $this->validateIdentifier($quotaNumber);
 
         $checkQuery = "SELECT loadingQuotaNumber FROM InitialInfo WHERE loadingQuotaNumber = ?";
         $checkStmt = $this->db->prepare($checkQuery);

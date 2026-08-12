@@ -130,6 +130,7 @@ fun QuotaPercentageDialog(
                     Button(
                         onClick = {
                             val quotaData = QuotaPercentageData(
+                                id = quota.id ?: 0,
                                 quotaNumber = quota.number,
                                 percentage = percentage,
                                 calculations = calculatedValues,

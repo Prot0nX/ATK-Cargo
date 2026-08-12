@@ -1,7 +1,6 @@
 package com.atk.atk_cargo.feature.reports.presentation.quota_details
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
@@ -77,6 +76,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -104,6 +104,7 @@ import com.atk.atk_cargo.feature.reports.domain.buildQuotasShareText
 import com.atk.atk_cargo.feature.reports.domain.calculateProgress
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.domain.formatWeightWithDetail
+import com.atk.atk_cargo.feature.reports.domain.persianCollator
 import com.atk.atk_cargo.feature.reports.domain.shareQuotasData
 import com.atk.atk_cargo.feature.reports.presentation.quota_details.components.DeleteQuotaDialog
 import com.atk.atk_cargo.feature.reports.presentation.quota_details.components.ToggleQuotaStatusDialog
@@ -170,7 +171,7 @@ fun QuotasList(
     val currentSortingMode by viewModel.quotaSortingMode.collectAsState()
     val currentGroupSortingMode by viewModel.groupSortingMode.collectAsState()
     val isMinimalMode by viewModel.isMinimalQuotaMode.collectAsState()
-    var expandedGroup by remember { mutableStateOf<String?>(null) }
+    var expandedGroup by rememberSaveable { mutableStateOf<String?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         GroupingModeSelector(
@@ -319,10 +320,6 @@ fun QuotasList(
         Spacer(modifier = Modifier.height(4.dp))
 
         val groupedQuotas = remember(quotas, currentGroupingMode, currentSortingMode, currentGroupSortingMode, searchQuery) {
-            fun getWeightInKg(tonnage: Float): Float {
-                return tonnage * 1000f
-            }
-
             fun calculateRemainingAfterPercentage(quota: Quota): Float {
                 val percentageAmount = quota.totalTonnage * ((quota.percentage ?: 0.0) / 100)
                 return quota.remainingTonnage - percentageAmount.toFloat()
@@ -335,61 +332,59 @@ fun QuotasList(
                             (quota.cargoOwner?.contains(searchQuery, ignoreCase = true) == true)
                 }
                 .groupBy {
+                    // cargoOwner ممکن است null باشد؛ نگاشت آن به کلید null یعنی
+                    // کوتاژهای بدون صاحب کالا بدون هیچ خطایی از لیست حذف می‌شوند
+                    // (groupName?.let در پایین) یا در صورت هم‌زمانی با گروه ""
+                    // باعث تداخل کلید LazyColumn می‌شوند. برچسب صریح مطابق همان
+                    // قراردادی است که سرور در getGroupedQuotas استفاده می‌کند.
                     when (currentGroupingMode) {
                         WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY -> it.shippingCompany
-                        WarehouseQuotaGroupingMode.BY_CARGO_OWNER -> it.cargoOwner
-                        WarehouseQuotaGroupingMode.BY_WAREHOUSE -> "${it.warehouse} | ${it.cargoOwner}"
+                        WarehouseQuotaGroupingMode.BY_CARGO_OWNER -> it.cargoOwner ?: "نامشخص"
+                        WarehouseQuotaGroupingMode.BY_WAREHOUSE -> "${it.warehouse} | ${it.cargoOwner ?: "نامشخص"}"
                     }
                 }
                 .mapValues { (_, groupQuotas) ->
-                    val sorted = groupQuotas.sortedWith(
+                    groupQuotas.sortedWith(
                         compareByDescending<Quota> { it.isActive }
                             .thenBy { quota ->
-                                val remainingAfterPercentage = calculateRemainingAfterPercentage(quota)
-                                val weightInKg = getWeightInKg(remainingAfterPercentage)
+                                val remaining = calculateRemainingAfterPercentage(quota)
                                 when (currentSortingMode) {
-                                    QuotaSortingMode.REMAINING_TONNAGE_ASC -> weightInKg
-                                    QuotaSortingMode.REMAINING_TONNAGE_DESC -> -weightInKg
+                                    QuotaSortingMode.REMAINING_TONNAGE_ASC -> remaining
+                                    QuotaSortingMode.REMAINING_TONNAGE_DESC -> -remaining
                                 }
                             }
                     )
-                    sorted
                 }
 
             val sortedEntries = when (currentGroupSortingMode) {
                 GroupSortingMode.ALPHABETICAL -> {
-                    groupedMap.entries.sortedBy { it.key }
+                    // sortedBy روی String از ترتیب کد یونیکد استفاده می‌کند، نه
+                    // ترتیب الفبایی فارسی؛ حروف مشابه عربی/فارسی ("ی"/"ي"،
+                    // "ک"/"ك") در کدپوینت‌های دور از هم مرتب می‌شوند.
+                    groupedMap.entries.sortedWith(compareBy(persianCollator) { it.key ?: "" })
                 }
-                GroupSortingMode.REMAINING_TONNAGE_ASC -> {
-                    groupedMap.entries.sortedBy { (groupName, _) ->
-                        val totalRemainingKg = groupedMap[groupName]?.sumOf { quota ->
-                            val remainingAfterPercentage = calculateRemainingAfterPercentage(quota)
-                            getWeightInKg(remainingAfterPercentage).toDouble()
-                        } ?: 0.0
-                        totalRemainingKg
+                GroupSortingMode.REMAINING_TONNAGE_ASC, GroupSortingMode.REMAINING_TONNAGE_DESC -> {
+                    // مجموع مانده‌ی هر گروه یک‌بار محاسبه می‌شود، نه به ازای هر
+                    // مقایسه‌ی sort (قبلاً groupedMap[groupName]?.sumOf {...}
+                    // داخل کامپریتور بود: هم jump اضافی در Map، هم جمع تکراری).
+                    val remainingTotals = groupedMap.mapValues { (_, groupQuotas) ->
+                        groupQuotas.sumOf { calculateRemainingAfterPercentage(it).toDouble() }
                     }
-                }
-                GroupSortingMode.REMAINING_TONNAGE_DESC -> {
-                    groupedMap.entries.sortedByDescending { (groupName, _) ->
-                        val totalRemainingKg = groupedMap[groupName]?.sumOf { quota ->
-                            val remainingAfterPercentage = calculateRemainingAfterPercentage(quota)
-                            getWeightInKg(remainingAfterPercentage).toDouble()
-                        } ?: 0.0
-                        totalRemainingKg
+                    if (currentGroupSortingMode == GroupSortingMode.REMAINING_TONNAGE_ASC) {
+                        groupedMap.entries.sortedBy { (groupName, _) -> remainingTotals[groupName] ?: 0.0 }
+                    } else {
+                        groupedMap.entries.sortedByDescending { (groupName, _) -> remainingTotals[groupName] ?: 0.0 }
                     }
                 }
             }
 
-            LinkedHashMap<String?, List<Quota>>().apply {
+            val result = LinkedHashMap<String?, List<Quota>>().apply {
                 sortedEntries.forEach { (key, value) ->
                     put(key, value)
                 }
             }
-        }.also { result ->
-            result.forEach { (groupName, items) ->
-                Log.d("atkcargo", "  Group '$groupName': ${items.size} items - ${items.joinToString(", ") { it.number }}")
-            }
             shareGroupedQuotas = result
+            result
         }
 
         LazyColumn(
