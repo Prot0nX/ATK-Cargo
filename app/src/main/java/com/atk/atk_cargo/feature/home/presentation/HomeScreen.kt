@@ -75,7 +75,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import org.koin.compose.koinInject
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,6 +108,7 @@ import com.atk.atk_cargo.feature.home.presentation.components.ProfileMenu
 import com.atk.atk_cargo.feature.reports.navigation.navigateToManageShips
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import kotlin.time.Duration.Companion.milliseconds
 
 @SuppressLint("HardwareIds")

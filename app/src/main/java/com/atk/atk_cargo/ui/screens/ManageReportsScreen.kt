@@ -63,7 +63,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import org.koin.compose.koinInject
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
@@ -101,6 +100,7 @@ import com.atk.atk_cargo.ui.theme.CornerL
 import com.atk.atk_cargo.ui.theme.CornerXL
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlinx.coroutines.delay
+import org.koin.compose.koinInject
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
 
