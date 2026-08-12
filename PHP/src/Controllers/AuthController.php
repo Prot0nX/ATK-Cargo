@@ -10,18 +10,21 @@ use App\Core\Response;
 use App\Core\Logger;
 use App\Services\UserService;
 use App\Services\SessionService;
+use App\Services\PermissionService;
 use App\Validators\InputValidator;
 use App\Exceptions\ApiException;
 
 class AuthController {
     private UserService $userService;
     private SessionService $sessionService;
+    private PermissionService $permissionService;
     private Request $request;
     private Logger $logger;
 
     public function __construct() {
         $this->userService = new UserService();
         $this->sessionService = new SessionService();
+        $this->permissionService = new PermissionService();
         $this->request = new Request();
         $this->logger = Logger::getInstance();
     }
@@ -199,20 +202,6 @@ class AuthController {
      * خواندن سطوح دسترسی کاربر از فایل permissions.json
      */
     private function getUserPermissions(string $username, string $userType): array {
-        $permissionsFile = APP_ROOT . '/config/permissions.json';
-        if (!file_exists($permissionsFile)) {
-            return [];
-        }
-
-        $allData = json_decode(file_get_contents($permissionsFile), true);
-        if (!$allData) {
-            return [];
-        }
-
-        if (isset($allData['roles'])) {
-            return $allData['users'][$username] ?? $allData['roles'][$userType] ?? [];
-        }
-
-        return $allData[$userType] ?? [];
+        return $this->permissionService->getUserPermissions($username, $userType);
     }
 }

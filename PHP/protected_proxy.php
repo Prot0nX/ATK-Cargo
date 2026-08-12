@@ -6,7 +6,9 @@ declare(strict_types=1);
 // پروکسی محافظت‌شده: فایل‌های *.php موجود در همین پوشه (به‌جز موارد استثنا) را
 // از طریق پارامتر target اجرا می‌کند. منطق کاملاً مطابق نسخه‌ی قبلی حفظ شده است.
 
-const PROXY_LOG_DIR = 'log';
+// مسیر مطلق (نه نسبی) تا مستقل از Working Directory فرایند PHP همیشه به
+// PHP/log اشاره کند، صرف‌نظر از پیکربندی وب‌سرور.
+const PROXY_LOG_DIR = __DIR__ . '/log';
 const PROXY_ACCESS_LOG = PROXY_LOG_DIR . '/proxy_access.log';
 const PROXY_BLOCKED_IPS_FILE = PROXY_LOG_DIR . '/blocked_ips.txt';
 // فایل‌های تشخیصی/توسعه که هرگز نباید از بیرون قابل اجرا باشند، حتی اگر در آینده

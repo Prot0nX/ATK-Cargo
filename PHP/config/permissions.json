@@ -10,7 +10,8 @@
         "delete_cargo": true,
         "view_reports": true,
         "active_quotas": true,
-        "tonnage_warning": true
+        "tonnage_warning": true,
+        "manage_quotas": true
     },
     "operator": {
         "initial_info": true,
@@ -23,7 +24,8 @@
         "delete_cargo": false,
         "view_reports": false,
         "active_quotas": false,
-        "tonnage_warning": false
+        "tonnage_warning": false,
+        "manage_quotas": false
     },
     "verifier": {
         "initial_info": false,
@@ -36,6 +38,7 @@
         "delete_cargo": false,
         "view_reports": false,
         "active_quotas": false,
-        "tonnage_warning": false
+        "tonnage_warning": false,
+        "manage_quotas": false
     }
 }

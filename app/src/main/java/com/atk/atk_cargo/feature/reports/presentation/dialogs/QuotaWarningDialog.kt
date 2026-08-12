@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.ToggleOff
 import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -92,8 +93,8 @@ fun QuotaWarningDialog(
     val groupedWarnings = warnings.chunked(warningsPerPage)
     val totalPages = groupedWarnings.size
     val pagerState = rememberPagerState(pageCount = { totalPages })
-    val coroutineScope = rememberCoroutineScope()
     var expandedCardId by remember { mutableStateOf<String?>(null) }
+    var showBulkDeactivateConfirm by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = 1f,
         animationSpec = tween(
@@ -144,7 +145,7 @@ fun QuotaWarningDialog(
                     .fillMaxHeight()
                     .padding(16.dp)
             ) {
-                WarningDialogHeader(
+                DialogHeader(
                     currentPage = pagerState.currentPage,
                     totalPages = totalPages,
                     onClose = onDismiss
@@ -169,7 +170,7 @@ fun QuotaWarningDialog(
                             contentPadding = PaddingValues(vertical = 8.dp)
                         ) {
                             items(groupedWarnings[page]) { warning ->
-                                ElegantQuotaCard(
+                                QuotaCard(
                                     warning = warning,
                                     viewModel = viewModel,
                                     isExpanded = expandedCardId == warning.quotaNumber,
@@ -184,7 +185,7 @@ fun QuotaWarningDialog(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     if (totalPages > 1) {
-                        WarningPageNavigation(
+                        PageNavigation(
                             pagerState = pagerState,
                             pageCount = totalPages
                         )
@@ -220,14 +221,7 @@ fun QuotaWarningDialog(
                     }
 
                     Button(
-                        onClick = {
-                            coroutineScope.launch {
-                                warnings.forEach { warning ->
-                                    viewModel.toggleQuotaStatus(warning.quotaId ?: 0, warning.quotaNumber)
-                                }
-                                onDismiss()
-                            }
-                        },
+                        onClick = { showBulkDeactivateConfirm = true },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -246,6 +240,38 @@ fun QuotaWarningDialog(
                 }
             }
         }
+    }
+
+    if (showBulkDeactivateConfirm) {
+        AlertDialog(
+            onDismissRequest = { showBulkDeactivateConfirm = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = { Text("غیرفعال کردن ${warnings.size} کوتاژ") },
+            text = { Text("آیا از غیرفعال کردن تمام ${warnings.size} کوتاژ هشداردار اطمینان دارید؟ این عملیات قابل بازگشت نیست.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showBulkDeactivateConfirm = false
+                        viewModel.deactivateQuotasInBulk(warnings.map { it.quotaId ?: 0 })
+                        onDismiss()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("غیرفعال کردن")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showBulkDeactivateConfirm = false }) {
+                    Text("انصراف")
+                }
+            }
+        )
     }
 }
 
@@ -356,38 +382,6 @@ private fun DialogHeader(
             )
         }
     }
-}
-
-@Composable
-private fun WarningDialogHeader(
-    currentPage: Int,
-    totalPages: Int,
-    onClose: () -> Unit
-) {
-    DialogHeader(currentPage, totalPages, onClose)
-}
-
-@Composable
-private fun ElegantQuotaCard(
-    warning: WarningStatus,
-    viewModel: ReportsViewModel,
-    isExpanded: Boolean,
-    onExpandChange: (Boolean) -> Unit
-) {
-    QuotaCard(
-        warning = warning,
-        viewModel = viewModel,
-        isExpanded = isExpanded,
-        onExpandChange = onExpandChange
-    )
-}
-
-@Composable
-private fun WarningPageNavigation(
-    pagerState: PagerState,
-    pageCount: Int
-) {
-    PageNavigation(pagerState, pageCount)
 }
 
 @Composable
@@ -620,7 +614,7 @@ private fun QuotaCard(
                                 onClick = {
                                     isPercentageRestrictionLoading = true
                                     viewModel.toggleQuotaPercentageRestriction(
-                                        quotaNumber = warning.quotaNumber,
+                                        id = warning.quotaId ?: 0,
                                         isRestricted = !warning.isPercentageRestricted
                                     ) {
                                         isPercentageRestrictionLoading = false

@@ -21,6 +21,13 @@ import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+/**
+ * برای پاسخ‌های ناموفق HTTP که کد وضعیت‌شان معنادار است (مثلاً ۴۰۴ برای
+ * «یافت نشد»)؛ فراخوان‌کننده به‌جای تطبیق رشته‌ی فارسی پیام خطا می‌تواند
+ * مستقیماً statusCode را چک کند.
+ */
+class HttpStatusException(val statusCode: Int, message: String) : Exception(message)
+
 class ReportsRepository(private val apiService: ApiService) {
     suspend fun getCargoInfo(
         quotaNumber: String,
@@ -82,15 +89,14 @@ class ReportsRepository(private val apiService: ApiService) {
     }
 
     suspend fun getShipDetails(shipName: String): Ship = withContext(Dispatchers.IO) {
-        try {
-            val response = apiService.getShipDetails(shipName = shipName)
-            if (response.isSuccessful) {
-                response.body() ?: throw Exception("Ship details not found")
-            } else {
-                throw Exception("Failed to fetch ship details: ${response.errorBody()?.string()}")
-            }
-        } catch (e: Exception) {
-            throw e
+        val response = apiService.getShipDetails(shipName = shipName)
+        if (response.isSuccessful) {
+            response.body() ?: throw Exception("Ship details not found")
+        } else {
+            throw HttpStatusException(
+                response.code(),
+                "Failed to fetch ship details: ${response.errorBody()?.string()}"
+            )
         }
     }
 
@@ -251,12 +257,12 @@ class ReportsRepository(private val apiService: ApiService) {
         }
     }
 
-    suspend fun updateQuotaPercentage(quotaNumber: String, percentage: Double): Boolean {
+    suspend fun updateQuotaPercentage(id: Int, percentage: Double): Boolean {
         return withContext(Dispatchers.IO) {
             try {
                 val isEnabled = if (percentage > 0.0) 1 else 0
                 val response = apiService.updateQuotaPercentage(
-                    quotaNumber = quotaNumber,
+                    id = id,
                     percentage = percentage,
                     isEnabled = isEnabled
                 )
@@ -271,9 +277,9 @@ class ReportsRepository(private val apiService: ApiService) {
         }
     }
 
-    suspend fun toggleQuotaStatus(id: Int, quotaNumber: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun toggleQuotaStatus(id: Int): Boolean = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.toggleQuotaStatus(id = id, quotaNumber = quotaNumber)
+            val response = apiService.toggleQuotaStatus(id = id)
             if (response.isSuccessful) {
                 response.body()?.success ?: false
             } else {
@@ -284,11 +290,11 @@ class ReportsRepository(private val apiService: ApiService) {
         }
     }
 
-    suspend fun updateQuotaPercentageRestriction(quotaNumber: String, isEnabled: Int): Boolean =
+    suspend fun updateQuotaPercentageRestriction(id: Int, isEnabled: Int): Boolean =
         withContext(Dispatchers.IO) {
             try {
                 val response = apiService.updateQuotaPercentageRestriction(
-                    quotaNumber = quotaNumber,
+                    id = id,
                     isEnabled = isEnabled
                 )
                 if (response.isSuccessful) {
