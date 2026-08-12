@@ -12,16 +12,38 @@ use App\Core\Database;
 use App\Core\Logger;
 use App\Core\MicroCache;
 use App\Core\Request;
+use App\Services\SessionService;
 
 class AnalyticsController {
     private mysqli $conn;
     private Logger $logger;
     private Request $request;
+    private SessionService $sessionService;
 
     public function __construct() {
         $this->conn = Database::getInstance()->getMysqliConnection();
         $this->logger = Logger::getInstance();
         $this->request = new Request();
+        $this->sessionService = new SessionService();
+    }
+
+    /**
+     * تمام دادهٔ این کنترلر (لیست کشتی‌ها، کوتاژها، تناژ) تجاری و محرمانه است؛
+     * مطابق الگوی AppApiController::requireAuthenticatedSession باید فقط برای
+     * نشست معتبر در دسترس باشد. هویت از هدرها خوانده می‌شود، نه از GET، تا در
+     * لاگ دسترسی/پروکسی ذخیره نشود.
+     */
+    private function requireAuthenticatedSession(): void {
+        $username = (string)($this->request->getHeader('X-Username') ?? '');
+        $deviceId = (string)($this->request->getHeader('X-Device-Id') ?? '');
+        $token = (string)($this->request->getHeader('X-Session-Token') ?? '');
+
+        if (!$this->sessionService->isValidToken($username, $deviceId, $token)) {
+            header('Content-Type: application/json; charset=UTF-8');
+            http_response_code(401);
+            echo json_encode(['error' => 'نشست معتبر نیست. لطفاً دوباره وارد شوید.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
     }
 
     /**
@@ -29,11 +51,14 @@ class AnalyticsController {
      */
     public function handleRealTimeLoadingData(): void {
         header('Content-Type: application/json; charset=UTF-8');
+        header('Cache-Control: no-store');
         date_default_timezone_set('Asia/Tehran');
 
         if (!$this->request->isGet()) {
             $this->sendJsonResponse(['error' => 'فقط متد GET مجاز است.'], 400);
         }
+
+        $this->requireAuthenticatedSession();
 
         try {
             $action = (string)$this->request->get('action', '');
@@ -142,17 +167,42 @@ class AnalyticsController {
     }
 
     private function handleRealTimeDataRequest(): void {
-        $shiftOffset = (int)($this->request->get('shiftOffset', 0));
+        // کلاینت فقط ۰ تا ۱۴- را می‌فرستد (ناوبری شیفت در RealTimeShiftNavigation)؛
+        // کلمپ سمت سرور از مقادیر آینده (offset مثبت) و از cache-flooding با
+        // مقادیر بزرگ دلخواه که هرکدام یک کلید جدید در MicroCache می‌سازند جلوگیری می‌کند.
+        $shiftOffset = max(-14, min(0, (int)$this->request->get('shiftOffset', 0)));
         $targetTimestamp = time() + ($shiftOffset * 12 * 3600);
         $currentTimeString = date('H:i:s', $targetTimestamp);
 
         $shiftInfo = $this->determineShiftInfo($currentTimeString, $targetTimestamp);
         $realTimeData = $this->getRealTimeData($shiftInfo);
 
-        $this->sendJsonResponse([
+        $this->sendCacheableRealTimeResponse([
             'shiftInfo' => $shiftInfo,
             'data' => $realTimeData
         ]);
+    }
+
+    /**
+     * این endpoint هر ۳۰ ثانیه توسط دیالوگ «بارگیری لحظه‌ای» poll می‌شود؛ در
+     * بیشتر تیک‌ها داده تغییری نکرده. با ETag/304 (به‌جای Cache-Control:
+     * no-store که handleRealTimeLoadingData پیش‌تر برای سایر actionها تنظیم
+     * کرده و اینجا override می‌شود)، در حالت بی‌تغییر فقط یک پاسخ خالی ۳۰۴
+     * منتقل می‌شود، نه کل payload. max-age کوتاه هم‌راستا با TTL همان کش ۵
+     * ثانیه‌ای MicroCache در getRealTimeData است.
+     */
+    private function sendCacheableRealTimeResponse(array $data): void {
+        $etag = '"' . md5(json_encode($data, JSON_UNESCAPED_UNICODE)) . '"';
+        header('Cache-Control: private, max-age=5');
+        header("ETag: $etag");
+
+        $ifNoneMatch = $this->request->getHeader('If-None-Match');
+        if ($ifNoneMatch !== null && trim($ifNoneMatch) === $etag) {
+            http_response_code(304);
+            exit;
+        }
+
+        $this->sendJsonResponse($data);
     }
 
     private function determineShiftInfo(string $currentTime, int $targetTimestamp): array {
@@ -181,7 +231,9 @@ class AnalyticsController {
                 'startDate' => $shiftStartDate,
                 'endDate' => $shiftEndDate,
                 'startTime' => '19:00:00',
-                'endTime' => '07:00:00',
+                // باید دقیقاً برابر با startTime شیفت روز (07:30:00) باشد، وگرنه
+                // بازه‌ی 07:00:00-07:30:00 در هیچ‌کدام از دو شیفت شمرده نمی‌شود.
+                'endTime' => '07:30:00',
                 'type' => 'شب'
             ];
         }
@@ -199,40 +251,38 @@ class AnalyticsController {
         ]));
 
         return MicroCache::remember($cacheKey, 5, function () use ($shiftInfo) {
+            // B-11: شرط‌های WHERE روی ستون‌های c.* در عمل LEFT JOIN را به INNER JOIN
+            // تبدیل می‌کردند (ردیف‌های بدون تطبیق، NULL می‌شدند و همان شرط‌ها حذفشان
+            // می‌کرد)؛ INNER JOIN صریح همان رفتار واقعی را بدون گمراه‌کنندگی نشان می‌دهد.
+            // B-12: فیلتر i.isActive = 1 (هم‌راستا با getActiveQuotasRemaining) اضافه شد
+            // تا کوتاژهای غیرفعال‌شده در «بارگیری لحظه‌ای» ظاهر نشوند.
+            // C-3: دو شاخه‌ی شیفت روز/شب فقط در شرط زمانی WHERE و تعداد پارامترها
+            // تفاوت داشتند؛ SELECT/JOIN/GROUP BY مشترک یک‌بار نوشته می‌شود.
+            $baseQuery = "SELECT
+                i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType,
+                COUNT(DISTINCT CASE WHEN c.status = 'ورود' THEN c.id END) AS entryVouchers,
+                COUNT(DISTINCT CASE WHEN c.status = 'خروج' THEN c.id END) AS exitVouchers,
+                COUNT(DISTINCT c.id) AS totalVouchers,
+                SUM(CASE WHEN c.status = 'خروج' THEN c.netWeight ELSE 0 END) AS totalNetWeight
+                FROM InitialInfo i
+                INNER JOIN CargoInfo c ON i.loadingQuotaNumber = c.loadingQuotaNumber
+                    AND i.loadingWarehouse = c.loadingWarehouse
+                    AND i.shippingCompany = c.shippingCompany
+                WHERE i.isActive = 1 AND (%s)
+                GROUP BY i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType";
+
             if ($shiftInfo['type'] === 'روز') {
-                $query = "SELECT
-                    i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType,
-                    COUNT(DISTINCT CASE WHEN c.status = 'ورود' THEN c.id END) AS entryVouchers,
-                    COUNT(DISTINCT CASE WHEN c.status = 'خروج' THEN c.id END) AS exitVouchers,
-                    COUNT(DISTINCT c.id) AS totalVouchers,
-                    SUM(CASE WHEN c.status = 'خروج' THEN c.netWeight ELSE 0 END) AS totalNetWeight
-                    FROM InitialInfo i
-                    LEFT JOIN CargoInfo c ON i.loadingQuotaNumber = c.loadingQuotaNumber
-                        AND i.loadingWarehouse = c.loadingWarehouse
-                        AND i.shippingCompany = c.shippingCompany
-                    WHERE ((c.exitDate = ? AND c.exitTime BETWEEN ? AND ?) OR (c.status = 'ورود' AND c.exitDate IS NULL))
-                    GROUP BY i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType";
-
-                $stmt = $this->conn->prepare($query);
-                $stmt->bind_param("sss", $shiftInfo['startDate'], $shiftInfo['startTime'], $shiftInfo['endTime']);
+                $shiftCondition = "(c.exitDate = ? AND c.exitTime BETWEEN ? AND ?) OR (c.status = 'ورود' AND c.exitDate IS NULL)";
+                $paramTypes = "sss";
+                $params = [$shiftInfo['startDate'], $shiftInfo['startTime'], $shiftInfo['endTime']];
             } else {
-                $query = "SELECT
-                    i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType,
-                    COUNT(DISTINCT CASE WHEN c.status = 'ورود' THEN c.id END) AS entryVouchers,
-                    COUNT(DISTINCT CASE WHEN c.status = 'خروج' THEN c.id END) AS exitVouchers,
-                    COUNT(DISTINCT c.id) AS totalVouchers,
-                    SUM(CASE WHEN c.status = 'خروج' THEN c.netWeight ELSE 0 END) AS totalNetWeight
-                    FROM InitialInfo i
-                    LEFT JOIN CargoInfo c ON i.loadingQuotaNumber = c.loadingQuotaNumber
-                        AND i.loadingWarehouse = c.loadingWarehouse
-                        AND i.shippingCompany = c.shippingCompany
-                    WHERE ((c.exitDate = ? AND c.exitTime >= ?) OR (c.exitDate = ? AND c.exitTime < ?) OR (c.status = 'ورود' AND c.exitDate IS NULL))
-                    GROUP BY i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType";
-
-                $stmt = $this->conn->prepare($query);
-                $stmt->bind_param("ssss", $shiftInfo['startDate'], $shiftInfo['startTime'], $shiftInfo['endDate'], $shiftInfo['endTime']);
+                $shiftCondition = "(c.exitDate = ? AND c.exitTime >= ?) OR (c.exitDate = ? AND c.exitTime < ?) OR (c.status = 'ورود' AND c.exitDate IS NULL)";
+                $paramTypes = "ssss";
+                $params = [$shiftInfo['startDate'], $shiftInfo['startTime'], $shiftInfo['endDate'], $shiftInfo['endTime']];
             }
 
+            $stmt = $this->conn->prepare(sprintf($baseQuery, $shiftCondition));
+            $stmt->bind_param($paramTypes, ...$params);
             $stmt->execute();
             $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             $stmt->close();

@@ -99,6 +99,7 @@ fun formatNumber(number: Number): String {
 
 typealias UiState = com.atk.atk_cargo.ui.viewmodel.ReportsViewModel.UiState
 typealias LoadingState = com.atk.atk_cargo.ui.viewmodel.ReportsViewModel.LoadingState
+typealias RealTimeUiState = com.atk.atk_cargo.ui.viewmodel.ReportsViewModel.RealTimeUiState
 
 // ===== COMMON TYPES IN ORIGINAL DATA MODEL =====
 data class FabItem(

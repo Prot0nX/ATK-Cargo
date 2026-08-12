@@ -416,16 +416,19 @@ class ReportsRepository(private val apiService: ApiService) {
         }
     }
 
+    // بدون try/catch عمومی (مطابق الگوی getShipDetails)؛ در غیر این صورت
+    // HttpStatusException زیر دوباره در یک Exception ساده بسته‌بندی می‌شد و
+    // کلاینت نمی‌توانست بین ۴۰۱ (نشست نامعتبر)، ۴۲۹ (rate limit) و خطای شبکه
+    // تشخیص دهد.
     suspend fun getRealTimeLoadingData(shiftOffset: Int = 0): RealTimeDataResponse = withContext(Dispatchers.IO) {
-        try {
-            val response = apiService.getRealTimeLoadingData(shiftOffset = shiftOffset)
-            if (response.isSuccessful) {
-                response.body() ?: throw Exception("Body is null")
-            } else {
-                throw Exception("Server error: ${response.code()}")
-            }
-        } catch (e: Exception) {
-            throw Exception("Error fetching real-time loading data: ${e.message}")
+        val response = apiService.getRealTimeLoadingData(shiftOffset = shiftOffset)
+        if (response.isSuccessful) {
+            response.body() ?: throw Exception("داده‌های دریافتی خالی است")
+        } else {
+            throw HttpStatusException(
+                response.code(),
+                "خطا در دریافت اطلاعات بارگیری لحظه‌ای: ${response.errorBody()?.string()}"
+            )
         }
     }
 

@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AllInbox
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Scale
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -76,6 +75,10 @@ fun RealTimeLoadingCard(
         border = BorderStroke(1.dp, RealTimeCardBorder),
     ) {
         val verticalLineColor = RealTimeAccent
+        // Path به‌جای ساخته‌شدن در هر draw pass، یک‌بار با remember نگه داشته
+        // می‌شود و در drawBehind فقط reset+بازسازی می‌شود (P-4: کاهش GC churn
+        // با چند ده کارت هم‌زمان + animateContentSize).
+        val verticalLinePath = remember { Path() }
 
         Box(
             modifier = Modifier
@@ -85,7 +88,8 @@ fun RealTimeLoadingCard(
                     val cornerRadius = 4.dp.toPx()
                     val x = size.width - lineWidth
 
-                    val path = Path().apply {
+                    verticalLinePath.reset()
+                    verticalLinePath.apply {
                         moveTo(x, 0f)
                         lineTo(x + lineWidth - cornerRadius, 0f)
                         arcTo(
@@ -110,7 +114,7 @@ fun RealTimeLoadingCard(
                         lineTo(x, size.height)
                         close()
                     }
-                    drawPath(path, verticalLineColor)
+                    drawPath(verticalLinePath, verticalLineColor)
                 }
         ) {
             Column(
@@ -129,42 +133,22 @@ fun RealTimeLoadingCard(
                         color = RealTimeMutedText
                     )
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // C-4: شرکت باربری قبلاً اینجا (کنار آیکون Person) و هم در ردیف
+                    // آماری پایین («شرکت باربری») نمایش داده می‌شد؛ نسخه‌ی هدر حذف شد
+                    // چون ردیف پایین با برچسب صریح خواناتر و کامل‌تر است.
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, RealTimeCardBorder),
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                tint = RealTimeAccent,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Text(
-                                text = data.shippingCompany,
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                fontWeight = FontWeight.Bold,
-                                color = RealTimeAccent
-                            )
-                        }
-
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(1.dp, RealTimeCardBorder),
-                        ) {
-                            Text(
-                                text = data.loadingQuotaNumber,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = RealTimeTitleColor,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                                letterSpacing = 1.sp,
-                            )
-                        }
+                        Text(
+                            text = data.loadingQuotaNumber,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = RealTimeTitleColor,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            letterSpacing = 1.sp,
+                        )
                     }
                 }
 
@@ -251,7 +235,9 @@ fun RealTimeLoadingCard(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = if (showEntry) "ورود/خروج" else "خروجی",
+                                // ترتیب برچسب باید با ترتیب مقادیر زیرش (که به‌دلیل
+                                // textDirection = Ltr همیشه خروج/ورود چاپ می‌شود) یکی باشد.
+                                text = if (showEntry) "خروج/ورود" else "خروجی",
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                             )
