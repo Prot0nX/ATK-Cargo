@@ -51,8 +51,7 @@ data class RealTimeLoadingData(
     val cargoType: String?,
     val entryVouchers: Int,
     val exitVouchers: Int,
-    val totalNetWeight: Int,
-    val cargoWeight: Int
+    val totalNetWeight: Int
 )
 
 @Immutable

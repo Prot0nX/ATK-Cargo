@@ -76,7 +76,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.atk.atk_cargo.MainActivity
 import com.atk.atk_cargo.api.CargoInfo
-import com.atk.atk_cargo.api.ShiftInfo
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.core.ui.components.PersianDatePickerDialog
@@ -149,15 +148,13 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
     var showQuotaManagementDialog by remember { mutableStateOf(false) }
     var currentSelectedSection by remember { mutableIntStateOf(0) }
     var isInShipDetailsScreen by remember { mutableStateOf(false) }
-    val realTimeLoadingData by viewModel.realTimeLoadingData.collectAsState()
-    val shiftInfo by viewModel.shiftInfo.collectAsState()
+    val realTimeUiState by viewModel.realTimeUiState.collectAsState()
     var searchResult by remember { mutableStateOf<CargoInfo?>(null) }
     var multipleSearchResults by remember { mutableStateOf<List<CargoInfo>?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var lastSearchType by remember { mutableStateOf<SearchType?>(null) }
     var lastSearchValue by remember { mutableStateOf<String?>(null) }
     val isDarkTheme = isSystemInDarkTheme()
-    val defaultColor = MaterialTheme.colorScheme.primary
     val currentShipName by viewModel.selectedShip.collectAsState()
     val loadingError by viewModel.loadingError.collectAsState()
 
@@ -285,13 +282,19 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
         }
     )
 
+    val realTimeShipColorMap by viewModel.shipColorMap.collectAsState()
+    val realTimeShiftOffset by viewModel.realTimeShiftOffset.collectAsState()
+
     RealTimeLoadingBottomSheet(
         isOpen = showRealTimeDialog,
         onDismiss = { showRealTimeDialog = false },
-        loadingData = realTimeLoadingData,
-        shiftInfo = shiftInfo ?: ShiftInfo("", "", "", "", ""),
-        onRefresh = { viewModel.loadRealTimeData(isDarkTheme, defaultColor) },
-        viewModel = viewModel
+        uiState = realTimeUiState,
+        shiftOffset = realTimeShiftOffset,
+        shipColorMap = realTimeShipColorMap,
+        onStartPolling = { viewModel.startRealTimePolling(isDarkTheme) },
+        onShiftOffsetChange = { offset -> viewModel.setRealTimeShiftOffset(offset, isDarkTheme) },
+        onManualRefresh = { viewModel.refreshRealTimeDataManually(isDarkTheme) },
+        onShare = { data, info -> viewModel.shareRealTimeLoadingData(data, info) }
     )
 
     AdvancedSearchDialog(

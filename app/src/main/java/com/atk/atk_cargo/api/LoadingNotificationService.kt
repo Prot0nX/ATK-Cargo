@@ -12,8 +12,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.edit
 import com.atk.atk_cargo.R
-import com.atk.atk_cargo.api.RetrofitClient.apiService
 import com.atk.atk_cargo.data.model.RealTimeLoadingData
+import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
@@ -33,6 +33,7 @@ class LoadingNotificationService : Service(), KoinComponent {
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private lateinit var notificationManager: AppNotificationManager
     private val userPreferencesManager: UserPreferencesManager by inject()
+    private val reportsRepository: ReportsRepository by inject()
     
     // تنظیمات فاصله زمانی بین درخواست‌ها (به دقیقه)
     companion object {
@@ -92,8 +93,8 @@ class LoadingNotificationService : Service(), KoinComponent {
                     // بروزرسانی فوری نوتیفیکیشن‌ها
                     try {
                         fetchAndNotify(true)
-                    } catch (_: Exception) {
-                        ""
+                    } catch (e: Exception) {
+                        Log.e("LoadingNotificationService", "بروزرسانی فوری نوتیفیکیشن‌ها شکست خورد", e)
                     }
                 } else {
                     // شروع دریافت دوره‌ای اطلاعات
@@ -151,8 +152,8 @@ class LoadingNotificationService : Service(), KoinComponent {
             while (isActive) {
                 try {
                     fetchAndNotify(false)
-                } catch (_: Exception) {
-                    ""
+                } catch (e: Exception) {
+                    Log.e("LoadingNotificationService", "دریافت دوره‌ای اطلاعات بارگیری شکست خورد", e)
                 }
                 
                 // انتظار تا زمان دریافت بعدی
@@ -184,42 +185,33 @@ class LoadingNotificationService : Service(), KoinComponent {
             return
         }
         
-        // دریافت اطلاعات بارگیری
-        try {
-            val response = apiService.getRealTimeLoadingData()
-            
-            if (response.isSuccessful) {
-                val loadingData = response.body()
-                
-                if (loadingData != null) {
-                    // دریافت داده‌های قبلی ذخیره‌شده در کش برای مقایسه تغییرات
-                    val previousData = getCachedLoadingData()
-                    val hasDataChanged = previousData == null || previousData.toSet() != loadingData.data.toSet()
-                    
-                    // ذخیره زمان آخرین به‌روزرسانی
-                    prefs.edit { putLong(KEY_LAST_UPDATE_TIME, System.currentTimeMillis()) }
-                    
-                    // ذخیره اطلاعات شیفت فعلی
-                    saveCurrentShiftInfo(loadingData.shiftInfo)
-                    
-                    // ذخیره داده‌های جدید در کش
-                    cacheLoadingData(loadingData.data)
-                    
-                    // نمایش نوتیفیکیشن تنها در صورتی که داده جدید باشد یا تغییرات واقعی رخ داده باشد
-                    if (loadingData.data.isNotEmpty() && hasDataChanged) {
-                        // دریافت لیست کشتی‌های مسدود شده
-                        val mutedShips = getSharedPreferences("ship_notifications_prefs", MODE_PRIVATE)
-                            .getStringSet("muted_ships", emptySet()) ?: emptySet()
+        // دریافت اطلاعات بارگیری. از همان ReportsRepository که دیالوگ «بارگیری
+        // لحظه‌ای» استفاده می‌کند عبور می‌کند (C-6) تا هر دو مسیر روی یک لایه‌ی
+        // مشترک باشند و کش HTTP (ETag/Cache-Control کوتاه‌مدت سمت سرور، P-2)
+        // بین این polling پنج‌دقیقه‌ای و polling سی‌ثانیه‌ای دیالوگ به اشتراک برود.
+        val loadingData = reportsRepository.getRealTimeLoadingData()
 
-                        // نمایش نوتیفیکیشن از طریق مدیریت مرکزی
-                        notificationManager.notifyLoadingData(loadingData.data, mutedShips)
-                    }
-                }
-            } else {
-                ""
-            }
-        } catch (e: Exception) {
-            throw e
+        // دریافت داده‌های قبلی ذخیره‌شده در کش برای مقایسه تغییرات
+        val previousData = getCachedLoadingData()
+        val hasDataChanged = previousData == null || previousData.toSet() != loadingData.data.toSet()
+
+        // ذخیره زمان آخرین به‌روزرسانی
+        prefs.edit { putLong(KEY_LAST_UPDATE_TIME, System.currentTimeMillis()) }
+
+        // ذخیره اطلاعات شیفت فعلی
+        saveCurrentShiftInfo(loadingData.shiftInfo)
+
+        // ذخیره داده‌های جدید در کش
+        cacheLoadingData(loadingData.data)
+
+        // نمایش نوتیفیکیشن تنها در صورتی که داده جدید باشد یا تغییرات واقعی رخ داده باشد
+        if (loadingData.data.isNotEmpty() && hasDataChanged) {
+            // دریافت لیست کشتی‌های مسدود شده
+            val mutedShips = getSharedPreferences("ship_notifications_prefs", MODE_PRIVATE)
+                .getStringSet("muted_ships", emptySet()) ?: emptySet()
+
+            // نمایش نوتیفیکیشن از طریق مدیریت مرکزی
+            notificationManager.notifyLoadingData(loadingData.data, mutedShips)
         }
     }
     
@@ -290,8 +282,8 @@ class LoadingNotificationService : Service(), KoinComponent {
                 .edit {
                     putString("cached_data", jsonData)
                 }
-        } catch (_: Exception) {
-            ""
+        } catch (e: Exception) {
+            Log.e("LoadingNotificationService", "ذخیره کش داده‌های بارگیری شکست خورد", e)
         }
     }
 } 

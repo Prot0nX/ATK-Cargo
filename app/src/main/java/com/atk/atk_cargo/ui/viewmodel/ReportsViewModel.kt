@@ -1,6 +1,5 @@
 package com.atk.atk_cargo.ui.viewmodel
 
-import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Intent
 import android.os.Environment
@@ -36,13 +35,17 @@ import com.atk.atk_cargo.data.model.adjustColorForTheme
 import com.atk.atk_cargo.data.model.cardColors
 import com.atk.atk_cargo.data.repository.HttpStatusException
 import com.atk.atk_cargo.data.repository.ReportsRepository
+import com.atk.atk_cargo.utils.JalaliDateUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
@@ -57,8 +60,11 @@ class ReportsViewModel(
     application: Application
 ) : AndroidViewModel(application) {
     private val exportPdfUseCase = com.atk.atk_cargo.feature.reports.domain.ExportPdfUseCase(application)
-    private val _realTimeLoadingData = MutableStateFlow<List<RealTimeLoadingData>>(emptyList())
-    val realTimeLoadingData: StateFlow<List<RealTimeLoadingData>> = _realTimeLoadingData
+    // C-1: کل چرخه‌ی polling دیالوگ «بارگیری لحظه‌ای» (داده، شمارنده، وضعیت
+    // refresh، خطا) در این یک StateFlow جمع شده تا منطق شبکه/تایمر داخل
+    // Composable نباشد و با چرخش صفحه ریست نشود.
+    private val _realTimeUiState = MutableStateFlow(RealTimeUiState())
+    val realTimeUiState: StateFlow<RealTimeUiState> = _realTimeUiState.asStateFlow()
     private val _thirdPartyOrders = MutableStateFlow<List<ThirdPartyOrder>>(emptyList())
     val thirdPartyOrders: StateFlow<List<ThirdPartyOrder>> = _thirdPartyOrders
     private val _thirdPartyLoadingError = MutableStateFlow<String?>(null)
@@ -79,12 +85,9 @@ class ReportsViewModel(
     val selectedShipQuotas: StateFlow<List<Quota>> = _selectedShipQuotas
     private val _filteredSummary = MutableStateFlow<FilteredSummary?>(null)
     val filteredSummary: StateFlow<FilteredSummary?> = _filteredSummary
-    private val _shiftInfo = MutableStateFlow<ShiftInfo?>(null)
-    val shiftInfo: StateFlow<ShiftInfo?> = _shiftInfo
     private val _currentShipName = MutableStateFlow<String?>(null)
     private val _shipColorMap = MutableStateFlow<Map<String, Color>>(emptyMap())
     val shipColorMap: StateFlow<Map<String, Color>> = _shipColorMap.asStateFlow()
-    private val _quotaColorMap = MutableStateFlow<Map<String, Color>>(emptyMap())
     private val colorSelector = ColorSelector(cardColors)
     private val _snackbarMessages = MutableSharedFlow<String>()
     val snackbarMessages = _snackbarMessages.asSharedFlow()
@@ -116,10 +119,10 @@ class ReportsViewModel(
     private val _realTimeShiftOffset = MutableStateFlow(0)
     val realTimeShiftOffset: StateFlow<Int> = _realTimeShiftOffset.asStateFlow()
 
-    fun setRealTimeShiftOffset(offset: Int, isDarkTheme: Boolean, defaultColor: Color) {
+    fun setRealTimeShiftOffset(offset: Int, isDarkTheme: Boolean) {
         if (offset <= 0) {
             _realTimeShiftOffset.value = offset
-            loadRealTimeData(isDarkTheme, defaultColor)
+            viewModelScope.launch { fetchRealTimeDataCoordinated(isDarkTheme) }
         }
     }
 
@@ -257,36 +260,87 @@ class ReportsViewModel(
         }
     }
 
-    fun loadRealTimeData(isDarkTheme: Boolean, defaultColor: Color) {
-        viewModelScope.launch {
-            try {
-                val response = repository.getRealTimeLoadingData(_realTimeShiftOffset.value)
-                _realTimeLoadingData.value = response.data.sortedByDescending { it.entryVouchers }
-                _shiftInfo.value = response.shiftInfo
-                _loadingError.value = null
+    private var realTimeFetchJob: Job? = null
+    private companion object {
+        private const val REAL_TIME_REFRESH_INTERVAL_MS = 30_000L
+    }
 
-                // گام 1: ابتدا اسامی کشتی‌ها را استخراج می‌کنیم
-                val shipNames = response.data.map { it.shipName }.distinct().toSet()
+    private suspend fun fetchRealTimeData(isDarkTheme: Boolean) {
+        try {
+            val response = repository.getRealTimeLoadingData(_realTimeShiftOffset.value)
+            _realTimeUiState.update {
+                it.copy(
+                    data = response.data.sortedByDescending { d -> d.entryVouchers },
+                    shiftInfo = response.shiftInfo,
+                    error = null
+                )
+            }
 
-                // گام 2: تخصیص رنگ‌های کاملاً متمایز فقط به کشتی‌ها
-                val shipColors = colorSelector.assignDistinctColors(shipNames)
-                    .mapValues { (_, color) -> adjustColorForTheme(color, isDarkTheme) }
+            // تخصیص رنگ‌های کاملاً متمایز فقط به کشتی‌ها (تنها مصرف واقعی رنگ در
+            // دیالوگ بارگیری لحظه‌ای؛ نگاشت مشابه به‌ازای هر کوتاژ قبلاً هم محاسبه
+            // می‌شد هم در ViewModel نگه داشته می‌شد اما هیچ‌جا خوانده نمی‌شد — P-5).
+            val shipNames = response.data.map { it.shipName }.distinct().toSet()
+            val shipColors = colorSelector.assignDistinctColors(shipNames)
+                .mapValues { (_, color) -> adjustColorForTheme(color, isDarkTheme) }
+            _shipColorMap.value = shipColors
 
-                // گام 3: به‌روزرسانی رنگ‌های کشتی‌ها در ViewModel
-                _shipColorMap.value = shipColors
+        } catch (e: Exception) {
+            _realTimeUiState.update { it.copy(error = "خطا در دریافت اطلاعات: ${e.message}") }
+        }
+    }
 
-                // برای حفظ سازگاری با کدهای دیگر، رنگ کوتاژها را برابر با رنگ کشتی مربوطه قرار می‌دهیم
-                val quotaColors = mutableMapOf<String, Color>()
-                response.data.forEach { data ->
-                    val shipColor = shipColors[data.shipName] ?: adjustColorForTheme(defaultColor, isDarkTheme)
-                    quotaColors[data.loadingQuotaNumber] = shipColor
-                }
-                _quotaColorMap.value = quotaColors
+    /**
+     * درخواست قبلی (مثلاً از یک کلیک سریع روی فلش‌های شیفت یا از تیک polling
+     * هم‌زمان با refresh دستی) لغو می‌شود تا پاسخی که دیرتر برسد، نه لزوماً
+     * پاسخ متعلق به آخرین درخواست، state را بازنویسی نکند؛ سپس تا پایان واقعی
+     * صبر می‌کند تا caller بتواند بر اساس نتیجه واکنش نشان دهد.
+     */
+    private suspend fun fetchRealTimeDataCoordinated(isDarkTheme: Boolean) {
+        realTimeFetchJob?.cancel()
+        val job = viewModelScope.launch { fetchRealTimeData(isDarkTheme) }
+        realTimeFetchJob = job
+        job.join()
+    }
 
-            } catch (e: Exception) {
-                _loadingError.value = "خطا در دریافت اطلاعات: ${e.message}"
+    /**
+     * C-1: کل حلقه‌ی polling دیالوگ «بارگیری لحظه‌ای» اینجاست، نه در Composable.
+     * caller این تابع را داخل repeatOnLifecycle(RESUMED) اجرا می‌کند؛ با لغو آن
+     * کوروتین (پس‌زمینه رفتن اپ یا بسته‌شدن دیالوگ)، این حلقه هم متوقف می‌شود.
+     */
+    suspend fun startRealTimePolling(isDarkTheme: Boolean) {
+        var nextRefreshAt = System.currentTimeMillis() + REAL_TIME_REFRESH_INTERVAL_MS
+        _realTimeUiState.update { it.copy(secondsToNextRefresh = 30) }
+        fetchRealTimeDataCoordinated(isDarkTheme)
+        while (true) {
+            delay(200)
+            val remainingMs = nextRefreshAt - System.currentTimeMillis()
+            val remainingSeconds = (remainingMs / 1000L).toInt().coerceAtLeast(0)
+            _realTimeUiState.update { it.copy(secondsToNextRefresh = remainingSeconds) }
+            if (remainingMs <= 0) {
+                _realTimeUiState.update { it.copy(isRefreshing = true) }
+                fetchRealTimeDataCoordinated(isDarkTheme)
+                delay(500)
+                _realTimeUiState.update { it.copy(isRefreshing = false, secondsToNextRefresh = 30) }
+                // هدف بعدی از روی هدف قبلی محاسبه می‌شود نه "الان + ۳۰ ثانیه"،
+                // وگرنه مدت fetch/delay(500) هر دور به drift اضافه می‌شود.
+                nextRefreshAt = maxOf(
+                    nextRefreshAt + REAL_TIME_REFRESH_INTERVAL_MS,
+                    System.currentTimeMillis() + 1000L
+                )
             }
         }
+    }
+
+    /**
+     * برای دکمه‌ی refresh دستی؛ پیام خطای واقعی بعد از پایان درخواست را
+     * برمی‌گرداند (null یعنی موفق) تا UI بر اساس نتیجه‌ی واقعی Toast نشان دهد.
+     */
+    suspend fun refreshRealTimeDataManually(isDarkTheme: Boolean): String? {
+        _realTimeUiState.update { it.copy(isRefreshing = true) }
+        fetchRealTimeDataCoordinated(isDarkTheme)
+        delay(300)
+        _realTimeUiState.update { it.copy(isRefreshing = false, secondsToNextRefresh = 30) }
+        return _realTimeUiState.value.error
     }
 
     fun loadThirdPartyOrders() {
@@ -298,7 +352,7 @@ class ReportsViewModel(
                 val calendar = Calendar.getInstance()
                 val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
                 
-                val todayShamsi = gregorianToJalali(calendar)
+                val todayShamsi = JalaliDateUtils.formatDate(calendar.timeInMillis.toString())
                 val date1Formatted: String
                 val date2Formatted: String
 
@@ -307,7 +361,7 @@ class ReportsViewModel(
                     date2Formatted = todayShamsi
                 } else {
                     calendar.add(Calendar.DAY_OF_MONTH, -1)
-                    val yesterdayShamsi = gregorianToJalali(calendar)
+                    val yesterdayShamsi = JalaliDateUtils.formatDate(calendar.timeInMillis.toString())
                     date1Formatted = yesterdayShamsi
                     date2Formatted = todayShamsi
                 }
@@ -860,6 +914,14 @@ class ReportsViewModel(
         data class Error(val message: String) : UiState()
     }
 
+    data class RealTimeUiState(
+        val data: List<RealTimeLoadingData> = emptyList(),
+        val shiftInfo: ShiftInfo? = null,
+        val isRefreshing: Boolean = false,
+        val error: String? = null,
+        val secondsToNextRefresh: Int = 30
+    )
+
 
 
     fun setWarehouseQuotaGroupingMode(mode: WarehouseQuotaGroupingMode) {
@@ -882,7 +944,7 @@ class ReportsViewModel(
         val totalExitVouchers = loadingData.sumOf { it.exitVouchers }
         val shareText = StringBuilder()
         val shiftType = shiftInfo?.type ?: "نامشخص"
-        val jalaliDate = shiftInfo?.startDate ?: gregorianToJalali(Calendar.getInstance())
+        val jalaliDate = shiftInfo?.startDate ?: JalaliDateUtils.formatDate(System.currentTimeMillis().toString())
         shareText.append("بارگیری [$shiftType] $jalaliDate - کل: $totalExitVouchers حواله\n\n")
 
         val combinedData = mutableListOf<Triple<String, String, Int>>()
@@ -906,40 +968,5 @@ class ReportsViewModel(
             shareText.append("* $warehouseName [$shipName]: $exitVouchers\n")
         }
         return shareText.toString()
-    }
-
-    @SuppressLint("DefaultLocale")
-    private fun gregorianToJalali(gregorian: Calendar): String {
-        val gy = gregorian.get(Calendar.YEAR)
-        val gm = gregorian.get(Calendar.MONTH) + 1
-        val gd = gregorian.get(Calendar.DAY_OF_MONTH)
-
-        val gregorianDaysInMonth = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365)
-        val jalaliDaysInMonth = intArrayOf(31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29)
-
-        val gy2 = if (gm > 2) gy + 1 else gy
-        var days =
-            355666 + (365 * gy) + ((gy2 + 3) / 4) - ((gy2 + 99) / 100) + ((gy2 + 399) / 400) + gd + gregorianDaysInMonth[gm - 1]
-
-        var jy = -1595 + (33 * (days / 12053))
-        days %= 12053
-        jy += 4 * (days / 1461)
-        days %= 1461
-
-        if (days > 365) {
-            jy += (days - 1) / 365
-            days = (days - 1) % 365
-        }
-
-        var jm = 0
-        for (i in 0..11) {
-            if (days < jalaliDaysInMonth[i]) {
-                jm = i + 1
-                break
-            }
-            days -= jalaliDaysInMonth[i]
-        }
-                val jd = days + 1
-        return String.format("%04d/%02d/%02d", jy, jm, jd)
     }
 }

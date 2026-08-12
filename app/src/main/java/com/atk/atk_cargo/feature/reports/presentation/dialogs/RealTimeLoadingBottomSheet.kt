@@ -2,14 +2,13 @@ package com.atk.atk_cargo.feature.reports.presentation.dialogs
 
 import android.content.Intent
 import android.widget.Toast
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -17,7 +16,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,6 +36,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -64,9 +63,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -79,10 +76,14 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.atk.atk_cargo.api.RealTimeLoadingData
+import com.atk.atk_cargo.api.RealTimeUiState
 import com.atk.atk_cargo.api.ShiftInfo
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
@@ -92,8 +93,6 @@ import com.atk.atk_cargo.ui.theme.Green700
 import com.atk.atk_cargo.ui.theme.Red400
 import com.atk.atk_cargo.ui.theme.Red50
 import com.atk.atk_cargo.ui.theme.Red700
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // internal (نه private) چون RealTimeLoadingCardSection.kt هم به این‌ها نیاز دارد
@@ -118,43 +117,44 @@ internal val RealTimeMutedText: Color
 internal val RealTimeTitleColor: Color
     @Composable get() = MaterialTheme.colorScheme.onSurface
 
+// C-1/C-2: این کامپوزبل نه ReportsViewModel می‌گیرد و نه منطق polling/تایمر
+// خودش دارد — فقط RealTimeUiState (که کل چرخه‌ی داده/شمارنده/refresh/خطا را
+// در ViewModel نگه می‌دارد) را رندر می‌کند و از طریق lambdaها عمل می‌کند؛
+// برای تست‌پذیری/پیش‌نمایش بهتر و تا با چرخش صفحه ریست نشود.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RealTimeLoadingBottomSheet(
     isOpen: Boolean,
     onDismiss: () -> Unit,
-    loadingData: List<RealTimeLoadingData>,
-    shiftInfo: ShiftInfo,
-    onRefresh: () -> Unit,
-    viewModel: ReportsViewModel
+    uiState: RealTimeUiState,
+    shiftOffset: Int,
+    shipColorMap: Map<String, Color>,
+    // caller این را داخل repeatOnLifecycle(RESUMED) اجرا می‌کند؛ suspend می‌ماند
+    // تا لغو شود (پس‌زمینه رفتن اپ یا بسته‌شدن دیالوگ).
+    onStartPolling: suspend () -> Unit,
+    onShiftOffsetChange: (Int) -> Unit,
+    // پیام خطای واقعی بعد از پایان درخواست را برمی‌گرداند (null یعنی موفق) تا
+    // دکمه‌ی refresh دستی بر اساس نتیجه‌ی واقعی Toast نشان دهد.
+    onManualRefresh: suspend () -> String?,
+    onShare: (List<RealTimeLoadingData>, ShiftInfo) -> String
 ) {
-    // وقتی بسته است نباید StateFlowهای دیگر را collect یا loadingData را
-    // پردازش کند؛ در غیر این صورت هر آپدیت داده‌ی Real-Time این کامپوزبل را
-    // حتی وقتی روی صفحه نمایش داده نمی‌شود بازترسیم می‌کند.
+    // وقتی بسته است نباید loadingData را پردازش کند؛ در غیر این صورت هر
+    // آپدیت داده‌ی Real-Time این کامپوزبل را حتی وقتی روی صفحه نمایش داده
+    // نمی‌شود بازترسیم می‌کند.
     if (!isOpen) return
 
-    val shipColorMap by viewModel.shipColorMap.collectAsState()
-    val shiftOffset by viewModel.realTimeShiftOffset.collectAsState()
-    val isDarkTheme = isSystemInDarkTheme()
-    val defaultColor = MaterialTheme.colorScheme.primary
-    var remainingSeconds by remember { mutableIntStateOf(30) }
-    var isRefreshing by remember { mutableStateOf(false) }
     var expandedShip by remember { mutableStateOf<String?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val isCurrentShift = remember(shiftOffset) { shiftOffset == 0 }
-    val totalEntryVouchers = remember(loadingData, isCurrentShift) {
-        if (isCurrentShift) loadingData.sumOf { it.entryVouchers } else 0
-    }
-    val totalExitVouchers = remember(loadingData) { loadingData.sumOf { it.exitVouchers } }
-    val totalNetWeight = remember(loadingData) { loadingData.sumOf { it.totalNetWeight.toDouble() }.toFloat() }
+    val shiftInfo = uiState.shiftInfo ?: ShiftInfo("", "", "", "", "")
 
-    val filteredLoadingData = remember(loadingData, searchQuery) {
+    val filteredLoadingData = remember(uiState.data, searchQuery) {
         if (searchQuery.isBlank()) {
-            loadingData
+            uiState.data
         } else {
-            loadingData.filter { data ->
+            uiState.data.filter { data ->
                 data.shipName.contains(searchQuery, ignoreCase = true) ||
                         data.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
                         data.loadingQuotaNumber.contains(searchQuery, ignoreCase = true) ||
@@ -163,20 +163,23 @@ fun RealTimeLoadingBottomSheet(
         }
     }
 
+    // آمار سربرگ (StatisticItem) عمداً از filteredLoadingData محاسبه می‌شود، نه
+    // uiState.data خام؛ در غیر این صورت با جستجو تعداد کارت‌ها کم می‌شود اما وزن
+    // کل/تعداد ورودی-خروجی ثابت می‌ماند و با آنچه کاربر می‌بیند ناسازگار است.
+    val totalEntryVouchers = remember(filteredLoadingData, isCurrentShift) {
+        if (isCurrentShift) filteredLoadingData.sumOf { it.entryVouchers } else 0
+    }
+    val totalExitVouchers = remember(filteredLoadingData) { filteredLoadingData.sumOf { it.exitVouchers } }
+    val totalNetWeight = remember(filteredLoadingData) { filteredLoadingData.sumOf { it.totalNetWeight.toDouble() }.toFloat() }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(isOpen) {
         if (isOpen) {
-            viewModel.loadRealTimeData(isDarkTheme, defaultColor)
-            while (true) {
-                delay(1000)
-                remainingSeconds--
-                if (remainingSeconds <= 0) {
-                    isRefreshing = true
-                    viewModel.loadRealTimeData(isDarkTheme, defaultColor)
-                    onRefresh()
-                    remainingSeconds = 30
-                    delay(500)
-                    isRefreshing = false
-                }
+            // فقط وقتی اپ واقعاً در حال نمایش است (RESUMED) پولینگ فعال است؛
+            // با رفتن به پس‌زمینه/خاموشی صفحه متوقف و با بازگشت، از سر گرفته
+            // می‌شود (onStartPolling خودش فوراً یک fetch انجام می‌دهد).
+            lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                onStartPolling()
             }
         }
     }
@@ -194,23 +197,25 @@ fun RealTimeLoadingBottomSheet(
                     Column(modifier = Modifier.weight(1f)) {
                         DialogHeader(
                             loadingDataCount = filteredLoadingData.size,
-                            isRefreshing = isRefreshing,
-                            refreshProgress = remainingSeconds / 30f,
+                            isRefreshing = uiState.isRefreshing,
+                            refreshProgress = uiState.secondsToNextRefresh / 30f,
                             onRefreshClick = {
-                                if (!isRefreshing) {
+                                if (!uiState.isRefreshing) {
                                     scope.launch {
-                                        isRefreshing = true
-                                        viewModel.loadRealTimeData(isDarkTheme, defaultColor)
-                                        onRefresh()
-                                        remainingSeconds = 30
-                                        delay(800)
-                                        isRefreshing = false
-                                        Toast.makeText(context, "اطلاعات بروزرسانی شد", Toast.LENGTH_SHORT).show()
+                                        // Toast بر اساس مقدار واقعی برگشتی از onManualRefresh (بعد از
+                                        // پایان درخواست) نمایش داده می‌شود، نه بی‌قید و شرط. isRefreshing
+                                        // و شمارنده خودشان از uiState (که ViewModel به‌روز می‌کند) می‌آیند.
+                                        val error = onManualRefresh()
+                                        if (error != null) {
+                                            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                                        } else {
+                                            Toast.makeText(context, "اطلاعات بروزرسانی شد", Toast.LENGTH_SHORT).show()
+                                        }
                                     }
                                 }
                             },
                             onShareClick = {
-                                val shareText = viewModel.shareRealTimeLoadingData(filteredLoadingData, shiftInfo)
+                                val shareText = onShare(filteredLoadingData, shiftInfo)
                                 val sendIntent = Intent().apply {
                                     action = Intent.ACTION_SEND
                                     putExtra(Intent.EXTRA_TEXT, shareText)
@@ -237,10 +242,9 @@ fun RealTimeLoadingBottomSheet(
                             Spacer(modifier = Modifier.height(8.dp))
 
                             RealTimeShiftNavigation(
-                                viewModel = viewModel,
+                                shiftOffset = shiftOffset,
                                 shiftInfo = shiftInfo,
-                                isDarkTheme = isDarkTheme,
-                                defaultColor = defaultColor
+                                onShiftOffsetChange = onShiftOffsetChange
                             )
 
                             Spacer(modifier = Modifier.height(8.dp))
@@ -281,114 +285,113 @@ fun RealTimeLoadingBottomSheet(
                                 }
                             }
 
-                            AnimatedContent(
-                                targetState = filteredLoadingData,
-                                transitionSpec = {
-                                    fadeIn(animationSpec = tween(durationMillis = 300)) togetherWith
-                                            fadeOut(animationSpec = tween(durationMillis = 300))
-                                },
+                            val groupedLoadingData = remember(filteredLoadingData) {
+                                val cargoTypeCounts = filteredLoadingData
+                                    .groupBy { it.cargoType ?: "نامشخص" }
+                                    .mapValues { it.value.map { data -> data.shipName }.distinct().size }
+
+                                filteredLoadingData.groupBy { "${it.cargoType ?: "نامشخص"} | ${it.shipName}" }
+                                    .toList()
+                                    .sortedWith(
+                                        compareByDescending<Pair<String, List<RealTimeLoadingData>>> { (_, shipData) ->
+                                            cargoTypeCounts[shipData.first().cargoType ?: "نامشخص"] ?: 0
+                                        }.thenBy { it.first }
+                                    )
+                            }
+
+                            // AnimatedContent قبلاً روی کل لیست بود؛ هر آپدیت داده (هر polling
+                            // ۳۰ ثانیه‌ای) یک LazyColumn تازه می‌ساخت و موقعیت اسکرول کاربر را
+                            // به ابتدای لیست ریست می‌کرد. با یک LazyColumn پایدار + key موجود
+                            // روی هر آیتم + Modifier.animateItem()، هم اسکرول حفظ می‌شود و هم
+                            // جابه‌جایی/تغییر ردیف‌ها انیمیت می‌شود.
+                            val listState = rememberLazyListState()
+                            LazyColumn(
+                                state = listState,
                                 modifier = Modifier.weight(1f),
-                                label = "LoadingDataContent"
-                            ) { targetLoadingData ->
-                                val groupedLoadingData = remember(targetLoadingData) {
-                                    val cargoTypeCounts = targetLoadingData
-                                        .groupBy { it.cargoType ?: "نامشخص" }
-                                        .mapValues { it.value.map { data -> data.shipName }.distinct().size }
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(bottom = 8.dp)
+                            ) {
+                                items(
+                                    items = groupedLoadingData,
+                                    key = { it.first }
+                                ) { (groupName, shipData) ->
+                                    val actualShipName = shipData.first().shipName
+                                    val shipColor = shipColorMap[actualShipName]
+                                        ?: MaterialTheme.colorScheme.primary
+                                    ShipCard(
+                                        modifier = Modifier.animateItem(),
+                                        shipName = groupName,
+                                        isExpanded = expandedShip == groupName,
+                                        onExpandToggle = {
+                                            expandedShip =
+                                                if (expandedShip == groupName) null else groupName
+                                        },
+                                        entryVouchers = if (isCurrentShift) shipData.sumOf { it.entryVouchers } else 0,
+                                        exitVouchers = shipData.sumOf { it.exitVouchers },
+                                        showEntry = isCurrentShift,
+                                        content = {
+                                            val warehouseGroups = shipData.groupBy { it.loadingWarehouse }
 
-                                    targetLoadingData.groupBy { "${it.cargoType ?: "نامشخص"} | ${it.shipName}" }
-                                        .toList()
-                                        .sortedWith(
-                                            compareByDescending<Pair<String, List<RealTimeLoadingData>>> { (_, shipData) ->
-                                                cargoTypeCounts[shipData.first().cargoType ?: "نامشخص"] ?: 0
-                                            }.thenBy { it.first }
-                                        )
-                                }
-
-                                LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    contentPadding = PaddingValues(bottom = 8.dp)
-                                ) {
-                                    items(
-                                        items = groupedLoadingData,
-                                        key = { it.first }
-                                    ) { (groupName, shipData) ->
-                                        val actualShipName = shipData.first().shipName
-                                        val shipColor = shipColorMap[actualShipName]
-                                            ?: MaterialTheme.colorScheme.primary
-                                        ShipCard(
-                                            shipName = groupName,
-                                            isExpanded = expandedShip == groupName,
-                                            onExpandToggle = {
-                                                expandedShip =
-                                                    if (expandedShip == groupName) null else groupName
-                                            },
-                                            entryVouchers = if (isCurrentShift) shipData.sumOf { it.entryVouchers } else 0,
-                                            exitVouchers = shipData.sumOf { it.exitVouchers },
-                                            showEntry = isCurrentShift,
-                                            content = {
-                                                val warehouseGroups = shipData.groupBy { it.loadingWarehouse }
-
-                                                Column(
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    warehouseGroups.forEach { (warehouse, quotas) ->
-                                                        Row(
-                                                            modifier = Modifier
-                                                                .fillMaxWidth()
-                                                                .padding(bottom = 4.dp),
-                                                            horizontalArrangement = Arrangement.Start
+                                            Column(
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                warehouseGroups.forEach { (warehouse, quotas) ->
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(bottom = 4.dp),
+                                                        horizontalArrangement = Arrangement.Start
+                                                    ) {
+                                                        Surface(
+                                                            shape = RoundedCornerShape(100),
+                                                            color = RealTimeAccentBg
                                                         ) {
-                                                            Surface(
-                                                                shape = RoundedCornerShape(100),
-                                                                color = RealTimeAccentBg
+                                                            Row(
+                                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                             ) {
-                                                                Row(
-                                                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                                                    verticalAlignment = Alignment.CenterVertically,
-                                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                                                ) {
-                                                                    Icon(
-                                                                        imageVector = Icons.Default.Warehouse,
-                                                                        contentDescription = null,
-                                                                        tint = RealTimeAccent,
-                                                                        modifier = Modifier.size(14.dp)
-                                                                    )
-                                                                    Text(
-                                                                        text = "انبار: $warehouse",
-                                                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
-                                                                        fontWeight = FontWeight.Bold,
-                                                                        color = RealTimeAccent
-                                                                    )
-                                                                }
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Warehouse,
+                                                                    contentDescription = null,
+                                                                    tint = RealTimeAccent,
+                                                                    modifier = Modifier.size(14.dp)
+                                                                )
+                                                                Text(
+                                                                    text = "انبار: $warehouse",
+                                                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = RealTimeAccent
+                                                                )
                                                             }
                                                         }
+                                                    }
 
-                                                        quotas.sortedWith(
-                                                            compareBy<RealTimeLoadingData> { it.shippingCompany }
-                                                                .thenByDescending { it.entryVouchers }
-                                                        ).forEach { quota ->
-                                                            RealTimeLoadingCard(
-                                                                data = quota,
-                                                                showEntry = isCurrentShift
-                                                            )
-                                                            Spacer(
-                                                                modifier = Modifier.height(8.dp)
-                                                            )
-                                                        }
+                                                    quotas.sortedWith(
+                                                        compareBy<RealTimeLoadingData> { it.shippingCompany }
+                                                            .thenByDescending { it.entryVouchers }
+                                                    ).forEach { quota ->
+                                                        RealTimeLoadingCard(
+                                                            data = quota,
+                                                            showEntry = isCurrentShift
+                                                        )
+                                                        Spacer(
+                                                            modifier = Modifier.height(8.dp)
+                                                        )
+                                                    }
 
-                                                        if (warehouse != warehouseGroups.keys.last()) {
-                                                            HorizontalDivider(
-                                                                modifier = Modifier.padding(
-                                                                    vertical = 8.dp
-                                                                ),
-                                                                color = shipColor.copy(alpha = 0.1f)
-                                                            )
-                                                        }
+                                                    if (warehouse != warehouseGroups.keys.last()) {
+                                                        HorizontalDivider(
+                                                            modifier = Modifier.padding(
+                                                                vertical = 8.dp
+                                                            ),
+                                                            color = shipColor.copy(alpha = 0.1f)
+                                                        )
                                                     }
                                                 }
                                             }
-                                        )
-                                    }
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -402,14 +405,14 @@ fun RealTimeLoadingBottomSheet(
             }
 
             AnimatedVisibility(
-                visible = isRefreshing,
+                visible = uiState.isRefreshing,
                 enter = fadeIn(),
                 exit = fadeOut(),
                 modifier = Modifier.fillMaxSize()
             ) {
                 RefreshOverlay(
-                    isRefreshing = isRefreshing,
-                    remainingSeconds = remainingSeconds
+                    isRefreshing = uiState.isRefreshing,
+                    remainingSeconds = uiState.secondsToNextRefresh
                 )
             }
         }
@@ -418,12 +421,10 @@ fun RealTimeLoadingBottomSheet(
 
 @Composable
 private fun RealTimeShiftNavigation(
-    viewModel: ReportsViewModel,
+    shiftOffset: Int,
     shiftInfo: ShiftInfo,
-    isDarkTheme: Boolean,
-    defaultColor: Color
+    onShiftOffsetChange: (Int) -> Unit
 ) {
-    val offset by viewModel.realTimeShiftOffset.collectAsState()
     val formattedDate = shiftInfo.startDate ?: ""
     val shiftType = shiftInfo.type ?: ""
 
@@ -438,14 +439,14 @@ private fun RealTimeShiftNavigation(
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(
-            onClick = { viewModel.setRealTimeShiftOffset(offset + 1, isDarkTheme, defaultColor) },
-            enabled = offset < 0,
+            onClick = { onShiftOffsetChange(shiftOffset + 1) },
+            enabled = shiftOffset < 0,
             modifier = Modifier.size(26.dp)
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "شیفت بعد",
-                tint = if (offset < 0) RealTimeAccent else RealTimeMutedText.copy(alpha = 0.4f),
+                tint = if (shiftOffset < 0) RealTimeAccent else RealTimeMutedText.copy(alpha = 0.4f),
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -482,14 +483,14 @@ private fun RealTimeShiftNavigation(
         }
 
         IconButton(
-            onClick = { viewModel.setRealTimeShiftOffset(offset - 1, isDarkTheme, defaultColor) },
-            enabled = offset > -14,
+            onClick = { onShiftOffsetChange(shiftOffset - 1) },
+            enabled = shiftOffset > -14,
             modifier = Modifier.size(26.dp)
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = "شیفت قبل",
-                tint = if (offset > -14) RealTimeAccent else RealTimeMutedText.copy(alpha = 0.4f),
+                tint = if (shiftOffset > -14) RealTimeAccent else RealTimeMutedText.copy(alpha = 0.4f),
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -563,12 +564,13 @@ fun ShipCard(
     entryVouchers: Int,
     exitVouchers: Int,
     showEntry: Boolean = true,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
     val isDarkTheme = isSystemInDarkTheme()
 
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .animateContentSize(),
         shape = RoundedCornerShape(14.dp),
@@ -753,25 +755,29 @@ private fun DialogHeader(
                         .size(26.dp)
                         .background(RealTimeAccentBg, CircleShape)
                 ) {
-                    val rotation by animateFloatAsState(
-                        targetValue = if (isRefreshing) 360f else 0f,
-                        animationSpec = if (isRefreshing) {
-                            infiniteRepeatable(
-                                animation = tween(1000, easing = LinearEasing),
-                                repeatMode = RepeatMode.Restart
-                            )
+                    // P-6: animateFloatAsState یک مقدار هدف ثابت دارد و برای spec
+                    // بی‌نهایت (infiniteRepeatable) طراحی نشده؛ Animatable با یک
+                    // حلقه‌ی چرخش صریح، الگوی درست برای «تا وقتی X است بچرخ» است.
+                    val rotation = remember { Animatable(0f) }
+                    LaunchedEffect(isRefreshing) {
+                        if (isRefreshing) {
+                            while (true) {
+                                rotation.animateTo(
+                                    targetValue = rotation.value + 360f,
+                                    animationSpec = tween(1000, easing = LinearEasing)
+                                )
+                            }
                         } else {
-                            tween(300)
-                        },
-                        label = "refresh_rotation"
-                    )
+                            rotation.animateTo(0f, animationSpec = tween(300))
+                        }
+                    }
                     Icon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "بروزرسانی",
                         tint = RealTimeAccent,
                         modifier = Modifier
                             .size(14.dp)
-                            .rotate(rotation)
+                            .rotate(rotation.value)
                     )
                 }
             }
