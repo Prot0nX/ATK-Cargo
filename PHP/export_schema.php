@@ -3,7 +3,7 @@
  * PHP/export_schema.php
  *
  * اسکریپت استخراج ساختار کامل پایگاه داده (Tables, Indexes, Keys, Constraints, Views)
- * از دیتابیس سرور cargo_test و ذخیره در فایل schema.sql.
+ * از دیتابیس سرور atk_cargo و ذخیره در فایل schema.sql.
  */
 
 declare(strict_types=1);
@@ -16,7 +16,7 @@ class DatabaseSchemaExporter
     private string $dbName;
     private string $outputFile;
 
-    public function __construct(string $dbName = 'cargo_test', ?string $outputFile = null)
+    public function __construct(string $dbName = 'atk_cargo', ?string $outputFile = null)
     {
         $this->dbName = $dbName;
         $this->outputFile = $outputFile ?? __DIR__ . '/schema.sql';
@@ -205,7 +205,7 @@ class DatabaseSchemaExporter
 // ------------------------------------------------------------------
 if (php_sapi_name() === 'cli' || isset($_SERVER['HTTP_HOST'])) {
     $options = getopt('', ['db:', 'output:']);
-    $dbName = $options['db'] ?? 'cargo_test';
+    $dbName = $options['db'] ?? 'atk_cargo';
     $outputFile = $options['output'] ?? __DIR__ . '/schema.sql';
 
     try {
