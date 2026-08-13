@@ -12,6 +12,8 @@ use App\Core\Database;
 use App\Core\Logger;
 use App\Core\MicroCache;
 use App\Core\Request;
+use App\Repositories\UserRepository;
+use App\Services\PermissionService;
 use App\Services\SessionService;
 
 class AnalyticsController {
@@ -19,12 +21,27 @@ class AnalyticsController {
     private Logger $logger;
     private Request $request;
     private SessionService $sessionService;
+    private PermissionService $permissionService;
+    private ?string $authenticatedUsername = null;
+
+    // C-4/B-11 (گزارش تحلیل جامع عملیات): این دو مرز عمداً متفاوت‌اند، نه یک
+    // ناهماهنگی تصادفی — WORKDAY_BOUNDARY_TIME مرز پنجره «تحلیل جامع عملیات»
+    // (handleComprehensiveAnalysisRequest) است؛ SHIFT_DAY_START_TIME مرز شروع
+    // شیفت روز در «بارگیری لحظه‌ای» (determineShiftInfo) است. حواله‌های خروج‌شده
+    // بین این دو مرز (۰۷:۰۰ تا ۰۷:۳۰) به روز کاری جدید تعلق می‌گیرند اما هنوز به
+    // شیفت روز نپیوسته‌اند؛ به همین دلیل دو صفحه برای این نیم‌ساعت عدد متفاوت
+    // نشان می‌دهند. هر دو ثابت اینجا در یک نقطه نگه داشته می‌شوند تا این تفاوت
+    // آگاهانه بماند، نه اینکه یکی جا بماند وقتی دیگری تغییر می‌کند.
+    private const WORKDAY_BOUNDARY_TIME = '07:00:00';
+    private const SHIFT_DAY_START_TIME = '07:30:00';
+    private const SHIFT_DAY_END_TIME = '19:00:00';
 
     public function __construct() {
         $this->conn = Database::getInstance()->getMysqliConnection();
         $this->logger = Logger::getInstance();
         $this->request = new Request();
         $this->sessionService = new SessionService();
+        $this->permissionService = new PermissionService();
     }
 
     /**
@@ -44,6 +61,28 @@ class AnalyticsController {
             echo json_encode(['error' => 'نشست معتبر نیست. لطفاً دوباره وارد شوید.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
+
+        $this->authenticatedUsername = $username;
+    }
+
+    /**
+     * requireAuthenticatedSession فقط معتبر بودن نشست را تضمین می‌کند، نه اینکه
+     * کاربر مجاز به دیدن آمار تحلیلی باشد؛ مطابق الگوی
+     * AppApiController::requirePermission این شکاف را می‌بندد (مجوز
+     * "view_reports" که پیش‌تر فقط در UI/config تعریف شده بود ولی هرگز سمت
+     * سرور بررسی نمی‌شد).
+     */
+    private function requirePermission(string $feature): void {
+        $username = $this->authenticatedUsername ?? '';
+        $user = (new UserRepository())->getByUsername($username);
+        $userType = (string)($user['userType'] ?? '');
+
+        if (!$this->permissionService->hasPermission($username, $userType, $feature)) {
+            header('Content-Type: application/json; charset=UTF-8');
+            http_response_code(403);
+            echo json_encode(['error' => 'شما مجوز مشاهده آمار تحلیلی را ندارید.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
     }
 
     /**
@@ -54,8 +93,12 @@ class AnalyticsController {
         header('Cache-Control: no-store');
         date_default_timezone_set('Asia/Tehran');
 
-        if (!$this->request->isGet()) {
-            $this->sendJsonResponse(['error' => 'فقط متد GET مجاز است.'], 400);
+        // logAnalyticsExport یک عملیات نوشتنی (ثبت لاگ) است، هم‌راستا با قرارداد
+        // پروژه (WRITE_ACTIONS در AppApiController) که چنین actionهایی فقط با
+        // POST مجازند؛ بقیه actionهای این کنترلر فقط-خواندنی می‌مانند و کلاینت
+        // برایشان همچنان GET می‌فرستد.
+        if (!$this->request->isGet() && !$this->request->isPost()) {
+            $this->sendJsonResponse(['error' => 'فقط متد GET یا POST مجاز است.'], 400);
         }
 
         $this->requireAuthenticatedSession();
@@ -65,13 +108,23 @@ class AnalyticsController {
 
             switch ($action) {
                 case 'getKotazhInfo':
+                    $this->requirePermission('view_reports');
                     $this->handleKotazhRequest();
                     break;
                 case 'getRealTimeData':
+                    $this->requirePermission('view_reports');
                     $this->handleRealTimeDataRequest();
                     break;
                 case 'getComprehensiveAnalysis':
+                    $this->requirePermission('view_reports');
                     $this->handleComprehensiveAnalysisRequest();
+                    break;
+                case 'logAnalyticsExport':
+                    if (!$this->request->isPost()) {
+                        $this->sendJsonResponse(['error' => 'این عملیات فقط با POST مجاز است.'], 400);
+                    }
+                    $this->requirePermission('view_reports');
+                    $this->handleLogAnalyticsExport();
                     break;
                 default:
                     $this->sendJsonResponse(['error' => 'عملیات نامعتبر است.'], 400);
@@ -208,16 +261,16 @@ class AnalyticsController {
     private function determineShiftInfo(string $currentTime, int $targetTimestamp): array {
         $currentJalaliDate = jdate('Y/m/d', $targetTimestamp);
 
-        if ($currentTime >= '07:30:00' && $currentTime < '19:00:00') {
+        if ($currentTime >= self::SHIFT_DAY_START_TIME && $currentTime < self::SHIFT_DAY_END_TIME) {
             return [
                 'startDate' => $currentJalaliDate,
                 'endDate' => $currentJalaliDate,
-                'startTime' => '07:30:00',
-                'endTime' => '19:00:00',
+                'startTime' => self::SHIFT_DAY_START_TIME,
+                'endTime' => self::SHIFT_DAY_END_TIME,
                 'type' => 'روز'
             ];
         } else {
-            if ($currentTime >= '00:00:00' && $currentTime < '07:30:00') {
+            if ($currentTime >= '00:00:00' && $currentTime < self::SHIFT_DAY_START_TIME) {
                 $prevTimestamp = $targetTimestamp - 86400;
                 $shiftStartDate = jdate('Y/m/d', $prevTimestamp);
                 $shiftEndDate = $currentJalaliDate;
@@ -230,10 +283,11 @@ class AnalyticsController {
             return [
                 'startDate' => $shiftStartDate,
                 'endDate' => $shiftEndDate,
-                'startTime' => '19:00:00',
-                // باید دقیقاً برابر با startTime شیفت روز (07:30:00) باشد، وگرنه
-                // بازه‌ی 07:00:00-07:30:00 در هیچ‌کدام از دو شیفت شمرده نمی‌شود.
-                'endTime' => '07:30:00',
+                'startTime' => self::SHIFT_DAY_END_TIME,
+                // باید دقیقاً برابر با startTime شیفت روز باشد، وگرنه بازه‌ی
+                // WORKDAY_BOUNDARY_TIME تا SHIFT_DAY_START_TIME در هیچ‌کدام از
+                // دو شیفت شمرده نمی‌شود.
+                'endTime' => self::SHIFT_DAY_START_TIME,
                 'type' => 'شب'
             ];
         }
@@ -290,9 +344,16 @@ class AnalyticsController {
         });
     }
 
+    // کلاینت فقط ۰ تا ۷- را می‌فرستد (ناوبری تاریخ در AnalyticsDateNavigation)؛
+    // بدون این کلمپ سمت سرور، offset دلخواه (از جمله مقادیر مثبت/آینده یا
+    // بسیار بزرگ که در ضرب $offset * 86400 سرریز عدد صحیح PHP را تریگر
+    // می‌کنند) هم پذیرفته می‌شد. هم‌راستا با کلمپ مشابه shiftOffset در
+    // handleRealTimeDataRequest.
+    private const MAX_ANALYTICS_DAYS_BACK = 7;
+
     private function handleComprehensiveAnalysisRequest(): void {
-        $offset = (int)($this->request->get('offset', 0));
-        
+        $offset = max(-self::MAX_ANALYTICS_DAYS_BACK, min(0, (int)$this->request->get('offset', 0)));
+
         $currentTime = time();
         if (date('H') < 7) {
             $currentTime = strtotime('-1 day');
@@ -301,58 +362,145 @@ class AnalyticsController {
         $todayJalaliDate = jdate('Y/m/d', $targetTime);
         $yesterdayJalaliDate = jdate('Y/m/d', $targetTime - 86400);
 
-        $dateParts = explode('/', $todayJalaliDate);
-        $gy = (int)$dateParts[0]; $gm = (int)$dateParts[1]; $gd = (int)$dateParts[2];
-        if (function_exists('jalali_to_gregorian')) {
-            $gDate = jalali_to_gregorian($gy, $gm, $gd);
-            $timestamp = mktime(12, 0, 0, $gDate[1], $gDate[2], $gDate[0]);
-        } else {
-            $timestamp = time();
-        }
+        // P-6/C-8 (گزارش تحلیل جامع عملیات): $targetTime از قبل یک timestamp
+        // معتبر است؛ نیازی به رفت‌وبرگشت شمسی→میلادی→شمسی (split رشته تاریخ،
+        // jalali_to_gregorian، mktime) برای گرفتن نام روز نیست — jdate('l', ...)
+        // مستقیماً روی همان timestamp کار می‌کند. نسخه قبلی هم متغیرهایش را با
+        // پیشوند گمراه‌کننده‌ی g (gregorian) روی مقادیر شمسی نام‌گذاری کرده بود،
+        // هم یک fallback بی‌صدا داشت که در نبود jalali_to_gregorian، نام روز
+        // «الان» را برای تاریخی که ممکن بود روزها قبل باشد برمی‌گرداند.
 
+        // B-1/B-8 (گزارش تحلیل جامع عملیات): پنجره واقعی کوئری «روز کاری»
+        // (دیروز ۰۷:۰۰ تا امروز ۰۷:۰۰) است، نه «۲۴ ساعت گذشته تا این لحظه».
+        // قبلاً فقط jalaliDate/dayName (تاریخ پایان پنجره) برگردانده می‌شد و
+        // کلاینت آن را زیر برچسب گمراه‌کننده‌ی «امروز / گزارشات ۲۴ ساعته»
+        // نمایش می‌داد. اینجا مرزهای دقیق پنجره صریحاً اضافه می‌شود تا کلاینت
+        // بازه واقعی را نشان دهد.
+        $workdayBoundaryShort = substr(self::WORKDAY_BOUNDARY_TIME, 0, 5); // "07:00:00" -> "07:00"
         $dateInfo = [
             'jalaliDate' => $todayJalaliDate,
-            'dayName' => jdate('l', $timestamp)
+            'dayName' => jdate('l', $targetTime),
+            'windowStartDate' => $yesterdayJalaliDate,
+            'windowStartTime' => $workdayBoundaryShort,
+            'windowEndDate' => $todayJalaliDate,
+            'windowEndTime' => $workdayBoundaryShort
         ];
 
-        $query = "SELECT 
-                    c.loadingQuotaNumber, i.shipName, c.shippingCompany, i.cargoOwner, c.loadingWarehouse, i.cargoType,
-                    SUM(c.netWeight) AS last_24h_weight, COUNT(*) AS last_24h_vouchers
-                FROM CargoInfo c
-                JOIN InitialInfo i ON c.loadingQuotaNumber = i.loadingQuotaNumber 
-                    AND c.loadingWarehouse = i.loadingWarehouse
-                    AND c.shippingCompany = i.shippingCompany
-                WHERE c.status = 'خروج' AND ((c.exitDate = ? AND c.exitTime >= '07:00:00') OR (c.exitDate = ? AND c.exitTime < '07:00:00'))
-                GROUP BY c.loadingQuotaNumber, i.shipName, c.shippingCompany, i.cargoOwner, c.loadingWarehouse, i.cargoType
-                ORDER BY last_24h_vouchers DESC";
+        // P-2 (گزارش تحلیل جامع عملیات): برخلاف getRealTimeData در همین کلاس، این
+        // کوئری (که به‌مراتب سنگین‌تر است و روی idx_cargo_exit_window تازه اضافه‌شده
+        // هم full scan نمی‌کند ولی همچنان JOIN+GROUP BY سنگینی دارد) نه MicroCache
+        // داشت نه ETag. برای روزهای گذشته (offset < 0) داده دیگر تغییر نمی‌کند، پس
+        // TTL طولانی‌تر (۱ ساعت) امن است؛ برای روز کاری جاری (offset = 0) TTL کوتاه
+        // (۶۰ ثانیه، هم‌راستا با max-age کوتاه در سایر پاسخ‌های این کنترلر).
+        $cacheTtl = $offset < 0 ? 3600 : 60;
+        $cacheKey = 'analytics_comprehensive_' . md5($yesterdayJalaliDate . '|' . $todayJalaliDate);
 
-        $stmt = $this->conn->prepare($query);
-        $stmt->bind_param("ss", $yesterdayJalaliDate, $todayJalaliDate);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        // B-6/B-7 (گزارش تحلیل جامع عملیات):
+        // - i.isActive = 1 هم‌راستا با getActiveQuotasRemaining/getRealTimeData اضافه شد
+        //   تا کوتاژهای غیرفعال‌شده در تحلیل جامع ظاهر نشوند و آمار دو صفحه بخواند.
+        // - COUNT(DISTINCT c.trackingNumber) به‌جای COUNT(*) تا شمارش «تعداد حواله»
+        //   با getActiveQuotasRemaining/getShipQuotasRemaining یکسان باشد و اگر یک
+        //   trackingNumber بیش از یک ردیف داشته باشد، بیش‌برآورد نشود.
+        $workdayBoundary = self::WORKDAY_BOUNDARY_TIME;
+        $completionData = MicroCache::remember($cacheKey, $cacheTtl, function () use ($yesterdayJalaliDate, $todayJalaliDate, $workdayBoundary) {
+            // B-6 (گزارش تحلیل جامع عملیات): کلید JOIN قبلاً فقط سه‌تایی
+            // (loadingQuotaNumber, loadingWarehouse, shippingCompany) بود که در
+            // InitialInfo یکتا نیست؛ اگر دو ردیف InitialInfo همین سه‌تایی را با
+            // cargoType متفاوت داشته باشند، هر ردیف CargoInfo با هر دو تطبیق
+            // می‌خورد و SUM(netWeight) دو برابر می‌شد. افزودن cargoType به شرط
+            // JOIN، هم‌راستا با کلید تطبیق پنج‌تایی که getActiveQuotasRemaining/
+            // getShipQuotasRemaining در همین فایل استفاده می‌کنند
+            // (loadingQuotaNumber|shipName|loadingWarehouse|shippingCompany|cargoType).
+            $query = "SELECT
+                        c.loadingQuotaNumber, i.shipName, c.shippingCompany, i.cargoOwner, c.loadingWarehouse, i.cargoType,
+                        SUM(c.netWeight) AS last_24h_weight, COUNT(DISTINCT c.trackingNumber) AS last_24h_vouchers
+                    FROM CargoInfo c
+                    JOIN InitialInfo i ON c.loadingQuotaNumber = i.loadingQuotaNumber
+                        AND c.loadingWarehouse = i.loadingWarehouse
+                        AND c.shippingCompany = i.shippingCompany
+                        AND c.cargoType = i.cargoType
+                    WHERE i.isActive = 1 AND c.status = 'خروج' AND ((c.exitDate = ? AND c.exitTime >= '$workdayBoundary') OR (c.exitDate = ? AND c.exitTime < '$workdayBoundary'))
+                    GROUP BY c.loadingQuotaNumber, i.shipName, c.shippingCompany, i.cargoOwner, c.loadingWarehouse, i.cargoType
+                    ORDER BY last_24h_vouchers DESC";
 
-        $completionData = [];
-        while ($row = $result->fetch_assoc()) {
-            $completionData[] = [
-                'loadingQuotaNumber' => $row['loadingQuotaNumber'],
-                'shipName' => $row['shipName'],
-                'shippingCompany' => $row['shippingCompany'],
-                'cargoOwner' => $row['cargoOwner'],
-                'warehouse' => $row['loadingWarehouse'],
-                'cargoType' => !empty($row['cargoType']) ? $row['cargoType'] : 'نامشخص',
-                'last_24h_weight' => (float)$row['last_24h_weight'],
-                'last_24h_vouchers' => (int)$row['last_24h_vouchers'],
-            ];
-        }
-        $stmt->close();
+            $stmt = $this->conn->prepare($query);
+            $stmt->bind_param("ss", $yesterdayJalaliDate, $todayJalaliDate);
+            $stmt->execute();
+            $result = $stmt->get_result();
 
-        $this->sendJsonResponse([
+            $rows = [];
+            while ($row = $result->fetch_assoc()) {
+                $rows[] = [
+                    'loadingQuotaNumber' => $row['loadingQuotaNumber'],
+                    'shipName' => $row['shipName'],
+                    'shippingCompany' => $row['shippingCompany'],
+                    'cargoOwner' => $row['cargoOwner'],
+                    'warehouse' => $row['loadingWarehouse'],
+                    'cargoType' => !empty($row['cargoType']) ? $row['cargoType'] : 'نامشخص',
+                    'last_24h_weight' => (float)$row['last_24h_weight'],
+                    'last_24h_vouchers' => (int)$row['last_24h_vouchers'],
+                ];
+            }
+            $stmt->close();
+            return $rows;
+        });
+
+        $this->sendCacheableAnalyticsResponse([
             'success' => true,
             'data' => [
                 'dateInfo' => $dateInfo,
                 'quotaCompletionAnalysis' => $completionData
             ]
-        ]);
+        ], $cacheTtl);
+    }
+
+    /**
+     * A-5 (گزارش تحلیل جامع عملیات): اشتراک‌گذاری خلاصه تحلیل جامع (نام کشتی،
+     * صاحب کالا، انبار، تناژ، تعداد حواله) از طریق Intent.ACTION_SEND کاملاً
+     * سمت کلاینت اتفاق می‌افتد؛ سرور هیچ ثبتی نداشت که چه کسی چه داده‌ای را
+     * در چه زمانی خارج کرده. این endpoint خودِ محتوای اشتراک‌گذاری‌شده را
+     * ذخیره نمی‌کند (ممکن است حجیم/تکراری باشد)، فقط چه‌کسی/چه‌دامنه‌ای/چند
+     * گروه را با Logger موجود پروژه ثبت می‌کند تا در صورت نیاز به بررسی نشت
+     * داده، منبع و زمان قابل ردیابی باشد.
+     */
+    private function handleLogAnalyticsExport(): void {
+        $rawScope = (string)$this->request->get('scope', 'نامشخص');
+        // دفاعی: scope از GET/POST خوانده می‌شود و نظری به مقدار واقعی که
+        // کلاینت رسمی می‌فرستد ندارد؛ جلوگیری از log injection (خط جدید) و
+        // محدود کردن طول برای فایل لاگ.
+        $scope = mb_substr(str_replace(["\r", "\n"], ' ', $rawScope), 0, 200);
+        $groupCount = max(0, (int)$this->request->get('groupCount', 0));
+
+        $this->logger->info(
+            sprintf(
+                'خروجی تحلیل جامع عملیات توسط کاربر «%s» | دامنه: %s | تعداد گروه: %d',
+                $this->authenticatedUsername ?? 'نامشخص',
+                $scope,
+                $groupCount
+            ),
+            'analytics_export'
+        );
+
+        $this->sendJsonResponse(['success' => true]);
+    }
+
+    /**
+     * مشابه sendCacheableRealTimeResponse برای handleRealTimeDataRequest؛ چون آن
+     * متد Cache-Control با max-age ثابت (۵) دارد و اینجا max-age بسته به TTL کش
+     * (تاریخچه در برابر روز جاری) متفاوت است، نسخه مجزا با $ttlSeconds پارامتری.
+     */
+    private function sendCacheableAnalyticsResponse(array $data, int $ttlSeconds): void {
+        $etag = '"' . md5(json_encode($data, JSON_UNESCAPED_UNICODE)) . '"';
+        header("Cache-Control: private, max-age=$ttlSeconds");
+        header("ETag: $etag");
+
+        $ifNoneMatch = $this->request->getHeader('If-None-Match');
+        if ($ifNoneMatch !== null && trim($ifNoneMatch) === $etag) {
+            http_response_code(304);
+            exit;
+        }
+
+        $this->sendJsonResponse($data);
     }
 
     private function getActiveQuotasRemaining(): array {

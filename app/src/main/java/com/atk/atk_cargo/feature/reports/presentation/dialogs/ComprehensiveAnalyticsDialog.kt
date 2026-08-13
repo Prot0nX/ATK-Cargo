@@ -19,6 +19,9 @@ import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -110,6 +113,12 @@ fun ComprehensiveAnalyticsDialog(
 
                     Box(modifier = Modifier.fillMaxSize().weight(1f)) {
                         when (loadingState) {
+                            // C-2: Idle فقط حالت اولیه‌ی قبل از اولین بارگذاری است؛ خودِ
+                            // بارگذاری توسط LaunchedEffect(isVisible) بالا انجام می‌شود.
+                            // این شاخه قبلاً هم یک LaunchedEffect(Unit) داشت که در اولین
+                            // نمایش، همزمان با آن یکی اجرا می‌شد و دو درخواست شبکه‌ی
+                            // همسان به سنگین‌ترین کوئری سرور می‌زد (B-2).
+                            ReportsViewModel.LoadingState.Idle,
                             is ReportsViewModel.LoadingState.Loading -> {
                                 Box(
                                     modifier = Modifier.fillMaxSize(),
@@ -130,20 +139,18 @@ fun ComprehensiveAnalyticsDialog(
                             }
                             is ReportsViewModel.LoadingState.Error -> {
                                 val error = (loadingState as ReportsViewModel.LoadingState.Error).message
-                                ErrorStateCard(errorMessage = error)
+                                ErrorStateCard(
+                                    errorMessage = error,
+                                    onRetry = { viewModel.loadComprehensiveAnalytics() }
+                                )
                             }
                             ReportsViewModel.LoadingState.Success -> {
-                                analyticsData?.quotaCompletionAnalysis?.let { quotaData ->
-                                    QuotaAnalysis(
-                                        completionData = quotaData,
-                                        viewModel = viewModel
-                                    )
+                                // C-1: QuotaAnalysis دیگر لیست را از اینجا نمی‌گیرد؛ خودش
+                                // مستقیماً از ReportsViewModel.analyticsGroups (که از همان
+                                // comprehensiveAnalytics مشتق شده) می‌خواند.
+                                analyticsData?.quotaCompletionAnalysis?.let {
+                                    QuotaAnalysis(viewModel = viewModel)
                                 } ?: EmptyStateCard("داده‌ای برای کوتاژها یافت نشد")
-                            }
-                            ReportsViewModel.LoadingState.Idle -> {
-                                LaunchedEffect(Unit) {
-                                    viewModel.loadComprehensiveAnalytics()
-                                }
                             }
                         }
                     }
@@ -161,8 +168,18 @@ private fun AnalyticsDateNavigation(
     val analytics by viewModel.comprehensiveAnalytics.collectAsState()
     val dateInfo = analytics?.dateInfo
 
-    val formattedDate = dateInfo?.jalaliDate ?: ""
     val dayName = dateInfo?.dayName ?: ""
+
+    // B-1/B-8: پنجره واقعی «روز کاری» است (دیروز ۰۷:۰۰ تا امروز ۰۷:۰۰)، نه لحظه
+    // حاضر؛ به‌جای نمایش فقط تاریخ پایان، بازه کامل نشان داده می‌شود تا کاربر
+    // متوجه شود چه بخشی از امروز هنوز در این گزارش نیست.
+    val windowStart = dateInfo?.windowStartDate
+    val windowEnd = dateInfo?.windowEndDate
+    val windowLabel = if (windowStart != null && windowEnd != null) {
+        "${dateInfo.windowStartTime ?: "07:00"} $windowStart  ←  ${dateInfo.windowEndTime ?: "07:00"} $windowEnd"
+    } else {
+        dateInfo?.jalaliDate ?: ""
+    }
 
     Row(
         modifier = Modifier
@@ -198,7 +215,7 @@ private fun AnalyticsDateNavigation(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = if (offset == 0) "امروز" else if (offset == -1) "دیروز" else dayName,
+                    text = if (offset == 0) "روز کاری اخیر" else if (offset == -1) "دیروز" else dayName,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = AnalyticsTitleColor
@@ -210,9 +227,9 @@ private fun AnalyticsDateNavigation(
                     modifier = Modifier.size(12.dp)
                 )
             }
-            if (formattedDate.isNotEmpty()) {
+            if (windowLabel.isNotEmpty()) {
                 Text(
-                    text = formattedDate,
+                    text = windowLabel,
                     style = MaterialTheme.typography.labelSmall,
                     color = AnalyticsMutedText
                 )
@@ -221,13 +238,13 @@ private fun AnalyticsDateNavigation(
 
         IconButton(
             onClick = { viewModel.setAnalyticsDateOffset(offset - 1) },
-            enabled = offset > -7,
+            enabled = offset > -ReportsViewModel.ANALYTICS_MAX_DAYS_BACK,
             modifier = Modifier.size(26.dp)
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = "روز قبل",
-                tint = if (offset > -7) AnalyticsAccent else AnalyticsMutedText.copy(alpha = 0.4f),
+                tint = if (offset > -ReportsViewModel.ANALYTICS_MAX_DAYS_BACK) AnalyticsAccent else AnalyticsMutedText.copy(alpha = 0.4f),
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -284,7 +301,7 @@ private fun AnalyticsHeaderCard(
                 color = AnalyticsTitleColor
             )
             Text(
-                text = "گزارشات ۲۴ ساعته",
+                text = "گزارشات روز کاری (۰۷:۰۰ تا ۰۷:۰۰)",
                 style = MaterialTheme.typography.labelSmall,
                 color = AnalyticsMutedText
             )
@@ -295,7 +312,8 @@ private fun AnalyticsHeaderCard(
 @Composable
 private fun ErrorStateCard(
     errorMessage: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onRetry: (() -> Unit)? = null
 ) {
     Card(
         modifier = modifier
@@ -331,6 +349,28 @@ private fun ErrorStateCard(
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 textAlign = TextAlign.Center
             )
+            // B-9: تنها راه قبلی برای تلاش مجدد، بستن و باز کردن دوباره دیالوگ
+            // یا تغییر تاریخ بود؛ در محیط بندری با شبکه ناپایدار این یک شکاف
+            // UX واقعی است.
+            if (onRetry != null) {
+                Button(
+                    onClick = onRetry,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onErrorContainer,
+                        contentColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "تلاش مجدد",
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            }
         }
     }
 }

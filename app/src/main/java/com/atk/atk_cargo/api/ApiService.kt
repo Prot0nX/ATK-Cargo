@@ -262,7 +262,16 @@ interface ApiService {
         @Query("target") target: String = "realTimeLoadingData.php"
     ): Response<ComprehensiveAnalysisResponse>
 
-
+    // A-5 (گزارش تحلیل جامع عملیات): ثبت ممیزی سمت سرور برای اشتراک‌گذاری
+    // خلاصه تحلیل جامع؛ عملیات نوشتنی (لاگ) است، پس برخلاف دو تابع GET بالا
+    // با POST فرستاده می‌شود.
+    @POST("protected_proxy.php")
+    suspend fun logAnalyticsExport(
+        @Query("action") action: String = "logAnalyticsExport",
+        @Query("scope") scope: String,
+        @Query("groupCount") groupCount: Int,
+        @Query("target") target: String = "realTimeLoadingData.php"
+    ): Response<Unit>
 
 
     // ===== SEARCH =====

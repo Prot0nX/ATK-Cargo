@@ -494,12 +494,34 @@ class ReportsRepository(private val apiService: ApiService) {
         }
     }
 
-    suspend fun getComprehensiveAnalysis(offset: Int = 0): ComprehensiveAnalysisResponse {
-        val response = apiService.getComprehensiveAnalysis(offset = offset)
-        if (response.isSuccessful) {
-            return response.body() ?: throw Exception("Empty response body")
-        } else {
-            throw Exception("Error ${response.code()}: ${response.errorBody()?.string()}")
+    // A-3 (گزارش تحلیل جامع عملیات): بدون try/catch عمومی و با HttpStatusException
+    // (مطابق الگوی getRealTimeLoadingData)؛ در غیر این صورت کلاینت نمی‌توانست
+    // ۴۰۱ (نشست نامعتبر) و ۴۰۳ (نبود مجوز view_reports) را از خطای شبکه
+    // تشخیص دهد، و بدنه خام JSON خطای سرور مستقیم در ErrorStateCard به کاربر
+    // نمایش داده می‌شد.
+    suspend fun getComprehensiveAnalysis(offset: Int = 0): ComprehensiveAnalysisResponse =
+        withContext(Dispatchers.IO) {
+            val response = apiService.getComprehensiveAnalysis(offset = offset)
+            if (response.isSuccessful) {
+                response.body() ?: throw Exception("داده‌های دریافتی خالی است")
+            } else {
+                throw HttpStatusException(
+                    response.code(),
+                    "خطا در دریافت اطلاعات تحلیلی (کد ${response.code()})"
+                )
+            }
+        }
+
+    // A-5: عمداً بدون throw — این فقط یک لاگ ممیزی سمت سرور است؛ اگر شکست
+    // بخورد (شبکه قطع، سرور down) نباید جلوی اشتراک‌گذاری واقعی کاربر
+    // (که با Intent.ACTION_SEND و کاملاً سمت کلاینت انجام می‌شود) را بگیرد.
+    suspend fun logAnalyticsExport(scope: String, groupCount: Int) {
+        withContext(Dispatchers.IO) {
+            try {
+                apiService.logAnalyticsExport(scope = scope, groupCount = groupCount)
+            } catch (e: Exception) {
+                // بی‌اهمیت برای UX؛ فقط ممیزی سمت سرور است.
+            }
         }
     }
 }

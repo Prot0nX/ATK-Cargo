@@ -158,6 +158,15 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
     val currentShipName by viewModel.selectedShip.collectAsState()
     val loadingError by viewModel.loadingError.collectAsState()
 
+    // A-1 (گزارش تحلیل جامع عملیات): مجوز view_reports قبلاً سمت کلاینت هیچ‌جا
+    // بررسی نمی‌شد، پس دکمه «آمار جامع» به همه کاربران — حتی آن‌هایی که سرور
+    // اکنون با ۴۰۳ ردشان می‌کند — نشان داده می‌شد. userPreferencesManager.permissions
+    // همان Flow ذخیره‌شده‌ی DataStore است که PermissionPoller (در MainScreen)
+    // هر بار تغییر مجوزها را در آن هم ذخیره می‌کند، پس این مقدار حداکثر تا
+    // فاصله‌ی همان polling (۳ دقیقه) به‌روز است.
+    val userPermissions by userPreferencesManager.permissions.collectAsState(initial = emptyMap())
+    val canViewReports = userPermissions["view_reports"] == true
+
     ATKCargoTheme(darkTheme = isSystemInDarkTheme()) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Scaffold { innerPadding ->
@@ -258,8 +267,11 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
         )
     }
 
+    // دفاع دوم (defense-in-depth): حتی اگر مسیر دیگری بعداً showAnalyticsDialog
+    // را true کند، بدون مجوز کاربر دیالوگ باز نمی‌شود — نه فقط چون دکمه پایین
+    // نمایش داده نمی‌شود.
     ComprehensiveAnalyticsDialog(
-        isVisible = showAnalyticsDialog,
+        isVisible = showAnalyticsDialog && canViewReports,
         onDismiss = { showAnalyticsDialog = false },
         viewModel = viewModel
     )
@@ -271,9 +283,9 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
         onAdvancedSearchClick = {
             showAdvancedSearchDialog = true
         },
-        onAnalyticsClick = {
-            showAnalyticsDialog = true
-        },
+        onAnalyticsClick = if (canViewReports) {
+            { showAnalyticsDialog = true }
+        } else null,
         onDateRangeClick = if (isInShipDetailsScreen && currentSelectedSection == 0) {
             { showDateRangeDialog = true }
         } else null,
