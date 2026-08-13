@@ -12,7 +12,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -100,6 +102,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
+/** فاصلهٔ زمانی تیک بروزرسانی خودکار (وقتی با لمس طولانی دکمهٔ «بروزرسانی» فعال شود). */
+private const val AUTO_REFRESH_INTERVAL_SECONDS = 60
+
 /** رنگ‌های تیل سازگار با تم روشن/تاریک برای صفحه ثبت و خروج حواله. */
 private class RegisterPalette(
     val accent: Color,
@@ -126,6 +131,7 @@ private fun rememberRegisterPalette(): RegisterPalette {
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @SuppressLint("DefaultLocale")
 @Composable
 fun RegisterCargoScreen(
@@ -452,29 +458,99 @@ fun RegisterCargoScreen(
 
                     var isRefreshing by remember { mutableStateOf(false) }
                     var rotationState by remember { mutableFloatStateOf(0f) }
+                    // پیش‌فرض غیرفعال تا مصرف داده/تعداد درخواست به سرور
+                    // اضافه نشود؛ فقط با لمس طولانی دکمهٔ «بروزرسانی» روشن
+                    // می‌شود، نه به‌صورت پیش‌فرض برای همه.
+                    var isAutoRefreshEnabled by remember { mutableStateOf(false) }
+                    var secondsUntilNextRefresh by remember { mutableIntStateOf(AUTO_REFRESH_INTERVAL_SECONDS) }
                     val rotation = animateFloatAsState(
                         targetValue = rotationState,
                         animationSpec = if (AnimationManager.areAnimationsEnabled()) tween(400) else tween(0),
                         label = "rotation"
                     )
 
+                    // لمس دستی دکمه: دیالوگ اطلاع‌رسانی معمولی نمایش داده
+                    // می‌شود (رفتار قبلی، بدون تغییر).
+                    fun triggerManualRefresh() {
+                        if (!isRefreshing) {
+                            isRefreshing = true
+                            rotationState += 360f
+                            viewModel.refreshCargoInfo()
+                            coroutineScope.launch {
+                                delay(1200.milliseconds)
+                                isRefreshing = false
+                            }
+                        }
+                    }
+
+                    // تیک خودکار هر ۶۰ ثانیه: مستقیماً loadCargoInfoList صدا
+                    // زده می‌شود (نه refreshCargoInfo)، چون refreshCargoInfo
+                    // همیشه دیالوگ اطلاع‌رسانی (MessageDialog) را نشان می‌دهد؛
+                    // اینجا فقط یک Snackbar کوتاه پایین صفحه کافی است.
+                    fun triggerSilentAutoRefresh() {
+                        if (!isRefreshing) {
+                            isRefreshing = true
+                            rotationState += 360f
+                            initialInfo?.let { info ->
+                                viewModel.loadCargoInfoList(
+                                    quotaNumber = info.loadingQuotaNumber.toString(),
+                                    shippingCompany = info.shippingCompany,
+                                    warehouse = info.loadingWarehouse,
+                                    cargoType = info.cargoType,
+                                    onComplete = {
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("لیست به‌صورت خودکار بروزرسانی شد")
+                                        }
+                                    }
+                                )
+                            }
+                            coroutineScope.launch {
+                                delay(1200.milliseconds)
+                                isRefreshing = false
+                            }
+                        }
+                    }
+
+                    // با ترک صفحه (navigate away)، این LaunchedEffect لغو
+                    // می‌شود و polling متوقف می‌گردد؛ حالت isAutoRefreshEnabled
+                    // هم چون remember ساده است (نه rememberSaveable) با
+                    // برگشت به صفحه دوباره غیرفعال شروع می‌شود.
+                    LaunchedEffect(isAutoRefreshEnabled) {
+                        if (isAutoRefreshEnabled) {
+                            secondsUntilNextRefresh = AUTO_REFRESH_INTERVAL_SECONDS
+                            while (true) {
+                                delay(1000L)
+                                secondsUntilNextRefresh -= 1
+                                if (secondsUntilNextRefresh <= 0) {
+                                    triggerSilentAutoRefresh()
+                                    secondsUntilNextRefresh = AUTO_REFRESH_INTERVAL_SECONDS
+                                }
+                            }
+                        }
+                    }
+
                     Surface(
                         modifier = Modifier
                             .height(52.dp)
-                            .clickable(enabled = !isRefreshing) {
-                                if (!isRefreshing) {
-                                    isRefreshing = true
-                                    rotationState += 360f
-                                    viewModel.refreshCargoInfo()
+                            .combinedClickable(
+                                enabled = !isRefreshing,
+                                onClick = { triggerManualRefresh() },
+                                onLongClick = {
+                                    isAutoRefreshEnabled = !isAutoRefreshEnabled
                                     coroutineScope.launch {
-                                        delay(1200.milliseconds)
-                                        isRefreshing = false
+                                        snackbarHostState.showSnackbar(
+                                            if (isAutoRefreshEnabled) {
+                                                "بروزرسانی خودکار هر ۶۰ ثانیه فعال شد"
+                                            } else {
+                                                "بروزرسانی خودکار غیرفعال شد"
+                                            }
+                                        )
                                     }
                                 }
-                            },
+                            ),
                         shape = RoundedCornerShape(14.dp),
-                        color = palette.accentBg,
-                        border = BorderStroke(1.dp, palette.accentBorder)
+                        color = if (isAutoRefreshEnabled) Green600.copy(alpha = 0.16f) else palette.accentBg,
+                        border = BorderStroke(1.dp, if (isAutoRefreshEnabled) Green600 else palette.accentBorder)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 14.dp),
@@ -482,10 +558,10 @@ fun RegisterCargoScreen(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "بروزرسانی",
+                                text = if (isAutoRefreshEnabled) "$secondsUntilNextRefresh ثانیه" else "بروزرسانی",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = palette.accent
+                                color = if (isAutoRefreshEnabled) Green600 else palette.accent
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
@@ -494,7 +570,7 @@ fun RegisterCargoScreen(
                                 modifier = Modifier
                                     .size(20.dp)
                                     .rotate(rotation.value),
-                                tint = palette.accent
+                                tint = if (isAutoRefreshEnabled) Green600 else palette.accent
                             )
                         }
                     }

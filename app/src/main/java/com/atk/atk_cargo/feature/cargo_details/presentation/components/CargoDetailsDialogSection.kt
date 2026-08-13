@@ -42,6 +42,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -78,7 +79,8 @@ fun CargoDetailsDialog(
     info: CargoInfo,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
-    showConfirmButton: Boolean
+    showConfirmButton: Boolean,
+    isConfirming: Boolean = false
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -131,7 +133,8 @@ fun CargoDetailsDialog(
                     ModernDialogActions(
                         onDismiss = onDismiss,
                         onConfirm = onConfirm,
-                        showConfirmButton = showConfirmButton
+                        showConfirmButton = showConfirmButton,
+                        isConfirming = isConfirming
                     )
                 }
             }
@@ -629,7 +632,12 @@ private fun ModernInfoCard(
 }
 
 @Composable
-fun ModernDialogActions(onDismiss: () -> Unit, onConfirm: () -> Unit, showConfirmButton: Boolean) {
+fun ModernDialogActions(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    showConfirmButton: Boolean,
+    isConfirming: Boolean = false
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -639,6 +647,7 @@ fun ModernDialogActions(onDismiss: () -> Unit, onConfirm: () -> Unit, showConfir
         if (showConfirmButton) {
             Button(
                 onClick = onConfirm,
+                enabled = !isConfirming,
                 modifier = Modifier
                     .weight(2f)
                     .height(48.dp),
@@ -652,26 +661,35 @@ fun ModernDialogActions(onDismiss: () -> Unit, onConfirm: () -> Unit, showConfir
                     pressedElevation = 2.dp
                 )
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "تأیید حواله",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
+                if (isConfirming) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = if (isSystemInDarkTheme()) Color(0xFF042F2E) else Color.White
                     )
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "تأیید حواله",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
 
         Button(
             onClick = onDismiss,
+            enabled = !isConfirming,
             modifier = Modifier
                 .weight(1f)
                 .height(48.dp),

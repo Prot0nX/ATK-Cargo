@@ -732,6 +732,15 @@ fun CargoListSection(
         } ?: Triple(0, 0.0, 0.0)
     }
 
+    // مرتب‌سازی در remember نگه داشته می‌شود تا در هر recomposition/اسکرول
+    // دوباره اجرا نشود؛ فقط با تغییر واقعی گروه مربوطه بازمحاسبه می‌شود.
+    val sortedUnconfirmed = remember(groupedCargoList[false]) {
+        groupedCargoList[false]?.sortedByDescending { it.entryTime } ?: emptyList()
+    }
+    val sortedConfirmed = remember(groupedCargoList[true]) {
+        groupedCargoList[true]?.sortedByDescending { "${it.exitDate} ${it.exitTime}" } ?: emptyList()
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         TabsSection(
             selectedTab = selectedTab,
@@ -753,30 +762,29 @@ fun CargoListSection(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
         ) {
             if (selectedTab == 0) {
-                groupedCargoList[false]?.let { unconfirmedCargos ->
-                    items(
-                        items = unconfirmedCargos.sortedByDescending { it.entryTime },
-                        key = { it.trackingNumber }
-                    ) { cargoInfo ->
-                        CargoInfoCard(
-                            cargoInfo = cargoInfo,
-                            onClick = { onCargoSelected(cargoInfo) }
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
+                items(
+                    items = sortedUnconfirmed,
+                    // trackingNumber می‌تواند تکراری باشد (همان چیزی که
+                    // checkForDuplicateTrackingNumbers برایش هشدار می‌دهد)؛
+                    // id کلید اصلی و یکتای رکورد است.
+                    key = { it.id ?: it.trackingNumber.hashCode() }
+                ) { cargoInfo ->
+                    CargoInfoCard(
+                        cargoInfo = cargoInfo,
+                        onClick = { onCargoSelected(cargoInfo) }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             } else {
-                groupedCargoList[true]?.let { confirmedCargos ->
-                    items(
-                        items = confirmedCargos.sortedByDescending { "${it.exitDate} ${it.exitTime}" },
-                        key = { it.trackingNumber }
-                    ) { cargoInfo ->
-                        CargoInfoCard(
-                            cargoInfo = cargoInfo,
-                            onClick = { onCargoSelected(cargoInfo) }
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
+                items(
+                    items = sortedConfirmed,
+                    key = { it.id ?: it.trackingNumber.hashCode() }
+                ) { cargoInfo ->
+                    CargoInfoCard(
+                        cargoInfo = cargoInfo,
+                        onClick = { onCargoSelected(cargoInfo) }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }
