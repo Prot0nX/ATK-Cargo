@@ -329,6 +329,15 @@
     ],
     "5": [
       "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_comprehensiveanalytics",
+      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_quotasortingmode",
+      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_quotasortingmode_remaining_tonnage_asc",
+      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_quotasortingmode_remaining_tonnage_desc",
+      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_thirdpartyorder",
+      "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel",
+      "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_kt_androidviewmodel",
+      "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_kt_color",
+      "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_kt_job",
+      "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_kt_stateflow",
       "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_reportsviewmodel",
       "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_reportsviewmodel_clearcurrentshipdata",
       "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_reportsviewmodel_clearfilteredsummary",
@@ -357,6 +366,7 @@
       "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_reportsviewmodel_setanalyticsdateoffset",
       "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_reportsviewmodel_setcurrentshipname",
       "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_reportsviewmodel_setgroupingmode",
+      "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_reportsviewmodel_setquotasortingmode",
       "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_reportsviewmodel_setrealtimeshiftoffset",
       "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_reportsviewmodel_showfileoptions",
       "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_reportsviewmodel_showsnackbar",
@@ -742,11 +752,23 @@
       "signature"
     ],
     "14": [
+      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_checkquotastatus",
+      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_getcargoinfo",
+      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_getcomprehensiveanalysis",
+      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_getquotadetails",
+      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_getrealtimeloadingdata",
+      "app_src_main_java_com_atk_atk_cargo_data_model_cargomodels_cargoinforesponse",
+      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_comprehensiveanalysisresponse",
+      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_quotadetails",
+      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_quotastatusresponse",
+      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_realtimedataresponse",
+      "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository",
       "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_errorresponse",
       "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_httpstatusexception",
       "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_kt_exception",
       "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_kt_result",
       "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_reportsrepository",
+      "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_reportsrepository_checkquotastatus",
       "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_reportsrepository_deletequota",
       "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_reportsrepository_editquota",
       "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_reportsrepository_getactiveships",
@@ -759,7 +781,6 @@
       "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_reportsrepository_getrealtimeloadingdata",
       "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_reportsrepository_getshipdetails",
       "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_reportsrepository_getshipquotas",
-      "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_reportsrepository_getshipslist",
       "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_reportsrepository_getwarehousedetails",
       "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_reportsrepository_togglequotastatus",
       "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_reportsrepository_updatecargoinfo",
@@ -961,9 +982,6 @@
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_details_shipdetailsscreen_tabitem",
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_details_shipdetailsscreen_warehousequotastabs",
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_details_shipdetailsscreen_warehousesandquotastab",
-      "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotapercentagedialogsection_dialogheader",
-      "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotapercentagedialogsection_quotapercentagedialog",
-      "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotaslistscreen_calculatevalues",
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotaslistscreen_minimalquotacard",
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotaslistscreen_quotacard",
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotaslistscreen_quotagroupexpansionpanel"
@@ -1074,23 +1092,12 @@
       "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_groupsortingmode_remaining_tonnage_desc",
       "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_kt_color",
       "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_quotacompletionanalysis",
-      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_quotapercentagedata",
-      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_quotasortingmode",
-      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_quotasortingmode_remaining_tonnage_asc",
-      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_quotasortingmode_remaining_tonnage_desc",
       "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_quotastatusdetails",
-      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_thirdpartyorder",
       "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_thirdpartyorderrequest",
       "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_thirdpartyorderresponse",
       "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_toton",
-      "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel",
-      "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_kt_androidviewmodel",
-      "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_kt_color",
-      "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_kt_job",
-      "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_kt_stateflow",
       "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_reportsviewmodel_loadthirdpartyorders",
-      "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_reportsviewmodel_setgroupsortingmode",
-      "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_reportsviewmodel_setquotasortingmode"
+      "app_src_main_java_com_atk_atk_cargo_ui_viewmodel_reportsviewmodel_reportsviewmodel_setgroupsortingmode"
     ],
     "25": [
       "php_jdf",
@@ -1199,8 +1206,10 @@
     ],
     "29": [
       "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_calculationresult",
+      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_quotapercentagedata",
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotapercentagedialogsection",
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotapercentagedialogsection_animatednumber",
+      "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotapercentagedialogsection_dialogheader",
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotapercentagedialogsection_kt_color",
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotapercentagedialogsection_kt_imagevector",
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotapercentagedialogsection_kt_modifier",
@@ -1211,8 +1220,10 @@
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotapercentagedialogsection_percentstepbutton",
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotapercentagedialogsection_quickselectbutton",
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotapercentagedialogsection_quickselectbuttons",
+      "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotapercentagedialogsection_quotapercentagedialog",
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotapercentagedialogsection_resultrow",
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotapercentagedialogsection_resultspreview",
+      "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_quota_details_quotaslistscreen_calculatevalues",
       "app_src_main_java_com_atk_atk_cargo_ui_theme_typography",
       "app_src_main_java_com_atk_atk_cargo_ui_theme_typography_createtypography",
       "textstyle",
@@ -1311,7 +1322,14 @@
       "app_src_main_java_com_atk_atk_cargo_feature_cargo_entry_presentation_selectinfoscreen_viewmode_grouped"
     ],
     "34": [
+      "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_serversyncingscreen",
       "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_serversyncingscreen_serversyncingscreen",
+      "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_splashscreen",
+      "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_splashscreen_splashscreen",
+      "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_splashscreen_splashscreenconstants",
+      "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_splashscreen_splashscreencontent",
+      "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_splashscreen_splashsubtitlebadge",
+      "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_splashscreen_splashversionbadge",
       "app_src_main_java_com_atk_atk_cargo_mainactivity",
       "app_src_main_java_com_atk_atk_cargo_mainactivity_kt_intent",
       "app_src_main_java_com_atk_atk_cargo_mainactivity_mainactivity",
@@ -1321,6 +1339,7 @@
       "app_src_main_java_com_atk_atk_cargo_mainactivity_mainactivity_onnewintent",
       "app_src_main_java_com_atk_atk_cargo_mainactivity_mainactivity_requestbatteryoptimization",
       "app_src_main_java_com_atk_atk_cargo_mainactivity_mainactivity_showmessage",
+      "app_src_main_java_com_atk_atk_cargo_ui_theme_color",
       "bundle",
       "componentactivity"
     ],
@@ -1570,7 +1589,8 @@
       "app_src_main_java_com_atk_atk_cargo_security_securityscreen_signaturehashcard",
       "app_src_main_java_com_atk_atk_cargo_security_securityscreen_uiconfig",
       "app_src_main_java_com_atk_atk_cargo_security_securityscreen_uiconfig_getglassborderbrush",
-      "app_src_main_java_com_atk_atk_cargo_security_securityscreen_versionexpireddialog"
+      "app_src_main_java_com_atk_atk_cargo_security_securityscreen_versionexpireddialog",
+      "brush"
     ],
     "48": [
       "php_composer",
@@ -1678,28 +1698,20 @@
       "app_src_main_java_com_atk_atk_cargo_feature_reports_presentation_warehouse_details_voucherdetailsdialogsection_vouchersorttype_weight_desc"
     ],
     "54": [
-      "app_src_main_java_com_atk_atk_cargo_api_apiservice",
-      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiresponse2",
       "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice",
-      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_confirmcargo",
       "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_createuser",
       "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_deletequota",
       "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_editquota",
       "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_getactiveships",
       "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_getfilteredsummary",
       "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_getgroupedquotas",
-      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_getrealtimeloadingdata",
-      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_getshipslist",
       "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_saveinitialinfo",
       "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_togglequotastatus",
       "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_updatequotapercentage",
       "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_updatequotapercentagerestriction",
       "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_updatetemporarytonnage",
       "app_src_main_java_com_atk_atk_cargo_data_model_cargomodels_successresponse",
-      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_filteredsummaryresponse",
-      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_realtimedataresponse",
-      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_shipsdata",
-      "jsonelement"
+      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_filteredsummaryresponse"
     ],
     "55": [
       "app_src_main_java_com_atk_atk_cargo_core_startup_startupviewmodel_startupviewmodel_getchatrepository",
@@ -1795,20 +1807,18 @@
       "typeadapter"
     ],
     "61": [
+      "app_src_main_java_com_atk_atk_cargo_core_ui_components_confirmationdialog",
+      "app_src_main_java_com_atk_atk_cargo_core_ui_components_confirmationdialog_confirmationdialog",
+      "app_src_main_java_com_atk_atk_cargo_core_ui_components_confirmationdialog_kt_imagevector",
+      "app_src_main_java_com_atk_atk_cargo_core_ui_components_emptystate",
+      "app_src_main_java_com_atk_atk_cargo_core_ui_components_emptystate_emptystate",
+      "app_src_main_java_com_atk_atk_cargo_core_ui_components_emptystate_kt_imagevector",
+      "app_src_main_java_com_atk_atk_cargo_core_ui_components_emptystate_kt_modifier",
       "app_src_main_java_com_atk_atk_cargo_core_ui_components_loadingoverlay",
       "app_src_main_java_com_atk_atk_cargo_core_ui_components_loadingoverlay_loadingoverlay",
       "app_src_main_java_com_atk_atk_cargo_feature_cargo_entry_presentation_components_shipselectiondialog",
       "app_src_main_java_com_atk_atk_cargo_feature_cargo_registration_presentation_components_dialogs_duplicatetrackingnumbersdialog",
       "app_src_main_java_com_atk_atk_cargo_feature_cargo_registration_presentation_components_dialogs_duplicatetrackingnumbersdialog_duplicatetrackingnumbersdialog",
-      "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_serversyncingscreen",
-      "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_splashscreen",
-      "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_splashscreen_splashscreen",
-      "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_splashscreen_splashscreenconstants",
-      "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_splashscreen_splashscreencontent",
-      "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_splashscreen_splashsubtitlebadge",
-      "app_src_main_java_com_atk_atk_cargo_feature_startup_presentation_splashscreen_splashversionbadge",
-      "app_src_main_java_com_atk_atk_cargo_ui_theme_color",
-      "brush",
       "fontweight"
     ],
     "62": [
@@ -2080,16 +2090,13 @@
       "php_src_core_database_database_construct"
     ],
     "84": [
-      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_checkquotastatus",
-      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_getcargoinfo",
-      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_getcomprehensiveanalysis",
-      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_getquotadetails",
-      "app_src_main_java_com_atk_atk_cargo_data_model_cargomodels_cargoinforesponse",
-      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_comprehensiveanalysisresponse",
-      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_quotadetails",
-      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_quotastatusresponse",
-      "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository",
-      "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_reportsrepository_checkquotastatus"
+      "app_src_main_java_com_atk_atk_cargo_api_apiservice",
+      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiresponse2",
+      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_confirmcargo",
+      "app_src_main_java_com_atk_atk_cargo_api_apiservice_apiservice_getshipslist",
+      "app_src_main_java_com_atk_atk_cargo_data_model_reportmodels_shipsdata",
+      "app_src_main_java_com_atk_atk_cargo_data_repository_reportsrepository_reportsrepository_getshipslist",
+      "jsonelement"
     ],
     "85": [
       "app_src_main_java_com_atk_atk_cargo_feature_reports_domain_reportsdomain_persiandateformat",
@@ -2431,17 +2438,6 @@
     ],
     "155": [
       "settings_gradle"
-    ],
-    "156": [
-      "app_src_main_java_com_atk_atk_cargo_core_ui_components_emptystate",
-      "app_src_main_java_com_atk_atk_cargo_core_ui_components_emptystate_emptystate",
-      "app_src_main_java_com_atk_atk_cargo_core_ui_components_emptystate_kt_imagevector",
-      "app_src_main_java_com_atk_atk_cargo_core_ui_components_emptystate_kt_modifier"
-    ],
-    "157": [
-      "app_src_main_java_com_atk_atk_cargo_core_ui_components_confirmationdialog",
-      "app_src_main_java_com_atk_atk_cargo_core_ui_components_confirmationdialog_confirmationdialog",
-      "app_src_main_java_com_atk_atk_cargo_core_ui_components_confirmationdialog_kt_imagevector"
     ]
   },
   "cohesion": {
@@ -2450,7 +2446,7 @@
     "2": 0.055811571940604196,
     "3": 0.06936026936026936,
     "4": 0.08200290275761973,
-    "5": 0.08710801393728224,
+    "5": 0.07013574660633484,
     "6": 0.07020408163265306,
     "7": 0.1091581868640148,
     "8": 0.04625346901017576,
@@ -2459,27 +2455,27 @@
     "11": 0.09407665505226481,
     "12": 0.12435897435897436,
     "13": 0.08636977058029689,
-    "14": 0.15217391304347827,
+    "14": 0.09747899159663866,
     "15": 0.1092436974789916,
     "16": 0.13118279569892474,
     "17": 0.15698924731182795,
     "18": 0.12903225806451613,
     "19": 0.08045977011494253,
-    "20": 0.14408602150537633,
+    "20": 0.16137566137566137,
     "21": 0.20105820105820105,
     "22": 0.1753846153846154,
     "23": 0.12307692307692308,
-    "24": 0.0761904761904762,
+    "24": 0.10333333333333333,
     "25": 0.19,
     "26": 0.10144927536231885,
     "27": 0.11231884057971014,
     "28": 0.17753623188405798,
-    "29": 0.2046783625730994,
+    "29": 0.16996047430830039,
     "30": 0.13438735177865613,
     "31": 0.19523809523809524,
     "32": 0.15789473684210525,
     "33": 0.1631578947368421,
-    "34": 0.3181818181818182,
+    "34": 0.18421052631578946,
     "35": 0.29239766081871343,
     "36": 0.4117647058823529,
     "37": 0.11764705882352941,
@@ -2492,21 +2488,21 @@
     "44": 0.23529411764705882,
     "45": 0.31666666666666665,
     "46": 0.24166666666666667,
-    "47": 0.26666666666666666,
+    "47": 0.25,
     "48": 0.125,
     "49": 0.14166666666666666,
     "50": 0.14166666666666666,
     "51": 0.24761904761904763,
     "52": 0.24761904761904763,
     "53": 0.2571428571428571,
-    "54": 0.12987012987012986,
+    "54": 0.2087912087912088,
     "55": 0.21978021978021978,
     "56": 0.3076923076923077,
     "57": 0.43956043956043955,
     "58": 0.2948717948717949,
     "59": 0.19230769230769232,
     "60": 0.2564102564102564,
-    "61": 0.2,
+    "61": 0.19230769230769232,
     "62": 0.34615384615384615,
     "63": 0.2692307692307692,
     "64": 0.21794871794871795,
@@ -2529,7 +2525,7 @@
     "81": 0.35714285714285715,
     "82": 0.5714285714285714,
     "83": 0.2857142857142857,
-    "84": 0.2,
+    "84": 0.2857142857142857,
     "85": 0.5238095238095238,
     "86": 0.5714285714285714,
     "87": 0.3333333333333333,
@@ -2600,9 +2596,7 @@
     "152": 1.0,
     "153": 1.0,
     "154": 1.0,
-    "155": 1.0,
-    "156": 0.8333333333333334,
-    "157": 1.0
+    "155": 1.0
   },
   "gods": [
     {
@@ -2713,41 +2707,8 @@
       "why": "inferred connection - not explicitly stated in source; bridges separate communities"
     }
   ],
-  "questions": [
-    {
-      "type": "bridge_node",
-      "question": "Why does `ReportsViewModel` connect `ReportsViewModel` to `ManageReportsScreen.kt`, `LoginScreen.kt`, `CargoInfo`, `LoadingState`, `QuotaAnalysisSection.kt`, `RealTimeLoadingBottomSheet`, `QuotaWarningDialog.kt`, `Ship`, `QuotaManagementDialog.kt`, `formatNumber`, `ExportPdfUseCase`, `ComprehensiveAnalyticsDialog.kt`, `ReportsRepository.kt`, `ReportModels.kt`, `ApiService`, `WarehouseDetailsScreen.kt`, `SelectInfoScreen.kt`, `QuotasListScreen.kt`?",
-      "why": "High betweenness centrality (0.086) - this node is a cross-community bridge."
-    },
-    {
-      "type": "bridge_node",
-      "question": "Why does `CargoViewModel` connect `CargoViewModel` to `ManageReportsScreen.kt`, `MessageType`, `LoginScreen.kt`, `CargoInfo`, `InitialInfoScreen.kt`, `ActiveShipInfo`, `CargoDetailsScreen.kt`, `CargoCounterOperationScreen`, `QuotaValidationUseCase.kt`, `SelectInfoScreen.kt`, `CargoViewModel.kt`, `QuotaExistenceMultipleResponse`, `CargoInfoDetailsDialogSection.kt`?",
-      "why": "High betweenness centrality (0.043) - this node is a cross-community bridge."
-    },
-    {
-      "type": "bridge_node",
-      "question": "Why does `UserPreferencesManager` connect `UserPreferencesManager` to `ManageReportsScreen.kt`, `CoroutineScope`, `LoginScreen.kt`, `MainActivity.kt`, `ChatNavigation.kt`, `LoadingNotificationService`, `AuthModels.kt`, `ProfileMenu.kt`, `StartupViewModel.kt`, `CargoDetailsScreen.kt`, `UserManagementScreen.kt`, `SelectInfoScreen.kt`, `CargoViewModel.kt`, `ChatNotificationWorker.kt`, `ChatScreen.kt`, `CargoCounterScreen.kt`?",
-      "why": "High betweenness centrality (0.040) - this node is a cross-community bridge."
-    },
-    {
-      "type": "isolated_nodes",
-      "question": "What connects `ErrorResponse`, `ShipsTabItem`, `ConflictSession` to the rest of the system?",
-      "why": "91 weakly-connected nodes found - possible documentation gaps or missing edges."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `ManageReportsScreen.kt` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.05365686944634313 - nodes in this community are weakly interconnected."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `MessageType` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.056692242114237 - nodes in this community are weakly interconnected."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `LoginScreen.kt` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.055811571940604196 - nodes in this community are weakly interconnected."
-    }
-  ]
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
 }
