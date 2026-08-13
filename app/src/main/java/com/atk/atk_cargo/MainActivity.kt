@@ -67,27 +67,19 @@ class MainActivity : ComponentActivity() {
         if (BuildConfig.DEBUG) {
             Log.d("MainActivity", "مجوز POST_NOTIFICATIONS: ${if (isGranted) "اعطا شد" else "رد شد"}")
         }
-        // قبلاً نتیجه فقط لاگ می‌شد و کاربر هیچ بازخوردی نمی‌گرفت (M-3) — اگر رد شود
-        // و دیگر قابل نمایش مجدد نباشد (رد دائمی)، حداقل باید بداند از کجا فعالش کند
         if (!isGranted && !shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
             showMessage("برای دریافت اعلان‌ها، مجوز نوتیفیکیشن را از تنظیمات برنامه فعال کنید")
         }
     }
 
-    // فقط از UI thread خوانده/نوشته می‌شود: setKeepOnScreenCondition (سیستم) و
-    // onEach داخل setContent (Compose) هر دو روی Main thread اجرا می‌شوند
     private var isThemeColorLoaded = false
 
+    @SuppressLint("FlowOperatorInvokedInComposition")
     override fun onCreate(savedInstanceState: Bundle?) {
-        // باید قبل از super.onCreate فراخوانی شود؛ پنجره‌ی سفید پیش‌فرض سیستم را با
-        // پس‌زمینه/آیکون برند جایگزین می‌کند تا Compose برای اولین فریم آماده شود
+
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        // اسپلش سیستمی تا رسیدن مقدار واقعی رنگ تم از DataStore روی صفحه می‌ماند —
-        // به‌جای runBlocking قبلی که همین خواندن را روی Main Thread مسدود می‌کرد و
-        // ریسک ANR داشت. بدون مسدودسازی، خواندن به‌صورت async پشت اسپلش انجام می‌شود
-        // و پرش رنگ فریم اول هم دیده نمی‌شود چون هنوز پشت اسپلش پنهان است
         splashScreen.setKeepOnScreenCondition { !isThemeColorLoaded }
 
         try {
@@ -98,10 +90,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 LaunchedEffect(Unit) {
-                    // repeatOnLifecycle به‌جای collect ساده — مصرف رخدادها فقط وقتی
-                    // Activity حداقل STARTED است انجام می‌شود، وگرنه در پس‌زمینه هم
-                    // فعال می‌ماند و ممکن بود startActivity تنظیمات باتری در پس‌زمینه
-                    // اجرا شود (S-6)
+
                     lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                         startupViewModel.events.collect { event ->
                             when (event) {
@@ -133,11 +122,7 @@ class MainActivity : ComponentActivity() {
                             }
                             is StartupState.VersionExpired -> {
                                 VersionExpiredDialog(
-                                    // finishAndRemoveTask (نه killProcess) — killProcess فقط
-                                    // پروسه را می‌کشد بدون خروج از چرخه‌حیات عادی: onDestroy
-                                    // اجرا نمی‌شود، updateManager.onCleared() صدا زده نمی‌شود،
-                                    // و task همچنان در Recents باقی می‌ماند و با یک تپ دوباره
-                                    // باز می‌شود — به‌عنوان سد امنیتی هم مؤثر نبود (S-5)
+
                                     onExit = { finishAndRemoveTask() }
                                 )
                             }
@@ -145,8 +130,6 @@ class MainActivity : ComponentActivity() {
                                 SecurityBlockScreen(
                                     isLoading = state.isLoading,
                                     errorType = state.errorType,
-                                    // retrySecurityCheck خودش داخل viewModelScope.launch است؛
-                                    // پیچیدن آن در یک CoroutineScope دیگر زائد بود (M-4)
                                     onRetry = { startupViewModel.retrySecurityCheck() }
                                 )
                             }
@@ -159,11 +142,8 @@ class MainActivity : ComponentActivity() {
             }
 
         } catch (e: CancellationException) {
-            // لغو کوروتین هرگز نباید بلعیده شود — بخشی از مکانیزم عادی لغو ساختاریافته است
             throw e
         } catch (e: Exception) {
-            // خطای کلی در راه‌اندازی برنامه — باید لاگ شود، وگرنه کاربر فقط یک صفحه‌ی
-            // سفید بدون هیچ نشانه‌ای می‌بیند و عیب‌یابی در میدان غیرممکن می‌شود
             Log.e("MainActivity", "خطای بحرانی در راه‌اندازی برنامه: ${e.message}", e)
             isThemeColorLoaded = true
             setContent {
@@ -221,10 +201,6 @@ class MainActivity : ComponentActivity() {
 
     @SuppressLint("BatteryLife")
     private fun requestBatteryOptimization() {
-        // resolveActivity از API 30 به بعد تحت Package Visibility فیلتر می‌شود و
-        // مانیفست هیچ <intent> برای این اکشن‌ها اعلام نکرده، پس ممکن بود بی‌دلیل
-        // null برگرداند و به شاخه‌ی fallback برود؛ startActivity مستقیم داخل
-        // try/catch(ActivityNotFoundException) الگوی درست است (M-2)
         try {
             val intent = Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                 data = "package:$packageName".toUri()
