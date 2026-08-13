@@ -8,13 +8,17 @@ namespace App\Controllers;
 use Exception;
 use InvalidArgumentException;
 use mysqli;
+use App\Core\AuthenticatesRequests;
 use App\Core\Database;
 use App\Core\Logger;
 use App\Core\MicroCache;
 use App\Core\Request;
+use App\Services\PasswordGateService;
 use SessionManager;
 
 class UtilityController {
+    use AuthenticatesRequests;
+
     private mysqli $conn;
     private Logger $logger;
     private Request $request;
@@ -99,53 +103,25 @@ class UtilityController {
             exit;
         }
 
+        // بدون هویت نشست، این endpoint یک oracle حدس‌زنی رمز باز است. علاوه
+        // بر این، شمارنده‌ی تلاش ناموفق باید روی هویت واقعی کلید بخورد نه
+        // $_SESSION — کلاینت اندروید کوکی نگه نمی‌دارد، پس شمارنده‌ی قبلی
+        // هرگز عملاً به ۵ نمی‌رسید.
+        $this->requireAuthenticatedSession();
+
         $receivedPassword = isset($_POST['password']) ? trim((string)$_POST['password']) : '';
         $passwordType = isset($_POST['passwordType']) ? trim((string)$_POST['passwordType']) : '';
 
-        $response = [
-            'success' => false,
-            'message' => 'رمز عبور اشتباه است!'
-        ];
-
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
-        if (!isset($_SESSION['attempt_count'])) {
-            $_SESSION['attempt_count'] = 0;
-        }
-
-        if ($_SESSION['attempt_count'] >= 5) {
-            http_response_code(429);
-            echo json_encode(['success' => false, 'message' => 'تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفا بعدا تلاش کنید.']);
-            exit;
-        }
-
         try {
-            $stmt = $this->conn->prepare("SELECT password FROM Passwords WHERE passwordType = ?");
-            $stmt->bind_param("s", $passwordType);
-            $stmt->execute();
-            $result = $stmt->get_result();
-
-            if ($result->num_rows > 0) {
-                $row = $result->fetch_assoc();
-                if (password_verify($receivedPassword, $row['password'])) {
-                    $response['success'] = true;
-                    $response['message'] = 'رمز عبور صحیح است!';
-                    $_SESSION['attempt_count'] = 0;
-                } else {
-                    $_SESSION['attempt_count']++;
-                }
-            } else {
-                $_SESSION['attempt_count']++;
+            $gateResult = (new PasswordGateService())->verify($passwordType, $receivedPassword, (string)$this->authenticatedUsername);
+            if ($gateResult['locked']) {
+                http_response_code(429);
             }
-            $stmt->close();
+            echo json_encode(['success' => $gateResult['success'], 'message' => $gateResult['message']], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             $this->logger->error("Check password error: " . $e->getMessage());
-            $response['message'] = 'خطایی رخ داده است. لطفا بعدا تلاش کنید.';
+            echo json_encode(['success' => false, 'message' => 'خطایی رخ داده است. لطفا بعدا تلاش کنید.'], JSON_UNESCAPED_UNICODE);
         }
-
-        echo json_encode($response, JSON_UNESCAPED_UNICODE);
         exit;
     }
 

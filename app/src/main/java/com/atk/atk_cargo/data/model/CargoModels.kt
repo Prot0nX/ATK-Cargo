@@ -1,6 +1,7 @@
 package com.atk.atk_cargo.data.model
 
 import android.os.Parcelable
+import com.google.gson.annotations.SerializedName
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -29,13 +30,18 @@ data class CargoInfo(
 ) : Parcelable
 
 data class CargoInfoRequest(
-    val id: Int
+    val id: Int,
+    val password: String
+)
+
+data class CargoDeleteResponse(
+    val status: String? = null,
+    val message: String? = null
 )
 
 data class CargoInfoResponse(
     val cargoInfoList: List<CargoInfo>,
-    val initialInfo: InitialInfo,
-    val allTrackingNumbers: List<String>? = null
+    val initialInfo: InitialInfo
 )
 
 data class CargoStats(
@@ -102,6 +108,10 @@ data class SaveOrUpdateResponse(
     val message: String,
     val status: String? = null,
     val warning: Boolean? = null,
+    // سرور این کلید را snake_case می‌فرستد (CargoService::saveOrUpdateCargo)؛
+    // بدون @SerializedName این فیلد همیشه null می‌ماند و دیالوگ تأیید ثبت
+    // تکراری هرگز نمایش داده نمی‌شود.
+    @SerializedName("requires_confirmation")
     val requiresConfirmation: Boolean? = null,
     val requiresManagerPassword: Boolean? = null,
     val exitDate: String? = null,

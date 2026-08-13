@@ -90,6 +90,7 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieAnimatable
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.atk.atk_cargo.R
+import com.atk.atk_cargo.data.model.MatchingQuota
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.data.model.WarningStatus
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
@@ -404,7 +405,7 @@ private fun processScannedQuota(scannedCode: String): String {
 fun QuotaEntryDialog(
     showDialog: Boolean,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
+    onConfirm: (MatchingQuota) -> Unit,
     shipName: String,
     currentQuota: String,
     viewModel: CargoViewModel
@@ -619,7 +620,7 @@ fun QuotaEntryDialog(
                                                         
                                                         if (selectedQuota.shipName == shipName) {
                                                             if (selectedQuota.isActive) {
-                                                                onConfirm(quotaEntry)
+                                                                onConfirm(selectedQuota)
                                                             } else {
                                                                 isError = true
                                                                 errorMessage = "کوتاژ $quotaEntry در حال حاضر غیرفعال است و قابل انتخاب نیست"

@@ -406,15 +406,13 @@ fun CargoInfoDetailsDialog(
     if (showDeleteConfirmation) {
         DeleteDialog(
             onConfirm = {
-                coroutineScope.launch {
-                    val request = CargoInfoRequest(
-                        id = info.id ?: 0
-                    )
-                    viewModel.deleteCargo(request, password)
-                    onUpdateTypeChange("cargo_delete")
-                    snackbarHostState.showSnackbar("حواله با موفقیت حذف شد")
-                    onDismiss()
-                }
+                // نتیجه‌ی واقعی (موفقیت یا رمز اشتباه/قفل‌شدن) از طریق کانال
+                // پیام‌رسانی خود ViewModel نمایش داده می‌شود؛ اینجا دیگر پیام
+                // موفقیت بی‌قید و شرط نشان داده نمی‌شود.
+                val request = CargoInfoRequest(id = info.id ?: 0, password = password)
+                viewModel.deleteCargo(request)
+                onUpdateTypeChange("cargo_delete")
+                onDismiss()
             },
             onDismiss = { showDeleteConfirmation = false },
             password = password,

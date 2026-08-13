@@ -480,12 +480,12 @@ fun CargoDetailsScreen(
         QuotaEntryDialog(
             showDialog = true,
             onDismiss = { showQuotaEntryDialog = false },
-            onConfirm = { quotaCode ->
+            onConfirm = { selectedQuota ->
                 showQuotaEntryDialog = false
                 coroutineScope.launch {
                     isLoading = true
                     handleQuotaChangeInDetails(
-                        quotaCode = quotaCode,
+                        quotaCode = selectedQuota.quotaNumber,
                         currentInitialInfo = initialInfo,
                         viewModel = viewModel,
                         onSuccess = { fullQuota ->

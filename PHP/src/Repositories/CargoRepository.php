@@ -33,18 +33,33 @@ class CargoRepository {
         return $result ?: null;
     }
 
+    /**
+     * FOR UPDATE قفل رکورد موجود را تا پایان تراکنش نگه می‌دارد تا دو درخواست
+     * هم‌زمان روی همان حواله (مثلاً دو خروج هم‌زمان از دو دستگاه) به‌صورت
+     * سریالی پردازش شوند، نه هر دو بر اساس یک خوانش قدیمی. باید داخل تراکنش
+     * با autocommit(FALSE) فراخوانی شود (CargoService::saveOrUpdateCargo).
+     *
+     * عمداً از UNIQUE INDEX روی کلید کامل حواله استفاده نشده: سیستم صراحتاً
+     * اجازه می‌دهد کاربر با تأیید صریح (duplicateConfirmation=proceed) یک
+     * حوالهٔ دوم با همان شماره حواله/کوتاژ ثبت کند (رجوع کنید به شاخهٔ
+     * $isNewEntryAttempt در CargoService::saveOrUpdateCargo)؛ یک UNIQUE
+     * سخت‌گیرانه همان قابلیت را هم می‌شکست. تحت InnoDB با ایزولاسیون پیش‌فرض
+     * REPEATABLE READ، همین FOR UPDATE روی محدودهٔ جستجو (حتی وقتی هیچ سطری
+     * برنمی‌گرداند) gap lock می‌گیرد و درج هم‌زمان در همان محدوده را تا پایان
+     * تراکنش می‌بندد؛ برای حجم نوشتنی این سیستم (ثبت دستی حواله) کافی است.
+     */
     public function findCargoByKeys(
-        string $shipName, 
-        string $warehouse, 
-        string $cargoType, 
-        string $company, 
-        string $quotaNumber, 
+        string $shipName,
+        string $warehouse,
+        string $cargoType,
+        string $company,
+        string $quotaNumber,
         string $trackingNumber
     ): ?array {
-        $query = "SELECT id, status, confirm, exitDate, exitTime, entryTime FROM CargoInfo WHERE 
-                  shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND 
-                  shippingCompany = ? AND loadingQuotaNumber = ? AND trackingNumber = ? 
-                  ORDER BY id DESC LIMIT 1";
+        $query = "SELECT id, status, confirm, exitDate, exitTime, entryTime FROM CargoInfo WHERE
+                  shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND
+                  shippingCompany = ? AND loadingQuotaNumber = ? AND trackingNumber = ?
+                  ORDER BY id DESC LIMIT 1 FOR UPDATE";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) return null;
         $stmt->bind_param("ssssss", $shipName, $warehouse, $cargoType, $company, $quotaNumber, $trackingNumber);
@@ -66,11 +81,17 @@ class CargoRepository {
         // کلاینت رشته‌ی خالی می‌فرستد؛ باید NULL واقعی درج شود، نه '' که در
         // ستون عددی (INT) با sql_mode=STRICT_TRANS_TABLES با خطا رد می‌شود.
         $netWeight = ($params['netWeight'] === '' || $params['netWeight'] === null) ? null : $params['netWeight'];
+        // scaleReceiptNumber هم به همین دلیل NULL می‌شود (نه ''): ستون
+        // nullable است (schema.sql) و UNIQUE INDEX پیشنهادی روی آن
+        // (migrations/2026_08_add_scale_receipt_unique_index.sql) فقط وقتی
+        // معنا دارد که رکوردهای بدون قبض NULL مشترک داشته باشند، نه یک ''
+        // مشترک که خودش تخلف از یکتایی می‌شد.
+        $scaleReceiptNumber = ($params['scaleReceiptNumber'] === '' || $params['scaleReceiptNumber'] === null) ? null : $params['scaleReceiptNumber'];
         $stmt->bind_param("ssssssssssssss",
             $params['trackingNumber'],
             $currentTime,
             $netWeight,
-            $params['scaleReceiptNumber'],
+            $scaleReceiptNumber,
             $params['shortageWeight'],
             $params['excessWeight'],
             $params['shipName'],
@@ -85,6 +106,45 @@ class CargoRepository {
         $res = $stmt->execute();
         $stmt->close();
         return $res;
+    }
+
+    /**
+     * وضعیت فعال/غیرفعال بودن کوتاژ، محدودیت درصدی و تناژ باقی‌مانده را در
+     * یک کوئری برمی‌گرداند تا CargoService بتواند همان کنترل‌هایی که تا
+     * پیش از این فقط سمت کلاینت (QuotaValidationUseCase) اجرا می‌شدند را
+     * قبل از ثبت/خروج، سمت سرور هم اعمال کند. remainingTonnage و
+     * loadedTonnage با همان منطق computeQuotasList (AppApiController) محاسبه
+     * می‌شوند تا با چیزی که کلاینت در صفحه‌ی کوتاژها می‌بیند یکی باشد.
+     */
+    public function findQuotaControlData(string $shipName, string $warehouse, string $cargoType, string $company, string $quota): ?array {
+        $query = "SELECT i.isActive, i.percentage, i.is_enabled, i.cargoWeight as totalTonnage,
+                COALESCE(exit_data.loadedTonnage, 0) as loadedTonnage
+            FROM InitialInfo i
+            LEFT JOIN (
+                SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType,
+                    SUM(c.netWeight) as loadedTonnage
+                FROM CargoInfo c
+                WHERE c.status = 'خروج' AND c.shipName = ? AND c.loadingWarehouse = ? AND
+                      c.cargoType = ? AND c.shippingCompany = ? AND c.loadingQuotaNumber = ?
+                GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
+            ) exit_data ON
+                exit_data.loadingQuotaNumber = i.loadingQuotaNumber AND exit_data.shipName = i.shipName AND
+                exit_data.loadingWarehouse = i.loadingWarehouse AND exit_data.shippingCompany = i.shippingCompany AND
+                exit_data.cargoType = i.cargoType
+            WHERE i.shipName = ? AND i.loadingWarehouse = ? AND i.cargoType = ? AND
+                  i.shippingCompany = ? AND i.loadingQuotaNumber = ?
+            LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        if (!$stmt) return null;
+        $stmt->bind_param(
+            "ssssssssss",
+            $shipName, $warehouse, $cargoType, $company, $quota,
+            $shipName, $warehouse, $cargoType, $company, $quota
+        );
+        $stmt->execute();
+        $res = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $res ?: null;
     }
 
     public function findTempTonnage(string $shipName, string $warehouse, string $cargoType, string $company, string $quota): ?array {
@@ -112,42 +172,57 @@ class CargoRepository {
         return $res;
     }
 
+    /**
+     * `AND status = 'ورود'` عمداً به شرط WHERE اضافه شده: بدون آن، دو درخواست
+     * خروج هم‌زمان برای همان حواله هر دو موفق برمی‌گشتند (دومی به‌سادگی روی
+     * اولی می‌نوشت) و تناژ موقت دو بار کسر می‌شد. حالا فقط رکوردی که هنوز در
+     * وضعیت «ورود» است رد می‌خورد؛ خروجی متد (بر اساس affected_rows، نه صرفاً
+     * موفقیت اجرای کوئری) به فراخوان اجازه می‌دهد این تداخل را تشخیص دهد.
+     */
     public function updateCargoExit(int $cargoId, string $netWeight, string $scaleReceipt, string $currentTime, string $currentDate, string $username, string $userType): bool {
-        $query = "UPDATE CargoInfo SET 
-            netWeight = ?, scaleReceiptNumber = ?, exitTime = ?, exitDate = ?, 
-            status = 'خروج', username = ?, userType = ? 
-        WHERE id = ?";
+        $query = "UPDATE CargoInfo SET
+            netWeight = ?, scaleReceiptNumber = ?, exitTime = ?, exitDate = ?,
+            status = 'خروج', username = ?, userType = ?
+        WHERE id = ? AND status = 'ورود'";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) return false;
         $stmt->bind_param("ssssssi", $netWeight, $scaleReceipt, $currentTime, $currentDate, $username, $userType, $cargoId);
         $res = $stmt->execute();
+        $affected = $stmt->affected_rows;
         $stmt->close();
-        return $res;
+        return $res && $affected > 0;
     }
 
     public function updateCargoShortageOrExcess(int $cargoId, string $shortageWeight, string $excessWeight, string $username, string $userType): bool {
-        $query = "UPDATE CargoInfo SET 
-            shortageWeight = ?, excessWeight = ?, username = ?, userType = ? 
-        WHERE id = ?";
+        $query = "UPDATE CargoInfo SET
+            shortageWeight = ?, excessWeight = ?, username = ?, userType = ?
+        WHERE id = ? AND status = 'ورود'";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) return false;
         $stmt->bind_param("ssssi", $shortageWeight, $excessWeight, $username, $userType, $cargoId);
         $res = $stmt->execute();
+        $affected = $stmt->affected_rows;
         $stmt->close();
-        return $res;
+        return $res && $affected > 0;
     }
 
+    /**
+     * برای اصلاح حوالهٔ از قبل خروج‌زده (شاخهٔ status === 'خروج' در
+     * CargoService)؛ شرط status='خروج' مانع از این می‌شود که این متد به‌جای
+     * updateCargoExit روی رکوردی که همچنان در وضعیت «ورود» است اجرا شود.
+     */
     public function updateCargoExitExiting(int $cargoId, string $netWeight, string $scaleReceipt, string $currentTime, string $currentDate, string $username, string $userType): bool {
-        $query = "UPDATE CargoInfo SET 
-            netWeight = ?, scaleReceiptNumber = ?, exitTime = ?, exitDate = ?, 
-            username = ?, userType = ? 
-        WHERE id = ?";
+        $query = "UPDATE CargoInfo SET
+            netWeight = ?, scaleReceiptNumber = ?, exitTime = ?, exitDate = ?,
+            username = ?, userType = ?
+        WHERE id = ? AND status = 'خروج'";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) return false;
         $stmt->bind_param("ssssssi", $netWeight, $scaleReceipt, $currentTime, $currentDate, $username, $userType, $cargoId);
         $res = $stmt->execute();
+        $affected = $stmt->affected_rows;
         $stmt->close();
-        return $res;
+        return $res && $affected > 0;
     }
 
     public function findCargoById(int $id): ?array {

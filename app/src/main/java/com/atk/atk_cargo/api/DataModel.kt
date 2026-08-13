@@ -31,6 +31,7 @@ typealias UserTypeInfo = com.atk.atk_cargo.data.model.UserTypeInfo
 // ===== RE-EXPORT CARGO MODELS =====
 typealias CargoInfo = com.atk.atk_cargo.data.model.CargoInfo
 typealias CargoInfoRequest = com.atk.atk_cargo.data.model.CargoInfoRequest
+typealias CargoDeleteResponse = com.atk.atk_cargo.data.model.CargoDeleteResponse
 typealias CargoInfoResponse = com.atk.atk_cargo.data.model.CargoInfoResponse
 typealias CargoStats = com.atk.atk_cargo.data.model.CargoStats
 typealias CargoInfoSearch = com.atk.atk_cargo.data.model.CargoInfoSearch

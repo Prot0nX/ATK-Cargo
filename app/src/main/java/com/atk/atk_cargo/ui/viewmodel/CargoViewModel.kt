@@ -7,19 +7,17 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.atk.atk_cargo.api.RetrofitClient.apiService
 import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.data.model.CargoDeleteResponse
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoRequest
 import com.atk.atk_cargo.data.model.InitialInfo
+import com.atk.atk_cargo.data.model.MatchingQuota
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.data.model.QuotaExistenceMultipleResponse
-import com.atk.atk_cargo.data.model.QuotaStatusResponse
 import com.atk.atk_cargo.data.model.SaveOrUpdateResponse
 import com.atk.atk_cargo.data.repository.ReportsRepository
-import com.atk.atk_cargo.feature.cargo_entry.presentation.SnackbarMessage
 import com.google.gson.Gson
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -57,8 +55,6 @@ class CargoViewModel(
     private val quotaValidationUseCase = com.atk.atk_cargo.feature.cargo.domain.QuotaValidationUseCase(repository)
     private val _cargoInfoList = MutableStateFlow<List<CargoInfo>>(emptyList())
     val cargoInfoList: StateFlow<List<CargoInfo>> = _cargoInfoList.asStateFlow()
-    private val _snackbarMessage = MutableStateFlow<SnackbarMessage?>(null)
-    val snackbarMessage: StateFlow<SnackbarMessage?> = _snackbarMessage.asStateFlow()
     private val _scaleReceiptNumber = MutableStateFlow("")
     val scaleReceiptNumber: StateFlow<String> = _scaleReceiptNumber
     private val _loadedWeight = MutableStateFlow("")
@@ -101,8 +97,6 @@ class CargoViewModel(
     private val _loadableTrucks10Wheeler = MutableStateFlow("")
     val loadableTrucks10Wheeler: StateFlow<String> = _loadableTrucks10Wheeler.asStateFlow()
 
-    private val _cachedTrackingNumbers = MutableStateFlow<Set<String>>(emptySet())
-
     private val _duplicateTrackingNumbers = MutableStateFlow<List<String>>(emptyList())
     val duplicateTrackingNumbers: StateFlow<List<String>> = _duplicateTrackingNumbers.asStateFlow()
 
@@ -124,37 +118,16 @@ class CargoViewModel(
         snackbarQueue.dismissMessage()
     }
 
-    private fun showUpdateMessage(message: String) {
-        _snackbarMessage.value = SnackbarMessage(message, MessageType.SUCCESS)
-    }
-
-    fun dismissSnackbar() {
-        _snackbarMessage.value = null
-    }
-
+    // سرور اکنون isActive را مستقیماً برای هر ردیف نتیجه محاسبه می‌کند
+    // (AppApiController::checkQuotaExistenceCargo)، پس دیگر لازم نیست به
+    // ازای هر کوتاژ منطبق یک درخواست جداگانه‌ی checkQuotaStatus زده شود
+    // (رِیس N+1 قبلی).
     suspend fun checkQuotaExistenceCargo(quotaNumber: String, shipName: String): QuotaExistenceMultipleResponse {
         return withContext(Dispatchers.IO) {
             try {
                 val response = apiService.checkQuotaExistenceCargo(quotaNumber = quotaNumber, shipName = shipName)
                 if (response.isSuccessful) {
-                    val quotaResponse = response.body() ?: throw Exception("پاسخ خالی از سرور")
-
-                    val updatedQuotas = quotaResponse.matchingQuotas.map { quota ->
-                        val quotaStatus = checkDetailedQuotaStatus(
-                            quotaNumber = quota.quotaNumber,
-                            shipName = shipName,
-                            shippingCompany = quota.shippingCompany,
-                            cargoType = quota.cargoType,
-                            warehouse = quota.warehouse
-                        )
-                        quota.copy(isActive = quotaStatus.isActive)
-                    }
-
-                    return@withContext QuotaExistenceMultipleResponse(
-                        exists = quotaResponse.exists,
-                        matchingQuotas = updatedQuotas,
-                        message = quotaResponse.message
-                    )
+                    response.body() ?: throw Exception("پاسخ خالی از سرور")
                 } else {
                     throw Exception("خطا در درخواست: ${response.code()}")
                 }
@@ -164,37 +137,24 @@ class CargoViewModel(
         }
     }
 
-    private suspend fun checkDetailedQuotaStatus(
-        quotaNumber: String,
-        shipName: String,
-        shippingCompany: String,
-        cargoType: String,
-        warehouse: String
-    ): QuotaStatusResponse {
-        return try {
-            val response = apiService.checkQuotaStatus(
-                quotaNumber = quotaNumber,
-                shipName = shipName,
-                cargoType = cargoType,
-                shippingCompany = shippingCompany,
-                warehouse = warehouse
-            )
-            if (response.isSuccessful) {
-                response.body() ?: throw Exception("پاسخ خالی از سرور")
-            } else {
-                QuotaStatusResponse(
-                    isActive = false,
-                    status = false,
-                    message = "خطا در بررسی وضعیت کوتاژ",
-                    details = null
-                )
-            }
-        } catch (e: Exception) {
-            QuotaStatusResponse(
-                isActive = false,
-                status = false,
-                message = "خطا در بررسی وضعیت کوتاژ: ${e.message}",
-                details = null
+    // quota از قبل توسط QuotaEntryDialog اعتبارسنجی شده (وجود دارد، متعلق به
+    // همین کشتی است، و فعال است)؛ اینجا آن بررسی دوباره تکرار نمی‌شود.
+    // برخلاف پیاده‌سازی قبلی که یک InitialInfo ناقص با صفرهای دستی می‌ساخت و
+    // آن را بلافاصله روی state می‌نشاند (تناژ/تعداد سرویس صفر لحظه‌ای روی UI،
+    // و tempTonnageStatus=false که کنترل تناژ موقت را در همان بازه دور
+    // می‌زد)، اینجا مستقیماً از سرور اطلاعات واقعی و کامل کوتاژ خوانده
+    // می‌شود. quota.quotaNumber به‌صورت String به loadCargoInfoList می‌رود، پس
+    // صفرهای ابتدایی (مثل «0123») برخلاف toIntOrNull() قبلی از بین نمی‌روند.
+    fun switchQuota(quota: MatchingQuota) {
+        viewModelScope.launch {
+            loadCargoInfoList(
+                quotaNumber = quota.quotaNumber,
+                shippingCompany = quota.shippingCompany,
+                warehouse = quota.warehouse,
+                cargoType = quota.cargoType,
+                onComplete = {
+                    showMessage("کوتاژ با موفقیت تغییر یافت به: ${quota.quotaNumber}", MessageType.SUCCESS)
+                }
             )
         }
     }
@@ -278,10 +238,10 @@ class CargoViewModel(
                             }
 
                             if (hasStatusChanges) {
-                                showUpdateMessage("وضعیت حواله‌ها به‌روزرسانی شد")
+                                showMessage("وضعیت حواله‌ها به‌روزرسانی شد", MessageType.SUCCESS)
                                 updateLoadableTonnageIfNeeded()
                             } else {
-                                showUpdateMessage("اطلاعات در ساعت $currentTime به‌روزرسانی شد")
+                                showMessage("اطلاعات در ساعت $currentTime به‌روزرسانی شد", MessageType.SUCCESS)
                             }
                         }
                     )
@@ -669,6 +629,12 @@ class CargoViewModel(
         }
     }
 
+    // قبلاً این تابع دو بار (یک بار با repository.getInitialInfo و یک بار با
+    // repository.getCargoInfo) همان endpoint سرور (getInitialInfo.php) را
+    // صدا می‌زد که هر بار خودش ۴ کوئری روی سرور اجرا می‌کند، به‌علاوهٔ دو بار
+    // getLoadableTonnage. آن فراخوانی اول (و ReportsRepository.getInitialInfo
+    // که فقط همین‌جا مصرف می‌شد) کاملاً حذف شد؛ نتیجه یک درخواست getCargoInfo
+    // و یک درخواست getLoadableTonnage به‌جای ۴ درخواست در هر بار refresh.
     fun loadCargoInfoList(
         quotaNumber: String,
         shippingCompany: String,
@@ -676,56 +642,6 @@ class CargoViewModel(
         cargoType: String,
         onComplete: () -> Unit = {}
     ) {
-        CoroutineScope(Dispatchers.Default + SupervisorJob()).launch {
-            try {
-                val initialShipInfo = withContext(Dispatchers.IO) {
-                    repository.getInitialInfo(quotaNumber, shippingCompany, warehouse, cargoType)
-                }
-
-                initialShipInfo?.let { info ->
-                    try {
-                        val response = withContext(Dispatchers.IO) {
-                            apiService.getLoadableTonnage(
-                                quotaNumber = info.loadingQuotaNumber.toString(),
-                                shippingCompany = info.shippingCompany,
-                                warehouse = info.loadingWarehouse,
-                                cargoType = info.cargoType
-                            )
-                        }
-
-                        if (response.isSuccessful && response.body()?.success == true) {
-                            val data = response.body()!!
-
-                            withContext(Dispatchers.Main.immediate) {
-                                data.loadableTonnage?.let { tonnage ->
-                                    val formattedValue = if (tonnage < 0) {
-                                        "-" + DecimalFormat("#,###").format(abs(tonnage.roundToInt()))
-                                    } else {
-                                        DecimalFormat("#,###").format(tonnage.roundToInt())
-                                    }
-                                    _loadableTonnage.value = formattedValue
-                                }
-
-                                data.trucks18Wheeler?.let { count ->
-                                    _loadableTrucks18Wheeler.value = count.toString()
-                                }
-
-                                data.trucks10Wheeler?.let { count ->
-                                    _loadableTrucks10Wheeler.value = count.toString()
-                                }
-                            }
-                        } else {
-                            Log.e("CargoViewModel_Log", "Error in API call for initial loadable tonnage")
-                        }
-                    } catch (e: Exception) {
-                        Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage", e)
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("CargoViewModel_Log", "Error in pre-loading tonnage data", e)
-            }
-        }
-
         viewModelScope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
@@ -734,35 +650,31 @@ class CargoViewModel(
 
                 val duplicateTrackingNumbers = checkForDuplicateTrackingNumbers(result.cargoInfoList)
                 if (duplicateTrackingNumbers.isNotEmpty()) {
-                    withContext(Dispatchers.Main.immediate) {
-                        _duplicateTrackingNumbers.value = duplicateTrackingNumbers
-                        _showDuplicateDialog.value = true
-                        Log.w("CargoViewModel_Log", "حواله‌های تکراری شناسایی شدند: ${duplicateTrackingNumbers.joinToString(", ")}")
-                    }
+                    _duplicateTrackingNumbers.value = duplicateTrackingNumbers
+                    _showDuplicateDialog.value = true
+                    Log.w("CargoViewModel_Log", "حواله‌های تکراری شناسایی شدند: ${duplicateTrackingNumbers.joinToString(", ")}")
                 }
 
                 _cargoInfoList.value = result.cargoInfoList
                 _initialInfo.value = result.initialInfo
                 _filteredCargoInfoList.value = result.cargoInfoList
 
-                val allTrackingNumbers = result.allTrackingNumbers?.toSet() ?: emptySet()
-                _cachedTrackingNumbers.value = allTrackingNumbers
-
-                withContext(Dispatchers.Main.immediate) {
-                    _cargoWeight.value = result.initialInfo.cargoWeight.toString()
-                    _totalNetWeight.value = result.initialInfo.totalNetWeight.toString()
-                    _remainingWeight.value = result.initialInfo.remainingWeight.toString()
-                    _averageNetWeight.value = result.initialInfo.averageNetWeight.toString()
-                    _remainingServices.value = result.initialInfo.remainingServices.toString()
-                    _totalServices.value = result.initialInfo.totalVoucherCount.toString()
-                }
+                _cargoWeight.value = result.initialInfo.cargoWeight.toString()
+                _totalNetWeight.value = result.initialInfo.totalNetWeight.toString()
+                _remainingWeight.value = result.initialInfo.remainingWeight.toString()
+                _averageNetWeight.value = result.initialInfo.averageNetWeight.toString()
+                _remainingServices.value = result.initialInfo.remainingServices.toString()
+                _totalServices.value = result.initialInfo.totalVoucherCount.toString()
 
                 val qNumber = result.initialInfo.loadingQuotaNumber.toString()
                 val sCompany = result.initialInfo.shippingCompany
                 val wHouse = result.initialInfo.loadingWarehouse
                 val cType = result.initialInfo.cargoType
 
-                CoroutineScope(Dispatchers.Default + SupervisorJob()).launch {
+                // launch ساده (بدون CoroutineScope مستقل) به‌عنوان فرزند همین
+                // coroutine که به viewModelScope وصل است اجرا می‌شود؛ با از
+                // بین رفتن ViewModel به‌درستی لغو می‌شود.
+                launch {
                     try {
                         val response = withContext(Dispatchers.IO) {
                             apiService.getLoadableTonnage(
@@ -775,18 +687,21 @@ class CargoViewModel(
 
                         if (response.isSuccessful && response.body()?.success == true) {
                             val data = response.body()!!
-                            withContext(Dispatchers.Main.immediate) {
-                                data.loadableTonnage?.let { tonnage ->
-                                    _loadableTonnage.value = DecimalFormat("#,###").format(tonnage.roundToInt())
+                            data.loadableTonnage?.let { tonnage ->
+                                val formattedValue = if (tonnage < 0) {
+                                    "-" + DecimalFormat("#,###").format(abs(tonnage.roundToInt()))
+                                } else {
+                                    DecimalFormat("#,###").format(tonnage.roundToInt())
                                 }
+                                _loadableTonnage.value = formattedValue
+                            }
 
-                                data.trucks18Wheeler?.let { count ->
-                                    _loadableTrucks18Wheeler.value = count.toString()
-                                }
+                            data.trucks18Wheeler?.let { count ->
+                                _loadableTrucks18Wheeler.value = count.toString()
+                            }
 
-                                data.trucks10Wheeler?.let { count ->
-                                    _loadableTrucks10Wheeler.value = count.toString()
-                                }
+                            data.trucks10Wheeler?.let { count ->
+                                _loadableTrucks10Wheeler.value = count.toString()
                             }
                         } else {
                             Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage during initial load")
@@ -887,39 +802,45 @@ class CargoViewModel(
         }
     }
 
-    fun deleteCargo(cargoInfoRequest: CargoInfoRequest, password: String) {
+    // بررسی رمز و حذف حواله در همان یک درخواست به deleteCargoInfo.php انجام
+    // می‌شود (سرور خودش رمز را بررسی و شمارنده‌ی تلاش را کنترل می‌کند)؛ قبلاً
+    // این دو عملیات با دو فراخوانی HTTP جدا (checkPassword سپس deleteCargo)
+    // انجام می‌شد که چیزی جلوی فراخوانی مستقیم deleteCargo بدون بررسی رمز را
+    // نمی‌گرفت.
+    fun deleteCargo(cargoInfoRequest: CargoInfoRequest) {
         viewModelScope.launch {
             try {
-                val passwordResponse = withContext(Dispatchers.IO) {
-                    apiService.checkPassword(password, "delete_info")
+                val response = withContext(Dispatchers.IO) {
+                    apiService.deleteCargo(cargoInfoRequest)
                 }
-                if (passwordResponse.isSuccessful && passwordResponse.body()?.success == true) {
-                    val deleteResponse = withContext(Dispatchers.IO) {
-                        apiService.deleteCargo(cargoInfoRequest)
-                    }
-                    if (deleteResponse.isSuccessful) {
-                        showMessage("حواله با موفقیت حذف شد.", MessageType.SUCCESS)
+                if (response.isSuccessful) {
+                    showMessage(response.body()?.message ?: "حواله با موفقیت حذف شد.", MessageType.SUCCESS)
 
-                        updateLoadableTonnageIfNeeded()
+                    updateLoadableTonnageIfNeeded()
 
-                        _initialInfo.value?.let { info ->
-                            loadCargoInfoList(
-                                quotaNumber = info.loadingQuotaNumber.toString(),
-                                shippingCompany = info.shippingCompany,
-                                warehouse = info.loadingWarehouse,
-                                cargoType = info.cargoType,
-                                onComplete = {}
-                            )
-                        }
-                    } else {
-                        showErrorMessage("خطا در حذف حواله: ${deleteResponse.errorBody()?.string()}")
+                    _initialInfo.value?.let { info ->
+                        loadCargoInfoList(
+                            quotaNumber = info.loadingQuotaNumber.toString(),
+                            shippingCompany = info.shippingCompany,
+                            warehouse = info.loadingWarehouse,
+                            cargoType = info.cargoType,
+                            onComplete = {}
+                        )
                     }
                 } else {
-                    showErrorMessage(passwordResponse.body()?.message ?: "خطا در بررسی رمز عبور")
+                    showErrorMessage(parseDeleteErrorMessage(response.errorBody()?.string()))
                 }
             } catch (e: Exception) {
                 showErrorMessage("استثنا در حذف حواله: ${e.message}")
             }
+        }
+    }
+
+    private fun parseDeleteErrorMessage(errorBody: String?): String {
+        return try {
+            Gson().fromJson(errorBody, CargoDeleteResponse::class.java)?.message ?: "خطا در حذف حواله"
+        } catch (_: Exception) {
+            "خطا در حذف حواله"
         }
     }
 
@@ -937,7 +858,7 @@ class CargoViewModel(
             return
         }
 
-        CoroutineScope(Dispatchers.Default + SupervisorJob()).launch {
+        viewModelScope.launch(Dispatchers.Default) {
             try {
                 _initialInfo.value?.let { info ->
                     val response = withContext(Dispatchers.IO) {

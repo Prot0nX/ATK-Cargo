@@ -8,15 +8,20 @@ namespace App\Controllers;
 use Exception;
 use InvalidArgumentException;
 use mysqli;
+use App\Core\AuthenticatesRequests;
 use App\Core\Database;
 use App\Core\MicroCache;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Logger;
+use App\Exceptions\ApiException;
 use App\Services\CargoService;
+use App\Services\PasswordGateService;
 use App\Repositories\CargoRepository;
 
 class CargoController {
+    use AuthenticatesRequests;
+
     private mysqli $conn;
     private Request $request;
     private Logger $logger;
@@ -39,9 +44,17 @@ class CargoController {
         ini_set('memory_limit', '64M');
         ini_set('max_execution_time', '15');
 
+        $this->requireAuthenticatedSession();
+
         $params = $this->request->all();
 
-        $requiredFields = ['shipName', 'loadingWarehouse', 'cargoType', 'shippingCompany', 'loadingQuotaNumber', 'trackingNumber', 'username', 'userType'];
+        // username/userType هرگز از کلاینت پذیرفته نمی‌شوند؛ هویت واقعی از
+        // نشست معتبرشده گرفته می‌شود تا زنجیره‌ی ردیابی (audit trail) با هدر
+        // جعلی قابل دستکاری نباشد.
+        $params['username'] = $this->authenticatedUsername;
+        $params['userType'] = $this->authenticatedUserType;
+
+        $requiredFields = ['shipName', 'loadingWarehouse', 'cargoType', 'shippingCompany', 'loadingQuotaNumber', 'trackingNumber'];
         $optionalFields = ['entryTime', 'netWeight', 'scaleReceiptNumber', 'shortageWeight', 'excessWeight', 'exitTime', 'exitDate', 'status', 'confirmation', 'numberOfPeople', 'duplicateConfirmation'];
 
         foreach ($requiredFields as $field) {
@@ -58,6 +71,12 @@ class CargoController {
         try {
             $result = $this->cargoService->saveOrUpdateCargo($params);
             $this->sendJsonResponse($result['data'], $result['code'] ?? 200);
+        } catch (ApiException $e) {
+            // ConflictException (و مشابه آن) کد HTTP معنادار خودش را حمل
+            // می‌کند (۴۰۹ برای تداخل هم‌زمانی)؛ نباید مثل خطای داخلی سرور با
+            // ۵۰۰ عمومی پوشانده شود.
+            $this->logger->error("Error in CargoController saveOrUpdate: " . $e->getMessage());
+            $this->sendJsonResponse(['error' => true, 'message' => $e->getMessage()], $e->getStatusCode());
         } catch (Exception $e) {
             $this->logger->error("Error in CargoController saveOrUpdate: " . $e->getMessage());
             $this->sendErrorResponse($e->getMessage());
@@ -77,6 +96,9 @@ class CargoController {
             $this->sendJsonResponse(['error' => true, 'message' => 'روش درخواست نامعتبر است. فقط POST مجاز است.'], 405);
         }
 
+        $this->requireAuthenticatedSession();
+        $this->requirePermission('edit_cargo');
+
         try {
             $jsonInput = file_get_contents('php://input');
             $data = json_decode((string)$jsonInput, true);
@@ -92,8 +114,10 @@ class CargoController {
 
             $trackingNumber = $this->validateStringField($data['trackingNumber'] ?? null, 'شماره حواله');
             $numberOfPeople = $this->validateStringField($data['numberOfPeople'] ?? null, 'تعداد افراد', false);
-            $username = $this->validateStringField($data['username'] ?? null, 'نام کاربری', false);
-            $userType = $this->validateStringField($data['userType'] ?? null, 'نوع کاربر', false);
+            // username/userType از نشست معتبرشده گرفته می‌شود، نه از بدنه‌ی
+            // درخواست، تا زنجیره‌ی ردیابی با هدر جعلی قابل دستکاری نباشد.
+            $username = (string)$this->authenticatedUsername;
+            $userType = (string)$this->authenticatedUserType;
             $entryTime = $this->validateStringField($data['entryTime'] ?? null, 'زمان ورود');
             $netWeight = $this->validateNumericField($data['netWeight'] ?? null, 'وزن خالص');
             $scaleReceiptNumber = $this->validateStringField($data['scaleReceiptNumber'] ?? null, 'شماره قبض باسکول');
@@ -163,26 +187,22 @@ class CargoController {
             $this->sendJsonResponse(["status" => "error", "message" => "روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید."], 405);
         }
 
+        $this->requireAuthenticatedSession();
+
         $data = json_decode((string)file_get_contents('php://input'), true);
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
             $this->sendJsonResponse(["status" => "error", "message" => "فرمت JSON نامعتبر است"], 400);
         }
 
-        $requiredFields = ['id', 'username', 'userType'];
-        $missingFields = [];
-        foreach ($requiredFields as $field) {
-            if (!isset($data[$field]) || (is_string($data[$field]) && trim($data[$field]) === '')) {
-                $missingFields[] = $field;
-            }
-        }
-
-        if (!empty($missingFields)) {
-            $this->sendJsonResponse(["status" => "error", "message" => "فیلدهای ضروری وجود ندارند: " . implode(', ', $missingFields)], 400);
+        if (!isset($data['id']) || (is_string($data['id']) && trim($data['id']) === '')) {
+            $this->sendJsonResponse(["status" => "error", "message" => "فیلدهای ضروری وجود ندارند: id"], 400);
         }
 
         $cargoId = (int)$data['id'];
-        $username = $this->sanitizeString((string)$data['username']);
-        $userType = $this->sanitizeString((string)$data['userType']);
+        // username/userType از نشست معتبرشده گرفته می‌شود، نه از بدنه‌ی
+        // درخواست، تا معلوم شود واقعاً چه کسی حواله را تأیید کرده است.
+        $username = (string)$this->authenticatedUsername;
+        $userType = (string)$this->authenticatedUserType;
 
         if ($cargoId <= 0) {
             $this->sendJsonResponse(["status" => "error", "message" => "شناسه حواله نامعتبر است"], 400);
@@ -217,7 +237,12 @@ class CargoController {
             } else {
                 $exists = $this->cargoRepo->findCargoById($cargoId) !== null;
                 if ($exists) {
-                    $this->sendJsonResponse(["status" => "error", "message" => "حواله قبلاً تأیید شده است یا تغییری اعمال نشد"], 200);
+                    // این یک خطای واقعی است (تأیید تکراری یا رقابت هم‌زمانی)،
+                    // نه موفقیت؛ کد ۲۰۰ باعث می‌شد کلاینت آن را success بداند
+                    // و علاوه بر نمایش این پیام به‌عنوان موفقیت، وضعیت محلی را
+                    // هم به‌اشتباه «تأیید شده» علامت بزند
+                    // (CargoDetailsScreen.handleCargoConfirmation).
+                    $this->sendJsonResponse(["status" => "error", "message" => "حواله قبلاً تأیید شده است یا تغییری اعمال نشد"], 409);
                 } else {
                     $this->sendJsonResponse(["status" => "error", "message" => "حواله با شناسه ارسالی یافت نشد"], 404);
                 }
@@ -238,6 +263,9 @@ class CargoController {
             $this->sendJsonResponse(["status" => "error", "message" => "روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید."], 405);
         }
 
+        $this->requireAuthenticatedSession();
+        $this->requirePermission('delete_cargo');
+
         $data = json_decode((string)file_get_contents("php://input"), true);
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($data) || !isset($data['id']) || empty($data['id'])) {
             $this->sendJsonResponse(["status" => "error", "message" => "فیلد ضروری وجود ندارد: id"], 400);
@@ -246,6 +274,21 @@ class CargoController {
         $cargoId = (int)$data['id'];
         if ($cargoId <= 0) {
             $this->sendJsonResponse(["status" => "error", "message" => "شناسه حواله نامعتبر است"], 400);
+        }
+
+        // بررسی رمز عبور حذف اینجا و در همین درخواست انجام می‌شود، نه در یک
+        // فراخوانی جداگانه‌ی checkPassword.php قبل از این endpoint؛ چون دو
+        // درخواست HTTP مستقل هیچ تضمینی نمی‌دهند که رمز واقعاً برای همین
+        // عملیات حذف بررسی شده باشد (کافی بود مستقیماً همین endpoint را صدا
+        // بزنند). شمارنده‌ی تلاش ناموفق روی هویت نشست معتبرشده کلید می‌خورد.
+        $password = (string)($data['password'] ?? '');
+        if ($password === '') {
+            $this->sendJsonResponse(["status" => "error", "message" => "رمز عبور الزامی است"], 400);
+        }
+
+        $gateResult = (new PasswordGateService())->verify('delete_info', $password, (string)$this->authenticatedUsername);
+        if (!$gateResult['success']) {
+            $this->sendJsonResponse(["status" => "error", "message" => $gateResult['message']], $gateResult['locked'] ? 429 : 403);
         }
 
         try {
@@ -271,6 +314,8 @@ class CargoController {
         if (!$this->request->isGet()) {
             $this->sendJsonResponse(['error' => 'روش درخواست نامعتبر است'], 405);
         }
+
+        $this->requireAuthenticatedSession();
 
         try {
             $receipt = trim((string)$this->request->get('receipt', ''));
@@ -326,6 +371,8 @@ class CargoController {
         if (!$this->request->isGet()) {
             $this->sendJsonResponse(['error' => 'روش درخواست نامعتبر است'], 405);
         }
+
+        $this->requireAuthenticatedSession();
 
         try {
             $tracking = trim((string)$this->request->get('tracking', ''));
@@ -384,6 +431,8 @@ class CargoController {
     public function getInitialInfo(): void {
         header('Content-Type: application/json; charset=UTF-8');
         date_default_timezone_set('Asia/Tehran');
+
+        $this->requireAuthenticatedSession();
 
         $requiredParams = ['quotaNumber', 'shippingCompany', 'warehouse', 'cargoType'];
         $missingParams = [];
@@ -465,22 +514,10 @@ class CargoController {
             }
             $cargoStmt->close();
 
-            $trackStmt = $this->conn->prepare("SELECT DISTINCT trackingNumber FROM CargoInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ?");
-            $trackStmt->bind_param("ssss", $quotaNumber, $shippingCompany, $warehouse, $cargoType);
-            $trackStmt->execute();
-            $trackResult = $trackStmt->get_result();
-
-            $allTrackingNumbers = [];
-            while ($row = $trackResult->fetch_assoc()) {
-                $allTrackingNumbers[] = $row['trackingNumber'];
-            }
-            $trackStmt->close();
-
             $this->sendJsonResponse([
                 "status" => "success",
                 "initialInfo" => $initialInfo,
-                "cargoInfoList" => $cargoInfoList,
-                "allTrackingNumbers" => $allTrackingNumbers
+                "cargoInfoList" => $cargoInfoList
             ]);
         } catch (Exception $e) {
             $this->logger->error("Error in getInitialInfo: " . $e->getMessage());
@@ -496,6 +533,9 @@ class CargoController {
      */
     public function saveInitialInfo(): void {
         header('Content-Type: application/json; charset=UTF-8');
+
+        $this->requireAuthenticatedSession();
+        $this->requirePermission('initial_info');
 
         $requiredFields = ['shipName', 'loadingWarehouse', 'cargoType', 'shippingCompany', 'cargoWeight', 'loadingQuotaNumber', 'remainingWeight', 'totalNetWeight', 'averageNetWeight', 'remainingServices', 'cargoOwner'];
 
@@ -549,6 +589,8 @@ class CargoController {
     public function getActiveShips(): void {
         header('Content-Type: application/json; charset=UTF-8');
 
+        $this->requireAuthenticatedSession();
+
         try {
             $activeShips = $this->cargoService->getActiveShips();
             $this->sendJsonResponse($activeShips);
@@ -564,6 +606,8 @@ class CargoController {
     public function checkScaleReceipt(): void {
         header('Content-Type: application/json; charset=utf-8');
 
+        $this->requireAuthenticatedSession();
+
         $scaleReceiptNumber = $this->sanitizeString((string)$this->request->get('scaleReceiptNumber', ''));
 
         try {
@@ -577,8 +621,16 @@ class CargoController {
         }
     }
 
+    // این مقدار در ستون‌های WHERE (findCargoByKeys، findTempTonnage و ...)
+    // برای مقایسه‌ی دقیق استفاده می‌شود. htmlspecialchars اینجا اشتباه بود:
+    // چون این API فقط توسط اپ اندروید (نه مرورگر) مصرف می‌شود، escape کردن
+    // ورودی هیچ محافظتی ایجاد نمی‌کرد و فقط باعث می‌شد مقادیر دارای &/'/"
+    // در InitialInfo (که escape نمی‌شود) با نسخه‌ی escape‌شده در CargoInfo
+    // مطابقت نداشته باشند و رکورد به اشتباه «جدید» تشخیص داده شود. SQL
+    // Injection از قبل با prepared statement بسته است؛ اینجا فقط trim لازم
+    // است.
     private function sanitizeString(string $input): string {
-        return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+        return trim($input);
     }
 
     private function validateNumericField($value, string $fieldName): string {

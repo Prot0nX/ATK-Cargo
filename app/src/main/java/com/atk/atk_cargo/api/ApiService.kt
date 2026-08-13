@@ -74,7 +74,7 @@ interface ApiService {
     suspend fun deleteCargo(
         @Body cargoInfoRequest: CargoInfoRequest,
         @Query("target") target: String = "deleteCargoInfo.php"
-    ): Response<Void>
+    ): Response<CargoDeleteResponse>
 
     @FormUrlEncoded
     @POST("protected_proxy.php")
