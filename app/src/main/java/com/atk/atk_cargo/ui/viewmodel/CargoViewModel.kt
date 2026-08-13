@@ -87,6 +87,10 @@ class CargoViewModel(
     private val _pendingCargoInfo = MutableStateFlow<CargoInfo?>(null)
     private val _filteredCargoInfoList = MutableStateFlow<List<CargoInfo>>(emptyList())
     val filteredCargoInfoList: StateFlow<List<CargoInfo>> = _filteredCargoInfoList.asStateFlow()
+    // آخرین جستجوی کاربر؛ باید بعد از هر بارگذاری (polling/refresh/تأیید)
+    // دوباره اعمال شود، وگرنه لیست فیلترشده زیر انگشت کاربر با کل لیست
+    // جایگزین می‌شود در حالی که متن جستجو هنوز در کادر جستجو باقی است.
+    private var lastSearchQuery: String = ""
     private val _isQuotaActive = MutableStateFlow<Boolean?>(null)
     private val _loadableTonnage = MutableStateFlow("")
     val loadableTonnage: StateFlow<String> = _loadableTonnage.asStateFlow()
@@ -160,6 +164,7 @@ class CargoViewModel(
     }
 
     fun filterCargoInfoList(query: String) {
+        lastSearchQuery = query
         _filteredCargoInfoList.value = if (query.isEmpty()) {
             _cargoInfoList.value
         } else {
@@ -179,7 +184,7 @@ class CargoViewModel(
                 cargoInfo
             }
         }
-        filterCargoInfoList("")
+        filterCargoInfoList(lastSearchQuery)
     }
 
     fun showMessage(message: String, type: MessageType) {
@@ -284,7 +289,8 @@ class CargoViewModel(
                     return@launch
                 }
 
-                val validationResult = quotaValidationUseCase.validateQuotaStatusAndPercentage(initialInfo)
+                val isNewCargo = _cargoInfoList.value.none { it.trackingNumber == trackingNumber }
+                val validationResult = quotaValidationUseCase.validateQuotaStatusAndPercentage(initialInfo, isNewCargo)
                 
                 if (!validationResult.isValid) {
                     if (validationResult.percentageReached && validationResult.quotaIdToToggle != null) {
@@ -657,7 +663,10 @@ class CargoViewModel(
 
                 _cargoInfoList.value = result.cargoInfoList
                 _initialInfo.value = result.initialInfo
-                _filteredCargoInfoList.value = result.cargoInfoList
+                // جستجوی فعال کاربر (در صورت وجود) دوباره اعمال می‌شود؛
+                // وگرنه هر بارگذاری (polling هر ۳۰ ثانیه، refresh، تأیید
+                // حواله) بی‌صدا لیست فیلترشده را با کل لیست جایگزین می‌کرد.
+                filterCargoInfoList(lastSearchQuery)
 
                 _cargoWeight.value = result.initialInfo.cargoWeight.toString()
                 _totalNetWeight.value = result.initialInfo.totalNetWeight.toString()

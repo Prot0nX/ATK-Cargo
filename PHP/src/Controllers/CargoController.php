@@ -188,6 +188,10 @@ class CargoController {
         }
 
         $this->requireAuthenticatedSession();
+        // تأیید حواله یک عملیات نوشتنی با اثر مالی/عملیاتی است؛ باید مثل
+        // سایر عملیات نوشتنِ این کنترلر (edit_cargo، delete_cargo) پشت یک
+        // مجوز مشخص قفل شود، نه فقط لاگین بودن.
+        $this->requirePermission('cargo_counter');
 
         $data = json_decode((string)file_get_contents('php://input'), true);
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
@@ -204,12 +208,21 @@ class CargoController {
         $username = (string)$this->authenticatedUsername;
         $userType = (string)$this->authenticatedUserType;
 
+        // بدون این دو، هر کاربر مجاز می‌توانست با شماره‌گذاری متوالی id
+        // حواله‌های خارج از کوتاژ/کشتی خودش را هم تأیید کند (IDOR).
+        $loadingQuotaNumber = $this->sanitizeString((string)($data['loadingQuotaNumber'] ?? ''));
+        $shipName = $this->sanitizeString((string)($data['shipName'] ?? ''));
+
         if ($cargoId <= 0) {
             $this->sendJsonResponse(["status" => "error", "message" => "شناسه حواله نامعتبر است"], 400);
         }
 
+        if ($loadingQuotaNumber === '' || $shipName === '') {
+            $this->sendJsonResponse(["status" => "error", "message" => "فیلدهای ضروری وجود ندارند: loadingQuotaNumber, shipName"], 400);
+        }
+
         try {
-            $res = $this->cargoRepo->confirmCargo($cargoId, $username, $userType);
+            $res = $this->cargoRepo->confirmCargo($cargoId, $username, $userType, $loadingQuotaNumber, $shipName);
             if ($res['affected'] > 0) {
                 MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
                 $cargoData = $this->cargoRepo->findCargoById($cargoId);
@@ -231,9 +244,11 @@ class CargoController {
                     "message" => "حواله شماره {$cargoData['trackingNumber']} با کوتاژ {$cargoData['loadingQuotaNumber']} در ساعت {$confirmTime} توسط {$username} با موفقیت تأیید شد",
                     "data" => $responseData
                 ];
-                http_response_code(200);
-                echo json_encode($response, JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
-                exit;
+                // JSON_NUMERIC_CHECK قبلاً trackingNumber/loadingQuotaNumber
+                // را که رشته‌اند (و می‌توانند صفر ابتدایی داشته باشند) به
+                // عدد تبدیل می‌کرد؛ sendJsonResponse مثل بقیه‌ی endpointهای
+                // این کنترلر بدون آن فلگ و با gzip ارسال می‌کند.
+                $this->sendJsonResponse($response, 200);
             } else {
                 $exists = $this->cargoRepo->findCargoById($cargoId) !== null;
                 if ($exists) {
@@ -249,7 +264,9 @@ class CargoController {
             }
         } catch (Exception $e) {
             $this->logger->error("Error in confirmCargo: " . $e->getMessage());
-            $this->sendJsonResponse(["status" => "error", "message" => $e->getMessage()], 500);
+            // پیام داخلی mysqli/exception (که می‌تواند نام جدول/ستون را
+            // فاش کند) فقط در لاگ ثبت می‌شود، نه در پاسخ به کلاینت.
+            $this->sendJsonResponse(["status" => "error", "message" => "خطایی در سیستم رخ داده است. لطفاً بعداً تلاش کنید."], 500);
         }
     }
 
@@ -459,7 +476,13 @@ class CargoController {
             $today = jdate('Y/m/d');
             $yesterday = jdate('Y/m/d', time() - 86400);
 
-            $stmt = $this->conn->prepare("SELECT *, temp_tonnage_status, temp_tonnage_amount FROM InitialInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ? LIMIT 1");
+            // ستون‌های cargoWeight/loadingQuotaNumber و ۴ ستون بعدی همان‌هایی
+            // هستند که مدل InitialInfo کلاینت (CargoModels.kt) واقعاً مصرف
+            // می‌کند؛ remainingWeight/totalNetWeight/averageNetWeight/
+            // remainingServices از جدول خوانده نمی‌شوند چون چند خط پایین‌تر
+            // با مقدار محاسبه‌شده بازنویسی می‌شوند، و percentage/is_enabled
+            // اصلاً در پاسخ استفاده نمی‌شوند.
+            $stmt = $this->conn->prepare("SELECT shipName, loadingWarehouse, cargoType, shippingCompany, cargoOwner, cargoWeight, loadingQuotaNumber, isActive, temp_tonnage_status, temp_tonnage_amount FROM InitialInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ? LIMIT 1");
             $stmt->bind_param("ssss", $quotaNumber, $shippingCompany, $warehouse, $cargoType);
             $stmt->execute();
             $initialResult = $stmt->get_result();
@@ -503,7 +526,42 @@ class CargoController {
             $initialInfo['tempTonnageStatus'] = isset($initialInfo['temp_tonnage_status']) ? (bool)$initialInfo['temp_tonnage_status'] : false;
             $initialInfo['tempTonnageAmount'] = isset($initialInfo['temp_tonnage_amount']) ? (float)$initialInfo['temp_tonnage_amount'] : null;
 
-            $cargoStmt = $this->conn->prepare("SELECT * FROM CargoInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ? AND (status = 'ورود' OR (status = 'خروج' AND exitDate >= ? AND exitDate <= ?)) ORDER BY CASE WHEN status = 'ورود' THEN 1 ELSE 2 END, entryTime DESC");
+            // ستون‌های زیر دقیقاً همان‌هایی هستند که data class CargoInfo در
+            // کلاینت (از جمله id، که کلید LazyColumn روی آن است) می‌خواند؛
+            // confirm_username/confirm_usertype/updated_at در پاسخ این
+            // endpoint مصرف نمی‌شوند.
+            //
+            // تمام ستون‌های این جدول (به‌جز id) در دیتابیس NULLABLE هستند
+            // (schema.sql)، اما مدل Kotlin سمت کلاینت اغلب آن‌ها را non-null
+            // تعریف کرده — به‌خصوص netWeight/shortageWeight/excessWeight که
+            // برای رکوردهای «ورود» (هنوز باسکول نشده) واقعاً NULL هستند.
+            // Gson یک non-null String را بدون خطای فوری با null پر می‌کند و
+            // کرش وقتی رخ می‌دهد که همان مقدار به یک پارامتر non-null در
+            // لایه‌ی UI برسد (دقیقاً چیزی که در دیالوگ «بررسی و تأیید حواله»
+            // با رکوردهای در انتظار وزن‌کشی اتفاق می‌افتاد). COALESCE همینجا
+            // مقدار پیش‌فرض امن می‌دهد تا با قرارداد non-null کلاینت سازگار
+            // بماند.
+            $cargoStmt = $this->conn->prepare("SELECT id,
+                COALESCE(trackingNumber, '') AS trackingNumber,
+                COALESCE(numberOfPeople, 0) AS numberOfPeople,
+                COALESCE(username, '') AS username,
+                COALESCE(userType, '') AS userType,
+                COALESCE(entryTime, '') AS entryTime,
+                COALESCE(netWeight, 0) AS netWeight,
+                COALESCE(scaleReceiptNumber, '') AS scaleReceiptNumber,
+                COALESCE(shortageWeight, '0') AS shortageWeight,
+                COALESCE(excessWeight, '0') AS excessWeight,
+                exitTime,
+                exitDate,
+                COALESCE(status, '') AS status,
+                COALESCE(shipName, '') AS shipName,
+                COALESCE(loadingWarehouse, '') AS loadingWarehouse,
+                COALESCE(cargoType, '') AS cargoType,
+                COALESCE(shippingCompany, '') AS shippingCompany,
+                COALESCE(loadingQuotaNumber, 0) AS loadingQuotaNumber,
+                COALESCE(confirm, '') AS confirm,
+                confirmation
+                FROM CargoInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ? AND (status = 'ورود' OR (status = 'خروج' AND exitDate >= ? AND exitDate <= ?)) ORDER BY CASE WHEN status = 'ورود' THEN 1 ELSE 2 END, entryTime DESC");
             $cargoStmt->bind_param("ssssss", $quotaNumber, $shippingCompany, $warehouse, $cargoType, $yesterday, $today);
             $cargoStmt->execute();
             $cargoResult = $cargoStmt->get_result();

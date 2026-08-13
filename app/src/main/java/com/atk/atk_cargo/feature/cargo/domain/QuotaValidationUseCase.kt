@@ -9,7 +9,16 @@ import com.atk.atk_cargo.data.repository.ReportsRepository
 
 class QuotaValidationUseCase(private val repository: ReportsRepository) {
 
-    suspend fun validateQuotaStatusAndPercentage(initialInfo: InitialInfo): QuotaValidationResult {
+    companion object {
+        // فاصله‌ی ایمنی قبل از رسیدن دقیق به حد نصاب درصدی: وقتی «تناژ مجاز»
+        // باقی‌مانده به این مقدار یا کمتر برسد، دیگر حوالهٔ تازه پذیرفته
+        // نمی‌شود — چون یک محمولهٔ تک بعدی معمولاً چند تن است و می‌تواند
+        // به‌سادگی از حد نصاب رد شود. باید با CargoService::NEW_ENTRY_TONNAGE_BUFFER_KG
+        // (سمت سرور، ضامن واقعی) یکسان بماند.
+        const val NEW_ENTRY_TONNAGE_BUFFER_KG = 5000f
+    }
+
+    suspend fun validateQuotaStatusAndPercentage(initialInfo: InitialInfo, isNewCargo: Boolean): QuotaValidationResult {
         try {
             val quotaStatus = repository.checkQuotaStatus(
                 quotaNumber = initialInfo.loadingQuotaNumber.toString(),
@@ -37,8 +46,12 @@ class QuotaValidationUseCase(private val repository: ReportsRepository) {
                 if (quota != null && quota.isPercentageRestricted == true && quota.percentage != null) {
                     val percentageAmount = quota.totalTonnage * (quota.percentage / 100)
                     val remainingTonnage = quota.remainingTonnage
+                    val loadableTonnage = remainingTonnage - percentageAmount
 
                     if (remainingTonnage <= percentageAmount) {
+                        // دقیقاً به حد نصاب رسیده — کوتاژ کاملاً غیرفعال
+                        // می‌شود (رفتار قبلی، بدون تغییر). این باعث می‌شود
+                        // خروج حواله‌های موجود هم مسدود شود.
                         return QuotaValidationResult(
                             isValid = false,
                             isActive = false,
@@ -47,6 +60,19 @@ class QuotaValidationUseCase(private val repository: ReportsRepository) {
                             messageType = MessageType.ERROR,
                             quotaIdToToggle = quota.id,
                             warningMessage = "کوتاژ ${quota.number} به حد نصاب ${quota.percentage}% رسیده است و غیرفعال خواهد شد"
+                        )
+                    }
+
+                    // بافر هشدار زودهنگام: فقط ثبت حوالهٔ تازه را می‌بندد و
+                    // کوتاژ را غیرفعال نمی‌کند، پس خروج/به‌روزرسانی حواله‌های
+                    // از قبل ثبت‌شده حتی زیر این آستانه هم مجاز می‌ماند.
+                    if (isNewCargo && loadableTonnage <= NEW_ENTRY_TONNAGE_BUFFER_KG) {
+                        return QuotaValidationResult(
+                            isValid = false,
+                            isActive = true,
+                            percentageReached = false,
+                            message = "تناژ مجاز باقی‌مانده برای این کوتاژ کمتر از ${NEW_ENTRY_TONNAGE_BUFFER_KG.toInt()} کیلوگرم است. امکان ثبت حوالهٔ جدید وجود ندارد.",
+                            messageType = MessageType.ERROR
                         )
                     }
                 }

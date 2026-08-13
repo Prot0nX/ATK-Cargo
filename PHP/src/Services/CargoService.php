@@ -14,6 +14,14 @@ use App\Exceptions\ApiException;
 use App\Exceptions\ConflictException;
 
 class CargoService {
+    // فاصله‌ی ایمنی قبل از رسیدن دقیق به حد نصاب درصدی: وقتی «تناژ مجاز»
+    // باقی‌مانده به این مقدار یا کمتر برسد، دیگر حوالهٔ تازه پذیرفته نمی‌شود
+    // (نه اینکه دقیقاً صفر شود) — چون یک محمولهٔ تک بعدی معمولاً چند تن است
+    // و می‌تواند به‌سادگی از حد نصاب رد شود. فقط ثبت حوالهٔ جدید را می‌بندد؛
+    // خروج/به‌روزرسانی حواله‌های از قبل ثبت‌شده حتی زیر این آستانه هم مجاز
+    // است (کاربر باید بتواند تعهدات قبلی را تمام کند).
+    private const NEW_ENTRY_TONNAGE_BUFFER_KG = 5000.0;
+
     private CargoRepository $repo;
     private Logger $logger;
 
@@ -37,11 +45,13 @@ class CargoService {
             $currentTime = jdate("H:i");
             $currentDate = jdate("Y/m/d");
 
-            // ۰. کنترل‌های کوتاژ (فعال بودن، حد نصاب درصدی، تناژ موقت) — این
-            // سه بررسی قبلاً فقط سمت کلاینت (QuotaValidationUseCase) انجام
-            // می‌شدند؛ یعنی اپی که این درخواست‌ها را ارسال می‌کرد کافی بود این
-            // بررسی‌ها را دور بزند. اینجا همان کنترل‌ها روی سرور و قبل از هر
-            // نوشتنی تکرار می‌شوند تا واقعاً لازم‌الاجرا باشند.
+            // ۰. کنترل‌های کوتاژ (فعال بودن، تناژ موقت) — قبلاً فقط سمت کلاینت
+            // (QuotaValidationUseCase) انجام می‌شدند؛ یعنی اپی که این
+            // درخواست‌ها را ارسال می‌کرد کافی بود این بررسی‌ها را دور بزند.
+            // اینجا روی سرور و قبل از هر نوشتنی تکرار می‌شوند تا واقعاً
+            // لازم‌الاجرا باشند. بررسی حد نصاب درصدی/تناژ مجاز جداگانه و فقط
+            // برای ثبت حوالهٔ تازه در بخش ۳ انجام می‌شود (رجوع کنید به
+            // NEW_ENTRY_TONNAGE_BUFFER_KG).
             $quotaControl = $this->repo->findQuotaControlData(
                 $shipName,
                 $params['loadingWarehouse'],
@@ -50,22 +60,8 @@ class CargoService {
                 $loadingQuotaNumber
             );
 
-            if ($quotaControl) {
-                if (!(bool)$quotaControl['isActive']) {
-                    throw new ApiException('این کوتاژ غیرفعال است و امکان ثبت یا خروج حواله برای آن وجود ندارد.', 403);
-                }
-
-                $isPercentageRestricted = (bool)$quotaControl['is_enabled'];
-                $percentage = $quotaControl['percentage'] !== null ? (float)$quotaControl['percentage'] : null;
-                if ($isPercentageRestricted && $percentage !== null) {
-                    $totalTonnage = (float)$quotaControl['totalTonnage'];
-                    $loadedTonnage = (float)$quotaControl['loadedTonnage'];
-                    $remainingTonnage = $totalTonnage - $loadedTonnage;
-                    $percentageAmount = $totalTonnage * ($percentage / 100);
-                    if ($remainingTonnage <= $percentageAmount) {
-                        throw new ApiException("این کوتاژ به حد نصاب {$percentage}% رسیده است و امکان ثبت/به‌روزرسانی حواله برای آن وجود ندارد.", 403);
-                    }
-                }
+            if ($quotaControl && !(bool)$quotaControl['isActive']) {
+                throw new ApiException('این کوتاژ غیرفعال است و امکان ثبت یا خروج حواله برای آن وجود ندارد.', 403);
             }
 
             $tempTonnageCheck = $this->repo->findTempTonnage(
@@ -161,6 +157,29 @@ class CargoService {
 
             // ۳. درج حواله جدید یا به‌روزرسانی حواله موجود
             if ($shouldInsertNew) {
+                // فقط ثبت حوالهٔ تازه با بافر تناژ کنترل می‌شود؛ خروج/به‌روزرسانی
+                // حواله‌های از قبل ثبت‌شده در شاخهٔ else پایین‌تر است و این
+                // بررسی را نمی‌بیند، پس حتی اگر تناژ مجاز زیر بافر افتاده باشد
+                // کاربر می‌تواند تعهدات قبلی را تمام کند.
+                if ($quotaControl) {
+                    $isPercentageRestricted = (bool)$quotaControl['is_enabled'];
+                    $percentage = $quotaControl['percentage'] !== null ? (float)$quotaControl['percentage'] : null;
+                    if ($isPercentageRestricted && $percentage !== null) {
+                        $totalTonnage = (float)$quotaControl['totalTonnage'];
+                        $loadedTonnage = (float)$quotaControl['loadedTonnage'];
+                        $remainingTonnage = $totalTonnage - $loadedTonnage;
+                        $percentageAmount = $totalTonnage * ($percentage / 100);
+                        $loadableTonnage = $remainingTonnage - $percentageAmount;
+                        if ($loadableTonnage <= self::NEW_ENTRY_TONNAGE_BUFFER_KG) {
+                            $bufferKg = number_format(self::NEW_ENTRY_TONNAGE_BUFFER_KG, 0);
+                            throw new ApiException(
+                                "تناژ مجاز باقی‌مانده برای این کوتاژ کمتر از {$bufferKg} کیلوگرم است (حد نصاب {$percentage}%). امکان ثبت حوالهٔ جدید وجود ندارد.",
+                                403
+                            );
+                        }
+                    }
+                }
+
                 $numberOfPeople = filter_var($params['numberOfPeople'], FILTER_VALIDATE_INT);
                 if ($numberOfPeople === false || $numberOfPeople < 1) {
                     throw new ApiException("تعداد نفرات باید عددی بزرگتر از صفر باشد", 400);

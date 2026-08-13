@@ -264,16 +264,22 @@ class CargoRepository {
         return $res && ($affected > 0);
     }
 
-    public function confirmCargo(int $cargoId, string $username, string $userType): array {
-        $query = "UPDATE CargoInfo 
-                  SET confirm = 'تائید شده', 
-                      confirm_username = ?, 
-                      confirm_usertype = ?, 
-                      updated_at = NOW() 
-                  WHERE id = ? AND (confirm IS NULL OR confirm != 'تائید شده')";
+    public function confirmCargo(int $cargoId, string $username, string $userType, string $loadingQuotaNumber, string $shipName): array {
+        // loadingQuotaNumber/shipName در WHERE (نه فقط id) تا کاربری که روی
+        // یک کوتاژ/کشتی مجاز است نتواند با شماره‌گذاری متوالی id حواله‌های
+        // خارج از دامنه‌ی خودش را تأیید کند (IDOR). status='ورود' هم چون
+        // کلاینت دکمه‌ی تأیید را فقط برای همین وضعیت نشان می‌دهد؛ سرور باید
+        // همان قید را واقعاً اعمال کند، نه فقط UI.
+        $query = "UPDATE CargoInfo
+                  SET confirm = 'تائید شده',
+                      confirm_username = ?,
+                      confirm_usertype = ?,
+                      updated_at = NOW()
+                  WHERE id = ? AND loadingQuotaNumber = ? AND shipName = ?
+                        AND status = 'ورود' AND (confirm IS NULL OR confirm != 'تائید شده')";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) return ['success' => false, 'affected' => 0];
-        $stmt->bind_param("ssi", $username, $userType, $cargoId);
+        $stmt->bind_param("ssiss", $username, $userType, $cargoId, $loadingQuotaNumber, $shipName);
         $stmt->execute();
         $affected = $stmt->affected_rows;
         $stmt->close();

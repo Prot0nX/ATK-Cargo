@@ -61,7 +61,6 @@ import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.data.model.CargoInfo
-import com.atk.atk_cargo.data.model.InitialInfo
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.feature.cargo_details.presentation.components.CargoDetailsDialog
 import com.atk.atk_cargo.feature.cargo_details.presentation.components.CargoListSection
@@ -75,7 +74,6 @@ import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
-import java.net.URLDecoder
 import kotlin.time.Duration.Companion.milliseconds
 
 private fun refreshData(
@@ -95,12 +93,24 @@ private fun refreshData(
     )
 }
 
+private fun parseErrorMessage(errorBody: String?): String? {
+    if (errorBody.isNullOrBlank()) return null
+    return try {
+        com.google.gson.JsonParser.parseString(errorBody)
+            .asJsonObject.get("message")?.asString
+    } catch (_: Exception) {
+        null
+    }
+}
+
 suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): Result<String> {
     return try {
         val requestBody = mapOf(
             "id" to (info.id?.toString() ?: "0"),
             "username" to username,
-            "userType" to userType
+            "userType" to userType,
+            "loadingQuotaNumber" to info.loadingQuotaNumber,
+            "shipName" to info.shipName
         )
 
         val response = RetrofitClient.apiService.confirmCargo(requestBody)
@@ -110,10 +120,14 @@ suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): R
             val message = responseBody?.get("message")?.asString ?: "عملیات با موفقیت انجام شد"
             Result.success(message)
         } else {
-            Result.failure(Exception("خطا در ارتباط با سرور: ${response.code()}"))
+            // سرور برای خطاهای واقعی (مثل ۴۰۹ تأیید تکراری) پیام فارسی گویا
+            // در بدنه‌ی خطا می‌فرستد؛ قبلاً این پیام دور ریخته می‌شد و کاربر
+            // فقط یک عدد کد HTTP بی‌معنی می‌دید.
+            val serverMessage = parseErrorMessage(response.errorBody()?.string())
+            Result.failure(Exception(serverMessage ?: "خطا در ارتباط با سرور: ${response.code()}"))
         }
     } catch (e: Exception) {
-        e.printStackTrace()
+        Log.e("CargoDetailsScreen", "Error confirming cargo", e)
         Result.failure(e)
     }
 }
@@ -153,63 +167,6 @@ suspend fun handleCargoConfirmation(
         viewModel.showMessage("خطای غیرمنتظره: ${e.message}", MessageType.ERROR)
     }
 }
-suspend fun handleQuotaChangeInDetails(
-    quotaCode: String,
-    currentInitialInfo: InitialInfo?,
-    viewModel: CargoViewModel,
-    onSuccess: (String) -> Unit,
-    onError: (String) -> Unit
-) {
-    if (currentInitialInfo == null) {
-        onError("اطلاعات اولیه یافت نشد")
-        return
-    }
-
-    try {
-        val response = viewModel.checkQuotaExistenceCargo(quotaCode, currentInitialInfo.shipName)
-        if (response.exists && response.matchingQuotas.isNotEmpty()) {
-            val selectedQuota = response.matchingQuotas.first()
-            if (selectedQuota.shipName == currentInitialInfo.shipName) {
-                if (selectedQuota.isActive) {
-                    val fullQuotaNumber = selectedQuota.quotaNumber
-                    val fullQuotaInt = fullQuotaNumber.toIntOrNull() ?: 0
-                    val newInitialInfo = InitialInfo(
-                        shipName = selectedQuota.shipName,
-                        loadingWarehouse = selectedQuota.warehouse,
-                        cargoType = selectedQuota.cargoType,
-                        shippingCompany = selectedQuota.shippingCompany,
-                        cargoWeight = 0f,
-                        loadingQuotaNumber = fullQuotaInt,
-                        remainingWeight = 0f,
-                        totalNetWeight = 0f,
-                        averageNetWeight = 0f,
-                        remainingServices = 0
-                    )
-                    viewModel.setInitialInfo(newInitialInfo)
-                    viewModel.loadCargoInfoList(
-                        quotaNumber = fullQuotaNumber,
-                        shippingCompany = selectedQuota.shippingCompany,
-                        warehouse = selectedQuota.warehouse,
-                        cargoType = selectedQuota.cargoType,
-                        onComplete = {
-                            viewModel.updateInfoValues()
-                            onSuccess(fullQuotaNumber)
-                        }
-                    )
-                } else {
-                    onError("کوتاژ $quotaCode در حال حاضر غیرفعال است")
-                }
-            } else {
-                onError("خطا: کوتاژ $quotaCode متعلق به کشتی ${selectedQuota.shipName} است، نه ${currentInitialInfo.shipName}")
-            }
-        } else {
-            onError("کوتاژ $quotaCode برای کشتی ${currentInitialInfo.shipName} یافت نشد")
-        }
-    } catch (e: Exception) {
-        onError("خطا در بررسی کوتاژ: ${e.message}")
-    }
-}
-
 @Composable
 fun CargoDetailsScreen(
     navController: NavController,
@@ -242,12 +199,18 @@ fun CargoDetailsScreen(
     var snackbarMessage by remember { mutableStateOf<SnackbarMessage?>(null) }
     var isFabExpanded by remember { mutableStateOf(false) }
     var showQuotaEntryDialog by remember { mutableStateOf(false) }
+    var isConfirmingCargo by remember { mutableStateOf(false) }
 
     fun showUpdateMessage(message: String, type: MessageType) {
         snackbarMessage = SnackbarMessage(message, type)
     }
     
-    val groupedCargoList by remember(filteredCargoInfoList) {
+    // remember بدون کلید: derivedStateOf خودش خواندن filteredCargoInfoList را
+    // ردیابی می‌کند و فقط با تغییر واقعی state دوباره محاسبه می‌شود. دادن
+    // filteredCargoInfoList به‌عنوان کلید remember باعث می‌شد با هر تغییر
+    // لیست یک derivedStateOf کاملاً جدید ساخته شود — دقیقاً همان هزینه‌ای که
+    // derivedStateOf قرار بود از آن جلوگیری کند.
+    val groupedCargoList by remember {
         derivedStateOf {
             filteredCargoInfoList.groupBy { it.confirm == "تائید شده" }
                 .toSortedMap(compareBy { it })
@@ -273,16 +236,16 @@ fun CargoDetailsScreen(
 
     LaunchedEffect(Unit) {
         if (quotaNumber.isNotBlank()) {
-            val decodedShippingCompany = URLDecoder.decode(shippingCompany, "UTF-8")
-            val decodedWarehouse = URLDecoder.decode(warehouse, "UTF-8")
-            val decodedcargoType = URLDecoder.decode(cargoType, "UTF-8")
-
+            // پارامترهای ورودی همین‌جا decode نمی‌شوند: ReportsNavigation از
+            // قبل decode شده تحویل می‌دهد و polling/refresh/تأیید هم مقدار
+            // خام را می‌فرستند؛ decode دوباره فقط اینجا باعث ناسازگاری بین
+            // بارگذاری اول و بروزرسانی‌های بعدی می‌شد (و روی '%' کرش می‌کرد).
             viewModel.loadCargoInfoList(
                 quotaNumber = quotaNumber,
-                shippingCompany = decodedShippingCompany,
-                warehouse = decodedWarehouse,
-                cargoType = decodedcargoType,
-                onComplete = { 
+                shippingCompany = shippingCompany,
+                warehouse = warehouse,
+                cargoType = cargoType,
+                onComplete = {
                     isLoading = false
                     viewModel.updateInfoValues()
                 }
@@ -303,6 +266,10 @@ fun CargoDetailsScreen(
             while (true) {
                 delay(30000.milliseconds)
                 if (quotaNumber.isNotBlank()) {
+                    // برخلاف refresh دستی، این بروزرسانی خودکار هر ۳۰ ثانیه
+                    // است و کاربر درخواستش نکرده؛ نمایش اسنک‌بار «موفقیت» در
+                    // هر تیک باعث می‌شد کاربر یاد بگیرد اسنک‌بارها را نادیده
+                    // بگیرد و پیام خطای واقعی هم همان‌جا گم شود.
                     refreshData(
                         viewModel = viewModel,
                         quotaNumber = quotaNumber,
@@ -311,7 +278,6 @@ fun CargoDetailsScreen(
                         cargoType = cargoType
                     ) {
                         viewModel.updateInfoValues()
-                        showUpdateMessage("اطلاعات با موفقیت بروزرسانی شد", MessageType.SUCCESS)
                     }
                 }
             }
@@ -456,23 +422,31 @@ fun CargoDetailsScreen(
     selectedCargoInfo?.let { info ->
         CargoDetailsDialog(
             info = info,
-            onDismiss = { selectedCargoInfo = null },
+            onDismiss = { if (!isConfirmingCargo) selectedCargoInfo = null },
             onConfirm = {
-                coroutineScope.launch {
-                    handleCargoConfirmation(
-                        viewModel = viewModel,
-                        info = info,
-                        username = username,
-                        userType = userType,
-                        quotaNumber = quotaNumber,
-                        shippingCompany = shippingCompany,
-                        warehouse = warehouse,
-                        cargoType = cargoType
-                    )
-                    selectedCargoInfo = null
+                if (!isConfirmingCargo) {
+                    isConfirmingCargo = true
+                    coroutineScope.launch {
+                        try {
+                            handleCargoConfirmation(
+                                viewModel = viewModel,
+                                info = info,
+                                username = username,
+                                userType = userType,
+                                quotaNumber = quotaNumber,
+                                shippingCompany = shippingCompany,
+                                warehouse = warehouse,
+                                cargoType = cargoType
+                            )
+                            selectedCargoInfo = null
+                        } finally {
+                            isConfirmingCargo = false
+                        }
+                    }
                 }
             },
-            showConfirmButton = info.status == "ورود" && info.confirm != "تائید شده"
+            showConfirmButton = info.status == "ورود" && info.confirm != "تائید شده",
+            isConfirming = isConfirmingCargo
         )
     }
 
@@ -481,23 +455,13 @@ fun CargoDetailsScreen(
             showDialog = true,
             onDismiss = { showQuotaEntryDialog = false },
             onConfirm = { selectedQuota ->
+                // QuotaEntryDialog پیش از صدا زدن onConfirm خودش وجود کوتاژ،
+                // تعلق آن به همین کشتی و فعال بودنش را بررسی کرده؛ تکرار آن
+                // بررسی‌ها اینجا لازم نیست. switchQuota به‌جای ساختن دستی یک
+                // InitialInfo ناقص (با صفرهای موقت)، اطلاعات واقعی و کامل
+                // کوتاژ را از سرور می‌خواند.
+                viewModel.switchQuota(selectedQuota)
                 showQuotaEntryDialog = false
-                coroutineScope.launch {
-                    isLoading = true
-                    handleQuotaChangeInDetails(
-                        quotaCode = selectedQuota.quotaNumber,
-                        currentInitialInfo = initialInfo,
-                        viewModel = viewModel,
-                        onSuccess = { fullQuota ->
-                            isLoading = false
-                            showUpdateMessage("اطلاعات کوتاژ $fullQuota با موفقیت بارگذاری شد", MessageType.SUCCESS)
-                        },
-                        onError = { errorMsg ->
-                            isLoading = false
-                            showUpdateMessage(errorMsg, MessageType.ERROR)
-                        }
-                    )
-                }
             },
             shipName = initialInfo?.shipName ?: "",
             currentQuota = initialInfo?.loadingQuotaNumber?.toString() ?: quotaNumber,

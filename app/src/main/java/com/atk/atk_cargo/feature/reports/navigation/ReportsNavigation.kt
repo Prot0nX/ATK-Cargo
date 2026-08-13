@@ -11,7 +11,6 @@ import com.atk.atk_cargo.feature.cargo_details.presentation.CargoDetailsScreen
 import com.atk.atk_cargo.ui.screens.ManageReportsScreen
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlinx.serialization.Serializable
-import java.net.URLDecoder
 
 @Serializable
 object ManageShipsRoute
@@ -54,9 +53,13 @@ fun NavGraphBuilder.cargoDetailsScreen(navController: NavController) {
         CargoDetailsScreen(
             navController = navController,
             quotaNumber = route.quotaNumber,
-            shippingCompany = route.shippingCompany?.let { URLDecoder.decode(it, "UTF-8") } ?: "",
-            warehouse = route.warehouse?.let { URLDecoder.decode(it, "UTF-8") } ?: "",
-            cargoType = route.cargoType?.let { URLDecoder.decode(it, "UTF-8") } ?: "",
+            // toRoute() از قبل مقادیر را decode می‌کند؛ decode دستی دوباره
+            // اینجا (به‌علاوه‌ی یک لایه‌ی سوم در خود CargoDetailsScreen) روی
+            // مقادیر حاوی '%' کرش می‌کرد و بین بارگذاری اول و بروزرسانی‌های
+            // بعدی (که مقدار خام می‌فرستند) ناسازگاری ایجاد می‌کرد.
+            shippingCompany = route.shippingCompany ?: "",
+            warehouse = route.warehouse ?: "",
+            cargoType = route.cargoType ?: "",
             repository = repository
         )
     }
