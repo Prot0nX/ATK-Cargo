@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    قبلاً این فایل با path="." کل حافظه‌ی داخلی/خارجی برنامه را در معرض
+    FileProvider می‌گذاشت (C-3). محدود شده به دقیقاً همان زیرپوشه‌هایی
+    که برنامه واقعاً از طریق FileProvider به اشتراک می‌گذارد:
+      - updates/  → دانلود APK آپدیت (UpdateManager) در حافظه داخلی
+      - Documents/ → خروجی PDF گزارش‌ها (ReportsViewModel) در حافظه خارجی اختصاصی برنامه
+-->
 <paths>
-    <external-cache-path
-        name="external_cache"
-        path="." />
     <cache-path
-        name="cache"
-        path="." />
-    <external-path
-        name="external"
-        path="." />
+        name="updates"
+        path="updates/" />
+    <external-files-path
+        name="documents"
+        path="Documents/" />
 </paths>

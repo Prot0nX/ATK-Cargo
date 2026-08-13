@@ -135,13 +135,15 @@ class AuthController {
 
         $username = $this->request->get('username');
         $deviceId = $this->request->get('deviceId');
-        
+        $sessionToken = $this->request->get('sessionToken');
+
         if (!$username) {
             Response::error('نام کاربری الزامی است.', 400);
         }
 
         $username = InputValidator::sanitize((string)$username);
         $deviceId = $deviceId ? InputValidator::sanitize((string)$deviceId) : null;
+        $sessionToken = $sessionToken ? InputValidator::sanitize((string)$sessionToken) : null;
 
         // دریافت اطلاعات کاربر برای استخراج userType
         $userRepo = new \App\Repositories\UserRepository();
@@ -155,7 +157,12 @@ class AuthController {
             ], 200); // 200 برای پایداری اندروید
         }
 
-        $isActive = $this->sessionService->isSessionActive($username, $deviceId);
+        // اعتبارسنجی با توکن نشست (نه فقط username+deviceId که هیچ‌کدام سرّی
+        // نیستند) — همان گیت isValidToken که AuthenticatesRequests برای سایر
+        // APIهای تجاری استفاده می‌کند؛ بدون توکن معتبر، نشست نامعتبر است (C-5)
+        $isActive = ($deviceId && $sessionToken)
+            ? $this->sessionService->isValidToken($username, $deviceId, $sessionToken)
+            : false;
 
         if ($isActive) {
             Response::json([

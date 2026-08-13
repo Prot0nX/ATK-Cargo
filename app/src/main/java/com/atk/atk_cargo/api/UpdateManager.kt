@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.core.content.FileProvider
-import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,9 +31,13 @@ import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import kotlin.math.pow
 
+// یک singleton سطح پروسه در Koin (نه یک ViewModel واقعی متصل به چرخه‌حیات یک
+// Activity/Fragment خاص) — قبلاً از ViewModel ارث می‌برد که چرخه‌حیات آن با
+// دامنه‌ی واقعی این کلاس همخوانی نداشت (S-9)؛ onCleared() دستی و بیرون از
+// framework از StartupViewModel.onCleared() صدا زده می‌شود
 class UpdateManager(
     context: Context
-) : ViewModel() {
+) {
     private val appContext: Context = context.applicationContext
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -63,7 +66,10 @@ class UpdateManager(
 
     private var downloadTimestamp: Long = 0
     private var downloadJob: Job? = null
-    private var downloadedBytes: Long = 0
+    // AtomicLong به‌جای Long ساده + synchronized دستی — نویسنده‌ها از چند coroutine
+    // موازی (هر chunk) و خواننده‌ها از یک coroutine دیگر (حلقه‌ی گزارش پیشرفت) روی
+    // این مقدار کار می‌کنند؛ Long ساده نه atomic است نه volatile (M-11)
+    private val downloadedBytes = java.util.concurrent.atomic.AtomicLong(0)
     private var totalBytes: Long = 0
     private var lastProgress: Float = 0f
     private lateinit var currentDownloadFile: File
@@ -128,10 +134,12 @@ class UpdateManager(
             try {
                 val currentAppVersion = getCurrentAppVersion()
                 val encodedVersion = URLEncoder.encode(currentAppVersion, "UTF-8")
-                val encodedApiKey = URLEncoder.encode(Constants.API_KEY, "UTF-8")
 
+                // کلید API در هدر (نه query string) — پارامترهای GET در لاگ دسترسی
+                // وب‌سرور و هر پروکسی میانی ثبت می‌شوند (S-3)
                 val request = Request.Builder()
-                    .url("${Constants.BASE_URL}/check_update.php?current_version=$encodedVersion&api_key=$encodedApiKey")
+                    .url("${Constants.BASE_URL}/check_update.php?current_version=$encodedVersion")
+                    .addHeader("X-Api-Key", Constants.API_KEY)
                     .build()
 
                 client.newCall(request).execute().use { response ->
@@ -163,15 +171,21 @@ class UpdateManager(
                                 jsonResponse.optString("latestVersion", "")
                             }
 
-                            val hasUpdate = if (latestVersion.isNotEmpty()) {
-                                // مقایسه نسخه سرور با نسخه فعلی
-                                val comparisonResult = compareVersions(latestVersion, currentAppVersion)
-                                comparisonResult > 0
-                            } else {
-                                false
-                            }
+                            // مقایسه محلی به‌عنوان fallback وقتی سرور صراحتاً has_update نمی‌فرستد؛
+                            // در حالت عادی تصمیم سرور (منبع حقیقت — می‌تواند excluded_versions
+                            // و سیاست‌های دیگر را هم لحاظ کند) اعتبار دارد، نه محاسبه محلی (S-1)
+                            val locallyComputedHasUpdate = latestVersion.isNotEmpty() &&
+                                    compareVersions(latestVersion, currentAppVersion) > 0
+                            val hasUpdate = jsonResponse.optBoolean(
+                                "has_update",
+                                jsonResponse.optBoolean("hasUpdate", locallyComputedHasUpdate)
+                            )
 
                             if (hasUpdate) {
+                                // پاک کردن هر وضعیت Error/Paused باقی‌مانده از یک تلاش قبلی —
+                                // در singleton این StateFlow ماندگار است و نباید یک خطای کهنه
+                                // را روی دیالوگ آپدیت تازه‌کشف‌شده نشان دهد (S-9)
+                                _downloadState.value = DownloadState.Idle
                                 // پارس کردن version_constraints
                                 val versionConstraints = jsonResponse.optJSONObject("version_constraints")
                                 val excludedVersionsList = versionConstraints?.optJSONArray("excluded_versions")?.let { array ->
@@ -193,28 +207,16 @@ class UpdateManager(
                                 }
                                 val forceUpdate = jsonResponse.optBoolean("force_update",
                                     jsonResponse.optBoolean("forceUpdate", false))
-                                var updateSize = jsonResponse.optString("update_size", "").ifEmpty {
+                                // اکنون که سرور update_size را در سطح ریشه پاسخ می‌فرستد (S-1)، دیگر
+                                // نیازی به یک درخواست HEAD جبرانی برای حجم فایل نیست — یک RTT کامل
+                                // کمتر در مسیر بررسی آپدیت
+                                val updateSize = jsonResponse.optString("update_size", "").ifEmpty {
                                     jsonResponse.optString("updateSize", "0")
                                 }
                                 val releaseDate = jsonResponse.optString("release_date", "").ifEmpty {
                                     jsonResponse.optString("releaseDate", "")
                                 }
-                                // تلاش برای دریافت اندازه دقیق فایل از سرآیندهای سرور
-                                try {
-                                    if (downloadUrl.isNotEmpty()) {
-                                        val headRequest = Request.Builder()
-                                            .url(downloadUrl)
-                                            .head()
-                                            .build()
-                                        client.newCall(headRequest).execute().use { headResp ->
-                                            val contentLength = headResp.header("Content-Length")?.toLongOrNull()
-                                            if (contentLength != null && contentLength > 0L) {
-                                                val mb = (contentLength.toDouble() / (1024.0 * 1024.0))
-                                                updateSize = String.format("%.1f", mb)
-                                            }
-                                        }
-                                    }
-                                } catch (_: Exception) { /* در صورت خطا، مقدار قبلی حفظ می‌شود */ }
+                                val sha256 = jsonResponse.optString("sha256", "")
 
                                 _updateInfo.value = UpdateInfo(
                                     latestVersion = latestVersion,
@@ -227,7 +229,8 @@ class UpdateManager(
                                     releaseDate = releaseDate,
                                     minAndroidVersion = versionConstraints?.optInt("min_android_version", 21) ?: 21,
                                     minAppVersion = versionConstraints?.optString("min_app_version", "1.0") ?: "1.0",
-                                    excludedVersions = excludedVersionsList
+                                    excludedVersions = excludedVersionsList,
+                                    sha256 = sha256
                                 )
                             }
                             VersionCheckResult(isVersionAllowed, hasUpdate)
@@ -305,11 +308,13 @@ class UpdateManager(
 
                 _downloadState.value = DownloadState.Downloading
                 downloadTimestamp = System.currentTimeMillis()
-                currentDownloadFile = File(appContext.externalCacheDir, "updates/update_${downloadTimestamp}.apk")
+                // حافظه‌ی داخلی (نه externalCacheDir) — خارج از دسترس سایر برنامه‌ها،
+                // برخلاف حافظه‌ی خارجی که پنجره‌ی TOCTOU برای جایگزینی APK باز می‌گذاشت (C-3)
+                currentDownloadFile = File(appContext.cacheDir, "updates/update_${downloadTimestamp}.apk")
                 currentDownloadFile.parentFile?.mkdirs()
 
                 if (startPosition == 0L) {
-                    downloadedBytes = 0
+                    downloadedBytes.set(0)
                     totalBytes = getFileSize(downloadUrl).also { size ->
                         if (size <= 0) throw IOException("Invalid content length: $size")
                     }
@@ -328,43 +333,71 @@ class UpdateManager(
                 }
 
                 var lastUpdateTime = System.currentTimeMillis()
-                var lastDownloadedBytes = downloadedBytes
+                var lastDownloadedBytes = downloadedBytes.get()
 
                 while (isActive && downloadJobs.any { it.isActive }) {
                     val currentTime = System.currentTimeMillis()
                     if (currentTime - lastUpdateTime >= 100) {
+                        val currentDownloadedBytes = downloadedBytes.get()
                         val timeSpent = (currentTime - lastUpdateTime) / 1000f
-                        val speed = ((downloadedBytes - lastDownloadedBytes) / timeSpent) / 1024
-                        val progress = (downloadedBytes.toFloat() / totalBytes.toFloat()) * 100
+                        val speed = ((currentDownloadedBytes - lastDownloadedBytes) / timeSpent) / 1024
+                        val progress = (currentDownloadedBytes.toFloat() / totalBytes.toFloat()) * 100
                         lastProgress = progress
 
                         _downloadProgress.value = DownloadProgress(
                             progress = progress,
-                            downloadedSize = formatFileSize(downloadedBytes),
+                            downloadedSize = formatFileSize(currentDownloadedBytes),
                             totalSize = formatFileSize(totalBytes),
                             speed = String.format("%.1f", speed) to "KB/s"
                         )
 
                         lastUpdateTime = currentTime
-                        lastDownloadedBytes = downloadedBytes
+                        lastDownloadedBytes = currentDownloadedBytes
                     }
                     delay(100)
                 }
 
                 downloadJobs.awaitAll()
 
-                if (downloadedBytes >= totalBytes) {
-                    _downloadState.value = DownloadState.Completed
+                if (downloadedBytes.get() >= totalBytes) {
+                    // اعتبارسنجی SHA-256 قبل از اعلام Completed — جلوگیری از نصب فایلی
+                    // که ناقص/دستکاری‌شده دانلود شده یا در طول دانلود (به‌ویژه روی
+                    // شبکه‌های عمومی/فیلترشده) دستکاری شده است (C-3)
+                    val expectedSha256 = _updateInfo.value?.sha256.orEmpty()
+                    if (expectedSha256.isNotEmpty() && !verifyFileSha256(currentDownloadFile, expectedSha256)) {
+                        currentDownloadFile.delete()
+                        _downloadState.value = DownloadState.Error("فایل دانلودشده معتبر نیست (عدم تطابق هش)")
+                    } else {
+                        _downloadState.value = DownloadState.Completed
+                    }
                 }
             } catch (_: CancellationException) {
                 _downloadState.value = DownloadState.Paused(
-                    downloadedBytes = downloadedBytes,
+                    downloadedBytes = downloadedBytes.get(),
                     totalBytes = totalBytes,
                     progress = lastProgress
                 )
             } catch (e: Exception) {
                 handleDownloadError(e)
             }
+        }
+    }
+
+    private fun verifyFileSha256(file: File, expectedHash: String): Boolean {
+        return try {
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            file.inputStream().use { input ->
+                val buffer = ByteArray(256 * 1024)
+                var bytesRead: Int
+                while (input.read(buffer).also { bytesRead = it } != -1) {
+                    digest.update(buffer, 0, bytesRead)
+                }
+            }
+            val actualHash = digest.digest().joinToString("") { "%02x".format(it) }
+            actualHash.equals(expectedHash.trim(), ignoreCase = true)
+        } catch (e: Exception) {
+            Log.e("UpdateManager_Log", "خطا در محاسبه SHA-256: ${e.message}", e)
+            false
         }
     }
 
@@ -432,9 +465,7 @@ class UpdateManager(
                         var bytesRead: Int
                         while (input.read(buffer).also { bytesRead = it } != -1) {
                             file.write(buffer, 0, bytesRead)
-                            synchronized(this) {
-                                downloadedBytes += bytesRead
-                            }
+                            downloadedBytes.addAndGet(bytesRead.toLong())
                         }
                     }
                 }
@@ -477,7 +508,7 @@ class UpdateManager(
     fun pauseDownload() {
         downloadJob?.cancel()
         _downloadState.value = DownloadState.Paused(
-            downloadedBytes = downloadedBytes,
+            downloadedBytes = downloadedBytes.get(),
             totalBytes = totalBytes,
             progress = lastProgress
         )
@@ -487,12 +518,12 @@ class UpdateManager(
         when (val currentState = _downloadState.value) {
             is DownloadState.Paused -> {
                 // بازیابی وضعیت قبلی دانلود
-                downloadedBytes = currentState.downloadedBytes
+                downloadedBytes.set(currentState.downloadedBytes)
                 totalBytes = currentState.totalBytes
                 lastProgress = currentState.progress
 
                 _updateInfo.value?.downloadUrl?.let { url ->
-                    startDownload(url, downloadedBytes)
+                    startDownload(url, downloadedBytes.get())
                 }
             }
             else -> {
@@ -503,7 +534,7 @@ class UpdateManager(
 
     fun cancelDownload() {
         downloadJob?.cancel()
-        downloadedBytes = 0
+        downloadedBytes.set(0)
         totalBytes = 0
         lastProgress = 0f
         _downloadState.value = DownloadState.Idle
@@ -517,7 +548,7 @@ class UpdateManager(
         return if (::currentDownloadFile.isInitialized && currentDownloadFile.exists()) {
             currentDownloadFile
         } else {
-            File(appContext.externalCacheDir, "updates/update_${downloadTimestamp}.apk")
+            File(appContext.cacheDir, "updates/update_${downloadTimestamp}.apk")
         }
     }
 
@@ -553,6 +584,11 @@ class UpdateManager(
 
             if (intent.resolveActivity(appContext.packageManager) != null) {
                 appContext.startActivity(intent)
+                // بازگشت به Idle بعد از راه‌اندازی موفق Intent نصب — وگرنه چون
+                // downloadState یک StateFlow ماندگار در singleton است، هر بازسازی
+                // Activity (چرخش صفحه، برگشت از صفحه‌ی نصب) دوباره Completed را
+                // می‌دید و installUpdate را از نو صدا می‌زد (S-9)
+                _downloadState.value = DownloadState.Idle
             } else {
                 throw Exception("برنامه‌ای برای نصب فایل APK یافت نشد")
             }
@@ -579,14 +615,14 @@ class UpdateManager(
             else -> "خطا در دانلود: ${e.message}"
         }
         _downloadState.value = DownloadState.Error(message)
-        if (::currentDownloadFile.isInitialized && downloadedBytes == 0L) {
+        if (::currentDownloadFile.isInitialized && downloadedBytes.get() == 0L) {
             currentDownloadFile.delete()
         }
     }
 
     private fun cleanupDownloadFiles() {
         try {
-            val updatesDir = File(appContext.externalCacheDir, "updates")
+            val updatesDir = File(appContext.cacheDir, "updates")
             if (updatesDir.exists()) {
                 updatesDir.listFiles()?.forEach { file ->
                     if (file.name != "update_${downloadTimestamp}.apk") {
@@ -599,8 +635,7 @@ class UpdateManager(
         }
     }
 
-    public override fun onCleared() {
-        super.onCleared()
+    fun onCleared() {
         downloadJob?.cancel()
         cleanupDownloadFiles()
     }

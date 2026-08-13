@@ -13,9 +13,12 @@ try {
     $controller->checkSession();
 } catch (Exception $e) {
     error_log("Error in check_session.php wrapper: " . $e->getMessage());
+    // ۵۰۳ (نه ۲۰۰) — کلاینت اندروید بین «خطای گذرای سرور» و «رد صریح نشست» تفاوت
+    // می‌گذارد و فقط حالت دوم را fail-closed می‌کند؛ ۲۰۰ باعث خروج اجباری همه
+    // کاربران با هر قطعی موقت دیتابیس/سرور می‌شد
     Response::json([
         'success' => false,
         'message' => 'خطایی در سرور رخ داده است.',
         'userType' => null
-    ], 200); // 200 جهت پایداری با کلاینت اندروید
+    ], 503);
 }
