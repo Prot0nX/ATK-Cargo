@@ -88,7 +88,13 @@ import kotlinx.coroutines.delay
 fun FloatingActionButton(
     onRealTimeLoadingClick: () -> Unit,
     onAdvancedSearchClick: () -> Unit,
-    onAnalyticsClick: () -> Unit,
+    // A-1 (گزارش تحلیل جامع عملیات): این دکمه قبلاً بدون هیچ شرطی به همه
+    // کاربران نشان داده می‌شد، حتی کسانی که مجوز view_reports را ندارند —
+    // با اینکه سرور الان همین مجوز را گیت می‌کند (403 برمی‌گرداند)، تجربه
+    // بهتر این است که کاربر بدون مجوز اصلاً این گزینه را نبیند، نه اینکه با
+    // خطا مواجه شود. nullable شد تا caller بتواند بر اساس مجوز کاربر آن را
+    // اصلاً ارائه ندهد، هم‌الگو با onQuotaManagementClick/onDateRangeClick.
+    onAnalyticsClick: (() -> Unit)? = null,
     onDateRangeClick: (() -> Unit)? = null,
     onQuotaManagementClick: (() -> Unit)? = null
 ) {
@@ -180,13 +186,15 @@ fun FloatingActionButton(
                                 onClick = onAdvancedSearchClick
                             )
                         )
-                        add(
-                            FabItem(
-                                icon = Icons.Default.Analytics,
-                                label = "آمار جامع",
-                                onClick = onAnalyticsClick
+                        onAnalyticsClick?.let { analyticsClick ->
+                            add(
+                                FabItem(
+                                    icon = Icons.Default.Analytics,
+                                    label = "آمار جامع",
+                                    onClick = analyticsClick
+                                )
                             )
-                        )
+                        }
                         onQuotaManagementClick?.let { quotaManagementClick ->
                             add(
                                 FabItem(

@@ -1,7 +1,7 @@
 -- ============================================================
 -- ATK-Cargo Database Schema Exporter
--- Database Target: cargo_test
--- Exported Date  : 2026-08-13 05:23:16
+-- Database Target: atk_cargo
+-- Exported Date  : 2026-08-13 16:05:23
 -- ============================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
@@ -42,8 +42,10 @@ CREATE TABLE `CargoInfo` (
   `confirmation` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_cargo_scale_receipt_number` (`scaleReceiptNumber`),
   KEY `idx_cargo_status_group` (`loadingQuotaNumber`,`shipName`,`loadingWarehouse`,`shippingCompany`,`cargoType`,`status`,`netWeight`),
-  KEY `idx_cargo_ship_lookup` (`shipName`,`loadingWarehouse`,`status`,`loadingQuotaNumber`,`shippingCompany`,`cargoType`,`netWeight`)
+  KEY `idx_cargo_ship_lookup` (`shipName`,`loadingWarehouse`,`status`,`loadingQuotaNumber`,`shippingCompany`,`cargoType`,`netWeight`),
+  KEY `idx_cargo_exit_window` (`exitDate`,`status`,`exitTime`,`netWeight`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --

@@ -35,6 +35,8 @@ import com.atk.atk_cargo.data.model.adjustColorForTheme
 import com.atk.atk_cargo.data.model.cardColors
 import com.atk.atk_cargo.data.repository.HttpStatusException
 import com.atk.atk_cargo.data.repository.ReportsRepository
+import com.atk.atk_cargo.feature.reports.domain.QuotaGroup
+import com.atk.atk_cargo.feature.reports.domain.buildQuotaGroups
 import com.atk.atk_cargo.utils.JalaliDateUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -42,9 +44,14 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
@@ -109,8 +116,13 @@ class ReportsViewModel(
     private val _analyticsDateOffset = MutableStateFlow(0)
     val analyticsDateOffset: StateFlow<Int> = _analyticsDateOffset.asStateFlow()
 
+    // B-3 (گزارش تحلیل جامع عملیات): بدون این Job، تعویض سریع تاریخ چند
+    // درخواست هم‌زمان می‌ساخت و آخرین پاسخِ رسیده (نه آخرینِ درخواست‌شده) در
+    // _comprehensiveAnalytics می‌نشست. هم‌راستا با الگوی realTimeFetchJob.
+    private var analyticsFetchJob: Job? = null
+
     fun setAnalyticsDateOffset(offset: Int) {
-        if (offset in -7..0) {
+        if (offset in -ANALYTICS_MAX_DAYS_BACK..0) {
             _analyticsDateOffset.value = offset
             loadComprehensiveAnalytics()
         }
@@ -132,8 +144,39 @@ class ReportsViewModel(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
 
-    private val _filteredQuotas = MutableStateFlow<List<QuotaCompletionData>>(emptyList())
-    val filteredQuotas: StateFlow<List<QuotaCompletionData>> = _filteredQuotas
+    // C-1 (گزارش تحلیل جامع عملیات): قبلاً داده از اینجا به QuotaAnalysis
+    // Composable می‌رفت و از طریق updateInitialQuotas دوباره به ViewModel
+    // push می‌شد تا فیلتر/گروه‌بندی شود — یعنی بدون رندر شدن UI، خط لوله داده
+    // کار نمی‌کرد و منبع حقیقت دو تکه بود (_comprehensiveAnalytics و یک
+    // _initialQuotas جداگانه). اینجا مستقیماً از همان StateFlow پاسخ سرور
+    // مشتق می‌شود. debounce روی جستجو + flowOn(Default) هم فیلتر/گروه‌بندی
+    // (که قبلاً برای هر ضربه کلید هم در ViewModel هم دوباره در Composable
+    // روی رشته اصلی تکرار می‌شد) را یک‌بار و خارج از رشته اصلی UI انجام
+    // می‌دهد (P-3/P-4). خروجی از قبل فیلتر «فعال بودن در این روز کاری»
+    // (last_24h_vouchers > 0) را هم شامل می‌شود که قبلاً فقط در Composable
+    // انجام می‌شد (B-4).
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    val analyticsGroups: StateFlow<List<QuotaGroup>> =
+        combine(
+            _comprehensiveAnalytics,
+            _searchQuery.debounce(250),
+            _groupingMode
+        ) { analytics, query, mode ->
+            val active = analytics?.quotaCompletionAnalysis.orEmpty().filter { it.last_24h_vouchers > 0 }
+            val trimmedQuery = query.trim().lowercase()
+            val filtered = if (trimmedQuery.isEmpty()) {
+                active
+            } else {
+                active.filter { quota ->
+                    quota.shipName.lowercase().contains(trimmedQuery) ||
+                        quota.loadingQuotaNumber.contains(trimmedQuery) ||
+                        quota.shippingCompany.lowercase().contains(trimmedQuery)
+                }
+            }
+            buildQuotaGroups(filtered, mode)
+        }
+            .flowOn(Dispatchers.Default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_CARGO_OWNER)
     val warehouseQuotaGroupingMode: StateFlow<WarehouseQuotaGroupingMode> = _warehouseQuotaGroupingMode.asStateFlow()
@@ -165,70 +208,12 @@ class ReportsViewModel(
     // تابع تغییر حالت گروه‌بندی
     fun setGroupingMode(mode: QuotaGroupingMode) {
         _groupingMode.value = mode
-        updateFilteredQuotas()
     }
 
     // تابع به‌روزرسانی کوئری جستجو
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
-        updateFilteredQuotas()
     }
-
-    // تابع به‌روزرسانی لیست اولیه کوتاژها
-    fun updateInitialQuotas(quotas: List<QuotaCompletionData>) {
-        viewModelScope.launch {
-            _initialQuotas.value = quotas  // ذخیره لیست اولیه
-            updateFilteredQuotas()
-        }
-    }
-
-    // تابع به‌روزرسانی لیست فیلتر شده
-    private fun updateFilteredQuotas() {
-        viewModelScope.launch {
-            val query = _searchQuery.value.trim().lowercase()
-
-            // فیلتر کردن بر اساس جستجو
-            val filtered = if (query.isEmpty()) {
-                _initialQuotas.value
-            } else {
-                _initialQuotas.value.filter { quota ->
-                    quota.shipName.lowercase().contains(query) ||
-                            quota.loadingQuotaNumber.contains(query) ||
-                            quota.shippingCompany.lowercase().contains(query)
-                }
-            }
-
-            // گروه‌بندی و مرتب‌سازی ترکیبی
-            _filteredQuotas.value = when (_groupingMode.value) {
-                QuotaGroupingMode.BY_SHIP -> {
-                    filtered.groupBy { it.shipName }
-                        .entries
-                        .sortedWith(
-                            compareByDescending<Map.Entry<String, List<QuotaCompletionData>>> { it.value.size }
-                                .thenByDescending { entry -> entry.value.sumOf { it.last_24h_weight.toDouble() } }
-                        )
-                        .flatMap { it.value }
-                }
-                QuotaGroupingMode.BY_CARRIER -> {
-                    filtered.groupBy { it.shippingCompany }
-                        .entries
-                        .sortedWith(
-                            compareByDescending<Map.Entry<String, List<QuotaCompletionData>>> { it.value.size }
-                                .thenByDescending { entry -> entry.value.sumOf { it.last_24h_weight.toDouble() } }
-                        )
-                        .flatMap { it.value }
-                }
-                QuotaGroupingMode.BY_CARGO_OWNER -> {
-                    filtered.groupBy { "${it.shipName}|${it.warehouse ?: "نامشخص"}|${it.cargoType ?: "نامشخص"}" }
-                        .entries
-                        .sortedWith(compareBy { it.key })
-                        .flatMap { it.value }
-                }
-            }
-        }
-    }
-
-    private val _initialQuotas = MutableStateFlow<List<QuotaCompletionData>>(emptyList())
 
     // بارگذاری اولیه توسط ShipsListScreen (LaunchedEffect) انجام می‌شود؛ فراخوانی
     // این‌جا هم باعث دو درخواست هم‌زمان روی سنگین‌ترین کوئری سرور می‌شد.
@@ -261,8 +246,16 @@ class ReportsViewModel(
     }
 
     private var realTimeFetchJob: Job? = null
-    private companion object {
+    companion object {
         private const val REAL_TIME_REFRESH_INTERVAL_MS = 30_000L
+
+        // C-4 (گزارش تحلیل جامع عملیات): قبلاً عدد -7 مستقل هم اینجا و هم در
+        // ComprehensiveAnalyticsDialog.kt hardcode شده بود و هیچ‌چیز هماهنگی
+        // آن‌ها را تضمین نمی‌کرد. معادل سمت سرور همین مقدار
+        // AnalyticsController::MAX_ANALYTICS_DAYS_BACK در PHP است؛ چون کلاینت
+        // و سرور دو runtime جدا هستند، این عدد باید دستی هم‌زمان با آن ثابت
+        // تغییر کند.
+        const val ANALYTICS_MAX_DAYS_BACK = 7
     }
 
     private suspend fun fetchRealTimeData(isDarkTheme: Boolean) {
@@ -870,7 +863,8 @@ class ReportsViewModel(
     }
 
     fun loadComprehensiveAnalytics() {
-        viewModelScope.launch {
+        analyticsFetchJob?.cancel()
+        analyticsFetchJob = viewModelScope.launch {
             try {
                 _analyticsLoadingState.value = LoadingState.Loading
                 val response = repository.getComprehensiveAnalysis(_analyticsDateOffset.value)
@@ -895,9 +889,28 @@ class ReportsViewModel(
                 } else {
                     _analyticsLoadingState.value = LoadingState.Error("خطا در دریافت اطلاعات تحلیلی")
                 }
+            } catch (e: HttpStatusException) {
+                // A-3: به‌جای نمایش کد/بدنه خام JSON سرور، پیام فارسی واضح بر اساس
+                // کد وضعیت HTTP (که قبلاً به‌خاطر throw Exception ساده تشخیص‌پذیر
+                // نبود) نمایش داده می‌شود.
+                val message = when (e.statusCode) {
+                    401 -> "نشست شما منقضی شده است. لطفاً دوباره وارد شوید."
+                    403 -> "شما مجوز مشاهده آمار تحلیلی را ندارید."
+                    429 -> "درخواست‌های زیاد. لطفاً کمی صبر کنید و دوباره تلاش کنید."
+                    else -> "خطا در دریافت اطلاعات تحلیلی (کد ${e.statusCode})"
+                }
+                _analyticsLoadingState.value = LoadingState.Error(message)
             } catch (e: Exception) {
                 _analyticsLoadingState.value = LoadingState.Error(e.message ?: "خطای ناشناخته")
             }
+        }
+    }
+
+    // A-5 (گزارش تحلیل جامع عملیات): fire-and-forget — UI منتظر نتیجه این
+    // فراخوانی نمی‌ماند تا اشتراک‌گذاری واقعی (OS share sheet) بدون تأخیر باز شود.
+    fun logAnalyticsExport(scope: String, groupCount: Int) {
+        viewModelScope.launch {
+            repository.logAnalyticsExport(scope, groupCount)
         }
     }
 

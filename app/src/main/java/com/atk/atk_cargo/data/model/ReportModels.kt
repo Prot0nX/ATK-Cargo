@@ -206,7 +206,14 @@ data class ExistingQuota(
 @Immutable
 data class DateInfo(
     val jalaliDate: String,
-    val dayName: String
+    val dayName: String,
+    // مرزهای دقیق «روز کاری» (دیروز ۰۷:۰۰ تا امروز ۰۷:۰۰)؛ nullable چون سرورهای
+    // قدیمی‌تر ممکن است این فیلدها را نفرستند. jalaliDate/dayName تاریخ پایان
+    // همین پنجره را نشان می‌دهند و بدون تغییر باقی مانده‌اند.
+    val windowStartDate: String? = null,
+    val windowStartTime: String? = null,
+    val windowEndDate: String? = null,
+    val windowEndTime: String? = null
 )
 
 @Immutable

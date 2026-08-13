@@ -1,6 +1,9 @@
 package com.atk.atk_cargo.feature.reports.presentation.dialogs
 
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
@@ -47,6 +50,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warehouse
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -55,8 +59,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,6 +82,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.api.QuotaCompletionData
 import com.atk.atk_cargo.api.QuotaGroupingMode
+import com.atk.atk_cargo.feature.reports.domain.QuotaGroup
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlin.math.roundToInt
@@ -86,6 +91,26 @@ import kotlin.math.roundToInt
 // ComprehensiveAnalyticsDialog.kt جدا نگه می‌دارد (A1-6، بازسازی ساختاری). وابسته به پالت
 // رنگ internal و EmptyStateCard تعریف‌شده در ComprehensiveAnalyticsDialog.kt که چون
 // هم‌پکیج هستند نیازی به import ندارند.
+
+/**
+ * A-5: هر دو نقطه اشتراک‌گذاری (دکمه نوار ابزار و long-press روی کارت گروه)
+ * قبلاً مستقیم و بدون try/catch به context.startActivity می‌رفتند؛ برخلاف
+ * الگوی اشتراک‌گذاری PDF در ReportsViewModel.kt که ActivityNotFoundException
+ * را می‌گیرد. این تابع مشترک آن رفتار را برای هر دو نقطه یکسان می‌کند.
+ */
+private fun shareAnalyticsText(context: Context, text: String) {
+    val sendIntent = Intent().apply {
+        action = Intent.ACTION_SEND
+        putExtra(Intent.EXTRA_TEXT, text)
+        type = "text/plain"
+    }
+    val shareIntent = Intent.createChooser(sendIntent, "ارسال اطلاعات")
+    try {
+        context.startActivity(shareIntent)
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(context, "برنامه‌ای برای اشتراک‌گذاری یافت نشد.", Toast.LENGTH_SHORT).show()
+    }
+}
 
 @Composable
 private fun SearchField(
@@ -160,24 +185,22 @@ private fun SearchField(
 
 @Composable
 fun QuotaAnalysis(
-    completionData: List<QuotaCompletionData>,
     viewModel: ReportsViewModel
 ) {
     val context = LocalContext.current
 
-    LaunchedEffect(completionData) {
-        viewModel.updateInitialQuotas(completionData)
-    }
-
     var expandedGroup by remember { mutableStateOf<String?>(null) }
     var selectedOwnerQuotas by remember { mutableStateOf<Pair<String, List<QuotaCompletionData>>?>(null) }
+    // A-5: اشتراک‌گذاری کل مثل اشتراک‌گذاری تک‌گروه حالا به تأیید کاربر نیاز
+    // دارد؛ قبلاً این دکمه بی‌درنگ و بدون تأیید chooser سیستم را باز می‌کرد.
+    var pendingAllShareText by remember { mutableStateOf<String?>(null) }
     val groupingMode by viewModel.groupingMode.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
-    val filteredQuotas by viewModel.filteredQuotas.collectAsState()
-
-    val activeQuotas = filteredQuotas
-        .filter { it.last_24h_vouchers > 0 }
-        .sortedByDescending { it.last_24h_vouchers }
+    // C-1/C-2 (گزارش تحلیل جامع عملیات): فیلتر «فعال در این روز کاری» و
+    // گروه‌بندی/مرتب‌سازی قبلاً اینجا هم دوباره (و با کلید متفاوت از نسخه
+    // مرده‌ی ViewModel) انجام می‌شد؛ حالا هر دو یک‌بار در
+    // ReportsViewModel.analyticsGroups محاسبه شده‌اند.
+    val groups by viewModel.analyticsGroups.collectAsState()
 
     Column(
         modifier = Modifier
@@ -201,38 +224,9 @@ fun QuotaAnalysis(
 
             IconButton(
                 onClick = {
-                    val grouped = when (groupingMode) {
-                        QuotaGroupingMode.BY_CARGO_OWNER -> {
-                            activeQuotas.groupBy { "${it.shipName}|${it.cargoType ?: "نامشخص"}|${it.warehouse ?: "نامشخص"}" }
-                        }
-                        QuotaGroupingMode.BY_SHIP -> {
-                            activeQuotas.groupBy { "${it.shipName}|${it.cargoType ?: "نامشخص"}" }
-                        }
-                        QuotaGroupingMode.BY_CARRIER -> {
-                            activeQuotas.groupBy { it.shippingCompany }
-                        }
-                    }
-                    val sortedForShare = grouped.map { (name, qs) ->
-                        Triple(name, qs, qs.sumOf { it.last_24h_weight.toDouble() }.toFloat())
-                    }.sortedWith(
-                        if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
-                            val warehouseQuotaCounts = activeQuotas.groupBy { it.warehouse ?: "نامشخص" }.mapValues { it.value.size }
-                            compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> {
-                                val parts = it.first.split("|")
-                                val warehouse = parts.getOrNull(2)?.trim() ?: "نامشخص"
-                                warehouseQuotaCounts[warehouse] ?: 0
-                            }
-                            .thenBy {
-                                val parts = it.first.split("|")
-                                parts.getOrNull(2)?.trim() ?: "نامشخص"
-                            }
-                            .thenByDescending { it.third }
-                        } else {
-                            compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> { it.second.size }
-                                .thenByDescending { it.third }
-                        }
-                    )
-
+                    // C-2: قبلاً همین گروه‌بندی/مرتب‌سازی و منطق ساخت عنوان دوباره
+                    // اینجا تکرار می‌شد؛ حالا از groups (که برای نمایش لیست هم
+                    // استفاده می‌شود) و QuotaGroup.shareTitle مشترک است.
                     val shareText = buildString {
                         val modeStr = when (groupingMode) {
                             QuotaGroupingMode.BY_CARGO_OWNER -> "صاحب کالا"
@@ -240,28 +234,13 @@ fun QuotaAnalysis(
                             QuotaGroupingMode.BY_CARRIER -> "باربری"
                         }
                         appendLine("📊 تحلیل جامع عملیات - دسته بندی: $modeStr\n")
-                        sortedForShare.forEach { (name, qs, totalWeight) ->
-                            val groupTitle = if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
-                                val parts = name.split("|")
-                                if (parts.size >= 3) "کشتی: ${parts[0]} | کالا: ${parts[1]} | انبار: ${parts[2]}"
-                                else if (parts.size >= 2) "کشتی: ${parts[0]} | انبار: ${parts[1]}" else name
-                            } else if (groupingMode == QuotaGroupingMode.BY_SHIP) {
-                                val parts = name.split("|")
-                                if (parts.size >= 2) "کشتی: ${parts[0]} | کالا: ${parts[1]}" else name
-                            } else name
-
-                            appendLine("🔹 $groupTitle")
-                            appendLine("   تعداد کوتاژ: ${qs.size} | تعداد حواله: ${qs.sumOf { it.last_24h_vouchers }} | تناژ کل: ${formatNumber(totalWeight.roundToInt())} تن")
+                        groups.forEach { group ->
+                            appendLine("🔹 ${group.shareTitle}")
+                            appendLine("   تعداد کوتاژ: ${group.quotas.size} | تعداد حواله: ${group.totalVouchers} | تناژ کل: ${formatNumber(group.totalWeight.roundToInt())} تن")
                             appendLine()
                         }
                     }
-                    val sendIntent = Intent().apply {
-                        action = Intent.ACTION_SEND
-                        putExtra(Intent.EXTRA_TEXT, shareText)
-                        type = "text/plain"
-                    }
-                    val shareIntent = Intent.createChooser(sendIntent, "ارسال اطلاعات")
-                    context.startActivity(shareIntent)
+                    pendingAllShareText = shareText
                 },
                 modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
             ) {
@@ -304,57 +283,18 @@ fun QuotaAnalysis(
             )
         }
 
-        if (activeQuotas.isEmpty()) {
+        if (groups.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "کوتاژ فعالی در 24 ساعت گذشته وجود ندارد",
+                    text = "کوتاژ فعالی در این روز کاری وجود ندارد",
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center
                 )
             }
         } else {
-            val grouped = when (groupingMode) {
-                QuotaGroupingMode.BY_CARGO_OWNER -> {
-                    activeQuotas.groupBy { "${it.shipName}|${it.cargoType ?: "نامشخص"}|${it.warehouse ?: "نامشخص"}" }
-                }
-                QuotaGroupingMode.BY_SHIP -> {
-                    activeQuotas.groupBy { "${it.shipName}|${it.cargoType ?: "نامشخص"}" }
-                }
-                QuotaGroupingMode.BY_CARRIER -> {
-                    activeQuotas.groupBy { it.shippingCompany }
-                }
-            }
-
-            val sortedGroups = remember(activeQuotas, groupingMode) {
-                grouped.map { (groupName, quotas) ->
-                    Triple(
-                        groupName,
-                        quotas,
-                        quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
-                    )
-                }.sortedWith(
-                    if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
-                        val warehouseQuotaCounts = activeQuotas.groupBy { it.warehouse ?: "نامشخص" }.mapValues { it.value.size }
-                        compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> {
-                            val parts = it.first.split("|")
-                            val warehouse = parts.getOrNull(2)?.trim() ?: "نامشخص"
-                            warehouseQuotaCounts[warehouse] ?: 0
-                        }
-                        .thenBy {
-                            val parts = it.first.split("|")
-                            parts.getOrNull(2)?.trim() ?: "نامشخص"
-                        }
-                        .thenByDescending { it.third }
-                    } else {
-                        compareByDescending<Triple<String, List<QuotaCompletionData>, Float>> { it.second.size }
-                            .thenByDescending { it.third }
-                    }
-                )
-            }
-
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -363,19 +303,21 @@ fun QuotaAnalysis(
                 userScrollEnabled = true
             ) {
                 items(
-                    items = sortedGroups,
-                    key = { (groupName, _, _) -> "group_$groupName" }
-                ) { (groupName, quotas, _) ->
+                    items = groups,
+                    key = { group -> "group_${group.key}" }
+                ) { group ->
                     AnalyticsQuotaGroupExpansionPanel(
-                        groupName = groupName,
-                        quotas = quotas,
-                        groupingMode = groupingMode,
-                        isExpanded = expandedGroup == groupName,
+                        group = group,
+                        isExpanded = expandedGroup == group.key,
                         onExpandChange = { shouldExpand ->
-                            expandedGroup = if (shouldExpand) groupName else null
+                            expandedGroup = if (shouldExpand) group.key else null
                         },
                         onOwnerLongClick = { owner, ownerQuotas ->
                             selectedOwnerQuotas = owner to ownerQuotas
+                        },
+                        onShareConfirmed = { text, scope ->
+                            viewModel.logAnalyticsExport(scope, 1)
+                            shareAnalyticsText(context, text)
                         }
                     )
                 }
@@ -390,6 +332,45 @@ fun QuotaAnalysis(
             onDismiss = { selectedOwnerQuotas = null }
         )
     }
+
+    pendingAllShareText?.let { text ->
+        val modeStr = when (groupingMode) {
+            QuotaGroupingMode.BY_CARGO_OWNER -> "صاحب کالا"
+            QuotaGroupingMode.BY_SHIP -> "کشتی"
+            QuotaGroupingMode.BY_CARRIER -> "باربری"
+        }
+        ShareConfirmDialog(
+            onDismiss = { pendingAllShareText = null },
+            onConfirm = {
+                viewModel.logAnalyticsExport("همه گروه‌ها ($modeStr)", groups.size)
+                shareAnalyticsText(context, text)
+                pendingAllShareText = null
+            }
+        )
+    }
+}
+
+/** A-5: دیالوگ تأیید مشترک بین اشتراک‌گذاری کل و اشتراک‌گذاری یک گروه. */
+@Composable
+private fun ShareConfirmDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("اشتراک‌گذاری اطلاعات") },
+        text = { Text("این خلاصه (شامل صاحب کالا، تناژ و تعداد حواله) ارسال شود؟") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("ارسال")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("انصراف")
+            }
+        }
+    )
 }
 
 @Composable
@@ -439,19 +420,23 @@ private fun AnalyticsGroupingModeButton(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AnalyticsQuotaGroupExpansionPanel(
-    groupName: String,
-    quotas: List<QuotaCompletionData>,
-    groupingMode: QuotaGroupingMode,
+    group: QuotaGroup,
     isExpanded: Boolean,
     onExpandChange: (Boolean) -> Unit,
     onOwnerLongClick: (String, List<QuotaCompletionData>) -> Unit,
+    onShareConfirmed: (text: String, scope: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val totalWeight = quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
-    val totalVouchers = quotas.sumOf { it.last_24h_vouchers }
+    val quotas = group.quotas
+    val totalWeight = group.totalWeight
+    val totalVouchers = group.totalVouchers
 
-    val groupIcon = when (groupingMode) {
+    // A-5: قبلاً یک long-press (که می‌تواند ناخواسته پیش بیاید) بی‌درنگ chooser
+    // اشتراک‌گذاری داده تجاری را باز می‌کرد؛ حالا فقط متن را آماده و منتظر
+    // تأیید کاربر می‌ماند.
+    var pendingShareText by remember { mutableStateOf<String?>(null) }
+
+    val groupIcon = when (group.mode) {
         QuotaGroupingMode.BY_CARGO_OWNER -> Icons.Default.Person
         QuotaGroupingMode.BY_SHIP -> Icons.Default.DirectionsBoat
         QuotaGroupingMode.BY_CARRIER -> Icons.Default.LocalShipping
@@ -479,22 +464,13 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                     .combinedClickable(
                         onClick = { onExpandChange(!isExpanded) },
                         onLongClick = {
-                            val totalGroupVouchers = quotas.sumOf { it.last_24h_vouchers }
-                            val totalGroupWeight = quotas.sumOf { it.last_24h_weight.toDouble() }.toFloat()
-
+                            // C-2/C-3: عنوان از group.shareTitle می‌آید؛ دیگر split("|")
+                            // یا بازسازی جداگانه groupTitle لازم نیست.
                             val shareText = buildString {
-                                val groupTitle = if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
-                                    val parts = groupName.split("|")
-                                    if (parts.size >= 3) "کشتی: ${parts[0]} | کالا: ${parts[1]} | انبار: ${parts[2]}"
-                                    else if (parts.size >= 2) "کشتی: ${parts[0]} | انبار: ${parts[1]}" else groupName
-                                } else if (groupingMode == QuotaGroupingMode.BY_SHIP) {
-                                    val parts = groupName.split("|")
-                                    if (parts.size >= 2) "کشتی: ${parts[0]} | کالا: ${parts[1]}" else groupName
-                                } else groupName
-                                appendLine("🔹 اطلاعات $groupTitle")
-                                appendLine("   تعداد کوتاژ: ${quotas.size} | تعداد حواله: $totalGroupVouchers | تناژ کل: ${formatNumber(totalGroupWeight.roundToInt())} تن")
+                                appendLine("🔹 اطلاعات ${group.shareTitle}")
+                                appendLine("   تعداد کوتاژ: ${quotas.size} | تعداد حواله: $totalVouchers | تناژ کل: ${formatNumber(totalWeight.roundToInt())} تن")
                                 appendLine()
-                                if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
+                                if (group.mode == QuotaGroupingMode.BY_CARGO_OWNER) {
                                     val ownerSummaries = quotas.groupBy { it.cargoOwner ?: "نامشخص" }
                                         .map { (owner, ownerQuotas) ->
                                             Triple(
@@ -513,13 +489,7 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                                     }
                                 }
                             }
-                            val sendIntent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, shareText)
-                                type = "text/plain"
-                            }
-                            val shareIntent = Intent.createChooser(sendIntent, "ارسال اطلاعات")
-                            context.startActivity(shareIntent)
+                            pendingShareText = shareText
                         }
                     ),
                 color = Color.Transparent
@@ -535,40 +505,36 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        when (groupingMode) {
+                        // C-3: دیگر split("|") روی یک کلید رشته‌ای نیست؛ فیلدهای تایپ‌شده
+                        // group.ship/cargoType/warehouse/carrier مستقیم خوانده می‌شوند.
+                        when (group.mode) {
                             QuotaGroupingMode.BY_CARGO_OWNER -> {
-                                val parts = groupName.split("|")
                                 Text(
-                                    text = when (parts.size) {
-                                        3 -> "${parts[0]} | ${parts[1]} | ${parts[2]}"
-                                        2 -> "${parts[0]} | ${parts[1]}"
-                                        else -> groupName
-                                    },
+                                    text = "${group.ship} | ${group.cargoType} | ${group.warehouse}",
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                             QuotaGroupingMode.BY_SHIP -> {
-                                val parts = groupName.split("|")
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Text(
-                                        text = parts[0],
+                                        text = group.ship.orEmpty(),
                                         style = MaterialTheme.typography.labelLarge,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
-                                    if (parts.size >= 2 && parts[1].isNotBlank() && parts[1] != "نامشخص") {
+                                    if (!group.cargoType.isNullOrBlank() && group.cargoType != "نامشخص") {
                                         Text(
                                             text = "|",
                                             style = MaterialTheme.typography.labelLarge,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            text = parts[1],
+                                            text = group.cargoType,
                                             style = MaterialTheme.typography.labelLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurface
@@ -576,9 +542,9 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                                     }
                                 }
                             }
-                            else -> {
+                            QuotaGroupingMode.BY_CARRIER -> {
                                 Text(
-                                    text = groupName,
+                                    text = group.carrier.orEmpty(),
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -655,7 +621,7 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                         .padding(top = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(1.dp)
                 ) {
-                    if (groupingMode == QuotaGroupingMode.BY_CARGO_OWNER) {
+                    if (group.mode == QuotaGroupingMode.BY_CARGO_OWNER) {
                         val ownerSummaries = quotas.groupBy { it.cargoOwner ?: "نامشخص" }
                             .map { (owner, ownerQuotas) ->
                                 Triple(
@@ -665,11 +631,11 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                                 )
                             }.sortedByDescending { it.third }
 
-                        ownerSummaries.forEach { (owner, voucherCount, totalWeight) ->
+                        ownerSummaries.forEach { (owner, voucherCount, ownerTotalWeight) ->
                             AnalyticsOwnerSummaryCard(
                                 owner = owner,
                                 voucherCount = voucherCount,
-                                totalWeight = totalWeight,
+                                totalWeight = ownerTotalWeight,
                                 onLongClick = {
                                     val ownerQuotas = quotas.filter { (it.cargoOwner ?: "نامشخص") == owner }
                                     onOwnerLongClick(owner, ownerQuotas)
@@ -680,7 +646,7 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                         quotas.forEach { quota ->
                             AnalyticsQuotaCard(
                                 quota = quota,
-                                groupingMode = groupingMode,
+                                groupingMode = group.mode,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                             )
                         }
@@ -688,6 +654,16 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                 }
             }
         }
+    }
+
+    pendingShareText?.let { text ->
+        ShareConfirmDialog(
+            onDismiss = { pendingShareText = null },
+            onConfirm = {
+                onShareConfirmed(text, group.shareTitle)
+                pendingShareText = null
+            }
+        )
     }
 }
 
@@ -1061,7 +1037,15 @@ private fun OwnerQuotasDialog(
                     ) {
                         items(
                             items = quotas,
-                            key = { quota -> quota.loadingQuotaNumber + "_" + quota.shipName }
+                            // B-5: loadingQuotaNumber + shipName به‌تنهایی یکتا نیست — همه
+                            // آیتم‌های این دیالوگ از یک گروه (shipName/cargoType/warehouse
+                            // یکسان) هستند، پس دو ردیف با کوتاژ یکسان و shippingCompany
+                            // متفاوت (مجاز طبق GROUP BY سرور) به کلید تکراری و کرش
+                            // LazyColumn منجر می‌شد.
+                            key = { quota ->
+                                "${quota.loadingQuotaNumber}_${quota.shipName}_${quota.shippingCompany}_" +
+                                    "${quota.warehouse}_${quota.cargoType}"
+                            }
                         ) { quota ->
                             AnalyticsQuotaCard(
                                 quota = quota,
