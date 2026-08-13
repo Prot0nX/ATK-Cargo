@@ -78,7 +78,7 @@ class UserPreferencesManager(
     val lastNotifiedMessageId: Flow<Int> = preference(LAST_NOTIFIED_MESSAGE_ID_KEY, 0)
 
     // ===== رنگ تم برنامه =====
-    val themeColor: Flow<Long> = preference(APP_THEME_COLOR_KEY, 0xFF137fecL)
+    val themeColor: Flow<Long> = preference(APP_THEME_COLOR_KEY, DEFAULT_THEME_COLOR)
 
     suspend fun saveUserCredentials(username: String, userType: String, deviceId: String = "", sessionToken: String = "", permissions: Map<String, Boolean>? = null) {
         dataStore.edit { preferences ->
@@ -229,5 +229,6 @@ class UserPreferencesManager(
 
         // Theme
         val APP_THEME_COLOR_KEY = longPreferencesKey("app_theme_color")
+        const val DEFAULT_THEME_COLOR = 0xFF137fecL
     }
 }

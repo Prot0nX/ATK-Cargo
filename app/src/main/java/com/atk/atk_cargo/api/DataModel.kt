@@ -120,5 +120,8 @@ data class UpdateInfo(
     val releaseDate: String = "",
     val minAndroidVersion: Int = 21,
     val minAppVersion: String = "1.0",
-    val excludedVersions: List<String> = emptyList()
+    val excludedVersions: List<String> = emptyList(),
+    // هش SHA-256 فایل APK که سرور محاسبه کرده — پیش از نصب با هش فایل دانلودشده
+    // مقایسه می‌شود تا از نصب یک APK دستکاری‌شده/خراب جلوگیری شود (C-3)
+    val sha256: String = ""
 )

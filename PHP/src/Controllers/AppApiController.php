@@ -39,6 +39,8 @@ class AppApiController {
      * ذخیره نشود.
      */
     private function requireAuthenticatedSession(): void {
+        $this->enforceMinAppVersion();
+
         $username = (string)($this->request->getHeader('X-Username') ?? '');
         $deviceId = (string)($this->request->getHeader('X-Device-Id') ?? '');
         $token = (string)($this->request->getHeader('X-Session-Token') ?? '');
@@ -51,6 +53,37 @@ class AppApiController {
         }
 
         $this->authenticatedUsername = $username;
+    }
+
+    /**
+     * قفل نسخه‌ی منقضی (min_allowed_version) قبلاً فقط سمت کلاینت اعمال می‌شد؛
+     * یک کلاینت قدیمی یا دستکاری‌شده که دیالوگ VersionExpired را دور بزند
+     * همچنان به این API تجاری دسترسی کامل داشت (S-4). بدون هدر X-App-Version
+     * (نسخه‌های نصب‌شده‌ی قبل از این تغییر) عبور مجاز است.
+     */
+    private function enforceMinAppVersion(): void {
+        $appVersion = $this->request->getHeader('X-App-Version');
+        if (!$appVersion) {
+            return;
+        }
+
+        $configFile = APP_ROOT . '/update_config.php';
+        if (!file_exists($configFile)) {
+            return;
+        }
+
+        $config = include $configFile;
+        $minAllowed = $config['min_allowed_version'] ?? $config['min_required_version'] ?? null;
+        if (!$minAllowed) {
+            return;
+        }
+
+        if (version_compare((string)$appVersion, (string)$minAllowed, '<')) {
+            header('Content-Type: application/json; charset=UTF-8');
+            http_response_code(426);
+            echo json_encode(['error' => 'نسخه‌ی برنامه‌ی شما منسوخ شده است. لطفاً به‌روزرسانی کنید.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
     }
 
     /**

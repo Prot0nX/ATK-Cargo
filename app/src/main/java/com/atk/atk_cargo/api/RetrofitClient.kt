@@ -37,6 +37,18 @@ object RetrofitClient {
         appContext = context.applicationContext
     }
 
+    // نسخه‌ی برنامه فقط یک‌بار خوانده و کش می‌شود؛ برای گیت min_allowed_version
+    // سمت سرور (S-4) در هر درخواست احرازهویت‌شده فرستاده می‌شود
+    private val appVersionName: String? by lazy {
+        try {
+            appContext?.let { ctx ->
+                ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     // Float Type Adapter for better handling of float values
     private class FloatTypeAdapter : TypeAdapter<Float>() {
         override fun write(out: JsonWriter, value: Float) {
@@ -92,6 +104,10 @@ object RetrofitClient {
         AuthSession.username.takeIf { it.isNotEmpty() }?.let { builder.addHeader("X-Username", it) }
         AuthSession.deviceId.takeIf { it.isNotEmpty() }?.let { builder.addHeader("X-Device-Id", it) }
         AuthSession.sessionToken.takeIf { it.isNotEmpty() }?.let { builder.addHeader("X-Session-Token", it) }
+        // قفل نسخه‌ی منقضی (min_allowed_version) قبلاً فقط سمت کلاینت اعمال می‌شد؛
+        // یک کلاینت قدیمی/دستکاری‌شده که دیالوگ VersionExpired را دور بزند همچنان
+        // به همه‌ی APIهای تجاری دسترسی کامل داشت (S-4)
+        appVersionName?.let { builder.addHeader("X-App-Version", it) }
 
         val request = builder
             .method(original.method, original.body)

@@ -181,9 +181,15 @@ class UtilityController {
      */
     public function checkUpdate(): void {
         header('Content-Type: application/json');
+        header('X-Content-Type-Options: nosniff');
+        header('Cache-Control: no-store, no-cache, must-revalidate');
 
-        $apiKey = (string)$this->request->get('api_key', '');
-        if ($apiKey !== 'atk_nk_9290VV42-38XQ02DI-F2WY4L2K-EJA7V682') {
+        // کلید در هدر (نه query string که در لاگ دسترسی وب‌سرور/پروکسی ثبت می‌شود)
+        // و مقایسه‌ی ثابت‌زمان با hash_equals به‌جای === (S-3). پشتیبانی از
+        // پارامتر GET قدیمی api_key هم نگه داشته شده تا نسخه‌های نصب‌شده‌ی
+        // قدیمی‌تر کلاینت که هنوز هدر نمی‌فرستند، فوراً از کار نیفتند
+        $apiKey = (string)($this->request->getHeader('X-Api-Key') ?? $this->request->get('api_key', ''));
+        if (!hash_equals(UPDATE_CHECK_API_KEY, $apiKey)) {
             http_response_code(403);
             echo json_encode(['error' => 'دسترسی غیرمجاز'], JSON_UNESCAPED_UNICODE);
             exit;
@@ -207,12 +213,33 @@ class UtilityController {
         $hasUpdate = version_compare((string)$currentVersion, (string)$config['latest_version'], '<');
 
         $response = [
+            // 'hasUpdate'/'has_update' — کلاینت فعلی خودش hasUpdate را از مقایسه‌ی
+            // latestVersion/currentVersion محاسبه می‌کند (تصمیم سرور را نادیده می‌گرفت)؛
+            // has_update اضافه شد تا کلاینت بتواند به تصمیم سرور (منبع حقیقت) اعتماد کند
             'hasUpdate' => $hasUpdate,
+            'has_update' => $hasUpdate,
             'latestVersion' => $config['latest_version'],
             'downloadUrl' => $hasUpdate ? $config['download_url'] : '',
-            'changeLog' => $hasUpdate ? $config['change_log'] : [],
+            'changeLog' => $hasUpdate ? ($config['change_log'] ?? []) : [],
             'minRequiredVersion' => $config['min_required_version'],
             'minAllowedVersion' => $config['min_allowed_version'] ?? $config['min_required_version'],
+            'sha256' => $hasUpdate ? ($config['sha256'] ?? '') : '',
+            // فیلدهای مسطح snake_case زیر در سطح ریشه — کلاینت اندروید همه‌ی فیلدهای
+            // آپدیت را از ریشه‌ی پاسخ می‌خواند، نه از 'updateInfo' تودرتو (S-1)؛ قبلاً
+            // این فیلدها فقط زیر updateInfo بودند و کلاینت همیشه مقدار پیش‌فرض
+            // خودش (پیام خالی، اولویت normal، forceUpdate=false و...) را می‌گرفت
+            'update_priority' => $hasUpdate ? ($config['update_priority'] ?? 'normal') : null,
+            'update_message' => $hasUpdate ? ($config['update_message'] ?? '') : null,
+            'force_update' => $hasUpdate ? ($config['force_update'] ?? false) : null,
+            'update_size' => $hasUpdate ? ($config['update_size'] ?? '0') : null,
+            'release_date' => $hasUpdate ? ($config['release_date'] ?? '') : null,
+            'version_constraints' => $hasUpdate ? [
+                'min_android_version' => $config['version_constraints']['min_android_version'] ?? 21,
+                'min_app_version' => $config['version_constraints']['min_app_version'] ?? '1.0',
+                'excluded_versions' => $config['version_constraints']['excluded_versions'] ?? [],
+            ] : null,
+            // ساختار قدیمی تودرتو برای سازگاری با نسخه‌های نصب‌شده‌ی قدیمی‌تر کلاینت
+            // که ممکن است هنوز از این ساختار بخوانند — حذف نشد، فقط دیگر تنها منبع نیست
             'updateInfo' => $hasUpdate ? [
                 'priority' => $config['update_priority'] ?? 'normal',
                 'message' => $config['update_message'] ?? '',

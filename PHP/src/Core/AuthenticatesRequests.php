@@ -24,6 +24,8 @@ trait AuthenticatesRequests {
     private ?string $authenticatedUserType = null;
 
     private function requireAuthenticatedSession(): void {
+        $this->enforceMinAppVersion();
+
         $username = (string)($this->request->getHeader('X-Username') ?? '');
         $deviceId = (string)($this->request->getHeader('X-Device-Id') ?? '');
         $token = (string)($this->request->getHeader('X-Session-Token') ?? '');
@@ -40,6 +42,42 @@ trait AuthenticatesRequests {
 
         $user = (new UserRepository())->getByUsername($username);
         $this->authenticatedUserType = (string)($user['userType'] ?? '');
+    }
+
+    /**
+     * قفل نسخه‌ی منقضی (min_allowed_version) قبلاً فقط سمت کلاینت اعمال می‌شد؛
+     * یک کلاینت قدیمی یا دستکاری‌شده که دیالوگ VersionExpired را دور بزند
+     * همچنان به همه‌ی APIهای تجاری دسترسی کامل داشت (S-4). این گیت همان
+     * تصمیم را روی سرور هم اجرا می‌کند.
+     *
+     * وقتی هدر X-App-Version ارسال نشود (نسخه‌های نصب‌شده‌ی کلاینت که قبل از
+     * این تغییر ساخته شده‌اند) عبور مجاز است — در غیر این صورت کل نصب‌های
+     * فعلی با همین یک deploy فوراً قفل می‌شدند. این گیت فقط برای کلاینت‌هایی
+     * که واقعاً نسخه‌شان را گزارش می‌کنند مؤثر است.
+     */
+    private function enforceMinAppVersion(): void {
+        $appVersion = $this->request->getHeader('X-App-Version');
+        if (!$appVersion) {
+            return;
+        }
+
+        $configFile = APP_ROOT . '/update_config.php';
+        if (!file_exists($configFile)) {
+            return;
+        }
+
+        $config = include $configFile;
+        $minAllowed = $config['min_allowed_version'] ?? $config['min_required_version'] ?? null;
+        if (!$minAllowed) {
+            return;
+        }
+
+        if (version_compare((string)$appVersion, (string)$minAllowed, '<')) {
+            header('Content-Type: application/json; charset=UTF-8');
+            http_response_code(426);
+            echo json_encode(['error' => true, 'message' => 'نسخه‌ی برنامه‌ی شما منسوخ شده است. لطفاً به‌روزرسانی کنید.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
     }
 
     /**

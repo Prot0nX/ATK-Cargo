@@ -10,17 +10,35 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.atk.atk_cargo.api.UpdateInfo
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.atk.atk_cargo.api.UpdateManager
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.core.navigation.MainScreen
@@ -35,37 +53,44 @@ import com.atk.atk_cargo.feature.update.presentation.UpdateDialog
 import com.atk.atk_cargo.security.SecurityBlockScreen
 import com.atk.atk_cargo.security.VersionExpiredDialog
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import org.koin.android.ext.android.inject
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.onEach
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : ComponentActivity() {
 
-    private val userPreferencesManager: UserPreferencesManager by inject()
     private val startupViewModel: StartupViewModel by viewModel()
 
     private val notificationPermissionLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { isGranted ->
-        Log.d("MainActivity", "مجوز POST_NOTIFICATIONS: ${if (isGranted) "اعطا شد" else "رد شد"}")
+        if (BuildConfig.DEBUG) {
+            Log.d("MainActivity", "مجوز POST_NOTIFICATIONS: ${if (isGranted) "اعطا شد" else "رد شد"}")
+        }
+        // قبلاً نتیجه فقط لاگ می‌شد و کاربر هیچ بازخوردی نمی‌گرفت (M-3) — اگر رد شود
+        // و دیگر قابل نمایش مجدد نباشد (رد دائمی)، حداقل باید بداند از کجا فعالش کند
+        if (!isGranted && !shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+            showMessage("برای دریافت اعلان‌ها، مجوز نوتیفیکیشن را از تنظیمات برنامه فعال کنید")
+        }
     }
 
-    @SuppressLint("CoroutineCreationDuringComposition", "BatteryLife")
+    // فقط از UI thread خوانده/نوشته می‌شود: setKeepOnScreenCondition (سیستم) و
+    // onEach داخل setContent (Compose) هر دو روی Main thread اجرا می‌شوند
+    private var isThemeColorLoaded = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // باید قبل از super.onCreate فراخوانی شود؛ پنجره‌ی سفید پیش‌فرض سیستم را با
         // پس‌زمینه/آیکون برند جایگزین می‌کند تا Compose برای اولین فریم آماده شود
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        try {
-            // خواندن blocking و یک‌باره‌ی رنگ تم قبل از setContent — بدون این کار،
-            // فریم اول با رنگ پیش‌فرض رندر می‌شد و به‌محض emit شدن مقدار واقعی از
-            // DataStore، کل درخت UI recompose می‌شد (پرش رنگ قابل مشاهده)
-            val initialThemeColor = kotlinx.coroutines.runBlocking {
-                userPreferencesManager.themeColor.first()
-            }
+        // اسپلش سیستمی تا رسیدن مقدار واقعی رنگ تم از DataStore روی صفحه می‌ماند —
+        // به‌جای runBlocking قبلی که همین خواندن را روی Main Thread مسدود می‌کرد و
+        // ریسک ANR داشت. بدون مسدودسازی، خواندن به‌صورت async پشت اسپلش انجام می‌شود
+        // و پرش رنگ فریم اول هم دیده نمی‌شود چون هنوز پشت اسپلش پنهان است
+        splashScreen.setKeepOnScreenCondition { !isThemeColorLoaded }
 
+        try {
             setContent {
                 LaunchedEffect(Unit) {
                     startupViewModel.handleIntent(intent)
@@ -73,15 +98,23 @@ class MainActivity : ComponentActivity() {
                 }
 
                 LaunchedEffect(Unit) {
-                    startupViewModel.events.collect { event ->
-                        when (event) {
-                            is StartupEvent.ShowMessage -> showMessage(event.message)
-                            is StartupEvent.RequestBatteryOptimization -> requestBatteryOptimization()
+                    // repeatOnLifecycle به‌جای collect ساده — مصرف رخدادها فقط وقتی
+                    // Activity حداقل STARTED است انجام می‌شود، وگرنه در پس‌زمینه هم
+                    // فعال می‌ماند و ممکن بود startActivity تنظیمات باتری در پس‌زمینه
+                    // اجرا شود (S-6)
+                    lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                        startupViewModel.events.collect { event ->
+                            when (event) {
+                                is StartupEvent.ShowMessage -> showMessage(event.message)
+                                is StartupEvent.RequestBatteryOptimization -> requestBatteryOptimization()
+                            }
                         }
                     }
                 }
 
-                val themeColorLong by userPreferencesManager.themeColor.collectAsState(initial = initialThemeColor)
+                val themeColorLong by startupViewModel.themeColor
+                    .onEach { isThemeColorLoaded = true }
+                    .collectAsState(initial = UserPreferencesManager.DEFAULT_THEME_COLOR)
                 val primaryColor = Color(themeColorLong)
 
                 CompositionLocalProvider(
@@ -89,7 +122,6 @@ class MainActivity : ComponentActivity() {
                     LocalNotificationPermissionRequester provides ::checkNotificationPermission
                 ) {
                     ATKCargoTheme(primaryColor = primaryColor) {
-                        val retryScope = rememberCoroutineScope()
                         val startupState by startupViewModel.startupState.collectAsState()
 
                         when (val state = startupState) {
@@ -101,16 +133,21 @@ class MainActivity : ComponentActivity() {
                             }
                             is StartupState.VersionExpired -> {
                                 VersionExpiredDialog(
-                                    onExit = { android.os.Process.killProcess(android.os.Process.myPid()) }
+                                    // finishAndRemoveTask (نه killProcess) — killProcess فقط
+                                    // پروسه را می‌کشد بدون خروج از چرخه‌حیات عادی: onDestroy
+                                    // اجرا نمی‌شود، updateManager.onCleared() صدا زده نمی‌شود،
+                                    // و task همچنان در Recents باقی می‌ماند و با یک تپ دوباره
+                                    // باز می‌شود — به‌عنوان سد امنیتی هم مؤثر نبود (S-5)
+                                    onExit = { finishAndRemoveTask() }
                                 )
                             }
                             is StartupState.SecurityBlocked -> {
                                 SecurityBlockScreen(
                                     isLoading = state.isLoading,
                                     errorType = state.errorType,
-                                    onRetry = {
-                                        retryScope.launch { startupViewModel.retrySecurityCheck() }
-                                    }
+                                    // retrySecurityCheck خودش داخل viewModelScope.launch است؛
+                                    // پیچیدن آن در یک CoroutineScope دیگر زائد بود (M-4)
+                                    onRetry = { startupViewModel.retrySecurityCheck() }
                                 )
                             }
                             is StartupState.Ready -> {
@@ -121,75 +158,96 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+        } catch (e: CancellationException) {
+            // لغو کوروتین هرگز نباید بلعیده شود — بخشی از مکانیزم عادی لغو ساختاریافته است
+            throw e
         } catch (e: Exception) {
             // خطای کلی در راه‌اندازی برنامه — باید لاگ شود، وگرنه کاربر فقط یک صفحه‌ی
             // سفید بدون هیچ نشانه‌ای می‌بیند و عیب‌یابی در میدان غیرممکن می‌شود
             Log.e("MainActivity", "خطای بحرانی در راه‌اندازی برنامه: ${e.message}", e)
+            isThemeColorLoaded = true
+            setContent {
+                ATKCargoTheme(primaryColor = Color(UserPreferencesManager.DEFAULT_THEME_COLOR)) {
+                    StartupErrorScreen(
+                        onRetry = { recreate() },
+                        onExit = { finishAndRemoveTask() }
+                    )
+                }
+            }
         }
     }
 
-    @androidx.compose.runtime.Composable
+    @Composable
     private fun HandleMainContent() {
+        MainScreen()
+
         val updateManager = remember { startupViewModel.getUpdateManager() }
         val isUpdateAvailable by startupViewModel.isUpdateAvailable.collectAsState()
         val updateInfo by updateManager.updateInfo.collectAsState()
+        val info = updateInfo
 
-        if (isUpdateAvailable && updateInfo != null) {
-            val downloadProgress by updateManager.downloadProgress.collectAsState()
-            val downloadState by updateManager.downloadState.collectAsState()
+        if (isUpdateAvailable && info != null) {
+            var isDialogDismissed by remember { mutableStateOf(false) }
 
-            LaunchedEffect(downloadState) {
-                when (val state = downloadState) {
-                    is UpdateManager.DownloadState.Completed -> {
-                        updateManager.installUpdate(updateManager.getDownloadedFile())
+            if (!isDialogDismissed || info.forceUpdate) {
+                val downloadProgress by updateManager.downloadProgress.collectAsState()
+                val downloadState by updateManager.downloadState.collectAsState()
+
+                LaunchedEffect(downloadState) {
+                    when (val state = downloadState) {
+                        is UpdateManager.DownloadState.Completed -> {
+                            updateManager.installUpdate(updateManager.getDownloadedFile())
+                        }
+                        is UpdateManager.DownloadState.Error -> {
+                            showMessage(state.message)
+                        }
+                        else -> { /* Other states don't require specific handling */ }
                     }
-                    is UpdateManager.DownloadState.Error -> {
-                        showMessage(state.message)
-                    }
-                    else -> { /* Other states don't require specific handling */ }
                 }
-            }
 
-            UpdateDialog(
-                updateInfo = updateInfo as UpdateInfo,
-                downloadProgress = downloadProgress,
-                downloadState = downloadState,
-                onUpdateClick = { updateInfo?.downloadUrl?.let { updateManager.startDownload(it) } },
-                onPauseClick = { updateManager.pauseDownload() },
-                onResumeClick = { updateManager.resumeDownload() },
-                onCancelClick = { updateManager.cancelDownload() },
-                onDismiss = { /* Handle dismiss */ }
-            )
-        } else {
-            MainScreen()
+                UpdateDialog(
+                    updateInfo = info,
+                    downloadProgress = downloadProgress,
+                    downloadState = downloadState,
+                    onUpdateClick = { updateManager.startDownload(info.downloadUrl) },
+                    onPauseClick = { updateManager.pauseDownload() },
+                    onResumeClick = { updateManager.resumeDownload() },
+                    onCancelClick = { updateManager.cancelDownload() },
+                    onDismiss = { if (!info.forceUpdate) isDialogDismissed = true }
+                )
+            }
         }
     }
 
     @SuppressLint("BatteryLife")
     private fun requestBatteryOptimization() {
+        // resolveActivity از API 30 به بعد تحت Package Visibility فیلتر می‌شود و
+        // مانیفست هیچ <intent> برای این اکشن‌ها اعلام نکرده، پس ممکن بود بی‌دلیل
+        // null برگرداند و به شاخه‌ی fallback برود؛ startActivity مستقیم داخل
+        // try/catch(ActivityNotFoundException) الگوی درست است (M-2)
         try {
             val intent = Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                 data = "package:$packageName".toUri()
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            if (intent.resolveActivity(packageManager) != null) {
-                startActivity(intent)
-                showMessage("لطفاً اجازه دهید برنامه بدون محدودیت باتری اجرا شود")
-            } else {
+            startActivity(intent)
+            showMessage("لطفاً اجازه دهید برنامه بدون محدودیت باتری اجرا شود")
+        } catch (_: android.content.ActivityNotFoundException) {
+            try {
                 val batteryIntent = Intent(android.provider.Settings.ACTION_BATTERY_SAVER_SETTINGS).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 startActivity(batteryIntent)
                 showMessage("لطفاً برنامه را از محدودیت‌های بهینه‌سازی باتری خارج کنید")
-            }
-        } catch (_: Exception) {
-            try {
-                startActivity(Intent(android.provider.Settings.ACTION_SETTINGS).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                })
-                showMessage("لطفاً در تنظیمات، برنامه را از محدودیت‌های باتری خارج کنید")
-            } catch (e: Exception) {
-                Log.e("BatteryOptimization", "خطا در باز کردن تنظیمات: ${e.message}")
+            } catch (_: android.content.ActivityNotFoundException) {
+                try {
+                    startActivity(Intent(android.provider.Settings.ACTION_SETTINGS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    })
+                    showMessage("لطفاً در تنظیمات، برنامه را از محدودیت‌های باتری خارج کنید")
+                } catch (e: Exception) {
+                    Log.e("BatteryOptimization", "خطا در باز کردن تنظیمات: ${e.message}")
+                }
             }
         }
     }
@@ -213,6 +271,36 @@ class MainActivity : ComponentActivity() {
 
             if (!hasPermission) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StartupErrorScreen(onRetry: () -> Unit, onExit: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "متأسفانه در راه‌اندازی برنامه خطایی رخ داد",
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center
+            )
+            Spacer(Modifier.height(24.dp))
+            Button(onClick = onRetry) {
+                Text("تلاش مجدد")
+            }
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(onClick = onExit) {
+                Text("خروج از برنامه")
             }
         }
     }

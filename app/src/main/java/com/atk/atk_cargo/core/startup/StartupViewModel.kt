@@ -22,16 +22,17 @@ import com.atk.atk_cargo.security.SecurityVerifier
 import com.atk.atk_cargo.workers.ChatNotificationWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -75,6 +76,10 @@ class StartupViewModel(
 
     private val appContext get() = getApplication<Application>()
 
+    // Activity نباید مستقیم به UserPreferencesManager وصل شود فقط برای یک رنگ —
+    // این یک pass-through از لایه‌ی داده به‌جای تزریق جداگانه‌ی آن در Activity است (M-6)
+    val themeColor: Flow<Long> = userPreferencesManager.themeColor
+
     private val _isSplashVisible = MutableStateFlow(true)
     private val _isServerSyncing = MutableStateFlow(false)
     private val _isVersionAllowed = MutableStateFlow(true)
@@ -104,8 +109,12 @@ class StartupViewModel(
     private val _shouldOpenWarningsDialog = MutableStateFlow(false)
     val shouldOpenWarningsDialog: StateFlow<Boolean> = _shouldOpenWarningsDialog.asStateFlow()
 
-    private val _events = MutableSharedFlow<StartupEvent>(extraBufferCapacity = 4)
-    val events: SharedFlow<StartupEvent> = _events
+    // Channel به‌جای SharedFlow(replay=0) — SharedFlow بدون مشترک فعال، emit را
+    // بی‌صدا دور می‌ریزد (extraBufferCapacity فقط برای مشترکین کند است، نه برای
+    // نبود مشترک)؛ در بازه‌ی بازسازی Activity (چرخش صفحه، تغییر زبان) دقیقاً
+    // همین اتفاق می‌افتاد و پیام‌هایی مثل «لطفاً دوباره وارد شوید» گم می‌شدند (S-6)
+    private val _events = Channel<StartupEvent>(Channel.BUFFERED)
+    val events: Flow<StartupEvent> = _events.receiveAsFlow()
 
     private var startupSequenceStarted = false
 
@@ -174,7 +183,7 @@ class StartupViewModel(
 
                 if (!sessionValid && userPreferencesManager.username.first().isNotEmpty()) {
                     userPreferencesManager.clearUserCredentials()
-                    _events.emit(StartupEvent.ShowMessage("لطفاً دوباره وارد شوید!"))
+                    _events.send(StartupEvent.ShowMessage("لطفاً دوباره وارد شوید!"))
                 }
 
                 _isSessionValid.value = sessionValid
@@ -220,6 +229,11 @@ class StartupViewModel(
         when (intent?.action) {
             "com.atk.atk_cargo.OPEN_WARNINGS" -> {
                 _shouldOpenWarningsDialog.value = true
+                // پاک کردن action بعد از مصرف — وگرنه چون این intent همان شیئی است که
+                // MainActivity.setIntent نگه می‌دارد، هر بازسازی Activity (چرخش صفحه،
+                // تغییر تنظیمات سیستم) دوباره همین intent را با LaunchedEffect(Unit)
+                // به handleIntent می‌داد و دیالوگ هشدارها را از نو باز می‌کرد (S-7)
+                intent.action = null
             }
         }
         intent?.getStringExtra("navigate_to")?.let {
@@ -257,22 +271,33 @@ class StartupViewModel(
             val sessionRequest = SessionCheckRequest(username, deviceId, sessionToken.takeIf { it.isNotEmpty() })
 
             val response = apiService.checkSession(sessionRequest)
-            val isValid = response.isSuccessful && response.body()?.success == true
-            if (isValid) {
-                userPreferencesManager.saveLastSessionVerifiedTimestamp(System.currentTimeMillis())
+
+            if (!response.isSuccessful && response.code() >= 500) {
+                // خطای داخلی/گذرای سرور (مثلاً قطعی دیتابیس) — نه رد صریح نشست —
+                // واجد شرایط همان grace period آفلاین است، وگرنه یک قطعی چند دقیقه‌ای
+                // سرور همه کاربران را به‌طور اجباری خارج می‌کند
+                isWithinSessionOfflineGracePeriod()
+            } else {
+                val isValid = response.isSuccessful && response.body()?.success == true
+                if (isValid) {
+                    userPreferencesManager.saveLastSessionVerifiedTimestamp(System.currentTimeMillis())
+                }
+                // پاسخ صریح سرور (از جمله ۴۰۹ نشست تکراری) همیشه fail-closed است — هرگز
+                // grace period نمی‌گیرد، وگرنه منطق «یک دستگاه در هر زمان» دور زده می‌شود
+                isValid
             }
-            // پاسخ صریح سرور (از جمله ۴۰۹ نشست تکراری) همیشه fail-closed است — هرگز
-            // grace period نمی‌گیرد، وگرنه منطق «یک دستگاه در هر زمان» دور زده می‌شود
-            isValid
         } catch (e: java.io.IOException) {
             // فقط خطای شبکه‌ی واقعی (نه رد صریح سرور) واجد شرایط grace period محدود است
-            val lastVerified = userPreferencesManager.getLastSessionVerifiedTimestamp()
-            val withinGracePeriod = lastVerified > 0L &&
-                    (System.currentTimeMillis() - lastVerified) < SESSION_OFFLINE_GRACE_PERIOD_MS
-            withinGracePeriod
+            isWithinSessionOfflineGracePeriod()
         } catch (_: Exception) {
             false
         }
+    }
+
+    private suspend fun isWithinSessionOfflineGracePeriod(): Boolean {
+        val lastVerified = userPreferencesManager.getLastSessionVerifiedTimestamp()
+        return lastVerified > 0L &&
+                (System.currentTimeMillis() - lastVerified) < SESSION_OFFLINE_GRACE_PERIOD_MS
     }
 
     private suspend fun requestBatteryOptimizationIfNeeded() {
@@ -284,7 +309,7 @@ class StartupViewModel(
             if (userPreferencesManager.hasBatteryOptimizationBeenRequested()) return
             userPreferencesManager.markBatteryOptimizationRequested()
 
-            _events.emit(StartupEvent.RequestBatteryOptimization)
+            _events.send(StartupEvent.RequestBatteryOptimization)
         } catch (_: Exception) {
             // نادیده گرفتن خطای مجوز باتری - غیرحیاتی است
         }
@@ -404,6 +429,7 @@ class StartupViewModel(
     override fun onCleared() {
         super.onCleared()
         updateManager.onCleared()
+        _events.close()
     }
 
     companion object {
