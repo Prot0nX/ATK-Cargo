@@ -10,6 +10,8 @@ use InvalidArgumentException;
 use App\Repositories\CargoRepository;
 use App\Core\Logger;
 use App\Core\MicroCache;
+use App\Exceptions\ApiException;
+use App\Exceptions\ConflictException;
 
 class CargoService {
     private CargoRepository $repo;
@@ -34,6 +36,51 @@ class CargoService {
             $yesterdayStart = date('Y-m-d 00:00:00', strtotime('-1 day'));
             $currentTime = jdate("H:i");
             $currentDate = jdate("Y/m/d");
+
+            // ۰. کنترل‌های کوتاژ (فعال بودن، حد نصاب درصدی، تناژ موقت) — این
+            // سه بررسی قبلاً فقط سمت کلاینت (QuotaValidationUseCase) انجام
+            // می‌شدند؛ یعنی اپی که این درخواست‌ها را ارسال می‌کرد کافی بود این
+            // بررسی‌ها را دور بزند. اینجا همان کنترل‌ها روی سرور و قبل از هر
+            // نوشتنی تکرار می‌شوند تا واقعاً لازم‌الاجرا باشند.
+            $quotaControl = $this->repo->findQuotaControlData(
+                $shipName,
+                $params['loadingWarehouse'],
+                $params['cargoType'],
+                $params['shippingCompany'],
+                $loadingQuotaNumber
+            );
+
+            if ($quotaControl) {
+                if (!(bool)$quotaControl['isActive']) {
+                    throw new ApiException('این کوتاژ غیرفعال است و امکان ثبت یا خروج حواله برای آن وجود ندارد.', 403);
+                }
+
+                $isPercentageRestricted = (bool)$quotaControl['is_enabled'];
+                $percentage = $quotaControl['percentage'] !== null ? (float)$quotaControl['percentage'] : null;
+                if ($isPercentageRestricted && $percentage !== null) {
+                    $totalTonnage = (float)$quotaControl['totalTonnage'];
+                    $loadedTonnage = (float)$quotaControl['loadedTonnage'];
+                    $remainingTonnage = $totalTonnage - $loadedTonnage;
+                    $percentageAmount = $totalTonnage * ($percentage / 100);
+                    if ($remainingTonnage <= $percentageAmount) {
+                        throw new ApiException("این کوتاژ به حد نصاب {$percentage}% رسیده است و امکان ثبت/به‌روزرسانی حواله برای آن وجود ندارد.", 403);
+                    }
+                }
+            }
+
+            $tempTonnageCheck = $this->repo->findTempTonnage(
+                $shipName,
+                $params['loadingWarehouse'],
+                $params['cargoType'],
+                $params['shippingCompany'],
+                $loadingQuotaNumber
+            );
+            if ($tempTonnageCheck
+                && (int)$tempTonnageCheck['temp_tonnage_status'] === 1
+                && (float)$tempTonnageCheck['temp_tonnage_amount'] <= 0
+            ) {
+                throw new ApiException('تناژ موقت به پایان رسیده است. امکان ثبت حواله جدید یا خروج وجود ندارد. لطفاً با مسئول خود بررسی کنید.', 403);
+            }
 
             // ۱. بررسی وجود حواله تکراری در ۲۴ ساعت گذشته برای این کشتی
             $existing24hCargo = $this->repo->find24hCargo($shipName, $trackingNumber, $yesterdayStart);
@@ -116,7 +163,7 @@ class CargoService {
             if ($shouldInsertNew) {
                 $numberOfPeople = filter_var($params['numberOfPeople'], FILTER_VALIDATE_INT);
                 if ($numberOfPeople === false || $numberOfPeople < 1) {
-                    throw new Exception("تعداد نفرات باید عددی بزرگتر از صفر باشد");
+                    throw new ApiException("تعداد نفرات باید عددی بزرگتر از صفر باشد", 400);
                 }
 
                 $res = $this->repo->insertCargo($params, $currentTime, (int)$numberOfPeople);
@@ -142,10 +189,10 @@ class CargoService {
                 if ($existingCargo['status'] === "ورود") {
                     if (!empty($params['netWeight'])) {
                         if ($existingCargo['confirm'] !== "تائید شده") {
-                            throw new Exception("حواله مورد نظر توسط بارشمار هنوز تائید نشده است!");
+                            throw new ApiException("حواله مورد نظر توسط بارشمار هنوز تائید نشده است!", 400);
                         }
                         
-                        $this->validateExitData($params['netWeight'], $params['scaleReceiptNumber']);
+                        $this->validateExitData($params['netWeight'], $params['scaleReceiptNumber'], $cargoId);
                         
                         // کسر تناژ موقت در صورت فعال بودن
                         $netWeightValue = floatval($params['netWeight']);
@@ -169,27 +216,38 @@ class CargoService {
                             );
                         }
                         
-                        // به‌روزرسانی برای وضعیت خروج
-                        $this->repo->updateCargoExit(
-                            $cargoId, 
-                            $params['netWeight'], 
-                            $params['scaleReceiptNumber'], 
-                            $currentTime, 
-                            $currentDate, 
-                            $params['username'], 
+                        // به‌روزرسانی برای وضعیت خروج؛ خروجی false یعنی رکورد
+                        // بین خواندن (findCargoByKeys با FOR UPDATE) و این
+                        // UPDATE توسط یک درخواست دیگر از وضعیت «ورود» خارج شده
+                        // است (مثلاً خروج هم‌زمان از دو دستگاه).
+                        $exitApplied = $this->repo->updateCargoExit(
+                            $cargoId,
+                            $params['netWeight'],
+                            $params['scaleReceiptNumber'],
+                            $currentTime,
+                            $currentDate,
+                            $params['username'],
                             $params['userType']
                         );
+                        if (!$exitApplied) {
+                            $conn->rollback();
+                            throw new ConflictException("این حواله هم‌زمان توسط درخواست دیگری به‌روزرسانی شد. لطفاً فهرست را بروزرسانی کنید.");
+                        }
                     } elseif (!empty($params['shortageWeight']) || !empty($params['excessWeight'])) {
                         // به‌روزرسانی کسری یا اضافه بار
-                        $this->repo->updateCargoShortageOrExcess(
-                            $cargoId, 
-                            $params['shortageWeight'], 
-                            $params['excessWeight'], 
-                            $params['username'], 
+                        $shortageApplied = $this->repo->updateCargoShortageOrExcess(
+                            $cargoId,
+                            $params['shortageWeight'],
+                            $params['excessWeight'],
+                            $params['username'],
                             $params['userType']
                         );
+                        if (!$shortageApplied) {
+                            $conn->rollback();
+                            throw new ConflictException("این حواله هم‌زمان توسط درخواست دیگری به‌روزرسانی شد. لطفاً فهرست را بروزرسانی کنید.");
+                        }
                     } else {
-                        throw new Exception("برای حواله در وضعیت ورود، باید وزن خالص یا کسری/اضافه بار وارد شود");
+                        throw new ApiException("برای حواله در وضعیت ورود، باید وزن خالص یا کسری/اضافه بار وارد شود", 400);
                     }
                 } elseif ($existingCargo['status'] === "خروج") {
                     if ($params['confirmation'] !== "yes") {
@@ -205,19 +263,23 @@ class CargoService {
                         ];
                     }
                     
-                    $this->validateExitData($params['netWeight'], $params['scaleReceiptNumber']);
-                    
-                    $this->repo->updateCargoExitExiting(
-                        $cargoId, 
-                        $params['netWeight'], 
-                        $params['scaleReceiptNumber'], 
-                        $currentTime, 
-                        $currentDate, 
-                        $params['username'], 
+                    $this->validateExitData($params['netWeight'], $params['scaleReceiptNumber'], $cargoId);
+
+                    $exitingApplied = $this->repo->updateCargoExitExiting(
+                        $cargoId,
+                        $params['netWeight'],
+                        $params['scaleReceiptNumber'],
+                        $currentTime,
+                        $currentDate,
+                        $params['username'],
                         $params['userType']
                     );
+                    if (!$exitingApplied) {
+                        $conn->rollback();
+                        throw new ConflictException("این حواله هم‌زمان توسط درخواست دیگری به‌روزرسانی شد. لطفاً فهرست را بروزرسانی کنید.");
+                    }
                 } else {
-                    throw new Exception("وضعیت نامعتبر حواله");
+                    throw new ApiException("وضعیت نامعتبر حواله", 400);
                 }
 
                 $conn->commit();
@@ -252,16 +314,26 @@ class CargoService {
         $deleted = $this->repo->deleteCargoById($cargoId);
         if ($deleted && $cargoData['status'] === 'خروج' && !empty($cargoData['netWeight'])) {
             $netWeightValue = (float)$cargoData['netWeight'];
+            // $cargoData از findCargoById (خواندن خام SELECT *) می‌آید، نه از
+            // ورودی کنترلر که از قبل sanitizeString/(string) شده؛ loadingQuotaNumber
+            // ستونی عددی (INT) است و درایور mysqli آن را int برمی‌گرداند، در
+            // حالی‌که findTempTonnage/updateTempTonnage با declare(strict_types=1)
+            // پارامتر $quota را string اعلام کرده‌اند — بدون این cast صریح، هر
+            // حذف حوالهٔ خروج‌زده‌ی دارای تناژ موقت با TypeError (نه Exception)
+            // متوقف می‌شد و چون هیچ catch(Exception) آن را نمی‌گرفت، کلاینت
+            // پاسخ کاملاً خالی می‌گرفت — با اینکه DELETE پیش از این خط با
+            // موفقیت اجرا شده بود.
+            $quotaNumber = (string)$cargoData['loadingQuotaNumber'];
             $tempData = $this->repo->findTempTonnage(
-                $cargoData['shipName'], $cargoData['loadingWarehouse'], $cargoData['cargoType'], 
-                $cargoData['shippingCompany'], $cargoData['loadingQuotaNumber']
+                $cargoData['shipName'], $cargoData['loadingWarehouse'], $cargoData['cargoType'],
+                $cargoData['shippingCompany'], $quotaNumber
             );
 
             if ($tempData && (int)$tempData['temp_tonnage_status'] === 1) {
                 $newTemp = (float)$tempData['temp_tonnage_amount'] + $netWeightValue;
                 $this->repo->updateTempTonnage(
-                    $newTemp, $cargoData['shipName'], $cargoData['loadingWarehouse'], $cargoData['cargoType'], 
-                    $cargoData['shippingCompany'], $cargoData['loadingQuotaNumber']
+                    $newTemp, $cargoData['shipName'], $cargoData['loadingWarehouse'], $cargoData['cargoType'],
+                    $cargoData['shippingCompany'], $quotaNumber
                 );
             }
         }
@@ -317,15 +389,42 @@ class CargoService {
         return ['exists' => false, 'message' => 'شماره قبض باسکول معتبر است.', 'code' => 200];
     }
 
-    private function validateExitData(string $netWeight, string $scaleReceiptNumber): void {
-        if (!filter_var($netWeight, FILTER_VALIDATE_FLOAT) || floatval($netWeight) <= 0) {
-            throw new Exception("وزن خالص باید عددی مثبت و بزرگتر از صفر باشد.");
+    // بررسی تکراری‌بودن قبض باسکول قبلاً فقط از طریق یک فراخوانی مشورتی و
+    // جدای کلاینت (check_scale_receipt.php) انجام می‌شد که چیزی جلوی
+    // فراخوانی مستقیم این مسیر (saveOrUpdateCargoInfo.php) بدون آن بررسی را
+    // نمی‌گرفت. isScaleReceiptDuplicate از قبل در updateCargoInfo استفاده
+    // می‌شد؛ اینجا هم در همان تراکنشی که واقعاً رکورد را می‌نویسد اجرا می‌شود.
+    // محدودهٔ وزن خالص (۱۰۰۰ تا ۴۵۰۰۰) با QuotaValidationUseCase.validateInputData
+    // سمت کلاینت یکی است. سرور قبلاً فقط «مثبت بودن» را چک می‌کرد، یعنی
+    // درخواستی که مستقیم این endpoint را صدا می‌زد (بدون رد شدن از کلاینت)
+    // می‌توانست این محدوده را دور بزند.
+    private const MIN_NET_WEIGHT = 1000.0;
+    private const MAX_NET_WEIGHT = 45000.0;
+
+    private function validateExitData(string $netWeight, string $scaleReceiptNumber, int $cargoId): void {
+        if (!filter_var($netWeight, FILTER_VALIDATE_FLOAT)) {
+            throw new ApiException("وزن خالص باید عددی باشد.", 400);
+        }
+        $netWeightValue = floatval($netWeight);
+        if ($netWeightValue < self::MIN_NET_WEIGHT || $netWeightValue > self::MAX_NET_WEIGHT) {
+            throw new ApiException("وزن خالص باید بین " . self::MIN_NET_WEIGHT . " تا " . self::MAX_NET_WEIGHT . " کیلوگرم باشد.", 400);
         }
         if (empty($scaleReceiptNumber)) {
-            throw new Exception("شماره قبض باسکول نمی‌تواند خالی باشد.");
+            throw new ApiException("شماره قبض باسکول نمی‌تواند خالی باشد.", 400);
         }
-        if (!ctype_digit($scaleReceiptNumber)) {
-            throw new Exception("شماره قبض باسکول باید فقط شامل اعداد باشد.");
+        // فرمت واقعی قبض باسکول (۸ رقم، پیشوند ۴۴ تا ۵۵) همان چیزی است که
+        // CargoService::checkScaleReceipt از قبل روی آن تکیه می‌کند؛ اینجا هم
+        // همان قاعده اعمال می‌شود تا هر دو مسیر یک تعریف از «قبض معتبر» داشته
+        // باشند.
+        if (!ctype_digit($scaleReceiptNumber) || strlen($scaleReceiptNumber) !== 8) {
+            throw new ApiException("شماره قبض باسکول باید دقیقاً ۸ رقم باشد.", 400);
+        }
+        $prefix = substr($scaleReceiptNumber, 0, 2);
+        if ($prefix < '44' || $prefix > '55') {
+            throw new ApiException("شماره قبض باسکول معتبر نیست.", 400);
+        }
+        if ($this->repo->isScaleReceiptDuplicate($scaleReceiptNumber, $cargoId)) {
+            throw new ApiException("شماره قبض باسکول {$scaleReceiptNumber} قبلاً برای حوالهٔ دیگری ثبت شده است.", 400);
         }
     }
 }

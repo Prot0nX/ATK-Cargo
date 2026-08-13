@@ -7,7 +7,6 @@ import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoResponse
 import com.atk.atk_cargo.data.model.ComprehensiveAnalysisResponse
 import com.atk.atk_cargo.data.model.FilteredSummary
-import com.atk.atk_cargo.data.model.InitialInfo
 import com.atk.atk_cargo.data.model.Quota
 import com.atk.atk_cargo.data.model.QuotaDetails
 import com.atk.atk_cargo.data.model.QuotaStatusResponse
@@ -51,31 +50,6 @@ class ReportsRepository(private val apiService: ApiService) {
             }
         } catch (e: Exception) {
             throw e
-        }
-    }
-
-    // فقط اطلاعات اولیه را بدون لیست حواله‌ها دریافت می‌کند
-    suspend fun getInitialInfo(
-        quotaNumber: String,
-        shippingCompany: String,
-        warehouse: String,
-        cargoType: String
-    ): InitialInfo? = withContext(Dispatchers.IO) {
-        try {
-            val response = apiService.getCargoInfo(
-                quotaNumber = quotaNumber,
-                shippingCompany = shippingCompany,
-                warehouse = warehouse,
-                cargoType = cargoType
-            )
-
-            if (response.isSuccessful) {
-                response.body()?.initialInfo
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            null
         }
     }
 

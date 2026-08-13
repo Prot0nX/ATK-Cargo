@@ -14,17 +14,16 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -32,7 +31,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,8 +59,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -74,34 +72,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.zIndex
-import androidx.navigation.compose.rememberNavController
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.InitialInfo
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.data.model.ShipInfo
-import com.atk.atk_cargo.data.model.WarningStatus
-import com.atk.atk_cargo.feature.cargo_entry.presentation.SelectInfoScreenContent
-import com.atk.atk_cargo.feature.cargo_entry.presentation.StatusSnackbar
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.CargoInfoDetailsDialog
-import com.atk.atk_cargo.feature.cargo_registration.presentation.components.DialogPassword
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.DuplicateConfirmationDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.DuplicateTrackingNumbersDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.ErrorHandlingCargoInfoRow
-import com.atk.atk_cargo.feature.cargo_registration.presentation.components.ExitStatusDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.FormSection
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.MessageDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.NetWeightDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.QuotaEntryDialog
-import com.atk.atk_cargo.feature.cargo_registration.presentation.components.QuotaWarningDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.ShipInfoSection
 import com.atk.atk_cargo.feature.startup.domain.AnimationManager
 import com.atk.atk_cargo.ui.theme.Amber700
@@ -139,54 +126,7 @@ private fun rememberRegisterPalette(): RegisterPalette {
     )
 }
 
-suspend fun handleQuotaEntry(
-    quotaCode: String,
-    currentInitialInfo: InitialInfo?,
-    viewModel: CargoViewModel,
-    snackbarHostState: SnackbarHostState,
-    onQuotaChanged: () -> Unit = {}
-) {
-    if (currentInitialInfo == null) {
-        snackbarHostState.showSnackbar("اطلاعات اولیه یافت نشد")
-        return
-    }
-
-    try {
-        val response = viewModel.checkQuotaExistenceCargo(quotaCode, currentInitialInfo.shipName)
-        
-        if (response.exists && response.matchingQuotas.isNotEmpty()) {
-            val selectedQuota = response.matchingQuotas.first()
-            
-            if (selectedQuota.shipName == currentInitialInfo.shipName) {
-                val newInitialInfo = InitialInfo(
-                    shipName = selectedQuota.shipName,
-                    loadingWarehouse = selectedQuota.warehouse,
-                    cargoType = selectedQuota.cargoType,
-                    shippingCompany = selectedQuota.shippingCompany,
-                    cargoWeight = 0f,
-                    loadingQuotaNumber = selectedQuota.quotaNumber.toIntOrNull() ?: 0,
-                    remainingWeight = 0f,
-                    totalNetWeight = 0f,
-                    averageNetWeight = 0f,
-                    remainingServices = 0
-                )
-                
-                viewModel.setInitialInfo(newInitialInfo)
-                viewModel.refreshCargoInfo()
-                onQuotaChanged()
-                snackbarHostState.showSnackbar("کوتاژ با موفقیت تغییر یافت به: ${selectedQuota.quotaNumber}")
-            } else {
-                snackbarHostState.showSnackbar("خطا: کوتاژ $quotaCode متعلق به کشتی ${selectedQuota.shipName} است، نه کشتی ${currentInitialInfo.shipName}!")
-            }
-        } else {
-            snackbarHostState.showSnackbar("کوتاژ $quotaCode برای کشتی ${currentInitialInfo.shipName} یافت نشد")
-        }
-    } catch (e: Exception) {
-        snackbarHostState.showSnackbar("خطا در بررسی کوتاژ: ${e.message}")
-    }
-}
-
-@SuppressLint("UnusedBoxWithConstraintsScope", "DefaultLocale")
+@SuppressLint("DefaultLocale")
 @Composable
 fun RegisterCargoScreen(
     initialInfo: InitialInfo?,
@@ -209,29 +149,20 @@ fun RegisterCargoScreen(
     }
     var trackingNumber by remember { mutableStateOf("") }
     var numberOfPeople by remember { mutableStateOf("") }
-    var netWeight by remember { mutableStateOf("") }
     var shortageWeight by remember { mutableStateOf("") }
     var excessWeight by remember { mutableStateOf("") }
     val selectedCargoInfo = remember { mutableStateOf<CargoInfo?>(null) }
     val showDetailDialog = remember { mutableStateOf(false) }
     var isInfoVisible by remember { mutableStateOf(false) }
-    var showConfirmationDialog by remember { mutableStateOf(false) }
-    val confirmationMessage by remember { mutableStateOf("") }
-    var cargoInfoToUpdate by remember { mutableStateOf<CargoInfo?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     var isFormExpanded by remember { mutableStateOf(true) }
     val clearInputFields by viewModel.clearInputFields.collectAsState()
     val showNetWeightDialog by viewModel.showNetWeightDialog.collectAsState()
     val scaleReceiptNumber by viewModel.scaleReceiptNumber.collectAsState()
     val focusManager = LocalFocusManager.current
-    var showExitStatusDialog by remember { mutableStateOf(false) }
-    var showStatisticsDialog by remember { mutableStateOf(false) }
-    val snackbarMessage by viewModel.snackbarMessage.collectAsState()
-    var showQuotaWarning by remember { mutableStateOf<WarningStatus?>(null) }
     val loadableTonnage by viewModel.loadableTonnage.collectAsState()
     val loadableTrucks18Wheeler by viewModel.loadableTrucks18Wheeler.collectAsState()
     val loadableTrucks10Wheeler by viewModel.loadableTrucks10Wheeler.collectAsState()
-    var updateType by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val showDuplicateConfirmationDialog by viewModel.showDuplicateConfirmationDialog.collectAsState()
     val duplicateWarningMessage by viewModel.duplicateWarningMessage.collectAsState()
@@ -242,7 +173,6 @@ fun RegisterCargoScreen(
 
     fun clearInputFields() {
         trackingNumber = ""
-        netWeight = ""
         numberOfPeople = ""
         shortageWeight = ""
         excessWeight = ""
@@ -255,22 +185,32 @@ fun RegisterCargoScreen(
         }
     }
 
-    val filteredCargoInfoList by remember(cargoInfoList, searchQuery) {
-        derivedStateOf {
-            cargoInfoList.filter { cargoInfo ->
-                val matches = cargoInfo.trackingNumber.contains(searchQuery, ignoreCase = true)
-                if (searchQuery.isNotEmpty()) {
-                    Log.d("RegisterCargoActivity_Log", "Checking ${cargoInfo.trackingNumber} against '$searchQuery': $matches")
-                }
-                matches
-            }
+    var selectedTab by remember { mutableIntStateOf(0) }
+
+    // قبلاً این فیلتر و partition/sort در بدنه‌ی Composable و بدون remember
+    // با هر بازترکیب (هر فریم انیمیشن FAB، هر تغییر isPressed) از نو محاسبه
+    // می‌شدند، و پایین‌تر همین فیلتر جستجو یک‌بار دیگر هم روی currentItems
+    // تکرار می‌شد. اینجا همه در یک remember جمع شده‌اند.
+    val (nonExitedCargos, exitedCargos) = remember(cargoInfoList, searchQuery) {
+        val filtered = if (searchQuery.isEmpty()) {
+            cargoInfoList
+        } else {
+            cargoInfoList.filter { it.trackingNumber.contains(searchQuery, ignoreCase = true) }
+        }
+        filtered.partition { it.status == "ورود" }
+    }
+
+    val visibleItems = remember(nonExitedCargos, exitedCargos, selectedTab) {
+        if (selectedTab == 0) {
+            nonExitedCargos.sortedByDescending { it.entryTime }
+        } else {
+            exitedCargos.sortedByDescending { "${it.exitDate} ${it.exitTime}" }
         }
     }
 
-    val (nonExitedCargos, exitedCargos) = filteredCargoInfoList.partition { it.status == "ورود" }
+    val fabInteractionSource = remember { MutableInteractionSource() }
+    val isPressed by fabInteractionSource.collectIsPressedAsState()
 
-    var isPressed by remember { mutableStateOf(false) }
-    
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1.0f,
         animationSpec = spring(
@@ -280,57 +220,59 @@ fun RegisterCargoScreen(
         label = "fab_scale"
     )
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .systemBarsPadding()
-                .navigationBarsPadding(),
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-            floatingActionButton = {
-                Card(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .scale(scale)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { showQuotaEntryDialog = true }
-                        .pointerInput(Unit) {
-                            awaitPointerEventScope {
-                                while (true) {
-                                    val event = awaitPointerEvent()
-                                    val down = event.changes.firstOrNull()?.pressed == true
-                                    isPressed = down
-                                }
-                            }
-                        },
-                    shape = CircleShape,
-                    colors = CardDefaults.cardColors(
-                        containerColor = palette.accent
-                    ),
-                    border = BorderStroke(4.dp, MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .systemBarsPadding()
+            .navigationBarsPadding(),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        floatingActionButton = {
+            Card(
+                modifier = Modifier
+                    .size(56.dp)
+                    .scale(scale)
+                    .clickable(
+                        interactionSource = fabInteractionSource,
+                        indication = null
+                    ) { showQuotaEntryDialog = true },
+                shape = CircleShape,
+                colors = CardDefaults.cardColors(
+                    containerColor = palette.accent
+                ),
+                border = BorderStroke(4.dp, MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ConfirmationNumber,
-                            contentDescription = "تغییر کشتی",
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.ConfirmationNumber,
+                        contentDescription = "تغییر کشتی",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
                 }
             }
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
+        }
+    ) { paddingValues ->
+        // قبلاً این یک Column ثابت (بدون اسکرول) بود و فقط لیست حواله‌ها
+        // داخلش یک LazyColumn با ارتفاع سقف‌دار (450dp) داشت؛ اگر مجموع هدر
+        // (وقتی ShipInfoSection/FormSection باز باشند) + آن سقف از ارتفاع
+        // صفحه بیشتر می‌شد، چیزی برای دیدن باقی صفحه اسکرول نمی‌شد. حالا کل
+        // صفحه یک LazyColumn واحد است. چون LazyColumn داخل LazyColumn ممکن
+        // نیست، ردیف‌های حواله دیگر یک LazyColumn جدا نیستند؛ تعداد آن‌ها برای
+        // هر کوتاژ معمولاً چند ده مورد است نه هزاران، پس یک Column معمولی
+        // همراه با key() برای هویت پایدار هر ردیف استفاده شده تا هم اسکرول
+        // کل صفحه یکپارچه شود و هم ظاهر کارت (Surface با border/rounded
+        // corner که کل لیست را دربرمی‌گیرد) دست‌نخورده بماند.
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            item {
                 val shipInfo = ShipInfo(
                     shipName = initialInfo?.shipName ?: "",
                     loadingWarehouse = initialInfo?.loadingWarehouse ?: "",
@@ -357,7 +299,7 @@ fun RegisterCargoScreen(
                     loadableTrucks10Wheeler = loadableTrucks10Wheeler,
                     onChangeSelectionClick = onChangeSelectionClick
                 )
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
 
                 AnimatedVisibility(
@@ -416,22 +358,19 @@ fun RegisterCargoScreen(
                                     }
                                 }
 
-                                val netWeightValue = netWeight.toIntOrNull()
-                                if (netWeight.isNotBlank() && (netWeightValue == null || netWeightValue !in 1000..60000)) {
-                                    snackbarHostState.showSnackbar("وزن خالص باید بین 1000 تا 60000 کیلوگرم باشد.")
-                                    return@launch
-                                }
-
+                                // این دکمه فقط برای ثبت ورود تازه یا کسری/اضافه
+                                // بار است؛ خروج (وزن خالص) فقط از مسیر اسکن
+                                // بارکد → NetWeightDialog انجام می‌شود، پس
+                                // netWeight همیشه خالی است.
                                 viewModel.submitCargoInfo(
                                     trackingNumber,
-                                    netWeight,
+                                    "",
                                     scaleReceiptNumber,
                                     shortageWeight,
                                     excessWeight,
                                     numberOfPeople
                                 )
 
-                                updateType = "cargo_submit"
                                 focusManager.clearFocus()
                             }
                         }
@@ -561,8 +500,6 @@ fun RegisterCargoScreen(
                     }
                 }
 
-                var selectedTab by remember { mutableIntStateOf(0) }
-
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -661,19 +598,9 @@ fun RegisterCargoScreen(
                         }
                     }
                 }
+            }
 
-                val currentItems = if (selectedTab == 0) {
-                    nonExitedCargos.sortedByDescending { it.entryTime }
-                } else {
-                    exitedCargos.sortedByDescending { "${it.exitDate} ${it.exitTime}" }
-                }
-                
-                val filteredItems = if (searchQuery.isNotEmpty()) {
-                    currentItems.filter { it.trackingNumber.contains(searchQuery, ignoreCase = true) }
-                } else {
-                    currentItems
-                }
-
+            item {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -682,7 +609,7 @@ fun RegisterCargoScreen(
                     color = palette.cardBg,
                     border = BorderStroke(1.dp, palette.cardBorder)
                 ) {
-                    if (filteredItems.isEmpty()) {
+                    if (visibleItems.isEmpty()) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -696,23 +623,19 @@ fun RegisterCargoScreen(
                             )
                         }
                     } else {
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 450.dp),
-                            verticalArrangement = Arrangement.spacedBy(0.dp)
-                        ) {
-                            items(filteredItems) { info ->
-                                ErrorHandlingCargoInfoRow(
-                                    info = info,
-                                    onRowClick = { selectedInfo ->
-                                        selectedCargoInfo.value = selectedInfo
-                                        showDetailDialog.value = true
-                                    },
-                                    duplicateTrackingNumbers = duplicateTrackingNumbers
-                                )
-                                if (info != filteredItems.last()) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            visibleItems.forEachIndexed { index, info ->
+                                key(info.id ?: info.trackingNumber) {
+                                    ErrorHandlingCargoInfoRow(
+                                        info = info,
+                                        onRowClick = { selectedInfo ->
+                                            selectedCargoInfo.value = selectedInfo
+                                            showDetailDialog.value = true
+                                        },
+                                        duplicateTrackingNumbers = duplicateTrackingNumbers
+                                    )
+                                }
+                                if (index < visibleItems.lastIndex) {
                                     HorizontalDivider(
                                         color = palette.cardBorder,
                                         thickness = 1.dp
@@ -723,123 +646,50 @@ fun RegisterCargoScreen(
                     }
                 }
             }
+        }
 
-            if (showAnimatedMessage) {
-                MessageDialog(
-                    message = resultMessage,
-                    type = messageType,
-                    visible = true,
-                    onDismiss = { viewModel.dismissMessage() }
-                )
-            }
+        if (showAnimatedMessage) {
+            MessageDialog(
+                message = resultMessage,
+                type = messageType,
+                visible = true,
+                onDismiss = { viewModel.dismissMessage() }
+            )
+        }
 
-            selectedCargoInfo.value?.let { info ->
-                if (showDetailDialog.value) {
-                    CargoInfoDetailsDialog(
-                        info = info,
-                        viewModel = viewModel,
-                        snackbarHostState = snackbarHostState,
-                        onDismiss = {
-                            showDetailDialog.value = false
-                        },
-                        onUpdateTypeChange = { newUpdateType ->
-                            updateType = newUpdateType
-                        }
-                    )
-                }
-            }
-
-            if (showConfirmationDialog) {
-                DialogPassword(
-                    message = confirmationMessage,
-                    onConfirm = {
-                        cargoInfoToUpdate?.let { cargoInfo ->
-                            viewModel.updateCargoInfo(cargoInfo, netWeight)
-                            updateType = "cargo_update"
-                            showConfirmationDialog = false
-                            cargoInfoToUpdate = null
-                        }
-                    },
-                    onDismiss = { showConfirmationDialog = false }
-                )
-            }
-
-            if (showNetWeightDialog) {
-                NetWeightDialog(
-                    scaleReceiptNumber = scaleReceiptNumber,
-                    onConfirm = { enteredNetWeight ->
-                        Log.d("ATK-Log", "NetWeightDialog: Weight confirmed: $enteredNetWeight for tracking: $trackingNumber")
-                        viewModel.submitCargoInfo(
-                            trackingNumber,
-                            enteredNetWeight,
-                            scaleReceiptNumber,
-                            shortageWeight,
-                            excessWeight,
-                            numberOfPeople
-                        )
-                        updateType = "cargo_submit"
-                        viewModel.hideNetWeightDialog()
-                    },
+        selectedCargoInfo.value?.let { info ->
+            if (showDetailDialog.value) {
+                CargoInfoDetailsDialog(
+                    info = info,
+                    viewModel = viewModel,
+                    snackbarHostState = snackbarHostState,
                     onDismiss = {
-                        viewModel.hideNetWeightDialog()
+                        showDetailDialog.value = false
                     }
                 )
             }
-
-            if (showExitStatusDialog) {
-                ExitStatusDialog(
-                    showDialog = true,
-                    onDismiss = { showExitStatusDialog = false },
-                    exitVouchersCount = exitedCargos.size,
-                    totalNetWeight = exitedCargos.sumOf { (it.netWeight.toFloatOrNull() ?: 0f).toDouble() }.toFloat()
-                )
-            }
         }
-    }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 24.dp)
-    ) {
-        snackbarMessage?.let { message ->
-            StatusSnackbar(
-                message = message,
-                isVisible = true,
-                onDismiss = viewModel::dismissSnackbar,
-                modifier = Modifier.zIndex(Float.MAX_VALUE)
+        if (showNetWeightDialog) {
+            NetWeightDialog(
+                scaleReceiptNumber = scaleReceiptNumber,
+                onConfirm = { enteredNetWeight ->
+                    Log.d("ATK-Log", "NetWeightDialog: Weight confirmed: $enteredNetWeight for tracking: $trackingNumber")
+                    viewModel.submitCargoInfo(
+                        trackingNumber,
+                        enteredNetWeight,
+                        scaleReceiptNumber,
+                        shortageWeight,
+                        excessWeight,
+                        numberOfPeople
+                    )
+                    viewModel.hideNetWeightDialog()
+                },
+                onDismiss = {
+                    viewModel.hideNetWeightDialog()
+                }
             )
         }
-    }
-
-    if (showStatisticsDialog) {
-        Dialog(
-            onDismissRequest = { showStatisticsDialog = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                SelectInfoScreenContent(
-                    navController = rememberNavController(),
-                    viewModel = viewModel
-                )
-            }
-        }
-    }
-
-    if (showQuotaWarning != null) {
-        QuotaWarningDialog(
-            warning = showQuotaWarning!!,
-            onDismiss = {
-                showQuotaWarning = null
-            },
-            viewModel = viewModel
-        )
     }
 
     if (showDuplicateConfirmationDialog) {
@@ -871,33 +721,18 @@ fun RegisterCargoScreen(
             }
         )
     }
-    
+
     if (showQuotaEntryDialog) {
         QuotaEntryDialog(
             showDialog = true,
             onDismiss = { showQuotaEntryDialog = false },
-            onConfirm = { quotaCode ->
-                coroutineScope.launch {
-                    handleQuotaEntry(quotaCode, initialInfo, viewModel, snackbarHostState) {
-                        updateType = "quota_change"
-                    }
-                }
+            onConfirm = { selectedQuota ->
+                viewModel.switchQuota(selectedQuota)
                 showQuotaEntryDialog = false
             },
             shipName = initialInfo?.shipName ?: "",
             currentQuota = initialInfo?.loadingQuotaNumber?.toString() ?: "",
             viewModel = viewModel
         )
-    }
-    
-    LaunchedEffect(initialInfo, loadableTonnage) {
-        if (initialInfo != null && loadableTonnage.isNotEmpty()) {
-            val excludedUpdateTypes = setOf("cargo_submit", "cargo_update", "cargo_delete")
-            if (updateType == null || updateType !in excludedUpdateTypes) {
-                if (updateType == null) {
-                    updateType = "initial"
-                }
-            }
-        }
     }
 }

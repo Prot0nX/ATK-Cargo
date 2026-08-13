@@ -525,8 +525,21 @@ class AppApiController {
         // نداشته (این endpoint از ابتدا با خطای "Unknown column" شکست می‌خورد)؛
         // REVERSE() همان منطق تطبیق معکوس رقم‌ها را بدون نیاز به ستون واقعی انجام می‌دهد.
         // InitialInfo حجم کمی دارد (چند صد ردیف)، پس نبود ایندکس روی این شرط مشکلی ایجاد نمی‌کند.
-        $query = "SELECT loadingQuotaNumber, shipName, shippingCompany, cargoType, loadingWarehouse
-        FROM InitialInfo WHERE REVERSE(loadingQuotaNumber) LIKE ? AND shipName = ? ORDER BY loadingQuotaNumber";
+        //
+        // isActive اینجا مستقیماً محاسبه می‌شود (همان فرمول checkQuotaStatus:
+        // ستون isActive AND هنوز ظرفیت باقی مانده) تا کلاینت لازم نباشد به
+        // ازای هر ردیف نتیجه یک درخواست جداگانه به checkQuotaStatus بزند
+        // (رِیس N+1 قبلی در CargoViewModel.checkQuotaExistenceCargo).
+        $query = "SELECT i.loadingQuotaNumber, i.shipName, i.shippingCompany, i.cargoType, i.loadingWarehouse,
+                i.isActive, i.cargoWeight as totalWeight, COALESCE(SUM(c.netWeight), 0) as loadedWeight
+            FROM InitialInfo i
+            LEFT JOIN CargoInfo c ON
+                c.loadingQuotaNumber = i.loadingQuotaNumber AND c.shipName = i.shipName
+                AND c.cargoType = i.cargoType AND c.shippingCompany = i.shippingCompany
+                AND c.loadingWarehouse = i.loadingWarehouse AND c.status = 'خروج'
+            WHERE REVERSE(i.loadingQuotaNumber) LIKE ? AND i.shipName = ?
+            GROUP BY i.loadingQuotaNumber, i.shipName, i.shippingCompany, i.cargoType, i.loadingWarehouse, i.isActive, i.cargoWeight
+            ORDER BY i.loadingQuotaNumber";
 
         $stmt = $this->db->prepare($query);
         $reversedLikeQuotaNumber = strrev($quotaNumber) . '%';
@@ -536,12 +549,15 @@ class AppApiController {
 
         $matchingQuotas = [];
         while ($row = $result->fetch_assoc()) {
+            $totalWeight = (float)$row['totalWeight'];
+            $loadedWeight = (float)$row['loadedWeight'];
             $matchingQuotas[] = [
                 'quotaNumber' => $row['loadingQuotaNumber'],
                 'shipName' => $row['shipName'],
                 'shippingCompany' => $row['shippingCompany'],
                 'cargoType' => $row['cargoType'],
-                'warehouse' => $row['loadingWarehouse']
+                'warehouse' => $row['loadingWarehouse'],
+                'isActive' => (bool)$row['isActive'] && ($loadedWeight < $totalWeight)
             ];
         }
 
