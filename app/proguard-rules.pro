@@ -6,12 +6,6 @@
 # -----------------------------------------------------------------------
 # SECTION 1: GENERAL OPTIMIZATION & R8 HARDENING
 # -----------------------------------------------------------------------
--optimizationpasses 10
--dontusemixedcaseclassnames
--dontskipnonpubliclibraryclasses
--dontpreverify
--verbose
-
 # Obfuscation Dictionaries & Repackaging
 -obfuscationdictionary proguard-dictionary.txt
 -classobfuscationdictionary proguard-dictionary.txt
@@ -19,21 +13,14 @@
 
 -repackageclasses 'obfuscated'
 -allowaccessmodification
--mergeinterfacesaggressively
--overloadaggressively
 -renamesourcefileattribute SourceFile
--adaptresourcefilenames **.properties
--adaptresourcefilecontents **.properties,META-INF/MANIFEST.MF
-
-# R8 Optimization Rules & Fine Tuning
--optimizations !code/simplification/arithmetic,!field/*,!class/merging/*
 
 # -----------------------------------------------------------------------
 # SECTION 2: ATTRIBUTE PRESERVATION & METADATA
 # -----------------------------------------------------------------------
 -keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod,Exceptions
 -keepattributes RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations,AnnotationDefault
--keepattributes !SourceFile,!LineNumberTable
+-keepattributes SourceFile,LineNumberTable
 
 # -----------------------------------------------------------------------
 # SECTION 3: ANDROID CORE ENTRY POINTS
@@ -48,28 +35,20 @@
 # -----------------------------------------------------------------------
 # SECTION 4: JNI & NATIVE BRIDGE PROTECTION
 # -----------------------------------------------------------------------
-# Critical: Keep JNI class name, package name, and method signatures matching C++ libsecrets.so
+# libsecrets.so اکنون از JNI_OnLoad + RegisterNatives استفاده می‌کند (نه قرارداد نام‌گذاری
+# استاندارد Java_pkg_Class_method) — بنابراین نام‌های واقعی متد در جدول سیمبل .so دیگر
+# فاش نمی‌شوند. اما چون RegisterNatives با رشتهٔ ثابت نام متد در زمان کامپایل C++ بایند
+# می‌شود، نام کلاس/متدهای Secrets باید دقیقاً حفظ شوند وگرنه JNI_OnLoad شکست می‌خورد.
 -keep class com.atk.atk_cargo.api.Secrets { *; }
--keepclasseswithmembernames,includedescriptorclasses class * {
-    native <methods>;
-}
 
 # -----------------------------------------------------------------------
 # SECTION 5: SECURITY & CRITICAL APPLICATION HARDENING
 # -----------------------------------------------------------------------
-# Security Verifier, Anti-Tamper & Cryptographic Engine
--keep class com.atk.atk_cargo.security.SecurityVerifier { *; }
--keepclassmembers class com.atk.atk_cargo.security.SecurityVerifier { *; }
-
--keep class com.atk.atk_cargo.security.CryptoManager { *; }
--keepclassmembers class com.atk.atk_cargo.security.CryptoManager { *; }
-
+# SecurityVerifier / CryptoManager / UserPreferencesManager:
 -keepclassmembers enum com.atk.atk_cargo.security.SecurityErrorType {
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }
-
--keep class com.atk.atk_cargo.api.UserPreferencesManager { *; }
 
 # Preserve MainActivity lifecycle entry point
 -keep class com.atk.atk_cargo.MainActivity {
@@ -89,29 +68,23 @@
 }
 
 # Data Models & DTO Preservation (Gson Reflection Safety)
--keep class com.atk.atk_cargo.data.model.** { *; }
--keepclassmembers class com.atk.atk_cargo.data.model.** { *; }
--keep class com.atk.atk_cargo.api.** { *; }
--keepclassmembers class com.atk.atk_cargo.api.** { *; }
--keep class com.atk.atk_cargo.data.** { *; }
--keepclassmembers class com.atk.atk_cargo.data.** { *; }
+-keep class com.atk.atk_cargo.data.model.** {
+    <fields>;
+    <init>(...);
+}
 
 # Gson TypeAdapters & SerializedName Annotations
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
 
--keepclassmembers class * {
+-keepclassmembers,allowobfuscation class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
 
-# Networking Library Types & Warnings
--keep class retrofit2.** { *; }
--keep class okhttp3.** { *; }
--dontwarn okhttp3.**
--dontwarn okio.**
--dontwarn retrofit2.**
--dontwarn com.google.gson.**
+# Gson TypeToken anonymous subclasses (LoadingNotificationService, UserPreferencesManager)
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
 
 # -----------------------------------------------------------------------
 # SECTION 7: KOTLIN, COROUTINES & SERIALIZATION
@@ -163,16 +136,6 @@
 }
 
 # -----------------------------------------------------------------------
-# SECTION 9: DEPENDENCY INJECTION (KOIN)
-# -----------------------------------------------------------------------
--keepclassmembers class * {
-    @org.koin.core.annotation.* <fields>;
-    @org.koin.core.annotation.* <methods>;
-}
--keepnames class org.koin.core.Koin { *; }
--dontwarn org.koin.**
-
-# -----------------------------------------------------------------------
 # SECTION 10: WORKMANAGER & BACKGROUND TASKS
 # -----------------------------------------------------------------------
 -keep class * extends androidx.work.ListenableWorker {
@@ -199,6 +162,7 @@
 -dontwarn com.airbnb.lottie.**
 
 # Document & Charts Processing
+-keep class com.itextpdf.** { *; }
 -dontwarn com.itextpdf.**
 -dontwarn com.patrykandpatrick.vico.**
 
@@ -217,20 +181,6 @@
     public static int v(...);
     public static int d(...);
     public static int i(...);
-    public static int w(...);
-    public static int e(...);
-    public static int wtf(...);
-}
-
-# Strip Throwable printStackTrace from Release Binary
--assumenosideeffects class java.lang.Throwable {
-    public void printStackTrace();
-}
-
-# Strip Kotlin Intrinsics null checks parameter strings
--assumenosideeffects class kotlin.jvm.internal.Intrinsics {
-    public static void checkNotNullParameter(java.lang.Object, java.lang.String);
-    public static void checkNotNull(java.lang.Object, java.lang.String);
 }
 
 # Global Warning Suppressions

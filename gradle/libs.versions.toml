@@ -6,7 +6,6 @@ appcompat = "1.7.1"
 camera-camera2 = "1.5.0"
 coil-compose = "2.7.0"
 constraintlayout = "2.2.1"
-core = "2.2.0"
 core-ktx = "1.17.0"
 core-splashscreen = "1.0.1"
 datastore-preferences = "1.1.7"
@@ -29,9 +28,6 @@ koin = "3.5.6"
 compose-bom = "2025.09.00"
 
 # Material Design
-ktor-client-cio = "3.3.0"
-ktor-client-content-negotiation = "3.3.0"
-ktor-client-core = "3.3.0"
 lifecycle-runtime-ktx = "2.9.4"
 lottie-compose = "6.6.9"
 
@@ -117,9 +113,6 @@ androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version
 coil-compose-v260 = { module = "io.coil-kt:coil-compose", version.ref = "coil-compose" }
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
 
-# Material Design
-#noinspection SimilarGradleDependency
-core = { module = "com.patrykandpatrick.vico:core", version.ref = "core" }
 desugar_jdk_libs-v215 = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 
 # Navigation
@@ -130,9 +123,6 @@ jxl = { module = "net.sourceforge.jexcelapi:jxl", version.ref = "jxl" }
 konfetti-compose = { module = "nl.dionsegijn:konfetti-compose", version.ref = "konfetti-compose" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines-android" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
-ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor-client-cio" }
-ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor-client-content-negotiation" }
-ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor-client-core" }
 lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie-compose" }
 material = { module = "com.google.android.material:material", version.ref = "google-material" }
 
