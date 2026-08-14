@@ -215,7 +215,7 @@ private fun AnalyticsDateNavigation(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = if (offset == 0) "روز کاری اخیر" else if (offset == -1) "دیروز" else dayName,
+                    text = if (offset == 0) "روز کاری اخیر" else dayName,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = AnalyticsTitleColor
