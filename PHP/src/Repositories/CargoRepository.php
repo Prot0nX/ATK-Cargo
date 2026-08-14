@@ -206,25 +206,6 @@ class CargoRepository {
         return $res && $affected > 0;
     }
 
-    /**
-     * برای اصلاح حوالهٔ از قبل خروج‌زده (شاخهٔ status === 'خروج' در
-     * CargoService)؛ شرط status='خروج' مانع از این می‌شود که این متد به‌جای
-     * updateCargoExit روی رکوردی که همچنان در وضعیت «ورود» است اجرا شود.
-     */
-    public function updateCargoExitExiting(int $cargoId, string $netWeight, string $scaleReceipt, string $currentTime, string $currentDate, string $username, string $userType): bool {
-        $query = "UPDATE CargoInfo SET
-            netWeight = ?, scaleReceiptNumber = ?, exitTime = ?, exitDate = ?,
-            username = ?, userType = ?
-        WHERE id = ? AND status = 'خروج'";
-        $stmt = $this->conn->prepare($query);
-        if (!$stmt) return false;
-        $stmt->bind_param("ssssssi", $netWeight, $scaleReceipt, $currentTime, $currentDate, $username, $userType, $cargoId);
-        $res = $stmt->execute();
-        $affected = $stmt->affected_rows;
-        $stmt->close();
-        return $res && $affected > 0;
-    }
-
     public function findCargoById(int $id): ?array {
         $stmt = $this->conn->prepare("SELECT * FROM CargoInfo WHERE id = ? LIMIT 1");
         if (!$stmt) return null;

@@ -191,6 +191,22 @@ fun RegisterCargoScreen(
         }
     }
 
+    // clearInputFields فقط در مسیر موفقیت ست می‌شود، پس اگر یک ثبت با دیالوگ
+    // (تأیید تکراری، خطای اعتبارسنجی) لغو شود مقادیر کسری/اضافه و قبض باسکول در
+    // فرم می‌مانند و با تایپ شماره حواله‌ی بعدی روی آن حواله اعمال می‌شوند —
+    // یعنی کسری یک حواله می‌تواند به حواله‌ای دیگر بچسبد. این مقادیر مخصوص یک
+    // شماره حواله‌اند، پس با تغییر آن باید صفر شوند.
+    LaunchedEffect(trackingNumber) {
+        shortageWeight = ""
+        excessWeight = ""
+        if (scaleReceiptNumber.isNotEmpty()) {
+            // updateScaleReceiptNumber عمداً استفاده نشد: آن تابع بارکد را
+            // معتبر می‌شمارد و درخواست شبکه‌ی checkScaleReceiptNumber را صدا
+            // می‌زند؛ hideNetWeightDialog فقط state را صفر می‌کند.
+            viewModel.hideNetWeightDialog()
+        }
+    }
+
     var selectedTab by remember { mutableIntStateOf(0) }
 
     // قبلاً این فیلتر و partition/sort در بدنه‌ی Composable و بدون remember
