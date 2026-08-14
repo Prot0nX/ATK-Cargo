@@ -13,17 +13,6 @@ std::string decryptXor(const uint8_t* encryptedBytes, size_t length) {
     return decrypted;
 }
 
-// -----------------------------------------------------------------------
-// توابع native با نام‌های غیرتوصیفی (n0..n11) پیاده‌سازی شده‌اند و از طریق
-// JNI_OnLoad/RegisterNatives ثبت می‌شوند، نه از طریق قرارداد نام‌گذاری استاندارد
-// JNI (Java_pkg_Class_method). بدین ترتیب `nm`/`strings` روی libsecrets.so
-// دیگر مسیر کامل پکیج/کلاس/متد جاوا را فاش نمی‌کند.
-// نکته: نام و امضای متدهای Kotlin در Secrets.kt باید دقیقاً با رشته‌های
-// JNINativeMethod زیر مطابقت داشته باشد؛ در غیر این صورت RegisterNatives
-// شکست می‌خورد. به همین دلیل کلاس Secrets همچنان در proguard-rules.pro
-// keep شده تا R8 نام متدها را عوض نکند.
-// -----------------------------------------------------------------------
-
 static jstring n0(JNIEnv* env, jobject) {
     // Original: "https://atk-nk.ir/Cargo/test_api/"
     const uint8_t bytes[] = {
