@@ -13,10 +13,18 @@ std::string decryptXor(const uint8_t* encryptedBytes, size_t length) {
     return decrypted;
 }
 
-extern "C" {
+// -----------------------------------------------------------------------
+// توابع native با نام‌های غیرتوصیفی (n0..n11) پیاده‌سازی شده‌اند و از طریق
+// JNI_OnLoad/RegisterNatives ثبت می‌شوند، نه از طریق قرارداد نام‌گذاری استاندارد
+// JNI (Java_pkg_Class_method). بدین ترتیب `nm`/`strings` روی libsecrets.so
+// دیگر مسیر کامل پکیج/کلاس/متد جاوا را فاش نمی‌کند.
+// نکته: نام و امضای متدهای Kotlin در Secrets.kt باید دقیقاً با رشته‌های
+// JNINativeMethod زیر مطابقت داشته باشد؛ در غیر این صورت RegisterNatives
+// شکست می‌خورد. به همین دلیل کلاس Secrets همچنان در proguard-rules.pro
+// keep شده تا R8 نام متدها را عوض نکند.
+// -----------------------------------------------------------------------
 
-JNIEXPORT jstring JNICALL
-Java_com_atk_atk_1cargo_api_Secrets_getBaseUrl(JNIEnv* env, jobject /* this */) {
+static jstring n0(JNIEnv* env, jobject) {
     // Original: "https://atk-nk.ir/Cargo/test_api/"
     const uint8_t bytes[] = {
             0x32, 0x2E, 0x2E, 0x2A, 0x29, 0x60, 0x75, 0x75, 0x3B, 0x2E, 0x31, 0x77, 0x34, 0x31, 0x74, 0x33,
@@ -26,8 +34,7 @@ Java_com_atk_atk_1cargo_api_Secrets_getBaseUrl(JNIEnv* env, jobject /* this */) 
     return env->NewStringUTF(decryptXor(bytes, 33).c_str());
 }
 
-JNIEXPORT jstring JNICALL
-Java_com_atk_atk_1cargo_api_Secrets_getWebUserName(JNIEnv* env, jobject /* this */) {
+static jstring n1(JNIEnv* env, jobject) {
     // Original: "AminTojarKhozestan"
     const uint8_t bytes[] = {
             0x1B, 0x37, 0x33, 0x34, 0x0E, 0x35, 0x30, 0x3B, 0x28, 0x11, 0x32, 0x35, 0x20, 0x3F, 0x29, 0x2E,
@@ -36,8 +43,7 @@ Java_com_atk_atk_1cargo_api_Secrets_getWebUserName(JNIEnv* env, jobject /* this 
     return env->NewStringUTF(decryptXor(bytes, 18).c_str());
 }
 
-JNIEXPORT jstring JNICALL
-Java_com_atk_atk_1cargo_api_Secrets_getWebUserPass(JNIEnv* env, jobject /* this */) {
+static jstring n2(JNIEnv* env, jobject) {
     // Original: "Njg4MDZlYzU0M2Ji"
     const uint8_t bytes[] = {
             0x14, 0x30, 0x3D, 0x6E, 0x17, 0x1E, 0x00, 0x36, 0x03, 0x20, 0x0F, 0x6A, 0x17, 0x68, 0x10, 0x33
@@ -45,8 +51,7 @@ Java_com_atk_atk_1cargo_api_Secrets_getWebUserPass(JNIEnv* env, jobject /* this 
     return env->NewStringUTF(decryptXor(bytes, 16).c_str());
 }
 
-JNIEXPORT jstring JNICALL
-Java_com_atk_atk_1cargo_api_Secrets_getAuthUser(JNIEnv* env, jobject /* this */) {
+static jstring n3(JNIEnv* env, jobject) {
     // Original: "Amin_Tojar_Khozestan"
     const uint8_t bytes[] = {
             0x1B, 0x37, 0x33, 0x34, 0x05, 0x0E, 0x35, 0x30, 0x3B, 0x28, 0x05, 0x11, 0x32, 0x35, 0x20, 0x3F,
@@ -55,8 +60,7 @@ Java_com_atk_atk_1cargo_api_Secrets_getAuthUser(JNIEnv* env, jobject /* this */)
     return env->NewStringUTF(decryptXor(bytes, 20).c_str());
 }
 
-JNIEXPORT jstring JNICALL
-Java_com_atk_atk_1cargo_api_Secrets_getAuthenticationX365(JNIEnv* env, jobject /* this */) {
+static jstring n4(JNIEnv* env, jobject) {
     // Original: "c521ed219e0d4f5f9da78b6f7c7366f3a2dcb1a8451547c382c23548ebcdac53"
     const uint8_t bytes[] = {
             0x39, 0x6F, 0x68, 0x6B, 0x3F, 0x3E, 0x68, 0x6B, 0x63, 0x3F, 0x6A, 0x3E, 0x6E, 0x3C, 0x6F, 0x3C,
@@ -67,8 +71,7 @@ Java_com_atk_atk_1cargo_api_Secrets_getAuthenticationX365(JNIEnv* env, jobject /
     return env->NewStringUTF(decryptXor(bytes, 64).c_str());
 }
 
-JNIEXPORT jstring JNICALL
-Java_com_atk_atk_1cargo_api_Secrets_getExpectedSignatureHash(JNIEnv* env, jobject /* this */) {
+static jstring n5(JNIEnv* env, jobject) {
     // Original: "8ca349c0fb572e9d10c62eb5ec6a83c9733eb3b15c362916f6a6efbbd8c2090b"
     const uint8_t bytes[] = {
             0x62, 0x39, 0x3B, 0x69, 0x6E, 0x63, 0x39, 0x6A, 0x3C, 0x38, 0x6F, 0x6D, 0x68, 0x3F, 0x63, 0x3E,
@@ -79,8 +82,7 @@ Java_com_atk_atk_1cargo_api_Secrets_getExpectedSignatureHash(JNIEnv* env, jobjec
     return env->NewStringUTF(decryptXor(bytes, 64).c_str());
 }
 
-JNIEXPORT jstring JNICALL
-Java_com_atk_atk_1cargo_api_Secrets_getLicenseStatusPrefKey(JNIEnv* env, jobject /* this */) {
+static jstring n6(JNIEnv* env, jobject) {
     // Original: "e1f2g3h4i5j6k7l8m9n0o1p2q3r4s5t6"
     const uint8_t bytes[] = {
             0x3F, 0x6B, 0x3C, 0x68, 0x3D, 0x69, 0x32, 0x6E, 0x33, 0x6F, 0x30, 0x6C, 0x31, 0x6D, 0x36, 0x62,
@@ -89,8 +91,7 @@ Java_com_atk_atk_1cargo_api_Secrets_getLicenseStatusPrefKey(JNIEnv* env, jobject
     return env->NewStringUTF(decryptXor(bytes, 32).c_str());
 }
 
-JNIEXPORT jstring JNICALL
-Java_com_atk_atk_1cargo_api_Secrets_getSignatureCheckUrl(JNIEnv* env, jobject /* this */) {
+static jstring n7(JNIEnv* env, jobject) {
     // Original: "https://atk-nk.ir/Cargo/test_api/check_signature.php"
     const uint8_t bytes[] = {
             0x32, 0x2E, 0x2E, 0x2A, 0x29, 0x60, 0x75, 0x75, 0x3B, 0x2E, 0x31, 0x77, 0x34, 0x31, 0x74, 0x33,
@@ -101,8 +102,7 @@ Java_com_atk_atk_1cargo_api_Secrets_getSignatureCheckUrl(JNIEnv* env, jobject /*
     return env->NewStringUTF(decryptXor(bytes, 52).c_str());
 }
 
-JNIEXPORT jstring JNICALL
-Java_com_atk_atk_1cargo_api_Secrets_getLicenseCheckUrl(JNIEnv* env, jobject /* this */) {
+static jstring n8(JNIEnv* env, jobject) {
     // Original: "https://atk-nk.ir/Cargo/test_api/validate_license.php"
     const uint8_t bytes[] = {
             0x32, 0x2E, 0x2E, 0x2A, 0x29, 0x60, 0x75, 0x75, 0x3B, 0x2E, 0x31, 0x77, 0x34, 0x31, 0x74, 0x33,
@@ -113,8 +113,7 @@ Java_com_atk_atk_1cargo_api_Secrets_getLicenseCheckUrl(JNIEnv* env, jobject /* t
     return env->NewStringUTF(decryptXor(bytes, 53).c_str());
 }
 
-JNIEXPORT jstring JNICALL
-Java_com_atk_atk_1cargo_api_Secrets_getLicenseInfoUrl(JNIEnv* env, jobject /* this */) {
+static jstring n9(JNIEnv* env, jobject) {
     // Original: "https://atk-nk.ir/Cargo/test_api/get_license_info.php"
     const uint8_t bytes[] = {
             0x32, 0x2E, 0x2E, 0x2A, 0x29, 0x60, 0x75, 0x75, 0x3B, 0x2E, 0x31, 0x77, 0x34, 0x31, 0x74, 0x33,
@@ -125,8 +124,7 @@ Java_com_atk_atk_1cargo_api_Secrets_getLicenseInfoUrl(JNIEnv* env, jobject /* th
     return env->NewStringUTF(decryptXor(bytes, 53).c_str());
 }
 
-JNIEXPORT jstring JNICALL
-Java_com_atk_atk_1cargo_api_Secrets_getLicenseKey(JNIEnv* env, jobject /* this */) {
+static jstring n10(JNIEnv* env, jobject) {
     // Original: "13F71ADCB4585F1BE632FFB919F06691"
     const uint8_t bytes[] = {
             0x6B, 0x69, 0x1C, 0x6D, 0x6B, 0x1B, 0x1E, 0x19, 0x18, 0x6E, 0x6F, 0x62, 0x6F, 0x1C, 0x6B, 0x18,
@@ -135,8 +133,7 @@ Java_com_atk_atk_1cargo_api_Secrets_getLicenseKey(JNIEnv* env, jobject /* this *
     return env->NewStringUTF(decryptXor(bytes, 32).c_str());
 }
 
-JNIEXPORT jstring JNICALL
-Java_com_atk_atk_1cargo_api_Secrets_getApiKey(JNIEnv* env, jobject /* this */) {
+static jstring n11(JNIEnv* env, jobject) {
     // Original: "atk_nk_9290VV42-38XQ02DI-F2WY4L2K-EJA7V682"
     const uint8_t bytes[] = {
             0x3B, 0x2E, 0x31, 0x05, 0x34, 0x31, 0x05, 0x63, 0x68, 0x63, 0x6A, 0x0C, 0x0C, 0x6E, 0x68, 0x77,
@@ -146,4 +143,40 @@ Java_com_atk_atk_1cargo_api_Secrets_getApiKey(JNIEnv* env, jobject /* this */) {
     return env->NewStringUTF(decryptXor(bytes, 42).c_str());
 }
 
+static const JNINativeMethod kSecretsMethods[] = {
+        {"getBaseUrl",                "()Ljava/lang/String;", (void*) n0},
+        {"getWebUserName",            "()Ljava/lang/String;", (void*) n1},
+        {"getWebUserPass",            "()Ljava/lang/String;", (void*) n2},
+        {"getAuthUser",               "()Ljava/lang/String;", (void*) n3},
+        {"getAuthenticationX365",     "()Ljava/lang/String;", (void*) n4},
+        {"getExpectedSignatureHash",  "()Ljava/lang/String;", (void*) n5},
+        {"getLicenseStatusPrefKey",   "()Ljava/lang/String;", (void*) n6},
+        {"getSignatureCheckUrl",      "()Ljava/lang/String;", (void*) n7},
+        {"getLicenseCheckUrl",        "()Ljava/lang/String;", (void*) n8},
+        {"getLicenseInfoUrl",         "()Ljava/lang/String;", (void*) n9},
+        {"getLicenseKey",             "()Ljava/lang/String;", (void*) n10},
+        {"getApiKey",                 "()Ljava/lang/String;", (void*) n11},
+};
+
+extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* /* reserved */) {
+    JNIEnv* env;
+    if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
+        return JNI_ERR;
+    }
+
+    jclass clazz = env->FindClass("com/atk/atk_cargo/api/Secrets");
+    if (clazz == nullptr) {
+        return JNI_ERR;
+    }
+
+    jint result = env->RegisterNatives(
+            clazz, kSecretsMethods,
+            sizeof(kSecretsMethods) / sizeof(kSecretsMethods[0]));
+    env->DeleteLocalRef(clazz);
+
+    if (result != JNI_OK) {
+        return JNI_ERR;
+    }
+
+    return JNI_VERSION_1_6;
 }

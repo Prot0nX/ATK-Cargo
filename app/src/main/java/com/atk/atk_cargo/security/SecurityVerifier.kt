@@ -7,6 +7,7 @@ import android.content.pm.Signature
 import android.os.Debug
 import android.util.Log
 import androidx.core.content.edit
+import com.atk.atk_cargo.BuildConfig
 import com.atk.atk_cargo.api.Secrets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -51,6 +52,12 @@ class SecurityVerifier(private val context: Context) {
     private val securityPrefs = context.getSharedPreferences("x1y2z3", Context.MODE_PRIVATE)
 
     suspend fun verifySecurityStatus(): Pair<Boolean, SecurityErrorType?> = withContext(Dispatchers.IO) {
+        // بیلد benchmark با کلید debug امضا می‌شود (برای پروفایلینگ macrobenchmark/baseline profile)
+        // در حالی که minify مثل release روشن است؛ بنابراین امضا هرگز با EXPECTED_SIGNATURE_HASH
+        // مطابقت نخواهد داشت. این مسیر فقط برای بیلدهای پروفایلینگ محلی است و هرگز توزیع نمی‌شود.
+        if (BuildConfig.BUILD_TYPE == "benchmark") {
+            return@withContext Pair(true, null)
+        }
         repeat(CONNECTION_ATTEMPTS) { attemptNumber ->
             try {
                 // بررسی امضای برنامه به صورت محلی

@@ -24,12 +24,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-
-        // تنظیمات ProGuard
-        proguardFiles(
-            getDefaultProguardFile("proguard-android-optimize.txt"),
-            "proguard-rules.pro"
-        )
     }
 
     externalNativeBuild {
@@ -131,17 +125,13 @@ android {
                 "META-INF/services/javax.annotation.processing.Processor",
                 "**/kotlin/**",
                 "**/*.proto",
-                "**/*.properties",
                 "DebugProbesKt.bin",
                 "kotlin-tooling-metadata.json",
-                "**/*.txt",
                 "**/*.md",
                 "**/*.html",
                 "**/*.css",
                 "**/*.js",
                 "**/*.map",
-                "**/*.bin",
-                "**/*.dat",
                 "**/*.cfg",
                 "**/*.ini",
                 "**/*.log",
@@ -204,6 +194,20 @@ android {
 
 baselineProfile {
     automaticGenerationDuringBuild = false
+}
+
+// mapping.txt در app/build/outputs/mapping/release/ با هر `clean` پاک می‌شود و تنها راه
+// deobfuscate کردن کرش‌های production است. این تسک بعد از هر assembleRelease یک کپی
+// دائمی و نسخه‌دار (versionName-versionCode) در mapping-archive/ نگه می‌دارد.
+val archiveReleaseMapping by tasks.registering(Copy::class) {
+    val versionName = android.defaultConfig.versionName
+    val versionCode = android.defaultConfig.versionCode
+    from(layout.buildDirectory.dir("outputs/mapping/release"))
+    into(rootProject.layout.projectDirectory.dir("mapping-archive/$versionName-$versionCode"))
+}
+
+tasks.matching { it.name == "assembleRelease" }.configureEach {
+    finalizedBy(archiveReleaseMapping)
 }
 
 dependencies {
@@ -282,9 +286,6 @@ dependencies {
 
     // ==================== Animation & UI Effects ====================
     implementation(libs.lottie.compose)
-
-    // ==================== Charts & Visualization ====================
-    implementation(libs.core)
 
     // ==================== Document Processing ====================
     implementation(libs.itextpdf)

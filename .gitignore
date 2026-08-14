@@ -2,6 +2,9 @@
 .gradle/
 build/
 
+# ProGuard/R8 mapping archive (~100MB+ per release, too large for git — back up externally per release)
+mapping-archive/
+
 # Local configuration file (sdk path, etc)
 local.properties
 
