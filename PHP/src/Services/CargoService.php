@@ -81,7 +81,14 @@ class CargoService {
             // ۱. بررسی وجود حواله تکراری در ۲۴ ساعت گذشته برای این کشتی
             $existing24hCargo = $this->repo->find24hCargo($shipName, $trackingNumber, $yesterdayStart);
 
-            if ($existing24hCargo && $existing24hCargo['loadingQuotaNumber'] !== $loadingQuotaNumber) {
+            // (string) روی مقدار خوانده‌شده از دیتابیس ضروری است: ستون
+            // loadingQuotaNumber از نوع INT است (schema.sql) و درایور mysqli آن
+            // را int برمی‌گرداند، در حالی که $loadingQuotaNumber بعد از
+            // sanitizeString در کنترلر همیشه string است. مقایسه‌ی !== بین int و
+            // string همیشه true بود، پس این هشدار برای هر درخواست دومِ همان
+            // شماره حواله در ۲۴ ساعت گذشته — حتی با همان کوتاژ — شلیک می‌شد و
+            // به‌روزرسانی کسری/اضافه هرگز به گام ۳ نمی‌رسید.
+            if ($existing24hCargo && (string)$existing24hCargo['loadingQuotaNumber'] !== $loadingQuotaNumber) {
                 if ($params['duplicateConfirmation'] !== "proceed") {
                     $warningParts = [
                         "شماره حواله ({$trackingNumber}) در 24 ساعت گذشته برای کشتی [ {$shipName} ] قبلاً ثبت شده است:\n\n",
@@ -129,8 +136,19 @@ class CargoService {
             $shouldInsertNew = !$existingCargo;
 
             if ($existingCargo) {
-                $isNewEntryAttempt = empty($params['netWeight']) && empty($params['shortageWeight']) && empty($params['excessWeight']);
-                
+                // حواله‌ای که خروج زده «سرویس بسته» است و از این مسیر دیگر
+                // به‌روزرسانی نمی‌شود (اصلاح وزن/تاریخ خروج مسیر مستقل خودش را
+                // دارد: updateCargoInfo → updateCargoFull). پس هر ثبت تازه روی
+                // همان شماره حواله یعنی شماره دوباره استفاده شده و باید همان
+                // تأیید «حواله تکراری» را بگیرد. پیش از این، چنین درخواستی به
+                // پاسخ confirmation_needed می‌رسید که عبور از آن به
+                // confirmation=yes نیاز داشت — مقداری که کلاینت هرگز نمی‌فرستد،
+                // یعنی کاربر در یک دیالوگ بی‌بازگشت گیر می‌کرد.
+                $isClosedService = $existingCargo['status'] === "خروج";
+                $isNewEntryAttempt = $isClosedService || (
+                    empty($params['netWeight']) && empty($params['shortageWeight']) && empty($params['excessWeight'])
+                );
+
                 if ($isNewEntryAttempt) {
                     if ($params['duplicateConfirmation'] !== "proceed") {
                         $cargoStatus = $existingCargo['status'];
@@ -180,6 +198,16 @@ class CargoService {
                     }
                 }
 
+                // insertCargo وضعیت را ثابت 'ورود' درج می‌کند، پس رسیدن به این
+                // شاخه با وزن خالصِ پر رکوردی ناسازگار می‌ساخت (وضعیت «ورود» با
+                // وزن خالص ثبت‌شده). از مسیر UI رخ نمی‌دهد — وزن خالص فقط از
+                // اسکن بارکد → NetWeightDialog می‌آید و اسکن برای حواله‌ی
+                // خروج‌زده مسدود است — اما همان قید باید سمت سرور هم واقعاً
+                // اعمال شود، نه فقط در UI.
+                if (!empty($params['netWeight'])) {
+                    throw new ApiException("برای ثبت حوالهٔ جدید نمی‌توان وزن خالص ثبت کرد؛ ابتدا حواله ثبت و توسط بارشمار تأیید شود، سپس خروج ثبت شود.", 400);
+                }
+
                 $numberOfPeople = filter_var($params['numberOfPeople'], FILTER_VALIDATE_INT);
                 if ($numberOfPeople === false || $numberOfPeople < 1) {
                     throw new ApiException("تعداد نفرات باید عددی بزرگتر از صفر باشد", 400);
@@ -202,9 +230,11 @@ class CargoService {
                     ]
                 ];
             } else {
-                // به‌روزرسانی حواله موجود
+                // به‌روزرسانی حواله موجود. اینجا فقط حواله‌ی در وضعیت «ورود»
+                // می‌رسد: رکورد «خروج» بالاتر با $isClosedService به مسیر تأیید
+                // ثبت تکراری می‌رود و یا ۴۰۹ می‌گیرد یا $shouldInsertNew می‌شود.
                 $cargoId = (int)$existingCargo['id'];
-                
+
                 if ($existingCargo['status'] === "ورود") {
                     if (!empty($params['netWeight'])) {
                         if ($existingCargo['confirm'] !== "تائید شده") {
@@ -267,35 +297,6 @@ class CargoService {
                         }
                     } else {
                         throw new ApiException("برای حواله در وضعیت ورود، باید وزن خالص یا کسری/اضافه بار وارد شود", 400);
-                    }
-                } elseif ($existingCargo['status'] === "خروج") {
-                    if ($params['confirmation'] !== "yes") {
-                        $conn->rollback();
-                        return [
-                            "code" => 200,
-                            "data" => [
-                                "message" => "شماره حواله {$trackingNumber} در تاریخ {$existingCargo['exitDate']} و ساعت {$existingCargo['exitTime']} خروج کرده و سرویس بسته شده است!", 
-                                "status" => "confirmation_needed", 
-                                "exitDate" => $existingCargo['exitDate'], 
-                                "exitTime" => $existingCargo['exitTime']
-                            ]
-                        ];
-                    }
-                    
-                    $this->validateExitData($params['netWeight'], $params['scaleReceiptNumber'], $cargoId);
-
-                    $exitingApplied = $this->repo->updateCargoExitExiting(
-                        $cargoId,
-                        $params['netWeight'],
-                        $params['scaleReceiptNumber'],
-                        $currentTime,
-                        $currentDate,
-                        $params['username'],
-                        $params['userType']
-                    );
-                    if (!$exitingApplied) {
-                        $conn->rollback();
-                        throw new ConflictException("این حواله هم‌زمان توسط درخواست دیگری به‌روزرسانی شد. لطفاً فهرست را بروزرسانی کنید.");
                     }
                 } else {
                     throw new ApiException("وضعیت نامعتبر حواله", 400);
