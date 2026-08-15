@@ -102,10 +102,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
-/** فاصلهٔ زمانی تیک بروزرسانی خودکار (وقتی با لمس طولانی دکمهٔ «بروزرسانی» فعال شود). */
 private const val AUTO_REFRESH_INTERVAL_SECONDS = 60
 
-/** رنگ‌های تیل سازگار با تم روشن/تاریک برای صفحه ثبت و خروج حواله. */
 private class RegisterPalette(
     val accent: Color,
     val accentBg: Color,
@@ -485,13 +483,20 @@ fun RegisterCargoScreen(
                         label = "rotation"
                     )
 
-                    // لمس دستی دکمه: دیالوگ اطلاع‌رسانی معمولی نمایش داده
-                    // می‌شود (رفتار قبلی، بدون تغییر).
+                    // لمس دستی دکمه: پیام نتیجه فقط اینجا (با پاس‌دادن
+                    // onManualRefreshComplete) به شکل Snackbar نمایش داده
+                    // می‌شود، نه دیالوگ MessageDialog — چون refreshCargoInfo از
+                    // مسیرهای دیگری هم صدا زده می‌شود (ثبت/خروج حواله،
+                    // غیرفعال‌شدن خودکار کوتاژ) که نباید این پیام را نشان دهند.
                     fun triggerManualRefresh() {
                         if (!isRefreshing) {
                             isRefreshing = true
                             rotationState += 360f
-                            viewModel.refreshCargoInfo()
+                            viewModel.refreshCargoInfo { message ->
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar(message)
+                                }
+                            }
                             coroutineScope.launch {
                                 delay(1200.milliseconds)
                                 isRefreshing = false
@@ -500,9 +505,9 @@ fun RegisterCargoScreen(
                     }
 
                     // تیک خودکار هر ۶۰ ثانیه: مستقیماً loadCargoInfoList صدا
-                    // زده می‌شود (نه refreshCargoInfo)، چون refreshCargoInfo
-                    // همیشه دیالوگ اطلاع‌رسانی (MessageDialog) را نشان می‌دهد؛
-                    // اینجا فقط یک Snackbar کوتاه پایین صفحه کافی است.
+                    // زده می‌شود (نه refreshCargoInfo)؛ این تیک پیام
+                    // «به‌روزرسانی شد» جداگانه نمی‌سازد، بلکه فقط پیام
+                    // «بروزرسانی خودکار» خودش را پایین‌تر نشان می‌دهد.
                     fun triggerSilentAutoRefresh() {
                         if (!isRefreshing) {
                             isRefreshing = true
@@ -535,7 +540,7 @@ fun RegisterCargoScreen(
                         if (isAutoRefreshEnabled) {
                             secondsUntilNextRefresh = AUTO_REFRESH_INTERVAL_SECONDS
                             while (true) {
-                                delay(1000L)
+                                delay(1000L.milliseconds)
                                 secondsUntilNextRefresh -= 1
                                 if (secondsUntilNextRefresh <= 0) {
                                     triggerSilentAutoRefresh()
