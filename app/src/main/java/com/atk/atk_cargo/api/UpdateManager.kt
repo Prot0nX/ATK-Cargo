@@ -30,11 +30,8 @@ import java.io.RandomAccessFile
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import kotlin.math.pow
+import kotlin.time.Duration.Companion.milliseconds
 
-// یک singleton سطح پروسه در Koin (نه یک ViewModel واقعی متصل به چرخه‌حیات یک
-// Activity/Fragment خاص) — قبلاً از ViewModel ارث می‌برد که چرخه‌حیات آن با
-// دامنه‌ی واقعی این کلاس همخوانی نداشت (S-9)؛ onCleared() دستی و بیرون از
-// framework از StartupViewModel.onCleared() صدا زده می‌شود
 class UpdateManager(
     context: Context
 ) {
@@ -62,13 +59,9 @@ class UpdateManager(
     val downloadState: StateFlow<DownloadState> = _downloadState
 
     private val _minAllowedVersion = MutableStateFlow<String?>(null)
-    val minAllowedVersion: StateFlow<String?> = _minAllowedVersion
 
     private var downloadTimestamp: Long = 0
     private var downloadJob: Job? = null
-    // AtomicLong به‌جای Long ساده + synchronized دستی — نویسنده‌ها از چند coroutine
-    // موازی (هر chunk) و خواننده‌ها از یک coroutine دیگر (حلقه‌ی گزارش پیشرفت) روی
-    // این مقدار کار می‌کنند؛ Long ساده نه atomic است نه volatile (M-11)
     private val downloadedBytes = java.util.concurrent.atomic.AtomicLong(0)
     private var totalBytes: Long = 0
     private var lastProgress: Float = 0f
@@ -102,11 +95,6 @@ class UpdateManager(
         }
     }
 
-    /**
-     * بررسی وجود اتصال شبکه از طریق ConnectivityManager (بدون هیچ درخواست شبکه‌ای).
-     * قبلاً این بررسی با پروب سوکت به 8.8.8.8 و fallback به https://soft98.ir انجام می‌شد
-     * که هم کند بود (در شبکه‌های فیلترشده) و هم به یک دامنه‌ی شخص ثالث بی‌ربط متکی بود.
-     */
     private fun isInternetAvailable(): Boolean {
         val connectivityManager = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
             ?: return true
@@ -115,11 +103,6 @@ class UpdateManager(
         return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
-    /**
-     * نتیجه‌ی یکجای بررسی نسخه: هم مجاز بودن نسخه‌ی جاری (min_allowed_version)
-     * و هم وجود آپدیت جدید (latest_version) — با یک تک درخواست به check_update.php
-     * (قبلاً این دو بررسی هر کدام یک درخواست HTTP جداگانه به همان endpoint می‌زدند)
-     */
     data class VersionCheckResult(
         val isVersionAllowed: Boolean,
         val hasUpdate: Boolean
@@ -135,8 +118,6 @@ class UpdateManager(
                 val currentAppVersion = getCurrentAppVersion()
                 val encodedVersion = URLEncoder.encode(currentAppVersion, "UTF-8")
 
-                // کلید API در هدر (نه query string) — پارامترهای GET در لاگ دسترسی
-                // وب‌سرور و هر پروکسی میانی ثبت می‌شوند (S-3)
                 val request = Request.Builder()
                     .url("${Constants.BASE_URL}/check_update.php?current_version=$encodedVersion")
                     .addHeader("X-Api-Key", Constants.API_KEY)
@@ -171,9 +152,6 @@ class UpdateManager(
                                 jsonResponse.optString("latestVersion", "")
                             }
 
-                            // مقایسه محلی به‌عنوان fallback وقتی سرور صراحتاً has_update نمی‌فرستد؛
-                            // در حالت عادی تصمیم سرور (منبع حقیقت — می‌تواند excluded_versions
-                            // و سیاست‌های دیگر را هم لحاظ کند) اعتبار دارد، نه محاسبه محلی (S-1)
                             val locallyComputedHasUpdate = latestVersion.isNotEmpty() &&
                                     compareVersions(latestVersion, currentAppVersion) > 0
                             val hasUpdate = jsonResponse.optBoolean(
@@ -182,9 +160,6 @@ class UpdateManager(
                             )
 
                             if (hasUpdate) {
-                                // پاک کردن هر وضعیت Error/Paused باقی‌مانده از یک تلاش قبلی —
-                                // در singleton این StateFlow ماندگار است و نباید یک خطای کهنه
-                                // را روی دیالوگ آپدیت تازه‌کشف‌شده نشان دهد (S-9)
                                 _downloadState.value = DownloadState.Idle
                                 // پارس کردن version_constraints
                                 val versionConstraints = jsonResponse.optJSONObject("version_constraints")
@@ -207,9 +182,7 @@ class UpdateManager(
                                 }
                                 val forceUpdate = jsonResponse.optBoolean("force_update",
                                     jsonResponse.optBoolean("forceUpdate", false))
-                                // اکنون که سرور update_size را در سطح ریشه پاسخ می‌فرستد (S-1)، دیگر
-                                // نیازی به یک درخواست HEAD جبرانی برای حجم فایل نیست — یک RTT کامل
-                                // کمتر در مسیر بررسی آپدیت
+
                                 val updateSize = jsonResponse.optString("update_size", "").ifEmpty {
                                     jsonResponse.optString("updateSize", "0")
                                 }
@@ -290,7 +263,7 @@ class UpdateManager(
         return try {
             val packageInfo = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
             packageInfo.versionName ?: "1.0"
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             "1.0"
         }
     }
@@ -308,8 +281,6 @@ class UpdateManager(
 
                 _downloadState.value = DownloadState.Downloading
                 downloadTimestamp = System.currentTimeMillis()
-                // حافظه‌ی داخلی (نه externalCacheDir) — خارج از دسترس سایر برنامه‌ها،
-                // برخلاف حافظه‌ی خارجی که پنجره‌ی TOCTOU برای جایگزینی APK باز می‌گذاشت (C-3)
                 currentDownloadFile = File(appContext.cacheDir, "updates/update_${downloadTimestamp}.apk")
                 currentDownloadFile.parentFile?.mkdirs()
 
@@ -354,15 +325,12 @@ class UpdateManager(
                         lastUpdateTime = currentTime
                         lastDownloadedBytes = currentDownloadedBytes
                     }
-                    delay(100)
+                    delay(100.milliseconds)
                 }
 
                 downloadJobs.awaitAll()
 
                 if (downloadedBytes.get() >= totalBytes) {
-                    // اعتبارسنجی SHA-256 قبل از اعلام Completed — جلوگیری از نصب فایلی
-                    // که ناقص/دستکاری‌شده دانلود شده یا در طول دانلود (به‌ویژه روی
-                    // شبکه‌های عمومی/فیلترشده) دستکاری شده است (C-3)
                     val expectedSha256 = _updateInfo.value?.sha256.orEmpty()
                     if (expectedSha256.isNotEmpty() && !verifyFileSha256(currentDownloadFile, expectedSha256)) {
                         currentDownloadFile.delete()
@@ -481,7 +449,7 @@ class UpdateManager(
                 if (attempt >= maxAttempts) throw e
 
                 val delayTime = (1000L * 2.0.pow(attempt.toDouble())).toLong()
-                delay(delayTime.coerceAtMost(10_000))
+                delay(delayTime.coerceAtMost(10_000).milliseconds)
             }
         }
     }
@@ -584,10 +552,6 @@ class UpdateManager(
 
             if (intent.resolveActivity(appContext.packageManager) != null) {
                 appContext.startActivity(intent)
-                // بازگشت به Idle بعد از راه‌اندازی موفق Intent نصب — وگرنه چون
-                // downloadState یک StateFlow ماندگار در singleton است، هر بازسازی
-                // Activity (چرخش صفحه، برگشت از صفحه‌ی نصب) دوباره Completed را
-                // می‌دید و installUpdate را از نو صدا می‌زد (S-9)
                 _downloadState.value = DownloadState.Idle
             } else {
                 throw Exception("برنامه‌ای برای نصب فایل APK یافت نشد")

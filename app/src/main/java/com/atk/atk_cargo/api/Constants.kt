@@ -6,9 +6,4 @@ object Constants {
 
     val API_KEY: String
         get() = Secrets.getApiKey()
-
-    @JvmStatic
-    fun getBaseUrl(): String {
-        return Secrets.getBaseUrl()
-    }
 }

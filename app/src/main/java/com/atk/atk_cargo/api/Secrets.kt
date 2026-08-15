@@ -11,7 +11,6 @@ object Secrets {
     external fun getAuthUser(): String
     external fun getAuthenticationX365(): String
 
-    // Security & License Native Secret Bridges
     external fun getExpectedSignatureHash(): String
     external fun getLicenseStatusPrefKey(): String
     external fun getSignatureCheckUrl(): String
