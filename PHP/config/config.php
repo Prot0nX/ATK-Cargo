@@ -47,9 +47,7 @@ if (!defined('DB_PASSWORD')) {
 if (!defined('DB_NAME')) {
     define('DB_NAME', $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'atk_cargo');
 }
-// کلید احراز هویت endpoint بررسی آپدیت — قبلاً به‌صورت رشته‌ی ثابت داخل کد
-// سرور بود (S-3)؛ مقدار پیش‌فرض همان مقدار قبلی است تا بدون تغییر .env کار
-// کند، اما باید هرچه زودتر در .env روی مقدار جدید تنظیم و از کد حذف شود
+
 if (!defined('UPDATE_CHECK_API_KEY')) {
     define('UPDATE_CHECK_API_KEY', $_ENV['UPDATE_CHECK_API_KEY'] ?? getenv('UPDATE_CHECK_API_KEY') ?: 'atk_nk_9290VV42-38XQ02DI-F2WY4L2K-EJA7V682');
 }

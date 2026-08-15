@@ -33,12 +33,8 @@ typealias CargoInfo = com.atk.atk_cargo.data.model.CargoInfo
 typealias CargoInfoRequest = com.atk.atk_cargo.data.model.CargoInfoRequest
 typealias CargoDeleteResponse = com.atk.atk_cargo.data.model.CargoDeleteResponse
 typealias CargoInfoResponse = com.atk.atk_cargo.data.model.CargoInfoResponse
-typealias CargoStats = com.atk.atk_cargo.data.model.CargoStats
 typealias CargoInfoSearch = com.atk.atk_cargo.data.model.CargoInfoSearch
 typealias CargoSearchResponse = com.atk.atk_cargo.data.model.CargoSearchResponse
-typealias ExistingCargo = com.atk.atk_cargo.data.model.ExistingCargo
-typealias ShipInfo = com.atk.atk_cargo.data.model.ShipInfo
-typealias MenuItem = com.atk.atk_cargo.data.model.MenuItem
 typealias CheckExistenceRequest = com.atk.atk_cargo.data.model.CheckExistenceRequest
 typealias CheckExistenceResponse = com.atk.atk_cargo.data.model.CheckExistenceResponse
 typealias InitialInfo = com.atk.atk_cargo.data.model.InitialInfo
@@ -46,10 +42,8 @@ typealias SaveOrUpdateResponse = com.atk.atk_cargo.data.model.SaveOrUpdateRespon
 typealias QuotaExistenceMultipleResponse = com.atk.atk_cargo.data.model.QuotaExistenceMultipleResponse
 typealias MatchingQuota = com.atk.atk_cargo.data.model.MatchingQuota
 typealias SuccessResponse = com.atk.atk_cargo.data.model.SuccessResponse
-typealias QuotaValidationResult = com.atk.atk_cargo.data.model.QuotaValidationResult
 typealias MessageType = com.atk.atk_cargo.data.model.MessageType
 typealias ScaleReceiptCheckResponse = com.atk.atk_cargo.data.model.ScaleReceiptCheckResponse
-typealias QuotaTonnageWarning = com.atk.atk_cargo.data.model.QuotaTonnageWarning
 typealias LoadableTonnageResponse = com.atk.atk_cargo.data.model.LoadableTonnageResponse
 
 // ===== RE-EXPORT REPORT MODELS =====
@@ -62,7 +56,6 @@ typealias RealTimeLoadingData = com.atk.atk_cargo.data.model.RealTimeLoadingData
 typealias ShipsData = com.atk.atk_cargo.data.model.ShipsData
 typealias Ship = com.atk.atk_cargo.data.model.Ship
 typealias Quota = com.atk.atk_cargo.data.model.Quota
-typealias ExitDateInfo = com.atk.atk_cargo.data.model.ExitDateInfo
 typealias QuotaEditData = com.atk.atk_cargo.data.model.QuotaEditData
 typealias Warehouse = com.atk.atk_cargo.data.model.Warehouse
 typealias QuotaDetails = com.atk.atk_cargo.data.model.QuotaDetails
@@ -70,13 +63,7 @@ typealias FilteredSummaryResponse = com.atk.atk_cargo.data.model.FilteredSummary
 typealias VoucherDetail = com.atk.atk_cargo.data.model.VoucherDetail
 typealias FilteredSummary = com.atk.atk_cargo.data.model.FilteredSummary
 typealias QuotaStatusResponse = com.atk.atk_cargo.data.model.QuotaStatusResponse
-typealias QuotaStatusDetails = com.atk.atk_cargo.data.model.QuotaStatusDetails
-typealias ExistingQuota = com.atk.atk_cargo.data.model.ExistingQuota
-typealias DateInfo = com.atk.atk_cargo.data.model.DateInfo
 typealias ComprehensiveAnalysisResponse = com.atk.atk_cargo.data.model.ComprehensiveAnalysisResponse
-typealias AnalyticsData = com.atk.atk_cargo.data.model.AnalyticsData
-typealias ComprehensiveAnalytics = com.atk.atk_cargo.data.model.ComprehensiveAnalytics
-typealias QuotaCompletionAnalysis = com.atk.atk_cargo.data.model.QuotaCompletionAnalysis
 typealias QuotaCompletionData = com.atk.atk_cargo.data.model.QuotaCompletionData
 typealias QuotaGroupingMode = com.atk.atk_cargo.data.model.QuotaGroupingMode
 typealias WarehouseQuotaGroupingMode = com.atk.atk_cargo.data.model.WarehouseQuotaGroupingMode
@@ -86,7 +73,6 @@ typealias ShipSortingMode = com.atk.atk_cargo.data.model.ShipSortingMode
 typealias QuotaItem = com.atk.atk_cargo.data.model.QuotaItem
 typealias ThirdPartyOrderRequest = com.atk.atk_cargo.data.model.ThirdPartyOrderRequest
 typealias ThirdPartyOrderResponse = com.atk.atk_cargo.data.model.ThirdPartyOrderResponse
-typealias ThirdPartyOrder = com.atk.atk_cargo.data.model.ThirdPartyOrder
 typealias ColorSelector = com.atk.atk_cargo.data.model.ColorSelector
 
 // ===== UTILS EXPOSED FROM REPORT MODELS =====
@@ -98,8 +84,6 @@ fun formatNumber(number: Number): String {
     return java.text.NumberFormat.getNumberInstance(java.util.Locale.US).format(number)
 }
 
-typealias UiState = com.atk.atk_cargo.ui.viewmodel.ReportsViewModel.UiState
-typealias LoadingState = com.atk.atk_cargo.ui.viewmodel.ReportsViewModel.LoadingState
 typealias RealTimeUiState = com.atk.atk_cargo.ui.viewmodel.ReportsViewModel.RealTimeUiState
 
 // ===== COMMON TYPES IN ORIGINAL DATA MODEL =====
@@ -121,7 +105,5 @@ data class UpdateInfo(
     val minAndroidVersion: Int = 21,
     val minAppVersion: String = "1.0",
     val excludedVersions: List<String> = emptyList(),
-    // هش SHA-256 فایل APK که سرور محاسبه کرده — پیش از نصب با هش فایل دانلودشده
-    // مقایسه می‌شود تا از نصب یک APK دستکاری‌شده/خراب جلوگیری شود (C-3)
     val sha256: String = ""
 )

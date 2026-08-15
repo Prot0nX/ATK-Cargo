@@ -16,8 +16,8 @@ android {
         applicationId = "com.atk.atk_cargo"
         minSdk = 28
         targetSdk = 34
-        versionCode = 10
-        versionName = "3.0.34"
+        versionCode = 11
+        versionName = "4.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled = true
