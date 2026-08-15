@@ -2,14 +2,9 @@ package com.atk.atk_cargo.feature.cargo_registration.presentation.components
 
 import android.content.ClipData
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.EaseInBack
-import androidx.compose.animation.core.EaseOutBack
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -28,7 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,7 +40,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SnackbarHostState
@@ -70,7 +63,6 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -82,6 +74,13 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.atk.atk_cargo.R
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoRequest
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogBadgeSize
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogButtonRow
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogContentCard
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogContentCornerRadius
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogMessageText
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogTitle
+import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.StandardDialogShell
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
@@ -605,151 +604,65 @@ private fun DeleteDialog(
         )
     }
 
-    val dialogEnterTransition = remember {
-        expandIn(
-            expandFrom = Alignment.Center,
-            animationSpec = tween(300, easing = EaseOutBack)
-        ) + fadeIn(animationSpec = tween(300))
-    }
+    val errorColor = MaterialTheme.colorScheme.error
 
-    val dialogExitTransition = remember {
-        shrinkOut(
-            shrinkTowards = Alignment.Center,
-            animationSpec = tween(300, easing = EaseInBack)
-        ) + fadeOut(animationSpec = tween(300))
-    }
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            dismissOnClickOutside = false,
-            usePlatformDefaultWidth = false
-        )
-    ) {
-        Surface(
+    StandardDialogShell(onDismissRequest = onDismiss, dismissOnClickOutside = false) {
+        Box(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .wrapContentHeight()
-                .clip(RoundedCornerShape(24.dp)),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 8.dp
+                .size(DialogBadgeSize)
+                .background(errorColor.copy(alpha = 0.1f), CircleShape)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
         ) {
-            AnimatedVisibility(
-                visible = true,
-                enter = dialogEnterTransition,
-                exit = dialogExitTransition
-            ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f), CircleShape)
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        LottieAnimation(
-                            composition = composition,
-                            progress = { lottieAnimatable.progress },
-                            modifier = Modifier.size(80.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = "حذف حواله",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.error
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.05f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
-                    ) {
-                        Text(
-                            text = "آیا از حذف این حواله اطمینان دارید؟ این عملیات غیرقابل بازگشت است.",
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.Medium,
-                                textAlign = TextAlign.Justify
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = onPasswordChange,
-                        label = { Text("رمز عبور") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.error,
-                            focusedLabelColor = MaterialTheme.colorScheme.error
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = onDismiss,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                        ) {
-                            Text(
-                                text = "انصراف",
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                        }
-
-                        Button(
-                            onClick = onConfirm,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = MaterialTheme.colorScheme.onError
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            elevation = ButtonDefaults.buttonElevation(
-                                defaultElevation = 4.dp,
-                                pressedElevation = 8.dp
-                            ),
-                            enabled = password.isNotEmpty()
-                        ) {
-                            Text(
-                                text = "تایید حذف",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-                }
-            }
+            LottieAnimation(
+                composition = composition,
+                progress = { lottieAnimatable.progress },
+                modifier = Modifier.size(80.dp)
+            )
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        DialogTitle(text = "حذف حواله", color = errorColor)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        DialogContentCard(
+            color = errorColor.copy(alpha = 0.05f),
+            borderColor = errorColor.copy(alpha = 0.2f)
+        ) {
+            DialogMessageText(
+                message = "آیا از حذف این حواله اطمینان دارید؟ این عملیات غیرقابل بازگشت است.",
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        OutlinedTextField(
+            value = password,
+            onValueChange = onPasswordChange,
+            label = { Text("رمز عبور") },
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(DialogContentCornerRadius),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = errorColor,
+                focusedLabelColor = errorColor
+            )
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        DialogButtonRow(
+            primaryText = "تایید حذف",
+            onPrimaryClick = onConfirm,
+            primaryEnabled = password.isNotEmpty(),
+            primaryColor = errorColor,
+            secondaryText = "انصراف",
+            onSecondaryClick = onDismiss
+        )
     }
 }
