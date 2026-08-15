@@ -218,7 +218,19 @@ class CargoViewModel(
         _duplicateTrackingNumbers.value = emptyList()
     }
 
-    fun refreshCargoInfo() {
+    // این متد از چند مسیر متفاوت صدا زده می‌شود: هم لمس دستی دکمه‌ی
+    // «بروزرسانی» توسط کاربر، هم به‌صورت داخلی بعد از ثبت/خروج حواله
+    // (handleSuccessResponse)، غیرفعال‌شدن خودکار کوتاژ (toggleQuotaStatus) و
+    // ویرایش حواله (updateCargoInfo) — یعنی صرفاً برای هماهنگ نگه‌داشتن لیست
+    // با سرور، نه چون کاربر درخواست «بروزرسانی» داده. قبلاً پیام «اطلاعات در
+    // ساعت ... به‌روزرسانی شد» همیشه از همینجا (با showMessage، یعنی دیالوگ
+    // MessageDialog) نمایش داده می‌شد، پس بعد از هر ثبت حواله‌ی جدید یک دیالوگ
+    // اضافه‌ی بی‌ربط هم روی دیالوگ موفقیت اصلی صف می‌کشید. حالا این پیام فقط
+    // در صورت پاس‌دادن [onManualRefreshComplete] ساخته می‌شود؛ فقط دکمه‌ی
+    // «بروزرسانی» (RegisterCargoScreen) این پارامتر را پر می‌کند و آن را به‌جای
+    // دیالوگ در قالب Snackbar نشان می‌دهد. بقیه‌ی فراخوان‌ها بدون این پارامتر،
+    // کاملاً بی‌صدا فقط لیست را همگام می‌کنند.
+    fun refreshCargoInfo(onManualRefreshComplete: ((message: String) -> Unit)? = null) {
         viewModelScope.launch {
             _initialInfo.value?.let { info ->
                 try {
@@ -243,11 +255,12 @@ class CargoViewModel(
                             }
 
                             if (hasStatusChanges) {
-                                showMessage("وضعیت حواله‌ها به‌روزرسانی شد", MessageType.SUCCESS)
                                 updateLoadableTonnageIfNeeded()
-                            } else {
-                                showMessage("اطلاعات در ساعت $currentTime به‌روزرسانی شد", MessageType.SUCCESS)
                             }
+
+                            onManualRefreshComplete?.invoke(
+                                if (hasStatusChanges) "وضعیت حواله‌ها به‌روزرسانی شد" else "اطلاعات در ساعت $currentTime به‌روزرسانی شد"
+                            )
                         }
                     )
                 } catch (e: Exception) {
