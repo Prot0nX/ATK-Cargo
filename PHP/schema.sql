@@ -1,7 +1,7 @@
 -- ============================================================
 -- ATK-Cargo Database Schema Exporter
 -- Database Target: atk_cargo
--- Exported Date  : 2026-08-13 16:05:23
+-- Exported Date  : 2026-08-17 17:30:30
 -- ============================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
@@ -10,7 +10,7 @@ SET NAMES utf8mb4;
 SET time_zone = "+00:00";
 
 -- ------------------------------------------------------------
--- Tables Structure (7 tables)
+-- Tables Structure (8 tables)
 -- ------------------------------------------------------------
 
 --
@@ -115,6 +115,24 @@ CREATE TABLE `Users` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
+-- Table structure for table `audit_log`
+--
+DROP TABLE IF EXISTS `audit_log`;
+CREATE TABLE `audit_log` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `username` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `action` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `entity_type` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `entity_id` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `details` json DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_entity` (`entity_type`,`entity_id`),
+  KEY `idx_audit_username_created` (`username`,`created_at`),
+  KEY `idx_audit_created` (`created_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
 -- Table structure for table `licenses`
 --
 DROP TABLE IF EXISTS `licenses`;
@@ -148,21 +166,18 @@ CREATE TABLE `user_sessions` (
   `userType` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'نوع کاربر (admin, operator, verifier)',
   `last_activity` datetime DEFAULT NULL COMMENT 'آخرین فعالیت کاربر',
   `session_token` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'توکن جلسه برای امنیت بیشتر',
+  `access_token_expires_at` datetime DEFAULT NULL,
+  `refresh_token` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `refresh_token_expires_at` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'زمان ایجاد رکورد',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'زمان آخرین به‌روزرسانی',
   PRIMARY KEY (`id`),
-  KEY `idx_username` (`username`),
-  KEY `idx_device_id` (`device_id`),
-  KEY `idx_is_active` (`is_active`),
+  UNIQUE KEY `idx_refresh_token` (`refresh_token`),
   KEY `idx_login_time` (`login_time`),
-  KEY `idx_last_activity` (`last_activity`),
   KEY `idx_session_token` (`session_token`),
-  KEY `idx_userType` (`userType`),
   KEY `idx_username_active` (`username`,`is_active`),
-  KEY `idx_device_active` (`device_id`,`is_active`),
   KEY `idx_active_activity` (`is_active`,`last_activity`),
-  KEY `idx_username_device_active` (`username`,`device_id`,`is_active`),
-  KEY `idx_userType_active` (`userType`,`is_active`)
+  KEY `idx_username_device_active` (`username`,`device_id`,`is_active`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='جدول مدیریت جلسات کاربران';
 
 SET FOREIGN_KEY_CHECKS = 1;
