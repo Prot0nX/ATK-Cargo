@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\AuthenticatesRequests;
 use App\Core\Request;
 use App\Core\Response;
 use App\Services\UserService;
@@ -12,6 +13,8 @@ use App\Validators\InputValidator;
 use App\Exceptions\ApiException;
 
 class UserController {
+    use AuthenticatesRequests;
+
     private UserService $userService;
     private Request $request;
 
@@ -20,20 +23,43 @@ class UserController {
         $this->request = new Request();
     }
 
+    // actionهایی که فقط مدیر (دسترسی manage_users) مجاز به اجرای آن‌هاست —
+    // بقیه‌ی actionها (getAllUsers، updateUser) هر کاربر احرازشده را
+    // می‌پذیرند چون صفحه‌ی «تنظیمات پروفایل» برای مشاهده/ویرایش حساب خودِ
+    // کاربر (نه فقط ادمین) از همین کنترلر استفاده می‌کند.
+    private const ADMIN_ONLY_ACTIONS = [
+        'getAllUsersWithStatus',
+        'getActiveDeviceId',
+        'createUser',
+        'deleteUser',
+        'forceLogout',
+    ];
+
     /**
      * مدیریت و مسیریابی درخواست‌های کاربران
+     *
+     * تمام actionهای این کنترلر (خواندن/ساخت/ویرایش/حذف کاربران، خروج
+     * اجباری) داده‌ی حساس هستند؛ بدون این گیت هر کلاینت ناشناس می‌توانست
+     * کاربر admin بسازد یا رمز/نوع کاربری هر کاربر موجود را تغییر دهد (S-01).
      */
     public function handle(): void {
         try {
+            $this->requireAuthenticatedSession();
+
             $action = $this->request->get('action');
             if (!$action) {
                 throw new ApiException('پارامتر action مورد نیاز است', 400);
             }
+            $action = (string)$action;
+
+            if (in_array($action, self::ADMIN_ONLY_ACTIONS, true)) {
+                $this->requirePermission('manage_users');
+            }
 
             if ($this->request->isGet()) {
-                $this->handleGet((string)$action);
+                $this->handleGet($action);
             } elseif ($this->request->isPost()) {
-                $this->handlePost((string)$action);
+                $this->handlePost($action);
             } else {
                 throw new ApiException('روش درخواست نامعتبر است', 405);
             }
@@ -65,7 +91,7 @@ class UserController {
 
             case 'getActiveDeviceId':
                 $username = $this->request->get('username');
-                if (!$username || empty($username)) {
+                if (!$username) {
                     throw new ApiException('نام کاربری الزامی است', 400);
                 }
                 
@@ -113,14 +139,33 @@ class UserController {
                     'fullName' => $fullName,
                     'password' => $password,
                     'userType' => $userType
-                ]);
+                ], $this->authenticatedUsername);
                 Response::json($result);
                 break;
 
             case 'updateUser':
                 InputValidator::validateRequired($params, ['id']);
                 $id = (int)$params['id'];
-                
+
+                // کاربر بدون دسترسی manage_users (مثلاً از دیالوگ «تغییر رمز
+                // عبور» در تنظیمات پروفایل خودش) فقط مجاز به ویرایش رکورد
+                // خودش است و فقط فیلدهای غیرحساس (fullName/password)؛ بدون
+                // این بررسی، هر کاربر احرازشده می‌توانست با فرستادن id دلخواه
+                // رمز/نوع کاربری هر کاربر دیگری (از جمله ادمین) را عوض کند.
+                $isAdmin = (new \App\Services\PermissionService())
+                    ->hasPermission($this->authenticatedUsername ?? '', $this->authenticatedUserType ?? '', 'manage_users');
+
+                if (!$isAdmin) {
+                    $selfUser = $this->userService->getAllUsers();
+                    $selfRecord = current(array_filter($selfUser, fn($u) => $u['username'] === $this->authenticatedUsername));
+                    if (!$selfRecord || (int)$selfRecord['id'] !== $id) {
+                        throw new ApiException('شما فقط مجاز به ویرایش حساب خودتان هستید.', 403);
+                    }
+                    if (isset($params['username']) || isset($params['userType'])) {
+                        throw new ApiException('شما مجاز به تغییر نام کاربری یا نوع کاربری خودتان نیستید.', 403);
+                    }
+                }
+
                 $updates = [];
                 if (isset($params['username'])) {
                     $updates['username'] = InputValidator::validateUsername((string)$params['username']);
@@ -135,14 +180,14 @@ class UserController {
                     $updates['userType'] = InputValidator::sanitize((string)$params['userType']);
                 }
 
-                $result = $this->userService->updateUser($id, $updates);
+                $result = $this->userService->updateUser($id, $updates, $this->authenticatedUsername);
                 Response::json($result);
                 break;
 
             case 'deleteUser':
                 InputValidator::validateRequired($params, ['userId']);
                 $userId = (int)$params['userId'];
-                $result = $this->userService->deleteUser($userId);
+                $result = $this->userService->deleteUser($userId, $this->authenticatedUsername);
                 Response::json($result);
                 break;
 
@@ -172,9 +217,21 @@ class UserController {
 
     /**
      * به‌روزرسانی توکن FCM (update_fcm_token.php)
+     *
+     * قبلاً بدون احراز هویت بود و user_id مستقیم از ورودی خوانده می‌شد؛ هر
+     * کلاینت ناشناس می‌توانست توکن push هر کاربر دلخواه را با توکن خودش
+     * جایگزین کند (S-08). حالا user_id از نشست احرازشده گرفته می‌شود، نه از
+     * ورودی — پارامتر user_id ورودی نادیده گرفته می‌شود.
      */
     public function updateFcmToken(): void {
-        $userId = intval($this->request->get('user_id', 0));
+        $this->requireAuthenticatedSession();
+
+        $userRepo = new \App\Repositories\UserRepository();
+        $currentUser = $userRepo->getByUsername((string)$this->authenticatedUsername);
+        if (!$currentUser) {
+            Response::json(['error' => 'کاربر یافت نشد'], 404);
+        }
+        $userId = (int)$currentUser['id'];
         $token = (string)$this->request->get('token', '');
 
         if (!$userId || empty($token)) {

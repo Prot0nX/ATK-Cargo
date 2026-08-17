@@ -10,6 +10,7 @@ use mysqli;
 use App\Core\Database;
 use App\Core\Logger;
 use App\Core\Request;
+use App\Core\Response;
 
 class LicenseController {
     private mysqli $conn;
@@ -34,7 +35,7 @@ class LicenseController {
 
         $rawData = file_get_contents('php://input');
         if (!$rawData) {
-            $this->sendJsonResponse([
+            Response::json([
                 'success' => false,
                 'message' => 'داده‌های ورودی نامعتبر است'
             ]);
@@ -42,7 +43,7 @@ class LicenseController {
 
         $data = json_decode((string)$rawData, true);
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
-            $this->sendJsonResponse([
+            Response::json([
                 'success' => false,
                 'message' => 'فرمت داده‌های ورودی نامعتبر است'
             ]);
@@ -52,7 +53,7 @@ class LicenseController {
         $updateLastCheck = $data['update_last_check'] ?? true;
 
         if (empty($licenseKey) || strlen($licenseKey) !== 32) {
-            $this->sendJsonResponse([
+            Response::json([
                 'success' => false,
                 'message' => 'کلید لایسنس نامعتبر است'
             ]);
@@ -76,7 +77,7 @@ class LicenseController {
                 }
 
                 if ((bool)$license['is_active']) {
-                    $this->sendJsonResponse([
+                    Response::json([
                         'success' => true,
                         'message' => 'لایسنس معتبر است',
                         'license' => [
@@ -88,7 +89,7 @@ class LicenseController {
                         ]
                     ]);
                 } else {
-                    $this->sendJsonResponse([
+                    Response::json([
                         'success' => false,
                         'message' => 'لایسنس غیرفعال شده است',
                         'license' => [
@@ -99,14 +100,14 @@ class LicenseController {
                 }
             } else {
                 $stmt->close();
-                $this->sendJsonResponse([
+                Response::json([
                     'success' => false,
                     'message' => 'لایسنس نامعتبر است'
                 ]);
             }
         } catch (Exception $e) {
             $this->logger->error("License validation error: " . $e->getMessage());
-            $this->sendJsonResponse([
+            Response::json([
                 'success' => false,
                 'message' => 'خطای سیستمی رخ داده است'
             ]);
@@ -132,7 +133,7 @@ class LicenseController {
         $licenseKey = trim((string)$this->request->get('licenseKey', ''));
 
         if (empty($licenseKey) || strlen($licenseKey) !== 32) {
-            $this->sendJsonResponse([
+            Response::json([
                 'success' => false,
                 'message' => 'کلید لایسنس نامعتبر است'
             ]);
@@ -148,7 +149,7 @@ class LicenseController {
                 $license = $result->fetch_assoc();
                 $stmt->close();
 
-                $this->sendJsonResponse([
+                Response::json([
                     'success' => true,
                     'message' => 'اطلاعات لایسنس با موفقیت دریافت شد',
                     'license' => [
@@ -162,26 +163,18 @@ class LicenseController {
                 ]);
             } else {
                 $stmt->close();
-                $this->sendJsonResponse([
+                Response::json([
                     'success' => false,
                     'message' => 'لایسنس مورد نظر یافت نشد'
                 ]);
             }
         } catch (Exception $e) {
             $this->logger->error("Get license info error: " . $e->getMessage());
-            $this->sendJsonResponse([
+            Response::json([
                 'success' => false,
                 'message' => 'خطای سیستمی رخ داده است'
             ]);
         }
     }
 
-    private function sendJsonResponse(array $data, int $statusCode = 200): void {
-        http_response_code($statusCode);
-        if (extension_loaded('zlib') && !ini_get('zlib.output_compression') && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
-            ob_start('ob_gzhandler');
-        }
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
-        exit;
-    }
 }

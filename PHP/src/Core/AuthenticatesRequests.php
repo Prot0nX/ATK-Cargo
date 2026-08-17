@@ -5,7 +5,6 @@ declare(strict_types=1);
 
 namespace App\Core;
 
-use App\Repositories\UserRepository;
 use App\Services\PermissionService;
 use App\Services\SessionService;
 
@@ -23,6 +22,14 @@ trait AuthenticatesRequests {
     private ?string $authenticatedUsername = null;
     private ?string $authenticatedUserType = null;
 
+    /**
+     * پیش‌تر این متد ۳ کوئری در هر درخواست احرازشده می‌زد: SELECT برای
+     * isValidToken، UPDATE برای last_activity (در هر تک درخواست، بدون
+     * throttle)، و یک SELECT * FROM Users جداگانه فقط برای userType (P-01).
+     * حالا با SessionService::validateAndGetUserType یک SELECT (userType از
+     * روی همان جدول user_sessions) + یک UPDATE throttled‌شده (فقط اگر بیش از
+     * ۶۰ ثانیه از آخرین به‌روزرسانی گذشته باشد) انجام می‌شود.
+     */
     private function requireAuthenticatedSession(): void {
         $this->enforceMinAppVersion();
 
@@ -31,17 +38,30 @@ trait AuthenticatesRequests {
         $token = (string)($this->request->getHeader('X-Session-Token') ?? '');
 
         $sessionService = new SessionService();
-        if (!$sessionService->isValidToken($username, $deviceId, $token)) {
-            header('Content-Type: application/json; charset=UTF-8');
-            http_response_code(401);
-            echo json_encode(['error' => true, 'message' => 'نشست معتبر نیست. لطفاً دوباره وارد شوید.'], JSON_UNESCAPED_UNICODE);
-            exit;
+        $userType = $sessionService->validateAndGetUserType($username, $deviceId, $token);
+        if ($userType === null) {
+            $this->sendAuthErrorResponse('نشست معتبر نیست. لطفاً دوباره وارد شوید.', 401);
         }
 
         $this->authenticatedUsername = $username;
+        $this->authenticatedUserType = $userType;
+    }
 
-        $user = (new UserRepository())->getByUsername($username);
-        $this->authenticatedUserType = (string)($user['userType'] ?? '');
+    /**
+     * شکل پاسخ خطا بین دو گروه از کنترلرها متفاوت است — CargoController/
+     * UtilityController با کلاینتی صحبت می‌کنند که «error» را boolean
+     * می‌خواند ({error:true,message:"..."} → SaveOrUpdateResponse)، در حالی
+     * که AppApiController/AnalyticsController کلاینتی دارند که «error» را
+     * مستقیماً رشته‌ی پیام می‌خواند ({error:"..."} → ErrorResponse). یکی‌کردن
+     * این دو شکل بدون تغییر هم‌زمان کلاینت، یکی از این دو مصرف‌کننده را خراب
+     * می‌کرد؛ به همین دلیل قابل override است — پیش‌فرض همان شکلی‌ست که
+     * CargoController/UtilityController از قبل داشتند.
+     */
+    protected function sendAuthErrorResponse(string $message, int $httpCode): void {
+        header('Content-Type: application/json; charset=UTF-8');
+        http_response_code($httpCode);
+        echo json_encode(['error' => true, 'message' => $message], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 
     /**
@@ -73,10 +93,7 @@ trait AuthenticatesRequests {
         }
 
         if (version_compare((string)$appVersion, (string)$minAllowed, '<')) {
-            header('Content-Type: application/json; charset=UTF-8');
-            http_response_code(426);
-            echo json_encode(['error' => true, 'message' => 'نسخه‌ی برنامه‌ی شما منسوخ شده است. لطفاً به‌روزرسانی کنید.'], JSON_UNESCAPED_UNICODE);
-            exit;
+            $this->sendAuthErrorResponse('نسخه‌ی برنامه‌ی شما منسوخ شده است. لطفاً به‌روزرسانی کنید.', 426);
         }
     }
 
@@ -90,10 +107,7 @@ trait AuthenticatesRequests {
 
         $permissionService = new PermissionService();
         if (!$permissionService->hasPermission($username, $userType, $feature)) {
-            header('Content-Type: application/json; charset=UTF-8');
-            http_response_code(403);
-            echo json_encode(['error' => true, 'message' => 'شما مجوز انجام این عملیات را ندارید.'], JSON_UNESCAPED_UNICODE);
-            exit;
+            $this->sendAuthErrorResponse('شما مجوز انجام این عملیات را ندارید.', 403);
         }
     }
 }

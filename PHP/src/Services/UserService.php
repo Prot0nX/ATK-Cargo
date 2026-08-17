@@ -131,7 +131,7 @@ class UserService {
         return $result;
     }
 
-    public function createUser(array $data): array {
+    public function createUser(array $data, ?string $actorUsername = null): array {
         // فیلتر کردن و اعتبارسنجی مقادیر
         $username = trim($data['username']);
         $fullName = trim($data['fullName']);
@@ -154,6 +154,14 @@ class UserService {
             'userType' => $userType
         ]);
 
+        if ($actorUsername !== null) {
+            AuditLogger::log($actorUsername, 'createUser', 'user', (string)$userId, [
+                'username' => $username,
+                'fullName' => $fullName,
+                'userType' => $userType,
+            ]);
+        }
+
         return [
             'success' => true,
             'message' => 'کاربر جدید با موفقیت ایجاد شد',
@@ -161,7 +169,7 @@ class UserService {
         ];
     }
 
-    public function updateUser(int $id, array $data): array {
+    public function updateUser(int $id, array $data, ?string $actorUsername = null): array {
         $user = $this->userRepository->getById($id);
         if (!$user) {
             throw new ApiException('کاربری با این شناسه یافت نشد', 404);
@@ -201,13 +209,20 @@ class UserService {
         $sessionRepo = new \App\Repositories\SessionRepository();
         $sessionRepo->deactivateAllSessions($user['username']);
 
+        if ($actorUsername !== null) {
+            // فقط نام فیلدهای تغییریافته ثبت می‌شود، نه مقدار رمز عبور
+            AuditLogger::log($actorUsername, 'updateUser', 'user', (string)$id, [
+                'changedFields' => array_keys($updates),
+            ]);
+        }
+
         return [
             'success' => true,
             'message' => 'اطلاعات کاربر با موفقیت به‌روزرسانی شد'
         ];
     }
 
-    public function deleteUser(int $id): array {
+    public function deleteUser(int $id, ?string $actorUsername = null): array {
         $user = $this->userRepository->getById($id);
         if (!$user) {
             throw new ApiException('کاربری با این شناسه یافت نشد', 404);
@@ -222,10 +237,17 @@ class UserService {
         }
 
         $this->userRepository->delete($id);
-        
+
         // غیرفعال کردن تمامی جلسات کاربر حذف شده
         $sessionRepo = new \App\Repositories\SessionRepository();
         $sessionRepo->deactivateAllSessions($user['username']);
+
+        if ($actorUsername !== null) {
+            AuditLogger::log($actorUsername, 'deleteUser', 'user', (string)$id, [
+                'username' => $user['username'],
+                'userType' => $user['userType'],
+            ]);
+        }
 
         return [
             'success' => true,

@@ -16,8 +16,7 @@ const PROXY_BLOCKED_IPS_FILE = PROXY_LOG_DIR . '/blocked_ips.txt';
 const PROXY_EXCLUDED_FILES = [
     'protected_proxy.php',
     'file_manager.php',
-    'proxy_generator.php',
-    'check_table_structure.php',
+    'export_schema.php',
 ];
 const PROXY_RATE_LIMIT_MAX = 60;
 const PROXY_RATE_LIMIT_WINDOW = 60;
@@ -121,24 +120,47 @@ final class ProtectedProxy {
             return true;
         }
 
-        // Fallback در صورت نبود extension مربوط به APCu روی سرور
+        // Fallback در صورت نبود extension مربوط به APCu روی سرور. خواندن/تغییر/
+        // نوشتن با یک هندل و LOCK_EX انجام می‌شود (نه file_get_contents/
+        // file_put_contents جدا) تا دو درخواست هم‌زمان از همان IP شمارنده‌ی
+        // یکدیگر را بازنویسی نکنند (S-19) — بدون قفل، رِیس‌کاندیشن می‌توانست
+        // rate-limit را عملاً دور بزند.
         $safeIp = str_replace([':', '.', '/'], '_', $ip);
         $rateFile = PROXY_LOG_DIR . "/rate_limit_$safeIp.txt";
-        $timestamps = [];
-        if (file_exists($rateFile)) {
-            $data = file_get_contents($rateFile);
+
+        $handle = fopen($rateFile, 'c+');
+        if ($handle === false) {
+            // اگر حتی باز کردن فایل هم شکست بخورد، محافظه‌کارانه اجازه‌ی عبور
+            // داده می‌شود (مثل رفتار قبلی) تا یک خطای دیسک کل API را قفل نکند.
+            return true;
+        }
+
+        try {
+            flock($handle, LOCK_EX);
+
+            $size = filesize($rateFile) ?: 0;
+            $data = $size > 0 ? fread($handle, $size) : '';
             $timestamps = $data ? json_decode($data, true) : [];
+            if (!is_array($timestamps)) {
+                $timestamps = [];
+            }
+
+            $timestamps = array_values(array_filter($timestamps, fn($t) => ($now - $t) < PROXY_RATE_LIMIT_WINDOW));
+            if (count($timestamps) >= PROXY_RATE_LIMIT_MAX) {
+                return false;
+            }
+            $timestamps[] = $now;
+
+            ftruncate($handle, 0);
+            rewind($handle);
+            fwrite($handle, json_encode($timestamps));
+            fflush($handle);
+
+            return true;
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
         }
-        if (!is_array($timestamps)) {
-            $timestamps = [];
-        }
-        $timestamps = array_values(array_filter($timestamps, fn($t) => ($now - $t) < PROXY_RATE_LIMIT_WINDOW));
-        if (count($timestamps) >= PROXY_RATE_LIMIT_MAX) {
-            return false;
-        }
-        $timestamps[] = $now;
-        file_put_contents($rateFile, json_encode($timestamps));
-        return true;
     }
 
     private function isValidTarget(string $target): bool {

@@ -8,12 +8,17 @@ namespace App\Controllers;
 use Exception;
 use mysqli;
 use mysqli_stmt;
+use App\Core\AuthenticatesRequests;
 use App\Core\Database;
 use App\Core\Logger;
 use App\Core\MicroCache;
 use App\Core\Request;
+use App\Core\Response;
+use App\Validators\InputValidator;
 
 class ChatController {
+    use AuthenticatesRequests;
+
     private mysqli $conn;
     private Logger $logger;
     private Request $request;
@@ -31,21 +36,28 @@ class ChatController {
         date_default_timezone_set('Asia/Tehran');
 
         try {
+            $this->requireAuthenticatedSession();
+            // هویت همیشه از نشست احرازشده گرفته می‌شود، هرگز از پارامتر
+            // ورودی username — قبلاً کل کنترل دسترسی چت (خواندن/ارسال/ویرایش/
+            // حذف پیام‌های ادمین‌ها) روی همین پارامتر بنا شده بود که هیچ رازی
+            // نیست و از users_api.php قابل استخراج بود؛ یعنی دانستن نام
+            // کاربری یک ادمین برای جعل هویت کامل او در چت کافی بود (S-03).
+            $username = (string)$this->authenticatedUsername;
+
             if ($this->request->isGet()) {
                 $action = (string)$this->request->get('action', '');
-                $username = (string)$this->request->get('username', '');
 
                 if ($action === 'getMessages') {
                     $lastMessageId = (int)$this->request->get('lastMessageId', 0);
                     $olderThanId = (int)$this->request->get('olderThanId', 0);
                     $limit = (int)$this->request->get('limit', self::MESSAGE_FETCH_LIMIT);
 
-                    $this->sendJsonResponse([
+                    Response::json([
                         'success' => true,
                         'messages' => $this->getMessages($lastMessageId, $olderThanId, $limit, $username)
                     ]);
                 } elseif ($action === 'getUnreadCount') {
-                    $this->sendJsonResponse([
+                    Response::json([
                         'success' => true,
                         'unreadCount' => $this->getUnreadCount($username)
                     ]);
@@ -53,22 +65,27 @@ class ChatController {
                     throw new Exception('Invalid Action');
                 }
             } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                $input = json_decode((string)file_get_contents('php://input'), true);
-                $action = $input['action'] ?? '';
-                $username = $input['username'] ?? '';
+                // قبلاً اینجا php://input جداگانه و مستقیم decode می‌شد (برخلاف
+                // شاخه‌ی GET بالا که از Request::get() استفاده می‌کند)؛
+                // Request::get() از قبل JSON body/POST/GET را به همین ترتیب
+                // اولویت می‌خواند، پس این ناهماهنگی حذف شد — رفتار برای کلاینت
+                // v1 (که همیشه JSON body می‌فرستد) دقیقاً یکسان می‌ماند، و
+                // مسیرهای v2 (که ممکن است از query/route param هم استفاده
+                // کنند) هم پشتیبانی می‌شوند.
+                $action = (string)$this->request->get('action', '');
 
                 switch ($action) {
                     case 'sendMessage':
-                        $this->sendJsonResponse($this->sendMessage($username, $input['message'] ?? ''));
+                        Response::json($this->sendMessage($username, (string)$this->request->get('message', '')));
                         break;
                     case 'editMessage':
-                        $this->sendJsonResponse($this->editMessage((int)($input['messageId'] ?? 0), $username, $input['message'] ?? ''));
+                        Response::json($this->editMessage((int)$this->request->get('messageId', 0), $username, (string)$this->request->get('message', '')));
                         break;
                     case 'deleteMessage':
-                        $this->sendJsonResponse($this->deleteMessage((int)($input['messageId'] ?? 0), $username));
+                        Response::json($this->deleteMessage((int)$this->request->get('messageId', 0), $username));
                         break;
                     case 'markAsRead':
-                        $this->sendJsonResponse($this->markAsRead((int)($input['messageId'] ?? 0), $username));
+                        Response::json($this->markAsRead((int)$this->request->get('messageId', 0), $username));
                         break;
                     default:
                         throw new Exception('Invalid Action');
@@ -134,7 +151,7 @@ class ChatController {
             return ['success' => false, 'message' => 'فقط ادمین‌ها می‌توانند پیام ارسال کنند'];
         }
 
-        $message = $this->sanitizeInput($message);
+        $message = InputValidator::sanitize($message);
         if (empty($message)) {
             return ['success' => false, 'message' => 'پیام نمی‌تواند خالی باشد'];
         }
@@ -185,7 +202,7 @@ class ChatController {
             return ['success' => false, 'message' => 'شما فقط می‌توانید پیام‌های خود را ویرایش کنید'];
         }
 
-        $newMessage = $this->sanitizeInput($newMessage);
+        $newMessage = InputValidator::sanitize($newMessage);
         if (empty($newMessage)) {
             return ['success' => false, 'message' => 'متن پیام نمی‌تواند خالی باشد'];
         }
@@ -285,10 +302,6 @@ class ChatController {
         return $result && $result['userType'] === 'admin';
     }
 
-    private function sanitizeInput(string $input): string {
-        return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
-    }
-
     private function prepareAndExecute(string $query, string $types, ...$params): mysqli_stmt {
         $stmt = $this->conn->prepare($query);
         if (!$stmt) throw new Exception('SQL Error: ' . $this->conn->error);
@@ -297,12 +310,4 @@ class ChatController {
         return $stmt;
     }
 
-    private function sendJsonResponse(array $data, int $statusCode = 200): void {
-        http_response_code($statusCode);
-        if (extension_loaded('zlib') && !ini_get('zlib.output_compression') && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
-            ob_start('ob_gzhandler');
-        }
-        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-        exit;
-    }
 }

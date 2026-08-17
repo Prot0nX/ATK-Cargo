@@ -407,13 +407,6 @@ interface ApiService {
     ): Response<UnreadCountResponse>
 }
 
-
-// Third Party API Service
-interface ThirdPartyApiService {
-    @POST("Report/thirdparty")
-    suspend fun getThirdPartyOrders(@Body request: ThirdPartyOrderRequest): Response<ThirdPartyOrderResponse>
-}
-
 data class ApiResponse(
     @SerializedName("success") val success: Boolean,
     @SerializedName("message") val message: String

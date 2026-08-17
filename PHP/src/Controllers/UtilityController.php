@@ -13,8 +13,8 @@ use App\Core\Database;
 use App\Core\Logger;
 use App\Core\MicroCache;
 use App\Core\Request;
+use App\Core\Response;
 use App\Services\PasswordGateService;
-use SessionManager;
 
 class UtilityController {
     use AuthenticatesRequests;
@@ -41,37 +41,37 @@ class UtilityController {
         header('Cache-Control: no-cache, no-store, must-revalidate');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->sendJsonResponse(['error' => 'روش درخواست غیرمجاز'], 405);
+            Response::json(['error' => 'روش درخواست غیرمجاز'], 405);
         }
 
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         if (strpos($contentType, 'application/json') === false) {
-            $this->sendJsonResponse(['error' => 'نوع محتوای نامعتبر'], 400);
+            Response::json(['error' => 'نوع محتوای نامعتبر'], 400);
         }
 
         try {
             $rawInput = file_get_contents('php://input');
             if (empty($rawInput)) {
-                $this->sendJsonResponse(['error' => 'بدنه درخواست خالی است'], 400);
+                Response::json(['error' => 'بدنه درخواست خالی است'], 400);
             }
 
             $input = json_decode($rawInput, true);
             if (json_last_error() !== JSON_ERROR_NONE || !is_array($input)) {
-                $this->sendJsonResponse(['error' => 'فرمت JSON نامعتبر'], 400);
+                Response::json(['error' => 'فرمت JSON نامعتبر'], 400);
             }
 
             if (!isset($input['app_signature']) || !is_string($input['app_signature'])) {
-                $this->sendJsonResponse(['error' => 'امضای برنامه ارسال نشده است'], 400);
+                Response::json(['error' => 'امضای برنامه ارسال نشده است'], 400);
             }
 
             $receivedSignature = trim($input['app_signature']);
             if (strlen($receivedSignature) !== 64 || !ctype_xdigit($receivedSignature)) {
-                $this->sendJsonResponse(['error' => 'فرمت امضای نامعتبر'], 400);
+                Response::json(['error' => 'فرمت امضای نامعتبر'], 400);
             }
 
             $packageName = $input['app_package'] ?? null;
             if ($packageName !== null && !preg_match('/^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z][a-zA-Z0-9_]*)*$/', (string)$packageName)) {
-                $this->sendJsonResponse(['error' => 'نام بسته نامعتبر'], 400);
+                Response::json(['error' => 'نام بسته نامعتبر'], 400);
             }
 
             $stmt = $this->conn->prepare("SELECT 1 FROM SignChecker WHERE app_signature = ? LIMIT 1");
@@ -81,10 +81,10 @@ class UtilityController {
             $isValid = $result->num_rows > 0;
             $stmt->close();
 
-            $this->sendJsonResponse(['is_valid' => $isValid]);
+            Response::json(['is_valid' => $isValid]);
         } catch (Exception $e) {
             $this->logger->error("Signature check error: " . $e->getMessage());
-            $this->sendJsonResponse(['error' => 'خطای سرور رخ داده است'], 500);
+            Response::json(['error' => 'خطای سرور رخ داده است'], 500);
         }
     }
 
@@ -131,6 +131,10 @@ class UtilityController {
     public function checkExistence(): void {
         header('Content-Type: application/json; charset=UTF-8');
 
+        // بدون احراز هویت، این endpoint یک oracle برای شمارش/کشف
+        // loadingQuotaNumberهای ثبت‌شده بود (S-11).
+        $this->requireAuthenticatedSession();
+
         try {
             $input = file_get_contents('php://input');
             $data = json_decode((string)$input, true);
@@ -138,7 +142,7 @@ class UtilityController {
             if (!$data || !isset($data['loadingQuotaNumber']) || !is_int($data['loadingQuotaNumber']) ||
                 !isset($data['shipName']) || !isset($data['loadingWarehouse']) || 
                 !isset($data['cargoType']) || !isset($data['shippingCompany'])) {
-                $this->sendJsonResponse(["status" => "error", "message" => "داده‌های ورودی نامعتبر است"]);
+                Response::json(["status" => "error", "message" => "داده‌های ورودی نامعتبر است"]);
             }
 
             $loadingQuotaNumber = (int)$data['loadingQuotaNumber'];
@@ -154,7 +158,7 @@ class UtilityController {
 
             if ($result->num_rows > 0) {
                 $stmt->close();
-                $this->sendJsonResponse(["status" => "exists", "message" => "اطلاعات وارد شده قبلاً ثبت شده است."]);
+                Response::json(["status" => "exists", "message" => "اطلاعات وارد شده قبلاً ثبت شده است."]);
             } else {
                 $stmt->close();
                 $stmtPartial = $this->conn->prepare("SELECT id FROM InitialInfo WHERE loadingQuotaNumber = ?");
@@ -164,15 +168,15 @@ class UtilityController {
 
                 if ($resultPartial->num_rows > 0) {
                     $stmtPartial->close();
-                    $this->sendJsonResponse(["status" => "partial_match", "message" => "شماره کوتاژ قبلاً ثبت شده، اما با مشخصات متفاوت. ثبت اطلاعات جدید مجاز است."]);
+                    Response::json(["status" => "partial_match", "message" => "شماره کوتاژ قبلاً ثبت شده، اما با مشخصات متفاوت. ثبت اطلاعات جدید مجاز است."]);
                 } else {
                     $stmtPartial->close();
-                    $this->sendJsonResponse(["status" => "not_exists", "message" => "اطلاعات وارد شده قابل ثبت است."]);
+                    Response::json(["status" => "not_exists", "message" => "اطلاعات وارد شده قابل ثبت است."]);
                 }
             }
         } catch (Exception $e) {
             $this->logger->error("Check existence error: " . $e->getMessage());
-            $this->sendJsonResponse(["status" => "error", "message" => $e->getMessage()]);
+            Response::json(["status" => "error", "message" => $e->getMessage()]);
         }
     }
 
@@ -189,7 +193,10 @@ class UtilityController {
         // پارامتر GET قدیمی api_key هم نگه داشته شده تا نسخه‌های نصب‌شده‌ی
         // قدیمی‌تر کلاینت که هنوز هدر نمی‌فرستند، فوراً از کار نیفتند
         $apiKey = (string)($this->request->getHeader('X-Api-Key') ?? $this->request->get('api_key', ''));
-        if (!hash_equals(UPDATE_CHECK_API_KEY, $apiKey)) {
+        // UPDATE_CHECK_API_KEY === '' یعنی روی سرور پیکربندی نشده (S-13)؛
+        // hash_equals('', '') خودش true برمی‌گرداند، پس این حالت باید صریحاً
+        // قبل از مقایسه رد شود، وگرنه یک درخواست بدون هدر کلید هم عبور می‌کرد.
+        if (UPDATE_CHECK_API_KEY === '' || !hash_equals(UPDATE_CHECK_API_KEY, $apiKey)) {
             http_response_code(403);
             echo json_encode(['error' => 'دسترسی غیرمجاز'], JSON_UNESCAPED_UNICODE);
             exit;
@@ -267,37 +274,17 @@ class UtilityController {
             $this->sendSyncResponse(false, 'Only POST method is allowed.', [], 405);
         }
 
-        $input = json_decode((string)file_get_contents('php://input'), true);
-        if (json_last_error() !== JSON_ERROR_NONE || !is_array($input)) {
-            $this->sendSyncResponse(false, 'Invalid JSON payload.', [], 400);
-        }
-
-        $username = isset($input['username']) ? trim((string)$input['username']) : '';
-        $deviceId = isset($input['deviceId']) ? trim((string)$input['deviceId']) : '';
-
-        if (empty($username)) {
-            $this->sendSyncResponse(false, 'نام کاربری الزامی است.', [], 400);
-        }
+        // قبلاً هویت را از SessionManager::isSessionActive($username, $deviceId)
+        // می‌گرفت که فقط بررسی می‌کرد آیا نشستی برای این username/deviceId فعال
+        // است، بدون بررسی X-Session-Token — و هیچ‌کدام از username/deviceId هم
+        // سرّی نیستند (S-20). requireAuthenticatedSession همان گیت مبتنی‌بر
+        // توکن است که بقیه‌ی endpointهای این کنترلر استفاده می‌کنند؛ userType
+        // هم از همان نتیجه در دسترس است، پس کوئری جداگانه‌ی SELECT userType
+        // هم دیگر لازم نیست.
+        $this->requireAuthenticatedSession();
 
         try {
-            if (class_exists('SessionManager')) {
-                $sessionManager = new SessionManager();
-                if (!$sessionManager->isSessionActive($username, $deviceId)) {
-                    $this->sendSyncResponse(false, 'نشست کاربر منقضی شده است.', [], 401);
-                }
-            }
-
-            $stmt = $this->conn->prepare("SELECT userType FROM Users WHERE username = ? LIMIT 1");
-            $stmt->bind_param('s', $username);
-            $stmt->execute();
-            $row = $stmt->get_result()->fetch_assoc();
-            $stmt->close();
-
-            if (!$row) {
-                $this->sendSyncResponse(false, 'کاربر یافت نشد.', [], 404);
-            }
-
-            $userType = $row['userType'];
+            $userType = (string)$this->authenticatedUserType;
             $permissions_file = APP_ROOT . '/config/permissions.json';
             $userPermissions = [];
 
@@ -311,8 +298,8 @@ class UtilityController {
             });
 
             if (isset($allData['roles'])) {
-                if (isset($allData['users'][$username])) {
-                    $userPermissions = $allData['users'][$username];
+                if (isset($allData['users'][$this->authenticatedUsername])) {
+                    $userPermissions = $allData['users'][$this->authenticatedUsername];
                 } elseif (isset($allData['roles'][$userType])) {
                     $userPermissions = $allData['roles'][$userType];
                 }
@@ -331,20 +318,6 @@ class UtilityController {
     }
 
     private function sendSyncResponse(bool $success, string $message, array $extra = [], int $code = 200): void {
-        http_response_code($code);
-        if (extension_loaded('zlib') && !ini_get('zlib.output_compression') && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
-            ob_start('ob_gzhandler');
-        }
-        echo json_encode(array_merge(['success' => $success, 'message' => $message], $extra), JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-
-    private function sendJsonResponse(array $data, int $statusCode = 200): void {
-        http_response_code($statusCode);
-        if (extension_loaded('zlib') && !ini_get('zlib.output_compression') && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
-            ob_start('ob_gzhandler');
-        }
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
-        exit;
+        Response::json(array_merge(['success' => $success, 'message' => $message], $extra), $code);
     }
 }

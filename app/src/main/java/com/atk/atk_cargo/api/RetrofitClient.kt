@@ -1,6 +1,7 @@
 package com.atk.atk_cargo.api
 
 import android.content.Context
+import android.util.Log
 import com.atk.atk_cargo.BuildConfig
 import com.google.gson.GsonBuilder
 import com.google.gson.Strictness
@@ -58,18 +59,32 @@ object RetrofitClient {
         override fun read(reader: JsonReader): Float {
             return try {
                 when (reader.peek()) {
+                    // null یک مقدار مجاز/مورد انتظار از سرور است، نه خطا — بدون لاگ
                     JsonToken.NULL -> {
                         reader.nextNull()
                         0f
                     }
                     JsonToken.NUMBER -> reader.nextDouble().toFloat()
-                    JsonToken.STRING -> reader.nextString().toFloatOrNull() ?: 0f
+                    JsonToken.STRING -> {
+                        val raw = reader.nextString()
+                        raw.toFloatOrNull() ?: run {
+                            // قبلاً این حالت بی‌صدا 0f برمی‌گرداند — یعنی یک عدد
+                            // واقعی (مثلاً تناژ/درصد) که سرور رشته‌ی غیرقابل‌پارس
+                            // فرستاده، در UI به‌شکل «۰» دیده می‌شد بدون هیچ نشانه‌ای
+                            // که داده نامعتبر بوده (I-08). حداقل در Logcat ثبت می‌شود
+                            // تا در عیب‌یابی میدانی گم نشود.
+                            Log.w("RetrofitClient", "FloatTypeAdapter: مقدار رشته‌ای غیرقابل‌تبدیل به float دریافت شد: \"$raw\" — 0f جایگزین شد")
+                            0f
+                        }
+                    }
                     else -> {
+                        Log.w("RetrofitClient", "FloatTypeAdapter: نوع JSON غیرمنتظره برای فیلد float: ${reader.peek()} — 0f جایگزین شد")
                         reader.skipValue()
                         0f
                     }
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.w("RetrofitClient", "FloatTypeAdapter: خطا هنگام پارس مقدار float — 0f جایگزین شد", e)
                 0f
             }
         }
@@ -152,56 +167,5 @@ object RetrofitClient {
     // Create API Service instance
     val apiService: ApiService by lazy {
         retrofit.create(ApiService::class.java)
-    }
-}
-
-// Retrofit client for Third Party API
-object ThirdPartyRetrofitClient {
-    private const val CONNECT_TIMEOUT_SECONDS = 10L
-    private const val READ_TIMEOUT_SECONDS = 30L
-    private const val WRITE_TIMEOUT_SECONDS = 30L
-    private const val BASE_URL = "https://pishrodarya.ir/WorknetWebSite/service/api/"
-
-    // Headers interceptor for Third Party API
-    private val headersInterceptor = Interceptor { chain ->
-        val original = chain.request()
-        val request = original.newBuilder()
-            .addHeader("webUserName", Secrets.getWebUserName())
-            .addHeader("webUserPass", Secrets.getWebUserPass())
-            .addHeader("AuthUser", Secrets.getAuthUser())
-            .addHeader("AuthenticationX365", Secrets.getAuthenticationX365())
-            .addHeader("Content-Type", "application/json")
-            .method(original.method, original.body)
-            .build()
-        chain.proceed(request)
-    }
-
-    // Configure OkHttpClient
-    private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(headersInterceptor)
-        .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .retryOnConnectionFailure(true)
-        .build()
-
-    // Configure Gson
-    private val gson = GsonBuilder()
-        .setStrictness(Strictness.LENIENT)
-        .serializeNulls()
-        .create()
-
-    // Configure and create Retrofit instance
-    private val retrofit: Retrofit by lazy {
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create(gson))
-            .build()
-    }
-
-    // Create Third Party API Service instance
-    val thirdPartyApiService: ThirdPartyApiService by lazy {
-        retrofit.create(ThirdPartyApiService::class.java)
     }
 }

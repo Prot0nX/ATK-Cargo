@@ -15,7 +15,13 @@ class Config {
             'db_user' => defined('DB_USER') ? DB_USER : ($_ENV['DB_USER'] ?? 'root'),
             'db_pass' => defined('DB_PASSWORD') ? DB_PASSWORD : ($_ENV['DB_PASSWORD'] ?? ''),
             'db_name' => defined('DB_NAME') ? DB_NAME : ($_ENV['DB_NAME'] ?? 'atk_cargo'),
-            'admin_password_hash' => $_ENV['ADMIN_PASSWORD_HASH'] ?? getenv('ADMIN_PASSWORD_HASH') ?: '$2y$10$bUbu4IBE6ZJKpLL5lxc9puyUEUJg3o9F/zzI896I2U6vUPA5OjI.S',
+            // قبلاً همان هش واقعی رمز پیش‌فرض ادمین که در .env.example هم بود
+            // (S-14) اینجا هم به‌عنوان fallback کد شده بود — یعنی حتی بعد از
+            // خالی‌کردن .env.example، اگر ADMIN_PASSWORD_HASH در .env واقعی
+            // تنظیم نمی‌شد، این مقدار ثابت و در گیت قابل‌مشاهده هنوز فعال بود.
+            // فعلاً هیچ‌جای کد از این تنظیم استفاده نمی‌کند (PermissionManager.php
+            // مستقیماً از env می‌خواند)، اما نگه‌داشتنش یک راز زنده در سورس بود.
+            'admin_password_hash' => $_ENV['ADMIN_PASSWORD_HASH'] ?? getenv('ADMIN_PASSWORD_HASH') ?: '',
             'session_timeout' => 86400, // 24 ساعت به ثانیه
         ];
 

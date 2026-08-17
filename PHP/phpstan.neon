@@ -1,0 +1,39 @@
+parameters:
+    level: 5
+    paths:
+        - src
+        - api
+    excludePaths:
+        - vendor/*
+    tmpDir: build/phpstan
+    # این پروژه از یک autoloader سفارشی/legacy برای برخی توابع و کلاس‌ها
+    # استفاده می‌کند که با PSR-4 بارگذاری نمی‌شوند (jdate در jdf.php،
+    # SessionManager سراسری) — این‌ها فقط برای scan (نه اجرا) کافی‌اند.
+    scanFiles:
+        - jdf.php
+        - SessionManager.php
+    # APP_ROOT/UPDATE_CHECK_API_KEY با define() و مقدار دینامیک (نه رشته‌ی
+    # لفظی) در bootstrap.php/config.php تعریف می‌شوند؛ scanFiles برای این‌ها
+    # کافی نیست (فقط define با مقدار literal را می‌فهمد). bootstrap.php
+    # امن است برای اجرای واقعی در زمان آنالیز چون فقط autoload/timezone/ثابت‌ها
+    # را تنظیم می‌کند، هیچ اتصال دیتابیسی برقرار نمی‌کند.
+    bootstrapFiles:
+        - src/bootstrap.php
+    # UPDATE_CHECK_API_KEY مقداردهی‌اش به .env محیط اجرا وابسته است. چون
+    # bootstrapFiles واقعاً bootstrap.php را در پردازش خودِ PHPStan اجرا
+    # می‌کند، PHPStan مقدار *واقعی* این ثابت را در محیط آنالیز (بدون .env،
+    # پس رشته‌ی خالی) می‌بیند و مقایسه‌ی === '' در checkUpdate را به‌عنوان
+    # نتیجه‌ی همیشه-ثابت گزارش می‌کند — نه یک باگ واقعی، بلکه رفتار درست و
+    # عمدی (S-13: در نبود پیکربندی، دسترسی رد شود، نه fallback ساکت).
+    # CI هرگز UPDATE_CHECK_API_KEY را در محیط phpstan تنظیم نمی‌کند تا این
+    # حالت (که واقعاً می‌خواهیم تضمین شود) پایدار و قابل‌تکرار بماند —
+    # بررسی دستی خط ۲۰۰-۲۰۶ UtilityController.php تأیید می‌کند منطق درست است.
+    ignoreErrors:
+        -
+            message: '#^Result of \|\| is always true\.$#'
+            path: src/Controllers/UtilityController.php
+            count: 1
+        -
+            message: '#^Unreachable statement - code above always terminates\.$#'
+            path: src/Controllers/UtilityController.php
+            count: 1

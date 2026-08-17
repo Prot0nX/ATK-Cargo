@@ -9,6 +9,11 @@ use App\Core\Database;
 use PDO;
 
 class SessionRepository {
+    // پس از این مدت بی‌فعالیتی، نشست منقضی در نظر گرفته می‌شود — قبلاً هیچ
+    // محدودیتی روی last_activity اعمال نمی‌شد و یک session_token سرقت‌شده
+    // (از دستگاه گم‌شده/بکاپ/لاگ) تا ابد معتبر می‌ماند (S-05).
+    public const SESSION_TIMEOUT_SECONDS = 86400; // ۲۴ ساعت
+
     private PDO $db;
 
     public function __construct() {
@@ -34,14 +39,16 @@ class SessionRepository {
     }
 
     /**
-     * بررسی معتبر بودن دقیق یک جلسه (نام کاربری + دستگاه + توکن + فعال بودن)
-     * برای احراز هویت درخواست‌های API (مثل app_api.php) استفاده می‌شود.
+     * بررسی معتبر بودن دقیق یک جلسه (نام کاربری + دستگاه + توکن + فعال بودن +
+     * عدم انقضا بر اساس آخرین فعالیت) برای احراز هویت درخواست‌های API (مثل
+     * app_api.php) استفاده می‌شود.
      */
     public function isValidToken(string $username, string $deviceId, string $token): bool {
         $stmt = $this->db->prepare("
             SELECT id FROM user_sessions
             WHERE username = :username AND device_id = :device_id
               AND session_token = :token AND is_active = 1
+              AND last_activity > (NOW() - INTERVAL " . self::SESSION_TIMEOUT_SECONDS . " SECOND)
             LIMIT 1
         ");
         $stmt->execute([
@@ -50,6 +57,73 @@ class SessionRepository {
             ':token' => $token,
         ]);
         return (bool)$stmt->fetch();
+    }
+
+    /**
+     * نسخه‌ی بهینه‌ی isValidToken برای گیت AuthenticatesRequests که علاوه بر
+     * اعتبار نشست، userType را هم برمی‌گرداند (P-01). userType در همین جدول
+     * (نه Users) ذخیره است — در زمان createSession کپی می‌شود و با هر تغییر
+     * نوع کاربری، UserService::updateUser تمام نشست‌های کاربر را
+     * deactivateAllSessions می‌کند؛ پس همیشه تازه است و نیازی به JOIN/کوئری
+     * دوم روی Users نیست. قبلاً هر درخواست احرازشده ۳ کوئری می‌زد (این
+     * SELECT + UPDATE last_activity + یک SELECT * FROM Users جداگانه در
+     * AuthenticatesRequests)؛ اکنون این متد همان یک کوئری قبلی را با یک
+     * ستون اضافه جایگزین آن SELECT سوم می‌کند.
+     *
+     * @return string|null userType در صورت معتبر بودن نشست، در غیر این صورت null
+     */
+    public function validateTokenAndGetUserType(string $username, string $deviceId, string $token): ?string {
+        $stmt = $this->db->prepare("
+            SELECT userType FROM user_sessions
+            WHERE username = :username AND device_id = :device_id
+              AND session_token = :token AND is_active = 1
+              AND last_activity > (NOW() - INTERVAL " . self::SESSION_TIMEOUT_SECONDS . " SECOND)
+            LIMIT 1
+        ");
+        $stmt->execute([
+            ':username' => $username,
+            ':device_id' => $deviceId,
+            ':token' => $token,
+        ]);
+        $row = $stmt->fetch();
+        return $row ? (string)($row['userType'] ?? '') : null;
+    }
+
+    /**
+     * به‌روزرسانی last_activity با throttle — فقط اگر بیش از ۶۰ ثانیه از
+     * آخرین به‌روزرسانی گذشته باشد واقعاً UPDATE می‌زند. این متد مخصوص گیت
+     * احراز هویت است (که در «هر» درخواست API صدا زده می‌شود)؛ updateLastActivity
+     * معمولی (بدون throttle) برای heartbeat صریح دست نخورده باقی می‌ماند تا
+     * معنای «تازه‌بودن» آن تغییر نکند.
+     */
+    public function touchLastActivityThrottled(string $username, string $deviceId): void {
+        $stmt = $this->db->prepare("
+            UPDATE user_sessions
+            SET last_activity = NOW()
+            WHERE username = :username AND device_id = :device_id AND is_active = 1
+              AND last_activity < (NOW() - INTERVAL 60 SECOND)
+        ");
+        $stmt->execute([
+            ':username' => $username,
+            ':device_id' => $deviceId,
+        ]);
+    }
+
+    /**
+     * غیرفعال کردن نشست‌های منقضی (بی‌فعالیت بیش از SESSION_TIMEOUT_SECONDS)
+     * — قبلاً این متد صدا زده می‌شد (OnlineUsersController::cleanup_inactive)
+     * بدون اینکه هیچ‌جا تعریف شده باشد (B-02)، به همین دلیل هیچ نشستی هرگز
+     * منقضی نمی‌شد.
+     */
+    public function cleanupExpiredSessions(): int {
+        $stmt = $this->db->prepare("
+            UPDATE user_sessions
+            SET is_active = 0, logout_time = NOW()
+            WHERE is_active = 1
+              AND last_activity <= (NOW() - INTERVAL " . self::SESSION_TIMEOUT_SECONDS . " SECOND)
+        ");
+        $stmt->execute();
+        return $stmt->rowCount();
     }
 
     /**

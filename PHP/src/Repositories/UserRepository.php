@@ -75,6 +75,12 @@ class UserRepository {
         ]);
     }
 
+    /** ستون‌های مجاز برای update() — کلید آرایه مستقیم در SQL درج می‌شود (S-18)؛
+     * تمام فراخوان‌های فعلی کلید ثابت می‌دهند پس اکسپلویت‌پذیر نیست، اما بدون
+     * این allow-list هر توسعه‌ی آینده که کلید را از ورودی کاربر بگیرد می‌تواند
+     * نام ستون دلخواه تزریق کند. */
+    private const UPDATABLE_COLUMNS = ['username', 'fullName', 'password', 'userType'];
+
     /**
      * به‌روزرسانی اطلاعات کاربر
      */
@@ -85,12 +91,15 @@ class UserRepository {
 
         $fields = [];
         $params = [':id' => $id];
-        
+
         foreach ($updates as $key => $value) {
+            if (!in_array($key, self::UPDATABLE_COLUMNS, true)) {
+                throw new \InvalidArgumentException("ستون غیرمجاز برای به‌روزرسانی: {$key}");
+            }
             $fields[] = "{$key} = :{$key}";
             $params[":{$key}"] = $value;
         }
-        
+
         $fieldsStr = implode(', ', $fields);
         $stmt = $this->db->prepare("UPDATE Users SET {$fieldsStr}, updated_at = CURRENT_TIMESTAMP WHERE id = :id");
         return $stmt->execute($params);

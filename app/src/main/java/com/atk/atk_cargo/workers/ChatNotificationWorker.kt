@@ -90,6 +90,24 @@ class ChatNotificationWorker(
     }
 
     private fun showGroupedNotification(messages: List<Pair<String, String>>, senders: Set<String>) {
+        // showChatNotification نیازمند POST_NOTIFICATIONS است (@RequiresPermission)؛
+        // قبلاً بدون بررسی صدا زده می‌شد — اگرچه catch(Exception) بیرونی
+        // SecurityException احتمالی را می‌گرفت (کرش نمی‌شد)، اما یعنی worker
+        // برای کاربری که این مجوز را رد کرده برای همیشه retry می‌کرد بدون
+        // اینکه هرگز موفق شود. بررسی صریح همان الگویی است که در
+        // StartupViewModel برای همین سناریو استفاده شده.
+        val hasNotificationPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                applicationContext,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        if (!hasNotificationPermission) {
+            return
+        }
+
         val appNotificationManager = AppNotificationManager(applicationContext)
 
         // نمایش پیام‌ها با استایل پیام‌رسان

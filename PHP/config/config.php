@@ -49,23 +49,5 @@ if (!defined('DB_NAME')) {
 }
 
 if (!defined('UPDATE_CHECK_API_KEY')) {
-    define('UPDATE_CHECK_API_KEY', $_ENV['UPDATE_CHECK_API_KEY'] ?? getenv('UPDATE_CHECK_API_KEY') ?: 'atk_nk_9290VV42-38XQ02DI-F2WY4L2K-EJA7V682');
+    define('UPDATE_CHECK_API_KEY', $_ENV['UPDATE_CHECK_API_KEY'] ?? getenv('UPDATE_CHECK_API_KEY') ?: '');
 }
-
-/**
- * دریافت کانکشن خام mysqli برای کدهای قدیمی
- */
-if (!function_exists('getDbConnection')) {
-    function getDbConnection(): mysqli {
-        static $conn = null;
-        if ($conn === null) {
-            $conn = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
-            if ($conn->connect_error) {
-                throw new Exception("خطا در اتصال به پایگاه داده: " . $conn->connect_error);
-            }
-            $conn->set_charset("utf8mb4");
-        }
-        return $conn;
-    }
-}
-

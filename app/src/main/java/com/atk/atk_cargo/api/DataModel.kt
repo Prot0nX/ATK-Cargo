@@ -71,8 +71,6 @@ typealias QuotaSortingMode = com.atk.atk_cargo.data.model.QuotaSortingMode
 typealias GroupSortingMode = com.atk.atk_cargo.data.model.GroupSortingMode
 typealias ShipSortingMode = com.atk.atk_cargo.data.model.ShipSortingMode
 typealias QuotaItem = com.atk.atk_cargo.data.model.QuotaItem
-typealias ThirdPartyOrderRequest = com.atk.atk_cargo.data.model.ThirdPartyOrderRequest
-typealias ThirdPartyOrderResponse = com.atk.atk_cargo.data.model.ThirdPartyOrderResponse
 typealias ColorSelector = com.atk.atk_cargo.data.model.ColorSelector
 
 // ===== UTILS EXPOSED FROM REPORT MODELS =====

@@ -11,6 +11,7 @@ use App\Core\Logger;
 use App\Services\UserService;
 use App\Services\SessionService;
 use App\Services\PermissionService;
+use App\Services\LoginAttemptLimiter;
 use App\Validators\InputValidator;
 use App\Exceptions\ApiException;
 
@@ -18,6 +19,7 @@ class AuthController {
     private UserService $userService;
     private SessionService $sessionService;
     private PermissionService $permissionService;
+    private LoginAttemptLimiter $loginAttemptLimiter;
     private Request $request;
     private Logger $logger;
 
@@ -25,6 +27,7 @@ class AuthController {
         $this->userService = new UserService();
         $this->sessionService = new SessionService();
         $this->permissionService = new PermissionService();
+        $this->loginAttemptLimiter = new LoginAttemptLimiter();
         $this->request = new Request();
         $this->logger = Logger::getInstance();
     }
@@ -57,6 +60,19 @@ class AuthController {
         $androidVersion = InputValidator::sanitize((string)$androidVersion);
         $appVersion = InputValidator::sanitize((string)$appVersion);
 
+        $ipAddress = $this->request->getClientIp();
+
+        // قفل تلاش‌های ناموفق (username+IP) — پیش از این فقط rate-limit عمومی
+        // پروکسی (۶۰ درخواست/دقیقه به‌ازای IP) وجود داشت که با چرخش IP دور زده
+        // می‌شد و عملاً حمله‌ی brute-force را محدود نمی‌کرد (S-06).
+        if ($this->loginAttemptLimiter->isLocked($username, $ipAddress)) {
+            Response::json([
+                'success' => false,
+                'message' => 'تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر تلاش کنید.',
+                'userType' => null
+            ], 200); // ۲۰۰ برای پایداری با کلاینت اندروید، هم‌راستا با بقیه‌ی خطاهای این تابع
+        }
+
         // تلاش برای احراز هویت
         $user = $this->userService->verifyCredentials($username, (string)$password);
 
@@ -66,12 +82,15 @@ class AuthController {
         );
 
         if (!$user) {
+            $this->loginAttemptLimiter->registerFailedAttempt($username, $ipAddress);
             Response::json([
                 'success' => false,
                 'message' => 'نام کاربری یا رمز عبور اشتباه است!',
                 'userType' => null
             ], 200); // بازگرداندن 200 برای پایداری با کلاینت اندروید
         }
+
+        $this->loginAttemptLimiter->resetAttempts($username, $ipAddress);
 
         // بارگذاری تنظیمات سطح دسترسی
         $userPermissions = $this->getUserPermissions($username, $user['userType']);
@@ -90,9 +109,7 @@ class AuthController {
             ], 200);
         }
 
-        // مدیریت جلسه
-        $ipAddress = $this->request->getClientIp();
-        
+        // مدیریت جلسه ($ipAddress پیش‌تر برای گیت rate-limit محاسبه شده)
         // فراخوانی سرویس برای ایجاد یا به‌روزرسانی جلسه موبایل
         $sessionResult = $this->sessionService->createMobileSession(
             $username,

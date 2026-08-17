@@ -160,6 +160,27 @@ class SessionService {
     }
 
     /**
+     * نسخه‌ی بهینه‌شده‌ی isValidToken برای گیت AuthenticatesRequests (P-01):
+     * اعتبار نشست و userType را با یک کوئری واحد برمی‌گرداند (به‌جای
+     * isValidToken + یک SELECT جداگانه‌ی UserRepository)، و last_activity را
+     * throttled به‌روزرسانی می‌کند (نه در هر تک درخواست) چون این متد در «هر»
+     * درخواست API احرازشده صدا زده می‌شود.
+     *
+     * @return string|null userType در صورت معتبر بودن نشست، در غیر این صورت null
+     */
+    public function validateAndGetUserType(string $username, string $deviceId, string $token): ?string {
+        if ($username === '' || $deviceId === '' || $token === '') {
+            return null;
+        }
+
+        $userType = $this->sessionRepository->validateTokenAndGetUserType($username, $deviceId, $token);
+        if ($userType !== null) {
+            $this->sessionRepository->touchLastActivityThrottled($username, $deviceId);
+        }
+        return $userType;
+    }
+
+    /**
      * بررسی معتبر بودن جلسه کاربر
      */
     public function isSessionActive(string $username, ?string $deviceId = null): bool {
@@ -246,6 +267,13 @@ class SessionService {
      */
     public function getSessionStats(): array {
         return $this->sessionRepository->getSessionStats();
+    }
+
+    /**
+     * غیرفعال کردن نشست‌های منقضی (بی‌فعالیت طولانی)
+     */
+    public function cleanupExpiredSessions(): int {
+        return $this->sessionRepository->cleanupExpiredSessions();
     }
 
     /**

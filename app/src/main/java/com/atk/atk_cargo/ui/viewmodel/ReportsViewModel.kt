@@ -8,7 +8,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.atk.atk_cargo.api.ThirdPartyRetrofitClient
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.ColorSelector
 import com.atk.atk_cargo.data.model.ComprehensiveAnalytics
@@ -27,8 +26,6 @@ import com.atk.atk_cargo.data.model.ShiftInfo
 import com.atk.atk_cargo.data.model.Ship
 import com.atk.atk_cargo.data.model.ShipSortingMode
 import com.atk.atk_cargo.data.model.ShipsData
-import com.atk.atk_cargo.data.model.ThirdPartyOrder
-import com.atk.atk_cargo.data.model.ThirdPartyOrderRequest
 import com.atk.atk_cargo.data.model.Warehouse
 import com.atk.atk_cargo.data.model.WarehouseQuotaGroupingMode
 import com.atk.atk_cargo.data.model.adjustColorForTheme
@@ -59,7 +56,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileNotFoundException
 import java.text.NumberFormat
-import java.util.Calendar
 import java.util.Locale
 
 class ReportsViewModel(
@@ -72,10 +68,6 @@ class ReportsViewModel(
     // Composable نباشد و با چرخش صفحه ریست نشود.
     private val _realTimeUiState = MutableStateFlow(RealTimeUiState())
     val realTimeUiState: StateFlow<RealTimeUiState> = _realTimeUiState.asStateFlow()
-    private val _thirdPartyOrders = MutableStateFlow<List<ThirdPartyOrder>>(emptyList())
-    val thirdPartyOrders: StateFlow<List<ThirdPartyOrder>> = _thirdPartyOrders
-    private val _thirdPartyLoadingError = MutableStateFlow<String?>(null)
-    val thirdPartyLoadingError: StateFlow<String?> = _thirdPartyLoadingError
     private val _loadingError = MutableStateFlow<String?>(null)
     val loadingError: StateFlow<String?> = _loadingError
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
@@ -334,58 +326,6 @@ class ReportsViewModel(
         delay(300)
         _realTimeUiState.update { it.copy(isRefreshing = false, secondsToNextRefresh = 30) }
         return _realTimeUiState.value.error
-    }
-
-    fun loadThirdPartyOrders() {
-        viewModelScope.launch {
-            try {
-                _thirdPartyLoadingError.value = null
-                
-                // تولید تاریخ‌های شمسی بر اساس ساعت فعلی
-                val calendar = Calendar.getInstance()
-                val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
-                
-                val todayShamsi = JalaliDateUtils.formatDate(calendar.timeInMillis.toString())
-                val date1Formatted: String
-                val date2Formatted: String
-
-                if (currentHour >= 7) {
-                    date1Formatted = todayShamsi
-                    date2Formatted = todayShamsi
-                } else {
-                    calendar.add(Calendar.DAY_OF_MONTH, -1)
-                    val yesterdayShamsi = JalaliDateUtils.formatDate(calendar.timeInMillis.toString())
-                    date1Formatted = yesterdayShamsi
-                    date2Formatted = todayShamsi
-                }
-                
-                val requestBody = ThirdPartyOrderRequest(
-                    companyCode = "36429",
-                    date1 = date1Formatted,
-                    date2 = date2Formatted,
-                    reportName = "گزارش درجريان تفصيلي - 4"
-                )
-                
-                val response = withContext(Dispatchers.IO) {
-                    ThirdPartyRetrofitClient.thirdPartyApiService.getThirdPartyOrders(requestBody)
-                }
-                
-                if (response.isSuccessful) {
-                    val orders = response.body()?.value ?: emptyList()
-                    _thirdPartyOrders.value = orders
-                    if (orders.isEmpty()) {
-                        _thirdPartyLoadingError.value = "اطلاعاتی یافت نشد"
-                    }
-                } else {
-                    val errorBody = response.errorBody()?.string() ?: "بدون پیام خطا"
-                    _thirdPartyLoadingError.value = "خطا در دریافت اطلاعات: کد ${response.code()}\n$errorBody"
-                    Log.e("ReportsViewModel", "API Error ${response.code()}: $errorBody")
-                }
-            } catch (e: Exception) {
-                _thirdPartyLoadingError.value = "خطا در دریافت اطلاعات: ${e.message}"
-                Log.e("ReportsViewModel", "Error loading third party orders", e)
-            }
-        }
     }
 
     private val _shipDetailsLoadingState = MutableStateFlow<LoadingState>(LoadingState.Idle)

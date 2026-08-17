@@ -46,6 +46,12 @@ RewriteCond %{HTTP_REFERER} !^https?://(www\.)?atk-nk\.ir [NC]
 RewriteRule \.(jpg|jpeg|png|gif|bmp|webp)$ - [F,NC]
 
 #############################################
+# 🚦 مسیریابی API نسخه‌ی ۲ (Router صریح — جایگزین تدریجی protected_proxy.php)
+#############################################
+RewriteCond %{REQUEST_URI} ^/api/v2/
+RewriteRule ^ api/v2/index.php [L]
+
+#############################################
 # 🔒 محافظت از پوشه‌های خاص
 #############################################
 # قفل کردن پوشه config
@@ -54,8 +60,12 @@ RewriteRule \.(jpg|jpeg|png|gif|bmp|webp)$ - [F,NC]
     Deny from all
 </Directory>
 
-# قفل کردن پوشه‌های پشتیبان یا لاگ‌ها
-<DirectoryMatch "(^|/)(logs|backups|private|secret)/">
+# قفل کردن پوشه‌های پشتیبان یا لاگ‌ها. «log» (مفرد) هم اضافه شد: پوشه‌ی واقعی
+# که protected_proxy.php و PasswordGateService در آن می‌نویسند همین نام مفرد
+# را دارد و قبلاً فقط با الگوی جمع «logs» پوشش داده نمی‌شد — یعنی
+# blocked_ips.txt، rate_limit_*.txt و pwdgate_*.json (که پسوندشان .log نیست،
+# پس FilesMatch بالا هم آن‌ها را نمی‌گرفت) مستقیماً قابل خواندن بودند (S-16).
+<DirectoryMatch "(^|/)(log|logs|backups|private|secret)/">
     Order allow,deny
     Deny from all
 </DirectoryMatch>
@@ -84,12 +94,10 @@ RewriteRule \.(jpg|jpeg|png|gif|bmp|webp)$ - [F,NC]
 </IfModule>
 
 #############################################
-# ✅ جلوگیری از مرورگرهای بد (User-Agent Filtering)
+# (حذف شد — S-21) بلوک قبلی «جلوگیری از مرورگرهای بد» با ترکیب
+# BrowserMatchNoCase + Order/Allow/Deny نوشته شده بود که در Apache 2.4 بدون
+# mod_access_compat منسوخ و بی‌اثر است (به‌خصوص وقتی هیچ‌جای دیگر این فایل هم
+# mod_access_compat را فرض نکرده). حتی اگر فعال هم بود، فیلتر کردن User-Agent
+# امنیت واقعی اضافه نمی‌کرد — تغییر UA یک فلگ ساده در curl/wget است — و فقط
+# دیباگ دستی با curl را برای خودمان سخت می‌کرد.
 #############################################
-BrowserMatchNoCase "BadBot" bots
-BrowserMatchNoCase "HTTrack" bots
-BrowserMatchNoCase "wget" bots
-BrowserMatchNoCase "curl" bots
-Order Allow,Deny
-Allow from all
-Deny from env=bots
