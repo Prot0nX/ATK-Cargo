@@ -39,13 +39,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.milliseconds
-
-/**
- * جایگزین ۵ متغیر boolean مستقل قدیمی MainActivity (isSplashVisible, isServerSyncing,
- * isVersionAllowedState, isSecurityCheckPassed, isSecurityCheckLoading) که می‌توانستند در
- * ترکیب‌های نامعتبر قرار بگیرند (مثلاً isServerSyncing=true همراه isSecurityCheckPassed=false).
- * این sealed interface فقط ترکیب‌های معتبر را قابل بیان می‌کند.
- */
 sealed interface StartupState {
     data object Splash : StartupState
     data object Syncing : StartupState
@@ -75,9 +68,6 @@ class StartupViewModel(
 ) : AndroidViewModel(application) {
 
     private val appContext get() = getApplication<Application>()
-
-    // Activity نباید مستقیم به UserPreferencesManager وصل شود فقط برای یک رنگ —
-    // این یک pass-through از لایه‌ی داده به‌جای تزریق جداگانه‌ی آن در Activity است (M-6)
     val themeColor: Flow<Long> = userPreferencesManager.themeColor
 
     private val _isSplashVisible = MutableStateFlow(true)
@@ -107,18 +97,11 @@ class StartupViewModel(
     val pendingNavigationDestination: StateFlow<String?> = _pendingNavigationDestination.asStateFlow()
 
     private val _shouldOpenWarningsDialog = MutableStateFlow(false)
-    val shouldOpenWarningsDialog: StateFlow<Boolean> = _shouldOpenWarningsDialog.asStateFlow()
 
-    // Channel به‌جای SharedFlow(replay=0) — SharedFlow بدون مشترک فعال، emit را
-    // بی‌صدا دور می‌ریزد (extraBufferCapacity فقط برای مشترکین کند است، نه برای
-    // نبود مشترک)؛ در بازه‌ی بازسازی Activity (چرخش صفحه، تغییر زبان) دقیقاً
-    // همین اتفاق می‌افتاد و پیام‌هایی مثل «لطفاً دوباره وارد شوید» گم می‌شدند (S-6)
     private val _events = Channel<StartupEvent>(Channel.BUFFERED)
     val events: Flow<StartupEvent> = _events.receiveAsFlow()
 
     private var startupSequenceStarted = false
-
-    fun getChatRepository(): ChatRepository = chatRepository
 
     fun getUpdateManager(): UpdateManager = updateManager
 
@@ -217,22 +200,10 @@ class StartupViewModel(
         _pendingNavigationDestination.value = null
     }
 
-    fun setPendingNavigationDestination(destination: String?) {
-        _pendingNavigationDestination.value = destination
-    }
-
-    fun consumeWarningsDialogRequest() {
-        _shouldOpenWarningsDialog.value = false
-    }
-
     fun handleIntent(intent: Intent?) {
         when (intent?.action) {
             "com.atk.atk_cargo.OPEN_WARNINGS" -> {
                 _shouldOpenWarningsDialog.value = true
-                // پاک کردن action بعد از مصرف — وگرنه چون این intent همان شیئی است که
-                // MainActivity.setIntent نگه می‌دارد، هر بازسازی Activity (چرخش صفحه،
-                // تغییر تنظیمات سیستم) دوباره همین intent را با LaunchedEffect(Unit)
-                // به handleIntent می‌داد و دیالوگ هشدارها را از نو باز می‌کرد (S-7)
                 intent.action = null
             }
         }
@@ -273,21 +244,16 @@ class StartupViewModel(
             val response = apiService.checkSession(sessionRequest)
 
             if (!response.isSuccessful && response.code() >= 500) {
-                // خطای داخلی/گذرای سرور (مثلاً قطعی دیتابیس) — نه رد صریح نشست —
-                // واجد شرایط همان grace period آفلاین است، وگرنه یک قطعی چند دقیقه‌ای
-                // سرور همه کاربران را به‌طور اجباری خارج می‌کند
                 isWithinSessionOfflineGracePeriod()
             } else {
                 val isValid = response.isSuccessful && response.body()?.success == true
                 if (isValid) {
                     userPreferencesManager.saveLastSessionVerifiedTimestamp(System.currentTimeMillis())
                 }
-                // پاسخ صریح سرور (از جمله ۴۰۹ نشست تکراری) همیشه fail-closed است — هرگز
-                // grace period نمی‌گیرد، وگرنه منطق «یک دستگاه در هر زمان» دور زده می‌شود
+
                 isValid
             }
         } catch (e: java.io.IOException) {
-            // فقط خطای شبکه‌ی واقعی (نه رد صریح سرور) واجد شرایط grace period محدود است
             isWithinSessionOfflineGracePeriod()
         } catch (_: Exception) {
             false
@@ -433,10 +399,8 @@ class StartupViewModel(
     }
 
     companion object {
-        private const val SPLASH_MIN_DURATION = 1200L
-        private const val SPLASH_MAX_DURATION = 4500L
-
-        // مهلت آفلاین برای نشست کاربر — همسان با OFFLINE_GRACE_PERIOD_MS در SecurityVerifier (C-2)
+        private const val SPLASH_MIN_DURATION = 4500L
+        private const val SPLASH_MAX_DURATION = 5500L
         private const val SESSION_OFFLINE_GRACE_PERIOD_MS = 3 * 24 * 60 * 60 * 1000L // ۳ روز
     }
 }
