@@ -200,7 +200,7 @@ fun UserManagementDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.75f)
+                    .fillMaxHeight(0.90f)
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp)
             ) {

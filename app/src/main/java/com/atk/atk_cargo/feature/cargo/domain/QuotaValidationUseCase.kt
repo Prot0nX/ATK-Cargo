@@ -10,12 +10,7 @@ import com.atk.atk_cargo.data.repository.ReportsRepository
 class QuotaValidationUseCase(private val repository: ReportsRepository) {
 
     companion object {
-        // فاصله‌ی ایمنی قبل از رسیدن دقیق به حد نصاب درصدی: وقتی «تناژ مجاز»
-        // باقی‌مانده به این مقدار یا کمتر برسد، دیگر حوالهٔ تازه پذیرفته
-        // نمی‌شود — چون یک محمولهٔ تک بعدی معمولاً چند تن است و می‌تواند
-        // به‌سادگی از حد نصاب رد شود. باید با CargoService::NEW_ENTRY_TONNAGE_BUFFER_KG
-        // (سمت سرور، ضامن واقعی) یکسان بماند.
-        const val NEW_ENTRY_TONNAGE_BUFFER_KG = 5000f
+        const val NEW_ENTRY_TONNAGE_BUFFER_KG = 7000f
     }
 
     suspend fun validateQuotaStatusAndPercentage(initialInfo: InitialInfo, isNewCargo: Boolean): QuotaValidationResult {
@@ -49,9 +44,7 @@ class QuotaValidationUseCase(private val repository: ReportsRepository) {
                     val loadableTonnage = remainingTonnage - percentageAmount
 
                     if (remainingTonnage <= percentageAmount) {
-                        // دقیقاً به حد نصاب رسیده — کوتاژ کاملاً غیرفعال
-                        // می‌شود (رفتار قبلی، بدون تغییر). این باعث می‌شود
-                        // خروج حواله‌های موجود هم مسدود شود.
+
                         return QuotaValidationResult(
                             isValid = false,
                             isActive = false,
@@ -63,9 +56,6 @@ class QuotaValidationUseCase(private val repository: ReportsRepository) {
                         )
                     }
 
-                    // بافر هشدار زودهنگام: فقط ثبت حوالهٔ تازه را می‌بندد و
-                    // کوتاژ را غیرفعال نمی‌کند، پس خروج/به‌روزرسانی حواله‌های
-                    // از قبل ثبت‌شده حتی زیر این آستانه هم مجاز می‌ماند.
                     if (isNewCargo && loadableTonnage <= NEW_ENTRY_TONNAGE_BUFFER_KG) {
                         return QuotaValidationResult(
                             isValid = false,

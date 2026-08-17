@@ -14,13 +14,8 @@ use App\Exceptions\ApiException;
 use App\Exceptions\ConflictException;
 
 class CargoService {
-    // فاصله‌ی ایمنی قبل از رسیدن دقیق به حد نصاب درصدی: وقتی «تناژ مجاز»
-    // باقی‌مانده به این مقدار یا کمتر برسد، دیگر حوالهٔ تازه پذیرفته نمی‌شود
-    // (نه اینکه دقیقاً صفر شود) — چون یک محمولهٔ تک بعدی معمولاً چند تن است
-    // و می‌تواند به‌سادگی از حد نصاب رد شود. فقط ثبت حوالهٔ جدید را می‌بندد؛
-    // خروج/به‌روزرسانی حواله‌های از قبل ثبت‌شده حتی زیر این آستانه هم مجاز
-    // است (کاربر باید بتواند تعهدات قبلی را تمام کند).
-    private const NEW_ENTRY_TONNAGE_BUFFER_KG = 5000.0;
+
+    private const NEW_ENTRY_TONNAGE_BUFFER_KG = 7000.0;
 
     private CargoRepository $repo;
     private Logger $logger;
@@ -45,13 +40,6 @@ class CargoService {
             $currentTime = jdate("H:i");
             $currentDate = jdate("Y/m/d");
 
-            // ۰. کنترل‌های کوتاژ (فعال بودن، تناژ موقت) — قبلاً فقط سمت کلاینت
-            // (QuotaValidationUseCase) انجام می‌شدند؛ یعنی اپی که این
-            // درخواست‌ها را ارسال می‌کرد کافی بود این بررسی‌ها را دور بزند.
-            // اینجا روی سرور و قبل از هر نوشتنی تکرار می‌شوند تا واقعاً
-            // لازم‌الاجرا باشند. بررسی حد نصاب درصدی/تناژ مجاز جداگانه و فقط
-            // برای ثبت حوالهٔ تازه در بخش ۳ انجام می‌شود (رجوع کنید به
-            // NEW_ENTRY_TONNAGE_BUFFER_KG).
             $quotaControl = $this->repo->findQuotaControlData(
                 $shipName,
                 $params['loadingWarehouse'],
@@ -81,13 +69,6 @@ class CargoService {
             // ۱. بررسی وجود حواله تکراری در ۲۴ ساعت گذشته برای این کشتی
             $existing24hCargo = $this->repo->find24hCargo($shipName, $trackingNumber, $yesterdayStart);
 
-            // (string) روی مقدار خوانده‌شده از دیتابیس ضروری است: ستون
-            // loadingQuotaNumber از نوع INT است (schema.sql) و درایور mysqli آن
-            // را int برمی‌گرداند، در حالی که $loadingQuotaNumber بعد از
-            // sanitizeString در کنترلر همیشه string است. مقایسه‌ی !== بین int و
-            // string همیشه true بود، پس این هشدار برای هر درخواست دومِ همان
-            // شماره حواله در ۲۴ ساعت گذشته — حتی با همان کوتاژ — شلیک می‌شد و
-            // به‌روزرسانی کسری/اضافه هرگز به گام ۳ نمی‌رسید.
             if ($existing24hCargo && (string)$existing24hCargo['loadingQuotaNumber'] !== $loadingQuotaNumber) {
                 if ($params['duplicateConfirmation'] !== "proceed") {
                     $warningParts = [
@@ -136,14 +117,6 @@ class CargoService {
             $shouldInsertNew = !$existingCargo;
 
             if ($existingCargo) {
-                // حواله‌ای که خروج زده «سرویس بسته» است و از این مسیر دیگر
-                // به‌روزرسانی نمی‌شود (اصلاح وزن/تاریخ خروج مسیر مستقل خودش را
-                // دارد: updateCargoInfo → updateCargoFull). پس هر ثبت تازه روی
-                // همان شماره حواله یعنی شماره دوباره استفاده شده و باید همان
-                // تأیید «حواله تکراری» را بگیرد. پیش از این، چنین درخواستی به
-                // پاسخ confirmation_needed می‌رسید که عبور از آن به
-                // confirmation=yes نیاز داشت — مقداری که کلاینت هرگز نمی‌فرستد،
-                // یعنی کاربر در یک دیالوگ بی‌بازگشت گیر می‌کرد.
                 $isClosedService = $existingCargo['status'] === "خروج";
                 $isNewEntryAttempt = $isClosedService || (
                     empty($params['netWeight']) && empty($params['shortageWeight']) && empty($params['excessWeight'])
@@ -175,10 +148,6 @@ class CargoService {
 
             // ۳. درج حواله جدید یا به‌روزرسانی حواله موجود
             if ($shouldInsertNew) {
-                // فقط ثبت حوالهٔ تازه با بافر تناژ کنترل می‌شود؛ خروج/به‌روزرسانی
-                // حواله‌های از قبل ثبت‌شده در شاخهٔ else پایین‌تر است و این
-                // بررسی را نمی‌بیند، پس حتی اگر تناژ مجاز زیر بافر افتاده باشد
-                // کاربر می‌تواند تعهدات قبلی را تمام کند.
                 if ($quotaControl) {
                     $isPercentageRestricted = (bool)$quotaControl['is_enabled'];
                     $percentage = $quotaControl['percentage'] !== null ? (float)$quotaControl['percentage'] : null;
@@ -198,12 +167,6 @@ class CargoService {
                     }
                 }
 
-                // insertCargo وضعیت را ثابت 'ورود' درج می‌کند، پس رسیدن به این
-                // شاخه با وزن خالصِ پر رکوردی ناسازگار می‌ساخت (وضعیت «ورود» با
-                // وزن خالص ثبت‌شده). از مسیر UI رخ نمی‌دهد — وزن خالص فقط از
-                // اسکن بارکد → NetWeightDialog می‌آید و اسکن برای حواله‌ی
-                // خروج‌زده مسدود است — اما همان قید باید سمت سرور هم واقعاً
-                // اعمال شود، نه فقط در UI.
                 if (!empty($params['netWeight'])) {
                     throw new ApiException("برای ثبت حوالهٔ جدید نمی‌توان وزن خالص ثبت کرد؛ ابتدا حواله ثبت و توسط بارشمار تأیید شود، سپس خروج ثبت شود.", 400);
                 }
@@ -230,9 +193,6 @@ class CargoService {
                     ]
                 ];
             } else {
-                // به‌روزرسانی حواله موجود. اینجا فقط حواله‌ی در وضعیت «ورود»
-                // می‌رسد: رکورد «خروج» بالاتر با $isClosedService به مسیر تأیید
-                // ثبت تکراری می‌رود و یا ۴۰۹ می‌گیرد یا $shouldInsertNew می‌شود.
                 $cargoId = (int)$existingCargo['id'];
 
                 if ($existingCargo['status'] === "ورود") {
@@ -265,10 +225,6 @@ class CargoService {
                             );
                         }
                         
-                        // به‌روزرسانی برای وضعیت خروج؛ خروجی false یعنی رکورد
-                        // بین خواندن (findCargoByKeys با FOR UPDATE) و این
-                        // UPDATE توسط یک درخواست دیگر از وضعیت «ورود» خارج شده
-                        // است (مثلاً خروج هم‌زمان از دو دستگاه).
                         $exitApplied = $this->repo->updateCargoExit(
                             $cargoId,
                             $params['netWeight'],
@@ -334,15 +290,7 @@ class CargoService {
         $deleted = $this->repo->deleteCargoById($cargoId);
         if ($deleted && $cargoData['status'] === 'خروج' && !empty($cargoData['netWeight'])) {
             $netWeightValue = (float)$cargoData['netWeight'];
-            // $cargoData از findCargoById (خواندن خام SELECT *) می‌آید، نه از
-            // ورودی کنترلر که از قبل sanitizeString/(string) شده؛ loadingQuotaNumber
-            // ستونی عددی (INT) است و درایور mysqli آن را int برمی‌گرداند، در
-            // حالی‌که findTempTonnage/updateTempTonnage با declare(strict_types=1)
-            // پارامتر $quota را string اعلام کرده‌اند — بدون این cast صریح، هر
-            // حذف حوالهٔ خروج‌زده‌ی دارای تناژ موقت با TypeError (نه Exception)
-            // متوقف می‌شد و چون هیچ catch(Exception) آن را نمی‌گرفت، کلاینت
-            // پاسخ کاملاً خالی می‌گرفت — با اینکه DELETE پیش از این خط با
-            // موفقیت اجرا شده بود.
+
             $quotaNumber = (string)$cargoData['loadingQuotaNumber'];
             $tempData = $this->repo->findTempTonnage(
                 $cargoData['shipName'], $cargoData['loadingWarehouse'], $cargoData['cargoType'],
@@ -366,11 +314,6 @@ class CargoService {
         return ["status" => "success", "message" => "حواله با موفقیت حذف شد", "code" => 200];
     }
 
-    /**
-     * لیست کشتی‌ها (تناژ/تعداد کوتاژ هر کشتی) بعد از هر نوشتنی که CargoInfo یا
-     * InitialInfo را تغییر می‌دهد باید invalidate شود تا کاربر تا ۲۰ ثانیه
-     * (TTL کش getShipsList) داده‌ی قدیمی نبیند.
-     */
     private function invalidateShipsListCache(): void {
         MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
         MicroCache::forget('cargo_active_ships');
@@ -409,15 +352,6 @@ class CargoService {
         return ['exists' => false, 'message' => 'شماره قبض باسکول معتبر است.', 'code' => 200];
     }
 
-    // بررسی تکراری‌بودن قبض باسکول قبلاً فقط از طریق یک فراخوانی مشورتی و
-    // جدای کلاینت (check_scale_receipt.php) انجام می‌شد که چیزی جلوی
-    // فراخوانی مستقیم این مسیر (saveOrUpdateCargoInfo.php) بدون آن بررسی را
-    // نمی‌گرفت. isScaleReceiptDuplicate از قبل در updateCargoInfo استفاده
-    // می‌شد؛ اینجا هم در همان تراکنشی که واقعاً رکورد را می‌نویسد اجرا می‌شود.
-    // محدودهٔ وزن خالص (۱۰۰۰ تا ۴۵۰۰۰) با QuotaValidationUseCase.validateInputData
-    // سمت کلاینت یکی است. سرور قبلاً فقط «مثبت بودن» را چک می‌کرد، یعنی
-    // درخواستی که مستقیم این endpoint را صدا می‌زد (بدون رد شدن از کلاینت)
-    // می‌توانست این محدوده را دور بزند.
     private const MIN_NET_WEIGHT = 1000.0;
     private const MAX_NET_WEIGHT = 45000.0;
 
@@ -432,10 +366,7 @@ class CargoService {
         if (empty($scaleReceiptNumber)) {
             throw new ApiException("شماره قبض باسکول نمی‌تواند خالی باشد.", 400);
         }
-        // فرمت واقعی قبض باسکول (۸ رقم، پیشوند ۴۴ تا ۵۵) همان چیزی است که
-        // CargoService::checkScaleReceipt از قبل روی آن تکیه می‌کند؛ اینجا هم
-        // همان قاعده اعمال می‌شود تا هر دو مسیر یک تعریف از «قبض معتبر» داشته
-        // باشند.
+
         if (!ctype_digit($scaleReceiptNumber) || strlen($scaleReceiptNumber) !== 8) {
             throw new ApiException("شماره قبض باسکول باید دقیقاً ۸ رقم باشد.", 400);
         }

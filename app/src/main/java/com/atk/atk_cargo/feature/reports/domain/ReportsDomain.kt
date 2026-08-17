@@ -17,10 +17,10 @@ val persianCollator: Collator = Collator.getInstance(Locale("fa", "IR")).apply {
 
 object QuotaWarningThresholds {
     /** کوتاژ بدون محدودیت درصد (percentage == 0) وقتی مانده‌اش زیر این مقدار برود هشدار می‌گیرد. */
-    const val ZERO_PERCENT_REMAINING_KG = 5000f
+    const val ZERO_PERCENT_REMAINING_KG = 7000f
 
     /** فاصله‌ی مجاز مانده تا سقف محدودیت درصد، پیش از نمایش هشدار. */
-    const val PERCENTAGE_CAP_PROXIMITY_KG = 9000f
+    const val PERCENTAGE_CAP_PROXIMITY_KG = 12000f
 }
 
 fun sortShips(ships: List<Ship>, sortingMode: ShipSortingMode): List<Ship> {
