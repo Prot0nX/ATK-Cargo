@@ -55,6 +55,7 @@ import com.atk.atk_cargo.core.startup.LocalNotificationPermissionRequester
 import com.atk.atk_cargo.core.startup.LocalStartupViewModel
 import com.atk.atk_cargo.feature.admin.presentation.UserManagementDialog
 import com.atk.atk_cargo.feature.auth.presentation.LoginScreen
+import com.atk.atk_cargo.feature.auth.viewmodel.AuthViewModel
 import com.atk.atk_cargo.feature.cargo_counter.navigation.CargoCounterRoute
 import com.atk.atk_cargo.feature.cargo_entry.navigation.InitialInfoRoute
 import com.atk.atk_cargo.feature.cargo_entry.navigation.SelectInfoRoute
@@ -132,7 +133,15 @@ fun MainScreen() {
                             ) {
                                 if (!isSessionValid) {
                                     val requestNotificationPermission = LocalNotificationPermissionRequester.current
+                                    val authViewModel: AuthViewModel = koinViewModel()
+                                    // پس از خروج کاربر، AuthViewModel همچنان در حالت Success
+                                    // کش شده است. بدون ریست، LoginScreen بلافاصله onLoginSuccess
+                                    // را صدا زده و حلقه بی‌نهایت ایجاد می‌شود (صفحه سفید).
+                                    LaunchedEffect(Unit) {
+                                        authViewModel.resetState()
+                                    }
                                     LoginScreen(
+                                        viewModel = authViewModel,
                                         onLoginSuccess = {
                                             startupViewModel.updateSessionValidity(true)
                                             requestNotificationPermission()

@@ -117,9 +117,11 @@ class AuthViewModel(
     }
 
     /**
-     * بازنشانی وضعیت ورود به Idle (برای مدیریت دستی در صورت نیاز)
+     * بازنشانی کامل وضعیت ورود و فرم — فراخوانی هنگام خروج کاربر
+     * تا داده‌های حساب قبلی در فیلدها باقی نمانند.
      */
     fun resetState() {
         _loginState.value = LoginUiState.Idle
+        _formState.value = LoginFormState()
     }
 }
