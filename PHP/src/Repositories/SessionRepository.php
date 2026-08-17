@@ -14,6 +14,13 @@ class SessionRepository {
     // (از دستگاه گم‌شده/بکاپ/لاگ) تا ابد معتبر می‌ماند (S-05).
     public const SESSION_TIMEOUT_SECONDS = 86400; // ۲۴ ساعت
 
+    // I-05: access token (ستون فعلی session_token) حالا کوتاه‌مدت است و فقط
+    // برای درخواست‌های واقعی API استفاده می‌شود؛ refresh token بلندمدت‌تر و
+    // فقط برای گرفتن access token جدید از endpoint اختصاصی refresh فرستاده
+    // می‌شود. هر دو با هر رفرش موفق rotate می‌شوند (sliding).
+    public const ACCESS_TOKEN_TTL_SECONDS = 1800;   // ۳۰ دقیقه
+    public const REFRESH_TOKEN_TTL_SECONDS = 86400; // ۲۴ ساعت
+
     private PDO $db;
 
     public function __construct() {
@@ -49,6 +56,31 @@ class SessionRepository {
             WHERE username = :username AND device_id = :device_id
               AND session_token = :token AND is_active = 1
               AND last_activity > (NOW() - INTERVAL " . self::SESSION_TIMEOUT_SECONDS . " SECOND)
+              AND access_token_expires_at > NOW()
+            LIMIT 1
+        ");
+        $stmt->execute([
+            ':username' => $username,
+            ':device_id' => $deviceId,
+            ':token' => $token,
+        ]);
+        return (bool)$stmt->fetch();
+    }
+
+    /**
+     * برای تشخیص «فقط access token منقضی شده» (باید silent refresh شود) در
+     * مقابل «کل نشست نامعتبر است» (باید login کامل انجام شود) — دقیقاً همان
+     * شرط‌های isValidToken ولی بدون بررسی access_token_expires_at. فقط روی
+     * مسیر شکست isValidToken/validateTokenAndGetUserType صدا زده می‌شود، نه
+     * در هر درخواست، پس هزینه‌ی یک کوئری اضافه در حالت موفق ندارد (I-05).
+     */
+    public function isAccessTokenExpiredButSessionActive(string $username, string $deviceId, string $token): bool {
+        $stmt = $this->db->prepare("
+            SELECT id FROM user_sessions
+            WHERE username = :username AND device_id = :device_id
+              AND session_token = :token AND is_active = 1
+              AND last_activity > (NOW() - INTERVAL " . self::SESSION_TIMEOUT_SECONDS . " SECOND)
+              AND access_token_expires_at <= NOW()
             LIMIT 1
         ");
         $stmt->execute([
@@ -78,6 +110,7 @@ class SessionRepository {
             WHERE username = :username AND device_id = :device_id
               AND session_token = :token AND is_active = 1
               AND last_activity > (NOW() - INTERVAL " . self::SESSION_TIMEOUT_SECONDS . " SECOND)
+              AND access_token_expires_at > NOW()
             LIMIT 1
         ");
         $stmt->execute([
@@ -131,8 +164,8 @@ class SessionRepository {
      */
     public function getActiveSessionByDevice(string $username, string $deviceId): ?array {
         $stmt = $this->db->prepare("
-            SELECT id, session_token, device_id 
-            FROM user_sessions 
+            SELECT id, session_token, device_id, userType, refresh_token, refresh_token_expires_at
+            FROM user_sessions
             WHERE username = :username AND device_id = :device_id AND is_active = 1
             LIMIT 1
         ");
@@ -190,12 +223,16 @@ class SessionRepository {
      * ایجاد جلسه جدید
      */
     public function createSession(array $data): int {
+        // ستون‌های access_token_expires_at/refresh_token/refresh_token_expires_at
+        // اختیاری‌اند (NULL اگر ارسال نشوند) — createWebSession (پنل وب، خارج
+        // از محدوده‌ی I-05) این کلیدها را نمی‌فرستد و رفتار قبلی‌اش را حفظ
+        // می‌کند؛ فقط createMobileSession این مقادیر را پر می‌کند.
         $stmt = $this->db->prepare("
-            INSERT INTO user_sessions 
-            (username, device_id, device_model, android_version, app_version, login_time, last_activity, is_active, ip_address, userType, session_token) 
-            VALUES (:username, :device_id, :device_model, :android_version, :app_version, NOW(), NOW(), 1, :ip_address, :userType, :session_token)
+            INSERT INTO user_sessions
+            (username, device_id, device_model, android_version, app_version, login_time, last_activity, is_active, ip_address, userType, session_token, access_token_expires_at, refresh_token, refresh_token_expires_at)
+            VALUES (:username, :device_id, :device_model, :android_version, :app_version, NOW(), NOW(), 1, :ip_address, :userType, :session_token, :access_token_expires_at, :refresh_token, :refresh_token_expires_at)
         ");
-        
+
         $stmt->execute([
             ':username' => $data['username'],
             ':device_id' => $data['device_id'],
@@ -204,10 +241,44 @@ class SessionRepository {
             ':app_version' => $data['app_version'] ?? null,
             ':ip_address' => $data['ip_address'],
             ':userType' => $data['userType'],
-            ':session_token' => $data['session_token']
+            ':session_token' => $data['session_token'],
+            ':access_token_expires_at' => $data['access_token_expires_at'] ?? null,
+            ':refresh_token' => $data['refresh_token'] ?? null,
+            ':refresh_token_expires_at' => $data['refresh_token_expires_at'] ?? null,
         ]);
-        
+
         return (int)$this->db->lastInsertId();
+    }
+
+    /**
+     * چرخش (rotation) هر دو توکن روی یک نشست موجود — برای login موفق مجدد از
+     * همان دستگاه (تصمیم: هر login هر دو توکن را کاملاً تازه صادر می‌کند) و
+     * برای POST /auth/refresh (I-05).
+     */
+    public function rotateTokens(
+        int $sessionId,
+        string $accessToken,
+        string $accessTokenExpiresAt,
+        string $refreshToken,
+        string $refreshTokenExpiresAt
+    ): bool {
+        $stmt = $this->db->prepare("
+            UPDATE user_sessions
+            SET session_token = :access_token,
+                access_token_expires_at = :access_token_expires_at,
+                refresh_token = :refresh_token,
+                refresh_token_expires_at = :refresh_token_expires_at,
+                last_activity = NOW(),
+                is_active = 1
+            WHERE id = :id
+        ");
+        return $stmt->execute([
+            ':access_token' => $accessToken,
+            ':access_token_expires_at' => $accessTokenExpiresAt,
+            ':refresh_token' => $refreshToken,
+            ':refresh_token_expires_at' => $refreshTokenExpiresAt,
+            ':id' => $sessionId,
+        ]);
     }
 
     /**

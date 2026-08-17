@@ -34,8 +34,48 @@ data class LoginResponse(
     // را واقعاً اعتبارسنجی نمی‌کرد).
     @SerializedName("session_token")
     val sessionToken: String? = null,
+    // I-05: فیلدهای جدید — نصب‌های فعلی اپ (قبل از این تغییر) این فیلدها را
+    // نادیده می‌گیرند چون Gson فیلد ناشناخته را ساکت رد می‌کند؛ کاملاً افزایشی است.
+    @SerializedName("access_token_expires_in")
+    val accessTokenExpiresIn: Int? = null,
+    @SerializedName("refresh_token")
+    val refreshToken: String? = null,
+    @SerializedName("refresh_token_expires_in")
+    val refreshTokenExpiresIn: Int? = null,
     @SerializedName("permissions")
     val permissions: Map<String, Boolean>? = null
+)
+
+/**
+ * پاسخ POST /api/v2/index.php?route=auth/refresh (I-05).
+ */
+data class RefreshTokenResponse(
+    @SerializedName("success")
+    val success: Boolean,
+    @SerializedName("session_token")
+    val sessionToken: String? = null,
+    @SerializedName("access_token_expires_in")
+    val accessTokenExpiresIn: Int? = null,
+    @SerializedName("refresh_token")
+    val refreshToken: String? = null,
+    @SerializedName("refresh_token_expires_in")
+    val refreshTokenExpiresIn: Int? = null,
+    @SerializedName("userType")
+    val userType: String? = null,
+    @SerializedName("message")
+    val message: String? = null
+)
+
+/**
+ * فقط برای خواندن فیلد code از بدنه‌ی پاسخ‌های خطای ۴۰۱ (I-05) — تشخیص
+ * «access_token_expired» (باید silent refresh شود) از سایر خطاهای ۴۰۱.
+ * قصداً بقیه‌ی فیلدهای بدنه (error/message با شکل‌های متفاوت بین کنترلرها؛
+ * نگاه کنید به AuthenticatesRequests::sendAuthErrorResponse سمت سرور) در این
+ * DTO نیستند چون فقط code لازم است، نه کل بدنه.
+ */
+data class AuthErrorBody(
+    @SerializedName("code")
+    val code: String? = null
 )
 
 data class LogoutRequest(

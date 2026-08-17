@@ -48,8 +48,17 @@ RewriteRule \.(jpg|jpeg|png|gif|bmp|webp)$ - [F,NC]
 #############################################
 # 🚦 مسیریابی API نسخه‌ی ۲ (Router صریح — جایگزین تدریجی protected_proxy.php)
 #############################################
-RewriteCond %{REQUEST_URI} ^/api/v2/
-RewriteRule ^ api/v2/index.php [L]
+# روی هاست تولید فعلی (atk-nk.ir) با تست مستقیم تأیید شد که mod_rewrite از
+# طریق .htaccess اصلاً فعال نیست (حتی قانون قدیمی hotlink-protection بالاتر
+# در همین فایل هم هیچ‌وقت واقعاً اجرا نشده — احتمالاً AllowOverride این پوشه
+# در سطح Apache شامل FileInfo نیست). یعنی این rewrite روی این هاست خاص
+# بی‌اثر است و راه‌حل واقعی routing از طریق query string در api/v2/index.php
+# پیاده شده (?route=auth/login، دقیقاً هم‌الگوی protected_proxy.php?target=).
+# این قانون فقط برای هاست‌های دیگری که AllowOverride FileInfo دارند و
+# می‌خواهند URL تمیز داشته باشند نگه داشته شده — بی‌ضرر و صرفاً fallback است.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^api/v2/(.*)$ api/v2/index.php [L,QSA]
 
 #############################################
 # 🔒 محافظت از پوشه‌های خاص
@@ -60,11 +69,6 @@ RewriteRule ^ api/v2/index.php [L]
     Deny from all
 </Directory>
 
-# قفل کردن پوشه‌های پشتیبان یا لاگ‌ها. «log» (مفرد) هم اضافه شد: پوشه‌ی واقعی
-# که protected_proxy.php و PasswordGateService در آن می‌نویسند همین نام مفرد
-# را دارد و قبلاً فقط با الگوی جمع «logs» پوشش داده نمی‌شد — یعنی
-# blocked_ips.txt، rate_limit_*.txt و pwdgate_*.json (که پسوندشان .log نیست،
-# پس FilesMatch بالا هم آن‌ها را نمی‌گرفت) مستقیماً قابل خواندن بودند (S-16).
 <DirectoryMatch "(^|/)(log|logs|backups|private|secret)/">
     Order allow,deny
     Deny from all
@@ -92,12 +96,3 @@ RewriteRule ^ api/v2/index.php [L]
 <IfModule mod_deflate.c>
   AddOutputFilterByType DEFLATE text/plain text/html text/xml text/css application/javascript application/json
 </IfModule>
-
-#############################################
-# (حذف شد — S-21) بلوک قبلی «جلوگیری از مرورگرهای بد» با ترکیب
-# BrowserMatchNoCase + Order/Allow/Deny نوشته شده بود که در Apache 2.4 بدون
-# mod_access_compat منسوخ و بی‌اثر است (به‌خصوص وقتی هیچ‌جای دیگر این فایل هم
-# mod_access_compat را فرض نکرده). حتی اگر فعال هم بود، فیلتر کردن User-Agent
-# امنیت واقعی اضافه نمی‌کرد — تغییر UA یک فلگ ساده در curl/wget است — و فقط
-# دیباگ دستی با curl را برای خودمان سخت می‌کرد.
-#############################################

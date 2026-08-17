@@ -400,6 +400,16 @@ return [
         'handler' => function () { (new AuthController())->login(); },
     ],
     [
+        // I-05: عمداً فقط روی v2 (نه v1) — این endpoint کاملاً جدید است، هیچ
+        // نصب فعلی اپ آن را صدا نمی‌زند، پس نیازی به اضافه‌شدن به whitelist
+        // پروکسی v1 نیست. auth=>false چون دقیقاً زمانی صدا زده می‌شود که
+        // access token منقضی شده — نمی‌توان همان توکن منقضی را برای عبور از
+        // گیت auth الزامی کرد؛ اعتبارسنجی واقعی (تطبیق دقیق refresh token)
+        // داخل AuthController::refresh/SessionService::refreshTokens انجام می‌شود.
+        'method' => 'POST', 'path' => 'auth/refresh', 'auth' => false, 'permission' => null,
+        'handler' => function () { (new AuthController())->refresh(); },
+    ],
+    [
         'method' => 'POST', 'path' => 'auth/session', 'auth' => false, 'permission' => null,
         'handler' => function () { (new AuthController())->checkSession(); },
     ],

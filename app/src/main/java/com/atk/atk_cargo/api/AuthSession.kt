@@ -17,9 +17,15 @@ object AuthSession {
     @Volatile
     var sessionToken: String = ""
 
+    // I-05: refresh token — هرگز در هدر درخواست‌های معمولی فرستاده نمی‌شود،
+    // فقط توسط TokenAuthenticator برای POST /auth/refresh خوانده می‌شود.
+    @Volatile
+    var refreshToken: String = ""
+
     fun clear() {
         username = ""
         deviceId = ""
         sessionToken = ""
+        refreshToken = ""
     }
 }

@@ -134,12 +134,24 @@ object RetrofitClient {
     // (۵ اتصال) باعث می‌شود اتصالات idle بین pollها دوباره استفاده شوند نه بسته/باز.
     private val connectionPool = ConnectionPool(10, 5, TimeUnit.MINUTES)
 
+    // I-05: تمدید خودکار access token با refresh token روی ۴۰۱ با
+    // code=access_token_expired. appContext!! چون همین invariant از قبل روی
+    // appContext در این فایل وجود دارد (باید قبل از اولین دسترسی به apiService
+    // مقداردهی شود).
+    private val tokenAuthenticator: TokenAuthenticator by lazy {
+        TokenAuthenticator(
+            baseUrl = BASE_URL,
+            userPreferencesManager = UserPreferencesManager(appContext!!)
+        )
+    }
+
     // Configure OkHttpClient — lazy تا appContext قبل از ساخته‌شدن این کلاینت
     // (توسط RetrofitClient.init در AtkCargoApplication.onCreate) فرصت مقداردهی داشته باشد
     private val okHttpClient: OkHttpClient by lazy {
         val builder = OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             .addInterceptor(headersInterceptor)
+            .authenticator(tokenAuthenticator)
             .connectionPool(connectionPool)
             .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)

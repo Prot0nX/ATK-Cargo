@@ -46,10 +46,14 @@ class AnalyticsController {
      * مطابق همان قرارداد قبلی این دو متد (نه قرارداد boolean که
      * CargoController/UtilityController استفاده می‌کنند).
      */
-    protected function sendAuthErrorResponse(string $message, int $httpCode): void {
+    protected function sendAuthErrorResponse(string $message, int $httpCode, ?string $code = null): void {
         header('Content-Type: application/json; charset=UTF-8');
         http_response_code($httpCode);
-        echo json_encode(['error' => $message], JSON_UNESCAPED_UNICODE);
+        $body = ['error' => $message];
+        if ($code !== null) {
+            $body['code'] = $code;
+        }
+        echo json_encode($body, JSON_UNESCAPED_UNICODE);
         exit;
     }
 

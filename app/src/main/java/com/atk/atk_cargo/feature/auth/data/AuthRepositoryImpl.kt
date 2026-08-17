@@ -97,6 +97,12 @@ class AuthRepositoryImpl(
                     body.sessionToken?.let { token ->
                         userPreferencesManager.saveSessionToken(token)
                     }
+                    // I-05: نصب‌های اپ قبل از این تغییر این فیلد را در پاسخ
+                    // نمی‌بینند (سرور قدیمی‌تر) — refreshToken آن‌وقت null است،
+                    // پس چیزی ذخیره نمی‌شود و رفتار قبلی (بدون refresh) حفظ می‌شود.
+                    body.refreshToken?.let { refreshToken ->
+                        userPreferencesManager.saveRefreshToken(refreshToken)
+                    }
                     userPreferencesManager.saveUserCredentials(
                         username = username,
                         userType = body.userType ?: "",
