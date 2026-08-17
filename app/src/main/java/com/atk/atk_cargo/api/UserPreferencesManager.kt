@@ -59,6 +59,9 @@ class UserPreferencesManager(
 
     val sessionToken: Flow<String> = preference(SESSION_TOKEN_KEY, "").map { cryptoManager.decrypt(it) }
 
+    // I-05: refresh token — فقط توسط TokenAuthenticator خوانده می‌شود.
+    val refreshToken: Flow<String> = preference(REFRESH_TOKEN_KEY, "").map { cryptoManager.decrypt(it) }
+
     val hardwareScore: Flow<Int> = preference(HARDWARE_SCORE_KEY, -1)
 
     val loadingNotificationsEnabled: Flow<Boolean> = preference(LOADING_NOTIFICATIONS_ENABLED_KEY, true)
@@ -108,6 +111,26 @@ class UserPreferencesManager(
             preferences[SESSION_TOKEN_KEY] = cryptoManager.encrypt(sessionToken)
         }
         AuthSession.sessionToken = sessionToken
+    }
+
+    /**
+     * ذخیره‌ی جفت توکن تازه بعد از یک POST /auth/refresh موفق (I-05). جدا از
+     * saveSessionToken چون همیشه هر دو مقدار با هم rotate می‌شوند، نه جداگانه.
+     */
+    suspend fun saveRefreshedTokens(accessToken: String, refreshToken: String) {
+        dataStore.edit { preferences ->
+            preferences[SESSION_TOKEN_KEY] = cryptoManager.encrypt(accessToken)
+            preferences[REFRESH_TOKEN_KEY] = cryptoManager.encrypt(refreshToken)
+        }
+        AuthSession.sessionToken = accessToken
+        AuthSession.refreshToken = refreshToken
+    }
+
+    suspend fun saveRefreshToken(refreshToken: String) {
+        dataStore.edit { preferences ->
+            preferences[REFRESH_TOKEN_KEY] = cryptoManager.encrypt(refreshToken)
+        }
+        AuthSession.refreshToken = refreshToken
     }
 
     suspend fun savePermissions(permissions: Map<String, Boolean>) {
@@ -172,6 +195,7 @@ class UserPreferencesManager(
             preferences.remove(USERNAME_KEY)
             preferences.remove(USER_TYPE_KEY)
             preferences.remove(SESSION_TOKEN_KEY)
+            preferences.remove(REFRESH_TOKEN_KEY)
             preferences.remove(PERMISSIONS_KEY)
             preferences[IS_LOGGED_IN_KEY] = false
         }
@@ -209,6 +233,7 @@ class UserPreferencesManager(
         private val USER_TYPE_KEY = stringPreferencesKey("user_type")
         private val DEVICE_ID_KEY = stringPreferencesKey("device_id")
         private val SESSION_TOKEN_KEY = stringPreferencesKey("session_token")
+        private val REFRESH_TOKEN_KEY = stringPreferencesKey("refresh_token")
         private val PERMISSIONS_KEY = stringPreferencesKey("user_permissions")
         private val HARDWARE_SCORE_KEY = intPreferencesKey("hardware_score")
         private val IS_LOGGED_IN_KEY = booleanPreferencesKey("is_logged_in")

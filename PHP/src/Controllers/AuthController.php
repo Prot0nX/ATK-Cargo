@@ -132,13 +132,69 @@ class AuthController {
             ], 409);
         }
 
-        // ورود موفق
+        // ورود موفق. session_token همچنان برای سازگاری با نصب‌های فعلی اپ
+        // فرستاده می‌شود (همان access token کوتاه‌مدت جدید است)؛ فیلدهای جدید
+        // (I-05) برای نسخه‌ای از اپ که هنوز منتشر نشده اضافه شده‌اند.
         Response::json([
             'success' => true,
             'message' => 'ورود موفقیت‌آمیز بود',
             'userType' => $user['userType'],
             'session_token' => $sessionResult['session_token'],
+            'access_token_expires_in' => $sessionResult['access_token_expires_in'],
+            'refresh_token' => $sessionResult['refresh_token'],
+            'refresh_token_expires_in' => $sessionResult['refresh_token_expires_in'],
             'permissions' => $userPermissions
+        ]);
+    }
+
+    /**
+     * تمدید access token با استفاده از refresh token — فقط روی Router v2
+     * (`/api/v2/auth/refresh`) در دسترس است، نه protected_proxy.php (I-05).
+     */
+    public function refresh(): void {
+        if (!$this->request->isPost()) {
+            Response::error('روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید.', 405);
+        }
+
+        $username = $this->request->get('username');
+        $deviceId = $this->request->get('deviceId');
+        $refreshToken = $this->request->get('refreshToken');
+
+        if (!$username || !$deviceId || !$refreshToken) {
+            Response::error('username، deviceId و refreshToken الزامی هستند.', 400);
+        }
+
+        $username = InputValidator::sanitize((string)$username);
+        $deviceId = InputValidator::sanitize((string)$deviceId);
+        $refreshToken = (string)$refreshToken; // مقایسه‌ی دقیق با hash_equals؛ نباید توسط sanitize تغییر کند
+        $ipAddress = $this->request->getClientIp();
+
+        // Router v2 برخلاف protected_proxy.php (v1) هیچ rate-limit عمومی‌ای
+        // ندارد؛ چون این endpoint بدون گیت auth است (نمی‌تواند بدون auth باشد
+        // چون دقیقاً برای توکن منقضی صدا زده می‌شود)، طبق تصمیم طراحی همان
+        // الگوی قفل ۵ تلاش/۱۵ دقیقه‌ی LoginAttemptLimiter (username+IP) اینجا
+        // هم استفاده می‌شود — نه برای برute-force عملی (حدس یک توکن ۲۵۶ بیتی
+        // غیرممکن است)، بلکه به‌عنوان لایه‌ی دوم در برابر اسپم/سوءاستفاده.
+        if ($this->loginAttemptLimiter->isLocked($username, $ipAddress)) {
+            Response::error('تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر تلاش کنید.', 429);
+        }
+
+        $result = $this->sessionService->refreshTokens($username, $deviceId, $refreshToken);
+
+        if (!$result['success']) {
+            $this->loginAttemptLimiter->registerFailedAttempt($username, $ipAddress);
+            Response::error($result['message'], $result['http_code']);
+        }
+
+        $this->loginAttemptLimiter->resetAttempts($username, $ipAddress);
+
+        Response::json([
+            'success' => true,
+            'session_token' => $result['session_token'],
+            'access_token_expires_in' => $result['access_token_expires_in'],
+            'refresh_token' => $result['refresh_token'],
+            'refresh_token_expires_in' => $result['refresh_token_expires_in'],
+            'userType' => $result['userType'],
         ]);
     }
 

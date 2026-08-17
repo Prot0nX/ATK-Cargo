@@ -40,7 +40,14 @@ trait AuthenticatesRequests {
         $sessionService = new SessionService();
         $userType = $sessionService->validateAndGetUserType($username, $deviceId, $token);
         if ($userType === null) {
-            $this->sendAuthErrorResponse('نشست معتبر نیست. لطفاً دوباره وارد شوید.', 401);
+            // I-05: تمایز بین «فقط access token منقضی شده» (کلاینت باید بی‌صدا
+            // POST /auth/refresh بزند) و «کل نشست نامعتبر است» (کلاینت باید
+            // کاربر را به صفحه‌ی login بفرستد) — بدون این تمایز، کلاینت هیچ
+            // راهی برای فهمیدن اینکه آیا ارزش تلاش برای refresh را دارد یا نه، ندارد.
+            $code = $sessionService->isAccessTokenExpiredButSessionActive($username, $deviceId, $token)
+                ? 'access_token_expired'
+                : 'session_invalid';
+            $this->sendAuthErrorResponse('نشست معتبر نیست. لطفاً دوباره وارد شوید.', 401, $code);
         }
 
         $this->authenticatedUsername = $username;
@@ -57,10 +64,14 @@ trait AuthenticatesRequests {
      * می‌کرد؛ به همین دلیل قابل override است — پیش‌فرض همان شکلی‌ست که
      * CargoController/UtilityController از قبل داشتند.
      */
-    protected function sendAuthErrorResponse(string $message, int $httpCode): void {
+    protected function sendAuthErrorResponse(string $message, int $httpCode, ?string $code = null): void {
         header('Content-Type: application/json; charset=UTF-8');
         http_response_code($httpCode);
-        echo json_encode(['error' => true, 'message' => $message], JSON_UNESCAPED_UNICODE);
+        $body = ['error' => true, 'message' => $message];
+        if ($code !== null) {
+            $body['code'] = $code;
+        }
+        echo json_encode($body, JSON_UNESCAPED_UNICODE);
         exit;
     }
 

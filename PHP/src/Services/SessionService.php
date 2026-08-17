@@ -32,16 +32,30 @@ class SessionService {
     ): array {
         // بررسی وجود جلسه فعال در هر دستگاهی
         $existingSession = $this->sessionRepository->getActiveSession($username);
-        
+
         if ($existingSession) {
             if ($existingSession['device_id'] === $deviceId) {
-                // همان دستگاه - به‌روزرسانی زمان فعالیت
-                $this->sessionRepository->updateLastActivity($username, $deviceId);
+                // همان دستگاه - طبق تصمیم I-05، هر login موفق (حتی از همان
+                // دستگاه) هر دو توکن را کاملاً تازه صادر می‌کند، نه reuse
+                // توکن قبلی (رفتار قبلی) — login با رمز واقعی، قوی‌ترین نوع
+                // احراز هویت است، پس نباید ضعیف‌تر از یک refresh معمولی رفتار کند.
+                $tokens = $this->generateTokenPair();
+                $this->sessionRepository->rotateTokens(
+                    (int)$existingSession['id'],
+                    $tokens['accessToken'],
+                    $tokens['accessTokenExpiresAt'],
+                    $tokens['refreshToken'],
+                    $tokens['refreshTokenExpiresAt']
+                );
+                $this->logActivity($username, 'LOGIN', $deviceId, $ipAddress, $userType);
                 return [
                     'success' => true,
                     'message' => 'جلسه موجود به‌روزرسانی شد',
                     'session_id' => $existingSession['id'],
-                    'session_token' => $existingSession['session_token']
+                    'session_token' => $tokens['accessToken'],
+                    'access_token_expires_in' => SessionRepository::ACCESS_TOKEN_TTL_SECONDS,
+                    'refresh_token' => $tokens['refreshToken'],
+                    'refresh_token_expires_in' => SessionRepository::REFRESH_TOKEN_TTL_SECONDS,
                 ];
             } else {
                 // دستگاه دیگر - اجازه ورود همزمان داده نمی‌شود
@@ -60,8 +74,7 @@ class SessionService {
             $userType = $user['userType'];
         }
 
-        // تولید توکن تصادفی امن
-        $sessionToken = bin2hex(random_bytes(32));
+        $tokens = $this->generateTokenPair();
 
         $sessionId = $this->sessionRepository->createSession([
             'username' => $username,
@@ -71,7 +84,10 @@ class SessionService {
             'app_version' => $appVersion,
             'ip_address' => $ipAddress,
             'userType' => $userType,
-            'session_token' => $sessionToken
+            'session_token' => $tokens['accessToken'],
+            'access_token_expires_at' => $tokens['accessTokenExpiresAt'],
+            'refresh_token' => $tokens['refreshToken'],
+            'refresh_token_expires_at' => $tokens['refreshTokenExpiresAt'],
         ]);
 
         $this->logActivity($username, 'LOGIN', $deviceId, $ipAddress, $userType);
@@ -80,7 +96,74 @@ class SessionService {
             'success' => true,
             'message' => 'جلسه با موفقیت ایجاد شد',
             'session_id' => $sessionId,
-            'session_token' => $sessionToken
+            'session_token' => $tokens['accessToken'],
+            'access_token_expires_in' => SessionRepository::ACCESS_TOKEN_TTL_SECONDS,
+            'refresh_token' => $tokens['refreshToken'],
+            'refresh_token_expires_in' => SessionRepository::REFRESH_TOKEN_TTL_SECONDS,
+        ];
+    }
+
+    /**
+     * تولید یک جفت توکن تازه (access + refresh) — برای login موفق (جدید یا
+     * همان دستگاه) و POST /auth/refresh مشترک است (I-05).
+     */
+    private function generateTokenPair(): array {
+        $now = time();
+        return [
+            'accessToken' => bin2hex(random_bytes(32)),
+            'accessTokenExpiresAt' => date('Y-m-d H:i:s', $now + SessionRepository::ACCESS_TOKEN_TTL_SECONDS),
+            'refreshToken' => bin2hex(random_bytes(32)),
+            'refreshTokenExpiresAt' => date('Y-m-d H:i:s', $now + SessionRepository::REFRESH_TOKEN_TTL_SECONDS),
+        ];
+    }
+
+    /**
+     * تمدید access token با استفاده از refresh token (POST /auth/refresh،
+     * I-05). هر دو توکن rotate می‌شوند (sliding refresh expiry). اگر توکن
+     * داده‌شده دقیقاً با آخرین refresh token صادرشده برای این کاربر/دستگاه
+     * مطابقت نداشته باشد (نه لزوماً نامعتبر بودن ساده، بلکه احتمال استفاده‌ی
+     * دوباره از یک توکن قبلاً rotate‌شده — نشانه‌ی سرقت)، طبق تصمیم محصولی،
+     * تمام نشست‌های فعال این کاربر (نه فقط همین دستگاه) باطل می‌شوند.
+     */
+    public function refreshTokens(string $username, string $deviceId, string $refreshToken): array {
+        if ($username === '' || $deviceId === '' || $refreshToken === '') {
+            return ['success' => false, 'message' => 'پارامترهای ورودی نامعتبر است', 'http_code' => 400];
+        }
+
+        $session = $this->sessionRepository->getActiveSessionByDevice($username, $deviceId);
+        if ($session === null) {
+            return ['success' => false, 'message' => 'نشست یافت نشد. لطفاً دوباره وارد شوید.', 'http_code' => 401];
+        }
+
+        $storedRefreshToken = (string)($session['refresh_token'] ?? '');
+        if ($storedRefreshToken === '' || !hash_equals($storedRefreshToken, $refreshToken)) {
+            $this->sessionRepository->deactivateAllSessions($username);
+            $this->logActivity($username, 'REFRESH_TOKEN_REUSE_DETECTED', $deviceId);
+            return ['success' => false, 'message' => 'نشست به دلایل امنیتی باطل شد. لطفاً دوباره وارد شوید.', 'http_code' => 401];
+        }
+
+        $refreshExpiresAtRaw = $session['refresh_token_expires_at'] ?? null;
+        if ($refreshExpiresAtRaw === null || strtotime((string)$refreshExpiresAtRaw) < time()) {
+            return ['success' => false, 'message' => 'نشست منقضی شده است. لطفاً دوباره وارد شوید.', 'http_code' => 401];
+        }
+
+        $tokens = $this->generateTokenPair();
+        $this->sessionRepository->rotateTokens(
+            (int)$session['id'],
+            $tokens['accessToken'],
+            $tokens['accessTokenExpiresAt'],
+            $tokens['refreshToken'],
+            $tokens['refreshTokenExpiresAt']
+        );
+
+        return [
+            'success' => true,
+            'session_token' => $tokens['accessToken'],
+            'access_token_expires_in' => SessionRepository::ACCESS_TOKEN_TTL_SECONDS,
+            'refresh_token' => $tokens['refreshToken'],
+            'refresh_token_expires_in' => SessionRepository::REFRESH_TOKEN_TTL_SECONDS,
+            'userType' => $session['userType'] ?? null,
+            'http_code' => 200,
         ];
     }
 
@@ -157,6 +240,18 @@ class SessionService {
             $this->sessionRepository->updateLastActivity($username, $deviceId);
         }
         return $valid;
+    }
+
+    /**
+     * فقط روی مسیر شکست validateAndGetUserType صدا زده می‌شود، برای تمایز
+     * «access token منقضی» از «نشست کاملاً نامعتبر» (I-05) — نگاه کنید به
+     * SessionRepository::isAccessTokenExpiredButSessionActive.
+     */
+    public function isAccessTokenExpiredButSessionActive(string $username, string $deviceId, string $token): bool {
+        if ($username === '' || $deviceId === '' || $token === '') {
+            return false;
+        }
+        return $this->sessionRepository->isAccessTokenExpiredButSessionActive($username, $deviceId, $token);
     }
 
     /**
