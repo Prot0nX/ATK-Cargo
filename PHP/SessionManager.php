@@ -64,6 +64,10 @@ class SessionManager {
         return $this->repo->getSessionStats();
     }
 
+    public function cleanupExpiredSessions() {
+        return $this->repo->cleanupExpiredSessions();
+    }
+
     public function logActivity($username, $action, $deviceId = null, $ipAddress = null, $userType = null) {
         $this->service->logActivity(
             (string)$username,

@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  php:
+    name: PHP lint + PHPStan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: PHP
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Composer install
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      # php -l روی هر فایل .php پروژه (بدون vendor) — قبل از این CI، سه باگ
+      # واقعی (Request::post() ناموجود، cleanupExpiredSessions ناموجود،
+      # generateDailyStats.php روی کلاس حذف‌شده) فقط با بررسی دستی پیدا شدند؛
+      # این گیت آن‌ها را در همان کامیت مسدود می‌کند.
+      - name: PHP syntax check (php -l)
+        run: |
+          find . -name '*.php' -not -path './vendor/*' -print0 \
+            | xargs -0 -n1 -P4 php -l
+
+      # UPDATE_CHECK_API_KEY عمداً در محیط CI تنظیم نمی‌شود — phpstan.neon
+      # دقیقاً همین حالت (نبود .env) را به‌عنوان baseline پیش‌فرض می‌شناسد
+      # (نگاه کنید به کامنت‌های ignoreErrors در phpstan.neon).
+      - name: PHPStan (level 5)
+        run: vendor/bin/phpstan analyse --no-progress --error-format=github
+
+      # فقط منطق خالص (بدون دیتابیس) مثل QuotaCalculator — تست‌هایی که به
+      # MySQL واقعی نیاز دارند در این CI (بدون سرویس دیتابیس) اجرا نمی‌شوند.
+      - name: PHPUnit
+        run: vendor/bin/phpunit
+
+  android:
+    name: Android lint + compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # gradlew در گیت با mode غیرقابل‌اجرا (100644) ذخیره شده — احتمالاً
+      # چون این ریپو از یک محیط ویندوز کار شده که bit اجرایی یونیکس را
+      # حفظ نمی‌کند؛ بدون این مرحله ./gradlew روی runner لینوکسی با خطای
+      # Permission denied شکست می‌خورد.
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Compile (debug)
+        run: ./gradlew :app:compileDebugKotlin --console=plain
+
+      # checkReleaseBuilds=true در app/build.gradle.kts یعنی lintRelease هم
+      # به‌طور خودکار بخشی از assembleRelease است؛ اینجا هر دو variant را
+      # صریح اجرا می‌کنیم تا گزارش هرکدام جدا در لاگ CI دیده شود.
+      - name: Lint (debug)
+        run: ./gradlew :app:lintDebug --console=plain
+
+      - name: Lint (release)
+        run: ./gradlew :app:lintRelease --console=plain
+
+      - name: Upload lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-reports
+          path: app/build/reports/lint-results-*.html
+          retention-days: 14

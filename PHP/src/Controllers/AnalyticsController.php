@@ -8,21 +8,20 @@ namespace App\Controllers;
 use Exception;
 use InvalidArgumentException;
 use mysqli;
+use App\Core\AuthenticatesRequests;
 use App\Core\Database;
 use App\Core\Logger;
 use App\Core\MicroCache;
 use App\Core\Request;
-use App\Repositories\UserRepository;
-use App\Services\PermissionService;
-use App\Services\SessionService;
+use App\Core\Response;
+use App\Validators\InputValidator;
 
 class AnalyticsController {
+    use AuthenticatesRequests;
+
     private mysqli $conn;
     private Logger $logger;
     private Request $request;
-    private SessionService $sessionService;
-    private PermissionService $permissionService;
-    private ?string $authenticatedUsername = null;
 
     // C-4/B-11 (گزارش تحلیل جامع عملیات): این دو مرز عمداً متفاوت‌اند، نه یک
     // ناهماهنگی تصادفی — WORKDAY_BOUNDARY_TIME مرز پنجره «تحلیل جامع عملیات»
@@ -40,49 +39,18 @@ class AnalyticsController {
         $this->conn = Database::getInstance()->getMysqliConnection();
         $this->logger = Logger::getInstance();
         $this->request = new Request();
-        $this->sessionService = new SessionService();
-        $this->permissionService = new PermissionService();
     }
 
     /**
-     * تمام دادهٔ این کنترلر (لیست کشتی‌ها، کوتاژها، تناژ) تجاری و محرمانه است؛
-     * مطابق الگوی AppApiController::requireAuthenticatedSession باید فقط برای
-     * نشست معتبر در دسترس باشد. هویت از هدرها خوانده می‌شود، نه از GET، تا در
-     * لاگ دسترسی/پروکسی ذخیره نشود.
+     * کلاینت این کنترلر پاسخ خطا را با شکل {"error": "متن پیام"} می‌خواند —
+     * مطابق همان قرارداد قبلی این دو متد (نه قرارداد boolean که
+     * CargoController/UtilityController استفاده می‌کنند).
      */
-    private function requireAuthenticatedSession(): void {
-        $username = (string)($this->request->getHeader('X-Username') ?? '');
-        $deviceId = (string)($this->request->getHeader('X-Device-Id') ?? '');
-        $token = (string)($this->request->getHeader('X-Session-Token') ?? '');
-
-        if (!$this->sessionService->isValidToken($username, $deviceId, $token)) {
-            header('Content-Type: application/json; charset=UTF-8');
-            http_response_code(401);
-            echo json_encode(['error' => 'نشست معتبر نیست. لطفاً دوباره وارد شوید.'], JSON_UNESCAPED_UNICODE);
-            exit;
-        }
-
-        $this->authenticatedUsername = $username;
-    }
-
-    /**
-     * requireAuthenticatedSession فقط معتبر بودن نشست را تضمین می‌کند، نه اینکه
-     * کاربر مجاز به دیدن آمار تحلیلی باشد؛ مطابق الگوی
-     * AppApiController::requirePermission این شکاف را می‌بندد (مجوز
-     * "view_reports" که پیش‌تر فقط در UI/config تعریف شده بود ولی هرگز سمت
-     * سرور بررسی نمی‌شد).
-     */
-    private function requirePermission(string $feature): void {
-        $username = $this->authenticatedUsername ?? '';
-        $user = (new UserRepository())->getByUsername($username);
-        $userType = (string)($user['userType'] ?? '');
-
-        if (!$this->permissionService->hasPermission($username, $userType, $feature)) {
-            header('Content-Type: application/json; charset=UTF-8');
-            http_response_code(403);
-            echo json_encode(['error' => 'شما مجوز مشاهده آمار تحلیلی را ندارید.'], JSON_UNESCAPED_UNICODE);
-            exit;
-        }
+    protected function sendAuthErrorResponse(string $message, int $httpCode): void {
+        header('Content-Type: application/json; charset=UTF-8');
+        http_response_code($httpCode);
+        echo json_encode(['error' => $message], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 
     /**
@@ -98,7 +66,7 @@ class AnalyticsController {
         // POST مجازند؛ بقیه actionهای این کنترلر فقط-خواندنی می‌مانند و کلاینت
         // برایشان همچنان GET می‌فرستد.
         if (!$this->request->isGet() && !$this->request->isPost()) {
-            $this->sendJsonResponse(['error' => 'فقط متد GET یا POST مجاز است.'], 400);
+            Response::json(['error' => 'فقط متد GET یا POST مجاز است.'], 400);
         }
 
         $this->requireAuthenticatedSession();
@@ -121,19 +89,19 @@ class AnalyticsController {
                     break;
                 case 'logAnalyticsExport':
                     if (!$this->request->isPost()) {
-                        $this->sendJsonResponse(['error' => 'این عملیات فقط با POST مجاز است.'], 400);
+                        Response::json(['error' => 'این عملیات فقط با POST مجاز است.'], 400);
                     }
                     $this->requirePermission('view_reports');
                     $this->handleLogAnalyticsExport();
                     break;
                 default:
-                    $this->sendJsonResponse(['error' => 'عملیات نامعتبر است.'], 400);
+                    Response::json(['error' => 'عملیات نامعتبر است.'], 400);
             }
         } catch (InvalidArgumentException $e) {
-            $this->sendJsonResponse(['error' => $e->getMessage()], 400);
+            Response::json(['error' => $e->getMessage()], 400);
         } catch (Exception $e) {
             $this->logger->error("Error in handleRealTimeLoadingData: " . $e->getMessage());
-            $this->sendJsonResponse(['error' => 'خطایی در سرور رخ داد.'], 500);
+            Response::json(['error' => 'خطایی در سرور رخ داد.'], 500);
         }
     }
 
@@ -145,13 +113,19 @@ class AnalyticsController {
         header('Cache-Control: max-age=60, public');
         date_default_timezone_set('Asia/Tehran');
 
-        if (extension_loaded('zlib') && !ini_get('zlib.output_compression') && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
-            ob_start('ob_gzhandler');
+        // فشرده‌سازی PHP-level حذف شد (P-06): .htaccess از قبل mod_deflate را
+        // برای application/json فعال کرده؛ فشرده‌سازی دوباره اینجا فقط CPU
+        // اضافه بدون فایده بود.
+        if (!$this->request->isGet()) {
+            Response::json(['success' => false, 'error' => 'روش درخواست نامعتبر است'], 500);
         }
 
-        if (!$this->request->isGet()) {
-            $this->sendJsonResponse(['success' => false, 'error' => 'روش درخواست نامعتبر است'], 500);
-        }
+        // این متد قبلاً هیچ گیت احراز هویتی نداشت — با اینکه داده‌ی تجاری
+        // کامل (نام کشتی، کوتاژ، شرکت حمل، صاحب کالا، تناژ) برمی‌گرداند، هر
+        // کلاینت ناشناس با دانستن آدرس سرور می‌توانست quota_remaining_api.php
+        // را صدا بزند. مطابق الگوی handleRealTimeLoadingData همین کنترلر.
+        $this->requireAuthenticatedSession();
+        $this->requirePermission('active_quotas');
 
         try {
             $action = $this->request->get('action');
@@ -159,12 +133,12 @@ class AnalyticsController {
                 throw new InvalidArgumentException('عملیات مشخص نشده است');
             }
 
-            $action = $this->sanitizeInput((string)$action);
+            $action = InputValidator::sanitize((string)$action);
 
             switch ($action) {
                 case 'getActiveQuotasRemaining':
                     $result = $this->getActiveQuotasRemaining();
-                    $this->sendJsonResponse($result);
+                    Response::json($result);
                     break;
 
                 case 'getShipQuotasRemaining':
@@ -173,7 +147,7 @@ class AnalyticsController {
                         throw new InvalidArgumentException('نام کشتی مشخص نشده است');
                     }
                     $result = $this->getShipQuotasRemaining((string)$shipName);
-                    $this->sendJsonResponse($result);
+                    Response::json($result);
                     break;
 
                 default:
@@ -181,7 +155,7 @@ class AnalyticsController {
             }
         } catch (Exception $e) {
             $this->logger->error("Error in handleQuotaRemaining: " . $e->getMessage());
-            $this->sendJsonResponse([
+            Response::json([
                 'success' => false,
                 'error' => $e->getMessage()
             ], 500);
@@ -204,7 +178,7 @@ class AnalyticsController {
         $stmt->close();
 
         if (!$kotazhInfo) {
-            $this->sendJsonResponse(['error' => 'کوتاژ مورد نظر یافت نشد.'], 404);
+            Response::json(['error' => 'کوتاژ مورد نظر یافت نشد.'], 404);
         }
 
         $stmt2 = $this->conn->prepare("SELECT trackingNumber, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, exitTime, exitDate, status FROM CargoInfo WHERE loadingQuotaNumber = ?");
@@ -213,7 +187,7 @@ class AnalyticsController {
         $cargoInfo = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
         $stmt2->close();
 
-        $this->sendJsonResponse([
+        Response::json([
             'kotazhInfo' => $kotazhInfo,
             'cargoInfo' => $cargoInfo
         ]);
@@ -255,7 +229,7 @@ class AnalyticsController {
             exit;
         }
 
-        $this->sendJsonResponse($data);
+        Response::json($data);
     }
 
     private function determineShiftInfo(string $currentTime, int $targetTimestamp): array {
@@ -481,7 +455,7 @@ class AnalyticsController {
             'analytics_export'
         );
 
-        $this->sendJsonResponse(['success' => true]);
+        Response::json(['success' => true]);
     }
 
     /**
@@ -500,7 +474,7 @@ class AnalyticsController {
             exit;
         }
 
-        $this->sendJsonResponse($data);
+        Response::json($data);
     }
 
     private function getActiveQuotasRemaining(): array {
@@ -608,7 +582,7 @@ class AnalyticsController {
     }
 
     private function getShipQuotasRemaining(string $shipName): array {
-        $shipName = $this->sanitizeInput($shipName);
+        $shipName = InputValidator::sanitize($shipName);
 
         $baseQuery = "SELECT 
             i.shipName, i.loadingQuotaNumber as quotaNumber, i.shippingCompany, i.cargoOwner, i.loadingWarehouse as warehouse, i.cargoType,
@@ -712,16 +686,4 @@ class AnalyticsController {
         ];
     }
 
-    private function sanitizeInput(string $input): string {
-        return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
-    }
-
-    private function sendJsonResponse(array $data, int $statusCode = 200): void {
-        http_response_code($statusCode);
-        if (extension_loaded('zlib') && !ini_get('zlib.output_compression') && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
-            ob_start('ob_gzhandler');
-        }
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
-        exit;
-    }
 }

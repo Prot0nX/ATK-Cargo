@@ -70,13 +70,13 @@ class CargoController {
 
         try {
             $result = $this->cargoService->saveOrUpdateCargo($params);
-            $this->sendJsonResponse($result['data'], $result['code'] ?? 200);
+            Response::json($result['data'], $result['code'] ?? 200);
         } catch (ApiException $e) {
             // ConflictException (و مشابه آن) کد HTTP معنادار خودش را حمل
             // می‌کند (۴۰۹ برای تداخل هم‌زمانی)؛ نباید مثل خطای داخلی سرور با
             // ۵۰۰ عمومی پوشانده شود.
             $this->logger->error("Error in CargoController saveOrUpdate: " . $e->getMessage());
-            $this->sendJsonResponse(['error' => true, 'message' => $e->getMessage()], $e->getStatusCode());
+            Response::json(['error' => true, 'message' => $e->getMessage()], $e->getStatusCode());
         } catch (Exception $e) {
             $this->logger->error("Error in CargoController saveOrUpdate: " . $e->getMessage());
             $this->sendErrorResponse($e->getMessage());
@@ -93,7 +93,7 @@ class CargoController {
         header('X-XSS-Protection: 1; mode=block');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->sendJsonResponse(['error' => true, 'message' => 'روش درخواست نامعتبر است. فقط POST مجاز است.'], 405);
+            Response::json(['error' => true, 'message' => 'روش درخواست نامعتبر است. فقط POST مجاز است.'], 405);
         }
 
         $this->requireAuthenticatedSession();
@@ -130,11 +130,11 @@ class CargoController {
 
             $existing = $this->cargoRepo->findCargoById((int)$id);
             if (!$existing) {
-                $this->sendJsonResponse(['error' => true, 'message' => 'رکوردی با این شناسه یافت نشد.'], 404);
+                Response::json(['error' => true, 'message' => 'رکوردی با این شناسه یافت نشد.'], 404);
             }
 
             if ($this->cargoRepo->isScaleReceiptDuplicate($scaleReceiptNumber, (int)$id)) {
-                $this->sendJsonResponse(['error' => true, 'message' => 'شماره قبض باسکول تکراری است.'], 400);
+                Response::json(['error' => true, 'message' => 'شماره قبض باسکول تکراری است.'], 400);
             }
 
             $updateData = [
@@ -156,23 +156,23 @@ class CargoController {
             $updated = $this->cargoRepo->updateCargoFull((int)$id, $updateData);
             if ($updated) {
                 MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
-                $this->sendJsonResponse([
+                Response::json([
                     'error' => false,
                     'status' => 'success',
                     'message' => 'اطلاعات با موفقیت بروزرسانی شد.'
                 ]);
             } else {
-                $this->sendJsonResponse([
+                Response::json([
                     'error' => false,
                     'status' => 'no_change',
                     'message' => 'تغییری در اطلاعات ایجاد نشد.'
                 ]);
             }
         } catch (InvalidArgumentException $e) {
-            $this->sendJsonResponse(['error' => true, 'message' => $e->getMessage()], 400);
+            Response::json(['error' => true, 'message' => $e->getMessage()], 400);
         } catch (Exception $e) {
             $this->logger->error("Error in updateCargoInfo: " . $e->getMessage());
-            $this->sendJsonResponse(['error' => true, 'message' => 'خطای داخلی سرور رخ داده است.'], 500);
+            Response::json(['error' => true, 'message' => 'خطای داخلی سرور رخ داده است.'], 500);
         }
     }
 
@@ -184,7 +184,7 @@ class CargoController {
         date_default_timezone_set('Asia/Tehran');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->sendJsonResponse(["status" => "error", "message" => "روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید."], 405);
+            Response::json(["status" => "error", "message" => "روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید."], 405);
         }
 
         $this->requireAuthenticatedSession();
@@ -195,11 +195,11 @@ class CargoController {
 
         $data = json_decode((string)file_get_contents('php://input'), true);
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
-            $this->sendJsonResponse(["status" => "error", "message" => "فرمت JSON نامعتبر است"], 400);
+            Response::json(["status" => "error", "message" => "فرمت JSON نامعتبر است"], 400);
         }
 
         if (!isset($data['id']) || (is_string($data['id']) && trim($data['id']) === '')) {
-            $this->sendJsonResponse(["status" => "error", "message" => "فیلدهای ضروری وجود ندارند: id"], 400);
+            Response::json(["status" => "error", "message" => "فیلدهای ضروری وجود ندارند: id"], 400);
         }
 
         $cargoId = (int)$data['id'];
@@ -214,11 +214,11 @@ class CargoController {
         $shipName = $this->sanitizeString((string)($data['shipName'] ?? ''));
 
         if ($cargoId <= 0) {
-            $this->sendJsonResponse(["status" => "error", "message" => "شناسه حواله نامعتبر است"], 400);
+            Response::json(["status" => "error", "message" => "شناسه حواله نامعتبر است"], 400);
         }
 
         if ($loadingQuotaNumber === '' || $shipName === '') {
-            $this->sendJsonResponse(["status" => "error", "message" => "فیلدهای ضروری وجود ندارند: loadingQuotaNumber, shipName"], 400);
+            Response::json(["status" => "error", "message" => "فیلدهای ضروری وجود ندارند: loadingQuotaNumber, shipName"], 400);
         }
 
         try {
@@ -248,7 +248,7 @@ class CargoController {
                 // را که رشته‌اند (و می‌توانند صفر ابتدایی داشته باشند) به
                 // عدد تبدیل می‌کرد؛ sendJsonResponse مثل بقیه‌ی endpointهای
                 // این کنترلر بدون آن فلگ و با gzip ارسال می‌کند.
-                $this->sendJsonResponse($response, 200);
+                Response::json($response, 200);
             } else {
                 $exists = $this->cargoRepo->findCargoById($cargoId) !== null;
                 if ($exists) {
@@ -257,16 +257,16 @@ class CargoController {
                     // و علاوه بر نمایش این پیام به‌عنوان موفقیت، وضعیت محلی را
                     // هم به‌اشتباه «تأیید شده» علامت بزند
                     // (CargoDetailsScreen.handleCargoConfirmation).
-                    $this->sendJsonResponse(["status" => "error", "message" => "حواله قبلاً تأیید شده است یا تغییری اعمال نشد"], 409);
+                    Response::json(["status" => "error", "message" => "حواله قبلاً تأیید شده است یا تغییری اعمال نشد"], 409);
                 } else {
-                    $this->sendJsonResponse(["status" => "error", "message" => "حواله با شناسه ارسالی یافت نشد"], 404);
+                    Response::json(["status" => "error", "message" => "حواله با شناسه ارسالی یافت نشد"], 404);
                 }
             }
         } catch (Exception $e) {
             $this->logger->error("Error in confirmCargo: " . $e->getMessage());
             // پیام داخلی mysqli/exception (که می‌تواند نام جدول/ستون را
             // فاش کند) فقط در لاگ ثبت می‌شود، نه در پاسخ به کلاینت.
-            $this->sendJsonResponse(["status" => "error", "message" => "خطایی در سیستم رخ داده است. لطفاً بعداً تلاش کنید."], 500);
+            Response::json(["status" => "error", "message" => "خطایی در سیستم رخ داده است. لطفاً بعداً تلاش کنید."], 500);
         }
     }
 
@@ -277,7 +277,7 @@ class CargoController {
         header('Content-Type: application/json; charset=UTF-8');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->sendJsonResponse(["status" => "error", "message" => "روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید."], 405);
+            Response::json(["status" => "error", "message" => "روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید."], 405);
         }
 
         $this->requireAuthenticatedSession();
@@ -285,12 +285,12 @@ class CargoController {
 
         $data = json_decode((string)file_get_contents("php://input"), true);
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($data) || !isset($data['id']) || empty($data['id'])) {
-            $this->sendJsonResponse(["status" => "error", "message" => "فیلد ضروری وجود ندارد: id"], 400);
+            Response::json(["status" => "error", "message" => "فیلد ضروری وجود ندارد: id"], 400);
         }
 
         $cargoId = (int)$data['id'];
         if ($cargoId <= 0) {
-            $this->sendJsonResponse(["status" => "error", "message" => "شناسه حواله نامعتبر است"], 400);
+            Response::json(["status" => "error", "message" => "شناسه حواله نامعتبر است"], 400);
         }
 
         // بررسی رمز عبور حذف اینجا و در همین درخواست انجام می‌شود، نه در یک
@@ -300,22 +300,22 @@ class CargoController {
         // بزنند). شمارنده‌ی تلاش ناموفق روی هویت نشست معتبرشده کلید می‌خورد.
         $password = (string)($data['password'] ?? '');
         if ($password === '') {
-            $this->sendJsonResponse(["status" => "error", "message" => "رمز عبور الزامی است"], 400);
+            Response::json(["status" => "error", "message" => "رمز عبور الزامی است"], 400);
         }
 
         $gateResult = (new PasswordGateService())->verify('delete_info', $password, (string)$this->authenticatedUsername);
         if (!$gateResult['success']) {
-            $this->sendJsonResponse(["status" => "error", "message" => $gateResult['message']], $gateResult['locked'] ? 429 : 403);
+            Response::json(["status" => "error", "message" => $gateResult['message']], $gateResult['locked'] ? 429 : 403);
         }
 
         try {
             $res = $this->cargoService->deleteCargoInfo($cargoId);
             $code = $res['code'] ?? 200;
             unset($res['code']);
-            $this->sendJsonResponse($res, $code);
+            Response::json($res, $code);
         } catch (Exception $e) {
             $this->logger->error("Error in deleteCargoInfo: " . $e->getMessage());
-            $this->sendJsonResponse(["status" => "error", "message" => "خطا در حذف حواله: " . $e->getMessage()], 500);
+            Response::json(["status" => "error", "message" => "خطا در حذف حواله: " . $e->getMessage()], 500);
         }
     }
 
@@ -329,7 +329,7 @@ class CargoController {
         header('X-XSS-Protection: 1; mode=block');
 
         if (!$this->request->isGet()) {
-            $this->sendJsonResponse(['error' => 'روش درخواست نامعتبر است'], 405);
+            Response::json(['error' => 'روش درخواست نامعتبر است'], 405);
         }
 
         $this->requireAuthenticatedSession();
@@ -364,15 +364,15 @@ class CargoController {
                     'confirm' => htmlspecialchars((string)($cargoInfo['confirm'] ?? '')),
                     'confirmation' => htmlspecialchars((string)($cargoInfo['confirmation'] ?? 'no'))
                 ];
-                $this->sendJsonResponse(['cargoInfo' => $formattedCargoInfo]);
+                Response::json(['cargoInfo' => $formattedCargoInfo]);
             } else {
-                $this->sendJsonResponse(['error' => 'هیچ نتیجه‌ای یافت نشد.'], 404);
+                Response::json(['error' => 'هیچ نتیجه‌ای یافت نشد.'], 404);
             }
         } catch (InvalidArgumentException $e) {
-            $this->sendJsonResponse(['error' => $e->getMessage()], 400);
+            Response::json(['error' => $e->getMessage()], 400);
         } catch (Exception $e) {
             $this->logger->error("Error in searchByScaleReceipt: " . $e->getMessage());
-            $this->sendJsonResponse(['error' => 'خطای داخلی سرور رخ داده است.'], 500);
+            Response::json(['error' => 'خطای داخلی سرور رخ داده است.'], 500);
         }
     }
 
@@ -386,7 +386,7 @@ class CargoController {
         header('X-XSS-Protection: 1; mode=block');
 
         if (!$this->request->isGet()) {
-            $this->sendJsonResponse(['error' => 'روش درخواست نامعتبر است'], 405);
+            Response::json(['error' => 'روش درخواست نامعتبر است'], 405);
         }
 
         $this->requireAuthenticatedSession();
@@ -427,18 +427,18 @@ class CargoController {
             }
 
             if (!empty($cargoInfoList)) {
-                $this->sendJsonResponse([
+                Response::json([
                     'cargoInfoList' => $cargoInfoList,
                     'totalCount' => count($cargoInfoList)
                 ]);
             } else {
-                $this->sendJsonResponse(['error' => 'هیچ نتیجه‌ای برای این شماره حواله یافت نشد.'], 404);
+                Response::json(['error' => 'هیچ نتیجه‌ای برای این شماره حواله یافت نشد.'], 404);
             }
         } catch (InvalidArgumentException $e) {
-            $this->sendJsonResponse(['error' => $e->getMessage()], 400);
+            Response::json(['error' => $e->getMessage()], 400);
         } catch (Exception $e) {
             $this->logger->error("Error in searchByTracking: " . $e->getMessage());
-            $this->sendJsonResponse(['error' => 'خطای داخلی سرور رخ داده است.'], 500);
+            Response::json(['error' => 'خطای داخلی سرور رخ داده است.'], 500);
         }
     }
 
@@ -461,7 +461,7 @@ class CargoController {
         }
 
         if (!empty($missingParams)) {
-            $this->sendJsonResponse([
+            Response::json([
                 "status" => "error",
                 "message" => "پارامترهای زیر الزامی هستند: " . implode(', ', $missingParams)
             ], 400);
@@ -489,7 +489,7 @@ class CargoController {
 
             if ($initialResult->num_rows === 0) {
                 $stmt->close();
-                $this->sendJsonResponse([
+                Response::json([
                     "status" => "error",
                     "message" => "اطلاعات وارد شده (شامل نوع کالا) مطابقت ندارد. لطفاً مقادیر را بررسی کنید."
                 ], 404);
@@ -572,14 +572,14 @@ class CargoController {
             }
             $cargoStmt->close();
 
-            $this->sendJsonResponse([
+            Response::json([
                 "status" => "success",
                 "initialInfo" => $initialInfo,
                 "cargoInfoList" => $cargoInfoList
             ]);
         } catch (Exception $e) {
             $this->logger->error("Error in getInitialInfo: " . $e->getMessage());
-            $this->sendJsonResponse([
+            Response::json([
                 "status" => "error",
                 "message" => "خطایی در سیستم رخ داده است. لطفاً بعداً تلاش کنید."
             ], 500);
@@ -634,10 +634,10 @@ class CargoController {
             $stmt->close();
             MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
 
-            $this->sendJsonResponse(["status" => "success", "message" => "اطلاعات با موفقیت ثبت شد."]);
+            Response::json(["status" => "success", "message" => "اطلاعات با موفقیت ثبت شد."]);
         } catch (Exception $e) {
             $this->logger->error("Error in saveInitialInfo: " . $e->getMessage());
-            $this->sendJsonResponse(["status" => "error", "message" => $e->getMessage()], 400);
+            Response::json(["status" => "error", "message" => $e->getMessage()], 400);
         }
     }
 
@@ -651,10 +651,10 @@ class CargoController {
 
         try {
             $activeShips = $this->cargoService->getActiveShips();
-            $this->sendJsonResponse($activeShips);
+            Response::json($activeShips);
         } catch (Exception $e) {
             $this->logger->error("Error in getActiveShips: " . $e->getMessage());
-            $this->sendJsonResponse(["status" => "error", "message" => $e->getMessage()], 400);
+            Response::json(["status" => "error", "message" => $e->getMessage()], 400);
         }
     }
 
@@ -672,10 +672,10 @@ class CargoController {
             $res = $this->cargoService->checkScaleReceipt($scaleReceiptNumber);
             $code = $res['code'] ?? 200;
             unset($res['code']);
-            $this->sendJsonResponse($res, $code);
+            Response::json($res, $code);
         } catch (Exception $e) {
             $this->logger->error("Error in checkScaleReceipt: " . $e->getMessage());
-            $this->sendJsonResponse(['error' => $e->getMessage()], 500);
+            Response::json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -710,15 +710,6 @@ class CargoController {
             throw new InvalidArgumentException("فیلد {$fieldName} الزامی است.");
         }
         return $sanitized;
-    }
-
-    private function sendJsonResponse(array $data, int $statusCode = 200): void {
-        http_response_code($statusCode);
-        if (extension_loaded('zlib') && !ini_get('zlib.output_compression') && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
-            ob_start('ob_gzhandler');
-        }
-        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-        exit;
     }
 
     private function sendErrorResponse(string $message): void {

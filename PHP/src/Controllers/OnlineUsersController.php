@@ -7,15 +7,13 @@ namespace App\Controllers;
 
 use Exception;
 use SessionManager;
-use App\Core\Logger;
 use App\Core\Request;
+use App\Core\Response;
 
 class OnlineUsersController {
-    private Logger $logger;
     private Request $request;
 
     public function __construct() {
-        $this->logger = Logger::getInstance();
         $this->request = new Request();
     }
 
@@ -23,7 +21,6 @@ class OnlineUsersController {
         date_default_timezone_set('Asia/Tehran');
 
         header('Content-Type: application/json; charset=utf-8');
-        header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
         header('Access-Control-Allow-Headers: Content-Type');
 
@@ -32,9 +29,32 @@ class OnlineUsersController {
             exit;
         }
 
+        // این کنترلر توسط پنل وب online_users_manager.html (نه اپ اندروید)
+        // مصرف می‌شود، پس گیت هدرمحور AuthenticatesRequests قابل استفاده
+        // نیست؛ به‌جای آن از همان نشست PHP سراسری (session) که PermissionManager.php
+        // با آن لاگین می‌کند استفاده می‌شود — پیش‌تر این endpoint کاملاً بدون
+        // احراز هویت بود و IP/device_id/وضعیت آنلاین تمام کاربران را افشا
+        // می‌کرد و force_logout را برای هرکسی ممکن می‌ساخت (S-04).
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (!isset($_SESSION['perm_manager_auth']) || $_SESSION['perm_manager_auth'] !== true) {
+            http_response_code(401);
+            echo json_encode([
+                'success' => false,
+                'message' => 'دسترسی غیرمجاز: برای مشاهده‌ی این پنل ابتدا از طریق PermissionManager.php وارد شوید.'
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
         try {
             $sessionManager = new SessionManager();
-            $action = (string)($this->request->get('action') ?? $this->request->post('action') ?? 'get_online_users');
+            // Request::get() از قبل JSON body/POST/GET را به همین ترتیب اولویت
+            // می‌خواند؛ Request::post() اصلاً وجود ندارد — فراخوانی آن باعث
+            // Fatal Error می‌شد (نه یک Exception قابل catch)، پس هر درخواستی
+            // که action را در query نمی‌فرستاد (یا اکشن heartbeat) با خطای
+            // خام ۵۰۰ مواجه می‌شد (B-01).
+            $action = (string)($this->request->get('action', 'get_online_users'));
 
             switch ($action) {
                 case 'get_online_users':
@@ -83,7 +103,7 @@ class OnlineUsersController {
                         ];
                     }
 
-                    $this->sendJsonResponse([
+                    Response::json([
                         'success' => true,
                         'users' => $processedUsers,
                         'total_count' => count($processedUsers),
@@ -93,7 +113,7 @@ class OnlineUsersController {
 
                 case 'get_session_stats':
                     $stats = $sessionManager->getSessionStats();
-                    $this->sendJsonResponse([
+                    Response::json([
                         'success' => true,
                         'stats' => $stats
                     ]);
@@ -124,19 +144,19 @@ class OnlineUsersController {
                         $result = $sessionManager->deactivateSession($username);
                     }
 
-                    $this->sendJsonResponse($result);
+                    Response::json($result);
                     break;
 
                 case 'heartbeat':
-                    $username = (string)($this->request->post('username') ?? $this->request->get('username') ?? '');
-                    $deviceId = (string)($this->request->post('device_id') ?? $this->request->get('device_id') ?? '');
+                    $username = (string)$this->request->get('username', '');
+                    $deviceId = (string)$this->request->get('device_id', '');
 
                     if (empty($username) || empty($deviceId)) {
                         throw new Exception('اطلاعات کاربر و دستگاه الزامی است');
                     }
 
                     $sessionManager->updateLastActivity($username, $deviceId);
-                    $this->sendJsonResponse([
+                    Response::json([
                         'success' => true,
                         'message' => 'Heartbeat updated'
                     ]);
@@ -144,7 +164,7 @@ class OnlineUsersController {
 
                 case 'cleanup_inactive':
                     $cleanedCount = $sessionManager->cleanupExpiredSessions();
-                    $this->sendJsonResponse([
+                    Response::json([
                         'success' => true,
                         'message' => "تعداد $cleanedCount نشست منقضی شده پاکسازی شد",
                         'cleaned_count' => $cleanedCount
@@ -155,19 +175,11 @@ class OnlineUsersController {
                     throw new Exception('عملیات نامعتبر است');
             }
         } catch (Exception $e) {
-            $this->sendJsonResponse([
+            Response::json([
                 'success' => false,
                 'message' => $e->getMessage()
             ], 400);
         }
     }
 
-    private function sendJsonResponse(array $data, int $statusCode = 200): void {
-        http_response_code($statusCode);
-        if (extension_loaded('zlib') && !ini_get('zlib.output_compression') && !in_array('ob_gzhandler', ob_list_handlers(), true)) {
-            ob_start('ob_gzhandler');
-        }
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
-        exit;
-    }
 }

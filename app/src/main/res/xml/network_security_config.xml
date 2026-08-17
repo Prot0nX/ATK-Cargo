@@ -35,6 +35,37 @@
             <certificates src="@raw/ca_certum_root" />
             <certificates src="@raw/ca_certum_intermediate" />
         </trust-anchors>
+
+        <!--
+            Certificate Pinning (S-15)
+            ─────────────────────────────────────────────────
+            پین‌ها روی کلید عمومی CA میانی و ریشه‌ی Certum هستند، نه روی گواهی
+            leaf سرور (atk-nk.ir). عمداً همین‌طور انتخاب شده:
+              - گواهی leaf معمولاً هر چند ماه تمدید می‌شود؛ پین‌کردن آن باعث
+                می‌شد هر تمدید leaf، برنامه را از سرور قطع کند — با توجه به
+                اینکه این اپ از طریق Play Store توزیع نمی‌شود و مکانیزم
+                به‌روزرسانی خودش هم از همین اتصال شبکه استفاده می‌کند، قطع‌شدن
+                یعنی کاربر تا نصب دستی نسخه‌ی جدید گیر می‌افتد (بدون مسیر
+                بازیابی خودکار).
+              - CA میانی/ریشه بسیار کم‌تغییرند (اعتبار تا ۲۰۳۹ و ۲۰۴۳)، همان
+                فایل‌های از پیش Bundle‌شده (ca_certum_root/intermediate) که
+                بالاتر هم به‌عنوان trust-anchor استفاده شده‌اند.
+              - نتیجه: یک گواهی جعلی که توسط CA دیگری (نه Certum) صادر شده
+                باشد رد می‌شود (محافظت اصلی S-15 در برابر MITM)، ولی تمدید
+                عادی گواهی سرور توسط همان Certum اتصال را قطع نمی‌کند.
+            پین‌ها با این دستور از همان فایل‌های .pem محاسبه شدند:
+              openssl x509 -in <file>.pem -pubkey -noout | openssl pkey -pubin -outform der \
+                | openssl dgst -sha256 -binary | openssl enc -base64
+            expiration یک سوپاپ اطمینان است: بعد از این تاریخ Android پین را
+            نادیده می‌گیرد (نه اینکه اتصال را قطع کند) تا این بخش فراموش نشود؛
+            قبل از آن باید بازبینی و در صورت نیاز تمدید شود.
+        -->
+        <pin-set expiration="2028-08-17">
+            <!-- Certum DV TLS G2 R39 CA (intermediate) -->
+            <pin digest="SHA-256">92oK29/qv5N8xocT/H9kxxVqihg3OD2rlooJW9f7L3Y=</pin>
+            <!-- Certum Trusted Root CA (root) — پین پشتیبان -->
+            <pin digest="SHA-256">aB3EgsKWyEAsbrsg5oMJo7yEZSOuNLmEqE7ml6MxLbc=</pin>
+        </pin-set>
     </domain-config>
 
 </network-security-config>

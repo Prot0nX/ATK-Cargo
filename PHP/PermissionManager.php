@@ -4,8 +4,11 @@
  * مدیریت متمرکز نقش‌ها و دسترسی‌های اختصاصی کاربران
  */
 
+// نمایش خطا روی production مسیر فایل‌ها/جزئیات داخلی را در صفحه‌ی خطا افشا
+// می‌کرد (S-17)؛ خطاها همچنان لاگ می‌شوند، فقط به کاربر نمایش داده نمی‌شوند.
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
 
 date_default_timezone_set('Asia/Tehran');
 
@@ -16,6 +19,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/vendor/autoload.php';
 
 $ADMIN_PASSWORD_HASH = $_ENV['ADMIN_PASSWORD_HASH'] ?? getenv('ADMIN_PASSWORD_HASH') ?: ''; 
 
@@ -129,8 +133,13 @@ if ($is_authenticated && isset($_POST['save_permissions'])) {
 $users_list = [];
 if ($is_authenticated) {
     try {
-        // استفاده از تابع getDbConnection که در config.php تعریف شده است
-        $conn = getDbConnection();
+        // قبلاً از getDbConnection() (تابع سراسری جداگانه در config.php)
+        // استفاده می‌کرد که یک کانکشن mysqli کاملاً مستقل از Database::getInstance()
+        // باز می‌کرد — یعنی در یک پروسه که همین درخواست هم از طریق کد جدید
+        // (App\Core\Database) به دیتابیس وصل شده، دو سوکت جدا به همان DB باز
+        // می‌شد، و این کانکشن قدیمی هیچ‌کدام از SET SESSION sql_mode/time_zone
+        // که Database::getMysqliConnection() تنظیم می‌کند را نداشت (C-03).
+        $conn = \App\Core\Database::getInstance()->getMysqliConnection();
         $res = $conn->query("SELECT username, fullName, userType FROM Users ORDER BY username ASC");
         while ($row = $res->fetch_assoc()) {
             $users_list[] = $row;

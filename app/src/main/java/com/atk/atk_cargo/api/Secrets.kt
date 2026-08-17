@@ -6,10 +6,6 @@ object Secrets {
     }
 
     external fun getBaseUrl(): String
-    external fun getWebUserName(): String
-    external fun getWebUserPass(): String
-    external fun getAuthUser(): String
-    external fun getAuthenticationX365(): String
 
     external fun getExpectedSignatureHash(): String
     external fun getLicenseStatusPrefKey(): String

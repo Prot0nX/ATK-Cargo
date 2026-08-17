@@ -98,13 +98,15 @@ class Request {
     }
 
     /**
-     * دریافت آی‌پی کلاینت به صورت امن
+     * دریافت آی‌پی کلاینت. عمداً فقط REMOTE_ADDR (نه هدرهای HTTP_CLIENT_IP/
+     * HTTP_X_FORWARDED_FOR که کاملاً توسط کلاینت قابل جعل‌اند) — سرور پشت
+     * CDN/LB نیست، پس REMOTE_ADDR همان IP واقعی درخواست‌کننده است. این IP در
+     * user_sessions و لاگ‌های امنیتی/audit ذخیره می‌شود؛ اعتماد به هدر جعل‌پذیر
+     * باعث می‌شد مهاجم بتواند این ثبت‌ها را با یک هدر دلخواه آلوده کند (S-10).
+     * protected_proxy.php از ابتدا همین رفتار درست را داشت.
      */
     public function getClientIp(): string {
-        return $_SERVER['HTTP_CLIENT_IP'] 
-            ?? $_SERVER['HTTP_X_FORWARDED_FOR'] 
-            ?? $_SERVER['REMOTE_ADDR'] 
-            ?? '127.0.0.1';
+        return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
     }
 
     /**

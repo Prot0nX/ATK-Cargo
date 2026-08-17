@@ -72,4 +72,20 @@ class InputValidator {
         }
         return $cleaned;
     }
+
+    /**
+     * برای مقادیری که در یک شرط تساوی (WHERE = ?) با prepared statement مقایسه
+     * می‌شوند (مثل نام کشتی) نباید htmlspecialchars اعمال شود، وگرنه نامی مثل
+     * "M&V" به "M&amp;V" تبدیل و مقایسه با دیتابیس شکسته می‌شود. SQL Injection
+     * توسط prepared statement مهار می‌شود، نه توسط escape کردن ورودی. (قبلاً
+     * private داخل AppApiController بود؛ ShipService/QuotaController هم به
+     * همین منطق نیاز داشتند.)
+     */
+    public static function validateIdentifier(string $input, int $maxLength = 150): string {
+        $value = trim($input);
+        if ($value === '' || mb_strlen($value) > $maxLength) {
+            throw new \Exception('مقدار ورودی نامعتبر است');
+        }
+        return $value;
+    }
 }

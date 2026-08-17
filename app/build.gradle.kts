@@ -105,8 +105,14 @@ android {
 
     lint {
         disable += setOf("NullSafeMutableLiveData")
-        abortOnError = false
-        checkReleaseBuilds = false
+        // قبلاً هر دو خاموش بودند، یعنی هشدارهای lint (شامل دسته‌ی Security)
+        // هرگز build را متوقف نمی‌کردند و روی release اصلاً اجرا نمی‌شدند
+        // (C-08). فعلاً ۰ یافته‌ی سطح Error/Fatal در کدبیس وجود دارد (تأیید‌شده
+        // با lintDebug)، پس abortOnError این‌جا بی‌خطر فعال شده — فقط جلوی
+        // معرفی‌شدن یافته‌های Error/Fatal *جدید* را می‌گیرد، روی ۱۸۴
+        // هشدار موجود اثری ندارد (آن‌ها warningsAsErrors نیستند).
+        abortOnError = true
+        checkReleaseBuilds = true
     }
 
     packaging {

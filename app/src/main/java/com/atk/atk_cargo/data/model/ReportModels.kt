@@ -305,38 +305,6 @@ data class QuotaItem(
     val quotaKey: String
 )
 
-data class ThirdPartyOrderRequest(
-    val companyCode: String,
-    val date1: String,
-    val date2: String,
-    val reportName: String
-)
-
-data class ThirdPartyOrderResponse(
-    val value: List<ThirdPartyOrder>,
-    val formatters: List<Any>,
-    val contentTypes: List<Any>,
-    val declaredType: String?,
-    val statusCode: Int
-)
-
-@Immutable
-data class ThirdPartyOrder(
-    val orderId: String,
-    val companyInternalContractCode: String?,
-    val orderGoodDescreption: String?,
-    val orderIssueDate: String?,
-    val orderIssueTime: String?,
-    val ctName: String?,
-    val truckLicensePlate: String?,
-    val driverFullName: String?,
-    val orderGoodCount: Int?,
-    val orderStatus: String?,
-    val ladingStatus: String?,
-    val scaleEmpty: Double?,
-    val scaleFull: Double?,
-    val orderWeight: Int?
-)
 
 class ColorSelector(private val colors: List<Color>) {
     private val assignedColors = mutableMapOf<String, Color>()
