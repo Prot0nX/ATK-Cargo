@@ -13,9 +13,12 @@ class SessionService {
     private SessionRepository $sessionRepository;
     private UserRepository $userRepository;
 
-    public function __construct() {
-        $this->sessionRepository = new SessionRepository();
-        $this->userRepository = new UserRepository();
+    // Phase 3.3: پارامترهای اختیاری برای تزریق mock در تست واحد (بدون تماس
+    // واقعی با دیتابیس)؛ همه‌ی فراخوان‌های production با new SessionService()
+    // بدون آرگومان بدون تغییر کار می‌کنند.
+    public function __construct(?SessionRepository $sessionRepository = null, ?UserRepository $userRepository = null) {
+        $this->sessionRepository = $sessionRepository ?? new SessionRepository();
+        $this->userRepository = $userRepository ?? new UserRepository();
     }
 
     /**

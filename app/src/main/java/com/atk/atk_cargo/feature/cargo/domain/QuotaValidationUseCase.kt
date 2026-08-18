@@ -1,7 +1,8 @@
 package com.atk.atk_cargo.feature.cargo.domain
 
 import android.util.Log
-import com.atk.atk_cargo.api.RetrofitClient.apiService
+import com.atk.atk_cargo.api.ApiV2Routes
+import com.atk.atk_cargo.api.RetrofitClient.apiServiceV2
 import com.atk.atk_cargo.data.model.InitialInfo
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.data.model.QuotaValidationResult
@@ -33,7 +34,7 @@ class QuotaValidationUseCase(private val repository: ReportsRepository) {
                 )
             }
 
-            val response = apiService.getShipQuotas(shipName = initialInfo.shipName)
+            val response = apiServiceV2.getShipQuotas(route = ApiV2Routes.shipQuotas(initialInfo.shipName))
             if (response.isSuccessful) {
                 val quotas = response.body()
                 val quota = quotas?.find { it.number == initialInfo.loadingQuotaNumber.toString() }

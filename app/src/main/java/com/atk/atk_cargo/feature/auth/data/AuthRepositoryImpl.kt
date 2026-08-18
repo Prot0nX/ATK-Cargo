@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
 import android.provider.Settings
-import com.atk.atk_cargo.api.ApiService
+import com.atk.atk_cargo.api.ApiServiceV2
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.data.model.LoginRequest
 import com.atk.atk_cargo.data.model.SessionResponse
@@ -25,7 +25,7 @@ import java.util.UUID
  */
 class AuthRepositoryImpl(
     private val context: Context,
-    private val apiService: ApiService,
+    private val apiServiceV2: ApiServiceV2,
     private val userPreferencesManager: UserPreferencesManager
 ) : AuthRepository {
 
@@ -89,7 +89,7 @@ class AuthRepositoryImpl(
                 appVersion = appVersion
             )
 
-            val response = apiService.checkLogin(loginRequest)
+            val response = apiServiceV2.checkLogin(loginRequest)
 
             if (response.isSuccessful) {
                 val body = response.body()

@@ -68,22 +68,19 @@ class ReportsViewModel(
     // Composable نباشد و با چرخش صفحه ریست نشود.
     private val _realTimeUiState = MutableStateFlow(RealTimeUiState())
     val realTimeUiState: StateFlow<RealTimeUiState> = _realTimeUiState.asStateFlow()
-    private val _loadingError = MutableStateFlow<String?>(null)
-    val loadingError: StateFlow<String?> = _loadingError
-    private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
-    val uiState: StateFlow<UiState> = _uiState
-    private val _ships = MutableStateFlow(ShipsData(emptyList(), emptyList()))
-    val ships: StateFlow<ShipsData> = _ships
-    private val _selectedShip = MutableStateFlow<Ship?>(null)
-    val selectedShip: StateFlow<Ship?> = _selectedShip
-    private val _selectedWarehouse = MutableStateFlow<Warehouse?>(null)
-    val selectedWarehouse: StateFlow<Warehouse?> = _selectedWarehouse
-    private val _selectedQuotaDetails = MutableStateFlow<QuotaDetails?>(null)
-    val selectedQuotaDetails: StateFlow<QuotaDetails?> = _selectedQuotaDetails
-    private val _selectedShipQuotas = MutableStateFlow<List<Quota>>(emptyList())
-    val selectedShipQuotas: StateFlow<List<Quota>> = _selectedShipQuotas
-    private val _filteredSummary = MutableStateFlow<FilteredSummary?>(null)
-    val filteredSummary: StateFlow<FilteredSummary?> = _filteredSummary
+
+    // فاز ۳.۵: وضعیت مشترک صفحه‌ی گزارش کشتی/کوتاژ (لیست کشتی‌ها، کشتی/انبار/
+    // کوتاژ انتخاب‌شده، خلاصه‌ی فیلترشده، بازه‌ی تاریخ، حالت‌های loading/error
+    // مرتبط) در یک UiState واحد جمع شده — دقیقاً هم‌راستا با الگوی CargoUiState
+    // در CargoViewModel. حوزه‌های دیگر (polling لحظه‌ای، تحلیل جامع، حالت‌های
+    // مرتب‌سازی/گروه‌بندی/جستجو، رویدادهای snackbar) عمداً جدا نگه داشته
+    // شده‌اند چون هرکدام یک concern مستقل با چرخه‌ی حیات/الگوی به‌روزرسانی خودشان
+    // هستند، نه بخشی از همین صفحه.
+    private val _uiState = MutableStateFlow(ReportsUiState())
+    val uiState: StateFlow<ReportsUiState> = _uiState.asStateFlow()
+
+    // فقط داخلی است (هیچ‌وقت به UI expose نشده) پس بیرون از ReportsUiState
+    // نگه داشته شده — هم‌راستا با فیلدهای internal-only در CargoViewModel.
     private val _currentShipName = MutableStateFlow<String?>(null)
     private val _shipColorMap = MutableStateFlow<Map<String, Color>>(emptyMap())
     val shipColorMap: StateFlow<Map<String, Color>> = _shipColorMap.asStateFlow()
@@ -173,10 +170,6 @@ class ReportsViewModel(
     private val _warehouseQuotaGroupingMode = MutableStateFlow(WarehouseQuotaGroupingMode.BY_CARGO_OWNER)
     val warehouseQuotaGroupingMode: StateFlow<WarehouseQuotaGroupingMode> = _warehouseQuotaGroupingMode.asStateFlow()
 
-    // متغیرهای مربوط به بازه زمانی انتخاب شده
-    private val _selectedDateRange = MutableStateFlow<Pair<String, String>?>(null)
-    val selectedDateRange: StateFlow<Pair<String, String>?> = _selectedDateRange.asStateFlow()
-
     // متغیرهای مربوط به مرتب‌سازی کوتاژها
     private val _quotaSortingMode = MutableStateFlow(QuotaSortingMode.REMAINING_TONNAGE_ASC)
     val quotaSortingMode: StateFlow<QuotaSortingMode> = _quotaSortingMode.asStateFlow()
@@ -220,19 +213,17 @@ class ReportsViewModel(
 
     fun clearCurrentShipData() {
         _currentShipName.value = null
-        _selectedShip.value = null
-        _selectedShipQuotas.value = emptyList()
+        _uiState.update { it.copy(selectedShip = null, selectedShipQuotas = emptyList()) }
     }
 
     fun loadShips() {
         viewModelScope.launch {
-            _uiState.value = UiState.Loading
+            _uiState.update { it.copy(status = UiState.Loading) }
             try {
                 val shipsData = repository.getShipsList()
-                _ships.value = shipsData
-                _uiState.value = UiState.Success
+                _uiState.update { it.copy(ships = shipsData, status = UiState.Success) }
             } catch (e: Exception) {
-                _uiState.value = UiState.Error("خطا در بارگیری لیست کشتی‌ها: ${e.message}")
+                _uiState.update { it.copy(status = UiState.Error("خطا در بارگیری لیست کشتی‌ها: ${e.message}")) }
             }
         }
     }
@@ -328,21 +319,9 @@ class ReportsViewModel(
         return _realTimeUiState.value.error
     }
 
-    private val _shipDetailsLoadingState = MutableStateFlow<LoadingState>(LoadingState.Idle)
-    val shipDetailsLoadingState: StateFlow<LoadingState> = _shipDetailsLoadingState.asStateFlow()
-    
-    private val _shipQuotasLoadingState = MutableStateFlow<LoadingState>(LoadingState.Idle)
-    val shipQuotasLoadingState: StateFlow<LoadingState> = _shipQuotasLoadingState.asStateFlow()
-    
-    private val _isLoadingShipDetails = MutableStateFlow(false)
-    val isLoadingShipDetails: StateFlow<Boolean> = _isLoadingShipDetails.asStateFlow()
-    
-    private val _isLoadingShipQuotas = MutableStateFlow(false)
-    val isLoadingShipQuotas: StateFlow<Boolean> = _isLoadingShipQuotas.asStateFlow()
-
     fun loadWarehouseDetails(shipName: String, warehouseName: String) {
         viewModelScope.launch {
-            _uiState.value = UiState.Loading
+            _uiState.update { it.copy(status = UiState.Loading) }
             try {
                 val warehouseDetails = repository.getWarehouseDetails(shipName, warehouseName)
                 val availableDates = warehouseDetails.quotas
@@ -351,63 +330,66 @@ class ReportsViewModel(
                     }
                     .distinct()
                     .sorted()
-                _selectedWarehouse.value =
-                    warehouseDetails.copy(availableExitDates = availableDates)
-                _uiState.value = UiState.Success
+                _uiState.update {
+                    it.copy(
+                        selectedWarehouse = warehouseDetails.copy(availableExitDates = availableDates),
+                        status = UiState.Success
+                    )
+                }
             } catch (e: Exception) {
-                _uiState.value = UiState.Error("Failed to load warehouse details: ${e.message}")
+                _uiState.update { it.copy(status = UiState.Error("Failed to load warehouse details: ${e.message}")) }
             }
         }
     }
 
     fun loadQuotaDetails(quotaNumber: String) {
         viewModelScope.launch {
-            _uiState.value = UiState.Loading
+            _uiState.update { it.copy(status = UiState.Loading) }
             try {
                 val quotaDetails = repository.getQuotaDetails(quotaNumber)
-                _selectedQuotaDetails.value = quotaDetails
-                _uiState.value = UiState.Success
+                _uiState.update { it.copy(selectedQuotaDetails = quotaDetails, status = UiState.Success) }
             } catch (e: Exception) {
-                _uiState.value = UiState.Error("خطا در بارگیری جزئیات کوتاژ: ${e.message}")
+                _uiState.update { it.copy(status = UiState.Error("خطا در بارگیری جزئیات کوتاژ: ${e.message}")) }
             }
         }
     }
 
     fun loadShipQuotas(shipName: String) {
         viewModelScope.launch {
-            _isLoadingShipQuotas.value = true
-            _shipQuotasLoadingState.value = LoadingState.Idle
-            
+            _uiState.update { it.copy(isLoadingShipQuotas = true, shipQuotasLoadingState = LoadingState.Idle) }
+
             try {
                 val quotas = withContext(Dispatchers.IO) {
                     repository.getShipQuotas(shipName)
                 }
-                
-                _selectedShipQuotas.value = quotas
-                _shipQuotasLoadingState.value = LoadingState.Idle
-                
-                if (_shipDetailsLoadingState.value !is LoadingState.Error) {
-                    _uiState.value = UiState.Success
+
+                _uiState.update {
+                    it.copy(
+                        selectedShipQuotas = quotas,
+                        shipQuotasLoadingState = LoadingState.Idle,
+                        status = if (it.shipDetailsLoadingState !is LoadingState.Error) UiState.Success else it.status
+                    )
                 }
-                
+
             } catch (e: Exception) {
                 val errorMessage = "خطا در بارگیری کوتاژهای کشتی: ${e.message}"
-                _shipQuotasLoadingState.value = LoadingState.Error(errorMessage)
-                
-                if (_selectedShipQuotas.value.isEmpty()) {
-                    _uiState.value = UiState.Error(errorMessage)
+                _uiState.update {
+                    it.copy(
+                        shipQuotasLoadingState = LoadingState.Error(errorMessage),
+                        status = if (it.selectedShipQuotas.isEmpty()) UiState.Error(errorMessage) else it.status
+                    )
                 }
             } finally {
-                _isLoadingShipQuotas.value = false
+                _uiState.update { it.copy(isLoadingShipQuotas = false) }
             }
         }
     }
 
     fun loadShipDataAsync(shipName: String) {
         viewModelScope.launch {
-            _uiState.value = UiState.Loading
-            _isLoadingShipDetails.value = true
-            _isLoadingShipQuotas.value = true
+            _uiState.update {
+                it.copy(status = UiState.Loading, isLoadingShipDetails = true, isLoadingShipQuotas = true)
+            }
 
             try {
                 supervisorScope {
@@ -417,13 +399,16 @@ class ReportsViewModel(
                     val shipDetails = shipDetailsDeferred.await()
                     val quotas = shipQuotasDeferred.await()
 
-                    _selectedShip.value = shipDetails
                     _currentShipName.value = shipName
-                    _selectedShipQuotas.value = quotas
-
-                    _shipDetailsLoadingState.value = LoadingState.Idle
-                    _shipQuotasLoadingState.value = LoadingState.Idle
-                    _uiState.value = UiState.Success
+                    _uiState.update {
+                        it.copy(
+                            selectedShip = shipDetails,
+                            selectedShipQuotas = quotas,
+                            shipDetailsLoadingState = LoadingState.Idle,
+                            shipQuotasLoadingState = LoadingState.Idle,
+                            status = UiState.Success
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 if (isShipNotFoundError(e)) {
@@ -431,12 +416,15 @@ class ReportsViewModel(
                     return@launch
                 }
                 val errorMessage = "خطا در بارگیری اطلاعات کشتی: ${e.message}"
-                _uiState.value = UiState.Error(errorMessage)
-                _shipDetailsLoadingState.value = LoadingState.Error(errorMessage)
-                _shipQuotasLoadingState.value = LoadingState.Error(errorMessage)
+                _uiState.update {
+                    it.copy(
+                        status = UiState.Error(errorMessage),
+                        shipDetailsLoadingState = LoadingState.Error(errorMessage),
+                        shipQuotasLoadingState = LoadingState.Error(errorMessage)
+                    )
+                }
             } finally {
-                _isLoadingShipDetails.value = false
-                _isLoadingShipQuotas.value = false
+                _uiState.update { it.copy(isLoadingShipDetails = false, isLoadingShipQuotas = false) }
             }
         }
     }
@@ -448,9 +436,10 @@ class ReportsViewModel(
                     val shipDetailsDeferred = async { repository.getShipDetails(shipName) }
                     val shipQuotasDeferred = async { repository.getShipQuotas(shipName) }
 
-                    _selectedShip.value = shipDetailsDeferred.await()
-                    _selectedShipQuotas.value = shipQuotasDeferred.await()
+                    val shipDetails = shipDetailsDeferred.await()
+                    val quotas = shipQuotasDeferred.await()
                     _currentShipName.value = shipName
+                    _uiState.update { it.copy(selectedShip = shipDetails, selectedShipQuotas = quotas) }
                 }
             } catch (e: Exception) {
                 if (isShipNotFoundError(e)) {
@@ -466,21 +455,22 @@ class ReportsViewModel(
         viewModelScope.launch {
             try {
                 val quotas = repository.getFilteredQuotas(shipName, startDateTime, endDateTime)
-                _selectedShipQuotas.value = quotas
-                _selectedDateRange.value = Pair(startDateTime, endDateTime)
+                _uiState.update {
+                    it.copy(selectedShipQuotas = quotas, selectedDateRange = Pair(startDateTime, endDateTime))
+                }
             } catch (e: Exception) {
-                _loadingError.value = "خطا در بارگیری کوتاژهای فیلتر شده: ${e.message}"
+                _uiState.update { it.copy(loadingError = "خطا در بارگیری کوتاژهای فیلتر شده: ${e.message}") }
             }
         }
     }
 
     fun clearLoadingError() {
-        _loadingError.value = null
+        _uiState.update { it.copy(loadingError = null) }
     }
 
     fun clearSelectedDateRange() {
-        _selectedDateRange.value = null
-        _selectedShip.value?.name?.let { shipName ->
+        _uiState.update { it.copy(selectedDateRange = null) }
+        _uiState.value.selectedShip?.name?.let { shipName ->
             loadShipQuotas(shipName)
         }
     }
@@ -493,7 +483,7 @@ class ReportsViewModel(
         endDateTime: String?
     ) {
         viewModelScope.launch {
-            _uiState.value = UiState.Loading
+            _uiState.update { it.copy(status = UiState.Loading) }
             try {
                 val summary = repository.getFilteredSummary(
                     shipName = shipName,
@@ -502,10 +492,9 @@ class ReportsViewModel(
                     startDateTime = startDateTime ?: "",
                     endDateTime = endDateTime ?: ""
                 )
-                _filteredSummary.value = summary
-                _uiState.value = UiState.Success
+                _uiState.update { it.copy(filteredSummary = summary, status = UiState.Success) }
             } catch (e: Exception) {
-                _uiState.value = UiState.Error("خطا در دریافت خلاصه فیلتر شده: ${e.message}")
+                _uiState.update { it.copy(status = UiState.Error("خطا در دریافت خلاصه فیلتر شده: ${e.message}")) }
             }
         }
     }
@@ -593,7 +582,7 @@ class ReportsViewModel(
         viewModelScope.launch {
             try {
                 val stillActiveIds = quotaIds.filter { id ->
-                    id > 0 && _selectedShipQuotas.value.find { it.id == id }?.isActive != false
+                    id > 0 && _uiState.value.selectedShipQuotas.find { it.id == id }?.isActive != false
                 }
 
                 var successCount = 0
@@ -694,7 +683,7 @@ class ReportsViewModel(
                     cargoType = quota.cargoType ?: ""
                 )
                 if (success) {
-                    refreshShipDataSilently(_selectedShip.value?.name ?: "")
+                    refreshShipDataSilently(_uiState.value.selectedShip?.name ?: "")
                     showSnackbar("کوتاژ با موفقیت حذف شد")
                 } else {
                     showSnackbar("خطا در حذف کوتاژ")
@@ -706,7 +695,7 @@ class ReportsViewModel(
     }
 
     fun clearFilteredSummary() {
-        _filteredSummary.value = null
+        _uiState.update { it.copy(filteredSummary = null) }
     }
 
     fun performAdvancedSearch(receiptNumber: String, onResult: (Result<CargoInfo?>) -> Unit) {
@@ -735,7 +724,7 @@ class ReportsViewModel(
         viewModelScope.launch {
             try {
                 val result = repository.updateCargoInfo(cargoInfo)
-                
+
                 result.fold(
                     onSuccess = { response ->
                         Log.d("ReportsViewModel", "✅ ViewModel: موفقیت - $response")
@@ -744,7 +733,7 @@ class ReportsViewModel(
                         Log.e("ReportsViewModel", "❌ ViewModel: خطا - ${error.message}")
                     }
                 )
-                
+
                 onResult(result)
             } catch (e: Exception) {
                 onResult(Result.failure(e))
@@ -866,6 +855,22 @@ class ReportsViewModel(
         data object Success : UiState()
         data class Error(val message: String) : UiState()
     }
+
+    data class ReportsUiState(
+        val status: UiState = UiState.Loading,
+        val ships: ShipsData = ShipsData(emptyList(), emptyList()),
+        val selectedShip: Ship? = null,
+        val selectedWarehouse: Warehouse? = null,
+        val selectedQuotaDetails: QuotaDetails? = null,
+        val selectedShipQuotas: List<Quota> = emptyList(),
+        val filteredSummary: FilteredSummary? = null,
+        val selectedDateRange: Pair<String, String>? = null,
+        val shipDetailsLoadingState: LoadingState = LoadingState.Idle,
+        val shipQuotasLoadingState: LoadingState = LoadingState.Idle,
+        val isLoadingShipDetails: Boolean = false,
+        val isLoadingShipQuotas: Boolean = false,
+        val loadingError: String? = null
+    )
 
     data class RealTimeUiState(
         val data: List<RealTimeLoadingData> = emptyList(),

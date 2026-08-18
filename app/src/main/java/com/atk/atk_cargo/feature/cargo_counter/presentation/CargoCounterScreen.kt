@@ -28,7 +28,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -142,7 +142,7 @@ private fun loadActiveShips(
 ) {
     coroutineScope.launch {
         try {
-            val response = RetrofitClient.apiService.getActiveShips()
+            val response = RetrofitClient.apiServiceV2.getActiveShips()
             if (response.isSuccessful) {
                 response.body()?.let { ships ->
                     onSuccess(ships)
@@ -278,7 +278,7 @@ fun CargoCounterScreen(
         isRefreshing = true
         coroutineScope.launch {
             try {
-                val response = RetrofitClient.apiService.getRealTimeLoadingData()
+                val response = RetrofitClient.apiServiceV2.getRealTimeLoadingData()
                 if (response.isSuccessful) {
                     val realTimeDataResponse = response.body()
                     if (realTimeDataResponse != null) {

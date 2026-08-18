@@ -62,7 +62,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,6 +78,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.atk.atk_cargo.api.DeleteUserRequest
 import com.atk.atk_cargo.api.ForceLogoutRequest
 import com.atk.atk_cargo.api.RetrofitClient
@@ -123,9 +123,9 @@ fun UserManagementDialog(
             try {
                 // Try getAllUsersWithStatus first, fallback to getAllUsers if needed
                 val response = try {
-                    RetrofitClient.apiService.getAllUsersWithStatus()
+                    RetrofitClient.apiServiceV2.getAllUsersWithStatus()
                 } catch (_: Exception) {
-                    RetrofitClient.apiService.getAllUsers()
+                    RetrofitClient.apiServiceV2.getAllUsers()
                 }
                 users = sortUsersByType(response)
                 isLoading = false
@@ -321,7 +321,10 @@ fun UserManagementDialog(
             onSave = { updateRequest ->
                 scope.launch {
                     try {
-                        val response = RetrofitClient.apiService.updateUser(updateRequest)
+                        val response = RetrofitClient.apiServiceV2.updateUser(
+                            request = updateRequest,
+                            route = com.atk.atk_cargo.api.ApiV2Routes.userUpdate(updateRequest.id)
+                        )
                         if (response.success) {
                             fetchUsersWithStatus()
                             showEditDialog = null
@@ -344,7 +347,10 @@ fun UserManagementDialog(
                 scope.launch {
                     try {
                         val request = DeleteUserRequest(userId = user.id)
-                        val response = RetrofitClient.apiService.deleteUser(request)
+                        val response = RetrofitClient.apiServiceV2.deleteUser(
+                            request = request,
+                            route = com.atk.atk_cargo.api.ApiV2Routes.userDelete(user.id)
+                        )
                         if (response.success) {
                             fetchUsersWithStatus()
                             showDeleteConfirmation = null
@@ -368,7 +374,7 @@ fun UserManagementDialog(
                 scope.launch {
                     try {
                         val activeDeviceId: String = try {
-                            val sessionResponse = RetrofitClient.apiService.getActiveDeviceId(username = user.username)
+                            val sessionResponse = RetrofitClient.apiServiceV2.getActiveDeviceId(username = user.username)
                             if (sessionResponse.isSuccessful && sessionResponse.body()?.success == true) {
                                 sessionResponse.body()?.deviceId ?: ""
                             } else ""
@@ -378,7 +384,7 @@ fun UserManagementDialog(
                             username = user.username,
                             deviceId = activeDeviceId
                         )
-                        val response = RetrofitClient.apiService.forceLogoutUser(request)
+                        val response = RetrofitClient.apiServiceV2.forceLogoutUser(request)
                         if (response.isSuccessful && response.body()?.success == true) {
                             Toast.makeText(context, "کاربر ${user.username} با موفقیت از سیستم خارج شد", Toast.LENGTH_SHORT).show()
                             fetchUsersWithStatus()

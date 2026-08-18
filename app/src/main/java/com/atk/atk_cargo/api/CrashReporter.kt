@@ -4,6 +4,8 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import com.atk.atk_cargo.BuildConfig
+import com.atk.atk_cargo.api.CrashReporter.install
+import com.atk.atk_cargo.api.CrashReporter.sendPendingReportIfAny
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch

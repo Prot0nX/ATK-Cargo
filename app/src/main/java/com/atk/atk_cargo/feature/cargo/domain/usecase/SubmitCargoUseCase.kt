@@ -1,13 +1,13 @@
 package com.atk.atk_cargo.feature.cargo.domain.usecase
 
-import com.atk.atk_cargo.api.ApiService
+import com.atk.atk_cargo.api.ApiServiceV2
 import com.atk.atk_cargo.api.CargoInfo
 import com.atk.atk_cargo.api.InitialInfo
 import com.atk.atk_cargo.api.SaveOrUpdateResponse
 import retrofit2.Response
 
 class SubmitCargoUseCase(
-    private val apiService: ApiService
+    private val apiServiceV2: ApiServiceV2 = com.atk.atk_cargo.api.RetrofitClient.apiServiceV2
 ) {
     fun prepareCargoInfoForSubmission(
         trackingNumber: String,
@@ -49,6 +49,6 @@ class SubmitCargoUseCase(
     }
 
     suspend fun executeSaveOrUpdate(cargoInfo: CargoInfo): Response<SaveOrUpdateResponse> {
-        return apiService.saveOrUpdateCargoInfo(cargoInfo)
+        return apiServiceV2.saveOrUpdateCargoInfo(cargoInfo)
     }
 }

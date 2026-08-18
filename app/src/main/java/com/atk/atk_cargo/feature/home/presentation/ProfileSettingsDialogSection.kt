@@ -330,7 +330,10 @@ fun ProfileSettingsDialog(
                                     currentPassword = hashPassword(currentPassword),
                                     userType = user.userType
                                 )
-                                val response = RetrofitClient.apiService.updateUser(updateRequest)
+                                val response = RetrofitClient.apiServiceV2.updateUser(
+                                    request = updateRequest,
+                                    route = com.atk.atk_cargo.api.ApiV2Routes.userUpdate(updateRequest.id)
+                                )
                                 if (response.success) {
                                     Toast.makeText(context, "رمز عبور با موفقیت تغییر کرد", Toast.LENGTH_SHORT).show()
                                     delay(600.milliseconds)

@@ -50,7 +50,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -70,6 +69,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -155,8 +155,9 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
     var lastSearchType by remember { mutableStateOf<SearchType?>(null) }
     var lastSearchValue by remember { mutableStateOf<String?>(null) }
     val isDarkTheme = isSystemInDarkTheme()
-    val currentShipName by viewModel.selectedShip.collectAsStateWithLifecycle()
-    val loadingError by viewModel.loadingError.collectAsStateWithLifecycle()
+    val reportsUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentShipName = reportsUiState.selectedShip
+    val loadingError = reportsUiState.loadingError
 
     // A-1 (گزارش تحلیل جامع عملیات): مجوز view_reports قبلاً سمت کلاینت هیچ‌جا
     // بررسی نمی‌شد، پس دکمه «آمار جامع» به همه کاربران — حتی آن‌هایی که سرور
@@ -249,7 +250,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
     if (showQuotasDialog && selectedShipForQuotas != null) {
         QuotasDialog(
             shipName = selectedShipForQuotas!!,
-            quotas = viewModel.selectedShipQuotas.collectAsStateWithLifecycle().value,
+            quotas = reportsUiState.selectedShipQuotas,
             onDismiss = {
                 showQuotasDialog = false
                 selectedShipForQuotas = null

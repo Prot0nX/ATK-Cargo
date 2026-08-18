@@ -48,14 +48,7 @@ RewriteRule \.(jpg|jpeg|png|gif|bmp|webp)$ - [F,NC]
 #############################################
 # 🚦 مسیریابی API نسخه‌ی ۲ (Router صریح — جایگزین تدریجی protected_proxy.php)
 #############################################
-# روی هاست تولید فعلی (atk-nk.ir) با تست مستقیم تأیید شد که mod_rewrite از
-# طریق .htaccess اصلاً فعال نیست (حتی قانون قدیمی hotlink-protection بالاتر
-# در همین فایل هم هیچ‌وقت واقعاً اجرا نشده — احتمالاً AllowOverride این پوشه
-# در سطح Apache شامل FileInfo نیست). یعنی این rewrite روی این هاست خاص
-# بی‌اثر است و راه‌حل واقعی routing از طریق query string در api/v2/index.php
-# پیاده شده (?route=auth/login، دقیقاً هم‌الگوی protected_proxy.php?target=).
-# این قانون فقط برای هاست‌های دیگری که AllowOverride FileInfo دارند و
-# می‌خواهند URL تمیز داشته باشند نگه داشته شده — بی‌ضرر و صرفاً fallback است.
+
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^api/v2/(.*)$ api/v2/index.php [L,QSA]

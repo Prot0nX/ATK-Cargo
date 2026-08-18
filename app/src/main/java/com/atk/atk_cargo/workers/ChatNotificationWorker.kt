@@ -30,8 +30,7 @@ class ChatNotificationWorker(
             val lastNotifiedId = userPreferencesManager.lastNotifiedMessageId.first()
             
             // Fetch latest messages
-            val apiService = RetrofitClient.apiService
-            val response = apiService.getChatMessages(username = username, limit = 20)
+            val response = RetrofitClient.apiServiceV2.getChatMessages(username = username, limit = 20)
             
             if (response.isSuccessful) {
                 val messagesResponse = response.body()

@@ -563,7 +563,7 @@ fun InitialInfoScreen(navController: NavController) {
                                                         cargoType = cargoType,
                                                         shippingCompany = shippingCompany
                                                     )
-                                                    val response = RetrofitClient.apiService.checkExistence(request)
+                                                    val response = RetrofitClient.apiServiceV2.checkExistence(request)
                                                     when (response.body()?.status) {
                                                         "not_exists" -> showConfirmationDialog = true
                                                         "exists" -> showDuplicateDialog = true
@@ -656,7 +656,7 @@ fun InitialInfoScreen(navController: NavController) {
                             cargoOwner = cargoOwner
                         )
 
-                        val response = RetrofitClient.apiService.saveInitialInfo(initialInfo)
+                        val response = RetrofitClient.apiServiceV2.saveInitialInfo(initialInfo)
                         if (response.isSuccessful) {
                             dialogMessage = "اطلاعات با موفقیت ثبت شد"
                             isErrorDialog = false

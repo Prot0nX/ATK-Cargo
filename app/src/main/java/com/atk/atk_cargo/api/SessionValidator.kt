@@ -15,7 +15,7 @@ suspend fun validateServerSession(
         }
         
         val request = SessionCheckRequest(username, deviceId, sessionToken)
-        val response = RetrofitClient.apiService.checkSession(request)
+        val response = RetrofitClient.apiServiceV2.checkSession(request)
 
         if (response.isSuccessful && response.body()?.success == true) {
             return Result.success(true)

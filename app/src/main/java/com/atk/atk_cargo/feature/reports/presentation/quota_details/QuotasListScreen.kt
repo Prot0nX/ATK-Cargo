@@ -72,7 +72,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -93,6 +92,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.atk.atk_cargo.api.CalculationResult
 import com.atk.atk_cargo.api.GroupSortingMode
 import com.atk.atk_cargo.api.Quota
@@ -171,6 +171,7 @@ fun QuotasList(
     val currentSortingMode by viewModel.quotaSortingMode.collectAsStateWithLifecycle()
     val currentGroupSortingMode by viewModel.groupSortingMode.collectAsStateWithLifecycle()
     val isMinimalMode by viewModel.isMinimalQuotaMode.collectAsStateWithLifecycle()
+    val reportsUiState by viewModel.uiState.collectAsStateWithLifecycle()
     var expandedGroup by rememberSaveable { mutableStateOf<String?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -240,7 +241,7 @@ fun QuotasList(
             Surface(
                 onClick = {
                     shareGroupedQuotas?.let { quotas ->
-                        val shipName = viewModel.selectedShip.value?.name ?: ""
+                        val shipName = reportsUiState.selectedShip?.name ?: ""
                         val shareText = buildQuotasShareText(quotas, shipName)
                         shareQuotasData(context, shareText)
                     }
@@ -263,7 +264,7 @@ fun QuotasList(
             }
         }
 
-        val selectedDateRange by viewModel.selectedDateRange.collectAsStateWithLifecycle()
+        val selectedDateRange = reportsUiState.selectedDateRange
         selectedDateRange?.let { (startDate, endDate) ->
             Card(
                 modifier = Modifier
@@ -407,7 +408,7 @@ fun QuotasList(
                         onToggleStatus = onToggleStatus,
                         onDelete = onDelete,
                         onPercentageChange = viewModel::updateQuotaPercentage,
-                        shipName = viewModel.selectedShip.value?.name ?: "",
+                        shipName = reportsUiState.selectedShip?.name ?: "",
                         isMinimalMode = isMinimalMode && currentGroupingMode == WarehouseQuotaGroupingMode.BY_CARGO_OWNER
                     )
                 }

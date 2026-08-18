@@ -23,7 +23,9 @@ import org.koin.dsl.module
 
 val appModule = module {
     // ===== API Service =====
-    single { RetrofitClient.apiService }
+    // v1 (protected_proxy.php) کاملاً حذف شده — Router v2 تنها API stack
+    // کلاینت است (DEEP_CODE_AUDIT.md #Phase3.1/3.2).
+    single { RetrofitClient.apiServiceV2 }
 
     // ===== Security =====
     single { CryptoManager() }
@@ -34,12 +36,12 @@ val appModule = module {
 
     // ===== دیتابیس محلی و مخازن =====
     single { AppDatabase.getDatabase(androidContext()) }
-    single { ChatRepository(get<AppDatabase>().chatDao(), { get() }, get()) }
+    single { ChatRepository(get<AppDatabase>().chatDao(), get(), get()) }
     single { ReportsRepository(get()) }
     single<AuthRepository> {
         AuthRepositoryImpl(
             context = androidContext(),
-            apiService = get(),
+            apiServiceV2 = get(),
             userPreferencesManager = get()
         )
     }

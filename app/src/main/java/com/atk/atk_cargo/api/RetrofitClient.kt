@@ -176,8 +176,9 @@ object RetrofitClient {
             .build()
     }
 
-    // Create API Service instance
-    val apiService: ApiService by lazy {
-        retrofit.create(ApiService::class.java)
+    // Router v2 — تنها API stack کلاینت (v1/protected_proxy.php کاملاً حذف
+    // شده، هم سمت سرور هم سمت کلاینت — DEEP_CODE_AUDIT.md #Phase3.1/3.2).
+    val apiServiceV2: ApiServiceV2 by lazy {
+        retrofit.create(ApiServiceV2::class.java)
     }
 }

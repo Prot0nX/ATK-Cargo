@@ -60,7 +60,7 @@
 # SECTION 6: NETWORKING (RETROFIT, OKHTTP, GSON)
 # -----------------------------------------------------------------------
 # Retrofit Interfaces & Annotations
--keep interface com.atk.atk_cargo.api.ApiService { *; }
+-keep interface com.atk.atk_cargo.api.ApiServiceV2 { *; }
 -keep interface com.atk.atk_cargo.api.ThirdPartyApiService { *; }
 
 -keepclassmembers interface * {

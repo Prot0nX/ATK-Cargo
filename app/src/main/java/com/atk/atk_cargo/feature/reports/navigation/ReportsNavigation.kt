@@ -5,7 +5,6 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
-import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.feature.cargo_details.presentation.CargoDetailsScreen
 import com.atk.atk_cargo.ui.screens.ManageReportsScreen
@@ -48,7 +47,7 @@ fun NavGraphBuilder.manageShipsScreen(
 fun NavGraphBuilder.cargoDetailsScreen(navController: NavController) {
     composable<CargoDetailsRoute> { backStackEntry ->
         val route: CargoDetailsRoute = backStackEntry.toRoute()
-        val repository = remember { ReportsRepository(RetrofitClient.apiService) }
+        val repository = remember { ReportsRepository() }
         
         CargoDetailsScreen(
             navController = navController,

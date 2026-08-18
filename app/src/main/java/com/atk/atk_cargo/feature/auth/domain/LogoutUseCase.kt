@@ -1,12 +1,12 @@
 package com.atk.atk_cargo.feature.auth.domain
 
-import com.atk.atk_cargo.api.ApiService
+import com.atk.atk_cargo.api.ApiServiceV2
 import com.atk.atk_cargo.api.LogoutRequest
 import com.atk.atk_cargo.api.UserPreferencesManager
 import kotlinx.coroutines.flow.first
 
 class LogoutUseCase(
-    private val apiService: ApiService,
+    private val apiServiceV2: ApiServiceV2,
     private val userPreferencesManager: UserPreferencesManager
 ) {
     suspend operator fun invoke(username: String): Result<String?> {
@@ -19,7 +19,7 @@ class LogoutUseCase(
                 sessionToken = sessionToken.takeIf { it.isNotEmpty() }
             )
 
-            val response = apiService.logout(logoutRequest)
+            val response = apiServiceV2.logout(logoutRequest)
             userPreferencesManager.clearUserCredentials()
             if (response.isSuccessful && response.body()?.success == true) {
                 Result.success("خروج با موفقیت انجام شد")
