@@ -72,7 +72,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -167,10 +167,10 @@ fun QuotasList(
     onDelete: (Quota) -> Unit,
     viewModel: ReportsViewModel
 ) {
-    val currentGroupingMode by groupingMode.collectAsState()
-    val currentSortingMode by viewModel.quotaSortingMode.collectAsState()
-    val currentGroupSortingMode by viewModel.groupSortingMode.collectAsState()
-    val isMinimalMode by viewModel.isMinimalQuotaMode.collectAsState()
+    val currentGroupingMode by groupingMode.collectAsStateWithLifecycle()
+    val currentSortingMode by viewModel.quotaSortingMode.collectAsStateWithLifecycle()
+    val currentGroupSortingMode by viewModel.groupSortingMode.collectAsStateWithLifecycle()
+    val isMinimalMode by viewModel.isMinimalQuotaMode.collectAsStateWithLifecycle()
     var expandedGroup by rememberSaveable { mutableStateOf<String?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -263,7 +263,7 @@ fun QuotasList(
             }
         }
 
-        val selectedDateRange by viewModel.selectedDateRange.collectAsState()
+        val selectedDateRange by viewModel.selectedDateRange.collectAsStateWithLifecycle()
         selectedDateRange?.let { (startDate, endDate) ->
             Card(
                 modifier = Modifier

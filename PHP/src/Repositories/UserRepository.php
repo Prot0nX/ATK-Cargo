@@ -44,6 +44,16 @@ class UserRepository {
     }
 
     /**
+     * دریافت لیست کاربران بر اساس نوع (مثلاً 'admin') — برای فهرست مقصدهای
+     * چت که باید برای هر کاربر احرازشده در دسترس باشد، بدون افشای کل جدول.
+     */
+    public function getByUserType(string $userType): array {
+        $stmt = $this->db->prepare("SELECT id, username, fullName, userType FROM Users WHERE userType = :userType ORDER BY fullName ASC");
+        $stmt->execute([':userType' => $userType]);
+        return $stmt->fetchAll();
+    }
+
+    /**
      * ایجاد کاربر جدید
      */
     public function create(array $data): int {

@@ -78,9 +78,7 @@ class ChatViewModel(
     private fun loadUsers() {
         viewModelScope.launch {
             try {
-                // فقط کاربران با سطح دسترسی admin
-                val userList = repository.getAllUsers().filter { it.userType == "admin" }
-                _users.value = userList
+                _users.value = repository.getAdminUsers()
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading users", e)
             }

@@ -50,7 +50,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -148,15 +148,15 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
     var showQuotaManagementDialog by remember { mutableStateOf(false) }
     var currentSelectedSection by remember { mutableIntStateOf(0) }
     var isInShipDetailsScreen by remember { mutableStateOf(false) }
-    val realTimeUiState by viewModel.realTimeUiState.collectAsState()
+    val realTimeUiState by viewModel.realTimeUiState.collectAsStateWithLifecycle()
     var searchResult by remember { mutableStateOf<CargoInfo?>(null) }
     var multipleSearchResults by remember { mutableStateOf<List<CargoInfo>?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var lastSearchType by remember { mutableStateOf<SearchType?>(null) }
     var lastSearchValue by remember { mutableStateOf<String?>(null) }
     val isDarkTheme = isSystemInDarkTheme()
-    val currentShipName by viewModel.selectedShip.collectAsState()
-    val loadingError by viewModel.loadingError.collectAsState()
+    val currentShipName by viewModel.selectedShip.collectAsStateWithLifecycle()
+    val loadingError by viewModel.loadingError.collectAsStateWithLifecycle()
 
     // A-1 (گزارش تحلیل جامع عملیات): مجوز view_reports قبلاً سمت کلاینت هیچ‌جا
     // بررسی نمی‌شد، پس دکمه «آمار جامع» به همه کاربران — حتی آن‌هایی که سرور
@@ -164,7 +164,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
     // همان Flow ذخیره‌شده‌ی DataStore است که PermissionPoller (در MainScreen)
     // هر بار تغییر مجوزها را در آن هم ذخیره می‌کند، پس این مقدار حداکثر تا
     // فاصله‌ی همان polling (۳ دقیقه) به‌روز است.
-    val userPermissions by userPreferencesManager.permissions.collectAsState(initial = emptyMap())
+    val userPermissions by userPreferencesManager.permissions.collectAsStateWithLifecycle(initialValue = emptyMap())
     val canViewReports = userPermissions["view_reports"] == true
 
     ATKCargoTheme(darkTheme = isSystemInDarkTheme()) {
@@ -249,7 +249,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
     if (showQuotasDialog && selectedShipForQuotas != null) {
         QuotasDialog(
             shipName = selectedShipForQuotas!!,
-            quotas = viewModel.selectedShipQuotas.collectAsState().value,
+            quotas = viewModel.selectedShipQuotas.collectAsStateWithLifecycle().value,
             onDismiss = {
                 showQuotasDialog = false
                 selectedShipForQuotas = null
@@ -294,8 +294,8 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
         }
     )
 
-    val realTimeShipColorMap by viewModel.shipColorMap.collectAsState()
-    val realTimeShiftOffset by viewModel.realTimeShiftOffset.collectAsState()
+    val realTimeShipColorMap by viewModel.shipColorMap.collectAsStateWithLifecycle()
+    val realTimeShiftOffset by viewModel.realTimeShiftOffset.collectAsStateWithLifecycle()
 
     RealTimeLoadingBottomSheet(
         isOpen = showRealTimeDialog,
@@ -992,7 +992,7 @@ fun ScrollableSelector(
                     contentPadding = PaddingValues(vertical = 50.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    items(items) { item ->
+                    items(items, key = { it }) { item ->
                         val isSelected = item == selectedItem
                         Box(
                             modifier = Modifier

@@ -67,6 +67,7 @@ fun ProfileSettingsDialog(
     onDismiss: () -> Unit,
     onLogout: () -> Unit
 ) {
+    var currentPassword by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
@@ -145,19 +146,38 @@ fun ProfileSettingsDialog(
                 }
 
                 OutlinedTextField(
-                    value = password,
+                    value = currentPassword,
                     onValueChange = {
-                        password = it.filter { char -> char.isDigit() }
+                        currentPassword = it
                         errorMessage = ""
                     },
-                    label = { Text("رمز عبور جدید (عددی)") },
+                    label = { Text("رمز عبور فعلی") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
                     leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.NumberPassword,
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next
+                    ),
+                    isError = errorMessage.isNotEmpty()
+                )
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = {
+                        password = it
+                        errorMessage = ""
+                    },
+                    label = { Text("رمز عبور جدید (حداقل ۸ کاراکتر)") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
+                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Next
                     ),
                     isError = errorMessage.isNotEmpty()
@@ -166,7 +186,7 @@ fun ProfileSettingsDialog(
                 OutlinedTextField(
                     value = confirmPassword,
                     onValueChange = {
-                        confirmPassword = it.filter { char -> char.isDigit() }
+                        confirmPassword = it
                         errorMessage = ""
                     },
                     label = { Text("تکرار رمز عبور جدید") },
@@ -176,7 +196,7 @@ fun ProfileSettingsDialog(
                     textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Right),
                     leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.NumberPassword,
+                        keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
                     ),
                     isError = errorMessage.isNotEmpty()
@@ -210,7 +230,7 @@ fun ProfileSettingsDialog(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            "رمز عبور باید فقط شامل اعداد و حداقل ۴ رقم باشد.",
+                            "رمز عبور باید حداقل ۸ کاراکتر باشد.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
@@ -222,8 +242,9 @@ fun ProfileSettingsDialog(
             Button(
                 onClick = {
                     when {
+                        currentPassword.isEmpty() -> errorMessage = "لطفاً رمز عبور فعلی را وارد کنید"
                         password.isEmpty() -> errorMessage = "لطفاً رمز عبور جدید را وارد کنید"
-                        password.length < 4 -> errorMessage = "رمز عبور باید حداقل ۴ رقم باشد"
+                        password.length < 8 -> errorMessage = "رمز عبور باید حداقل ۸ کاراکتر باشد"
                         confirmPassword.isEmpty() -> errorMessage = "لطفاً تکرار رمز عبور را وارد کنید"
                         password != confirmPassword -> errorMessage = "رمز عبور و تکرار آن مطابقت ندارند"
                         else -> showConfirmation = true
@@ -306,6 +327,7 @@ fun ProfileSettingsDialog(
                                     username = user.username,
                                     fullName = null,
                                     password = hashPassword(password),
+                                    currentPassword = hashPassword(currentPassword),
                                     userType = user.userType
                                 )
                                 val response = RetrofitClient.apiService.updateUser(updateRequest)

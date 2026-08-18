@@ -37,6 +37,7 @@ use App\Controllers\AppApiController;
 use App\Controllers\AuthController;
 use App\Controllers\CargoController;
 use App\Controllers\ChatController;
+use App\Controllers\DiagnosticsController;
 use App\Controllers\UserController;
 use App\Controllers\UtilityController;
 use App\Core\Request;
@@ -66,8 +67,12 @@ $safeCall = static function (callable $fn) {
         return $fn();
     } catch (ApiException $e) {
         Response::json(['error' => $e->getMessage()] + ($e->getDetails() ?? []), $e->getStatusCode());
-    } catch (\Exception $e) {
-        Response::json(['error' => $e->getMessage()], 500);
+    } catch (\Throwable $e) {
+        // فقط ApiException (پیام‌های عمدی) به کلاینت می‌رود؛ بقیه فقط لاگ
+        // می‌شوند تا ساختار جدول/کوئری افشا نشود (DEEP_CODE_AUDIT.md
+        // #Phase2.4).
+        error_log('api_v2 safeCall: ' . $e->getMessage());
+        Response::json(['error' => 'خطای داخلی سرور رخ داده است.'], 500);
     }
 };
 
@@ -77,7 +82,7 @@ return [
         'method' => 'GET',
         'path' => 'ships',
         'auth' => true,
-        'permission' => null,
+        'permission' => 'view_reports',
         'handler' => function () use ($appApi, $safeCall): void {
             $safeCall(function () use ($appApi) {
                 $controller = $appApi();
@@ -94,7 +99,7 @@ return [
         'method' => 'GET',
         'path' => 'ships/{shipName}',
         'auth' => true,
-        'permission' => null,
+        'permission' => 'view_reports',
         'handler' => function (array $params) use ($appApi, $safeCall): void {
             $safeCall(function () use ($appApi, $params) {
                 $controller = $appApi();
@@ -107,7 +112,7 @@ return [
         'method' => 'GET',
         'path' => 'ships/{shipName}/warehouses/{warehouseName}',
         'auth' => true,
-        'permission' => null,
+        'permission' => 'view_reports',
         'handler' => function (array $params) use ($appApi, $safeCall): void {
             $safeCall(function () use ($appApi, $params) {
                 $details = $appApi()->getWarehouseDetails($params['shipName'], $params['warehouseName']);
@@ -116,6 +121,10 @@ return [
         },
     ],
     [
+        // permission عمداً null است — این route (=getQuotasList در
+        // AppApiController) هنگام ثبت حواله توسط QuotaValidationUseCase.kt
+        // هم صدا زده می‌شود، نه فقط فیچر گزارش‌ها. رجوع کنید به کامنت
+        // READ_ACTIONS_REQUIRING_REPORTS در AppApiController.php.
         'method' => 'GET',
         'path' => 'ships/{shipName}/quotas',
         'auth' => true,
@@ -134,7 +143,7 @@ return [
         'method' => 'GET',
         'path' => 'quotas/filtered',
         'auth' => true,
-        'permission' => null,
+        'permission' => 'view_reports',
         'handler' => function (array $params, Request $request) use ($appApi, $safeCall): void {
             $safeCall(function () use ($appApi, $request) {
                 $shipName = (string)$request->get('shipName', '');
@@ -151,7 +160,7 @@ return [
         'method' => 'GET',
         'path' => 'quotas/filtered-summary',
         'auth' => true,
-        'permission' => null,
+        'permission' => 'view_reports',
         'handler' => function (array $params, Request $request) use ($appApi, $safeCall): void {
             $safeCall(function () use ($appApi, $request) {
                 $shipName = (string)$request->get('shipName', '');
@@ -175,7 +184,7 @@ return [
         'method' => 'GET',
         'path' => 'quotas/grouped',
         'auth' => true,
-        'permission' => null,
+        'permission' => 'view_reports',
         'handler' => function (array $params, Request $request) use ($appApi, $safeCall): void {
             $safeCall(function () use ($appApi, $request) {
                 $shipNameFilter = $request->get('shipName');
@@ -206,7 +215,7 @@ return [
         'method' => 'GET',
         'path' => 'quotas/{quotaNumber}',
         'auth' => true,
-        'permission' => null,
+        'permission' => 'view_reports',
         'handler' => function (array $params) use ($appApi, $safeCall): void {
             $safeCall(function () use ($appApi, $params) {
                 $details = $appApi()->getQuotaDetails($params['quotaNumber']);
@@ -595,5 +604,17 @@ return [
     [
         'method' => 'POST', 'path' => 'analytics/export-log', 'auth' => true, 'permission' => 'view_reports',
         'handler' => function () { $_GET['action'] = 'logAnalyticsExport'; (new AnalyticsController())->handleRealTimeLoadingData(); },
+    ],
+
+    // ===== DIAGNOSTICS (Phase 2.13) — عمداً فقط روی v2، بدون auth: health
+    // باید برای ابزار مانیتورینگ خارجی در دسترس باشد، و گزارش کرش باید حتی
+    // بدون نشست معتبر (یا قبل از لاگین) هم برسد. =====
+    [
+        'method' => 'GET', 'path' => 'health', 'auth' => false, 'permission' => null,
+        'handler' => function () { (new DiagnosticsController())->health(); },
+    ],
+    [
+        'method' => 'POST', 'path' => 'diagnostics/crash', 'auth' => false, 'permission' => null,
+        'handler' => function () { (new DiagnosticsController())->reportCrash(); },
     ],
 ];

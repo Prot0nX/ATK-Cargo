@@ -24,7 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -103,7 +103,7 @@ class MainActivity : ComponentActivity() {
 
                 val themeColorLong by startupViewModel.themeColor
                     .onEach { isThemeColorLoaded = true }
-                    .collectAsState(initial = UserPreferencesManager.DEFAULT_THEME_COLOR)
+                    .collectAsStateWithLifecycle(initialValue = UserPreferencesManager.DEFAULT_THEME_COLOR)
                 val primaryColor = Color(themeColorLong)
 
                 CompositionLocalProvider(
@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
                     LocalNotificationPermissionRequester provides ::checkNotificationPermission
                 ) {
                     ATKCargoTheme(primaryColor = primaryColor) {
-                        val startupState by startupViewModel.startupState.collectAsState()
+                        val startupState by startupViewModel.startupState.collectAsStateWithLifecycle()
 
                         when (val state = startupState) {
                             is StartupState.Splash -> {
@@ -162,16 +162,16 @@ class MainActivity : ComponentActivity() {
         MainScreen()
 
         val updateManager = remember { startupViewModel.getUpdateManager() }
-        val isUpdateAvailable by startupViewModel.isUpdateAvailable.collectAsState()
-        val updateInfo by updateManager.updateInfo.collectAsState()
+        val isUpdateAvailable by startupViewModel.isUpdateAvailable.collectAsStateWithLifecycle()
+        val updateInfo by updateManager.updateInfo.collectAsStateWithLifecycle()
         val info = updateInfo
 
         if (isUpdateAvailable && info != null) {
             var isDialogDismissed by remember { mutableStateOf(false) }
 
             if (!isDialogDismissed || info.forceUpdate) {
-                val downloadProgress by updateManager.downloadProgress.collectAsState()
-                val downloadState by updateManager.downloadState.collectAsState()
+                val downloadProgress by updateManager.downloadProgress.collectAsStateWithLifecycle()
+                val downloadState by updateManager.downloadState.collectAsStateWithLifecycle()
 
                 LaunchedEffect(downloadState) {
                     when (val state = downloadState) {

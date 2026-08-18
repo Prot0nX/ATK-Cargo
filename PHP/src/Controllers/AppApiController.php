@@ -5,7 +5,6 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use Exception;
 use App\Core\AuthenticatesRequests;
 use App\Core\Request;
 use App\Core\Response;
@@ -65,27 +64,52 @@ class AppApiController {
         'updateTemporaryTonnage',
     ];
 
+    // actionهای خواندنی که فقط توسط فیچر گزارش‌ها (ReportsRepository سمت
+    // اندروید) مصرف می‌شوند و باید پشت مجوز view_reports قفل شوند
+    // (DEEP_CODE_AUDIT.md #Phase1.4 — Broken Function Level Authorization).
+    // عمداً «getQuotasList» در این لیست نیست: برخلاف پیشنهاد اولیه‌ی گزارش،
+    // همین action در QuotaValidationUseCase.kt هنگام ثبت حواله (نه فقط
+    // گزارش‌گیری) هم صدا زده می‌شود؛ قفل کردن آن پشت view_reports باعث
+    // می‌شد نقش‌های operator/verifier (که view_reports ندارند) نتوانند
+    // حواله ثبت کنند. «getRealTimeData» اینجا هم در لیست هست چون نسخه‌ی
+    // معادل و مصرف‌شده‌ی آن (AnalyticsController::handleRealTimeLoadingData)
+    // از قبل پشت view_reports است؛ این نسخه اصلاً از کلاینت صدا زده نمی‌شود.
+    private const READ_ACTIONS_REQUIRING_REPORTS = [
+        'getShipsList',
+        'getShipDetails',
+        'getWarehouseDetails',
+        'getQuotaDetails',
+        'getFilteredQuotas',
+        'getFilteredSummary',
+        'getGroupedQuotas',
+        'getRealTimeData',
+    ];
+
     public function handle(): void {
         try {
             if (!$this->request->isGet() && !$this->request->isPost()) {
-                throw new Exception('روش درخواست نامعتبر است');
+                throw new ApiException('روش درخواست نامعتبر است', 400);
             }
 
             $this->requireAuthenticatedSession();
 
             $action = $this->request->get('action');
             if (!$action) {
-                throw new Exception('عملیات مشخص نشده است');
+                throw new ApiException('عملیات مشخص نشده است', 400);
             }
 
             $action = InputValidator::sanitize((string)$action);
 
             $isWriteAction = in_array($action, self::WRITE_ACTIONS, true);
             if ($isWriteAction && !$this->request->isPost()) {
-                throw new Exception('این عملیات باید با متد POST ارسال شود');
+                throw new ApiException('این عملیات باید با متد POST ارسال شود', 400);
             }
             if (!$isWriteAction && !$this->request->isGet()) {
-                throw new Exception('این عملیات باید با متد GET ارسال شود');
+                throw new ApiException('این عملیات باید با متد GET ارسال شود', 400);
+            }
+
+            if (in_array($action, self::READ_ACTIONS_REQUIRING_REPORTS, true)) {
+                $this->requirePermission('view_reports');
             }
 
             switch ($action) {
@@ -105,7 +129,7 @@ class AppApiController {
                 case 'getShipDetails':
                     $shipName = $this->request->get('shipName');
                     if (!$shipName) {
-                        throw new Exception('نام کشتی مشخص نشده است');
+                        throw new ApiException('نام کشتی مشخص نشده است', 400);
                     }
                     $shipDetails = $this->getShipDetails((string)$shipName);
                     $this->sendCacheableJsonResponse($shipDetails, $shipDetails, 6);
@@ -115,7 +139,7 @@ class AppApiController {
                     $shipName = $this->request->get('shipName');
                     $warehouseName = $this->request->get('warehouseName');
                     if (!$shipName || !$warehouseName) {
-                        throw new Exception('نام کشتی یا انبار مشخص نشده است');
+                        throw new ApiException('نام کشتی یا انبار مشخص نشده است', 400);
                     }
                     $warehouseDetails = $this->getWarehouseDetails((string)$shipName, (string)$warehouseName);
                     Response::json($warehouseDetails);
@@ -124,7 +148,7 @@ class AppApiController {
                 case 'getQuotaDetails':
                     $quotaNumber = $this->request->get('quotaNumber');
                     if (!$quotaNumber) {
-                        throw new Exception('شماره کوتاژ مشخص نشده است');
+                        throw new ApiException('شماره کوتاژ مشخص نشده است', 400);
                     }
                     $quotaDetails = $this->getQuotaDetails((string)$quotaNumber);
                     if ($quotaDetails === null) {
@@ -137,7 +161,7 @@ class AppApiController {
                 case 'getQuotasList':
                     $shipName = $this->request->get('shipName');
                     if (!$shipName) {
-                        throw new Exception('نام کشتی مشخص نشده است');
+                        throw new ApiException('نام کشتی مشخص نشده است', 400);
                     }
                     $quotasList = $this->getQuotasList((string)$shipName);
                     $this->sendCacheableJsonResponse($quotasList, $quotasList, 6);
@@ -148,7 +172,7 @@ class AppApiController {
                     $startDateTime = $this->request->get('startDateTime');
                     $endDateTime = $this->request->get('endDateTime');
                     if (!$shipName || !$startDateTime || !$endDateTime) {
-                        throw new Exception('پارامترهای ورودی ناقص هستند - نام کشتی، تاریخ شروع و پایان الزامی است');
+                        throw new ApiException('پارامترهای ورودی ناقص هستند - نام کشتی، تاریخ شروع و پایان الزامی است', 400);
                     }
                     $filteredQuotas = $this->getFilteredQuotas((string)$shipName, (string)$startDateTime, (string)$endDateTime);
                     Response::json($filteredQuotas);
@@ -161,7 +185,7 @@ class AppApiController {
                     $startDateTime = $this->request->get('startDateTime');
                     $endDateTime = $this->request->get('endDateTime');
                     if (!$shipName || !$warehouseName || !$selectedQuota || !$startDateTime || !$endDateTime) {
-                        throw new Exception('پارامترهای ورودی ناقص هستند');
+                        throw new ApiException('پارامترهای ورودی ناقص هستند', 400);
                     }
                     $filteredSummary = $this->getFilteredSummary(
                         (string)$shipName,
@@ -182,7 +206,7 @@ class AppApiController {
                     $quotaNumber = $this->request->get('quotaNumber');
                     $shipName = $this->request->get('shipName');
                     if (!$quotaNumber || !$shipName) {
-                        throw new Exception('شماره کوتاژ یا نام کشتی مشخص نشده است');
+                        throw new ApiException('شماره کوتاژ یا نام کشتی مشخص نشده است', 400);
                     }
                     $result = $this->checkQuotaExistenceCargo((string)$quotaNumber, (string)$shipName);
                     Response::json($result);
@@ -202,12 +226,12 @@ class AppApiController {
                     $quotaNumber = $this->request->get('quotaNumber');
                     $enabled = $this->request->get('enabled');
                     if ($quotaNumber === null || $enabled === null) {
-                        throw new Exception('پارامترهای ورودی ناقص هستند');
+                        throw new ApiException('پارامترهای ورودی ناقص هستند', 400);
                     }
                     $enabledVal = intval($enabled);
                     $tonnage = $this->request->get('tonnage');
                     if ($enabledVal === 1 && $tonnage === null) {
-                        throw new Exception('مقدار تناژ موقت الزامی است');
+                        throw new ApiException('مقدار تناژ موقت الزامی است', 400);
                     }
                     $tonnageVal = $tonnage !== null ? floatval($tonnage) : null;
                     $result = $this->updateTemporaryTonnage((string)$quotaNumber, $enabledVal, $tonnageVal);
@@ -220,7 +244,7 @@ class AppApiController {
                     $required = ['id', 'oldQuotaNumber', 'newQuotaNumber', 'shipName', 'shippingCompany', 'warehouse', 'cargoType', 'totalTonnage'];
                     foreach ($required as $field) {
                         if (!isset($params[$field])) {
-                            throw new Exception('پارامترهای ورودی ناقص هستند');
+                            throw new ApiException('پارامترهای ورودی ناقص هستند', 400);
                         }
                     }
                     $result = $this->editQuota(
@@ -241,7 +265,7 @@ class AppApiController {
                     $id = $this->request->get('id');
                     $percentage = $this->request->get('percentage');
                     if (!$id || intval($id) <= 0 || $percentage === null) {
-                        throw new Exception('شناسه کوتاژ یا درصد مشخص نشده است');
+                        throw new ApiException('شناسه کوتاژ یا درصد مشخص نشده است', 400);
                     }
                     $result = $this->updateQuotaPercentage(intval($id), floatval($percentage));
                     Response::json(['success' => $result]);
@@ -251,7 +275,7 @@ class AppApiController {
                     $this->requirePermission('manage_quotas');
                     $id = $this->request->get('id');
                     if (!$id || intval($id) <= 0) {
-                        throw new Exception('شناسه کوتاژ مشخص نشده است');
+                        throw new ApiException('شناسه کوتاژ مشخص نشده است', 400);
                     }
                     $result = $this->toggleQuotaStatus(intval($id));
                     Response::json(['success' => $result]);
@@ -262,7 +286,7 @@ class AppApiController {
                     $id = $this->request->get('id');
                     $isEnabled = $this->request->get('isEnabled');
                     if (!$id || intval($id) <= 0 || $isEnabled === null) {
-                        throw new Exception('شناسه کوتاژ یا مقدار محدودیت مشخص نشده است');
+                        throw new ApiException('شناسه کوتاژ یا مقدار محدودیت مشخص نشده است', 400);
                     }
                     $result = $this->updateQuotaPercentageRestriction(intval($id), intval($isEnabled));
                     Response::json(['success' => $result]);
@@ -276,7 +300,7 @@ class AppApiController {
                     $shippingCompany = $this->request->get('shippingCompany');
                     $cargoType = $this->request->get('cargoType');
                     if (!$quotaNumber || !$shipName || !$warehouse || !$shippingCompany || !$cargoType) {
-                        throw new Exception('پارامترهای ورودی ناقص هستند');
+                        throw new ApiException('پارامترهای ورودی ناقص هستند', 400);
                     }
                     $result = $this->deleteQuota(
                         (string)$quotaNumber,
@@ -291,7 +315,7 @@ class AppApiController {
                 case 'getLoadableTonnage':
                     $quotaNumber = $this->request->get('quotaNumber');
                     if (!$quotaNumber) {
-                        throw new Exception('شماره کوتاژ مشخص نشده است');
+                        throw new ApiException('شماره کوتاژ مشخص نشده است', 400);
                     }
                     $shippingCompany = $this->request->get('shippingCompany', '');
                     $warehouse = $this->request->get('warehouse', '');
@@ -308,7 +332,7 @@ class AppApiController {
                 case 'checkQuotaStatus':
                     $quotaNumber = $this->request->get('quotaNumber');
                     if (!$quotaNumber) {
-                        throw new Exception('شماره کوتاژ مشخص نشده است');
+                        throw new ApiException('شماره کوتاژ مشخص نشده است', 400);
                     }
                     $params = [
                         'quotaNumber' => (string)$quotaNumber,
@@ -332,7 +356,7 @@ class AppApiController {
                     break;
 
                 default:
-                    throw new Exception('عملیات نامعتبر است');
+                    throw new ApiException('عملیات نامعتبر است', 400);
             }
         } catch (ApiException $e) {
             // ApiException برای خطاهایی که کد وضعیت HTTP معنادار دارند (مثلاً
@@ -342,8 +366,13 @@ class AppApiController {
                 ['error' => $e->getMessage()] + ($e->getDetails() ?? []),
                 $e->getStatusCode()
             );
-        } catch (Exception $e) {
-            Response::json(['error' => $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            // فقط ApiException (پیام‌های فارسی عمدی) به کلاینت می‌رود؛ بقیه
+            // (مثل خطای خام دیتابیس از ShipService/QuotaService) فقط لاگ
+            // می‌شود تا ساختار جدول/کوئری افشا نشود (DEEP_CODE_AUDIT.md
+            // #Phase2.4).
+            error_log('AppApiController: ' . $e->getMessage());
+            Response::json(['error' => 'خطای داخلی سرور رخ داده است.'], 500);
         }
     }
 

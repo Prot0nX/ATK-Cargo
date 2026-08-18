@@ -35,7 +35,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -72,13 +72,13 @@ private fun Ship.matchesSearch(query: String): Boolean {
 
 @Composable
 fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
-    val shipsData by viewModel.ships.collectAsState()
-    val uiState by viewModel.uiState.collectAsState()
+    val shipsData by viewModel.ships.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var searchTerm by rememberSaveable { mutableStateOf("") }
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     val activeListState = rememberLazyListState()
     val inactiveListState = rememberLazyListState()
-    val currentShipSortingMode by viewModel.shipSortingMode.collectAsState()
+    val currentShipSortingMode by viewModel.shipSortingMode.collectAsStateWithLifecycle()
     // سه ورودی remember(...) از قبل به‌عنوان کلید داده شده‌اند، پس derivedStateOf
     // اضافه چیزی نگه نمی‌دارد (فقط یک لایه‌ی observer بی‌فایده است)
     val filteredActiveShips = remember(shipsData.activeShips, searchTerm, currentShipSortingMode) {

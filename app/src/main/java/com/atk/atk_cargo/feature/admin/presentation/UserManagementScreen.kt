@@ -62,7 +62,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -110,9 +110,9 @@ fun UserManagementDialog(
     val context = LocalContext.current
     val userPreferencesManager = koinInject<UserPreferencesManager>()
 
-    val currentUsername by userPreferencesManager.username.collectAsState(initial = "")
-    val currentUserType by userPreferencesManager.userType.collectAsState(initial = "")
-    val userPermissions by userPreferencesManager.permissions.collectAsState(initial = emptyMap())
+    val currentUsername by userPreferencesManager.username.collectAsStateWithLifecycle(initialValue = "")
+    val currentUserType by userPreferencesManager.userType.collectAsStateWithLifecycle(initialValue = "")
+    val userPermissions by userPreferencesManager.permissions.collectAsStateWithLifecycle(initialValue = emptyMap())
     val isMainAdmin = currentUsername == "Prot0nX"
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)

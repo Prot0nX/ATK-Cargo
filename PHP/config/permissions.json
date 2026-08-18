@@ -1,44 +1,47 @@
 {
-    "admin": {
-        "initial_info": true,
-        "select_info": true,
-        "cargo_counter": true,
-        "manage_ships": true,
-        "manage_users": true,
-        "admin_chat": true,
-        "edit_cargo": true,
-        "delete_cargo": true,
-        "view_reports": true,
-        "active_quotas": true,
-        "tonnage_warning": true,
-        "manage_quotas": true
+    "roles": {
+        "admin": {
+            "initial_info": true,
+            "select_info": true,
+            "cargo_counter": true,
+            "manage_ships": true,
+            "manage_users": true,
+            "admin_chat": true,
+            "edit_cargo": true,
+            "delete_cargo": true,
+            "view_reports": true,
+            "active_quotas": true,
+            "tonnage_warning": true,
+            "manage_quotas": true
+        },
+        "operator": {
+            "initial_info": true,
+            "select_info": true,
+            "cargo_counter": false,
+            "manage_ships": false,
+            "manage_users": false,
+            "admin_chat": false,
+            "edit_cargo": false,
+            "delete_cargo": false,
+            "view_reports": false,
+            "active_quotas": false,
+            "tonnage_warning": false,
+            "manage_quotas": false
+        },
+        "verifier": {
+            "initial_info": false,
+            "select_info": false,
+            "cargo_counter": true,
+            "manage_ships": false,
+            "manage_users": false,
+            "admin_chat": false,
+            "edit_cargo": false,
+            "delete_cargo": false,
+            "view_reports": false,
+            "active_quotas": false,
+            "tonnage_warning": false,
+            "manage_quotas": false
+        }
     },
-    "operator": {
-        "initial_info": true,
-        "select_info": true,
-        "cargo_counter": false,
-        "manage_ships": false,
-        "manage_users": false,
-        "admin_chat": false,
-        "edit_cargo": false,
-        "delete_cargo": false,
-        "view_reports": false,
-        "active_quotas": false,
-        "tonnage_warning": false,
-        "manage_quotas": false
-    },
-    "verifier": {
-        "initial_info": false,
-        "select_info": false,
-        "cargo_counter": true,
-        "manage_ships": false,
-        "manage_users": false,
-        "admin_chat": false,
-        "edit_cargo": false,
-        "delete_cargo": false,
-        "view_reports": false,
-        "active_quotas": false,
-        "tonnage_warning": false,
-        "manage_quotas": false
-    }
+    "users": []
 }

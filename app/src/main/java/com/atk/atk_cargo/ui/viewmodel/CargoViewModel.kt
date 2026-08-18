@@ -1,6 +1,5 @@
 package com.atk.atk_cargo.ui.viewmodel
 
-import android.annotation.SuppressLint
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -16,6 +15,7 @@ import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.data.model.QuotaExistenceMultipleResponse
 import com.atk.atk_cargo.data.model.SaveOrUpdateResponse
 import com.atk.atk_cargo.data.repository.ReportsRepository
+import com.atk.atk_cargo.utils.JalaliDateUtils
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -28,7 +28,6 @@ import kotlinx.coroutines.withContext
 import retrofit2.Response
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
@@ -871,7 +870,7 @@ class CargoViewModel(
     }
 
     private fun getCurrentDate(): String {
-        return gregorianToJalali(Calendar.getInstance())
+        return JalaliDateUtils.getCurrentJalaliDateString()
     }
 
     private fun updateLoadableTonnageIfNeeded(forceUpdate: Boolean = false) {
@@ -943,38 +942,4 @@ class CargoViewModel(
         clearApiCache()
     }
 
-    @SuppressLint("DefaultLocale")
-    private fun gregorianToJalali(gregorian: Calendar): String {
-        val gy = gregorian.get(Calendar.YEAR)
-        val gm = gregorian.get(Calendar.MONTH) + 1
-        val gd = gregorian.get(Calendar.DAY_OF_MONTH)
-
-        val gregorianDaysInMonth = intArrayOf(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365)
-        val jalaliDaysInMonth = intArrayOf(31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29)
-
-        val gy2 = if (gm > 2) gy + 1 else gy
-        var days =
-            355666 + (365 * gy) + ((gy2 + 3) / 4) - ((gy2 + 99) / 100) + ((gy2 + 399) / 400) + gd + gregorianDaysInMonth[gm - 1]
-
-        var jy = -1595 + (33 * (days / 12053))
-        days %= 12053
-        jy += 4 * (days / 1461)
-        days %= 1461
-
-        if (days > 365) {
-            jy += (days - 1) / 365
-            days = (days - 1) % 365
-        }
-
-        var jm = 0
-        for (i in 0..11) {
-            if (days < jalaliDaysInMonth[i]) {
-                jm = i + 1
-                break
-            }
-            days -= jalaliDaysInMonth[i]
-        }
-        val jd = days + 1
-        return String.format("%04d/%02d/%02d", jy, jm, jd)
-    }
 }

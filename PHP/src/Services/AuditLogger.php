@@ -8,10 +8,10 @@ namespace App\Services;
 use App\Core\DatabaseManager;
 
 /**
- * ثبت best-effort عملیات حساس در جدول audit_log (I-03). عمداً هرگز عملیات
- * اصلی را با شکست خودش fail نمی‌کند (مثلاً قبل از اجرای migration مربوطه،
- * جدول audit_log هنوز وجود ندارد) — فقط با error_log ثبت و بی‌صدا نادیده
- * گرفته می‌شود.
+ * ثبت best-effort عملیات حساس در جدول audit_log (I-03؛ ساختار در
+ * schema.sql و migrations/ مستند است). عمداً هرگز عملیات اصلی را با شکست
+ * خودش fail نمی‌کند (مثلاً روی نصب‌های جدیدی که هنوز migration مربوطه را
+ * اجرا نکرده‌اند) — فقط با error_log ثبت و بی‌صدا نادیده گرفته می‌شود.
  */
 final class AuditLogger {
     public static function log(

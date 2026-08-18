@@ -2,21 +2,13 @@
 # Build Tools
 activity-compose = "1.11.0"
 agp = "8.13.0"
-appcompat = "1.7.1"
 camera-camera2 = "1.5.0"
-coil-compose = "2.7.0"
-constraintlayout = "2.2.1"
 core-ktx = "1.17.0"
 core-splashscreen = "1.0.1"
 datastore-preferences = "1.1.7"
 desugar_jdk_libs = "2.1.5"
 foundation = "1.9.1"
-google-material = "1.13.0"
-icu4j = "77.1"
 itextpdf = "5.5.13.4"
-json = "20250517"
-jxl = "2.6.12"
-konfetti-compose = "2.0.5"
 kotlin = "2.2.20"
 compose-compiler = "1.5.15"
 ksp = "2.2.20-2.0.3"
@@ -37,13 +29,8 @@ material-version = "1.9.1"
 material3 = "1.3.2"
 
 # Networking
-media3-exoplayer = "1.8.0"
 navigation-compose = "2.9.4"
-navigation-fragment-ktx = "2.9.4"
-navigation-ui-ktx = "2.9.4"
 play-services-mlkit-barcode-scanning = "18.3.1"
-poi = "5.4.1"
-poi-ooxml = "5.4.1"
 retrofit = "3.0.0"
 room = "2.7.0"
 okhttp = "5.1.0"
@@ -54,12 +41,6 @@ androidx-junit = "1.3.0"
 espresso = "3.7.0"
 
 # Other
-tasks-vision = "0.20230731"
-tensorflow-lite = "2.17.0"
-tensorflow-lite-gpu = "2.17.0"
-tensorflow-lite-support = "0.5.0"
-tensorflow-lite-task-text = "0.4.4"
-tensorflow-lite-task-vision = "0.4.4"
 text-recognition = "16.0.1"
 ui = "1.9.1"
 ui-test-junit4 = "1.9.1"
@@ -79,11 +60,9 @@ androidx-uiautomator = "2.3.0"
 [libraries]
 # AndroidX Core
 androidx-activity-compose-v1101 = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
-androidx-appcompat-v171 = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camera-camera2" }
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camera-camera2" }
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "camera-camera2" }
-androidx-constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
 androidx-core-ktx-v1160 = { module = "androidx.core:core-ktx", version.ref = "core-ktx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "core-splashscreen" }
 
@@ -92,17 +71,13 @@ androidx-datastore-core = { module = "androidx.datastore:datastore-core", versio
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore-preferences" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
 androidx-lifecycle-livedata-ktx = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "lifecycle-runtime-ktx" }
+androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle-runtime-ktx" }
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle-runtime-ktx" }
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle-runtime-ktx" }
 androidx-material = { module = "androidx.compose.material:material", version.ref = "material-version" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "material-icons-extended" }
 androidx-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
-androidx-media3-common = { module = "androidx.media3:media3-common", version.ref = "media3-exoplayer" }
-androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3-exoplayer" }
-androidx-media3-ui = { module = "androidx.media3:media3-ui", version.ref = "media3-exoplayer" }
 androidx-navigation-compose-v290 = { module = "androidx.navigation:navigation-compose", version.ref = "navigation-compose" }
-androidx-navigation-fragment-ktx-v290 = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "navigation-fragment-ktx" }
-androidx-navigation-ui-ktx-v290 = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "navigation-ui-ktx" }
 androidx-ui = { module = "androidx.compose.ui:ui", version.ref = "ui" }
 androidx-ui-graphics = { module = "androidx.compose.ui:ui-graphics", version.ref = "ui" }
 androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "ui-test-junit4" }
@@ -110,21 +85,14 @@ androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", v
 androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "ui-tooling" }
 androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "ui-tooling-preview" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work-runtime-ktx" }
-coil-compose-v260 = { module = "io.coil-kt:coil-compose", version.ref = "coil-compose" }
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
 
 desugar_jdk_libs-v215 = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 
-# Navigation
-icu4j = { module = "com.ibm.icu:icu4j", version.ref = "icu4j" }
 itextpdf = { module = "com.itextpdf:itextpdf", version.ref = "itextpdf" }
-json = { module = "org.json:json", version.ref = "json" }
-jxl = { module = "net.sourceforge.jexcelapi:jxl", version.ref = "jxl" }
-konfetti-compose = { module = "nl.dionsegijn:konfetti-compose", version.ref = "konfetti-compose" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines-android" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
 lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie-compose" }
-material = { module = "com.google.android.material:material", version.ref = "google-material" }
 
 # Room
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
@@ -133,8 +101,6 @@ androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref =
 
 # Networking
 play-services-mlkit-barcode-scanning = { module = "com.google.android.gms:play-services-mlkit-barcode-scanning", version.ref = "play-services-mlkit-barcode-scanning" }
-poi = { module = "org.apache.poi:poi", version.ref = "poi" }
-poi-ooxml = { module = "org.apache.poi:poi-ooxml", version.ref = "poi-ooxml" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
@@ -146,12 +112,6 @@ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "a
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 
 # Other
-tasks-vision-v01021 = { module = "com.google.mediapipe:tasks-vision", version.ref = "tasks-vision" }
-tensorflow-lite = { module = "org.tensorflow:tensorflow-lite", version.ref = "tensorflow-lite" }
-tensorflow-lite-gpu = { module = "org.tensorflow:tensorflow-lite-gpu", version.ref = "tensorflow-lite-gpu" }
-tensorflow-lite-support = { module = "org.tensorflow:tensorflow-lite-support", version.ref = "tensorflow-lite-support" }
-tensorflow-lite-task-text = { module = "org.tensorflow:tensorflow-lite-task-text", version.ref = "tensorflow-lite-task-text" }
-tensorflow-lite-task-vision = { module = "org.tensorflow:tensorflow-lite-task-vision", version.ref = "tensorflow-lite-task-vision" }
 text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "text-recognition" }
 zxing-android-embedded = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxing-android-embedded" }
 androidx-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout", version.ref = "foundation-layout" }

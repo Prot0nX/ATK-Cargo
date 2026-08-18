@@ -196,11 +196,11 @@ class ChatRepository(
         )
     }
 
-    suspend fun getAllUsers(): List<com.atk.atk_cargo.api.User> = withContext(Dispatchers.IO) {
+    suspend fun getAdminUsers(): List<com.atk.atk_cargo.api.User> = withContext(Dispatchers.IO) {
         try {
-            apiService.getAllUsers()
+            apiService.getAdminUsers()
         } catch (e: Exception) {
-            Log.e("ChatRepository", "Error fetching users", e)
+            Log.e("ChatRepository", "Error fetching admin users", e)
             emptyList()
         }
     }

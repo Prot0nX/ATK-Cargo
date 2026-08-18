@@ -12,6 +12,15 @@ ini_set('log_errors', '1');
 
 date_default_timezone_set('Asia/Tehran');
 
+// کوکی نشست باید قبل از session_start() تنظیم شود (S-XX / DEEP_CODE_AUDIT.md
+// #Phase1.6) — قبلاً هیچ httponly/secure/samesite‌ای اعمال نمی‌شد.
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
 session_start();
 
 if (empty($_SESSION['csrf_token'])) {
@@ -21,7 +30,43 @@ if (empty($_SESSION['csrf_token'])) {
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/vendor/autoload.php';
 
-$ADMIN_PASSWORD_HASH = $_ENV['ADMIN_PASSWORD_HASH'] ?? getenv('ADMIN_PASSWORD_HASH') ?: ''; 
+// LoginAttemptLimiter (fallback فایلی بدون APCu) به APP_ROOT نیاز دارد که
+// معمولاً src/bootstrap.php تعریف می‌کند — این اسکریپت bootstrap.php را
+// require نمی‌کند، پس اینجا مستقل تعریف می‌شود.
+if (!defined('APP_ROOT')) {
+    define('APP_ROOT', __DIR__);
+}
+
+use App\Core\MicroCache;
+use App\Services\LoginAttemptLimiter;
+use App\Services\PermissionService;
+
+/**
+ * نوشتن اتمیک permissions.json — قبلاً file_put_contents مستقیم بدون
+ * LOCK_EX/tmp+rename بود؛ اگر دو ادمین هم‌زمان ذخیره می‌کردند یا نوشتن
+ * نیمه‌تمام می‌ماند (مثلاً قطع اتصال میانه‌ی درخواست)، json_decode بعدی
+ * شکست می‌خورد و PermissionService::getUserPermissions همه‌چیز را false
+ * برمی‌گرداند — یعنی از کار افتادن کامل سیستم مجوزها
+ * (DEEP_CODE_AUDIT.md #Phase2.7). rename روی یک فایل‌سیستم اتمیک است.
+ */
+function writePermissionsFileAtomic(string $file, array $data): bool {
+    $tmp = $file . '.tmp.' . uniqid();
+    $written = file_put_contents($tmp, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
+    if ($written === false) {
+        @unlink($tmp);
+        return false;
+    }
+    if (!rename($tmp, $file)) {
+        @unlink($tmp);
+        return false;
+    }
+    // بدون این، تغییرات تا انقضای TTL کش (۳۰ ثانیه) به بررسی‌های مجوز در
+    // حال اجرا اعمال نمی‌شدند.
+    MicroCache::forget(PermissionService::CACHE_KEY);
+    return true;
+}
+
+$ADMIN_PASSWORD_HASH = $_ENV['ADMIN_PASSWORD_HASH'] ?? getenv('ADMIN_PASSWORD_HASH') ?: '';
 
 $is_authenticated = isset($_SESSION['perm_manager_auth']) && $_SESSION['perm_manager_auth'] === true;
 
@@ -34,24 +79,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// هندل کردن لاگین
+// هندل کردن لاگین — از همان LoginAttemptLimiter مورد استفاده در API (قفل
+// مستقل از IP روی 'permmgr' + تأخیر تصاعدی) برای جلوگیری از brute-force
+// روی رمز ادمین استفاده می‌شود (قبلاً هیچ قفلی نداشت).
+$loginAttemptLimiter = new LoginAttemptLimiter();
+$clientIp = (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+
 if (isset($_POST['login'])) {
     if (!$csrf_valid) {
         $login_error = "توکن امنیتی (CSRF) نامعتبر است. لطفاً صفحه را بازنشانی کنید.";
+    } elseif ($loginAttemptLimiter->isLocked('permmgr', $clientIp)) {
+        $login_error = "تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر تلاش کنید.";
     } elseif (empty($ADMIN_PASSWORD_HASH)) {
         $login_error = "خطای پیکربندی: متغیر ADMIN_PASSWORD_HASH در فایل .env تنظیم نشده است.";
     } elseif (password_verify($_POST['password'], $ADMIN_PASSWORD_HASH)) {
+        $loginAttemptLimiter->resetAttempts('permmgr', $clientIp);
+        session_regenerate_id(true);
         $_SESSION['perm_manager_auth'] = true;
         $_SESSION['last_activity'] = time();
         header("Location: PermissionManager.php");
         exit;
     } else {
+        $loginAttemptLimiter->registerFailedAttempt('permmgr', $clientIp);
         $login_error = "رمز عبور اشتباه است!";
     }
 }
 
 // هندل کردن خروج
 if (isset($_GET['logout'])) {
+    $_SESSION = [];
+    if (ini_get('session.use_cookies')) {
+        $p = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000, $p['path'], $p['domain'], $p['secure'], $p['httponly']);
+    }
     session_destroy();
     header("Location: PermissionManager.php");
     exit;
@@ -77,7 +137,7 @@ if (!file_exists($permissions_file)) {
         ],
         'users' => []
     ];
-    file_put_contents($permissions_file, json_encode($initial_data, JSON_PRETTY_PRINT));
+    writePermissionsFileAtomic($permissions_file, $initial_data);
 }
 
 // لود کردن و مهاجرت داده‌ها در صورت نیاز (تطبیق با ساختار جدید)
@@ -87,7 +147,7 @@ if (!isset($all_data['roles'])) {
         'roles' => $all_data,
         'users' => []
     ];
-    file_put_contents($permissions_file, json_encode($all_data, JSON_PRETTY_PRINT));
+    writePermissionsFileAtomic($permissions_file, $all_data);
 }
 
 // هندل کردن ذخیره‌سازی
@@ -120,8 +180,7 @@ if ($is_authenticated && isset($_POST['save_permissions'])) {
             }
         }
 
-        if (is_writable(dirname($permissions_file))) {
-            file_put_contents($permissions_file, json_encode($all_data, JSON_PRETTY_PRINT));
+        if (is_writable(dirname($permissions_file)) && writePermissionsFileAtomic($permissions_file, $all_data)) {
             $success_msg = "تنظیمات " . ($type === 'role' ? "نقش" : "کاربر") . " با موفقیت به‌روزرسانی شد.";
         } else {
             $error_msg = "خطای دسترسی در فایل تنظیمات!";

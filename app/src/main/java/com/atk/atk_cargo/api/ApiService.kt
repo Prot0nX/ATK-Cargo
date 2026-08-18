@@ -338,6 +338,22 @@ interface ApiService {
         @Query("target") target: String = "users_api.php"
     ): List<User>
 
+    // پروفایل خودِ کاربر احرازشده — برای صفحه‌ی تنظیمات، بدون نیاز به
+    // manage_users (جایگزین getAllUsers که کل فهرست کاربران را می‌داد).
+    @GET("protected_proxy.php")
+    suspend fun getSelfProfile(
+        @Query("action") action: String = "getSelfProfile",
+        @Query("target") target: String = "users_api.php"
+    ): User
+
+    // فهرست کاربران admin — برای مقصدهای «چت با مدیر»، بدون نیاز به
+    // manage_users (جایگزین getAllUsers().filter { userType == "admin" }).
+    @GET("protected_proxy.php")
+    suspend fun getAdminUsers(
+        @Query("action") action: String = "getAdminUsers",
+        @Query("target") target: String = "users_api.php"
+    ): List<User>
+
     @GET("protected_proxy.php")
     suspend fun getActiveDeviceId(
         @Query("action") action: String = "getActiveDeviceId",

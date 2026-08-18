@@ -191,6 +191,7 @@ data class UpdateUserRequest(
     val username: String? = null,
     val fullName: String? = null,
     val password: String? = null,
+    val currentPassword: String? = null,
     val userType: String? = null
 )
 

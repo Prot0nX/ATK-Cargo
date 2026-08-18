@@ -36,7 +36,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -102,9 +102,9 @@ fun ProfileMenu(
     val startupViewModel = LocalStartupViewModel.current
     val requestNotificationPermission = LocalNotificationPermissionRequester.current
     val userPreferencesManager = koinInject<UserPreferencesManager>()
-    val hardwareScore by userPreferencesManager.hardwareScore.collectAsState(initial = -1)
-    val loadingEnabled by userPreferencesManager.loadingNotificationsEnabled.collectAsState(initial = true)
-    val chatEnabled by userPreferencesManager.chatNotificationsEnabled.collectAsState(initial = true)
+    val hardwareScore by userPreferencesManager.hardwareScore.collectAsStateWithLifecycle(initialValue = -1)
+    val loadingEnabled by userPreferencesManager.loadingNotificationsEnabled.collectAsStateWithLifecycle(initialValue = true)
+    val chatEnabled by userPreferencesManager.chatNotificationsEnabled.collectAsStateWithLifecycle(initialValue = true)
     val rotationState by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
@@ -310,8 +310,7 @@ fun ProfileMenu(
         LaunchedEffect(Unit) {
             if (currentUser == null) {
                 try {
-                    val response = RetrofitClient.apiService.getAllUsers()
-                    currentUser = response.find { it.username == username }
+                    currentUser = RetrofitClient.apiService.getSelfProfile()
                 } catch (_: Exception) {
                     Toast.makeText(context, "خطا در دریافت اطلاعات کاربر", Toast.LENGTH_SHORT).show()
                     showSettings = false

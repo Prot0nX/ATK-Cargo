@@ -14,6 +14,7 @@ use App\Core\Logger;
 use App\Core\MicroCache;
 use App\Core\Request;
 use App\Core\Response;
+use App\Exceptions\ApiException;
 use App\Validators\InputValidator;
 
 class ChatController {
@@ -50,7 +51,11 @@ class ChatController {
                 if ($action === 'getMessages') {
                     $lastMessageId = (int)$this->request->get('lastMessageId', 0);
                     $olderThanId = (int)$this->request->get('olderThanId', 0);
-                    $limit = (int)$this->request->get('limit', self::MESSAGE_FETCH_LIMIT);
+                    // MESSAGE_FETCH_LIMIT فقط پیش‌فرض بود نه سقف — یک کاربر
+                    // می‌توانست limit دلخواه بزرگی بفرستد و subquery همبسته‌ی
+                    // read_by_names را روی بازه‌ی بزرگ مشغول نگه دارد
+                    // (DEEP_CODE_AUDIT.md #Phase1.10).
+                    $limit = max(1, min((int)$this->request->get('limit', self::MESSAGE_FETCH_LIMIT), self::MESSAGE_FETCH_LIMIT));
 
                     Response::json([
                         'success' => true,
@@ -62,7 +67,7 @@ class ChatController {
                         'unreadCount' => $this->getUnreadCount($username)
                     ]);
                 } else {
-                    throw new Exception('Invalid Action');
+                    throw new ApiException('عملیات نامعتبر است', 400);
                 }
             } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // قبلاً اینجا php://input جداگانه و مستقیم decode می‌شد (برخلاف
@@ -88,19 +93,27 @@ class ChatController {
                         Response::json($this->markAsRead((int)$this->request->get('messageId', 0), $username));
                         break;
                     default:
-                        throw new Exception('Invalid Action');
+                        throw new ApiException('عملیات نامعتبر است', 400);
                 }
             }
-        } catch (Exception $e) {
-            http_response_code(400);
+        } catch (ApiException $e) {
+            http_response_code($e->getStatusCode());
             echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+            exit;
+        } catch (\Throwable $e) {
+            // فقط ApiException (پیام‌های فارسی عمدی) به کلاینت می‌رود؛ بقیه
+            // (مثل خطای خام mysqli در prepareAndExecute) فقط لاگ می‌شود تا
+            // ساختار جدول/کوئری افشا نشود (DEEP_CODE_AUDIT.md #Phase2.4).
+            $this->logger->error('ChatController: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'خطای داخلی سرور رخ داده است.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
 
     private function getMessages(int $lastMessageId = 0, int $olderThanId = 0, int $limit = self::MESSAGE_FETCH_LIMIT, string $username = ''): array {
         if (!empty($username) && !$this->isAdmin($username)) {
-            throw new Exception('فقط ادمین‌ها می‌توانند پیام‌ها را مشاهده کنند');
+            throw new ApiException('فقط ادمین‌ها می‌توانند پیام‌ها را مشاهده کنند', 403);
         }
 
         $readByQuery = "

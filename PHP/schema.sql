@@ -1,7 +1,7 @@
 -- ============================================================
 -- ATK-Cargo Database Schema Exporter
 -- Database Target: atk_cargo
--- Exported Date  : 2026-08-17 17:30:30
+-- Exported Date  : 2026-08-18 05:31:29
 -- ============================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
@@ -10,7 +10,7 @@ SET NAMES utf8mb4;
 SET time_zone = "+00:00";
 
 -- ------------------------------------------------------------
--- Tables Structure (8 tables)
+-- Tables Structure (10 tables)
 -- ------------------------------------------------------------
 
 --
@@ -115,6 +115,39 @@ CREATE TABLE `Users` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
+-- Table structure for table `admin_chat_messages`
+--
+DROP TABLE IF EXISTS `admin_chat_messages`;
+CREATE TABLE `admin_chat_messages` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'شناسه یکتای پیام',
+  `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'نام کاربری فرستنده',
+  `message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'متن پیام (حداکثر 1000 کاراکتر)',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'زمان ارسال پیام',
+  `is_read` tinyint(1) DEFAULT '0' COMMENT 'وضعیت خوانده شدن پیام',
+  `is_deleted` tinyint(1) DEFAULT '0',
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_created_at` (`created_at`),
+  KEY `idx_username` (`username`),
+  KEY `idx_is_read` (`is_read`),
+  KEY `idx_username_created_at` (`username`,`created_at`),
+  KEY `idx_is_deleted` (`is_deleted`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='جدول ذخیره پیام‌های چت داخلی ادمین‌ها';
+
+--
+-- Table structure for table `admin_chat_reads`
+--
+DROP TABLE IF EXISTS `admin_chat_reads`;
+CREATE TABLE `admin_chat_reads` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `message_id` int NOT NULL,
+  `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `read_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_read` (`message_id`,`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
 -- Table structure for table `audit_log`
 --
 DROP TABLE IF EXISTS `audit_log`;
@@ -130,7 +163,7 @@ CREATE TABLE `audit_log` (
   KEY `idx_audit_entity` (`entity_type`,`entity_id`),
   KEY `idx_audit_username_created` (`username`,`created_at`),
   KEY `idx_audit_created` (`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Table structure for table `licenses`

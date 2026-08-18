@@ -60,7 +60,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
@@ -160,19 +160,19 @@ fun RegisterCargoScreen(
     var isInfoVisible by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var isFormExpanded by remember { mutableStateOf(true) }
-    val clearInputFields by viewModel.clearInputFields.collectAsState()
-    val showNetWeightDialog by viewModel.showNetWeightDialog.collectAsState()
-    val scaleReceiptNumber by viewModel.scaleReceiptNumber.collectAsState()
+    val clearInputFields by viewModel.clearInputFields.collectAsStateWithLifecycle()
+    val showNetWeightDialog by viewModel.showNetWeightDialog.collectAsStateWithLifecycle()
+    val scaleReceiptNumber by viewModel.scaleReceiptNumber.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
-    val loadableTonnage by viewModel.loadableTonnage.collectAsState()
-    val loadableTrucks18Wheeler by viewModel.loadableTrucks18Wheeler.collectAsState()
-    val loadableTrucks10Wheeler by viewModel.loadableTrucks10Wheeler.collectAsState()
+    val loadableTonnage by viewModel.loadableTonnage.collectAsStateWithLifecycle()
+    val loadableTrucks18Wheeler by viewModel.loadableTrucks18Wheeler.collectAsStateWithLifecycle()
+    val loadableTrucks10Wheeler by viewModel.loadableTrucks10Wheeler.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
-    val showDuplicateConfirmationDialog by viewModel.showDuplicateConfirmationDialog.collectAsState()
-    val duplicateWarningMessage by viewModel.duplicateWarningMessage.collectAsState()
-    val showDuplicateDialog by viewModel.showDuplicateDialog.collectAsState()
-    val duplicateTrackingNumbers by viewModel.duplicateTrackingNumbers.collectAsState()
-    val isSubmitting by viewModel.isSubmitting.collectAsState()
+    val showDuplicateConfirmationDialog by viewModel.showDuplicateConfirmationDialog.collectAsStateWithLifecycle()
+    val duplicateWarningMessage by viewModel.duplicateWarningMessage.collectAsStateWithLifecycle()
+    val showDuplicateDialog by viewModel.showDuplicateDialog.collectAsStateWithLifecycle()
+    val duplicateTrackingNumbers by viewModel.duplicateTrackingNumbers.collectAsStateWithLifecycle()
+    val isSubmitting by viewModel.isSubmitting.collectAsStateWithLifecycle()
     var showQuotaEntryDialog by remember { mutableStateOf(false) }
 
     fun clearInputFields() {

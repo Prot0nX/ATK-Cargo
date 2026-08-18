@@ -78,8 +78,11 @@ class CargoController {
             $this->logger->error("Error in CargoController saveOrUpdate: " . $e->getMessage());
             Response::json(['error' => true, 'message' => $e->getMessage()], $e->getStatusCode());
         } catch (Exception $e) {
+            // برخلاف ApiException بالا، پیام این شاخه ممکن است خطای خام
+            // DB/داخلی باشد؛ فقط لاگ می‌شود، به کلاینت نمی‌رود
+            // (DEEP_CODE_AUDIT.md #Phase2.4).
             $this->logger->error("Error in CargoController saveOrUpdate: " . $e->getMessage());
-            $this->sendErrorResponse($e->getMessage());
+            $this->sendErrorResponse('خطای داخلی سرور رخ داده است.');
         }
     }
 
@@ -315,7 +318,7 @@ class CargoController {
             Response::json($res, $code);
         } catch (Exception $e) {
             $this->logger->error("Error in deleteCargoInfo: " . $e->getMessage());
-            Response::json(["status" => "error", "message" => "خطا در حذف حواله: " . $e->getMessage()], 500);
+            Response::json(["status" => "error", "message" => "خطا در حذف حواله."], 500);
         }
     }
 
@@ -600,12 +603,12 @@ class CargoController {
         try {
             $data = json_decode((string)file_get_contents('php://input'), true);
             if (!$data || !is_array($data)) {
-                throw new Exception("داده‌های ورودی نامعتبر هستند.");
+                throw new ApiException("داده‌های ورودی نامعتبر هستند.", 400);
             }
 
             foreach ($requiredFields as $field) {
                 if (!isset($data[$field]) || trim((string)$data[$field]) === '') {
-                    throw new Exception("فیلد $field الزامی است.");
+                    throw new ApiException("فیلد $field الزامی است.", 400);
                 }
             }
 
@@ -635,9 +638,13 @@ class CargoController {
             MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
 
             Response::json(["status" => "success", "message" => "اطلاعات با موفقیت ثبت شد."]);
+        } catch (ApiException $e) {
+            Response::json(["status" => "error", "message" => $e->getMessage()], $e->getStatusCode());
         } catch (Exception $e) {
+            // خطای خام SQL (شامل نام جدول/ستون) فقط لاگ می‌شود، نه در پاسخ
+            // (DEEP_CODE_AUDIT.md #Phase2.4).
             $this->logger->error("Error in saveInitialInfo: " . $e->getMessage());
-            Response::json(["status" => "error", "message" => $e->getMessage()], 400);
+            Response::json(["status" => "error", "message" => "خطای داخلی سرور رخ داده است."], 500);
         }
     }
 
@@ -654,7 +661,7 @@ class CargoController {
             Response::json($activeShips);
         } catch (Exception $e) {
             $this->logger->error("Error in getActiveShips: " . $e->getMessage());
-            Response::json(["status" => "error", "message" => $e->getMessage()], 400);
+            Response::json(["status" => "error", "message" => "خطای داخلی سرور رخ داده است."], 500);
         }
     }
 
@@ -675,7 +682,7 @@ class CargoController {
             Response::json($res, $code);
         } catch (Exception $e) {
             $this->logger->error("Error in checkScaleReceipt: " . $e->getMessage());
-            Response::json(['error' => $e->getMessage()], 500);
+            Response::json(['error' => 'خطای داخلی سرور رخ داده است.'], 500);
         }
     }
 

@@ -65,6 +65,19 @@ object JalaliDateUtils {
         }
     }
 
+    /**
+     * تاریخ جلالی امروز (منطقه‌ی زمانی Asia/Tehran، مستقل از تنظیم دستگاه) به
+     * فرمت YYYY/MM/DD — برای مقادیری مثل exitDate که مستقیماً در دیتابیس
+     * سرور ذخیره و برای فیلتر بازه استفاده می‌شوند.
+     */
+    fun getCurrentJalaliDateString(): String {
+        val zdt = java.time.ZonedDateTime.now(ZoneId.of("Asia/Tehran"))
+        val jDate = gregorianToJalali(zdt.year, zdt.monthValue, zdt.dayOfMonth)
+        val month = jDate.month.toString().padStart(2, '0')
+        val day = jDate.day.toString().padStart(2, '0')
+        return "${jDate.year}/$month/$day"
+    }
+
     data class JalaliDate(val year: Int, val month: Int, val day: Int)
 
     private fun gregorianToJalali(gy: Int, gm: Int, gd: Int): JalaliDate {

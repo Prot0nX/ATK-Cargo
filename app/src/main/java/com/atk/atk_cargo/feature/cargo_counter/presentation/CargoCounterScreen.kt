@@ -28,7 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -238,12 +238,12 @@ fun CargoCounterScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var activeShips by remember { mutableStateOf<List<ActiveShipInfo>>(emptyList()) }
     
-    val selectedShipNames by viewModel.selectedShipNames.collectAsState(initial = emptySet())
+    val selectedShipNames by viewModel.selectedShipNames.collectAsStateWithLifecycle(initialValue = emptySet())
     val filteredShips = activeShips.filter { selectedShipNames.contains(it.shipName) }
     val groupedShips = filteredShips.groupBy { it.shipName }
 
-    val expandedShipName by viewModel.expandedShipName.collectAsState(initial = null)
-    val selectedTab by viewModel.selectedTab.collectAsState(initial = ShipFilterTab.LOADING)
+    val expandedShipName by viewModel.expandedShipName.collectAsStateWithLifecycle(initialValue = null)
+    val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle(initialValue = ShipFilterTab.LOADING)
     
     val isDarkTheme = isSystemInDarkTheme()
     val colorSelector = remember { ColorSelector(cardColors) }

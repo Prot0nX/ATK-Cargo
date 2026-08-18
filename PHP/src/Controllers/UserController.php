@@ -8,6 +8,7 @@ namespace App\Controllers;
 use App\Core\AuthenticatesRequests;
 use App\Core\Request;
 use App\Core\Response;
+use App\Services\LoginAttemptLimiter;
 use App\Services\UserService;
 use App\Validators\InputValidator;
 use App\Exceptions\ApiException;
@@ -17,17 +18,24 @@ class UserController {
 
     private UserService $userService;
     private Request $request;
+    private LoginAttemptLimiter $loginAttemptLimiter;
 
     public function __construct() {
         $this->userService = new UserService();
         $this->request = new Request();
+        $this->loginAttemptLimiter = new LoginAttemptLimiter();
     }
 
-    // actionهایی که فقط مدیر (دسترسی manage_users) مجاز به اجرای آن‌هاست —
-    // بقیه‌ی actionها (getAllUsers، updateUser) هر کاربر احرازشده را
-    // می‌پذیرند چون صفحه‌ی «تنظیمات پروفایل» برای مشاهده/ویرایش حساب خودِ
-    // کاربر (نه فقط ادمین) از همین کنترلر استفاده می‌کند.
+    // actionهایی که فقط مدیر (دسترسی manage_users) مجاز به اجرای آن‌هاست.
+    // getAllUsers قبلاً اینجا نبود و فهرست کامل username/fullName/userType
+    // همه‌ی کاربران را به هر کاربر احرازشده می‌داد (Excessive Data Exposure —
+    // DEEP_CODE_AUDIT.md #Phase1.3). صفحه‌ی «تنظیمات پروفایل» و «چت با مدیر»
+    // که قبلاً از getAllUsers استفاده می‌کردند اکنون به‌ترتیب از
+    // getSelfProfile و getAdminUsers استفاده می‌کنند که فقط دامنه‌ی
+    // موردنیاز خودشان را برمی‌گردانند و به هر کاربر احرازشده اجازه داده
+    // می‌شوند (بدون نیاز به manage_users).
     private const ADMIN_ONLY_ACTIONS = [
+        'getAllUsers',
         'getAllUsersWithStatus',
         'getActiveDeviceId',
         'createUser',
@@ -89,6 +97,19 @@ class UserController {
                 Response::json($users);
                 break;
 
+            case 'getSelfProfile':
+                $profile = $this->userService->getSelfProfile((string)$this->authenticatedUsername);
+                if (!$profile) {
+                    throw new ApiException('کاربر یافت نشد', 404);
+                }
+                Response::json($profile);
+                break;
+
+            case 'getAdminUsers':
+                $admins = $this->userService->getAdminUsers();
+                Response::json($admins);
+                break;
+
             case 'getActiveDeviceId':
                 $username = $this->request->get('username');
                 if (!$username) {
@@ -131,7 +152,7 @@ class UserController {
                 
                 $username = InputValidator::validateUsername((string)$params['username']);
                 $fullName = InputValidator::validateFullName((string)$params['fullName']);
-                $password = (string)$params['password'];
+                $password = InputValidator::validatePassword((string)$params['password']);
                 $userType = InputValidator::sanitize((string)$params['userType']);
 
                 $result = $this->userService->createUser([
@@ -156,13 +177,31 @@ class UserController {
                     ->hasPermission($this->authenticatedUsername ?? '', $this->authenticatedUserType ?? '', 'manage_users');
 
                 if (!$isAdmin) {
-                    $selfUser = $this->userService->getAllUsers();
-                    $selfRecord = current(array_filter($selfUser, fn($u) => $u['username'] === $this->authenticatedUsername));
+                    $selfRecord = $this->userService->getSelfProfile((string)$this->authenticatedUsername);
                     if (!$selfRecord || (int)$selfRecord['id'] !== $id) {
                         throw new ApiException('شما فقط مجاز به ویرایش حساب خودتان هستید.', 403);
                     }
                     if (isset($params['username']) || isset($params['userType'])) {
                         throw new ApiException('شما مجاز به تغییر نام کاربری یا نوع کاربری خودتان نیستید.', 403);
+                    }
+
+                    // بدون این، یک session token دزدیده‌شده (که فقط تا انقضای
+                    // نشست کار می‌کرد) می‌توانست رمز را عوض کند و به تصاحب
+                    // دائمی حساب ارتقا پیدا کند (DEEP_CODE_AUDIT.md #Phase2.8).
+                    // فقط برای خودِ کاربر اعمال می‌شود؛ ادمین هنگام تغییر رمز
+                    // کاربر دیگر از این مسیر عبور نمی‌کند.
+                    if (isset($params['password'])) {
+                        $username = (string)$this->authenticatedUsername;
+                        $ip = (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+                        if ($this->loginAttemptLimiter->isLocked($username, $ip)) {
+                            throw new ApiException('تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر تلاش کنید.', 429);
+                        }
+                        $currentPassword = (string)($params['currentPassword'] ?? '');
+                        if ($currentPassword === '' || $this->userService->verifyCredentials($username, $currentPassword) === null) {
+                            $this->loginAttemptLimiter->registerFailedAttempt($username, $ip);
+                            throw new ApiException('رمز عبور فعلی نادرست است.', 403);
+                        }
+                        $this->loginAttemptLimiter->resetAttempts($username, $ip);
                     }
                 }
 
@@ -174,7 +213,7 @@ class UserController {
                     $updates['fullName'] = InputValidator::validateFullName((string)$params['fullName']);
                 }
                 if (isset($params['password'])) {
-                    $updates['password'] = (string)$params['password'];
+                    $updates['password'] = InputValidator::validatePassword((string)$params['password']);
                 }
                 if (isset($params['userType'])) {
                     $updates['userType'] = InputValidator::sanitize((string)$params['userType']);

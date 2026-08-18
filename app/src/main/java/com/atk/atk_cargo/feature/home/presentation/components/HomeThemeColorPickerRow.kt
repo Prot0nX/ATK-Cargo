@@ -25,7 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -83,7 +83,7 @@ private val themeColorOptions = listOf(
 fun ThemeColorPickerRow(
     userPreferencesManager: UserPreferencesManager
 ) {
-    val currentColorLong by userPreferencesManager.themeColor.collectAsState(initial = 0xFF137fecL)
+    val currentColorLong by userPreferencesManager.themeColor.collectAsStateWithLifecycle(initialValue = 0xFF137fecL)
     val coroutineScope = rememberCoroutineScope()
     val isDark = isSystemInDarkTheme()
     val accent = MaterialTheme.colorScheme.primary
@@ -137,7 +137,7 @@ fun ThemeColorPickerRow(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             contentPadding = PaddingValues(horizontal = 2.dp)
         ) {
-            items(themeColorOptions) { option ->
+            items(themeColorOptions, key = { it.colorLong }) { option ->
                 val isSelected = currentColorLong == option.colorLong
                 val sizeAnim by animateFloatAsState(
                     targetValue = if (isSelected) 40f else 34f,

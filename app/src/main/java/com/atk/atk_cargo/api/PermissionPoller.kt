@@ -112,26 +112,33 @@ class PermissionPoller(
             val request  = PermissionSyncRequest(username, deviceId, sessionToken)
             val response = RetrofitClient.apiService.syncPermissions(request)
 
-            if (response.isSuccessful) {
-                val body = response.body()
-                if (body?.success == true) {
-                    val newPerms = body.permissions ?: emptyMap()
+            // response.isSuccessful فقط برای کد ۲۰۰-۲۹۹ true است، پس بررسی
+            // response.code() == 401 داخل شاخه‌ی isSuccessful هرگز اجرا
+            // نمی‌شد و پاک‌سازی نشست منقضی/force-logout عملاً کد مرده بود
+            // (DEEP_CODE_AUDIT.md #Phase1.9). حالا ۴۰۱ قبل از بررسی isSuccessful چک می‌شود.
+            if (response.code() == 401) {
+                Log.w(TAG, "Session expired, clearing credentials")
+                userPreferencesManager.clearUserCredentials()
+                stop()
+                return
+            }
 
-                    // فقط در صورت تغییر واقعی، DataStore و StateFlow را به‌روز کن
-                    val current = _livePermissions.value
-                    if (current != newPerms) {
-                        userPreferencesManager.savePermissions(newPerms)
-                        _livePermissions.value = newPerms
-                        Log.i(TAG, "Permissions updated for $username → ${newPerms.keys}")
-                    }
-                } else if (response.code() == 401) {
-                    // نشست منقضی شده — cleanup انجام بده
-                    Log.w(TAG, "Session expired, clearing credentials")
-                    userPreferencesManager.clearUserCredentials()
-                    stop()
-                }
-            } else {
+            if (!response.isSuccessful) {
                 Log.w(TAG, "Sync failed: HTTP ${response.code()}")
+                return
+            }
+
+            val body = response.body()
+            if (body?.success == true) {
+                val newPerms = body.permissions ?: emptyMap()
+
+                // فقط در صورت تغییر واقعی، DataStore و StateFlow را به‌روز کن
+                val current = _livePermissions.value
+                if (current != newPerms) {
+                    userPreferencesManager.savePermissions(newPerms)
+                    _livePermissions.value = newPerms
+                    Log.i(TAG, "Permissions updated for $username → ${newPerms.keys}")
+                }
             }
         } catch (e: Exception) {
             // خطاهای شبکه سایلنت handle می‌شوند تا polling ادامه یابد

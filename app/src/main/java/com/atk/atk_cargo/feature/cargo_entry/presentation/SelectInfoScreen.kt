@@ -51,7 +51,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -174,7 +174,7 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
     val shipColorMap = remember { mutableStateOf<Map<String, Color>>(emptyMap()) }
     var snackbarMessage by remember { mutableStateOf<SnackbarMessage?>(null) }
     var showShipSelectionDialog by remember { mutableStateOf(false) }
-    val selectedShipNames by viewModel.selectedShipNames.collectAsState(initial = emptySet())
+    val selectedShipNames by viewModel.selectedShipNames.collectAsStateWithLifecycle(initialValue = emptySet())
     val filteredShips = remember(activeShips, selectedShipNames) {
         activeShips.filter { selectedShipNames.contains(it.shipName) }
     }

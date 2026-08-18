@@ -37,7 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,8 +64,8 @@ fun QuotaDetails(
     quotaNumber: String,
     viewModel: ReportsViewModel
 ) {
-    val quotaDetails by viewModel.selectedQuotaDetails.collectAsState()
-    val uiState by viewModel.uiState.collectAsState()
+    val quotaDetails by viewModel.selectedQuotaDetails.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(quotaNumber) {
         viewModel.loadQuotaDetails(quotaNumber)
@@ -297,7 +297,7 @@ fun QuotasDialog(
                                     modifier = Modifier.padding(vertical = 8.dp)
                                 )
                             }
-                            items(companyQuotas) { quota ->
+                            items(companyQuotas, key = { it.id ?: "${it.number}_${it.warehouse}_${it.cargoType}_${it.shippingCompany}" }) { quota ->
                                 QuotaCard(
                                     quota = quota,
                                     onEdit = onEdit,

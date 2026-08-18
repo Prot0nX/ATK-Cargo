@@ -1,6 +1,15 @@
 <?php
 declare(strict_types=1);
 
+// باید با پارامترهای کوکی PermissionManager.php هم‌راستا باشد چون همان
+// نشست را می‌خواند (DEEP_CODE_AUDIT.md #Phase1.6).
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
 session_start();
 
 header('Content-Type: application/json; charset=UTF-8');

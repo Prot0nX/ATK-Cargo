@@ -11,10 +11,10 @@ use mysqli;
 use App\Core\AuthenticatesRequests;
 use App\Core\Database;
 use App\Core\Logger;
-use App\Core\MicroCache;
 use App\Core\Request;
 use App\Core\Response;
 use App\Services\PasswordGateService;
+use App\Services\PermissionService;
 
 class UtilityController {
     use AuthenticatesRequests;
@@ -218,6 +218,12 @@ class UtilityController {
         }
 
         $hasUpdate = version_compare((string)$currentVersion, (string)$config['latest_version'], '<');
+        $sha256 = $hasUpdate ? ($config['sha256'] ?? '') : '';
+        // fail-closed: بدون هش قابل‌محاسبه (hash_file شکست خورده یا فایل
+        // گم است)، تأیید یکپارچگی سمت کلاینت ممکن نیست — پس download_url
+        // اصلاً برگردانده نمی‌شود تا کلاینت بی‌صدا یک APK تأییدنشده نصب
+        // نکند (DEEP_CODE_AUDIT.md #Phase1.5).
+        $downloadUrl = ($hasUpdate && $sha256 !== '') ? $config['download_url'] : '';
 
         $response = [
             // 'hasUpdate'/'has_update' — کلاینت فعلی خودش hasUpdate را از مقایسه‌ی
@@ -226,11 +232,11 @@ class UtilityController {
             'hasUpdate' => $hasUpdate,
             'has_update' => $hasUpdate,
             'latestVersion' => $config['latest_version'],
-            'downloadUrl' => $hasUpdate ? $config['download_url'] : '',
+            'downloadUrl' => $downloadUrl,
             'changeLog' => $hasUpdate ? ($config['change_log'] ?? []) : [],
             'minRequiredVersion' => $config['min_required_version'],
             'minAllowedVersion' => $config['min_allowed_version'] ?? $config['min_required_version'],
-            'sha256' => $hasUpdate ? ($config['sha256'] ?? '') : '',
+            'sha256' => $sha256,
             // فیلدهای مسطح snake_case زیر در سطح ریشه — کلاینت اندروید همه‌ی فیلدهای
             // آپدیت را از ریشه‌ی پاسخ می‌خواند، نه از 'updateInfo' تودرتو (S-1)؛ قبلاً
             // این فیلدها فقط زیر updateInfo بودند و کلاینت همیشه مقدار پیش‌فرض
@@ -285,27 +291,14 @@ class UtilityController {
 
         try {
             $userType = (string)$this->authenticatedUserType;
-            $permissions_file = APP_ROOT . '/config/permissions.json';
-            $userPermissions = [];
-
-            // محتوای permissions.json برای همه‌ی کاربران یکسان است؛ خواندن و پارس آن
-            // به مدت کوتاهی کش می‌شود تا روی هر sync دوباره از دیسک خوانده نشود.
-            $allData = MicroCache::remember('permissions_file_data', 15, function () use ($permissions_file) {
-                if (file_exists($permissions_file)) {
-                    return json_decode((string)file_get_contents($permissions_file), true) ?: [];
-                }
-                return [];
-            });
-
-            if (isset($allData['roles'])) {
-                if (isset($allData['users'][$this->authenticatedUsername])) {
-                    $userPermissions = $allData['users'][$this->authenticatedUsername];
-                } elseif (isset($allData['roles'][$userType])) {
-                    $userPermissions = $allData['roles'][$userType];
-                }
-            } else {
-                $userPermissions = $allData[$userType] ?? [];
-            }
+            // منطق خواندن/کش permissions.json دیگر اینجا تکرار نمی‌شود — همان
+            // PermissionService::getUserPermissions مورد استفاده‌ی
+            // AuthController/AppApiController، با همان کش (MicroCache،
+            // DEEP_CODE_AUDIT.md #Phase2.7).
+            $userPermissions = (new PermissionService())->getUserPermissions(
+                (string)$this->authenticatedUsername,
+                $userType
+            );
 
             $this->sendSyncResponse(true, 'Permissions synced successfully.', [
                 'userType' => $userType,

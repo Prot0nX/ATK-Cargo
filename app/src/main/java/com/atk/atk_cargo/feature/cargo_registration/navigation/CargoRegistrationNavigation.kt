@@ -2,7 +2,7 @@ package com.atk.atk_cargo.feature.cargo_registration.navigation
 
 import android.util.Log
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.navigation.NavController
@@ -42,11 +42,11 @@ fun NavGraphBuilder.cargoRegistrationScreen(
             }
         }
 
-        val cargoInfoList by viewModel.cargoInfoList.collectAsState()
-        val initialInfo by viewModel.initialInfo.collectAsState()
-        val resultMessage by viewModel.resultMessage.collectAsState()
-        val showAnimatedMessage by viewModel.showAnimatedMessage.collectAsState()
-        val messageType by viewModel.messageType.collectAsState()
+        val cargoInfoList by viewModel.cargoInfoList.collectAsStateWithLifecycle()
+        val initialInfo by viewModel.initialInfo.collectAsStateWithLifecycle()
+        val resultMessage by viewModel.resultMessage.collectAsStateWithLifecycle()
+        val showAnimatedMessage by viewModel.showAnimatedMessage.collectAsStateWithLifecycle()
+        val messageType by viewModel.messageType.collectAsStateWithLifecycle()
 
         RegisterCargoScreen(
             initialInfo = initialInfo,
