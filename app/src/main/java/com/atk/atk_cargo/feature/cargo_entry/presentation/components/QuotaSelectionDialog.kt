@@ -85,7 +85,7 @@ fun QuotaSelectionDialog(
                         .weight(1f)
                         .fillMaxWidth()
                 ) {
-                    items(matchingQuotas) { quota ->
+                    items(matchingQuotas, key = { "${it.quotaNumber}_${it.shipName}_${it.warehouse}_${it.cargoType}" }) { quota ->
                         QuotaItem(
                             quota = quota,
                             matchingQuotas = matchingQuotas,

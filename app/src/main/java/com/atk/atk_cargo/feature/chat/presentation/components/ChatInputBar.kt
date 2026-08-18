@@ -101,7 +101,7 @@ fun MessageInputArea(
                             .height(200.dp)
                     ) {
                         LazyColumn {
-                            items(users) { user ->
+                            items(users, key = { it.username }) { user ->
                                 Text(
                                     text = user.fullName ?: user.username,
                                     modifier = Modifier
@@ -272,7 +272,7 @@ fun ShipSelectionDialog(
                 LazyColumn(
                     modifier = Modifier.height(300.dp)
                 ) {
-                    items(filteredShips) { ship ->
+                    items(filteredShips, key = { it.name }) { ship ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -329,7 +329,7 @@ fun QuotaSelectionDialog(
                 LazyColumn(
                     modifier = Modifier.height(300.dp)
                 ) {
-                    items(quotas) { quota ->
+                    items(quotas, key = { it.id ?: it.number }) { quota ->
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()

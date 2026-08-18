@@ -19,6 +19,11 @@ class AtkCargoApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // باید همین ابتدا نصب شود — قبل از هر initialization دیگری که خودش
+        // می‌تواند کرش کند (Koin، RetrofitClient) — تا آن کرش‌ها هم گزارش شوند
+        // (DEEP_CODE_AUDIT.md #Phase2.13).
+        CrashReporter.install(this)
+
         // Initialize Koin DI
         val koinApp = startKoin {
             // لاگ verbose فقط در build های debug — در release نباید فعال باشد
@@ -47,6 +52,10 @@ class AtkCargoApplication : Application() {
             AuthSession.username = userPreferencesManager.username.first()
             AuthSession.deviceId = userPreferencesManager.deviceId.first()
             AuthSession.sessionToken = userPreferencesManager.sessionToken.first()
+
+            // ارسال گزارش کرشِ اجرای قبلی (در صورت وجود) — best-effort، بعد
+            // از این‌که AuthSession.username برای مرجع در دسترس است.
+            CrashReporter.sendPendingReportIfAny(this@AtkCargoApplication, Secrets.getBaseUrl(), applicationScope)
         }
     }
 }

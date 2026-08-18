@@ -6,36 +6,62 @@ declare(strict_types=1);
 namespace App\Services;
 
 /**
- * محدودکننده‌ی تلاش‌های ناموفق ورود (username + IP). قبلاً check_Auth.php
- * هیچ قفلی نداشت و رِیت‌لیمیت عمومی پروکسی (۶۰ درخواست/دقیقه به‌ازای IP) تنها
- * سدّ موجود بود — یعنی با چرخش IP عملاً بدون محدودیت (S-06). الگو دقیقاً
- * مطابق PasswordGateService (APCu با fallback فایلی) است تا با معماری موجود
- * یکدست بماند.
+ * محدودکننده‌ی تلاش‌های ناموفق ورود. دو شمارنده‌ی مستقل دارد:
+ * - به‌ازای username (مستقل از IP) → سدّ اصلی brute-force روی یک حساب.
+ * - به‌ازای IP (مستقل از username) → سدّ credential-stuffing گسترده.
+ * نسخه‌ی قبلی فقط کلید ترکیبی username+IP داشت که با چرخش IP کاملاً دور
+ * زده می‌شد (S-06 / DEEP_CODE_AUDIT.md #1.1). الگوی ذخیره‌سازی (APCu با
+ * fallback فایلی) مطابق PasswordGateService است.
  */
 final class LoginAttemptLimiter {
-    private const MAX_ATTEMPTS = 5;
+    private const MAX_USER_ATTEMPTS = 5;
+    private const MAX_IP_ATTEMPTS = 50;
     private const LOCKOUT_WINDOW_SECONDS = 900; // ۱۵ دقیقه
     private const CACHE_PREFIX = 'login_gate_attempts_';
+    private const MAX_BACKOFF_SECONDS = 8;
 
     public function isLocked(string $username, string $ipAddress): bool {
-        return $this->getAttemptCount($username, $ipAddress) >= self::MAX_ATTEMPTS;
+        return $this->getCount($this->userKey($username)) >= self::MAX_USER_ATTEMPTS
+            || $this->getCount($this->ipKey($ipAddress)) >= self::MAX_IP_ATTEMPTS;
     }
 
     public function registerFailedAttempt(string $username, string $ipAddress): void {
-        $key = $this->attemptsKey($username, $ipAddress);
-        $count = $this->getAttemptCount($username, $ipAddress) + 1;
+        $userAttempts = $this->increment($this->userKey($username));
+        $this->increment($this->ipKey($ipAddress));
+
+        // تأخیر تصاعدی: 2, 4, 8, 8, 8... ثانیه به‌ازای تلاش ناموفق روی همین username
+        $delay = min(2 ** $userAttempts, self::MAX_BACKOFF_SECONDS);
+        sleep($delay);
+    }
+
+    public function resetAttempts(string $username, string $ipAddress): void {
+        // فقط شمارنده‌ی username پاک می‌شود؛ شمارنده‌ی IP باقی می‌ماند تا
+        // credential-stuffing از همان IP روی حساب‌های دیگر همچنان محدود بماند.
+        $this->clear($this->userKey($username));
+    }
+
+    private function userKey(string $username): string {
+        return self::CACHE_PREFIX . 'u_' . strtolower($username);
+    }
+
+    private function ipKey(string $ipAddress): string {
+        return self::CACHE_PREFIX . 'ip_' . $ipAddress;
+    }
+
+    private function increment(string $key): int {
+        $count = $this->getCount($key) + 1;
 
         if (function_exists('apcu_store')) {
             apcu_store($key, $count, self::LOCKOUT_WINDOW_SECONDS);
-            return;
+            return $count;
         }
 
         $file = $this->fallbackFile($key);
         file_put_contents($file, json_encode(['count' => $count, 'expires' => time() + self::LOCKOUT_WINDOW_SECONDS]));
+        return $count;
     }
 
-    public function resetAttempts(string $username, string $ipAddress): void {
-        $key = $this->attemptsKey($username, $ipAddress);
+    private function clear(string $key): void {
         if (function_exists('apcu_delete')) {
             apcu_delete($key);
             return;
@@ -46,13 +72,7 @@ final class LoginAttemptLimiter {
         }
     }
 
-    private function attemptsKey(string $username, string $ipAddress): string {
-        return self::CACHE_PREFIX . strtolower($username) . '_' . $ipAddress;
-    }
-
-    private function getAttemptCount(string $username, string $ipAddress): int {
-        $key = $this->attemptsKey($username, $ipAddress);
-
+    private function getCount(string $key): int {
         if (function_exists('apcu_fetch')) {
             $value = apcu_fetch($key, $ok);
             return $ok ? (int)$value : 0;

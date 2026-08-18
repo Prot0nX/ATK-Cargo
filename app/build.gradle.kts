@@ -91,7 +91,7 @@ android {
 
     buildFeatures {
         compose = true
-        viewBinding = true
+        viewBinding = false
         buildConfig = true
 
         aidl = false
@@ -229,12 +229,11 @@ dependencies {
     // ==================== AndroidX Core Libraries ====================
     implementation(libs.androidx.core.ktx.v1160)
     implementation(libs.androidx.core.splashscreen)
-    implementation(libs.androidx.appcompat.v171)
     implementation(libs.androidx.activity.compose.v1101)
-    implementation(libs.androidx.constraintlayout)
 
     // ==================== Lifecycle Components ====================
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
@@ -248,12 +247,9 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material)
     implementation(libs.androidx.material.icons.extended)
-    implementation(libs.material)
 
     // ==================== Navigation ====================
     implementation(libs.androidx.navigation.compose.v290)
-    implementation(libs.androidx.navigation.fragment.ktx.v290)
-    implementation(libs.androidx.navigation.ui.ktx.v290)
 
     // ==================== Camera & ML Kit ====================
     implementation(libs.androidx.camera.camera2)
@@ -283,9 +279,6 @@ dependencies {
 
     // ==================== Work Manager ====================
     implementation(libs.androidx.work.runtime.ktx)
-
-    // ==================== Image Loading ====================
-    implementation(libs.coil.compose.v260)
 
     // ==================== Barcode Scanning ====================
     implementation(libs.zxing.android.embedded)

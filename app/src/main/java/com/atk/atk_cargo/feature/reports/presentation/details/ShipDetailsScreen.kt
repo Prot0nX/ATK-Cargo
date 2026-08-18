@@ -34,7 +34,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -94,18 +94,18 @@ fun ShipDetails(
     onSectionChanged: (Int) -> Unit,
     onShipNotFound: () -> Unit = {}
 ) {
-    val ship by viewModel.selectedShip.collectAsState()
-    val selectedShipQuotas by viewModel.selectedShipQuotas.collectAsState()
+    val ship by viewModel.selectedShip.collectAsStateWithLifecycle()
+    val selectedShipQuotas by viewModel.selectedShipQuotas.collectAsStateWithLifecycle()
     var showWarningDialog by rememberSaveable { mutableStateOf(false) }
     // شماره کوتاژهای هشداری که کاربر قبلاً دیده و دیالوگ را برایشان بسته است؛
     // به‌صورت رشته‌ی جداشده با کاما ذخیره می‌شود چون Set<String> مستقیماً در
     // Bundle قابل ذخیره نیست. با هر تغییر داده (رفع هشدار، ویرایش، ...) این
     // لیست، دیالوگ فقط برای هشدارهای واقعاً جدید دوباره باز می‌شود.
     var dismissedWarningQuotaNumbersCsv by rememberSaveable { mutableStateOf("") }
-    val uiState by viewModel.uiState.collectAsState()
-    val isLoadingShipDetails by viewModel.isLoadingShipDetails.collectAsState()
-    val isLoadingShipQuotas by viewModel.isLoadingShipQuotas.collectAsState()
-    val shipDetailsLoadingState by viewModel.shipDetailsLoadingState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isLoadingShipDetails by viewModel.isLoadingShipDetails.collectAsStateWithLifecycle()
+    val isLoadingShipQuotas by viewModel.isLoadingShipQuotas.collectAsStateWithLifecycle()
+    val shipDetailsLoadingState by viewModel.shipDetailsLoadingState.collectAsStateWithLifecycle()
     val warnings = remember(selectedShipQuotas) {
         selectedShipQuotas.mapNotNull { quota -> calculateWarningStatus(quota) }
     }
@@ -296,8 +296,8 @@ fun WarehousesAndQuotasTab(
 ) {
     var selectedSection by rememberSaveable { mutableIntStateOf(0) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    val isLoadingShipQuotas by viewModel.isLoadingShipQuotas.collectAsState()
-    val shipQuotasLoadingState by viewModel.shipQuotasLoadingState.collectAsState()
+    val isLoadingShipQuotas by viewModel.isLoadingShipQuotas.collectAsStateWithLifecycle()
+    val shipQuotasLoadingState by viewModel.shipQuotasLoadingState.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier

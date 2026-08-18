@@ -70,7 +70,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -125,7 +125,7 @@ fun HomeScreen(
     var showGridAnimation by remember { mutableStateOf(false) }
     val chatRepository = koinInject<ChatRepository>()
 
-    val unreadCountByMe by chatRepository.unreadCount.collectAsState(initial = 0)
+    val unreadCountByMe by chatRepository.unreadCount.collectAsStateWithLifecycle(initialValue = 0)
 
     AnimatedContent(
         targetState = isSessionValid && username.isNotEmpty(),
@@ -623,6 +623,7 @@ private fun CategorizedMenuGrid(
 
                 items(
                     count = wideItems.size,
+                    key = { index -> wideItems[index].route },
                     span = { GridItemSpan(columnsCount) }
                 ) { index ->
                     WideMenuCard(
@@ -641,6 +642,7 @@ private fun CategorizedMenuGrid(
 
                 items(
                     count = compactItems.size,
+                    key = { index -> compactItems[index].route },
                     span = { GridItemSpan(1) }
                 ) { index ->
                     CompactMenuCard(

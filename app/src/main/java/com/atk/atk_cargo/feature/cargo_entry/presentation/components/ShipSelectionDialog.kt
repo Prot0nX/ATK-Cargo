@@ -279,7 +279,7 @@ fun ShipSelectionDialog(
                                 border = chipBorder
                             )
                         }
-                        items(cargoTypes) { cargo ->
+                        items(cargoTypes, key = { it }) { cargo ->
                             FilterChip(
                                 selected = selectedCargoFilter == cargo,
                                 onClick = {

@@ -32,7 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,19 +78,19 @@ import org.koin.compose.koinInject
 fun MainScreen() {
     val navController = rememberNavController()
     val userPreferencesManager = koinInject<UserPreferencesManager>()
-    val username by userPreferencesManager.username.collectAsState(initial = "")
-    val userType by userPreferencesManager.userType.collectAsState(initial = "")
+    val username by userPreferencesManager.username.collectAsStateWithLifecycle(initialValue = "")
+    val userType by userPreferencesManager.userType.collectAsStateWithLifecycle(initialValue = "")
 
     val permissionPoller = remember { PermissionPoller(userPreferencesManager) }
-    val livePermissions by permissionPoller.livePermissions.collectAsState()
-    val storedPermissions by userPreferencesManager.permissions.collectAsState(initial = emptyMap())
+    val livePermissions by permissionPoller.livePermissions.collectAsStateWithLifecycle()
+    val storedPermissions by userPreferencesManager.permissions.collectAsStateWithLifecycle(initialValue = emptyMap())
     val userPermissions = livePermissions.ifEmpty { storedPermissions }
 
     var showUserManagement by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val startupViewModel = LocalStartupViewModel.current
-    val isSessionValid by startupViewModel.isSessionValid.collectAsState()
-    val pendingNavigationDestination by startupViewModel.pendingNavigationDestination.collectAsState()
+    val isSessionValid by startupViewModel.isSessionValid.collectAsStateWithLifecycle()
+    val pendingNavigationDestination by startupViewModel.pendingNavigationDestination.collectAsStateWithLifecycle()
 
     LaunchedEffect(pendingNavigationDestination, isSessionValid) {
         if (isSessionValid && pendingNavigationDestination == "admin_chat") {

@@ -74,6 +74,19 @@ class InputValidator {
     }
 
     /**
+     * اعتبارسنجی رمز عبور. کلاینت رمز را قبل از ارسال SHA-256 می‌کند (۶۴
+     * کاراکتر هگز)، پس این بررسی به‌تنهایی جایگزین hashing سمت سرور روی
+     * رمز خام نیست (نگاه کنید Phase 3.11) — اما سدّی است در برابر یک
+     * کلاینت دستکاری‌شده که مستقیماً رمز کوتاه/فقط-رقمی می‌فرستد.
+     */
+    public static function validatePassword(string $password): string {
+        if (mb_strlen($password) < 8) {
+            throw new ApiException("رمز عبور باید حداقل ۸ کاراکتر باشد.", 400);
+        }
+        return $password;
+    }
+
+    /**
      * برای مقادیری که در یک شرط تساوی (WHERE = ?) با prepared statement مقایسه
      * می‌شوند (مثل نام کشتی) نباید htmlspecialchars اعمال شود، وگرنه نامی مثل
      * "M&V" به "M&amp;V" تبدیل و مقایسه با دیتابیس شکسته می‌شود. SQL Injection

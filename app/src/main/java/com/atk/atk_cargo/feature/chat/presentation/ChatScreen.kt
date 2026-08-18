@@ -23,7 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,11 +65,11 @@ fun ChatScreen(
     val viewModel: ChatViewModel = viewModel(
         factory = ChatViewModelFactory(context, userPreferencesManager)
     )
-    val messages by viewModel.messages.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error by viewModel.error.collectAsState()
-    val isSending by viewModel.isSending.collectAsState()
-    val users by viewModel.users.collectAsState()
+    val messages by viewModel.messages.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+    val isSending by viewModel.isSending.collectAsStateWithLifecycle()
+    val users by viewModel.users.collectAsStateWithLifecycle()
     val notificationManager = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
     
     LaunchedEffect(Unit) {
@@ -89,13 +89,13 @@ fun ChatScreen(
         }
     }
 
-    val shipsData by viewModel.ships.collectAsState()
-    val shipQuotas by viewModel.shipQuotas.collectAsState()
-    val fontSize by viewModel.chatFontSize.collectAsState()
-    val myBubbleColorLong by viewModel.chatMyBubbleColor.collectAsState()
-    val otherBubbleColorLong by viewModel.chatOtherBubbleColor.collectAsState()
-    val backgroundId by viewModel.chatBackgroundId.collectAsState()
-    val bubbleShapeId by viewModel.chatBubbleShape.collectAsState()
+    val shipsData by viewModel.ships.collectAsStateWithLifecycle()
+    val shipQuotas by viewModel.shipQuotas.collectAsStateWithLifecycle()
+    val fontSize by viewModel.chatFontSize.collectAsStateWithLifecycle()
+    val myBubbleColorLong by viewModel.chatMyBubbleColor.collectAsStateWithLifecycle()
+    val otherBubbleColorLong by viewModel.chatOtherBubbleColor.collectAsStateWithLifecycle()
+    val backgroundId by viewModel.chatBackgroundId.collectAsStateWithLifecycle()
+    val bubbleShapeId by viewModel.chatBubbleShape.collectAsStateWithLifecycle()
     
     val myBubbleColor = Color(myBubbleColorLong)
     val otherBubbleColor = Color(otherBubbleColorLong)

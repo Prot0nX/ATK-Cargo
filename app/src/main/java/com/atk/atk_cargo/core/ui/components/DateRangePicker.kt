@@ -297,7 +297,7 @@ fun PersianDatePickerDialog(
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(horizontal = ATKCargoTheme.spacing.xs)
                     ) {
-                        items(years) { year ->
+                        items(years, key = { it }) { year ->
                             val isSelected = year == selectedYear
                             FilterChip(
                                 selected = isSelected,

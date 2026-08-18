@@ -135,8 +135,10 @@ class SessionService {
             return ['success' => false, 'message' => 'نشست یافت نشد. لطفاً دوباره وارد شوید.', 'http_code' => 401];
         }
 
-        $storedRefreshToken = (string)($session['refresh_token'] ?? '');
-        if ($storedRefreshToken === '' || !hash_equals($storedRefreshToken, $refreshToken)) {
+        // session['refresh_token'] از دیتابیس هش‌شده برمی‌گردد (Phase 2.1)،
+        // پس طرف مقابل مقایسه هم باید هش شود.
+        $storedRefreshTokenHash = (string)($session['refresh_token'] ?? '');
+        if ($storedRefreshTokenHash === '' || !hash_equals($storedRefreshTokenHash, SessionRepository::hashToken($refreshToken))) {
             $this->sessionRepository->deactivateAllSessions($username);
             $this->logActivity($username, 'REFRESH_TOKEN_REUSE_DETECTED', $deviceId);
             return ['success' => false, 'message' => 'نشست به دلایل امنیتی باطل شد. لطفاً دوباره وارد شوید.', 'http_code' => 401];
@@ -182,12 +184,23 @@ class SessionService {
         $existingSession = $this->sessionRepository->getActiveSessionByDevice($username, $deviceId);
         
         if ($existingSession) {
-            $this->sessionRepository->updateLastActivity($username, $deviceId);
+            // session_token/refresh_token از دیتابیس هش‌شده برمی‌گردند
+            // (Phase 2.1) و قابل بازگرداندن به کلاینت یا reuse نیستند؛ مثل
+            // createMobileSession (تصمیم I-05)، به‌جای reuse یک جفت توکن
+            // کاملاً تازه صادر و rotate می‌شود.
+            $tokens = $this->generateTokenPair();
+            $this->sessionRepository->rotateTokens(
+                (int)$existingSession['id'],
+                $tokens['accessToken'],
+                $tokens['accessTokenExpiresAt'],
+                $tokens['refreshToken'],
+                $tokens['refreshTokenExpiresAt']
+            );
             return [
                 'success' => true,
                 'message' => 'جلسه موجود به‌روزرسانی شد',
                 'session_id' => $existingSession['id'],
-                'session_token' => $existingSession['session_token']
+                'session_token' => $tokens['accessToken']
             ];
         }
 

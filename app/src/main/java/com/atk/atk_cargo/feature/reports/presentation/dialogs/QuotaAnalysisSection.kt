@@ -61,7 +61,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -194,13 +194,13 @@ fun QuotaAnalysis(
     // A-5: اشتراک‌گذاری کل مثل اشتراک‌گذاری تک‌گروه حالا به تأیید کاربر نیاز
     // دارد؛ قبلاً این دکمه بی‌درنگ و بدون تأیید chooser سیستم را باز می‌کرد.
     var pendingAllShareText by remember { mutableStateOf<String?>(null) }
-    val groupingMode by viewModel.groupingMode.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
+    val groupingMode by viewModel.groupingMode.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     // C-1/C-2 (گزارش تحلیل جامع عملیات): فیلتر «فعال در این روز کاری» و
     // گروه‌بندی/مرتب‌سازی قبلاً اینجا هم دوباره (و با کلید متفاوت از نسخه
     // مرده‌ی ViewModel) انجام می‌شد؛ حالا هر دو یک‌بار در
     // ReportsViewModel.analyticsGroups محاسبه شده‌اند.
-    val groups by viewModel.analyticsGroups.collectAsState()
+    val groups by viewModel.analyticsGroups.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier

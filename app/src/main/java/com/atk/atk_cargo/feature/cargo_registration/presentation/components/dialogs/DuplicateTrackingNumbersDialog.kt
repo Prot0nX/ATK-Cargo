@@ -70,7 +70,7 @@ fun DuplicateTrackingNumbersDialog(
                     .padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                items(duplicateNumbers) { trackingNumber ->
+                items(duplicateNumbers, key = { it }) { trackingNumber ->
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()

@@ -195,13 +195,13 @@ fun EnhancedAddUserDialog(
                 )
 
                 DesignTextField(
-                    label = "رمز عبور (حداقل ۴ رقم عددی)",
+                    label = "رمز عبور (حداقل ۸ کاراکتر)",
                     value = password,
-                    onValueChange = { password = it.filter { char -> char.isDigit() } },
+                    onValueChange = { password = it },
                     ltr = true,
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.NumberPassword,
+                        keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
                     )
                 )
@@ -267,7 +267,7 @@ fun EnhancedAddUserDialog(
                                     fullName.isEmpty() -> errorMessage = "لطفاً نام و نام خانوادگی را وارد کنید"
                                     !isValidFullName(fullName) -> errorMessage = "نام و نام خانوادگی باید حداقل شامل نام و نام خانوادگی باشد"
                                     password.isEmpty() -> errorMessage = "لطفاً رمز عبور را وارد کنید"
-                                    password.length < 4 -> errorMessage = "رمز عبور باید حداقل ۴ رقم باشد"
+                                    password.length < 8 -> errorMessage = "رمز عبور باید حداقل ۸ کاراکتر باشد"
                                     else -> {
                                         scope.launch {
                                             isLoading = true
@@ -444,13 +444,13 @@ fun EnhancedEditUserDialog(
 
                 OutlinedTextField(
                     value = password,
-                    onValueChange = { password = it.filter { char -> char.isDigit() } },
-                    label = { Text("رمز عبور جدید (در صورت عدم تغییر خالی بگذارید)") },
+                    onValueChange = { password = it },
+                    label = { Text("رمز عبور جدید (حداقل ۸ کاراکتر، در صورت عدم تغییر خالی بگذارید)") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
                 )
 
                 UserTypeSelection(
@@ -492,6 +492,7 @@ fun EnhancedEditUserDialog(
                                 username.isEmpty() -> errorMessage = "نام کاربری نمی‌تواند خالی باشد"
                                 fullName.isEmpty() -> errorMessage = "نام و نام خانوادگی نمی‌تواند خالی باشد"
                                 !isValidFullName(fullName) -> errorMessage = "نام و نام خانوادگی باید معتبر باشد"
+                                password.isNotEmpty() && password.length < 8 -> errorMessage = "رمز عبور باید حداقل ۸ کاراکتر باشد"
                                 else -> {
                                     val updateRequest = UpdateUserRequest(
                                         id = user.id,

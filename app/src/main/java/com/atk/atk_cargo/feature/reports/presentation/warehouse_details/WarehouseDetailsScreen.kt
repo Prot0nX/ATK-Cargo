@@ -53,7 +53,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -109,9 +109,9 @@ fun WarehouseDetails(
     viewModel: ReportsViewModel,
     onBack: () -> Unit = {}
 ) {
-    val warehouse by viewModel.selectedWarehouse.collectAsState()
-    val uiState by viewModel.uiState.collectAsState()
-    val filteredSummary by viewModel.filteredSummary.collectAsState()
+    val warehouse by viewModel.selectedWarehouse.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val filteredSummary by viewModel.filteredSummary.collectAsStateWithLifecycle()
     var selectedQuota by remember { mutableStateOf<String?>(null) }
     var startDateTime by remember { mutableStateOf<String?>(null) }
     var endDateTime by remember { mutableStateOf<String?>(null) }

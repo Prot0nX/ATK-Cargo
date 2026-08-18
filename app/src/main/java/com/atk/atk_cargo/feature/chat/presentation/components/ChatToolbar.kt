@@ -263,7 +263,7 @@ fun ChatSettingsDialogEnhanced(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                             reverseLayout = true
                         ) {
-                            items(backgroundOptions) { (id, color) ->
+                            items(backgroundOptions, key = { it.first }) { (id, color) ->
                                 Box(
                                     modifier = Modifier
                                         .size(60.dp, 40.dp)
@@ -474,7 +474,7 @@ fun LazyRowColorsRefined(
             }
         }
 
-        items(colors) { colorLong ->
+        items(colors, key = { it }) { colorLong ->
             val color = Color(colorLong)
             val isSelected = selectedColor == colorLong
             

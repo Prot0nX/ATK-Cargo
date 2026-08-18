@@ -34,7 +34,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -185,14 +185,14 @@ fun CargoDetailsScreen(
     }
     val viewModel: CargoViewModel = passedViewModel ?: viewModel(factory = CargoViewModelFactory(effectiveRepository, userPreferencesManager))
     val coroutineScope = rememberCoroutineScope()
-    val username by userPreferencesManager.username.collectAsState(initial = "")
-    val userType by userPreferencesManager.userType.collectAsState(initial = "")
-    val cargoInfoList by viewModel.cargoInfoList.collectAsState()
-    val filteredCargoInfoList by viewModel.filteredCargoInfoList.collectAsState()
-    val initialInfo by viewModel.initialInfo.collectAsState()
-    val resultMessage by viewModel.resultMessage.collectAsState()
-    val showAnimatedMessage by viewModel.showAnimatedMessage.collectAsState()
-    val messageType by viewModel.messageType.collectAsState()
+    val username by userPreferencesManager.username.collectAsStateWithLifecycle(initialValue = "")
+    val userType by userPreferencesManager.userType.collectAsStateWithLifecycle(initialValue = "")
+    val cargoInfoList by viewModel.cargoInfoList.collectAsStateWithLifecycle()
+    val filteredCargoInfoList by viewModel.filteredCargoInfoList.collectAsStateWithLifecycle()
+    val initialInfo by viewModel.initialInfo.collectAsStateWithLifecycle()
+    val resultMessage by viewModel.resultMessage.collectAsStateWithLifecycle()
+    val showAnimatedMessage by viewModel.showAnimatedMessage.collectAsStateWithLifecycle()
+    val messageType by viewModel.messageType.collectAsStateWithLifecycle()
     var selectedCargoInfo by remember { mutableStateOf<CargoInfo?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }

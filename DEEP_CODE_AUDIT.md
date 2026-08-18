@@ -18,7 +18,7 @@ ATK-Cargo یک سیستم عملیاتی واقعی و در حال استفاد�
 
 1. **دو API stack موازی وجود دارد و کلاینت از stack ضعیف‌تر استفاده می‌کند.** یک Router نسخه ۲ کامل و امن (`PHP/src/routes/api_v2.php`، ۵۹۹ خط، opt-in، گیت auth/permission در سطح router) نوشته شده — اما **هیچ‌کدام از ۶۰+ متد `ApiService.kt` از آن استفاده نمی‌کنند**؛ همه از `protected_proxy.php?target=` (مدل opt-out) عبور می‌کنند. یعنی تمام بهبودهای امنیتی v2 عملاً کد مرده‌اند.
 2. **مدل رمز عبور، ضعیف‌ترین حلقه‌ی کل سیستم است.** رمزها در UI فقط عددی و حداقل ۴ رقم هستند، کلاینت SHA-256 بدون salt می‌فرستد، و قفل تلاش ناموفق روی `username+IP` کلید می‌خورد — یعنی با چرخش IP کاملاً دور زده می‌شود.
-3. **لایه‌ی Compose هیچ lifecycle-awareness ندارد** — ۸۵ مورد `collectAsState()` و صفر مورد `collectAsStateWithLifecycle()`.
+3. ✅ **لایه‌ی Compose هیچ lifecycle-awareness ندارد** — رفع شد (Phase 2.5): تمام ۱۰۴ فراخوانی `collectAsState()` به `collectAsStateWithLifecycle()` تبدیل شدند.
 4. **تست عملاً وجود ندارد** — ۱ تست PHP، ۱ تست واقعی Kotlin، در برابر ~۶۲,۰۰۰ خط کد.
 
 ### مهم‌ترین ریسک‌های امنیتی
@@ -36,8 +36,8 @@ ATK-Cargo یک سیستم عملیاتی واقعی و در حال استفاد�
 ### مهم‌ترین مشکلات Performance
 
 - `collectAsState()` بدون lifecycle → جمع‌آوری Flowها (از جمله DataStore) در background ادامه دارد.
-- ۲۲ مورد از ۳۵ فراخوانی `items(...)` در لیست‌های Lazy بدون `key` → از دست رفتن identity و recomposition/re-layout کامل.
-- `PermissionService` فایل `permissions.json` را در **هر بررسی مجوز** از دیسک می‌خواند و json_decode می‌کند.
+- ✅ فراخوانی‌های `items(...)` بدون `key` در لیست‌های Lazy — رفع شد (Phase 2.6).
+- ✅ `PermissionService` فایل `permissions.json` را در هر بررسی مجوز از دیسک می‌خواند — رفع شد (Phase 2.7)، حالا با `MicroCache` کش می‌شود.
 - جدول `user_sessions` با **۱۳ ایندکس** (چند تای‌شان prefix تکراری) در حالی که در هر درخواست احرازشده UPDATE می‌شود.
 - ViewModelهای خدا با ۲۰+ `StateFlow` مجزا به‌جای یک `UiState` واحد.
 
@@ -51,7 +51,7 @@ ATK-Cargo یک سیستم عملیاتی واقعی و در حال استفاد�
 
 ### Technical Debt
 
-بدهی فنی غالب، **بدهی مهاجرت** است نه بدهی کیفیت: v2 نوشته شده ولی مصرف نمی‌شود؛ audit_log کد دارد ولی migration ندارد؛ `schema.sql` جداول `admin_chat_messages`/`admin_chat_reads`/`audit_log` را ندارد؛ `migrations/` خالی است.
+بدهی فنی غالب، **بدهی مهاجرت** است نه بدهی کیفیت: v2 نوشته شده ولی مصرف نمی‌شود؛ audit_log کد دارد و migration پایه دارد (رفع شد، Phase 2.3)؛ `schema.sql` اکنون کامل است (رفع شد، Phase 2.3)؛ `migrations/` یک قرارداد سبک دارد ولی هنوز runner خودکار ندارد.
 
 ### Production Readiness
 
@@ -167,7 +167,7 @@ protected_proxy.php?target=<file>.php      ← ۱۰۰٪ ترافیک کلاین�
 | Repository ↔ Retrofit | خطاها در `Exception(String)` بسته‌بندی می‌شوند و نوع/کد وضعیت گم می‌شود |
 | کلاینت ↔ سرور | دو قرارداد خطای متفاوت: `{error: true, message}` و `{error: "متن"}` |
 | Controller ↔ Service | permission در بعضی مسیرها در کنترلر، در بعضی در router — و در `app_api.php` اصلاً نیست |
-| Service ↔ فایل‌سیستم | `permissions.json` منبع حقیقت مجوزهاست، بدون قفل نوشتن و بدون کش خواندن |
+| Service ↔ فایل‌سیستم | ✅ `permissions.json` — رفع شد (Phase 2.7): نوشتن اتمیک + کش خواندن اضافه شد |
 
 ---
 
@@ -202,6 +202,8 @@ protected_proxy.php?target=<file>.php      ← ۱۰۰٪ ترافیک کلاین�
 ---
 
 ### [CRITICAL] فضای رمز عبور ۴ رقمی عددی + هش بدون salt + قفل قابل دور زدن = تصاحب کامل حساب
+
+**وضعیت:** ✅ بخش‌های ۱ و ۲ برطرف شد (Phase 1.1 و 1.2) — قفل تلاش ناموفق دیگر با چرخش IP دور زده نمی‌شود (شمارنده‌ی مستقل username + تأخیر تصاعدی)، و حداقل طول رمز به ۸ افزایش و محدودیت «فقط رقم» حذف شد (کلاینت + سرور). بخش ۳ (هش بدون salt / حذف `hashPassword` سمت کلاینت) هنوز باز است — طبق گزارش به Phase 3.11 موکول شده چون نیازمند هماهنگی نسخه‌ی کلاینت و سرور و migration رکوردهای legacy است.
 
 **File:**
 `app/src/main/java/com/atk/atk_cargo/feature/admin/presentation/UserManagementDialogsSection.kt`
@@ -330,6 +332,10 @@ $this->whitelist = array_values(array_diff(glob('*.php') ?: [], PROXY_EXCLUDED_F
 
 ### [HIGH] session token و refresh token به‌صورت plaintext در دیتابیس ذخیره می‌شوند
 
+**وضعیت:** ✅ برطرف شد (Phase 2.1). `SessionRepository::hashToken()` (SHA-256 ساده — چون خودِ توکن تصادفی ۲۵۶ بیتی است، نه رمز کاربر) اضافه شد و در `createSession`، `rotateTokens`، `isValidToken`، `isAccessTokenExpiredButSessionActive`، `validateTokenAndGetUserType` اعمال شد. حین بررسی، دو مصرف‌کننده‌ی دیگر پیدا شد که به مقدار خام ستون تکیه می‌کردند و بدون اصلاح می‌شکستند: `SessionService::refreshTokens()` (مقایسه‌ی `hash_equals` با refresh token خام ورودی — حالا هر دو طرف هش می‌شوند) و `SessionService::createWebSession()` (شاخه‌ی reuse که مستقیماً `session_token` ذخیره‌شده را به کلاینت برمی‌گرداند — چون دیگر قابل بازیابی نیست، حالا مثل `createMobileSession` یک جفت توکن تازه صادر و rotate می‌کند؛ این مسیر webSession در حال حاضر توسط هیچ کد فعالی صدا زده نمی‌شود، تأیید شد). دو متد مرده‌ی دیگر (`SessionManager::getSessionToken` در `PHP/SessionManager.php` و `PHP/User/SessionManager.php`) که مقدار خام ستون را برمی‌گرداندند، بدون فراخوان‌کننده تأیید شدند و دست‌نخورده ماندند (اکنون هش را برمی‌گردانند، ولی چون هیچ‌جا صدا زده نمی‌شوند بی‌اثر است).
+
+**⚠️ نیازمند اقدام دستی هنگام deploy:** یک migration نوشته شد (`PHP/migrations/2026_08_18_hash_session_tokens.sql`) که ردیف‌های موجود `user_sessions` را از plaintext به هش تبدیل می‌کند. **این migration باید دقیقاً هم‌زمان با deploy همین کد اجرا شود** — من به دیتابیس تولید دسترسی ندارم و آن را اجرا نکردم. جایگزین ساده‌تر (اگر باطل‌شدن همه‌ی نشست‌های فعال فعلی قابل قبول است): `UPDATE user_sessions SET is_active = 0;` قبل از deploy.
+
 **File:** `PHP/src/Repositories/SessionRepository.php`
 **Location:** خطوط ۲۳۰–۲۵۱ (`createSession`)، ۲۵۸–۲۸۲ (`rotateTokens`)، ۵۳–۶۸ (`isValidToken`)
 
@@ -367,6 +373,10 @@ $stmt->execute([':token' => hash('sha256', $token), ...]);
 
 ### [HIGH] `PHP/vendor/` (شامل phpunit و phpstan) در web root و کامیت‌شده در گیت
 
+**وضعیت:** ✅ کامل برطرف شد (بخش باقی‌مانده از Phase 1.7 + Phase 2.2). `/PHP/vendor/*` به `.gitignore` اضافه و هر ۱۱۶۲ فایل با `git rm -r --cached` از ایندکس گیت خارج شدند (فایل‌ها روی دیسک محلی دست‌نخورده باقی ماندند — تست شد که autoload/bootstrap همچنان کار می‌کند). یک نکته‌ی ظریف حین این کار پیدا و رفع شد: الگوی اولیه‌ی `.gitignore` (`/PHP/vendor/`) به‌طور ناخواسته `vendor/.htaccess` را هم که در Phase 1.7 برای مسدودسازی HTTP اضافه شده بود می‌بلعید و از کامیت شدن باز می‌داشت؛ با `!/PHP/vendor/.htaccess` این یک فایل صریحاً استثنا شد (تأیید شد با `git check-ignore` و `git add -n`). CI (`ci.yml`) نیازی به تغییر نداشت — از قبل خودش `composer install` را در job جدا اجرا می‌کند. `composer.json` از قبل به‌درستی `phpstan`/`phpunit` را در `require-dev` جدا کرده بود.
+
+**⚠️ نیازمند اقدام دستی هنگام deploy:** این تغییر فقط ردپای آینده را در گیت پاک می‌کند. سرور تولید فعلی احتمالاً از قبل یک `vendor/` با dev-dependencyها روی دیسک دارد (از deployهای قبلی) که این commit به‌تنهایی پاکش نمی‌کند — چون به سرور تولید دسترسی ندارم. هنگام deploy این commit، `composer install --no-dev --optimize-autoloader` را روی سرور اجرا کنید تا `vendor/` تولید هم با dev-dependencyهای فعلی جایگزین/پاک‌سازی شود. `vendor/.htaccess` (Phase 1.7) در همین حین این ریسک را کاهش می‌دهد چون دسترسی HTTP مستقیم را مسدود می‌کند صرف‌نظر از این‌که چه چیزی داخل پوشه است.
+
 **File:** `PHP/vendor/` (۱۱۶۲ فایل tracked)، `PHP/composer.json:24-27`، `.gitignore`
 
 **Problem:**
@@ -377,7 +387,9 @@ $stmt->execute([':token' => hash('sha256', $token), ...]);
     "phpunit/phpunit": "^9.6"
 }
 ```
-اما `vendor/` با تمام dev dependencyها در گیت است (`git ls-files PHP/vendor | wc -l` → **1162**) و `.gitignore` فقط سه فایل منفرد از آن را نادیده می‌گیرد. چون کل پوشه‌ی `PHP/` همان web root است، این یعنی `phpunit`، `phpstan`، `nikic/php-parser`، `sebastian/*` و باینری‌های `vendor/bin/` روی سرور تولید مستقر و از طریق HTTP قابل دسترس‌اند. هیچ `vendor/.htaccess` وجود ندارد.
+اما `vendor/` با تمام dev dependencyها در گیت است (`git ls-files PHP/vendor | wc -l` → **1162**) و `.gitignore` فقط سه فایل منفرد از آن را نادیده می‌گیرد. چون کل پوشه‌ی `PHP/` همان web root است، این یعنی `phpunit`، `phpstan`، `nikic/php-parser`، `sebastian/*` و باینری‌های `vendor/bin/` روی سرور تولید مستقر و از طریق HTTP قابل دسترس‌اند.
+
+**وضعیت:** ⚠️ بخشی برطرف شد (Phase 1.7). `PHP/vendor/.htaccess` و `PHP/log/.htaccess` با `Require all denied` (+ fallback سازگار با Apache 2.2 برای `mod_access_compat`) اضافه شدند — یک لایه‌ی دفاعی مستقل از `<DirectoryMatch>` موجود در `.htaccess` ریشه، برای حالتی که `AllowOverride` روی هاست محدودتر از انتظار باشد. **این تست نشد چون php-server داخلی (`php -S`) اصلاً `.htaccess` را پردازش نمی‌کند** — اجرای واقعی این قانون فقط روی Apache واقعی قابل تأیید است؛ لطفاً بعد از deploy با یک درخواست مستقیم به یک فایل داخل `vendor/` (مثلاً `/vendor/autoload.php`) تأیید کنید که ۴۰۳ برمی‌گردد. حذف کامل `vendor/` از گیت (بخش اصلی این یافته) هنوز باز است — Phase 2.2.
 
 **Why it matters:**
 پوشه‌ی `vendor` در web root یک الگوی کلاسیک RCE است. نسخه‌ی فعلی phpunit (9.6) فایل آسیب‌پذیر تاریخی `eval-stdin.php` را ندارد (تأیید شد: `find vendor -iname "eval-stdin*"` نتیجه‌ای نداشت، پس CVE-2017-9841 اینجا صدق نمی‌کند) — اما این یک ضمانت پایدار نیست: هر به‌روزرسانی یا افزودن یک dev dependency جدید می‌تواند فایل قابل اجرای جدیدی وارد web root کند، بدون اینکه کسی متوجه شود. علاوه بر این، فایل‌های `vendor/composer/installed.json` نسخه‌ی دقیق تمام کتابخانه‌ها را برای شناسایی آسیب‌پذیری افشا می‌کنند.
@@ -401,7 +413,9 @@ Require all denied
 
 ### [HIGH] `PermissionManager.php`: نبود `session_regenerate_id` و نبود قفل brute-force
 
-**File:** `PHP/PermissionManager.php`
+**وضعیت:** ✅ هر چهار بخش برطرف شد (Phase 1.6). `session_set_cookie_params` (httponly/secure/samesite=Lax) قبل از `session_start()` اضافه شد (هم در `PermissionManager.php` هم `file_manager.php` که همان نشست را می‌خواند)؛ `session_regenerate_id(true)` بعد از ورود موفق اضافه شد؛ همان `LoginAttemptLimiter` موجود API با کلید `'permmgr'` روی این مسیر هم وصل شد (قفل + تأخیر تصاعدی)؛ مسیر logout حالا `$_SESSION` را خالی و کوکی را منقضی می‌کند قبل از `session_destroy()`. حین تست دستی یک باگ واقعی پیدا و رفع شد: `LoginAttemptLimiter` به ثابت `APP_ROOT` نیاز دارد که فقط `src/bootstrap.php` تعریف می‌کند و `PermissionManager.php` آن را require نمی‌کرد — بدون رفع، هر تلاش ورود با Fatal Error 500 مواجه می‌شد؛ حالا `APP_ROOT` مستقل در همین فایل تعریف می‌شود.
+
+**File:** `PHP/PermissionManager.php`، `PHP/file_manager.php`
 **Location:** خطوط ۳۸–۵۰ (login)، ۵۳–۵۷ (logout)، ۱۵ (`session_start`)
 
 **Problem:**
@@ -457,7 +471,9 @@ session_destroy();
 
 ### [HIGH] تأیید هش APK آپدیت fail-open است
 
-**File:** `app/src/main/java/com/atk/atk_cargo/api/UpdateManager.kt`
+**وضعیت:** ✅ برطرف شد (Phase 1.5). سمت کلاینت، حالت «فیلد sha256 خالی» دیگر به `Completed` نمی‌رود — فایل حذف و خطای صریح نمایش داده می‌شود. سمت سرور هم (`UtilityController::checkUpdate`) در صورتی که `sha256` قابل‌محاسبه نباشد، `downloadUrl` اصلاً برگردانده نمی‌شود، طبق پیشنهاد «Recommended Fix» گزارش.
+
+**File:** `app/src/main/java/com/atk/atk_cargo/api/UpdateManager.kt`، `PHP/src/Controllers/UtilityController.php`
 **Location:** خطوط ۳۳۴–۳۴۰
 
 **Problem:**
@@ -504,6 +520,8 @@ _downloadState.value = DownloadState.Completed
 ---
 
 ### [HIGH] `app_api.php` تمام داده‌ی گزارش‌گیری را بدون بررسی مجوز `view_reports` می‌دهد
+
+**وضعیت:** ✅ برطرف شد (Phase 1.4)، با یک انحراف آگاهانه از پیشنهاد اولیه‌ی گزارش. `getQuotasList` عمداً از لیست قفل‌شده خارج ماند: ردیابی کلاینت نشان داد این action در `QuotaValidationUseCase.kt` هنگام **ثبت حواله** (نه فقط گزارش‌گیری) هم صدا زده می‌شود و قفل کردن آن پشت `view_reports` باعث می‌شد نقش‌های `operator`/`verifier` (که `view_reports` ندارند) نتوانند حواله ثبت کنند. بقیه‌ی ۸ اکشن (`getShipsList`، `getShipDetails`، `getWarehouseDetails`، `getQuotaDetails`، `getFilteredQuotas`، `getFilteredSummary`، `getGroupedQuotas`، `getRealTimeData`) پشت `view_reports` قفل شدند — تأیید شد که همگی منحصراً توسط `ReportsRepository`/`ReportsViewModel` (که خودِ UI هم پشت `view_reports` است) مصرف می‌شوند یا (`getRealTimeData`) اصلاً از کلاینت صدا زده نمی‌شوند. `routes/api_v2.php` هم برای همین ۸ مسیر (`ships`، `ships/{shipName}`، `ships/{shipName}/warehouses/{warehouseName}`، `quotas/filtered`، `quotas/filtered-summary`، `quotas/grouped`، `quotas/{quotaNumber}`) از `permission: null` به `'view_reports'` تغییر کرد؛ `ships/{shipName}/quotas` (معادل `getQuotasList`) به همان دلیل بالا دست‌نخورده ماند.
 
 **File:** `PHP/src/Controllers/AppApiController.php`
 **Location:** خطوط ۹۱–۱۹۸ (تمام `case`های خواندنی)
@@ -590,6 +608,8 @@ std::string decryptXor(const uint8_t* encryptedBytes, size_t length) {
 
 ### [MEDIUM] `getAllUsers` فهرست کامل کاربران را به هر کاربر احرازشده می‌دهد
 
+**وضعیت:** ✅ برطرف شد (Phase 1.3). `getAllUsers` به `ADMIN_ONLY_ACTIONS` اضافه شد. صفحه‌ی «تنظیمات پروفایل» به `getSelfProfile` (فقط رکورد خودِ کاربر) و «چت با مدیر» به `getAdminUsers` (فقط id/username/fullName/userType کاربران admin) منتقل شدند — هیچ‌کدام دیگر کل جدول کاربران را دریافت نمی‌کنند. ناکارآمدی خودلوکاپ در `UserController.php` (خواندن کل جدول برای پیدا کردن رکورد خود کاربر در مسیر self-update) هم با `getSelfProfile` حل شد.
+
 **File:** `PHP/src/Controllers/UserController.php`، `PHP/src/Repositories/UserRepository.php`
 **Location:** `UserController.php:30-36` (فهرست ADMIN_ONLY)، `:82-85`، `UserRepository.php:42`
 
@@ -615,6 +635,8 @@ SELECT id, username, fullName, userType, created_at, updated_at FROM Users ORDER
 ---
 
 ### [MEDIUM] تغییر رمز عبور بدون تأیید رمز فعلی
+
+**وضعیت:** ✅ برطرف شد (Phase 2.8). در مسیر self-service، `currentPassword` الزامی شد و با `UserService::verifyCredentials` بررسی می‌شود؛ شمارنده‌ی تلاش ناموفق هم با `LoginAttemptLimiter` (کلید username، مستقل از IP — همان الگوی Phase 1.1) روی این مسیر اعمال شد، دقیقاً طبق توصیه‌ی گزارش. سمت کلاینت، `ProfileSettingsDialogSection.kt` یک فیلد «رمز عبور فعلی» جدید گرفت. **فراتر از دامنه‌ی این مورد:** حین کار متوجه شدم این دیالوگ (برخلاف `UserManagementDialogsSection.kt` که در Phase 1.2 اصلاح شد) هنوز محدودیت قدیمی «فقط رقم، حداقل ۴» را داشت — چون دیالوگ جداگانه‌ای است که Phase 1.2 لمسش نکرده بود. برای همسانی امنیتی (این دقیقاً همان مسیری است که گزارش CRITICAL اصلی رمز عبور نگران آن بود)، همزمان به حداقل ۸ کاراکتر و بدون محدودیت فقط-رقمی ارتقا یافت.
 
 **File:** `PHP/src/Controllers/UserController.php`
 **Location:** خطوط ۱۴۶–۱۸۵ (`case 'updateUser'`)
@@ -646,6 +668,14 @@ if (!$isAdmin && isset($params['password'])) {
 ---
 
 ### [MEDIUM] نشت جزئیات خطای SQL و استثنا به کلاینت
+
+**وضعیت:** ✅ برطرف شد (Phase 2.4). الگوی واحد اعمال شد: فقط `ApiException` (پیام‌های فارسی عمدی) به کلاینت می‌رود، هر `\Throwable`/`Exception` دیگر فقط لاگ و پیام عمومی «خطای داخلی سرور رخ داده است.» به کلاینت برمی‌گردد. جزئیات:
+- `ChatController::handleChatRequest` — دو `throw new Exception('Invalid Action')` و یک throw دیگر به `ApiException` تبدیل شدند؛ catch خارجی به `ApiException`/`\Throwable` تفکیک شد.
+- `AppApiController::handle` — هر ۲۰ `throw new Exception(...)` داخلی (پیام‌های اعتبارسنجی فارسی) به `ApiException(..., 400)` تبدیل شدند؛ catch نهایی حالا `\Throwable` است و لاگ می‌کند (import بلااستفاده‌ی `use Exception;` هم حذف شد).
+- `CargoController` — ۵ نقطه‌ی نشتی جداگانه پیدا و رفع شد (`saveOrUpdate`، `deleteCargoInfo`، `saveInitialInfo`، `getActiveShips`، `checkScaleReceipt`)؛ متدهایی که گزارش به‌عنوان نمونه‌ی الگوی درست ذکر کرده بود (`confirmCargo`، `updateCargoInfo`، `searchByScaleReceipt`، `searchByTracking`، `getInitialInfo`) بررسی و تأیید شدند که از قبل درست بودند، دست‌نخورده ماندند.
+- `api_v2.php`'s `$safeCall` — همان الگو اعمال شد.
+
+منطق catch-order (`ApiException` قبل از `\Throwable`) با یک اسکریپت مستقل تأیید شد. تست کامل end-to-end با DB در این محیط ممکن نبود؛ فقط `php -l` و بررسی منطقی هر catch block انجام شد.
 
 **File:** `PHP/src/Controllers/ChatController.php`، `PHP/src/Controllers/AppApiController.php`، `PHP/src/Controllers/CargoController.php`، `PHP/src/routes/api_v2.php`
 **Location:** `ChatController.php:307,309` و `:94-98`؛ `AppApiController.php:345-347`؛ `CargoController.php:614,632`؛ `api_v2.php:69-71`
@@ -687,6 +717,8 @@ Information Disclosure؛ کمک به طراحی حملات هدفمند.
 ---
 
 ### [MEDIUM] `limit` در چت بدون سقف
+
+**وضعیت:** ✅ برطرف شد (Phase 1.10) — دقیقاً طبق Recommended Fix. کلاینت پیش‌فرض `limit=50` می‌فرستد که کاملاً زیر سقف جدید (۱۰۰) است، پس بدون تغییر رفتار برای مسیر عادی.
 
 **File:** `PHP/src/Controllers/ChatController.php`
 **Location:** خط ۵۳
@@ -743,6 +775,10 @@ public static function sanitize(string $value): string {
 ---
 
 ### [MEDIUM] `permissions.json` به‌عنوان منبع حقیقت مجوزها بدون قفل نوشتن
+
+**وضعیت:** ✅ برطرف شد (Phase 2.7)، هر دو بخش «Recommended Fix» گزارش. `PermissionService::getUserPermissions` حالا از `MicroCache::remember` (کلید مشترک `PermissionService::CACHE_KEY`، TTL=۳۰ ثانیه) استفاده می‌کند. `PermissionManager.php` یک تابع `writePermissionsFileAtomic()` دارد (tmp+`LOCK_EX`+`rename` اتمیک، + `MicroCache::forget` بعد از هر نوشتن موفق) که هر سه محل `file_put_contents` قبلی (ساخت اولیه، مهاجرت ساختار قدیمی→جدید، ذخیره‌ی POST واقعی) از آن استفاده می‌کنند. یک تکرار کد جانبی هم پیدا و حذف شد: `UtilityController::syncPermissions()` منطق خواندن/کش permissions.json را جداگانه (با کلید کش یکسان ولی TTL متفاوت: ۱۵ در برابر ۳۰) پیاده کرده بود — حالا مستقیماً `PermissionService::getUserPermissions()` را صدا می‌زند، بدون تکرار.
+
+**⚠️ اثر جانبی حین تست:** بارگذاری `PermissionManager.php` برای smoke-test، منطق مهاجرت پیش‌موجود خودِ اسکریپت (خطوط ۱۱۶–۱۲۴، نه چیزی که من نوشتم) را فعال کرد و `config/permissions.json` واقعی پروژه را از فرمت قدیمی flat به ساختار `{roles, users}` تبدیل کرد — فقط بازآرایی ساختاری، هیچ مقدار مجوزی عوض نشد. با تأیید صریح کاربر نگه داشته شد (این ساختار همان چیزی است که `PermissionService.php` از قبل ترجیح می‌داد).
 
 **File:** `PHP/src/Services/PermissionService.php`، `PHP/PermissionManager.php`
 **Location:** `PermissionService.php:21-35`؛ `PermissionManager.php:70-84`
@@ -888,6 +924,8 @@ Potential Issue — ریسک آینده، نه آسیب‌پذیری فعلی.
 
 ### [MEDIUM] `viewBinding = true` در یک اپ کاملاً Compose
 
+**وضعیت:** ✅ برطرف شد (Phase 2.9). هر دو محل (`app/build.gradle.kts` و کلید `android.defaults.buildfeatures.viewbinding` در `gradle.properties`) روی `false` تنظیم شدند. **یافته‌ی جانبی:** ۳ فایل layout XML (`activity_initial_info.xml`, `activity_popup.xml`, `activity_upload_info.xml`) کاملاً orphan بودند — هیچ Activity/manifest آن‌ها را inflate نمی‌کرد — و حذف شدند؛ یکی از آن‌ها (`activity_popup.xml`) تنها مصرف‌کننده‌ی واقعی `constraintlayout` بود، پس بدون حذف این فایل، حذف آن وابستگی build را می‌شکست.
+
 **File:** `app/build.gradle.kts:94`، `gradle.properties:80`
 
 **Problem:**
@@ -962,6 +1000,8 @@ Potential Issue — ریسک آینده، نه آسیب‌پذیری فعلی.
 ---
 
 ### [HIGH] باگ منطقی: مسیر پاک‌سازی نشست منقضی در `PermissionPoller` هرگز اجرا نمی‌شود
+
+**وضعیت:** ✅ برطرف شد (Phase 1.9). بررسی `response.code() == 401` قبل از `response.isSuccessful` منتقل شد، دقیقاً طبق Recommended Fix. نکته‌ی مهم: هشدار خودِ گزارش («ممکن است syncPermissions اصلاً ۴۰۱ ندهد») بررسی و **رفع‌شده** یافت شد — کد فعلی `UtilityController::syncPermissions()` از قبل از `requireAuthenticatedSession()` (گیت مبتنی‌بر توکن که ۴۰۱ برمی‌گرداند) استفاده می‌کند، نه از `SessionManager::isSessionActive` قدیمی که در کامنت `api_v2.php:486-489` توصیف شده — یعنی آن کامنت خودش دیگر با کد واقعی هم‌راستا نیست و منبع S-20 از قبل در این فایل رفع شده بود. پس فیکس کلاینت اینجا واقعاً مؤثر است.
 
 **File:** `app/src/main/java/com/atk/atk_cargo/api/PermissionPoller.kt`
 **Location:** خطوط ۱۱۵–۱۳۵
@@ -1114,6 +1154,8 @@ private inline fun <T> apiCall(block: () -> Response<T>): T {
 
 ### [MEDIUM] پیاده‌سازی دوگانه‌ی تبدیل تاریخ جلالی
 
+**وضعیت:** ✅ برطرف شد (Phase 2.12) — و این یک **باگ واقعی و فعال بود، نه فقط نقض DRY**. قبل از حذف، هر دو الگوریتم روی ۶۵۷۴ تاریخ (۲۰۱۸ تا ۲۰۳۵) با اسکریپت مستقل (Node.js) مقایسه شدند: **دقیقاً ۴ ناسازگاری پیدا شد** — همه در ۳۰ اسفند سال‌های کبیسه (۲۰۲۱-۰۳-۲۰، ۲۰۲۵-۰۳-۲۰، ۲۰۳۰-۰۳-۲۰، ۲۰۳۴-۰۳-۲۰ میلادی). علت: حلقه‌ی ماه‌یابی در نسخه‌ی `CargoViewModel` فاقد fallback بود (برخلاف نسخه‌ی `JalaliDateUtils` که دارد) — روی دقیقاً روز ۳۶۶ ام سال کبیسه، `jm` هرگز مقداردهی نمی‌شد و `getCurrentDate()` مقدار **`YYYY/00/01`** (ماه صفر، نامعتبر) تولید می‌کرد که مستقیماً در `exitDate` رکورد حواله ذخیره می‌شد. **یعنی هر حواله‌ای که در ۲۰۲۵-۰۳-۲۰ (۱۴۰۳/۱۲/۳۰) خارج شده، احتمالاً `exitDate` نامعتبر `1403/00/01` در دیتابیس تولید دارد** — این یک یافته‌ی جدید است، خارج از دامنه‌ی اصلی این آیتم گزارش، و نیازمند بررسی/پاک‌سازی داده در دیتابیس تولید توسط شما (من به آن دسترسی ندارم). نسخه‌ی `JalaliDateUtils` روی همان بازه‌ی تاریخی جداگانه استرس‌تست شد (۱۱,۳۲۳ روز پیاپی، ۲۰۱۵–۲۰۴۵) — صفر تاریخ نامعتبر، صفر تکراری. `CargoViewModel.gregorianToJalali`/`getCurrentDate` حذف و به `JalaliDateUtils.getCurrentJalaliDateString()` (تابع عمومی جدید، بر پایه‌ی همان الگوریتم صحیح) واگذار شدند.
+
 **File:** `app/src/main/java/com/atk/atk_cargo/ui/viewmodel/CargoViewModel.kt` و `app/src/main/java/com/atk/atk_cargo/utils/JalaliDateUtils.kt`
 **Location:** `CargoViewModel.kt:947-979` در برابر `JalaliDateUtils.kt:70-122`
 
@@ -1156,6 +1198,8 @@ private inline fun <T> apiCall(block: () -> Response<T>): T {
 
 ### [HIGH] صفر مورد `collectAsStateWithLifecycle` در برابر ۸۵ مورد `collectAsState`
 
+**وضعیت:** ✅ برطرف شد (Phase 2.5). `androidx-lifecycle-runtime-compose` به `libs.versions.toml`/`app/build.gradle.kts` اضافه شد. هر ۲۴ فایل شامل `collectAsState(` (۱۰۴ فراخوانی — بیشتر از ۸۵ برآورد اولیه‌ی گزارش) به `collectAsStateWithLifecycle()` تبدیل شدند، با اصلاح import در همه‌ی فایل‌ها. یک نکته‌ی فنی حین build کشف شد: پارامتر نام‌دار `initial =` در `collectAsState` معادل `initialValue =` در `collectAsStateWithLifecycle` است (نام متفاوت)؛ در ۱۹ محل که از این پارامتر نام‌دار استفاده شده بود اصلاح شد (وگرنه build شکست می‌خورد). `assembleDebug` سبز شد. **محدودیت تست:** این محیط شبیه‌ساز/دستگاه اندروید ندارد؛ فقط کامپایل تأیید شد، نه رفتار واقعی در پس‌زمینه/foreground روی دستگاه.
+
 **File:** سراسر `app/src/main/java/com/atk/atk_cargo/feature/**` و `core/**`
 **Location:** ۸۵ فراخوانی در کل کدبیس؛ `androidx.lifecycle:lifecycle-runtime-compose` اصلاً در `build.gradle.kts` نیست
 
@@ -1191,6 +1235,8 @@ val state by viewModel.someState.collectAsStateWithLifecycle()
 ---
 
 ### [MEDIUM] ۲۲ مورد از ۳۵ فراخوانی `items(...)` بدون `key`
+
+**وضعیت:** ✅ برطرف شد (Phase 2.6). یک اسکن خودکار کامل کدبیس (نه فقط ۹ فایل شاخص گزارش) روی همه‌ی فراخوانی‌های `items(` انجام شد. نتیجه: بیشتر موارد دیگر (خارج از فایل‌های شاخص) از قبل `key` داشتند؛ ۱۳ محل واقعاً بدون key پیدا و رفع شد — `QuotaDetailsScreen.kt`، `QuotaSelectionDialog.kt`، `ShipSelectionDialog.kt` (۲ محل)، `ChatInputBar.kt` (۳ محل)، `ChatToolbar.kt` (۲ محل)، `QuotaWarningDialog.kt`، `HomeThemeColorPickerRow.kt`، `DateRangePicker.kt` (فقط `items(years)`)، `DuplicateTrackingNumbersDialog.kt`، `ManageReportsScreen.kt`، و اضافه‌ای فراتر از توصیه‌ی گزارش: `HomeScreen.kt` (۲ محل `items(count=...)` که گزارش اصلاً ذکر نکرده بود، با `key = { index -> item.route }`). دو محل `items(12)`/`items(daysInMonth)` در `DateRangePicker.kt` طبق تشخیص خودِ گزارش دست‌نخورده ماندند (بی‌خطر). **هر key اضافه‌شده جداگانه در برابر منبع داده‌ی واقعی‌اش بررسی شد** تا خطر crash زمان‌اجرا با key تکراری (هشدار صریح گزارش) رد شود — مثلاً `ChatToolbar`'s رنگ‌ها، `DateRangePicker`'s سال‌ها، `ManageReportsScreen`'s ساعت/دقیقه همگی از رنج‌ها/لیست‌های hardcoded بدون تکرار می‌آیند. `assembleDebug` سبز شد. **محدودیت تست:** بدون شبیه‌ساز/دستگاه، فقط کامپایل و تحلیل استاتیک منبع داده تأیید شد، نه رفتار recomposition واقعی.
 
 **File:** موارد شاخص:
 `feature/reports/presentation/quota_details/QuotaDetailsScreen.kt:300`
@@ -1432,7 +1478,7 @@ private fun RefreshCountdown(seconds: Int) {   // فقط این composable recom
 
 | # | یافته | لایه | اثر |
 |---|---|---|---|
-| P1 | `collectAsState` بدون lifecycle (۸۵ مورد) | Android | **High** |
+| P1 | ✅ `collectAsState` بدون lifecycle (۸۵ مورد، رفع شد) | Android | **High** |
 | P2 | `permissions.json` خوانده و decode می‌شود در هر بررسی مجوز | Backend | **High** |
 | P3 | ۲۲ لیست Lazy بدون `key` + polling ۳۰ ثانیه‌ای | Android UI | **Medium** |
 | P4 | ۱۳ ایندکس روی `user_sessions` که در هر درخواست UPDATE می‌شود | Database | **Medium** |
@@ -1515,6 +1561,8 @@ final class PermissionService {
 ---
 
 ### [MEDIUM] `user_sessions` با ۱۳ ایندکس که در هر درخواست به‌روزرسانی می‌شود
+
+**وضعیت:** ✅ بی‌موضوع شد (Phase 2.11) — بدون نیاز به هیچ `ALTER TABLE`. این یافته بر اساس یک `schema.sql` قدیمی/ناقص نوشته شده بود (همان مشکلی که Phase 2.3 برطرف کرد). با مقایسه‌ی جدول واقعی `user_sessions` (از export تازه‌ی Phase 2.3) مشخص شد که این جدول در تولید فقط **۶ کلید** دارد — نه ۱۳ تا — و هیچ‌کدام از ایندکس‌های تک‌ستونی زائدی که گزارش می‌خواست حذف شوند (`idx_username`, `idx_device_id`, `idx_is_active`, `idx_userType`, `idx_device_active`, `idx_userType_active`) اصلاً وجود ندارند. ۶ ایندکس باقی‌مانده هر کدام یک الگوی کوئری واقعی و متمایز در `SessionRepository.php` را پوشش می‌دهند (بدون هم‌پوشانی prefix که نیاز به حذف داشته باشد). بخش دوم توصیه‌ی گزارش (ساخت ایندکس پوشای جدید `idx_session_auth` برای کوئری داغ auth) هم با تأیید کاربر رد شد — چون `idx_username_device_active` موجود احتمالاً seek را به ۰-۱ رکورد محدود می‌کند و هزینه‌ی نگهداری یک ایندکس ۷ستونی جدید روی پرنوشتن‌ترین جدول سیستم توجیه کافی ندارد؛ بدون داده‌ی واقعی/`EXPLAIN` قابل تأیید کمّی هم نبود.
 
 **File:** `PHP/schema.sql`
 **Location:** تعریف `user_sessions`
@@ -1726,6 +1774,8 @@ if (!$selfRecord || (int)$selfRecord['id'] !== $id) {
 
 ### [HIGH] `migrations/` خالی است و `schema.sql` ناقص — جدول `audit_log` هرگز ساخته نمی‌شود
 
+**وضعیت:** ✅ بخش اصلی برطرف شد (Phase 2.3). `schema.sql` توسط کاربر با ابزار export واقعی بازتولید شد و اکنون هر ۱۰ جدول تولید — شامل `audit_log`، `admin_chat_messages`، `admin_chat_reads` — را دارد؛ در این فرآیند یک نقص در خودِ ابزار export هم کشف شد (`admin_chat_messages.id` بدون `AUTO_INCREMENT` صادر می‌شد با اینکه ستون واقعاً auto-increment است — چون چت با چند پیام هم‌زمان در تولید کار می‌کند) و در `schema.sql` تصحیح شد؛ **هیچ تغییری روی خودِ دیتابیس تولید اعمال نشد**، فقط فایل مستندسازی. یک مکانیزم سبک migration هم اضافه شد: `PHP/migrations/README.md` قرارداد نام‌گذاری، نحوه‌ی اجرای دستی، و جدول migrationهای اعمال‌شده تاکنون را مستند می‌کند (یک runner خودکار/جدول `schema_migrations` ساخته نشد — با توجه به مقیاس کوچک پروژه، این سربار به‌نظر نامتناسب رسید؛ در صورت نیاز جداگانه قابل افزودن است). موارد ۳ و ۴ «Recommended Fix» (تفکیک خطای AuditLogger بین «جدول نیست» و «خطای گذرا»، و health-check endpoint) در این پاس انجام نشدند — خارج از توصیف اصلی Phase 2.3 بودند.
+
 **File:** `PHP/migrations/` (خالی)، `PHP/schema.sql`، `PHP/src/Services/AuditLogger.php`
 
 **Problem:**
@@ -1840,8 +1890,8 @@ $proxy->handle();
 |---|---|---|---|---|---|
 | `check_Auth.php` | POST | ❌ (نقطه‌ی ورود) | — | JSON body | همیشه HTTP 200 حتی در شکست؛ brute-force |
 | `check_session.php` | POST | ❌ | — | JSON body | ۲۰۰ در شکست (عمدی، مستند) |
-| `check_logout.php` | POST | ❌ | — | JSON body | **بدون auth** — نیازمند بررسی |
-| `app_api.php` | GET/POST | ✅ | ⚠️ فقط write | `action=` | **بدون `view_reports` روی خواندن** |
+| `check_logout.php` | POST | ✅ (توکن از هدر X-Session-Token) | — | JSON body | ✅ رفع شد (Phase 1.8) |
+| `app_api.php` | GET/POST | ✅ | ✅ فقط `getQuotasList` مستثنا (رجوع کنید Phase 1.4) | `action=` | ✅ رفع شد (Phase 1.4) |
 | `users_api.php` | GET/POST | ✅ | جزئی | `action=` | `getAllUsers` بدون مجوز |
 | `chat_api.php` | GET/POST | ✅ | isAdmin داخلی | `action=` | نشت خطای SQL؛ `limit` بدون سقف |
 | `realTimeLoadingData.php` | GET/POST | ✅ | `view_reports` | `action=` | ✅ |
@@ -1957,7 +2007,7 @@ suspend fun deleteQuota(
 
 ## Database Audit
 
-### ساختار (از `schema.sql` — که ناقص است)
+### ساختار (از `schema.sql` — ✅ به‌روزرسانی شد در Phase 2.3، اکنون کامل)
 
 | جدول | PK | ایندکس‌ها | FK |
 |---|---|---|---|
@@ -1968,9 +2018,9 @@ suspend fun deleteQuota(
 | `Passwords` | `id` | — | ❌ |
 | `SignChecker` | `id` | — | ❌ |
 | `licenses` | `id` | UNIQUE `license_key` | ❌ |
-| `admin_chat_messages` | — | **در schema.sql نیست** | ❌ |
-| `admin_chat_reads` | — | **در schema.sql نیست** | ❌ |
-| `audit_log` | — | **در schema.sql نیست** | ❌ |
+| `admin_chat_messages` | `id` | ۵ ایندکس | ❌ |
+| `admin_chat_reads` | `id` | UNIQUE `(message_id, username)` | ❌ |
+| `audit_log` | `id` | ۳ ایندکس | ❌ |
 
 ### نکات مثبت
 
@@ -2024,7 +2074,7 @@ ALTER TABLE user_sessions
 
 ### [MEDIUM] `schema.sql` قدیمی و ناقص است
 
-(جزئیات و راه‌حل در بخش «PHP Backend Audit → migrations خالی» آمده — همان یافته با اثر روی دیتابیس.)
+**وضعیت:** ✅ برطرف شد (Phase 2.3). جزئیات در بخش «PHP Backend Audit → migrations خالی» بالاتر.
 
 **Priority:** MEDIUM (بخشی از یافته‌ی HIGH بالا)
 
@@ -2131,6 +2181,8 @@ TokenAuthenticator (OkHttp) → TokenRefresher → POST api/v2/index.php?route=a
 
 ### [MEDIUM] `check_logout.php` بدون احراز هویت
 
+**وضعیت:** ✅ برطرف شد (Phase 1.8)، با یک انحراف کوچک از نمونه‌کد گزارش. توکن نشست از هدر `X-Session-Token` خوانده و با `SessionService::isValidToken($username, $deviceId, $token)` تأیید می‌شود؛ در صورت نامعتبر بودن، پاسخ موفق عمومی (`{success:true}`) برگردانده می‌شود تا پاسخ ابزار شمارش کاربران/دستگاه‌ها نشود — دقیقاً طبق نمونه‌کد. تفاوت: در مسیر معتبر، همچنان از `deactivateSession()` موجود استفاده شد (نه `forceLogoutFromDevice()` که نمونه‌کد پیشنهاد داده بود)، چون `deactivateSession()` از قبل همه‌ی نشست‌های فعال کاربر را می‌بندد و این دقیقاً رفتار فعلی/مورد انتظار «خروج» در برنامه است؛ تغییر آن به خروج تک‌دستگاهی یک تغییر رفتاری جداگانه است که این وصله‌ی امنیتی عمداً واردش نکرد. کلاینت اندروید نیازی به تغییر نداشت — هدر `X-Session-Token` از قبل توسط `headersInterceptor` در `RetrofitClient.kt` روی همه‌ی درخواست‌ها (از جمله logout) خودکار ارسال می‌شود. **تست کامل امکان‌پذیر نبود** — این محیط به دیتابیس دسترسی ندارد (`SessionService` در constructor به DB وصل می‌شود)؛ فقط سناریوی «بدون deviceId» (که به‌خاطر short-circuit قبل از فراخوانی DB رد می‌شود) و صحت نحوی تأیید شد.
+
 **File:** `PHP/src/Controllers/AuthController.php`
 **Location:** خطوط ۲۵۸–۲۷۹؛ همچنین `routes/api_v2.php:416-419` (`'auth/logout', 'auth' => false`)
 
@@ -2182,9 +2234,9 @@ public function logout(): void {
 |---|---|---|---|
 | E1 | بسته‌بندی مکرر استثنا (۱۳ مورد) | `ReportsRepository.kt` | MEDIUM |
 | E2 | بلعیدن خطا و بازگرداندن `null`/`emptyList()` | `ReportsRepository.kt:409-460` | MEDIUM |
-| E3 | نشت پیام استثنای داخلی به کلاینت | `ChatController`, `AppApiController`, `api_v2.php` | MEDIUM |
+| E3 | ✅ نشت پیام استثنای داخلی به کلاینت (رفع شد، Phase 2.4) | `ChatController`, `AppApiController`, `api_v2.php` | MEDIUM |
 | E4 | `catch (Exception)` به‌جای `catch (Throwable)` | `protected_proxy.php:183` | MEDIUM |
-| E5 | شاخه‌ی ۴۰۱ غیرقابل‌دسترس | `PermissionPoller.kt:127` | HIGH |
+| E5 | ✅ شاخه‌ی ۴۰۱ غیرقابل‌دسترس (رفع شد، Phase 1.9) | `PermissionPoller.kt:127` | HIGH |
 | E6 | `catch (e: Exception) { throw e }` بی‌اثر | `ReportsRepository.kt:51-53` | LOW |
 | E7 | HTTP 200 برای شکست احراز هویت | `AuthController::login` | LOW (عمدی، مستند) |
 | E8 | `FloatTypeAdapter` هر مقدار نامعتبر را به `0f` تبدیل می‌کند | `RetrofitClient.kt:69-89` | LOW |
@@ -2199,6 +2251,8 @@ public function logout(): void {
 - **`CryptoManager` که در خطا هرگز مقدار خام برنمی‌گرداند** (خطوط ۶۳–۶۸، ۸۴–۸۹) — تصمیم امنیتی درست با کامنت.
 
 ### [MEDIUM] نبود مکانیزم مرکزی گزارش خطا (Crash Reporting)
+
+**وضعیت:** ✅ برطرف شد (Phase 2.13). `CrashReporter.kt` جدید یک `Thread.setDefaultUncaughtExceptionHandler` نصب می‌کند که stack trace را **synchronous روی همان thread کرش‌کننده** در یک فایل ساده در `filesDir` می‌نویسد (عمداً از پیشنهاد اولیه‌ی گزارش — نوشتن در DataStore — منحرف شدم: DataStore.edit یک عملیات suspend/coroutine است که ممکن است هرگز کامل نشود چون process بلافاصله بعد از کرش kill می‌شود؛ نوشتن فایل ساده و synchronous قابل‌اتکاتر است، الگوی رایج در ابزارهایی مثل ACRA). handler به handler قبلی زنجیره می‌شود — کرش هرگز بلعیده نمی‌شود، فقط ثبت. در اجرای بعدی، گزارش معلق (در صورت وجود) به `POST /api/v2/diagnostics/crash` ارسال و صرف‌نظر از نتیجه پاک می‌شود (best-effort، بدون retry loop). سرور: `DiagnosticsController::reportCrash` (جدید) پیام را به `PHP/logs/crash_reports.log` (JSON خط‌به‌خط) اضافه می‌کند؛ `PHP/logs/.htaccess` هم‌زمان اضافه شد (این پوشه قبلاً هیچ محافظتی نداشت — `<DirectoryMatch>` در `.htaccess` ریشه نامعتبر است، یافته‌ی جداگانه‌ی HIGH در بخش Logging & Observability که ضمناً همینجا رفع شد). health-check هم اضافه شد: `GET /api/v2/health` وضعیت اتصال DB، وجود جداول لازم (طبق `schema.sql` واقعی Phase 2.3)، و در دسترس بودن APCu را برمی‌گرداند. هر دو endpoint فقط روی v2 هستند (مثل `auth/refresh`، الگوی اثبات‌شده‌ی موجود)، بدون auth (health برای مانیتورینگ خارجی، crash-report برای این‌که حتی بدون نشست معتبر هم برسد). **تست:** هر سه سناریو (health بدون DB → ۵۰۳ صحیح، ثبت موفق کرش، رد کرش بدون stackTrace → ۴۰۰) با curl روی سرور محلی تأیید شد؛ `assembleDebug` سبز شد. **محدودیت:** رفتار واقعی uncaught-exception-handler حین کرش واقعی روی دستگاه (و این‌که آیا OS فرصت کافی برای تکمیل نوشتن فایل می‌دهد) بدون دستگاه/شبیه‌ساز قابل تأیید نبود.
 
 **Problem:**
 هیچ Crashlytics، Sentry، یا هر ابزار گزارش خطای دیگری در پروژه نیست. تنها مکانیزم، `Log.e` است که فقط در Logcat دستگاه دیده می‌شود.
@@ -2235,13 +2289,15 @@ public function logout(): void {
 - **بافر کردن لاگ + `register_shutdown_function`** — I/O از مسیر داغ خارج شده.
 - **`AuditLogger` فقط نام فیلدهای تغییریافته را ثبت می‌کند، نه مقدار رمز** (`UserService.php:213-216`).
 - **`HttpLoggingInterceptor` در release روی `NONE`**.
-- **`.htaccess` پوشه‌های `log|logs` را مسدود می‌کند** (`DirectoryMatch`) — هرچند طبق کامنت خود فایل، `<DirectoryMatch>` در `.htaccess` معتبر نیست و توسط Apache نادیده گرفته می‌شود. **این باید با `.htaccess` داخل خود پوشه‌ی `logs/` جایگزین شود.**
+- ✅ **`.htaccess` پوشه‌های `log|logs` را مسدود می‌کند** (`DirectoryMatch`) — رفع شد؛ `PHP/log/.htaccess` (Phase 1.7) و `PHP/logs/.htaccess` (Phase 2.13) هر دو مستقیم داخل پوشه اضافه شدند.
 
 ### یافته‌ها
 
 ---
 
 ### [HIGH] پوشه‌های لاگ ممکن است از طریق وب قابل دسترس باشند
+
+**وضعیت:** ✅ برطرف شد (Phase 1.7 + تکمیل در Phase 2.13). `PHP/log/.htaccess` (Phase 1.7) و `PHP/logs/.htaccess` (Phase 2.13، وقتی مشخص شد `logs/` هم واقعاً استفاده می‌شود — توسط `SessionService::logActivity` و حالا `crash_reports.log`) هر دو با `Require all denied` مستقیم داخل پوشه اضافه شدند — این یعنی مورد ۱ و ۳ «Recommended Fix» زیر (که به `.json`/`.txt` هم اشاره داشت) دیگر موضوعیت ندارند: یک `Require all denied` سطح پوشه همه‌ی فایل‌ها را صرف‌نظر از پسوند مسدود می‌کند، نه فقط آن‌هایی که `FilesMatch` پوشش می‌داد. مورد ۲ (انتقال کامل پوشه‌های لاگ به خارج از web root) هنوز باز است — یک بازساختاردهی بزرگ‌تر، خارج از دامنه‌ی این پاس. **مثل Phase 1.7، این قانون‌ها روی Apache واقعی تست نشدند** (سرور توکار PHP `.htaccess` را پردازش نمی‌کند)؛ بعد از deploy با درخواست مستقیم به یک فایل داخل `log/`/`logs/` تأیید کنید که ۴۰۳ برمی‌گردد.
 
 **File:** `PHP/.htaccess:73-76`، `PHP/src/Core/Logger.php:15-18`، `PHP/protected_proxy.php:26-28`
 
@@ -2285,11 +2341,13 @@ define('APP_STORAGE', dirname(APP_ROOT) . '/atk_storage');
 
 ### [MEDIUM] نبود مانیتورینگ و هشدار
 
+**وضعیت:** ⚠️ بخشی برطرف شد (Phase 2.13) — مورد ۱ (health-check) انجام شد. موارد ۲ (اعلان فوری برای رویدادهای امنیتی) و ۳ (logrotate) هنوز باز هستند — خارج از دامنه‌ی Phase 2.13 که فقط «گزارش کرش + health-check» را هدف گرفته بود.
+
 **Problem:**
 هیچ health-check endpoint، هیچ متریک، و هیچ مکانیزم هشداری وجود ندارد. رویدادهای امنیتی مهم مثل `REFRESH_TOKEN_REUSE_DETECTED` (که نشانه‌ی احتمالی سرقت توکن است) فقط در یک فایل متنی نوشته می‌شوند که کسی نمی‌خواند.
 
 **Recommended Fix:**
-1. یک `GET /api/v2/health` که وضعیت اتصال DB، وجود جداول لازم، و در دسترس بودن APCu را برمی‌گرداند.
+1. ✅ یک `GET /api/v2/health` که وضعیت اتصال DB، وجود جداول لازم، و در دسترس بودن APCu را برمی‌گرداند.
 2. برای رویدادهای امنیتی بحرانی (`REFRESH_TOKEN_REUSE_DETECTED`، قفل شدن مکرر یک حساب، دسترسی از IP مسدود) یک اعلان فوری (ایمیل/تلگرام) بفرستید.
 3. یک چرخش لاگ (logrotate) تنظیم کنید — در حال حاضر فایل‌های لاگ بی‌نهایت رشد می‌کنند.
 
@@ -2340,8 +2398,8 @@ define('APP_STORAGE', dirname(APP_ROOT) . '/atk_storage');
 | `material3` | 1.3.2 | ⚠️ عقب‌تر از BOM؛ نسخه‌ی صریح BOM را override می‌کند |
 | `zxing-android-embedded` | 4.3.0 | ✅ استفاده می‌شود (`journeyapps`) |
 | `lottie-compose` | 6.6.9 | ✅ استفاده می‌شود |
-| `appcompat`, `constraintlayout`, `navigation-fragment/ui`, `material`, `coil` | — | ❌ **بلااستفاده** |
-| `tensorflow-lite*`, `poi*`, `jxl`, `icu4j`, `konfetti`, `media3*`, `json`, `tasks-vision` | — | ❌ **در catalog تعریف شده ولی استفاده نمی‌شود** |
+| `appcompat`, `constraintlayout`, `navigation-fragment/ui`, `material`, `coil` | — | ✅ حذف شد (Phase 2.9) |
+| `tensorflow-lite*`, `poi*`, `jxl`, `icu4j`, `konfetti`, `media3*`, `json`, `tasks-vision` | — | ✅ حذف شد از catalog (Phase 2.9) |
 | `kotlinx-coroutines-test`, `turbine`, `mockk`, `robolectric` | — | ❌ **وجود ندارند** (مانع نوشتن تست) |
 
 ---
@@ -2386,13 +2444,15 @@ iText 5 تحت **AGPLv3** منتشر می‌شود. برای یک محصول ا�
 
 | وابستگی | نسخه | ارزیابی |
 |---|---|---|
-| `php` | `>=7.4` | ⚠️ PHP 7.4 در ۲۰۲۲ EOL شد؛ کد از `str_starts_with` (PHP 8) استفاده می‌کند → **قید نادرست است** |
+| `php` | `>=8.1` | ✅ رفع شد (Phase 2.10) |
 | `phpstan/phpstan` | `^1.10` | ⚠️ نسخه‌ی ۲.x موجود است |
 | `phpunit/phpunit` | `^9.6` | ⚠️ نسخه‌ی ۱۱.x موجود است |
 
 ---
 
 ### [MEDIUM] `composer.json` قید `php: >=7.4` دارد ولی کد PHP 8 لازم دارد
+
+**وضعیت:** ✅ برطرف شد (Phase 2.10). `composer.json` به `php: >=8.1` تغییر کرد (هم‌راستا با CI که از قبل `php-version: '8.1'` استفاده می‌کرد)، و `phpstan.neon` یک `phpVersion: 80100` صریح گرفت. `composer update --lock` برای هماهنگ کردن `composer.lock` با قید جدید اجرا شد (بدون تغییر واقعی نسخه‌ی هیچ پکیجی — `composer validate` تأیید کرد). بعد از تغییر: لینت کامل ۳۶۲ فایل PHP بدون خطا، `vendor/bin/phpstan analyse` سطح ۵ بدون خطا، و `vendor/bin/phpunit` هر ۱۳ تست را با موفقیت رد کرد.
 
 **File:** `PHP/composer.json:14-16`، `PHP/src/Services/UserService.php:41`
 
@@ -2502,15 +2562,15 @@ iText 5 تحت **AGPLv3** منتشر می‌شود. برای یک محصول ا�
 | **God ViewModel** | `CargoViewModel.kt` (980)، `ReportsViewModel.kt` (925) | ۲۰+ StateFlow، شبکه + منطق + فرمت |
 | **God Controller** | `CargoController.php` (723) | ۹ endpoint در یک کلاس |
 | **God Service** | `QuotaService.php` (704)، `AnalyticsController.php` (693) | — |
-| **Duplicate Code** | `gregorianToJalali` × ۲ | `CargoViewModel.kt:947` و `JalaliDateUtils.kt:70` |
+| **Duplicate Code** | ✅ `gregorianToJalali` × ۲ (رفع شد — و یکی از دو نسخه باگ واقعی داشت، رجوع کنید به یافته‌ی مربوطه) | `CargoViewModel.kt:947` و `JalaliDateUtils.kt:70` |
 | **Duplicate Code** | `enforceMinAppVersion` × ۲ | `AuthenticatesRequests.php:89` و `MinVersionGate.php:18` (عمدی و مستند) |
 | **Duplicate Code** | الگوی fallback APCu→فایل × ۳ | `LoginAttemptLimiter`, `PasswordGateService`, `ProtectedProxy::checkRateLimit` |
 | **Duplicate Code** | بلوک `htmlspecialchars` × ۲۰ فیلد | `CargoController.php:345-366` و `:403-425` |
 | **Dead Code** | ۴۵ از ۴۶ route نسخه ۲ | `api_v2.php` |
-| **Dead Code** | شاخه‌ی ۴۰۱ در PermissionPoller | `PermissionPoller.kt:127-132` |
+| **Dead Code** | ✅ شاخه‌ی ۴۰۱ در PermissionPoller (رفع شد، Phase 1.9) | `PermissionPoller.kt:127-132` |
 | **Dead Code** | `Config::session_timeout`, `admin_password_hash` | `Config.php:24-25` |
 | **Dead Code** | پارامتر `username` در APIهای چت | `ApiService.kt:377,405` |
-| **Dead Config** | `viewBinding`, ۶ وابستگی بلااستفاده، ۹ entry در catalog | `build.gradle.kts`, `libs.versions.toml` |
+| **Dead Config** | ✅ `viewBinding`، ۶ وابستگی بلااستفاده، entryهای catalog (رفع شد، Phase 2.9) | `build.gradle.kts`, `libs.versions.toml` |
 | **Magic Numbers** | `25000.0` / `15000.0` (ظرفیت کامیون) | `CargoViewModel.kt:924-925` |
 | **Magic Numbers** | `300` (آستانه‌ی آنلاین) | `UserService.php:103` |
 | **Magic Numbers** | `30000` (فاصله‌ی polling) × ۴ فایل | `SelectInfoScreen`, `CargoDetailsScreen`, `CargoCounterScreen`, ... |
@@ -2676,7 +2736,7 @@ fun CargoInfoDto.toDomain(): CargoRecord? = ...
 | PHP: ۳۰ فایل entry در ریشه | باید در `public/` یا کاملاً حذف شوند |
 | `PHP/User/` | `SessionManager.php` و `jdf.php` تکراری با ریشه — کد مرده‌ی احتمالی |
 | `PHP/jdf.php` (647 خط) | کتابخانه‌ی شخص ثالث در ریشه، خارج از `vendor/` و بدون namespace |
-| `migrations/` خالی | — |
+| `migrations/` خالی | ✅ رفع شد — اکنون `README.md` + migrationهای واقعی دارد (Phase 2.3) |
 
 ### ساختار پیشنهادی
 
@@ -2728,15 +2788,15 @@ PHP/
 |---|---|---|---|---|
 | D1 | Router v2 نوشته شده، مصرف نمی‌شود | ~۵۸۰ خط کد مرده | نگهداری دوگانه‌ی هر تغییر منطق | High |
 | D2 | مدل رمز عبور (SHA-256 کلاینت + PIN عددی) | فعال در تولید | ریسک امنیتی روزانه | Medium |
-| D3 | `migrations/` خالی، `schema.sql` ناقص | ۳ جدول مفقود | عدم امکان بازسازی محیط | Medium |
-| D4 | audit trail بدون جدول پشتیبان | no-op بی‌صدا | نبود ردیابی عملیات حساس | Medium |
-| D5 | `collectAsState` بدون lifecycle (۸۵ مورد) | فعال | باتری و CPU | Low |
+| D3 | ✅ `migrations/` خالی، `schema.sql` ناقص (رفع شد، Phase 2.3) | — | — | Medium |
+| D4 | ✅ audit trail بدون جدول پشتیبان (رفع شد — جدول در تولید تأیید شد، Phase 2.3) | — | — | Medium |
+| D5 | ✅ `collectAsState` بدون lifecycle (۸۵ مورد، رفع شد) | — | — | Low |
 | D6 | God Composableها (۱۰ فایل >۱۰۰۰ خط) | فعال | کندی توسعه، عدم امکان تست | High |
 | D7 | نبود تست (۳ فایل معنادار) | — | هر تغییر یک قمار است | High |
 | D8 | DTO = مدل دامنه | فعال | شکنندگی در برابر تغییر API | High |
 | D9 | Koin وجود دارد ولی دور زده می‌شود | جزئی | عدم امکان تست ViewModel | Low |
-| D10 | ۶ وابستگی بلااستفاده + ۹ entry مرده در catalog | — | زمان build | Low |
-| D11 | `viewBinding` فعال در اپ Compose | — | زمان build | Low |
+| D10 | ✅ ۶ وابستگی بلااستفاده + entryهای مرده در catalog (رفع شد) | — | — | Low |
+| D11 | ✅ `viewBinding` فعال در اپ Compose (رفع شد) | — | — | Low |
 | D12 | `itextpdf 5` با مجوز AGPL | فعال | ریسک حقوقی | Medium |
 | D13 | ماژول تکی `:app` (۵۱,۶۰۰ خط) | — | زمان build کامل | High |
 | D14 | `PHP/User/` و `PHP/jdf.php` — کد تکراری/بی‌مالک | احتمالاً مرده | سردرگمی | Low |
@@ -2763,9 +2823,9 @@ PHP/
 |---|---|---|
 | **Security** | ⚠️ مشروط | یک یافته‌ی CRITICAL و ۷ HIGH |
 | **Stability** | ✅ خوب | نشتی حافظه‌ی واضحی یافت نشد؛ coroutineها درست scope شده‌اند |
-| **Crash handling** | ❌ ناکافی | هیچ گزارش کرشی جمع نمی‌شود؛ `mapping.txt` آرشیو می‌شود ولی کرشی نمی‌رسد |
-| **Logging** | ⚠️ جزئی | لاگ خوب سرور، لاگ دسترسی ناقص، پوشه‌ی لاگ احتمالاً قابل دسترس |
-| **Monitoring** | ❌ وجود ندارد | نه health-check، نه متریک، نه هشدار |
+| **Crash handling** | ✅ رفع شد (Phase 2.13) | `CrashReporter.kt` + `POST /api/v2/diagnostics/crash`؛ `mapping.txt` آرشیوشده اکنون قابل استفاده است |
+| **Logging** | ✅ بهبود یافت | پوشه‌ی لاگ اکنون با `.htaccess` مستقیم محافظت می‌شود (Phase 1.7 + 2.13) |
+| **Monitoring** | ⚠️ جزئی | ✅ health-check (`GET /api/v2/health`) اضافه شد؛ متریک/هشدار هنوز نیست |
 | **Performance** | ✅ خوب | Baseline Profile، ETag، MicroCache، ایندکس‌های هدفمند |
 | **Configuration** | ⚠️ جزئی | `.env` وجود دارد؛ ولی `update_config.php` یک فایل PHP است نه پیکربندی |
 | **Environment separation** | ❌ ضعیف | فقط یک محیط؛ `.env.example` با `APP_DEBUG=true` |
@@ -2795,16 +2855,18 @@ PHP/
 
 | # | اقدام | فایل | Effort |
 |---|---|---|---|
-| 1.1 | جدا کردن کلید قفل ورود از IP (شمارنده‌ی مستقل username + شمارنده‌ی IP) + تأخیر تصاعدی | `LoginAttemptLimiter.php` | Low |
-| 1.2 | افزایش حداقل طول رمز به ۸ و حذف محدودیت «فقط رقم» در UI **و** اعتبارسنجی سمت سرور | `UserManagementDialogsSection.kt:200,270,447`، `InputValidator.php` | Low |
-| 1.3 | `getAllUsers` → `ADMIN_ONLY_ACTIONS` + افزودن `getSelfProfile` | `UserController.php` | Low |
-| 1.4 | گیت `view_reports` روی actionهای خواندنی `app_api.php` (پس از بازبینی نقش‌ها) | `AppApiController.php` | Low |
-| 1.5 | fail-closed کردن تأیید SHA-256 آپدیت | `UpdateManager.kt:334-340` | Low |
-| 1.6 | `session_regenerate_id(true)` + قفل brute-force + کوکی امن در پنل مدیریت | `PermissionManager.php` | Low |
-| 1.7 | `.htaccess` با `Require all denied` در `PHP/logs/`، `PHP/log/` و `PHP/vendor/` | — | Low |
-| 1.8 | محدود کردن `check_logout.php` به نشستی که توکن معتبرش ارائه شده | `AuthController.php:258` | Low |
-| 1.9 | رفع شاخه‌ی ۴۰۱ غیرقابل‌دسترس | `PermissionPoller.kt:127` | Low |
-| 1.10 | سقف روی `limit` چت | `ChatController.php:53` | Low |
+| 1.1 | ✅ جدا کردن کلید قفل ورود از IP (شمارنده‌ی مستقل username + شمارنده‌ی IP) + تأخیر تصاعدی | `LoginAttemptLimiter.php` | Low |
+| 1.2 | ✅ افزایش حداقل طول رمز به ۸ و حذف محدودیت «فقط رقم» در UI **و** اعتبارسنجی سمت سرور | `UserManagementDialogsSection.kt:200,270,447`، `InputValidator.php` | Low |
+| 1.3 | ✅ `getAllUsers` → `ADMIN_ONLY_ACTIONS` + افزودن `getSelfProfile` (و `getAdminUsers` برای مقصد چت) | `UserController.php` | Low |
+| 1.4 | ✅ گیت `view_reports` روی actionهای خواندنی `app_api.php` (پس از بازبینی نقش‌ها؛ `getQuotasList` به‌دلیل استفاده در ثبت حواله عمداً مستثنا شد) | `AppApiController.php`، `routes/api_v2.php` | Low |
+| 1.5 | ✅ fail-closed کردن تأیید SHA-256 آپدیت (کلاینت + سرور) | `UpdateManager.kt:334-340`، `UtilityController.php` | Low |
+| 1.6 | ✅ `session_regenerate_id(true)` + قفل brute-force + کوکی امن در پنل مدیریت | `PermissionManager.php`، `file_manager.php` | Low |
+| 1.7 | ✅ `.htaccess` با `Require all denied` در `PHP/log/` و `PHP/vendor/` (نه تست‌شده روی Apache واقعی — رجوع کنید به یادداشت زیر یافته‌ی HIGH مربوطه؛ `PHP/logs/` وجود ندارد، فقط `PHP/log/`) | — | Low |
+| 1.8 | ✅ محدود کردن `check_logout.php` به نشستی که توکن معتبرش ارائه شده (بدون DB در این محیط، تست کامل ناممکن بود) | `AuthController.php:258` | Low |
+| 1.9 | ✅ رفع شاخه‌ی ۴۰۱ غیرقابل‌دسترس (تأیید شد که `syncPermissions` سرور از قبل ۴۰۱ واقعی می‌دهد) | `PermissionPoller.kt:127` | Low |
+| 1.10 | ✅ سقف روی `limit` چت | `ChatController.php:53` | Low |
+
+**وضعیت Phase 1: تمام ۱۰ مورد برطرف شد (۱.۱ تا ۱.۱۰).** یافته‌ی CRITICAL (فضای رمز/قفل قابل دور زدن — بخش هش بدون salt هنوز به Phase 3.11 موکول است) و اکثر HIGHها بسته شدند. دو انحراف آگاهانه از متن عین گزارش مستند شد: (۱) `getQuotasList` از گیت `view_reports` مستثنا ماند چون در ثبت حواله هم استفاده می‌شود، (۲) `.htaccess` مربوط به Phase 1.7 روی Apache واقعی تست نشد (فقط قابل‌تأیید بعد از deploy).
 
 **نتیجه‌ی مورد انتظار:** حذف یافته‌ی CRITICAL و ۵ مورد از HIGHها. Security از ۵ به ~۷.
 
@@ -2814,19 +2876,21 @@ PHP/
 
 | # | اقدام | Effort |
 |---|---|---|
-| 2.1 | هش کردن توکن‌های نشست در دیتابیس (`hash('sha256', $token)`) | Low |
-| 2.2 | حذف `vendor/` از گیت + `composer install --no-dev` در deploy | Low |
-| 2.3 | بازتولید `schema.sql` + ساخت جدول `audit_log` + مکانیزم migration | Medium |
-| 2.4 | یکنواخت کردن مدیریت خطا در سرور (فقط `ApiException` به کلاینت می‌رود) | Low |
-| 2.5 | `collectAsStateWithLifecycle` در همه‌جا (+ افزودن `lifecycle-runtime-compose`) | Low |
-| 2.6 | افزودن `key` به ۲۲ لیست Lazy | Low |
-| 2.7 | کش کردن `permissions.json` با `MicroCache` + نوشتن اتمیک | Low |
-| 2.8 | تأیید رمز فعلی هنگام تغییر رمز توسط خود کاربر | Low |
-| 2.9 | حذف ۶ وابستگی بلااستفاده + `viewBinding = false` + پاک‌سازی catalog | Low |
-| 2.10 | `composer.json` → `php: >=8.1` | Low |
-| 2.11 | حذف ایندکس‌های زائد `user_sessions` (پس از `EXPLAIN`) | Low |
-| 2.12 | حذف `gregorianToJalali` تکراری از `CargoViewModel` | Low |
-| 2.13 | افزودن گزارش کرش خودمیزبان + health-check endpoint | Medium |
+| 2.1 | ✅ هش کردن توکن‌های نشست در دیتابیس (`hash('sha256', $token)`) — ⚠️ نیازمند اجرای دستی migration هنگام deploy، رجوع کنید به یادداشت زیر یافته‌ی HIGH مربوطه | Low |
+| 2.2 | ✅ حذف `vendor/` از گیت — ⚠️ نیازمند اجرای دستی `composer install --no-dev` روی سرور تولید هنگام deploy | Low |
+| 2.3 | ✅ بازتولید `schema.sql` (توسط کاربر با ابزار export واقعی) + `audit_log` تأیید شد که در تولید وجود دارد + مکانیزم migration سبک (`migrations/README.md`، بدون runner خودکار) | Medium |
+| 2.4 | ✅ یکنواخت کردن مدیریت خطا در سرور (فقط `ApiException` به کلاینت می‌رود) | Low |
+| 2.5 | ✅ `collectAsStateWithLifecycle` در همه‌جا (+ افزودن `lifecycle-runtime-compose`) | Low |
+| 2.6 | ✅ افزودن `key` به لیست‌های Lazy بدون آن (۱۳ مورد واقعی پیدا شد پس از اسکن کامل) | Low |
+| 2.7 | ✅ کش کردن `permissions.json` با `MicroCache` + نوشتن اتمیک (+ حذف یک تکرار کد کشف‌شده در `UtilityController`) | Low |
+| 2.8 | ✅ تأیید رمز فعلی هنگام تغییر رمز توسط خود کاربر (+ ارتقای محدودیت طول رمز در `ProfileSettingsDialogSection.kt` که Phase 1.2 لمس نکرده بود) | Low |
+| 2.9 | ✅ حذف ۶ وابستگی بلااستفاده + `viewBinding = false` + پاک‌سازی catalog (+ حذف ۳ layout XML orphan کشف‌شده) | Low |
+| 2.10 | ✅ `composer.json` → `php: >=8.1` (+ `phpstan.neon` phpVersion هم‌راستا شد؛ لینت/phpstan/phpunit کامل سبز) | Low |
+| 2.11 | ✅ حذف ایندکس‌های زائد `user_sessions` — بی‌موضوع شد، این ایندکس‌ها در دیتابیس واقعی اصلاً وجود نداشتند (schema.sql قدیمی که تحلیل بر اساسش بود) | Low |
+| 2.12 | ✅ حذف `gregorianToJalali` تکراری از `CargoViewModel` — ⚠️ کشف شد که این نسخه باگ واقعی داشت (تولید `exitDate` نامعتبر در ۳۰ اسفند سال‌های کبیسه)، رجوع کنید به یادداشت زیر یافته‌ی مربوطه برای جزئیات و نیاز به پاک‌سازی داده | Low |
+| 2.13 | ✅ افزودن گزارش کرش خودمیزبان + health-check endpoint (+ رفع کامل محافظت پوشه‌ی `logs/` که در Phase 1.7 جا افتاده بود) | Medium |
+
+**وضعیت Phase 2: تمام ۱۳ مورد پردازش شد (۲.۱ تا ۲.۱۳).** ۱۱ مورد کاملاً رفع شد، یکی (۲.۱۱) بی‌موضوع تشخیص داده شد (بر پایه‌ی schema.sql قدیمی بود)، و یکی (۲.۱۳) بخشی رفع شد (health-check/crash انجام شد؛ alerting/logrotate باز ماند). دو یافته‌ی جدی خارج از دامنه‌ی اصلی این فاز کشف شدند: باگ واقعی تولید `exitDate` نامعتبر در ۳۰ اسفند سال‌های کبیسه (Phase 2.12، نیازمند بررسی داده‌ی تولید توسط شما) و نیاز به اجرای دستی migration/`composer install --no-dev` هنگام deploy (Phase 2.1 و 2.2).
 | 2.14 | تصمیم درباره‌ی مجوز `itextpdf` (خرید یا مهاجرت) | Medium |
 
 **نتیجه:** Security ~۸، Performance ~۷.۵، Production Readiness ~۷.
@@ -3001,13 +3065,13 @@ Phase 1.4 (گیت `view_reports`) و Phase 4.10 (`STRICT_TRANS_TABLES`) هر د�
 | 6 | `PermissionManager.php` بدون `session_regenerate_id` و بدون قفل brute-force | Security | HIGH | `PermissionManager.php:43-47` | Low |
 | 7 | `vendor/` (شامل dev deps) در web root و در گیت | Security | HIGH | `PHP/vendor/`, `.gitignore` | Low |
 | 8 | پوشه‌های `logs/`/`log/` احتمالاً از وب قابل دسترس (`.json`/`.txt` بدون محافظت) | Security | HIGH | `.htaccess`, `LoginAttemptLimiter.php:78` | Low |
-| 9 | `migrations/` خالی + `schema.sql` ناقص → `audit_log` هرگز ساخته نمی‌شود | Data/Ops | HIGH | `PHP/migrations/`, `AuditLogger.php` | Medium |
+| 9 | ✅ `migrations/` خالی + `schema.sql` ناقص → `audit_log` هرگز ساخته نمی‌شود (رفع شد) | Data/Ops | HIGH | `PHP/migrations/`, `AuditLogger.php` | Medium |
 | 10 | Router v2 کامل ولی بلااستفاده — ۵۸۰ خط کد مرده + نگهداری دوگانه | Architecture | HIGH | `api_v2.php`, `ApiService.kt` | High |
-| 11 | صفر مورد `collectAsStateWithLifecycle` در برابر ۸۵ `collectAsState` | Performance | HIGH | سراسر `feature/**` | Low |
-| 12 | باگ: شاخه‌ی ۴۰۱ در `PermissionPoller` غیرقابل‌دسترس — نشست منقضی پاک نمی‌شود | Bug | HIGH | `PermissionPoller.kt:127` | Low |
+| 11 | ✅ صفر مورد `collectAsStateWithLifecycle` در برابر ۸۵ `collectAsState` (رفع شد) | Performance | HIGH | سراسر `feature/**` | Low |
+| 12 | ✅ باگ: شاخه‌ی ۴۰۱ در `PermissionPoller` غیرقابل‌دسترس — نشست منقضی پاک نمی‌شود (رفع شد) | Bug | HIGH | `PermissionPoller.kt:127` | Low |
 | 13 | God Composable — ۱۰ فایل بالای ۱۰۰۰ خط (بیشینه ۲۲۲۳) | Code Quality | HIGH | `SelectInfoScreen.kt` و ۹ فایل دیگر | High |
 | 14 | نبود پوشش تست روی منطق مالی/عملیاتی و احراز هویت | Testing | HIGH | کل پروژه | High |
-| 15 | `permissions.json` در هر بررسی مجوز از دیسک خوانده و parse می‌شود | Performance | HIGH | `PermissionService.php:20-35` | Low |
+| 15 | ✅ `permissions.json` در هر بررسی مجوز از دیسک خوانده و parse می‌شود (رفع شد) | Performance | HIGH | `PermissionService.php:20-35` | Low |
 | 16 | Primitive Obsession روی وزن/تناژ (`String` + `?: 0f`) | Correctness | HIGH | `CargoViewModel.kt:801-817`, `CargoModels.kt` | High |
 | 17 | `check_logout.php` بدون auth → DoS هدفمند علیه همه‌ی کاربران | Security | MEDIUM | `AuthController.php:258-279` | Low |
 | 18 | `getAllUsers` فهرست کامل کاربران و نقش‌ها را به هر کاربر می‌دهد | Security | MEDIUM | `UserController.php:82-85` | Low |

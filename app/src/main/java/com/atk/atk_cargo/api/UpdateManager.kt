@@ -332,7 +332,13 @@ class UpdateManager(
 
                 if (downloadedBytes.get() >= totalBytes) {
                     val expectedSha256 = _updateInfo.value?.sha256.orEmpty()
-                    if (expectedSha256.isNotEmpty() && !verifyFileSha256(currentDownloadFile, expectedSha256)) {
+                    if (expectedSha256.isEmpty()) {
+                        // fail-closed: بدون هش مرجع از سرور، امکان تأیید یکپارچگی
+                        // فایل وجود ندارد؛ قبلاً این حالت بی‌صدا به‌عنوان معتبر
+                        // علامت می‌خورد (DEEP_CODE_AUDIT.md #Phase1.5).
+                        currentDownloadFile.delete()
+                        _downloadState.value = DownloadState.Error("امکان تأیید یکپارچگی فایل وجود ندارد؛ به‌روزرسانی لغو شد.")
+                    } else if (!verifyFileSha256(currentDownloadFile, expectedSha256)) {
                         currentDownloadFile.delete()
                         _downloadState.value = DownloadState.Error("فایل دانلودشده معتبر نیست (عدم تطابق هش)")
                     } else {

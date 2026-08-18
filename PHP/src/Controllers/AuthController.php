@@ -270,6 +270,18 @@ class AuthController {
         $username = InputValidator::sanitize((string)$username);
         $deviceId = $deviceId ? InputValidator::sanitize((string)$deviceId) : null;
 
+        // بدون این بررسی، هر کلاینت ناشناس فقط با دانستن username (و
+        // اختیاری deviceId) می‌توانست نشست هر کاربر دیگری را غیرفعال کند —
+        // یک DoS بدون نیاز به احراز هویت (DEEP_CODE_AUDIT.md #Phase1.8).
+        // توکن از هدر X-Session-Token خوانده می‌شود، نه از بدنه — هم‌راستا
+        // با بقیه‌ی endpointهای احرازشده (AuthenticatesRequests). پاسخ
+        // موفق عمومی برگردانده می‌شود (نه 401) تا تفاوت پاسخ ابزار شمارش
+        // کاربران/دستگاه‌ها نشود — دقیقاً طبق Recommended Fix گزارش.
+        $sessionToken = (string)($this->request->getHeader('X-Session-Token') ?? '');
+        if (!$deviceId || !$this->sessionService->isValidToken($username, $deviceId, $sessionToken)) {
+            Response::json(['success' => true, 'message' => 'خروج انجام شد.']);
+        }
+
         $result = $this->sessionService->deactivateSession($username, $deviceId);
 
         Response::json([

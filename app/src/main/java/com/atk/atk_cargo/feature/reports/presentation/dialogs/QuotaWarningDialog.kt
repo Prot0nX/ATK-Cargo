@@ -169,7 +169,7 @@ fun QuotaWarningDialog(
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(vertical = 8.dp)
                         ) {
-                            items(groupedWarnings[page]) { warning ->
+                            items(groupedWarnings[page], key = { it.quotaNumber }) { warning ->
                                 QuotaCard(
                                     warning = warning,
                                     viewModel = viewModel,

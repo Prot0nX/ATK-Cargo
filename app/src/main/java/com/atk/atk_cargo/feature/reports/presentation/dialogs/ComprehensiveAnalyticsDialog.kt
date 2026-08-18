@@ -33,7 +33,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,8 +77,8 @@ fun ComprehensiveAnalyticsDialog(
     onDismiss: () -> Unit,
     viewModel: ReportsViewModel
 ) {
-    val analyticsData by viewModel.comprehensiveAnalytics.collectAsState()
-    val loadingState by viewModel.analyticsLoadingState.collectAsState()
+    val analyticsData by viewModel.comprehensiveAnalytics.collectAsStateWithLifecycle()
+    val loadingState by viewModel.analyticsLoadingState.collectAsStateWithLifecycle()
 
     LaunchedEffect(isVisible) {
         if (isVisible) {
@@ -164,8 +164,8 @@ fun ComprehensiveAnalyticsDialog(
 private fun AnalyticsDateNavigation(
     viewModel: ReportsViewModel
 ) {
-    val offset by viewModel.analyticsDateOffset.collectAsState()
-    val analytics by viewModel.comprehensiveAnalytics.collectAsState()
+    val offset by viewModel.analyticsDateOffset.collectAsStateWithLifecycle()
+    val analytics by viewModel.comprehensiveAnalytics.collectAsStateWithLifecycle()
     val dateInfo = analytics?.dateInfo
 
     val dayName = dateInfo?.dayName ?: ""

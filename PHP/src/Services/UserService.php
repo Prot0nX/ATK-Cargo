@@ -74,6 +74,27 @@ class UserService {
     }
 
     /**
+     * پروفایل خودِ کاربر احرازشده — بدون افشای کل فهرست کاربران/نقش‌ها به
+     * کاربرانی که مجوز manage_users ندارند (Phase 1.3 / DEEP_CODE_AUDIT.md).
+     */
+    public function getSelfProfile(string $username): ?array {
+        $user = $this->userRepository->getByUsername($username);
+        if (!$user) {
+            return null;
+        }
+        unset($user['password']);
+        return $user;
+    }
+
+    /**
+     * فهرست کاربران admin — فقط id/username/fullName/userType، برای پرکردن
+     * مقصدهای «چت با مدیر» که باید برای هر کاربر احرازشده در دسترس باشد.
+     */
+    public function getAdminUsers(): array {
+        return $this->userRepository->getByUserType('admin');
+    }
+
+    /**
      * دریافت تمامی کاربران به همراه وضعیت آنلاین و آخرین فعالیت.
      *
      * منطق آنلاین بودن: اگر `last_activity` در ۵ دقیقه گذشته ثبت شده باشد،

@@ -41,6 +41,20 @@ google-services.json
 .env
 *.env
 
+# PHP composer dependencies — vendor/ لایو در web root است و نباید کامیت شود
+# (DEEP_CODE_AUDIT.md #Phase2.2). deploy باید composer install --no-dev اجرا کند.
+# .htaccess داخل vendor/ (Phase1.7) عمداً استثنا شده — باید کامیت/deploy شود.
+/PHP/vendor/*
+!/PHP/vendor/.htaccess
+
+# PHP runtime state (rate-limit/login-lock/session-activity/crash-report
+# فایل‌ها) — تولیدشده در زمان اجرا، نه کد منبع. .htaccess محافظتی هر پوشه
+# عمداً استثنا شده.
+/PHP/log/*
+!/PHP/log/.htaccess
+/PHP/logs/*
+!/PHP/logs/.htaccess
+
 /app/release/baselineProfiles
 
 # graphify local build artifacts (machine-specific paths, extraction cache)

@@ -28,6 +28,18 @@ class SessionRepository {
     }
 
     /**
+     * توکن‌ها به‌صورت hash در ستون‌های session_token/refresh_token ذخیره
+     * می‌شوند، نه plaintext — یک SQL Injection/بکاپ لورفته/دسترسی خواندنی DB
+     * دیگر به معنای جعل هویت فوری همه‌ی کاربران نیست (DEEP_CODE_AUDIT.md
+     * #Phase2.1). چون خودِ توکن ۲۵۶ بیتی و تصادفی است (نه رمز کاربر)، SHA-256
+     * ساده کافی است — نیازی به bcrypt/salt/iteration نیست، و lookup با
+     * ایندکس equality (نه bcrypt) کارایی قبلی را حفظ می‌کند.
+     */
+    public static function hashToken(string $token): string {
+        return hash('sha256', $token);
+    }
+
+    /**
      * دریافت جلسه فعال بر اساس نام کاربری
      */
     public function getActiveSession(string $username): ?array {
@@ -62,7 +74,7 @@ class SessionRepository {
         $stmt->execute([
             ':username' => $username,
             ':device_id' => $deviceId,
-            ':token' => $token,
+            ':token' => self::hashToken($token),
         ]);
         return (bool)$stmt->fetch();
     }
@@ -86,7 +98,7 @@ class SessionRepository {
         $stmt->execute([
             ':username' => $username,
             ':device_id' => $deviceId,
-            ':token' => $token,
+            ':token' => self::hashToken($token),
         ]);
         return (bool)$stmt->fetch();
     }
@@ -116,7 +128,7 @@ class SessionRepository {
         $stmt->execute([
             ':username' => $username,
             ':device_id' => $deviceId,
-            ':token' => $token,
+            ':token' => self::hashToken($token),
         ]);
         $row = $stmt->fetch();
         return $row ? (string)($row['userType'] ?? '') : null;
@@ -241,9 +253,9 @@ class SessionRepository {
             ':app_version' => $data['app_version'] ?? null,
             ':ip_address' => $data['ip_address'],
             ':userType' => $data['userType'],
-            ':session_token' => $data['session_token'],
+            ':session_token' => self::hashToken($data['session_token']),
             ':access_token_expires_at' => $data['access_token_expires_at'] ?? null,
-            ':refresh_token' => $data['refresh_token'] ?? null,
+            ':refresh_token' => isset($data['refresh_token']) ? self::hashToken($data['refresh_token']) : null,
             ':refresh_token_expires_at' => $data['refresh_token_expires_at'] ?? null,
         ]);
 
@@ -273,9 +285,9 @@ class SessionRepository {
             WHERE id = :id
         ");
         return $stmt->execute([
-            ':access_token' => $accessToken,
+            ':access_token' => self::hashToken($accessToken),
             ':access_token_expires_at' => $accessTokenExpiresAt,
-            ':refresh_token' => $refreshToken,
+            ':refresh_token' => self::hashToken($refreshToken),
             ':refresh_token_expires_at' => $refreshTokenExpiresAt,
             ':id' => $sessionId,
         ]);
