@@ -1,1970 +1,1976 @@
 {
   "PHP/PermissionManager.php": {
     "mtime": 1787066111.2757063,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "4d2c3d00e680f0fb108950e0a3cf3b4f",
     "semantic_hash": ""
   },
   "PHP/SessionManager.php": {
     "mtime": 1786979406.2837322,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "85fbd7d7086021e430a7b422ec5f0c11",
     "semantic_hash": ""
   },
   "PHP/User/SessionManager.php": {
     "mtime": 1786979406.2842321,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "03d30d9128b33a9f1f088c05583885df",
     "semantic_hash": ""
   },
   "PHP/User/jdf.php": {
     "mtime": 1785901829.939719,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "00bd93e48db2e25fcc4bd06f40359405",
     "semantic_hash": ""
   },
   "PHP/User/online_users_api.php": {
     "mtime": 1784646605.1237502,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "4a8a2e2bb9c2479a12e86c3503ce49ff",
     "semantic_hash": "4a8a2e2bb9c2479a12e86c3503ce49ff"
   },
   "PHP/User/online_users_script.js": {
     "mtime": 1780771347.340851,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "2e261cc5053d887cc960fd0b15026521",
     "semantic_hash": "2e261cc5053d887cc960fd0b15026521"
   },
   "PHP/check_signature.php": {
     "mtime": 1784646605.1262531,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "11d804d5970bc65f5eb0fd883fb3abb0",
     "semantic_hash": ""
   },
   "PHP/check_update.php": {
     "mtime": 1784646605.1272511,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "8ddf754f62a9fb45385fdaeb806c98ad",
     "semantic_hash": ""
   },
   "PHP/composer.json": {
     "mtime": 1787066111.2762063,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "6fb2c23290b7a55f142628fc553f67e3",
     "semantic_hash": ""
   },
   "PHP/config/config.php": {
     "mtime": 1786979406.2862327,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "798cbcfea1fa35eb9dd6d820dbc5552d",
     "semantic_hash": "798cbcfea1fa35eb9dd6d820dbc5552d"
   },
   "PHP/export_schema.php": {
     "mtime": 1786979406.2877417,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "3b93a447c3002d95572432b270e3198d",
     "semantic_hash": "3b93a447c3002d95572432b270e3198d"
   },
   "PHP/file_manager.php": {
     "mtime": 1787066111.2777069,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "e98c6005077aa51cb666254fa4293727",
     "semantic_hash": ""
   },
   "PHP/get_csrf_token.php": {
     "mtime": 1779392477.707562,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "624e296f2339aaafcc92c6ae3338cf3c",
     "semantic_hash": ""
   },
   "PHP/get_license_info.php": {
     "mtime": 1784646605.1307518,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "4be995bcad0f5b9e90cd85224db39388",
     "semantic_hash": "4be995bcad0f5b9e90cd85224db39388"
   },
   "PHP/jdf.php": {
     "mtime": 1779392477.708062,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "0fb4cf9eb0ee019e1fea8b87d206363d",
     "semantic_hash": ""
   },
   "PHP/quota_remaining_api.php": {
     "mtime": 1784646605.1317523,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "92fb55a30e486bae421ddc8d97b2989a",
     "semantic_hash": ""
   },
   "PHP/src/Controllers/AnalyticsController.php": {
     "mtime": 1786979406.2892516,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "b98101f15679471b88ea672b63ad092b",
     "semantic_hash": ""
   },
   "PHP/src/Controllers/AppApiController.php": {
     "mtime": 1787066111.2807114,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "c7d3f70cb2300d617d272404ae85daa5",
     "semantic_hash": ""
   },
   "PHP/src/Controllers/AuthController.php": {
     "mtime": 1787066111.2812169,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "3dc2ad83cb234f485c3afe6f4029b809",
     "semantic_hash": ""
   },
   "PHP/src/Controllers/CargoController.php": {
     "mtime": 1787066111.2817166,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "022c823ae3e85d35b274a06e6d7364c6",
     "semantic_hash": ""
   },
   "PHP/src/Controllers/ChatController.php": {
     "mtime": 1787066111.2827213,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "95333e16e0ce4c66a91d7fe67e984dde",
     "semantic_hash": ""
   },
   "PHP/src/Controllers/LicenseController.php": {
     "mtime": 1786979406.291755,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "eb57c7009b4e9bebef56c63c0dfbcc6e",
     "semantic_hash": ""
   },
   "PHP/src/Controllers/OnlineUsersController.php": {
     "mtime": 1786979406.292267,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "55d7a2fac8ff177ed24e627cfe9f0f7c",
     "semantic_hash": ""
   },
   "PHP/src/Controllers/UserController.php": {
     "mtime": 1787066111.2832272,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "a65157c04735413182e0535d8de4d3ae",
     "semantic_hash": ""
   },
   "PHP/src/Controllers/UtilityController.php": {
     "mtime": 1787066111.2832272,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "77d419d657c880163320647dfdca8b9c",
     "semantic_hash": ""
   },
   "PHP/src/Core/AuthenticatesRequests.php": {
     "mtime": 1786979406.293756,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "0b6b67abf03c9ff01f8544458ccf2ef9",
     "semantic_hash": "0b6b67abf03c9ff01f8544458ccf2ef9"
   },
   "PHP/src/Core/Config.php": {
     "mtime": 1786979406.294266,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "86f995fbdbf839de77ad84e9fa8f3b1c",
     "semantic_hash": ""
   },
   "PHP/src/Core/Database.php": {
     "mtime": 1784565252.9502542,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "d3d89fc0e384f95cfc5e8e71086659dd",
     "semantic_hash": "d3d89fc0e384f95cfc5e8e71086659dd"
   },
   "PHP/src/Core/DatabaseManager.php": {
     "mtime": 1786363064.053424,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "719cb09b4386453ad5878c54f07a4c4a",
     "semantic_hash": ""
   },
   "PHP/src/Core/Logger.php": {
     "mtime": 1786202444.8574536,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "27eefa819d652ff00b3b10c2b4909ce9",
     "semantic_hash": ""
   },
   "PHP/src/Core/MicroCache.php": {
     "mtime": 1786363064.0539243,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "b2cbc5cd8062b85a77bffaeb508eef10",
     "semantic_hash": ""
   },
   "PHP/src/Core/Request.php": {
     "mtime": 1786979406.295256,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "33b1f54692c21f56263186ed4dc7da9f",
     "semantic_hash": "33b1f54692c21f56263186ed4dc7da9f"
   },
   "PHP/src/Core/Response.php": {
     "mtime": 1786979406.295256,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "d6dcb8ad1d28f807bf2dd2e3e318133b",
     "semantic_hash": "d6dcb8ad1d28f807bf2dd2e3e318133b"
   },
   "PHP/src/Exceptions/ApiException.php": {
     "mtime": 1784565252.9512537,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "e98aaf7eeee9d12f18375fd5161e383e",
     "semantic_hash": ""
   },
   "PHP/src/Exceptions/ConflictException.php": {
     "mtime": 1786633589.174044,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "385b34a8af97019a79f31b1a78c01a86",
     "semantic_hash": ""
   },
   "PHP/src/Exceptions/DatabaseException.php": {
     "mtime": 1784565252.951754,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "3d55bc474db02c5e568cf0134270f5b5",
     "semantic_hash": ""
   },
   "PHP/src/Repositories/CargoRepository.php": {
     "mtime": 1786709514.9416173,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "20666b78fbb3aa60529f6e10af312fee",
     "semantic_hash": ""
   },
   "PHP/src/Repositories/SessionRepository.php": {
     "mtime": 1787073562.28982,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "1ca0035740335975adb4c450c2cdabd4",
     "semantic_hash": ""
   },
   "PHP/src/Repositories/UserRepository.php": {
     "mtime": 1787073486.8330548,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "266354f57626085f58824cfec18d073e",
     "semantic_hash": ""
   },
   "PHP/src/Services/CargoService.php": {
     "mtime": 1786979406.2981224,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "ad9636177bc32d5f63e1e0c4c3faa0d4",
     "semantic_hash": ""
   },
   "PHP/src/Services/PasswordGateService.php": {
     "mtime": 1786633589.1755438,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "012b4d89e9e7776a34f49980381951ca",
     "semantic_hash": ""
   },
   "PHP/src/Services/PermissionService.php": {
     "mtime": 1787066111.2862382,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "da4ff5296e4bd7600a1c38e7e34763e5",
     "semantic_hash": ""
   },
   "PHP/src/Services/SessionService.php": {
     "mtime": 1787066111.2867367,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "dac68b8a57ae61c62400dd6afff57939",
     "semantic_hash": ""
   },
   "PHP/src/Services/UserService.php": {
     "mtime": 1787074048.694399,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "8404ae588796bb47190b01cfadc10dad",
     "semantic_hash": ""
   },
   "PHP/src/Validators/InputValidator.php": {
     "mtime": 1787066111.2872372,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "15793e879c166a30c45d564c9e01905b",
     "semantic_hash": ""
   },
   "PHP/src/bootstrap.php": {
     "mtime": 1786202444.8594575,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "6ccd7b7b06bdf62f0c328a861fe8ecc6",
     "semantic_hash": "6ccd7b7b06bdf62f0c328a861fe8ecc6"
   },
   "PHP/update_config.php": {
     "mtime": 1787066111.2902496,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "90270af03edc5f67462e27f7b9a8162a",
     "semantic_hash": ""
   },
   "PHP/update_fcm_token.php": {
     "mtime": 1784646605.1440525,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "f1bfa28bc041f53cdf57286751e96bb5",
     "semantic_hash": "f1bfa28bc041f53cdf57286751e96bb5"
   },
   "PHP/validate_license.php": {
     "mtime": 1784646605.144557,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "68b93a5dddee0fc6c73bd0ce1fd8a828",
     "semantic_hash": "68b93a5dddee0fc6c73bd0ce1fd8a828"
   },
   "app/build.gradle.kts": {
     "mtime": 1787076036.5100555,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "148ee940cc9e86677cad21a73fb5deb9",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/atk/atk_cargo/ExampleInstrumentedTest.kt": {
     "mtime": 1779392477.7165792,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "cc52bb2504946e052e07951236f2baa8",
     "semantic_hash": "cc52bb2504946e052e07951236f2baa8"
   },
   "app/src/main/cpp/secrets.cpp": {
     "mtime": 1787066111.2922542,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "c5f2f2d288dddd84c0ad19467e3a716b",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/MainActivity.kt": {
     "mtime": 1787074492.5860891,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "d3f88a08d504a6f9c76398e896e53d1a",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/AppNotificationManager.kt": {
     "mtime": 1784646605.1460567,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "08e98d6c8b7b914f89f41402953e70ef",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/AtkCargoApplication.kt": {
     "mtime": 1787066111.2932546,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "98a7b7c1480c6fb5cfd80704ca3b9366",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/AuthSession.kt": {
     "mtime": 1786979406.7301345,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "6e49847d5935ffd1934e9884458d9c95",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/BootReceiver.kt": {
     "mtime": 1786287444.8234944,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "17377ce5734c273767c8df67f38ae265",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/ChatMessage.kt": {
     "mtime": 1779392477.7401123,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "2fa2f78e4914c9f14926f4472375c7f5",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/ChatRequests.kt": {
     "mtime": 1779392477.7401123,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "44d28935f4f5b39d54f4f27e2fde7d95",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/ChatViewModel.kt": {
     "mtime": 1787066111.2937546,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "c58b216f6b1c973aa7718dc493660ae7",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/Constants.kt": {
     "mtime": 1786889346.432896,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "ce8b97a87d3aed109cc4d635a4ca05a6",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/DataModel.kt": {
     "mtime": 1786979406.7301345,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "10a302e676c490b541504bbeb648964f",
     "semantic_hash": "10a302e676c490b541504bbeb648964f"
   },
   "app/src/main/java/com/atk/atk_cargo/api/LoadingNotificationService.kt": {
     "mtime": 1786556732.8430755,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "99704f4ad91095d1514c7a29533fea2e",
     "semantic_hash": "99704f4ad91095d1514c7a29533fea2e"
   },
   "app/src/main/java/com/atk/atk_cargo/api/NotificationActionReceiver.kt": {
     "mtime": 1779392477.7426171,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "4a93b7901930d6ce7f3849a51fa74cef",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/PermissionPoller.kt": {
     "mtime": 1787066111.2947545,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "bc91e98899d1302ec6db4f234337c041",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/RetrofitClient.kt": {
     "mtime": 1787066111.295254,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "650cf70613ca567914685e9e5d3af74d",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/Secrets.kt": {
     "mtime": 1786979406.7311347,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "47b2c8994076a2f9422154b747b43131",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/SessionValidator.kt": {
     "mtime": 1787066111.2957535,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "260a51557636878bee186ea2c8593e38",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/UpdateManager.kt": {
     "mtime": 1787066111.29676,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "c81c319f341564479dea82d62d49df7b",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/UserPreferencesManager.kt": {
     "mtime": 1786979406.7326453,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "09f437120e86aebbec02bddfb05346ab",
     "semantic_hash": "09f437120e86aebbec02bddfb05346ab"
   },
   "app/src/main/java/com/atk/atk_cargo/core/extensions/ColorExtensions.kt": {
     "mtime": 1784213643.2495258,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "5e4e58ab3b51ba2efdc5e980871310d9",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/core/extensions/NumberExtensions.kt": {
     "mtime": 1785271781.496157,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "4f4787fbaae8f83d5c087e5d7b8b8599",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/core/navigation/MainScreen.kt": {
     "mtime": 1787066111.2972643,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "122679b132df57fe376cb1e7af5459b9",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/core/navigation/NavRoutes.kt": {
     "mtime": 1784213643.2513773,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "632cab6d012ae23ffb19977510763864",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/core/startup/StartupComposition.kt": {
     "mtime": 1786290171.3655932,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "45926a3e93a0b9d725a7a8b599bf112e",
     "semantic_hash": "45926a3e93a0b9d725a7a8b599bf112e"
   },
   "app/src/main/java/com/atk/atk_cargo/core/startup/StartupViewModel.kt": {
     "mtime": 1787066111.2977645,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "7c8e4c13f5405c35e74e4d59538c9f9b",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/core/ui/components/ConfirmationDialog.kt": {
     "mtime": 1784665973.8727376,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "228d2513f7cdaacac57570151a43d409",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/core/ui/components/DateRangePicker.kt": {
     "mtime": 1787066111.298265,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "28ae136c95cfcf163779eb8cbfb3c3c8",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/core/ui/components/EmptyState.kt": {
     "mtime": 1784665979.4312549,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "231c7dda12f97486f433dc3b74139645",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/core/ui/components/ErrorState.kt": {
     "mtime": 1784665983.6565154,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "0c3686bddb68816bc77ce0a6aedb32ef",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/core/ui/components/LoadingOverlay.kt": {
     "mtime": 1784665987.451013,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "55bfea5280813485ac0710be7c089dd8",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/core/ui/components/SearchBar.kt": {
     "mtime": 1784665991.0136726,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "940943e793a8e75e5d62e696c2684c18",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/core/ui/components/SnackbarMessage.kt": {
     "mtime": 1784665997.2005777,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "5c17c97f68f44b595cc3ea81202108ff",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/core/ui/components/StatisticsCard.kt": {
     "mtime": 1784666179.6563213,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "ea0174745af785a3e00306990a3774cf",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/data/ColorPicker.kt": {
     "mtime": 1779392477.74662,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "84f05bdc94a3cb582269cf06ad35a0a7",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/data/db/AppDatabase.kt": {
     "mtime": 1784565252.959754,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "6cc7adbbd2e5234c5389f4de2c2aecca",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/data/db/ChatDao.kt": {
     "mtime": 1779392477.7486312,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "9ee9a487133be1dc4b89882ef7f27c10",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/data/db/ChatMessageEntity.kt": {
     "mtime": 1779392477.7486312,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "f0af0e1a83fcde18a742a884fdbba84c",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/data/model/AuthModels.kt": {
     "mtime": 1787066111.2987647,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "cee42b15b57511a2e69986c5d9bb7459",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/data/model/CargoModels.kt": {
     "mtime": 1787068318.8782587,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "f2b20c98cfc4b2ffa6dcae3efbabf621",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/data/model/ReportModels.kt": {
     "mtime": 1786979406.7351441,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "ea2a943131d5232e2f7bb83ef052b92b",
     "semantic_hash": "ea2a943131d5232e2f7bb83ef052b92b"
   },
   "app/src/main/java/com/atk/atk_cargo/data/repository/ChatRepository.kt": {
     "mtime": 1787066111.2992647,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "f1b196d155e2db9a32cb58d3b22fa4c5",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/data/repository/ReportsRepository.kt": {
     "mtime": 1787066111.3002644,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "4fea7f8414ec28b32ab1828780474939",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/di/AppModule.kt": {
     "mtime": 1787066111.3002644,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "50bc0ed7bb1120faae38569c67269c52",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/admin/presentation/UserManagementDialogsSection.kt": {
     "mtime": 1787074138.7125654,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "4a62c97df1d9d2058ad0fb0fdd965b04",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/admin/presentation/UserManagementScreen.kt": {
     "mtime": 1787066111.3022676,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "811b81ab10d594956edf77ad331a18b2",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/auth/data/AuthRepository.kt": {
     "mtime": 1784646605.1490567,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "d14e51a7e1459e1a5b69058f81e6633b",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/auth/data/AuthRepositoryImpl.kt": {
     "mtime": 1787074105.4399102,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "bf6c35b9e6c79a6f6c67c71795ca271a",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/auth/domain/LoginUseCase.kt": {
     "mtime": 1784646605.1495564,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "1ad21fecf715b43c4517f70880c9df92",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/auth/domain/LogoutUseCase.kt": {
     "mtime": 1787066111.3032725,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "fcfc4454fb29f846cd9ceba7d326ff9a",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/auth/presentation/LoginScreen.kt": {
     "mtime": 1787066111.303773,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "c90adddc8826ff586040b1e2a25e53e6",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/auth/viewmodel/AuthViewModel.kt": {
     "mtime": 1786979406.7366462,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "68ebac034e4f9a0b4a594f813d171e26",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo/domain/CargoSnackbarQueue.kt": {
     "mtime": 1784213643.263507,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "987cc502f023cd843cd5b5f72b53c9a8",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo/domain/QuotaValidationUseCase.kt": {
     "mtime": 1787068091.9922721,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "deef1a6275057f354a3ac6a4136d3eee",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo/domain/usecase/CheckQuotaUseCase.kt": {
     "mtime": 1787066111.304772,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "391ed9d4af7227cba1095503d36b1ff7",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo/domain/usecase/SubmitCargoUseCase.kt": {
     "mtime": 1787066111.3052726,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "a87a780b67581f90d67cad04a60441c9",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_counter/navigation/CargoCounterNavigation.kt": {
     "mtime": 1785310521.5795162,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "1395d4f8b3d5299b33ff49a58c83c4ff",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_counter/presentation/CargoCounterOperationScreen.kt": {
     "mtime": 1787066111.305772,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "070e3dd516d229f569a6f663a126750d",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_counter/presentation/CargoCounterScreen.kt": {
     "mtime": 1787072133.8393145,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "be6a36bc09c3901f8fc1203667d41ecd",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_counter/presentation/components/CargoCounterComponents.kt": {
     "mtime": 1787072133.8338068,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "e919bbd3f8adf5f637de7c2be7099c96",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_details/presentation/CargoDetailsScreen.kt": {
     "mtime": 1787071246.0036943,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "0f34f56e5bf91d9b41dba015289afac7",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_details/presentation/components/CargoDetailsComponents.kt": {
     "mtime": 1787071259.4674933,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "88e3999bbba9896ab498870739a20957",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_details/presentation/components/CargoDetailsDialogSection.kt": {
     "mtime": 1787071269.995925,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "ef3a048941972d85f087a7fcb8265567",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/domain/InitialInfoValidator.kt": {
     "mtime": 1784213643.2684963,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "487590592b6be8d9fb5cea3a72992bb4",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/navigation/CargoEntryNavigation.kt": {
     "mtime": 1785310521.5955334,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "8051e745ea3ed842bfa6431923640589",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/ActiveQuotasDialogSection.kt": {
     "mtime": 1786205957.6308155,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "1fb4c1589025ff39d7144fd41c8ea4e1",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/CargoOperationScreen.kt": {
     "mtime": 1787066111.3078005,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "6bb440e88b9c08c2fb3912902b4ee0ae",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/InitialInfoScreen.kt": {
     "mtime": 1787072133.8021896,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "2f8a7e64503fd584e65fcb026f660fc4",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/SelectInfoScreen.kt": {
     "mtime": 1787072133.8272986,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "317cd6c94719658c77c067c598821d79",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/components/QuotaEntryDialog.kt": {
     "mtime": 1786029517.009544,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "ce00e0b4caa3a09fc543e27936c3b6aa",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/components/QuotaSelectionDialog.kt": {
     "mtime": 1787066111.3098018,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "1d4100da57808b0fdaa653b74f2550d2",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/components/SelectInfoHeaderSection.kt": {
     "mtime": 1784664276.377392,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "988fbda40b65d79adc69b7019b04d97d",
     "semantic_hash": "988fbda40b65d79adc69b7019b04d97d"
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/components/SelectInfoSnackbar.kt": {
     "mtime": 1786029517.0100439,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "df6eecfb93f5133651d20ea1b1fbb33a",
     "semantic_hash": "df6eecfb93f5133651d20ea1b1fbb33a"
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/components/ShipSelectionDialog.kt": {
     "mtime": 1787066111.3103006,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "cd3182958572999bbb579a9e10924d19",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/domain/format/NumberFormatter.kt": {
     "mtime": 1784213643.2716384,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "876337bda29cf522c9a299841b135521",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/domain/ocr/ImagePreprocessor.kt": {
     "mtime": 1786287444.8316677,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "c58c51641395374352f5fb3143b7eb18",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/domain/ocr/TextAnalyzer.kt": {
     "mtime": 1784213643.2725892,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "c7075dcf0f88f26a7331961e3fbf70da",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/navigation/CargoRegistrationNavigation.kt": {
     "mtime": 1787068103.2065692,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "80db8f4b44fab1d35ab091140fdb4bda",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/RegisterCargoScreen.kt": {
     "mtime": 1787072133.8107407,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "709282b39cbc53e4e9f63a12e237c23d",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/CameraSection.kt": {
     "mtime": 1785274493.5683265,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "cf030cf69a8559f383af44688dd73cc9",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/CargoInfoDetailsDialogSection.kt": {
     "mtime": 1787067669.1803205,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "7a1ed55f876689f4354f0a28068ed7c7",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/RegisterCargoDialogs.kt": {
     "mtime": 1786889346.4387891,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "1900c467b7f67f3be362bf2235ddb07b",
     "semantic_hash": "1900c467b7f67f3be362bf2235ddb07b"
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/RegisterCargoForm.kt": {
     "mtime": 1787071011.9394107,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "37cb8844efed58c53eaf54d28af2e532",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/ShipInfoSection.kt": {
     "mtime": 1787071285.3385322,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "607e1b7ee06cc84bf875aef954c126be",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/dialogs/DuplicateTrackingNumbersDialog.kt": {
     "mtime": 1787066111.3123126,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "64f7521c5d1c4c8825c3940b4162df80",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/dialogs/ExitStatusDialog.kt": {
     "mtime": 1785271793.6894503,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "49e9dcb8430c567c6efa5ffb185496f5",
     "semantic_hash": "49e9dcb8430c567c6efa5ffb185496f5"
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/dialogs/NetWeightDialog.kt": {
     "mtime": 1786889346.4412951,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "bb365a24bef516b78e8593ec9bf7bb7e",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/chat/domain/ChatDomain.kt": {
     "mtime": 1784669297.3996036,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "e67d41ca3cffc416d97da7836234f4b4",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/chat/navigation/ChatNavigation.kt": {
     "mtime": 1784213643.2770946,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "7fb15c2982e1d736ef34c4be0209c8e2",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/chat/presentation/ChatScreen.kt": {
     "mtime": 1787066111.312799,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "400d6b0158a968c28e541f8570efcd4e",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/chat/presentation/components/ChatInputBar.kt": {
     "mtime": 1787066111.3138032,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "4cb1f1f7704dc6113cafcbbbdd37929b",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/chat/presentation/components/ChatToolbar.kt": {
     "mtime": 1787066111.3143072,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "1012edeab3158201abf26303aa4d02de",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/chat/presentation/components/MessageBubble.kt": {
     "mtime": 1784565252.972757,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "9863d2f9cdcaa9dbf983856e131e1b60",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/home/domain/HomeQuotaParser.kt": {
     "mtime": 1785688597.7818809,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "0a2b2830d95256fdf67f40aa51848319",
     "semantic_hash": "0a2b2830d95256fdf67f40aa51848319"
   },
   "app/src/main/java/com/atk/atk_cargo/feature/home/navigation/HomeNavigation.kt": {
     "mtime": 1786290171.3229783,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "1f9ffed6789da6ee7bd3f1e201f965da",
     "semantic_hash": "1f9ffed6789da6ee7bd3f1e201f965da"
   },
   "app/src/main/java/com/atk/atk_cargo/feature/home/presentation/HomeScreen.kt": {
     "mtime": 1787066111.3148086,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "d66dac42331d212b816f332d1cfadc27",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/home/presentation/ProfileSettingsDialogSection.kt": {
     "mtime": 1787074154.2029314,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "4ac4633473df465a0cc99bd6845e5163",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/home/presentation/components/HomeNotificationSettingRow.kt": {
     "mtime": 1786029517.013044,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "15fe3ef53c4e745208c39c8845e98438",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/home/presentation/components/HomeThemeColorPickerRow.kt": {
     "mtime": 1787066111.3163466,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "fcd16759e04ad1bc01a7bb431face1fc",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/home/presentation/components/ProfileMenu.kt": {
     "mtime": 1787066111.316846,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "4cd73fd2395f247cf7189a946aea5726",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/domain/ExportPdfUseCase.kt": {
     "mtime": 1785271795.8817735,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "44caa9891484b3feadcae29c609474a6",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/domain/ReportsDomain.kt": {
     "mtime": 1786979406.7376447,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "da31f70bd5f878b57e7da2a14959d3e6",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/navigation/ReportsNavigation.kt": {
     "mtime": 1787066111.316846,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "4cdfad9b3906db43c792394c49029327",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/components/ReportsCommonWidgets.kt": {
     "mtime": 1786638956.959367,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "4fa8c37b1859a708fde75bcd416a2163",
     "semantic_hash": "4fa8c37b1859a708fde75bcd416a2163"
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/details/ShipDetailsScreen.kt": {
     "mtime": 1787066111.3178477,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "a9298e497a67ab81af50aadbeed53e55",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/AdvancedSearchDialog.kt": {
     "mtime": 1786029517.015544,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "7628bd3cc0505055c895d000b2de05cb",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/CargoEditSearchDialogsSection.kt": {
     "mtime": 1786209044.7625456,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "e89afa68720888c3fa06958c021c8b66",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/ComprehensiveAnalyticsDialog.kt": {
     "mtime": 1787066111.3188503,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "25b67511b3235102871fe89ab8e60a82",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/QuotaAnalysisSection.kt": {
     "mtime": 1787066111.3193521,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "8b1192c493f10e73f82c260dd22a2226",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/QuotaManagementDialog.kt": {
     "mtime": 1787072133.8505867,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "c44f4aa95e6dcdb84d721cdde7b4171e",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/QuotaWarningDialog.kt": {
     "mtime": 1787066111.320352,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "83d9360b4a127957a9ea69dc75e44c8b",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/RealTimeLoadingBottomSheet.kt": {
     "mtime": 1786889346.4428053,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "f38ae3cd77472fd17e6f637929852b9b",
     "semantic_hash": "f38ae3cd77472fd17e6f637929852b9b"
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/RealTimeLoadingCardSection.kt": {
     "mtime": 1786556035.3185134,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "dfb25afa36b19a60320dfa9f3222a1f3",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/SearchDialogs.kt": {
     "mtime": 1786212580.4454837,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "1f6ab992559cf738d84b61bf8b136215",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/QuotaDetailsScreen.kt": {
     "mtime": 1787066111.3208523,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "4b516c0971c98002d601469f53a8458f",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/QuotaPercentageDialogSection.kt": {
     "mtime": 1786547161.4780672,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "787f2b7902bc64ff93ff59030fadb7e6",
     "semantic_hash": "787f2b7902bc64ff93ff59030fadb7e6"
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/QuotasListScreen.kt": {
     "mtime": 1787072133.8455713,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "90567cdf42bf31c91801bf22e413f548",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/components/QuotasListDialogs.kt": {
     "mtime": 1786029517.019044,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "d47aa33d739fe9d3c6b21e8ec177c52d",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/ships/ShipsListScreen.kt": {
     "mtime": 1787066111.3223543,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "a6cb9abeea4b6a8e2929050e1faa44af",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/ships/components/ShipCard.kt": {
     "mtime": 1786363064.0634801,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "cfe55d97805800413685ca9aaaadd819",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/warehouse_details/VoucherDetailsDialogSection.kt": {
     "mtime": 1786209598.8317816,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "3d2aa994f7b461f4ae51703db28a3724",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/warehouse_details/WarehouseDetailsScreen.kt": {
     "mtime": 1787066111.3223543,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "c27708acbe099f6fa9a7a855fbf2d6bd",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/warehouse_details/components/WarehouseDateTimePicker.kt": {
     "mtime": 1784669331.7243621,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "5f73fae76f96de1dfafdae69ee04b46a",
     "semantic_hash": "5f73fae76f96de1dfafdae69ee04b46a"
   },
   "app/src/main/java/com/atk/atk_cargo/feature/startup/domain/AnimationManager.kt": {
     "mtime": 1787074477.622631,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "32493c5fe800ad73b93093698be21255",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/startup/domain/HardwarePerformanceEvaluator.kt": {
     "mtime": 1786287444.8336647,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "dc2d33aad69dc71051a3504b1df933de",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/startup/presentation/ServerSyncingScreen.kt": {
     "mtime": 1784565252.9817686,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "5c806ae1d6a201e2c0a62ee5f18e60ba",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/startup/presentation/SplashScreen.kt": {
     "mtime": 1786979406.7381437,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "12bde93f77d282470af9772c7dd0c83a",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/update/presentation/UpdateDialog.kt": {
     "mtime": 1784565252.9822683,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "d00ac5eccd974d2e2900b73e053e12a6",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/security/CryptoManager.kt": {
     "mtime": 1786287444.8346727,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "6296a17a62e0c9b82529d50a7856d2a2",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/security/SecurityScreen.kt": {
     "mtime": 1786287444.8351789,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "107431f72726a0c23b5acc6f57f3eeda",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/security/SecurityVerifier.kt": {
     "mtime": 1786709515.0262103,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "7f95a2a0944db10c5d5ad8d8b5f0f737",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/ui/screens/ManageReportsScreen.kt": {
     "mtime": 1787066111.3233583,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "01164cca919e66e07f5d24eb0b60dcf8",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/ui/viewmodel/CargoViewModel.kt": {
     "mtime": 1787070842.9460638,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "1a2f7a3f93039dc8bd5b8c25550754b1",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/ui/viewmodel/ReportsViewModel.kt": {
     "mtime": 1787066111.3248618,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "6d3f402e42c92fd6137f7d6fb0d2d856",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/utils/JalaliDateUtils.kt": {
     "mtime": 1787066111.3253634,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "5fd4475b87e3021841a10009edbf2e1f",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/workers/ChatNotificationWorker.kt": {
     "mtime": 1787066111.3258624,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "5e895bf857070069c8c0ca49cd080f7d",
     "semantic_hash": ""
   },
   "app/src/test/java/com/atk/atk_cargo/ExampleUnitTest.kt": {
     "mtime": 1779392477.785186,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "373a35fed5eb12e2075e9f1b766f733c",
     "semantic_hash": "373a35fed5eb12e2075e9f1b766f733c"
   },
   "app/src/test/java/com/atk/atk_cargo/feature/reports/domain/ReportsDomainTest.kt": {
     "mtime": 1786363064.0659819,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "247d21993f1df4c70901fd42d4a67a12",
     "semantic_hash": ""
   },
   "baselineprofile/build.gradle.kts": {
     "mtime": 1786202444.8705995,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "ec998c8fce269a17fca11b018eec1762",
     "semantic_hash": ""
   },
   "baselineprofile/src/main/java/com/atk/atk_cargo/baselineprofile/BaselineProfileGenerator.kt": {
     "mtime": 1786547161.4810667,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "42bba29b76b33d9531d7cd898364e65e",
     "semantic_hash": "42bba29b76b33d9531d7cd898364e65e"
   },
   "build.gradle.kts": {
     "mtime": 1787075590.1969397,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "60599117ee2e5405ff70e05732221ac6",
     "semantic_hash": ""
   },
   "gradlew": {
     "mtime": 1786979406.7406487,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "c6ea21dea2d500b277296894708cf792",
     "semantic_hash": "c6ea21dea2d500b277296894708cf792"
   },
   "settings.gradle.kts": {
     "mtime": 1787075530.2201138,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "4afaf6d3a9972ceca65b69fd7d338142",
     "semantic_hash": ""
   },
   ".claude/settings.json": {
     "mtime": 1786984283.3313422,
-    "seen": 1787075290.1869574,
-    "ast_hash": "",
+    "seen": 1787077053.4219456,
+    "ast_hash": "3447c6808989c4e2ad8140abd6787af8",
     "semantic_hash": ""
   },
   ".claude/settings.local.json": {
     "mtime": 1786213996.9625347,
-    "seen": 1787075290.1869574,
-    "ast_hash": "",
+    "seen": 1787077053.4219456,
+    "ast_hash": "8440f3dc89a291719c6dcaf326032d02",
     "semantic_hash": ""
   },
   "PHP/config/permissions.json": {
     "mtime": 1787066111.2772062,
-    "seen": 1787075290.1869574,
-    "ast_hash": "",
+    "seen": 1787077053.4219456,
+    "ast_hash": "c2ce42f93d640c7cb047000d53c45905",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/domain/AnalyticsGrouping.kt": {
     "mtime": 1786637594.143175,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "548cc51ebaff4c4d41a279a7e000066c",
     "semantic_hash": ""
   },
   "app/src/main/res/raw/download_animation.json": {
     "mtime": 1779392477.7761815,
-    "seen": 1787075290.1874611,
-    "ast_hash": "",
+    "seen": 1787077053.4224453,
+    "ast_hash": "d7eb485fff68ae343910a4288c08579a",
     "semantic_hash": ""
   },
   "app/src/main/res/raw/info.json": {
     "mtime": 1779392477.7766812,
-    "seen": 1787075290.1874611,
-    "ast_hash": "",
+    "seen": 1787077053.4224453,
+    "ast_hash": "65bdc06e3a6b5de3cbb5cbc17db3d43f",
     "semantic_hash": ""
   },
   "app/src/main/res/raw/lottie_error.json": {
     "mtime": 1779392477.7766812,
-    "seen": 1787075290.1874611,
-    "ast_hash": "",
+    "seen": 1787077053.4224453,
+    "ast_hash": "2c4bd762831a20cb7b3e318265fe4988",
     "semantic_hash": ""
   },
   "app/src/main/res/raw/lottie_logo.json": {
     "mtime": 1779392477.7771811,
-    "seen": 1787075290.1874611,
-    "ast_hash": "",
+    "seen": 1787077053.4224453,
+    "ast_hash": "d63b27e7506e9377e2cd360fcb2512ee",
     "semantic_hash": ""
   },
   "app/src/main/res/raw/lottie_success.json": {
     "mtime": 1779392477.777681,
-    "seen": 1787075290.1874611,
-    "ast_hash": "",
+    "seen": 1787077053.4224453,
+    "ast_hash": "ec2cf4ad5745d8e863f222016496f9db",
     "semantic_hash": ""
   },
   "app/src/main/res/raw/lottie_warning.json": {
     "mtime": 1779392477.777681,
-    "seen": 1787075290.1874611,
-    "ast_hash": "",
+    "seen": 1787077053.4224453,
+    "ast_hash": "64f637e2469c2b7f04bf9d23e3ca837c",
     "semantic_hash": ""
   },
   "app/src/main/res/raw/ship.json": {
     "mtime": 1779392477.778181,
-    "seen": 1787075290.1874611,
-    "ast_hash": "",
+    "seen": 1787077053.4224453,
+    "ast_hash": "7e0010c2e19840b4f28a8497c7705d08",
     "semantic_hash": ""
   },
   "app/src/main/res/raw/update_animation.json": {
     "mtime": 1779392477.781186,
-    "seen": 1787075290.1874611,
-    "ast_hash": "",
+    "seen": 1787077053.4224453,
+    "ast_hash": "ded8a7f0af0cca83bf1a10dd33193436",
     "semantic_hash": ""
   },
   ".agents/rules/graphify.md": {
     "mtime": 1786547161.4590425,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "a0e4d192b9e2e17256124dbfc8e24e6a",
     "semantic_hash": ""
   },
   ".agents/workflows/graphify.md": {
     "mtime": 1786547161.4595425,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "a831cf3669f1e6ab85d8a80ebe655f99",
     "semantic_hash": ""
   },
   ".claude/CLAUDE.md": {
     "mtime": 1786547161.4600425,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "c232166e6492ba1ed955030b16979b05",
     "semantic_hash": ""
   },
   ".claude/skills/graphify/SKILL.md": {
     "mtime": 1787066905.5314705,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "3953c31b4ef6d89d3b1cb43f0110817d",
     "semantic_hash": ""
   },
   ".claude/skills/graphify/references/add-watch.md": {
     "mtime": 1787066456.1443195,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "d59d027fe449f06aa03905a01184e779",
     "semantic_hash": ""
   },
   ".claude/skills/graphify/references/exports.md": {
     "mtime": 1787066456.1448195,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "9da2a2152e60a22f07f05fed5158f287",
     "semantic_hash": ""
   },
   ".claude/skills/graphify/references/extraction-spec.md": {
     "mtime": 1787066456.1448195,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "42fef56a01698118f7fd722acdadea34",
     "semantic_hash": ""
   },
   ".claude/skills/graphify/references/github-and-merge.md": {
     "mtime": 1787066456.1453195,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "cde13df085e4c492aeb7ba298a996d0d",
     "semantic_hash": ""
   },
   ".claude/skills/graphify/references/hooks.md": {
     "mtime": 1787066456.1453195,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "3f545db6ce646650bb9de588f5512a27",
     "semantic_hash": ""
   },
   ".claude/skills/graphify/references/query.md": {
     "mtime": 1787066456.146386,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "3c46f8ad006874260614ed8657d02307",
     "semantic_hash": ""
   },
   ".claude/skills/graphify/references/transcribe.md": {
     "mtime": 1787066456.1469612,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "67b6a5fa6c0974e18f60db9f8932fbd8",
     "semantic_hash": ""
   },
   ".claude/skills/graphify/references/update.md": {
     "mtime": 1787066456.1474695,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "9378bd03d56baaf78bd738ab3848f142",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
     "mtime": 1786547161.4645567,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "8a6643a420fdad6bfb583523bc6cef16",
     "semantic_hash": ""
   },
   "PHP/User/index.html": {
     "mtime": 1780771348.3570936,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "24294d9f4c9fcbbc60cb74ffdcea32d2",
     "semantic_hash": ""
   },
   "PHP/User/online_users_manager.html": {
     "mtime": 1780771347.5567636,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "ab0036090443b1f7e2566ff3acad72f5",
     "semantic_hash": ""
   },
   "PHP/index.html": {
     "mtime": 1779392477.708062,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "ab2775d9f3004231fb1e666a0fab3fbf",
     "semantic_hash": ""
   },
   "app/proguard-dictionary.txt": {
     "mtime": 1786709514.982673,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "0ffffb5e7c6b90c247b1187d2a5d9033",
     "semantic_hash": ""
   },
   "app/src/main/cpp/CMakeLists.txt": {
     "mtime": 1786202444.8630025,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "debd01714b0c34941d5a98638dbc254c",
     "semantic_hash": ""
   },
   "app/src/release/generated/baselineProfiles/baseline-prof.txt": {
     "mtime": 1786292607.8205953,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "4ee850e94a0d8082f3a7c8eabe544b5e",
     "semantic_hash": ""
   },
   "lifeguard.yaml": {
     "mtime": 1779392477.787186,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "b6e7cb08876aa24a3d0a54561da973e9",
     "semantic_hash": ""
   },
   "app/src/main/ic_launcher-playstore.png": {
     "mtime": 1779392477.7280893,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "2553166b74478ca2251c8f3f0bafc0be",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/atkcargo.png": {
     "mtime": 1779392477.7546391,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "3922d036d90a8cf00e883cf7a0392da2",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_anchor.png": {
     "mtime": 1779392477.757156,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "3922d036d90a8cf00e883cf7a0392da2",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_arrow_drop_down.png": {
     "mtime": 1779392477.757156,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "cf0f143aa11aecfe81099528dd8dc9ac",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_arrow_drop_up.png": {
     "mtime": 1779392477.757656,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "520ae6a8d6edc9317973dd010d259f74",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_boosters.png": {
     "mtime": 1779392477.758156,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "2d7818753714e2af77fad461d5821971",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_cargo_counter.png": {
     "mtime": 1779392477.758656,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "7e10acba795a7bf49ad4d7c503f485bf",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_chat.png": {
     "mtime": 1779392477.759658,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "1e60da020e6ccd8dc3db36699b032a05",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_error.png": {
     "mtime": 1779392477.759658,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "f4a98c9edad15bb6a592e63beb590d31",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_journal.png": {
     "mtime": 1779392477.7601612,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "992a17243900d2a71458111c3a9ec74a",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_launcher.png": {
     "mtime": 1779392477.761161,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "3922d036d90a8cf00e883cf7a0392da2",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_logo.png": {
     "mtime": 1779392477.762666,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "3922d036d90a8cf00e883cf7a0392da2",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_notification.png": {
     "mtime": 1779392477.763166,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "f57f3b46632298c8da974e06f3ac1904",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_refresh.png": {
     "mtime": 1779392477.7646713,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "be9b4da5c92f8976bca4dd44384b9d0e",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_reports.png": {
     "mtime": 1779392477.7656708,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "33cd62c250b5ae4829479c6c36dc723f",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_share.png": {
     "mtime": 1779392477.766171,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "d6d6306e7d96583d490776e83feeb9d6",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/ic_success.png": {
     "mtime": 1779392477.7666707,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "4acd1909c33e9fbb852c13eff52c2685",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/login_bg.png": {
     "mtime": 1779392477.7681706,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "3fd3492c542afa753e9ce9f7b04b9762",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/profile_admin.png": {
     "mtime": 1779392477.768671,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "a3838c436c9d9110c567705be8580fbb",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/profile_default.png": {
     "mtime": 1779392477.768671,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "cbd8ffb1a73c3e166f909aae8efe9a75",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/profile_operator.png": {
     "mtime": 1779392477.768671,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "78eab3b8d41ed5d2fab47dca5846f815",
     "semantic_hash": ""
   },
   "app/src/main/res/drawable/profile_verifier.png": {
     "mtime": 1779392477.7696733,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "fd17c2c18d7ae4186dede2e30347ffe7",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-hdpi/ic_launcher.webp": {
     "mtime": 1779392477.771176,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "c13873ddb2d9abcb815289d63aadad04",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-hdpi/ic_launcher_foreground.webp": {
     "mtime": 1779392477.7721784,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "dff2730c4dacb35268122de60327764f",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-hdpi/ic_launcher_round.webp": {
     "mtime": 1779392477.7721784,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "df79bb0b254dea09652d71a8933eb612",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-mdpi/ic_launcher.webp": {
     "mtime": 1779392477.7726812,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "a5e679353cdd41464067ae9a28c71aca",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-mdpi/ic_launcher_foreground.webp": {
     "mtime": 1779392477.7726812,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "8c6777cb94311e579a0b81e92887b3ca",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-mdpi/ic_launcher_round.webp": {
     "mtime": 1779392477.773181,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "41f4c6b19da3ca776e379679a0161997",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xhdpi/ic_launcher.webp": {
     "mtime": 1779392477.773181,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "1ca617c1f43c54cda8dc26cdbcb53df6",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.webp": {
     "mtime": 1779392477.7736814,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "d3b64e294cbfdeeb00678665c7dc2142",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp": {
     "mtime": 1779392477.7736814,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "5b18dea968c2b2de896d1579d1cabde2",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xxhdpi/ic_launcher.webp": {
     "mtime": 1779392477.774181,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "572ebed373fb99327956d7bcf9b08211",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.webp": {
     "mtime": 1779392477.774181,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "911341654661de3405e9a1ec134358ef",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp": {
     "mtime": 1779392477.7746813,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "f1f2b42a7325f424cbd27d4bbc25f01f",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp": {
     "mtime": 1779392477.775181,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "86d9a8744796c19d9670230450bfe426",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.webp": {
     "mtime": 1779392477.775681,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "8d78d008114280700a3ba9119ff6284d",
     "semantic_hash": ""
   },
   "app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp": {
     "mtime": 1779392477.775681,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "287cdd54c9dfbcb54e6c207ca55d9ee8",
     "semantic_hash": ""
   },
   "logo.svg": {
     "mtime": 1786287444.839702,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "53917353c23de7fe1fd24d71664e2b10",
     "semantic_hash": ""
   },
   "PHP/schema.sql": {
-    "mtime": 1786637131.471231,
-    "seen": 1786984635.5886867,
-    "ast_hash": "",
+    "mtime": 1787072786.289754,
+    "seen": 1787077053.4219456,
+    "ast_hash": "1b0112f42e80c6f4e1a7c8a19d89f375",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/dialogs/DialogDesignSystem.kt": {
     "mtime": 1786889346.4392848,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "97dff5d75b61db1313f75370a2f73a84",
     "semantic_hash": ""
   },
   "PHP/api/v2/index.php": {
     "mtime": 1786979406.2847326,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "b5de09daff6e2c2f04b7df0e671e7af3",
     "semantic_hash": ""
   },
   "PHP/src/Core/ApiAuthGate.php": {
     "mtime": 1786979406.2932558,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "41b8b2f630da363098f785b945bf8d90",
     "semantic_hash": ""
   },
   "PHP/src/Core/MinVersionGate.php": {
     "mtime": 1786979406.294756,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "6bc9eca659a08506a16731a8c263d73d",
     "semantic_hash": ""
   },
   "PHP/src/Core/Router.php": {
     "mtime": 1786979406.295769,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "04d0081d339ffc712d32ff27b0cb0f63",
     "semantic_hash": ""
   },
   "PHP/src/Services/AppApiCacheKeys.php": {
     "mtime": 1786979406.2972548,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "2f2ad89b9ffae303ccd8184d680e8459",
     "semantic_hash": ""
   },
   "PHP/src/Services/AuditLogger.php": {
     "mtime": 1787066111.2857368,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "95e77f1dbf202e8566fb5b87f705f3fc",
     "semantic_hash": ""
   },
   "PHP/src/Services/LoginAttemptLimiter.php": {
     "mtime": 1787066111.2857368,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "a15565536d33d73293849ff376fb429a",
     "semantic_hash": ""
   },
   "PHP/src/Services/QuotaCalculator.php": {
     "mtime": 1786979406.2981224,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "ee8da6554e758589c04c973b1d515136",
     "semantic_hash": ""
   },
   "PHP/src/Services/QuotaService.php": {
     "mtime": 1787073537.5471644,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "332cc966479bb1c3c76ef5e0b72397e1",
     "semantic_hash": ""
   },
   "PHP/src/Services/ShipService.php": {
     "mtime": 1786979406.2997558,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "6befe1f0b01e5a248aa5faf66dbc564b",
     "semantic_hash": ""
   },
   "PHP/src/routes/api_v2.php": {
     "mtime": 1787066111.2882414,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "991e449b0a28cfd8423eafc8464c7cdf",
     "semantic_hash": ""
   },
   "PHP/tests/Unit/Services/QuotaCalculatorTest.php": {
     "mtime": 1786979406.301756,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "d8fa832212625eb2059bdf55f3804214",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/TokenAuthenticator.kt": {
     "mtime": 1786979406.732139,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "60c08ae0b7a8fb3658db25be7749f848",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/TokenRefresher.kt": {
     "mtime": 1786979406.732139,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "3aaff26b72a0c09b1ea7d0be6d9b2968",
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
     "mtime": 1786979406.2812326,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "8d7453370d6605caee8864642d1f6d30",
     "semantic_hash": ""
   },
   "PHP/src/Controllers/DiagnosticsController.php": {
     "mtime": 1787066111.2827213,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "30b3166cc04c3b2c4977fde5c27a5a50",
     "semantic_hash": ""
   },
   "PHP/tests/Unit/Services/LoginAttemptLimiterTest.php": {
     "mtime": 1787066111.2887468,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "f29e5949f1e25c3a6d2370c1a5d12855",
     "semantic_hash": ""
   },
   "PHP/tests/Unit/Services/PermissionServiceTest.php": {
     "mtime": 1787066111.2892466,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "3756573a9982201dd4b06df98b74392e",
     "semantic_hash": ""
   },
   "PHP/tests/Unit/Services/SessionServiceTest.php": {
     "mtime": 1787066111.2892466,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "33e701821f3ed975d4c758b5da1b7627",
     "semantic_hash": ""
   },
   "PHP/tests/Unit/Validators/InputValidatorTest.php": {
     "mtime": 1787066111.2892466,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "295fffa2d5d776ab8deb76b10aac0710",
     "semantic_hash": ""
   },
   "PHP/tests/bootstrap.php": {
     "mtime": 1787066111.2892466,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "b481968d61b586e18dd22683028d6fa6",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/ApiServiceV2.kt": {
     "mtime": 1787066111.2932546,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "43eac0b229e181cce098baeb87a4d29e",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/api/CrashReporter.kt": {
     "mtime": 1787066111.2942543,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "eaccf21e4456c3fbbb33ca3709712e1b",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/domain/model/Cargo.kt": {
     "mtime": 1787067410.7960463,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "dc02a7f024116116824acf17fc8c2b0d",
     "semantic_hash": ""
   },
   "app/src/test/java/com/atk/atk_cargo/feature/reports/domain/ReportsDomainCalculationsTest.kt": {
     "mtime": 1787066111.3258624,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "7ef1761b4e317d24c48a720b871d7cb5",
     "semantic_hash": ""
   },
   "app/src/test/java/com/atk/atk_cargo/utils/JalaliDateUtilsTest.kt": {
     "mtime": 1787066111.3268669,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "f090443a34d13101bbc6a92e3f873342",
     "semantic_hash": ""
   },
   "DEEP_CODE_AUDIT.md": {
     "mtime": 1787076936.3724382,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "0b5167afc76093add8494760aa2c3468",
     "semantic_hash": ""
   },
   "PHP/migrations/README.md": {
     "mtime": 1787072757.0475526,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "e7d73f6d74872e19f71a92f7a2e6e095",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/domain/model/QuotaInfo.kt": {
     "mtime": 1787068026.428733,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "e8be83e3e876707263b7d7a5ed0de8c6",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/domain/model/ShipInfo.kt": {
     "mtime": 1787068313.7730136,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "dcd0e7bafbfd8974f3478fc30fd91530",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/ActiveQuotasContent.kt": {
     "mtime": 1787068914.2802784,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "543a080ece9020c413ae11e01fefa64b",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/QuotaCardComponents.kt": {
     "mtime": 1787069230.9386637,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "5ad9bc74b621c3d69cad55be80a7d97c",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/QuotaManagementContent.kt": {
     "mtime": 1787069297.2216914,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "3e52a515baec4b94a153f6d787723754",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/QuotaCardComponents.kt": {
     "mtime": 1787072133.819254,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "911e94be3154508876d3585a437fabdf",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/QuotaGroupContent.kt": {
     "mtime": 1787069470.193202,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "927b0a870a07c3bbec8ca0121c211bf1",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/InitialInfoDialogs.kt": {
     "mtime": 1787069991.4941034,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "8ee82f9bbeadae1d15ab048dde74d851",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/InitialInfoFormComponents.kt": {
     "mtime": 1787070014.866776,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "b74f8f5f99bb8a0fb36366fe3f391671",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/feature/cargo_counter/presentation/components/CargoCounterListContent.kt": {
     "mtime": 1787070311.0418072,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "b35a1f2104ffb7477de250125ee62eab",
     "semantic_hash": ""
   },
   "app/src/main/java/com/atk/atk_cargo/domain/model/CargoStatus.kt": {
     "mtime": 1787070963.1610699,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "fa89dd7e02c8086d0ace08216e7ed562",
     "semantic_hash": ""
   },
   "PHP/RESTRUCTURE_PLAN.md": {
     "mtime": 1787074895.6066692,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "b7ec90b82f75e895c63f4792573550bf",
     "semantic_hash": ""
   },
   "PHP/migrations/2026_08_18_hash_session_tokens.sql": {
     "mtime": 1787066111.2787068,
-    "seen": 1787075290.1869574,
-    "ast_hash": "",
+    "seen": 1787077053.4219456,
+    "ast_hash": "1c05cda1e461a8e13933a675e2351ede",
     "semantic_hash": ""
   },
   "app/release/output-metadata.json": {
     "mtime": 1787072356.2160783,
-    "seen": 1787075290.1869574,
-    "ast_hash": "",
+    "seen": 1787077053.4224453,
+    "ast_hash": "0077013cb6a463cf356bc6731f621675",
     "semantic_hash": ""
   },
   "core/designsystem/build.gradle.kts": {
     "mtime": 1787075543.0014703,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "93c5a651b2cf75d3bd04b2e9b6e2a8fb",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/AdaptiveLayout.kt": {
     "mtime": 1784665936.5680053,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "4690cf17592812578cdf73d6c3388199",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/Color.kt": {
     "mtime": 1784663825.9119823,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "1d52f6e547a2bd4f38653c5defec0f3b",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/ColorScheme.kt": {
     "mtime": 1784665940.6830423,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "79d18a0fa73ed928252cfe2327c8f255",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/ComponentDefaults.kt": {
     "mtime": 1784665932.5256248,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "ef72e8933db063603b81d50cc04a3668",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/ComponentStyles.kt": {
     "mtime": 1784665934.5495555,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "b2423baaed641b79a4b32e3de7975c16",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/Dimensions.kt": {
     "mtime": 1784666178.17067,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "06b3b81e98b69aa6072b7cb22460c2dd",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/Elevation.kt": {
     "mtime": 1784665925.1100373,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "9355d8b3490b08bb2f12ef63d840fa5b",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/ExtendedTheme.kt": {
     "mtime": 1784665942.2909007,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "b309d1ed1d6987a886212b02b4ce3d15",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/Font.kt": {
     "mtime": 1779392477.7501366,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "9287f4c536fe65996854462ed58ef1a4",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/Motion.kt": {
     "mtime": 1784665926.9709883,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "8d6337be610c03ae3c65cdd01e2b25ea",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/SemanticColors.kt": {
     "mtime": 1784665929.7792108,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "ab1ab19b501299b4dae570e6d6e1899c",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/Shapes.kt": {
     "mtime": 1784665923.8213882,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "e2abf2c2a5c3cc80278188a0c07be9ed",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/Spacing.kt": {
     "mtime": 1784665919.4991498,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "ed279bf81ad9b867522b960b538e7350",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/Theme.kt": {
     "mtime": 1786287444.8371923,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "3acdef34e8ee267cd29ff69fabd89b41",
     "semantic_hash": ""
   },
   "core/designsystem/src/main/java/com/atk/atk_cargo/ui/theme/Typography.kt": {
     "mtime": 1786287444.8376887,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "c9ed3c2be08c10d802e8b86b20277d68",
     "semantic_hash": ""
   },
   "PHP/openapi.yaml": {
     "mtime": 1787076457.4669268,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "627e3cf4cac0793827ea85fb93fcf4da",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/CompactStatChipTest.kt": {
     "mtime": 1787076670.1643121,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "30204c5d7b12dbd1d81351ed2490e38f",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/ActionButtonTest.kt": {
     "mtime": 1787076644.525103,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "a5fbad685154c87e4da4f57b512441ca",
     "semantic_hash": ""
   },
   "PHP/scripts/rotate_logs.php": {
     "mtime": 1787076903.1963642,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4219456,
     "ast_hash": "de45f727f3f600e661f20a3c9cda6e82",
     "semantic_hash": ""
   },
   "PHP/STRICT_MODE_CHECKLIST.md": {
     "mtime": 1787076810.8031726,
-    "seen": 1787076975.693227,
+    "seen": 1787077053.4224453,
     "ast_hash": "600ce8c8b1289a3dfb9980021bb16aca",
+    "semantic_hash": ""
+  },
+  "PHP/migrations/2026_08_18_add_chat_session_foreign_keys.sql": {
+    "mtime": 1787072744.8717308,
+    "seen": 1787077053.4219456,
+    "ast_hash": "6f14a34121543ebb1ae257e456ad7d0a",
     "semantic_hash": ""
   }
 }
