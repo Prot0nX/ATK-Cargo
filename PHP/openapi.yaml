@@ -1,0 +1,786 @@
+openapi: 3.0.3
+info:
+  title: ATK-Cargo API v2
+  version: "2.0.0"
+  description: >-
+    مستند OpenAPI برای API نسخه‌ی ۲ (`api/v2/index.php` — منبع حقیقت:
+    `PHP/src/routes/api_v2.php`). این فایل به‌صورت دستی از روی جدول route
+    نوشته شده (DEEP_CODE_AUDIT.md #Phase4.8)، نه تولید خودکار — با هر تغییر
+    در `api_v2.php` باید دستی به‌روزرسانی شود. auth/permission هر مسیر
+    دقیقاً همان مقداری است که در `api_v2.php` تعریف شده.
+
+    احراز هویت استاندارد OAuth/Bearer نیست؛ یک قرارداد header سفارشی است
+    (بخش «Authentication» را ببینید). بدنه‌ی پاسخ بسیاری از endpointها
+    بر اساس ساختار واقعی کد کنترلر تخمین زده شده، نه از روی مشاهده‌ی مستقیم
+    پاسخ سرور — قبل از استفاده در ابزار تولید کد (codegen)، آن‌ها را با پاسخ
+    واقعی سرور مقایسه کنید.
+
+servers:
+  - url: /api/v2
+    description: مسیر پایه‌ی نسبی؛ دامنه‌ی واقعی در Secrets.kt سمت کلاینت (JNI) نگه‌داری می‌شود، نه در این فایل.
+
+tags:
+  - name: Ships
+  - name: Quotas
+  - name: Realtime
+  - name: Auth
+  - name: Cargo
+  - name: Utility
+  - name: Users
+  - name: Chat
+  - name: Analytics
+  - name: Diagnostics
+
+components:
+  securitySchemes:
+    sessionHeaders:
+      type: apiKey
+      in: header
+      name: X-Session-Token
+      description: >-
+        احراز هویت واقعی سه هدر هم‌زمان لازم دارد: `X-Username`،
+        `X-Device-Id`، `X-Session-Token` (پلاس‌`X-App-Version` برای گیت
+        حداقل نسخه). OpenAPI امکان مدل‌کردن «چند apiKey هم‌زمان الزامی» را
+        ندارد؛ این scheme فقط نماینده‌ی وجود نشست معتبر است — پارامترهای
+        `X-Username`/`X-Device-Id`/`X-App-Version` در هر عملیات با auth=true
+        به‌صورت جدا به‌عنوان header parameter لیست شده‌اند.
+
+  parameters:
+    XUsername:
+      name: X-Username
+      in: header
+      required: true
+      schema: { type: string }
+    XDeviceId:
+      name: X-Device-Id
+      in: header
+      required: true
+      schema: { type: string }
+    XAppVersion:
+      name: X-App-Version
+      in: header
+      required: false
+      schema: { type: string }
+      description: برای گیت حداقل نسخه‌ی اپ (MinVersionGate) — نبودش یعنی رد شدن از گیت با نسخه‌ی نامعتبر فرض می‌شود.
+
+  schemas:
+    SuccessFlag:
+      type: object
+      properties:
+        success: { type: boolean }
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+
+  responses:
+    Unauthorized:
+      description: نشست نامعتبر یا منقضی (بدون auth یا هدرهای ناقص)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: نشست معتبر است ولی permission لازم را ندارد
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    ServerError:
+      description: خطای داخلی سرور — پیام عمومی، بدون افشای جزئیات (Phase2.4)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+security:
+  - sessionHeaders: []
+
+paths:
+  /ships:
+    get:
+      tags: [Ships]
+      summary: فهرست کشتی‌های فعال/غیرفعال (کش‌شونده با ETag)
+      description: "permission: view_reports"
+      parameters:
+        - $ref: '#/components/parameters/XUsername'
+        - $ref: '#/components/parameters/XDeviceId'
+      responses:
+        '200': { description: OK }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /ships/{shipName}:
+    get:
+      tags: [Ships]
+      summary: جزئیات یک کشتی
+      description: "permission: view_reports"
+      parameters:
+        - name: shipName
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /ships/{shipName}/warehouses/{warehouseName}:
+    get:
+      tags: [Ships]
+      summary: جزئیات یک انبار در یک کشتی
+      description: "permission: view_reports"
+      parameters:
+        - name: shipName
+          in: path
+          required: true
+          schema: { type: string }
+        - name: warehouseName
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+
+  /ships/{shipName}/quotas:
+    get:
+      tags: [Ships]
+      summary: فهرست کوتاژهای یک کشتی
+      description: >-
+        permission: بدون قید (عمداً — هم از فیچر گزارش‌ها و هم از
+        QuotaValidationUseCase.kt هنگام ثبت حواله صدا زده می‌شود)
+      parameters:
+        - name: shipName
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+
+  /ships/active:
+    get:
+      tags: [Cargo]
+      summary: فهرست سبک کشتی‌های فعال (برای جریان ثبت حواله، جدا از /ships گزارش‌ها)
+      description: "permission: بدون قید"
+      responses:
+        '200': { description: OK }
+
+  /quotas/filtered:
+    get:
+      tags: [Quotas]
+      summary: کوتاژهای یک کشتی در یک بازه‌ی زمانی
+      description: "permission: view_reports"
+      parameters:
+        - name: shipName
+          in: query
+          required: true
+          schema: { type: string }
+        - name: startDateTime
+          in: query
+          required: true
+          schema: { type: string }
+        - name: endDateTime
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+        '400': { description: پارامتر ناقص }
+
+  /quotas/filtered-summary:
+    get:
+      tags: [Quotas]
+      summary: خلاصه‌ی کوتاژهای فیلترشده (پاسخ JSON از پیش‌ساخته)
+      description: "permission: view_reports"
+      parameters:
+        - name: shipName
+          in: query
+          required: true
+          schema: { type: string }
+        - name: warehouseName
+          in: query
+          required: true
+          schema: { type: string }
+        - name: selectedQuota
+          in: query
+          required: true
+          schema: { type: string }
+        - name: startDateTime
+          in: query
+          required: true
+          schema: { type: string }
+        - name: endDateTime
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+
+  /quotas/grouped:
+    get:
+      tags: [Quotas]
+      summary: کوتاژها گروه‌بندی‌شده (اختیاری بر اساس کشتی)
+      description: "permission: view_reports"
+      parameters:
+        - name: shipName
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+
+  /quotas/existence:
+    get:
+      tags: [Quotas]
+      summary: بررسی وجود کوتاژ برای یک کشتی
+      description: "permission: بدون قید"
+      parameters:
+        - name: quotaNumber
+          in: query
+          required: true
+          schema: { type: string }
+        - name: shipName
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+
+  /quotas/{quotaNumber}:
+    get:
+      tags: [Quotas]
+      summary: جزئیات یک کوتاژ
+      description: "permission: view_reports"
+      parameters:
+        - name: quotaNumber
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+        '404': { description: کوتاژ یافت نشد }
+
+  /quotas/{quotaNumber}/status:
+    get:
+      tags: [Quotas]
+      summary: بررسی وضعیت (فعال/غیرفعال) یک کوتاژ
+      description: "permission: بدون قید"
+      parameters:
+        - name: quotaNumber
+          in: path
+          required: true
+          schema: { type: string }
+        - { name: shipName, in: query, schema: { type: string } }
+        - { name: cargoType, in: query, schema: { type: string } }
+        - { name: shippingCompany, in: query, schema: { type: string } }
+        - { name: warehouse, in: query, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /quotas/{quotaNumber}/loadable-tonnage:
+    get:
+      tags: [Quotas]
+      summary: تناژ قابل‌بارگیری باقی‌مانده‌ی یک کوتاژ
+      description: "permission: بدون قید"
+      parameters:
+        - name: quotaNumber
+          in: path
+          required: true
+          schema: { type: string }
+        - { name: shippingCompany, in: query, schema: { type: string } }
+        - { name: warehouse, in: query, schema: { type: string } }
+        - { name: cargoType, in: query, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /quotas/edit:
+    post:
+      tags: [Quotas]
+      summary: ویرایش اطلاعات یک کوتاژ
+      description: "permission: manage_quotas"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, oldQuotaNumber, newQuotaNumber, shipName, shippingCompany, warehouse, cargoType, totalTonnage]
+              properties:
+                id: { type: integer }
+                oldQuotaNumber: { type: string }
+                newQuotaNumber: { type: string }
+                shipName: { type: string }
+                shippingCompany: { type: string }
+                warehouse: { type: string }
+                cargoType: { type: string }
+                totalTonnage: { type: number }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessFlag' }
+
+  /quotas/{id}/percentage:
+    post:
+      tags: [Quotas]
+      summary: بروزرسانی درصد محدودیت یک کوتاژ
+      description: "permission: manage_quotas"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [percentage]
+              properties: { percentage: { type: number } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessFlag' }
+
+  /quotas/{id}/toggle-status:
+    post:
+      tags: [Quotas]
+      summary: تغییر وضعیت فعال/غیرفعال یک کوتاژ
+      description: "permission: manage_quotas"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessFlag' }
+
+  /quotas/{id}/percentage-restriction:
+    post:
+      tags: [Quotas]
+      summary: فعال/غیرفعال کردن قید درصد یک کوتاژ
+      description: "permission: manage_quotas"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [isEnabled]
+              properties: { isEnabled: { type: integer, enum: [0, 1] } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessFlag' }
+
+  /quotas/delete:
+    post:
+      tags: [Quotas]
+      summary: حذف یک کوتاژ
+      description: "permission: manage_quotas"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quotaNumber, shipName, warehouse, shippingCompany, cargoType]
+              properties:
+                quotaNumber: { type: string }
+                shipName: { type: string }
+                warehouse: { type: string }
+                shippingCompany: { type: string }
+                cargoType: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessFlag' }
+
+  /quotas/{quotaNumber}/temporary-tonnage:
+    post:
+      tags: [Quotas]
+      summary: تنظیم تناژ موقت یک کوتاژ
+      description: "permission: manage_quotas"
+      parameters:
+        - { name: quotaNumber, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: integer, enum: [0, 1] }
+                tonnage: { type: number, nullable: true, description: "الزامی وقتی enabled=1" }
+      responses:
+        '200': { description: OK }
+
+  /realtime/ships:
+    get:
+      tags: [Realtime]
+      summary: نسخه‌ی سبک فهرست کشتی‌های فعال به همراه timestamp
+      description: "permission: بدون قید"
+      responses:
+        '200': { description: OK }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: ورود کاربر
+      security: []
+      description: "auth: false (این خودِ نقطه‌ی ورود است). همیشه HTTP 200 برمی‌گرداند، حتی روی خطا (پایداری کلاینت اندروید) — موفقیت واقعی را از فیلد success در بدنه تشخیص دهید."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password, deviceId]
+              properties:
+                username: { type: string }
+                password: { type: string, description: "رمز خام؛ کلاینت دیگر client-side hash نمی‌کند (Phase3.11)" }
+                deviceId: { type: string }
+                deviceModel: { type: string }
+                androidVersion: { type: string }
+                appVersion: { type: string }
+      responses:
+        '200': { description: "همیشه — موفقیت را از بدنه بخوانید" }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: تمدید access token با refresh token
+      security: []
+      description: "auth: false (دقیقاً زمانی صدا زده می‌شود که access token منقضی شده)"
+      responses:
+        '200': { description: OK }
+        '401': { description: refresh token نامعتبر یا استفاده‌شده (reuse detection) }
+
+  /auth/session:
+    post:
+      tags: [Auth]
+      summary: بررسی اعتبار نشست فعلی
+      security: []
+      responses:
+        '200': { description: OK }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: خروج از نشست فعلی
+      security: []
+      description: >-
+        ⚠️ این endpoint هیچ auth gate ای در سطح router ندارد (auth=false) —
+        فقط username به‌عنوان پارامتر می‌گیرد؛ نگاه کنید به finding مرتبط در
+        DEEP_CODE_AUDIT.md درباره‌ی محدودسازی به نشست‌های دارای توکن معتبر.
+      responses:
+        '200': { description: OK }
+
+  /cargo:
+    post:
+      tags: [Cargo]
+      summary: ثبت یا بروزرسانی حواله
+      description: "permission: بررسی داخل خودِ CargoController::saveOrUpdate انجام می‌شود"
+      responses:
+        '200': { description: OK }
+        '409': { description: تداخل (حواله‌ی تکراری / نیاز به تأیید) }
+
+  /cargo/update:
+    post:
+      tags: [Cargo]
+      summary: بروزرسانی اطلاعات حواله (خروج/کسری/اضافه)
+      description: "permission: edit_cargo"
+      responses:
+        '200': { description: OK }
+
+  /cargo/confirm:
+    post:
+      tags: [Cargo]
+      summary: تأیید یک حواله
+      description: "permission: cargo_counter"
+      responses:
+        '200': { description: OK }
+
+  /cargo/delete:
+    post:
+      tags: [Cargo]
+      summary: حذف یک حواله (با گیت رمز عملیاتی)
+      description: "permission: delete_cargo"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, password]
+              properties:
+                id: { type: integer }
+                password: { type: string, description: "رمز گیت عملیاتی (PasswordGateService) — مستقل از رمز حساب کاربری" }
+      responses:
+        '200': { description: OK }
+
+  /cargo/search/scale-receipt:
+    get:
+      tags: [Cargo]
+      summary: جستجوی حواله با شماره قبض باسکول
+      description: "permission: بدون قید"
+      responses:
+        '200': { description: OK }
+
+  /cargo/search/tracking:
+    get:
+      tags: [Cargo]
+      summary: جستجوی حواله با شماره پیگیری
+      description: "permission: بدون قید"
+      responses:
+        '200': { description: OK }
+
+  /cargo/initial-info:
+    get:
+      tags: [Cargo]
+      summary: دریافت اطلاعات اولیه‌ی یک کوتاژ برای ثبت حواله
+      description: "permission: بدون قید"
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Cargo]
+      summary: ثبت اطلاعات اولیه‌ی یک کوتاژ جدید
+      description: "permission: initial_info"
+      responses:
+        '200': { description: OK }
+
+  /cargo/scale-receipt/check:
+    get:
+      tags: [Cargo]
+      summary: بررسی تکراری‌نبودن شماره قبض باسکول
+      description: "permission: بدون قید"
+      responses:
+        '200': { description: OK }
+
+  /utility/check-password:
+    post:
+      tags: [Utility]
+      summary: بررسی رمز عملیاتی (مدیریت فایل و ...)
+      description: "permission: بدون قید"
+      responses:
+        '200': { description: OK }
+
+  /utility/check-existence:
+    post:
+      tags: [Utility]
+      summary: بررسی وجود یک کوتاژ قبل از ثبت حواله‌ی اولیه
+      description: "permission: بدون قید"
+      responses:
+        '200': { description: OK }
+
+  /utility/sync-permissions:
+    post:
+      tags: [Utility]
+      summary: همگام‌سازی مجوزهای کاربر فعلی از سرور
+      description: "permission: بدون قید (auth با ApiAuthGate کامل — شامل بررسی توکن، برخلاف v1)"
+      responses:
+        '200': { description: OK }
+
+  /users:
+    get:
+      tags: [Users]
+      summary: فهرست کامل کاربران
+      description: "permission: بدون قید در سطح router؛ در عمل داخل UserController::handle پشت manage_users قفل است (ADMIN_ONLY_ACTIONS)"
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Users]
+      summary: ساخت کاربر جدید
+      description: "permission: manage_users"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, fullName, password, userType]
+              properties:
+                username: { type: string }
+                fullName: { type: string }
+                password: { type: string, description: "رمز خام، حداقل ۸ کاراکتر" }
+                userType: { type: string }
+      responses:
+        '200': { description: OK }
+
+  /users/self:
+    get:
+      tags: [Users]
+      summary: پروفایل کاربر احرازشده‌ی فعلی (بدون افشای کل فهرست کاربران)
+      description: "permission: بدون قید — هر کاربر احرازشده"
+      responses:
+        '200': { description: OK }
+
+  /users/admins:
+    get:
+      tags: [Users]
+      summary: فهرست کاربران با نقش admin (برای مقصدهای چت)
+      description: "permission: بدون قید — هر کاربر احرازشده"
+      responses:
+        '200': { description: OK }
+
+  /users/status:
+    get:
+      tags: [Users]
+      summary: فهرست کاربران به همراه وضعیت آنلاین/آخرین فعالیت
+      description: "permission: manage_users"
+      responses:
+        '200': { description: OK }
+
+  /users/active-device:
+    get:
+      tags: [Users]
+      summary: شناسه‌ی دستگاه فعال یک کاربر
+      description: "permission: manage_users"
+      responses:
+        '200': { description: OK }
+
+  /users/{id}/update:
+    post:
+      tags: [Users]
+      summary: ویرایش کاربر (خودِ کاربر یا ادمین — تمایز داخل کنترلر)
+      description: "permission: بدون قید در سطح router؛ تمایز خودِ‌کاربر/ادمین داخل UserController::handle"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username: { type: string }
+                fullName: { type: string }
+                password: { type: string }
+                currentPassword: { type: string, description: "الزامی وقتی خودِ کاربر رمزش را عوض می‌کند" }
+                userType: { type: string }
+      responses:
+        '200': { description: OK }
+        '403': { description: "رمز فعلی نادرست (وقتی currentPassword لازم بوده)" }
+
+  /users/{id}/delete:
+    post:
+      tags: [Users]
+      summary: حذف کاربر
+      description: "permission: manage_users"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: OK }
+        '400': { description: "حذف آخرین مدیر سیستم مجاز نیست" }
+
+  /users/force-logout:
+    post:
+      tags: [Users]
+      summary: خروج اجباری یک کاربر از یک دستگاه
+      description: "permission: manage_users"
+      responses:
+        '200': { description: OK }
+
+  /chat/messages:
+    get:
+      tags: [Chat]
+      summary: فهرست پیام‌های چت داخلی
+      description: "permission: بدون قید در سطح router؛ کنترل دسترسی واقعی (isAdmin) داخل ChatController"
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Chat]
+      summary: ارسال پیام چت
+      description: "permission: بدون قید در سطح router"
+      responses:
+        '200': { description: OK }
+
+  /chat/unread-count:
+    get:
+      tags: [Chat]
+      summary: تعداد پیام‌های خوانده‌نشده
+      responses:
+        '200': { description: OK }
+
+  /chat/messages/{id}/edit:
+    post:
+      tags: [Chat]
+      summary: ویرایش یک پیام چت
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: OK }
+
+  /chat/messages/{id}/delete:
+    post:
+      tags: [Chat]
+      summary: حذف (soft-delete) یک پیام چت
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: OK }
+
+  /chat/messages/{id}/read:
+    post:
+      tags: [Chat]
+      summary: علامت‌گذاری یک پیام به‌عنوان خوانده‌شده
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '200': { description: OK }
+
+  /analytics/kotazh:
+    get:
+      tags: [Analytics]
+      summary: اطلاعات کوتاژ برای داشبورد آنالیتیکس
+      description: "permission: view_reports"
+      responses:
+        '200': { description: OK }
+
+  /analytics/realtime:
+    get:
+      tags: [Analytics]
+      summary: داده‌ی لحظه‌ای بارگیری
+      description: "permission: view_reports"
+      responses:
+        '200': { description: OK }
+
+  /analytics/comprehensive:
+    get:
+      tags: [Analytics]
+      summary: تحلیل جامع
+      description: "permission: view_reports"
+      responses:
+        '200': { description: OK }
+
+  /analytics/export-log:
+    post:
+      tags: [Analytics]
+      summary: ثبت لاگ خروجی‌گیری آنالیتیکس
+      description: "permission: view_reports"
+      responses:
+        '200': { description: OK }
+
+  /health:
+    get:
+      tags: [Diagnostics]
+      summary: بررسی سلامت سرور (برای مانیتورینگ خارجی)
+      security: []
+      description: "auth: false — عمداً برای ابزار مانیتورینگ بیرونی بدون نشست در دسترس است"
+      responses:
+        '200': { description: OK }
+
+  /diagnostics/crash:
+    post:
+      tags: [Diagnostics]
+      summary: گزارش کرش کلاینت
+      security: []
+      description: "auth: false — باید حتی قبل از لاگین/نشست معتبر هم قابل ارسال باشد"
+      responses:
+        '200': { description: پذیرفته شد }
