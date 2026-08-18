@@ -15,7 +15,12 @@ android {
     defaultConfig {
         applicationId = "com.atk.atk_cargo"
         minSdk = 28
-        targetSdk = 34
+        // DEEP_CODE_AUDIT.md #Phase4.4: قدم اول به‌سوی compileSdk=36 — طبق
+        // توصیه‌ی گزارش، 35 قبل از 36 روی دستگاه واقعی تست شود (به‌خصوص
+        // edge-to-edge اجباری در Compose و محدودیت‌های جدید foreground
+        // service که مستقیم روی LoadingNotificationService اثر می‌گذارند؛
+        // این محیط امکان تست runtime روی دستگاه/امولاتور را ندارد).
+        targetSdk = 35
         versionCode = 11
         versionName = "4.0.1"
 
@@ -217,6 +222,7 @@ tasks.matching { it.name == "assembleRelease" }.configureEach {
 }
 
 dependencies {
+    implementation(project(":core:designsystem"))
     baselineProfile(project(":baselineprofile"))
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.foundation.layout)
@@ -245,7 +251,6 @@ dependencies {
 
     // ==================== Material Design ====================
     implementation(libs.androidx.material3)
-    implementation(libs.androidx.material)
     implementation(libs.androidx.material.icons.extended)
 
     // ==================== Navigation ====================

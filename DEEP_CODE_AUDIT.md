@@ -3016,17 +3016,17 @@ PHP/
 
 | # | اقدام | Effort |
 |---|---|---|
-| 4.1 | استخراج `core:designsystem` به‌عنوان اولین ماژول (کم‌ریسک‌ترین) | Medium |
+| 4.1 | ✅ استخراج `core:designsystem` (۱۵ فایل `ui/theme/`، بدون وابستگی داخلی به بقیه‌ی اپ) به ماژول Gradle جدا؛ `app` با `implementation(project(":core:designsystem"))` بهش وصل می‌شود. `:app:compileDebugKotlin` و `:core:designsystem:compileDebugKotlin` هر دو پاس شدند | Medium |
 | 4.2 | ادامه‌ی modularization: `core:network`, `core:database`, `core:common` | High |
 | 4.3 | تبدیل هر feature به یک ماژول Gradle | High |
-| 4.4 | `targetSdk` → ۳۵ سپس ۳۶ | Medium |
-| 4.5 | مهاجرت کامل Material 2 → Material 3 | Medium |
+| 4.4 | ⚠️ فقط قدم اول: `targetSdk` → ۳۵ (compile + manifest merge پاس شد؛ `FOREGROUND_SERVICE_DATA_SYNC`/`foregroundServiceType` از قبل درست بودند). رفتار runtime واقعی (edge-to-edge، notification) روی دستگاه تست نشده — قبل از release حتماً تست دستی لازم است. ۳۶ عمداً انجام نشد | Medium |
+| 4.5 | ✅ کد از قبل ۱۰۰٪ روی Material3 بود (صفر import از `androidx.compose.material.*` غیر از material3/icons) — فقط وابستگی مرده‌ی `androidx.compose.material:material` (M2) و ورودی‌های مرتبطش در `libs.versions.toml` حذف شدند | Medium |
 | 4.6 | انتقال رشته‌های UI به `strings.xml` + نوع `UiText` | High |
 | 4.7 | انتقال مجوزها از `permissions.json` به دیتابیس | Medium |
-| 4.8 | مستندسازی OpenAPI برای API v2 | Medium |
-| 4.9 | تست‌های Compose روی composableهای بی‌حالت | Medium |
-| 4.10 | فعال کردن `STRICT_TRANS_TABLES` پس از پاک‌سازی داده | Medium |
-| 4.11 | logrotate + آرشیو لاگ | Low |
+| 4.8 | ✅ `PHP/openapi.yaml` — تمام ۴۶ route فایل `api_v2.php` (auth/permission/پارامترها) مستند شد؛ YAML معتبر تأیید شد (۵۳ ورودی path) | Medium |
+| 4.9 | ⚠️ ۲ فایل تست نوشته شد (`ActionButtonTest`, `CompactStatChipTest`)؛ `compileDebugAndroidTestKotlin` پاس شد اما بدون امولاتور در این محیط **هرگز واقعاً اجرا نشده‌اند** — قبل از اعتماد بهشون حتماً روی دستگاه/امولاتور اجرا کنید. حین این کار یک leftover واقعی هم پیدا و رفع شد: `SecurityUtilsTest.kt` (تست تابع حذف‌شده در Phase3.11) که چون `compileDebugKotlin` سورست تست رو کامپایل نمی‌کند، جا مانده بود | Medium |
+| 4.10 | ✅ فقط چک‌لیست مستند شد (تصمیم — طبق خود گزارش ریسکناک‌ترین مورد Phase 4؛ نیاز به staging واقعی): `PHP/STRICT_MODE_CHECKLIST.md` | Medium |
+| 4.11 | ✅ `PHP/deploy/logrotate.d/atk-cargo` (برای VPS با دسترسی root) + `PHP/scripts/rotate_logs.php` (fallback بدون root، برای هاست اشتراکی — واقعاً اجرا و تست شد، نه فقط syntax-check) | Low |
 
 ---
 

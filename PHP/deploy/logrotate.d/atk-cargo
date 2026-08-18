@@ -1,0 +1,29 @@
+# PHP/deploy/logrotate.d/atk-cargo
+#
+# DEEP_CODE_AUDIT.md #Phase4.11 — گردش/آرشیو لاگ‌های Logger.php (که هرگز
+# خودش هیچ حدی برای اندازه یا عمر فایل‌های logs/*.log ندارد). این فایل برای
+# هاست‌هایی است که دسترسی root/logrotate دارند (VPS اختصاصی). روی هاست
+# اشتراکی که logrotate در دسترس نیست، از PHP/scripts/rotate_logs.php (بدون
+# نیاز به دسترسی root، از طریق cron کاربر) استفاده کنید — نگاه کنید به همان
+# فایل برای توضیحات.
+#
+# نصب روی سرور (به‌عنوان root):
+#   cp PHP/deploy/logrotate.d/atk-cargo /etc/logrotate.d/atk-cargo
+#   # مسیر APP_LOG_DIR زیر را با مسیر واقعی logs/ روی همان سرور جایگزین کنید
+#
+# تست دستی بدون تغییر واقعی فایل‌ها:
+#   logrotate -d /etc/logrotate.d/atk-cargo
+
+/var/www/atk-cargo/PHP/logs/*.log {
+    daily
+    rotate 30
+    missingok
+    notifempty
+    compress
+    delaycompress
+    dateext
+    dateformat -%Y-%m-%d
+    maxsize 50M
+    create 0640 www-data www-data
+    sharedscripts
+}
