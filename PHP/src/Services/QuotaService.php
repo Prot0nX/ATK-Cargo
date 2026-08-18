@@ -212,6 +212,9 @@ final class QuotaService {
         return null;
     }
 
+    // LIMIT 2000 در کوئری زیر یک سقف سخت‌گیرانه است، نه صفحه‌بندی واقعی
+    // (DEEP_CODE_AUDIT.md #Phase3.10) — تعداد کوتاژهای یک کشتی معمولاً چند
+    // ده مورد است، این سقف فقط محافظ در برابر رشد غیرمنتظره است.
     public function getFilteredQuotas(string $shipName, string $startDateTime, string $endDateTime): array {
         $shipName = InputValidator::validateIdentifier($shipName);
         $startDateTime = InputValidator::validateIdentifier($startDateTime);
@@ -243,7 +246,8 @@ final class QuotaService {
             AND exit_data.loadingWarehouse = i.loadingWarehouse AND exit_data.shippingCompany = i.shippingCompany
             AND exit_data.cargoType = i.cargoType
         WHERE i.shipName = ?
-        ORDER BY i.isActive DESC, i.loadingQuotaNumber ASC";
+        ORDER BY i.isActive DESC, i.loadingQuotaNumber ASC
+        LIMIT 2000";
 
         $startDate = substr($startDateTime, 0, 10);
         $startTime = substr($startDateTime, 11, 8);
@@ -348,6 +352,8 @@ final class QuotaService {
     }
 
     private function computeQuotasList(string $shipName): array {
+        // LIMIT 2000 پایین یک سقف سخت‌گیرانه است، نه صفحه‌بندی واقعی
+        // (DEEP_CODE_AUDIT.md #Phase3.10).
         // all_vouchers قبلاً یک LEFT JOIN مستقل با همان شرط/GROUP BY/ON
         // exit_data بود و دقیقاً همان عدد را دوباره محاسبه می‌کرد (COUNT
         // DISTINCT trackingNumber با status='خروج')؛ حذف شد و exitVoucherCount
@@ -364,7 +370,8 @@ final class QuotaService {
             AND exit_data.loadingWarehouse = i.loadingWarehouse AND exit_data.shippingCompany = i.shippingCompany
             AND exit_data.cargoType = i.cargoType
         WHERE i.shipName = ?
-        ORDER BY i.isActive DESC, i.loadingQuotaNumber ASC";
+        ORDER BY i.isActive DESC, i.loadingQuotaNumber ASC
+        LIMIT 2000";
 
         $stmt = $this->db->prepare($query);
         $stmt->bind_param("ss", $shipName, $shipName);

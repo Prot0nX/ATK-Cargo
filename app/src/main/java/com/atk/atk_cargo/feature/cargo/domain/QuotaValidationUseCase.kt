@@ -3,10 +3,10 @@ package com.atk.atk_cargo.feature.cargo.domain
 import android.util.Log
 import com.atk.atk_cargo.api.ApiV2Routes
 import com.atk.atk_cargo.api.RetrofitClient.apiServiceV2
-import com.atk.atk_cargo.data.model.InitialInfo
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.data.model.QuotaValidationResult
 import com.atk.atk_cargo.data.repository.ReportsRepository
+import com.atk.atk_cargo.domain.model.QuotaInfo
 
 class QuotaValidationUseCase(private val repository: ReportsRepository) {
 
@@ -14,7 +14,7 @@ class QuotaValidationUseCase(private val repository: ReportsRepository) {
         const val NEW_ENTRY_TONNAGE_BUFFER_KG = 7000f
     }
 
-    suspend fun validateQuotaStatusAndPercentage(initialInfo: InitialInfo, isNewCargo: Boolean): QuotaValidationResult {
+    suspend fun validateQuotaStatusAndPercentage(initialInfo: QuotaInfo, isNewCargo: Boolean): QuotaValidationResult {
         try {
             val quotaStatus = repository.checkQuotaStatus(
                 quotaNumber = initialInfo.loadingQuotaNumber.toString(),
@@ -89,7 +89,7 @@ class QuotaValidationUseCase(private val repository: ReportsRepository) {
         }
     }
 
-    fun validateTempTonnage(initialInfo: InitialInfo): TempTonnageValidationResult {
+    fun validateTempTonnage(initialInfo: QuotaInfo): TempTonnageValidationResult {
         if (initialInfo.tempTonnageStatus && initialInfo.tempTonnageAmount != null) {
             if (initialInfo.tempTonnageAmount <= 0) {
                 return TempTonnageValidationResult(

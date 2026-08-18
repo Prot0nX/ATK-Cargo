@@ -31,3 +31,4 @@ migration تجمعی) — برای مرجع/مستندسازی و بازسازی
 | فایل | چه کاری می‌کند | وضعیت |
 |---|---|---|
 | `2026_08_18_hash_session_tokens.sql` | تبدیل `session_token`/`refresh_token` موجود در `user_sessions` از plaintext به SHA-256 | باید هم‌زمان با deploy کد Phase 2.1 اجرا شود |
+| `2026_08_18_add_chat_session_foreign_keys.sql` | حذف رکوردهای یتیم و افزودن FK به `user_sessions`/`admin_chat_messages`/`admin_chat_reads` (Phase 3.9) | نوشته شده، **هنوز روی هیچ دیتابیسی اجرا نشده** — قبل از اجرا کامنت‌های بالای فایل (به‌خصوص تصمیم ON DELETE) را بخوانید |

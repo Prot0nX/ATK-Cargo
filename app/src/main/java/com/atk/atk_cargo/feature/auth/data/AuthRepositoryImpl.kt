@@ -8,7 +8,6 @@ import com.atk.atk_cargo.api.ApiServiceV2
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.data.model.LoginRequest
 import com.atk.atk_cargo.data.model.SessionResponse
-import com.atk.atk_cargo.utils.hashPassword
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -74,14 +73,13 @@ class AuthRepositoryImpl(
         appVersion: String
     ): LoginResult = withContext(Dispatchers.IO) {
         try {
-            val hashedPassword = hashPassword(password)
             val deviceId = getOrCreateDeviceId()
             val deviceModel = Build.MODEL ?: "Unknown"
             val androidVersion = Build.VERSION.RELEASE ?: "Unknown"
 
             val loginRequest = LoginRequest(
                 username = username,
-                password = hashedPassword,
+                password = password,
                 userType = "",
                 deviceModel = deviceModel,
                 deviceId = deviceId,

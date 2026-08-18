@@ -47,6 +47,7 @@ import com.atk.atk_cargo.core.startup.LocalStartupViewModel
 import com.atk.atk_cargo.core.startup.StartupEvent
 import com.atk.atk_cargo.core.startup.StartupState
 import com.atk.atk_cargo.core.startup.StartupViewModel
+import com.atk.atk_cargo.feature.startup.domain.AnimationManager
 import com.atk.atk_cargo.feature.startup.presentation.ServerSyncingScreen
 import com.atk.atk_cargo.feature.startup.presentation.SplashScreen
 import com.atk.atk_cargo.feature.update.presentation.UpdateDialog
@@ -87,6 +88,18 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(Unit) {
                     startupViewModel.handleIntent(intent)
                     startupViewModel.runStartupSequenceOnce()
+                }
+
+                // پشتیبانی از Reduce Motion (DEEP_CODE_AUDIT.md #Phase3.12) —
+                // اگر کاربر «حذف انیمیشن‌ها» را در تنظیمات سیستم فعال کرده،
+                // AnimationManager (نقطه‌ی مرکزی روشن/خاموش کردن انیمیشن‌ها
+                // در سراسر اپ) از این پس false برمی‌گرداند.
+                LaunchedEffect(Unit) {
+                    val animatorDurationScale = android.provider.Settings.Global.getFloat(
+                        contentResolver,
+                        android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f
+                    )
+                    AnimationManager.setSystemAnimationsEnabled(animatorDurationScale != 0f)
                 }
 
                 LaunchedEffect(Unit) {

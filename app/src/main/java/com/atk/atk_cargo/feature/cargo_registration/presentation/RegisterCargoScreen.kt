@@ -79,10 +79,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.atk.atk_cargo.data.model.CargoInfo
-import com.atk.atk_cargo.data.model.InitialInfo
 import com.atk.atk_cargo.data.model.MessageType
-import com.atk.atk_cargo.data.model.ShipInfo
+import com.atk.atk_cargo.domain.model.Cargo
+import com.atk.atk_cargo.domain.model.CargoConfirmStatus
+import com.atk.atk_cargo.domain.model.CargoStatus
+import com.atk.atk_cargo.domain.model.QuotaInfo
+import com.atk.atk_cargo.domain.model.ShipInfo
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.CargoInfoDetailsDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.DuplicateConfirmationDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.DuplicateTrackingNumbersDialog
@@ -133,8 +135,8 @@ private fun rememberRegisterPalette(): RegisterPalette {
 @SuppressLint("DefaultLocale")
 @Composable
 fun RegisterCargoScreen(
-    initialInfo: InitialInfo?,
-    cargoInfoList: List<CargoInfo>,
+    initialInfo: QuotaInfo?,
+    cargoInfoList: List<Cargo>,
     resultMessage: String,
     showAnimatedMessage: Boolean,
     messageType: MessageType,
@@ -155,7 +157,7 @@ fun RegisterCargoScreen(
     var numberOfPeople by remember { mutableStateOf("") }
     var shortageWeight by remember { mutableStateOf("") }
     var excessWeight by remember { mutableStateOf("") }
-    val selectedCargoInfo = remember { mutableStateOf<CargoInfo?>(null) }
+    val selectedCargoInfo = remember { mutableStateOf<Cargo?>(null) }
     val showDetailDialog = remember { mutableStateOf(false) }
     var isInfoVisible by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -218,7 +220,7 @@ fun RegisterCargoScreen(
         } else {
             cargoInfoList.filter { it.trackingNumber.contains(searchQuery, ignoreCase = true) }
         }
-        filtered.partition { it.status == "ورود" }
+        filtered.partition { it.status == CargoStatus.ENTERED.wireValue }
     }
 
     val visibleItems = remember(nonExitedCargos, exitedCargos, selectedTab) {
@@ -334,8 +336,8 @@ fun RegisterCargoScreen(
                         scaleReceiptNumber = scaleReceiptNumber,
                         onScanBarcode = {
                             val existingCargoInfo = cargoInfoList.find { it.trackingNumber == trackingNumber }
-                            val isCargoConfirmed = existingCargoInfo?.confirm == "تائید شده"
-                            val isCargoExited = existingCargoInfo?.status == "خروج"
+                            val isCargoConfirmed = existingCargoInfo?.confirm == CargoConfirmStatus.CONFIRMED.wireValue
+                            val isCargoExited = existingCargoInfo?.status == CargoStatus.EXITED.wireValue
 
                             if (isCargoConfirmed && !isCargoExited) {
                                 val options = ScanOptions()
@@ -359,8 +361,8 @@ fun RegisterCargoScreen(
                         numberOfPeople = numberOfPeople,
                         onNumberOfPeopleChange = { numberOfPeople = it },
                         cargoInfoList = cargoInfoList,
-                        isCargoConfirmed = cargoInfoList.find { it.trackingNumber == trackingNumber }?.confirm == "تائید شده",
-                        isCargoExited = cargoInfoList.find { it.trackingNumber == trackingNumber }?.status == "خروج",
+                        isCargoConfirmed = cargoInfoList.find { it.trackingNumber == trackingNumber }?.confirm == CargoConfirmStatus.CONFIRMED.wireValue,
+                        isCargoExited = cargoInfoList.find { it.trackingNumber == trackingNumber }?.status == CargoStatus.EXITED.wireValue,
                         isSubmitting = isSubmitting,
                         onSubmit = {
                             Log.d("ATK-Log", "RegisterCargoScreen: Submit button clicked for tracking: $trackingNumber")

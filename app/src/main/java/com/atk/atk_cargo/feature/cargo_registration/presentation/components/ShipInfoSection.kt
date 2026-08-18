@@ -64,8 +64,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.atk.atk_cargo.R
-import com.atk.atk_cargo.data.model.CargoInfo
-import com.atk.atk_cargo.data.model.ShipInfo
+import com.atk.atk_cargo.domain.model.Cargo
+import com.atk.atk_cargo.domain.model.CargoConfirmStatus
+import com.atk.atk_cargo.domain.model.CargoStatus
+import com.atk.atk_cargo.domain.model.ShipInfo
 import com.atk.atk_cargo.feature.cargo_registration.domain.format.formatNumber
 import com.atk.atk_cargo.feature.cargo_registration.domain.format.toEnglishNumbers
 import java.text.DecimalFormat
@@ -621,8 +623,8 @@ private fun DetailInfoItem(
 
 @Composable
 fun CargoInfoRow(
-    info: CargoInfo,
-    onRowClick: (CargoInfo) -> Unit,
+    info: Cargo,
+    onRowClick: (Cargo) -> Unit,
     onError: (String) -> Unit,
     duplicateTrackingNumbers: List<String> = emptyList()
 ) {
@@ -635,8 +637,8 @@ fun CargoInfoRow(
         }
     }
     val isDuplicate = duplicateTrackingNumbers.contains(info.trackingNumber)
-    val isExited = info.status == "خروج"
-    val isConfirmed = info.confirm == "تائید شده"
+    val isExited = info.status == CargoStatus.EXITED.wireValue
+    val isConfirmed = info.confirm == CargoConfirmStatus.CONFIRMED.wireValue
     val iconColor = if (isExited) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
     val iconBgColor = if (isExited) 
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) 
@@ -881,8 +883,8 @@ fun CargoInfoRow(
 
 @Composable
 fun ErrorHandlingCargoInfoRow(
-    info: CargoInfo,
-    onRowClick: (CargoInfo) -> Unit,
+    info: Cargo,
+    onRowClick: (Cargo) -> Unit,
     duplicateTrackingNumbers: List<String> = emptyList()
 ) {
     var hasError by remember { androidx.compose.runtime.mutableStateOf(false) }

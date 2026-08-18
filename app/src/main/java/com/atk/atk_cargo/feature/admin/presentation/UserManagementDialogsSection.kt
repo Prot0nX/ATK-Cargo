@@ -71,7 +71,6 @@ import com.atk.atk_cargo.api.UpdateUserRequest
 import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserTypeInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
-import com.atk.atk_cargo.utils.hashPassword
 import kotlinx.coroutines.launch
 
 // این فایل دیالوگ‌های افزودن/ویرایش/حذف/خروج‌اجباری کاربر را از UserManagementScreen.kt
@@ -272,11 +271,10 @@ fun EnhancedAddUserDialog(
                                         scope.launch {
                                             isLoading = true
                                             try {
-                                                val hashedPassword = hashPassword(password)
                                                 val request = CreateUserRequest(
                                                     username = username,
                                                     fullName = fullName,
-                                                    password = hashedPassword,
+                                                    password = password,
                                                     userType = selectedUserType
                                                 )
                                                 val response = RetrofitClient.apiServiceV2.createUser(request)
@@ -498,7 +496,7 @@ fun EnhancedEditUserDialog(
                                         id = user.id,
                                         username = username.takeIf { it != user.username },
                                         fullName = fullName.takeIf { it != user.fullName },
-                                        password = password.takeIf { it.isNotEmpty() }?.let { hashPassword(it) },
+                                        password = password.takeIf { it.isNotEmpty() },
                                         userType = selectedUserType
                                     )
                                     onSave(updateRequest)

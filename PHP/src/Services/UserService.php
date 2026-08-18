@@ -18,11 +18,18 @@ class UserService {
     /**
      * بررسی اعتبار کاربر و احراز هویت
      *
-     * استراتژی هشینگ دوگانه (Dual-Hash Migration):
-     * ۱. اگر پسورد دیتابیس با password_hash (bcrypt) ذخیره شده: password_verify
-     * ۲. اگر پسورد دیتابیس به‌صورت SHA-256 ذخیره شده (سیستم قدیم):
-     *    - مقایسه hash_equals
-     *    - در صورت موفقیت: پسورد در دیتابیس به bcrypt ارتقا داده می‌شود (Silent Migration)
+     * استراتژی هشینگ سه‌مسیره (DEEP_CODE_AUDIT.md #Phase3.11):
+     * کلاینت از این مرحله به بعد رمز خام (نه SHA-256 آن) می‌فرستد، اما تا
+     * وقتی همه‌ی دستگاه‌های یک کاربر به نسخه‌ی جدید آپدیت نشده‌اند، دستگاه‌های
+     * قدیمی همچنان SHA-256(رمز) می‌فرستند — پس هر دو باید امتحان شوند:
+     * ۱. bcrypt(رمز خام) — طرح جدید.
+     * ۲. bcrypt(SHA-256(رمز)) — طرح قبلی (کلاینت هنوز آپدیت نشده)؛ در موفقیت،
+     *    هش دیتابیس بی‌صدا به حالت ۱ ارتقا می‌یابد (Silent Migration) — از آن
+     *    پس فقط دستگاه‌های آپدیت‌شده‌ی همان کاربر می‌توانند وارد شوند تا
+     *    دوباره یک لاگین موفق با کلاینت جدید آن را عبور دهد.
+     * ۳. SHA-256 یا متن خام مستقیم در دیتابیس (سیستم بسیار قدیمی، پیش از
+     *    bcrypt) — با رمز خام و SHA-256(رمز) هر دو مقایسه و روی موفقیت به
+     *    bcrypt(رمز خام) ارتقا می‌یابد.
      */
     public function verifyCredentials(string $username, string $password): ?array {
         $user = $this->userRepository->getByUsername($username);
@@ -42,31 +49,31 @@ class UserService {
         );
 
         if ($isBcrypt) {
-            // ===== حالت ۱: bcrypt — مقایسه مستقیم =====
-            if (!password_verify($password, $storedPassword)) {
-                return null;
+            // ===== حالت ۱: bcrypt(رمز خام) — طرح جدید =====
+            if (password_verify($password, $storedPassword)) {
+                if (password_needs_rehash($storedPassword, PASSWORD_BCRYPT, ['cost' => 12])) {
+                    $this->userRepository->updatePassword($user['id'], password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]));
+                }
+                return $user;
             }
 
-            // بررسی نیاز به rehash (در صورت تغییر cost factor)
-            if (password_needs_rehash($storedPassword, PASSWORD_BCRYPT, ['cost' => 12])) {
+            // ===== حالت ۲: bcrypt(SHA-256(رمز)) — طرح قبلی، کلاینت هنوز آپدیت نشده =====
+            if (password_verify(hash('sha256', $password), $storedPassword)) {
                 $this->userRepository->updatePassword($user['id'], password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]));
+                return $user;
             }
 
-            return $user;
-        }
-
-        // ===== حالت ۲: SHA-256 یا متن خام (سیستم قدیم) — مقایسه ایمن =====
-        if (!hash_equals($storedPassword, $password)) {
             return null;
         }
 
-        // ===== Silent Migration: ارتقا پسورد به bcrypt در پس‌زمینه =====
-        // پسورد دریافتی از کلاینت SHA-256 است — bcrypt روی همان ذخیره می‌شود
-        // تا مقایسه‌های آینده از مسیر bcrypt عبور کنند
-        $upgradedHash = password_hash($storedPassword, PASSWORD_BCRYPT, ['cost' => 12]);
-        $this->userRepository->updatePassword($user['id'], $upgradedHash);
+        // ===== حالت ۳: SHA-256 یا متن خام مستقیم در دیتابیس (سیستم بسیار قدیمی) =====
+        if (hash_equals($storedPassword, $password) || hash_equals($storedPassword, hash('sha256', $password))) {
+            $upgradedHash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+            $this->userRepository->updatePassword($user['id'], $upgradedHash);
+            return $user;
+        }
 
-        return $user;
+        return null;
     }
 
     public function getAllUsers(): array {

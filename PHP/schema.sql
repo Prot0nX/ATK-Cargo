@@ -131,7 +131,8 @@ CREATE TABLE `admin_chat_messages` (
   KEY `idx_username` (`username`),
   KEY `idx_is_read` (`is_read`),
   KEY `idx_username_created_at` (`username`,`created_at`),
-  KEY `idx_is_deleted` (`is_deleted`)
+  KEY `idx_is_deleted` (`is_deleted`),
+  CONSTRAINT `fk_chat_messages_username` FOREIGN KEY (`username`) REFERENCES `Users` (`username`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='جدول ذخیره پیام‌های چت داخلی ادمین‌ها';
 
 --
@@ -144,7 +145,9 @@ CREATE TABLE `admin_chat_reads` (
   `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `read_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_read` (`message_id`,`username`)
+  UNIQUE KEY `unique_read` (`message_id`,`username`),
+  CONSTRAINT `fk_chat_reads_message_id` FOREIGN KEY (`message_id`) REFERENCES `admin_chat_messages` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_chat_reads_username` FOREIGN KEY (`username`) REFERENCES `Users` (`username`) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -210,7 +213,8 @@ CREATE TABLE `user_sessions` (
   KEY `idx_session_token` (`session_token`),
   KEY `idx_username_active` (`username`,`is_active`),
   KEY `idx_active_activity` (`is_active`,`last_activity`),
-  KEY `idx_username_device_active` (`username`,`device_id`,`is_active`)
+  KEY `idx_username_device_active` (`username`,`device_id`,`is_active`),
+  CONSTRAINT `fk_user_sessions_username` FOREIGN KEY (`username`) REFERENCES `Users` (`username`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='جدول مدیریت جلسات کاربران';
 
 SET FOREIGN_KEY_CHECKS = 1;

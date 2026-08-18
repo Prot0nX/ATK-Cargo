@@ -65,8 +65,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.atk.atk_cargo.data.model.CargoInfo
-import com.atk.atk_cargo.data.model.InitialInfo
+import com.atk.atk_cargo.domain.model.Cargo
+import com.atk.atk_cargo.domain.model.CargoConfirmStatus
+import com.atk.atk_cargo.domain.model.CargoStatus
+import com.atk.atk_cargo.domain.model.QuotaInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -96,7 +98,7 @@ internal val CargoTitleColor: Color
 
 @Composable
 fun InitialInfoSection(
-    initialInfo: InitialInfo?
+    initialInfo: QuotaInfo?
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
@@ -207,7 +209,7 @@ fun InitialInfoSection(
 }
 
 @Composable
-private fun InfoGrid(initialInfo: InitialInfo) {
+private fun InfoGrid(initialInfo: QuotaInfo) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -316,7 +318,7 @@ private fun InfoGridItem(
 }
 
 @Composable
-private fun InfoChips(initialInfo: InitialInfo?) {
+private fun InfoChips(initialInfo: QuotaInfo?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -382,9 +384,9 @@ private fun InfoGridCard(
 }
 
 @Composable
-fun CargoInfoCard(cargoInfo: CargoInfo, onClick: () -> Unit) {
-    val isExited = cargoInfo.status == "خروج"
-    val isConfirmed = cargoInfo.confirm == "تائید شده"
+fun CargoInfoCard(cargoInfo: Cargo, onClick: () -> Unit) {
+    val isExited = cargoInfo.status == CargoStatus.EXITED.wireValue
+    val isConfirmed = cargoInfo.confirm == CargoConfirmStatus.CONFIRMED.wireValue
 
     Surface(
         modifier = Modifier
@@ -716,8 +718,8 @@ fun TabsSection(
 
 @Composable
 fun CargoListSection(
-    groupedCargoList: Map<Boolean, List<CargoInfo>>,
-    onCargoSelected: (CargoInfo) -> Unit
+    groupedCargoList: Map<Boolean, List<Cargo>>,
+    onCargoSelected: (Cargo) -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
 

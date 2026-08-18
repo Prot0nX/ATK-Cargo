@@ -52,7 +52,6 @@ import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UpdateUserRequest
 import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.feature.admin.presentation.getUserTypeDisplay
-import com.atk.atk_cargo.utils.hashPassword
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
@@ -326,8 +325,8 @@ fun ProfileSettingsDialog(
                                     id = user.id,
                                     username = user.username,
                                     fullName = null,
-                                    password = hashPassword(password),
-                                    currentPassword = hashPassword(currentPassword),
+                                    password = password,
+                                    currentPassword = currentPassword,
                                     userType = user.userType
                                 )
                                 val response = RetrofitClient.apiServiceV2.updateUser(

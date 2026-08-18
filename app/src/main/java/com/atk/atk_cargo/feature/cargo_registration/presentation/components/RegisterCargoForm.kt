@@ -54,7 +54,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.atk.atk_cargo.data.model.CargoInfo
+import com.atk.atk_cargo.domain.model.Cargo
+import com.atk.atk_cargo.domain.model.CargoConfirmStatus
+import com.atk.atk_cargo.domain.model.CargoStatus
 import com.atk.atk_cargo.ui.theme.Amber700
 import com.atk.atk_cargo.ui.theme.Green600
 import com.atk.atk_cargo.ui.theme.Red500
@@ -71,7 +73,7 @@ fun FormSection(
     onExcessWeightChange: (String) -> Unit,
     numberOfPeople: String,
     onNumberOfPeopleChange: (String) -> Unit,
-    cargoInfoList: List<CargoInfo>,
+    cargoInfoList: List<Cargo>,
     isCargoConfirmed: Boolean,
     isCargoExited: Boolean,
     isSubmitting: Boolean,
@@ -97,9 +99,9 @@ fun FormSection(
     val canEditWeights = remember(currentCargo) {
         currentCargo?.let {
             when {
-                it.status == "ورود" && it.confirm == "تائید شده" -> true
-                it.confirm == "در انتظار تائید" -> false
-                it.status == "خروج" -> false
+                it.status == CargoStatus.ENTERED.wireValue && it.confirm == CargoConfirmStatus.CONFIRMED.wireValue -> true
+                it.confirm == CargoConfirmStatus.AWAITING_CONFIRMATION.wireValue -> false
+                it.status == CargoStatus.EXITED.wireValue -> false
                 else -> false
             }
         } == true
@@ -453,9 +455,9 @@ fun FormSection(
             exit = fadeOut() + shrinkVertically()
         ) {
             val (messageText, messageColor) = when {
-                currentCargo?.status == "خروج" ->
+                currentCargo?.status == CargoStatus.EXITED.wireValue ->
                     Pair("این حواله قبلاً خروج شده است!", MaterialTheme.colorScheme.error)
-                currentCargo?.confirm == "در انتظار تائید" ->
+                currentCargo?.confirm == CargoConfirmStatus.AWAITING_CONFIRMATION.wireValue ->
                     Pair("این حواله هنوز تائید نشده و در انتظار تائید است.", MaterialTheme.colorScheme.error)
                 canEditWeights ->
                     Pair("حواله تائید شده؛ امکان ثبت کسری/اضافه یا خروج وجود دارد.", formAccent)
