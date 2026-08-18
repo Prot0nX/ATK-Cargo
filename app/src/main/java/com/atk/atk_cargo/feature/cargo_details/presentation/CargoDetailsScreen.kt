@@ -60,8 +60,10 @@ import com.atk.atk_cargo.api.ReportsRepository
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.validateServerSession
-import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.MessageType
+import com.atk.atk_cargo.domain.model.Cargo
+import com.atk.atk_cargo.domain.model.CargoConfirmStatus
+import com.atk.atk_cargo.domain.model.CargoStatus
 import com.atk.atk_cargo.feature.cargo_details.presentation.components.CargoDetailsDialog
 import com.atk.atk_cargo.feature.cargo_details.presentation.components.CargoListSection
 import com.atk.atk_cargo.feature.cargo_details.presentation.components.InitialInfoSection
@@ -103,7 +105,7 @@ private fun parseErrorMessage(errorBody: String?): String? {
     }
 }
 
-suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): Result<String> {
+suspend fun confirmCargo(info: Cargo, username: String, userType: String): Result<String> {
     return try {
         val requestBody = mapOf(
             "id" to (info.id?.toString() ?: "0"),
@@ -134,7 +136,7 @@ suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): R
 
 suspend fun handleCargoConfirmation(
     viewModel: CargoViewModel,
-    info: CargoInfo,
+    info: Cargo,
     username: String,
     userType: String,
     quotaNumber: String,
@@ -194,7 +196,7 @@ fun CargoDetailsScreen(
     val resultMessage by viewModel.resultMessage.collectAsStateWithLifecycle()
     val showAnimatedMessage by viewModel.showAnimatedMessage.collectAsStateWithLifecycle()
     val messageType by viewModel.messageType.collectAsStateWithLifecycle()
-    var selectedCargoInfo by remember { mutableStateOf<CargoInfo?>(null) }
+    var selectedCargoInfo by remember { mutableStateOf<Cargo?>(null) }
     var searchQuery by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
     var snackbarMessage by remember { mutableStateOf<SnackbarMessage?>(null) }
@@ -213,7 +215,7 @@ fun CargoDetailsScreen(
     // derivedStateOf قرار بود از آن جلوگیری کند.
     val groupedCargoList by remember {
         derivedStateOf {
-            filteredCargoInfoList.groupBy { it.confirm == "تائید شده" }
+            filteredCargoInfoList.groupBy { it.confirm == CargoConfirmStatus.CONFIRMED.wireValue }
                 .toSortedMap(compareBy { it })
         }
     }
@@ -446,7 +448,7 @@ fun CargoDetailsScreen(
                     }
                 }
             },
-            showConfirmButton = info.status == "ورود" && info.confirm != "تائید شده",
+            showConfirmButton = info.status == CargoStatus.ENTERED.wireValue && info.confirm != CargoConfirmStatus.CONFIRMED.wireValue,
             isConfirming = isConfirmingCargo
         )
     }

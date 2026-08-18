@@ -55,6 +55,7 @@ import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.api.validateServerSession
+import com.atk.atk_cargo.domain.model.toDomain
 import com.atk.atk_cargo.feature.cargo_counter.presentation.components.AnimatedHeader
 import com.atk.atk_cargo.feature.cargo_counter.presentation.components.GroupedShipList
 import com.atk.atk_cargo.feature.cargo_counter.presentation.components.StatusSnackbar
@@ -174,7 +175,7 @@ private fun navigateToCargoDetailsScreen(
             averageNetWeight = 0f,
             remainingServices = 0
         )
-        sharedViewModel.setInitialInfo(initialInfo)
+        sharedViewModel.setInitialInfo(initialInfo.toDomain())
         sharedViewModel.loadCargoInfoList(
             quotaNumber = shipInfo.loadingQuotaNumber,
             shippingCompany = shipInfo.shippingCompany,

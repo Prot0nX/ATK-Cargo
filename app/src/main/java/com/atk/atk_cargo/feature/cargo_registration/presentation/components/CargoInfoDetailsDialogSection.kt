@@ -72,8 +72,8 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieAnimatable
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.atk.atk_cargo.R
-import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoRequest
+import com.atk.atk_cargo.domain.model.Cargo
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogBadgeSize
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogButtonRow
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogContentCard
@@ -120,7 +120,7 @@ private fun rememberCargoDetailsPalette(): CargoDetailsPalette {
 
 @Composable
 fun CargoInfoDetailsDialog(
-    info: CargoInfo,
+    info: Cargo,
     viewModel: CargoViewModel,
     snackbarHostState: SnackbarHostState,
     onDismiss: () -> Unit,
@@ -460,7 +460,7 @@ private fun CargoDetailTabItem(
 
 @Composable
 private fun MainInfoTabContent(
-    info: CargoInfo,
+    info: Cargo,
     onCopyScaleReceipt: () -> Unit
 ) {
     Column(
@@ -482,7 +482,7 @@ private fun MainInfoTabContent(
 }
 
 @Composable
-private fun WeightInfoTabContent(info: CargoInfo) {
+private fun WeightInfoTabContent(info: Cargo) {
     val formattedNetWeight = remember(info.netWeight) {
         try {
             val weight = info.netWeight.replace(",", "").toDoubleOrNull() ?: 0.0
@@ -501,7 +501,7 @@ private fun WeightInfoTabContent(info: CargoInfo) {
 }
 
 @Composable
-private fun TimeInfoTabContent(info: CargoInfo) {
+private fun TimeInfoTabContent(info: Cargo) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(0.dp)

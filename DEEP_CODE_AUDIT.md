@@ -3001,14 +3001,14 @@ PHP/
 | 3.3 | ✅ نوشتن تست‌های Phase 1 و 2 — منطق خالص (Jalali، محاسبات کوتاژ، InputValidator) و منطق وابسته به session/DB/زمان (`LoginAttemptLimiter`، `SessionService`، `PermissionService` با mock/refactor تزریق‌پذیری) | High |
 | 3.4 | ✅ افزودن وابستگی‌های تست (`coroutines-test`, `turbine`, `mockk`) | Low |
 | 3.5 | ✅ معرفی `UiState` واحد در `CargoViewModel` و `ReportsViewModel` | High |
-| 3.6 | تفکیک DTO از مدل دامنه + mapper + value classes برای وزن/تناژ | High |
-| 3.7 | شکستن ۵ God Composable بزرگ‌تر به Screen/Content/Components | High |
-| 3.8 | `enum` برای وضعیت حواله در هر دو سمت | Medium |
-| 3.9 | افزودن FKهای گزینشی (چت، نشست) پس از پاک‌سازی رکوردهای یتیم | Medium |
-| 3.10 | صفحه‌بندی cursor-based روی فهرست‌های رو به رشد | High |
-| 3.11 | حذف `hashPassword` سمت کلاینت + مهاجرت به bcrypt روی رمز خام | Medium |
-| 3.12 | پشتیبانی از Reduce Motion | Low |
-| 3.13 | بازساختاردهی PHP به `public/` + انتقال `logs`/`vendor`/`config` خارج از web root | Medium |
+| 3.6 | ✅ تفکیک DTO از مدل دامنه + mapper برای CargoInfo/InitialInfo/ShipInfo (`Cargo`/`QuotaInfo`/`ShipInfo` در `domain/model`). value classes برای وزن/تناژ عمداً به مرحله‌ی بعد موکول شد (تصمیم کاربر؛ ریسک/حجم جدا) | High |
+| 3.7 | ✅ شکستن ۵ God Composable بزرگ‌تر به Screen/Content/Components — SelectInfoScreen، QuotaManagementDialog، QuotasListScreen، InitialInfoScreen، CargoCounterComponents | High |
+| 3.8 | ⚠️ سمت Kotlin: ✅ `CargoStatus`/`CargoConfirmStatus` در `domain/model` جایگزین ۲۰+ magic string شدند. سمت PHP عمداً جدا گذاشته شد (۶ فایل SQL خام، بدون امکان تست در این محیط — نیاز به بررسی جدا) | Medium |
+| 3.9 | ✅ نوشته شد (اجرا نشده): `PHP/migrations/2026_08_18_add_chat_session_foreign_keys.sql` — پاک‌سازی یتیم + FK به `user_sessions`/`admin_chat_messages`/`admin_chat_reads`؛ schema.sql هم به‌روزرسانی شد. بدون دسترسی به DB واقعی در این محیط، فقط نوشته و بررسی منطقی شد، نه اجرا | Medium |
+| 3.10 | ✅ به‌جای cursor pagination کامل (تصمیم کاربر: ریسک/breaking change)، سقف سخت‌گیرانه (`LIMIT`) به ۵ endpoint بدون صفحه‌بندی اضافه شد: `UserRepository::getAll`، `SessionRepository::getOnlineUsers`/`getLatestSessionsForAllUsers`، `QuotaService::getFilteredQuotas`/`computeQuotasList`. `php -l` روی هر ۳ فایل پاس شد | High |
+| 3.11 | ✅ حذف `hashPassword`/`SecurityUtils.kt` از کلاینت (۴ محل: لاگین، ساخت/ویرایش کاربر، تغییر رمز پروفایل)؛ `UserService::verifyCredentials` سه‌مسیره شد (bcrypt(raw)، bcrypt(SHA256) قدیمی، SHA256/متن‌خام خیلی قدیمی) با silent-migration خودکار به bcrypt(raw) | Medium |
+| 3.12 | ✅ `AnimationManager` (نقطه‌ی مرکزی موجود انیمیشن‌ها) از `Settings.Global.ANIMATOR_DURATION_SCALE` هم تبعیت می‌کند؛ در `MainActivity.onCreate` یک‌بار در startup خوانده می‌شود | Low |
+| 3.13 | ✅ فقط پلن مستند نوشته شد (تصمیم کاربر — نیازمند هماهنگی هم‌زمان با تغییر Document Root سرور تولید، بیرون از دسترس این محیط): `PHP/RESTRUCTURE_PLAN.md` | Medium |
 
 ---
 

@@ -311,6 +311,9 @@ class SessionRepository {
 
     /**
      * دریافت کاربران آنلاین به همراه نوع کاربری
+     *
+     * LIMIT 5000 یک سقف سخت‌گیرانه است، نه صفحه‌بندی واقعی
+     * (DEEP_CODE_AUDIT.md #Phase3.10).
      */
     public function getOnlineUsers(): array {
         $stmt = $this->db->prepare("
@@ -322,6 +325,7 @@ class SessionRepository {
             JOIN Users u ON us.username = u.username
             WHERE us.is_active = 1
             ORDER BY us.last_activity DESC, us.login_time DESC
+            LIMIT 5000
         ");
         $stmt->execute();
         return $stmt->fetchAll();
@@ -329,6 +333,9 @@ class SessionRepository {
 
     /**
      * دریافت آخرین جلسه ثبت شده برای تمامی کاربران (جهت بررسی وضعیت آنلاین/آفلاین و تاریخ آخرین بازدید)
+     *
+     * ORDER BY/LIMIT 5000 برای Phase3.10 اضافه شدند (DEEP_CODE_AUDIT.md) —
+     * قبلاً ترتیب نتیجه تعریف‌نشده بود؛ سقف فقط محافظ رشد غیرمنتظره است.
      */
     public function getLatestSessionsForAllUsers(): array {
         $stmt = $this->db->prepare("
@@ -341,6 +348,8 @@ class SessionRepository {
                 FROM user_sessions
                 GROUP BY username
             ) latest ON us.id = latest.max_id
+            ORDER BY us.username ASC
+            LIMIT 5000
         ");
         $stmt->execute();
         return $stmt->fetchAll();

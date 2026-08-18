@@ -10,6 +10,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.atk.atk_cargo.data.model.InitialInfo
+import com.atk.atk_cargo.domain.model.toDomain
 import com.atk.atk_cargo.feature.cargo_registration.presentation.RegisterCargoScreen
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.google.gson.Gson
@@ -60,7 +61,7 @@ fun NavGraphBuilder.cargoRegistrationScreen(
 
         LaunchedEffect(initialInfoExtra) {
             initialInfoExtra?.let { info ->
-                viewModel.setInitialInfo(info)
+                viewModel.setInitialInfo(info.toDomain())
                 viewModel.refreshCargoInfo()
             }
         }

@@ -67,7 +67,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.atk.atk_cargo.data.model.CargoInfo
+import com.atk.atk_cargo.domain.model.Cargo
+import com.atk.atk_cargo.domain.model.CargoConfirmStatus
+import com.atk.atk_cargo.domain.model.CargoStatus
 
 // این فایل دیالوگ «جزئیات حواله» (CargoDetailsDialog) و کامپوننت‌های اختصاصی‌اش را از
 // CargoDetailsComponents.kt جدا نگه می‌دارد (A1-6، بازسازی ساختاری). وابسته به پالت رنگ
@@ -76,7 +78,7 @@ import com.atk.atk_cargo.data.model.CargoInfo
 
 @Composable
 fun CargoDetailsDialog(
-    info: CargoInfo,
+    info: Cargo,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
     showConfirmButton: Boolean,
@@ -105,7 +107,7 @@ fun CargoDetailsDialog(
             ) {
                 ModernDialogHeader(
                     trackingNumber = info.trackingNumber,
-                    isConfirmed = info.confirm == "تائید شده"
+                    isConfirmed = info.confirm == CargoConfirmStatus.CONFIRMED.wireValue
                 )
 
                 Column(
@@ -221,7 +223,7 @@ private fun ModernDialogHeader(trackingNumber: String, isConfirmed: Boolean) {
 }
 
 @Composable
-private fun ModernCargoStatusSection(info: CargoInfo) {
+private fun ModernCargoStatusSection(info: Cargo) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -256,13 +258,13 @@ private fun ModernCargoStatusSection(info: CargoInfo) {
 }
 
 @Composable
-fun ModernCargoStatusTimeline(info: CargoInfo) {
+fun ModernCargoStatusTimeline(info: Cargo) {
     val steps = listOf(
-        "ورود" to Icons.Default.Inventory,
+        CargoStatus.ENTERED.wireValue to Icons.Default.Inventory,
         "بارگیری" to Icons.Default.Scale,
-        "خروج" to Icons.Default.CheckCircle
+        CargoStatus.EXITED.wireValue to Icons.Default.CheckCircle
     )
-    val displayStatus = if (info.confirm == "تائید شده" && info.status == "ورود") "بارگیری" else info.status
+    val displayStatus = if (info.confirm == CargoConfirmStatus.CONFIRMED.wireValue && info.status == CargoStatus.ENTERED.wireValue) "بارگیری" else info.status
     val currentStepIndex = steps.indexOfFirst { it.first == displayStatus }.coerceAtLeast(0)
 
     Box(
@@ -346,7 +348,7 @@ fun ModernTimelineStep(
 }
 
 @Composable
-private fun ModernWeightInfoSection(info: CargoInfo) {
+private fun ModernWeightInfoSection(info: Cargo) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -463,7 +465,7 @@ fun ModernWeightInfoItem(
 }
 
 @Composable
-private fun ModernCargoDetailsGrid(info: CargoInfo) {
+private fun ModernCargoDetailsGrid(info: Cargo) {
     var isExpanded by rememberSaveable { mutableStateOf(false) }
     val rotation by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,

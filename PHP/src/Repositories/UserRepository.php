@@ -39,7 +39,10 @@ class UserRepository {
      * دریافت لیست تمامی کاربران
      */
     public function getAll(): array {
-        $stmt = $this->db->query("SELECT id, username, fullName, userType, created_at, updated_at FROM Users ORDER BY created_at DESC");
+        // سقف سخت‌گیرانه به‌جای صفحه‌بندی کامل (DEEP_CODE_AUDIT.md #Phase3.10)؛
+        // این جدول با کاربران سازمانی رشد می‌کند نه رویدادها، پس عملاً هرگز
+        // به این سقف نمی‌رسد — فقط یک محافظ در برابر رشد غیرمنتظره است.
+        $stmt = $this->db->query("SELECT id, username, fullName, userType, created_at, updated_at FROM Users ORDER BY created_at DESC LIMIT 5000");
         return $stmt->fetchAll();
     }
 
