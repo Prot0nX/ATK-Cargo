@@ -60,7 +60,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
@@ -79,6 +78,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.InitialInfo
 import com.atk.atk_cargo.data.model.MessageType
@@ -160,19 +160,20 @@ fun RegisterCargoScreen(
     var isInfoVisible by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var isFormExpanded by remember { mutableStateOf(true) }
-    val clearInputFields by viewModel.clearInputFields.collectAsStateWithLifecycle()
-    val showNetWeightDialog by viewModel.showNetWeightDialog.collectAsStateWithLifecycle()
-    val scaleReceiptNumber by viewModel.scaleReceiptNumber.collectAsStateWithLifecycle()
+    val cargoUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val clearInputFields = cargoUiState.clearInputFields
+    val showNetWeightDialog = cargoUiState.showNetWeightDialog
+    val scaleReceiptNumber = cargoUiState.scaleReceiptNumber
     val focusManager = LocalFocusManager.current
-    val loadableTonnage by viewModel.loadableTonnage.collectAsStateWithLifecycle()
-    val loadableTrucks18Wheeler by viewModel.loadableTrucks18Wheeler.collectAsStateWithLifecycle()
-    val loadableTrucks10Wheeler by viewModel.loadableTrucks10Wheeler.collectAsStateWithLifecycle()
+    val loadableTonnage = cargoUiState.loadableTonnage
+    val loadableTrucks18Wheeler = cargoUiState.loadableTrucks18Wheeler
+    val loadableTrucks10Wheeler = cargoUiState.loadableTrucks10Wheeler
     val listState = rememberLazyListState()
-    val showDuplicateConfirmationDialog by viewModel.showDuplicateConfirmationDialog.collectAsStateWithLifecycle()
-    val duplicateWarningMessage by viewModel.duplicateWarningMessage.collectAsStateWithLifecycle()
-    val showDuplicateDialog by viewModel.showDuplicateDialog.collectAsStateWithLifecycle()
-    val duplicateTrackingNumbers by viewModel.duplicateTrackingNumbers.collectAsStateWithLifecycle()
-    val isSubmitting by viewModel.isSubmitting.collectAsStateWithLifecycle()
+    val showDuplicateConfirmationDialog = cargoUiState.showDuplicateConfirmationDialog
+    val duplicateWarningMessage = cargoUiState.duplicateWarningMessage
+    val showDuplicateDialog = cargoUiState.showDuplicateDialog
+    val duplicateTrackingNumbers = cargoUiState.duplicateTrackingNumbers
+    val isSubmitting = cargoUiState.isSubmitting
     var showQuotaEntryDialog by remember { mutableStateOf(false) }
 
     fun clearInputFields() {

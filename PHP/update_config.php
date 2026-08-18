@@ -1,35 +1,45 @@
 <?php
-function getFileSize($filePath): string {
-    if (!file_exists($filePath)) {
-        return '0';
-    }
+// این فایل با include ساده (نه include_once) هم از MinVersionGate::enforce
+// (سطح Router v2) و هم از AuthenticatesRequests::enforceMinAppVersion (سطح
+// کنترلرهای قدیمی) صدا زده می‌شود؛ برای مسیرهایی که هر دو گیت در یک درخواست
+// اجرا می‌شوند (اکثر route های v2 که مستقیم یک متد کنترلر قدیمی را صدا
+// می‌زنند)، این فایل دوبار include می‌شد و بدون این گارد PHP Fatal error:
+// Cannot redeclare می‌داد (کشف‌شده حین تست واقعی مرحله ۳.۱ — DEEP_CODE_AUDIT.md).
+if (!function_exists('getFileSize')) {
+    function getFileSize($filePath): string {
+        if (!file_exists($filePath)) {
+            return '0';
+        }
 
-    $bytes = filesize($filePath);
-    $mb = round($bytes / (1024 * 1024), 1);
-    return (string)$mb;
+        $bytes = filesize($filePath);
+        $mb = round($bytes / (1024 * 1024), 1);
+        return (string)$mb;
+    }
 }
 
-function getFileSha256(string $filePath): string {
-    if (!file_exists($filePath)) {
-        return '';
-    }
-
-    $cacheFile = $filePath . '.sha256';
-    $mtime = (string)filemtime($filePath);
-
-    if (file_exists($cacheFile)) {
-        $cached = trim((string)file_get_contents($cacheFile));
-        [$cachedMtime, $cachedHash] = array_pad(explode('|', $cached, 2), 2, '');
-        if ($cachedMtime === $mtime && ctype_xdigit($cachedHash) && strlen($cachedHash) === 64) {
-            return $cachedHash;
+if (!function_exists('getFileSha256')) {
+    function getFileSha256(string $filePath): string {
+        if (!file_exists($filePath)) {
+            return '';
         }
-    }
 
-    $hash = hash_file('sha256', $filePath);
-    if ($hash !== false) {
-        @file_put_contents($cacheFile, $mtime . '|' . $hash);
+        $cacheFile = $filePath . '.sha256';
+        $mtime = (string)filemtime($filePath);
+
+        if (file_exists($cacheFile)) {
+            $cached = trim((string)file_get_contents($cacheFile));
+            [$cachedMtime, $cachedHash] = array_pad(explode('|', $cached, 2), 2, '');
+            if ($cachedMtime === $mtime && ctype_xdigit($cachedHash) && strlen($cachedHash) === 64) {
+                return $cachedHash;
+            }
+        }
+
+        $hash = hash_file('sha256', $filePath);
+        if ($hash !== false) {
+            @file_put_contents($cacheFile, $mtime . '|' . $hash);
+        }
+        return (string)$hash;
     }
-    return (string)$hash;
 }
 
 return [

@@ -35,7 +35,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.atk.atk_cargo.api.Ship
 import com.atk.atk_cargo.core.ui.components.ErrorState
 import com.atk.atk_cargo.feature.reports.domain.sortShips
@@ -72,8 +72,9 @@ private fun Ship.matchesSearch(query: String): Boolean {
 
 @Composable
 fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
-    val shipsData by viewModel.ships.collectAsStateWithLifecycle()
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val reportsUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val shipsData = reportsUiState.ships
+    val uiState = reportsUiState.status
     var searchTerm by rememberSaveable { mutableStateOf("") }
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
     val activeListState = rememberLazyListState()

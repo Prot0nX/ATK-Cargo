@@ -1925,6 +1925,101 @@ $proxy->handle();
 
 ### [HIGH] دو API stack موازی — نسخه‌ی امن‌تر بلااستفاده است
 
+**وضعیت:** 🔶 مهاجرت شروع شد (Phase 3.1) — گروه اول (Ships) از ۱۲ گروه. طبق الگوی مرحله‌ای/قابل‌بازگشت پیشنهادی گزارش: `ApiServiceV2.kt` جدید (۴ متد: `getShipsList`، `getShipDetails`، `getWarehouseDetails`، `getShipQuotas`، هرکدام روی `api/v2/index.php?route=...` مطابق همان الگویی که `TokenRefresher.kt` قبلاً برای `auth/refresh` اثبات کرده)، `FeatureFlags.USE_API_V2_SHIPS` (پیش‌فرض `false`) در `AppModule.kt`/`ReportsRepository.kt` گیت شده. هر ۴ متد `ReportsRepository` مربوط به این گروه اکنون بسته به flag بین v1/v2 سوییچ می‌کنند. مسیرهای واقعی (`ships`، `ships/{shipName}`، `ships/{shipName}/warehouses/{warehouseName}`، `ships/{shipName}/quotas`) با curl روی سرور محلی تأیید شدند که دقیقاً با تعریف `routes/api_v2.php` تطبیق دارند (بدون DB واقعی در این محیط، فقط تا مرحله‌ی auth-gate قابل تست بود، نه پاسخ کامل).
+
+**گروه دوم (Quotas — خواندنی) هم اضافه شد:** ۴ متد به `ApiServiceV2.kt` افزوده شد (`getQuotaDetails`، `getFilteredQuotas`، `getFilteredSummary`، `checkQuotaStatus`) با helperهای مسیر متناظر در `ApiV2Routes`، و پرچم مستقل `FeatureFlags.USE_API_V2_QUOTAS` (پیش‌فرض `false`) اضافه شد — عمداً پرچم جداگانه از `USE_API_V2_SHIPS` تا هر گروه مستقل و قابل‌بازگشت باشد. ۴ متد مربوطه در `ReportsRepository` بسته به این flag سوییچ می‌کنند. مسیرها (`quotas/{quotaNumber}`، `quotas/filtered`، `quotas/filtered-summary`، `quotas/{quotaNumber}/status`) با curl روی سرور محلی تأیید شدند (۵۰۰ نه ۴۰۴، یعنی تطبیق مسیر درست است؛ بدون DB واقعی پاسخ کامل قابل‌تست نبود).
+
+**🐛 باگ واقعی کشف و رفع شد در حین این کار:** در تست release build توسط کاربر (بعد از فاز ۳.۱ گروه Ships)، انتخاب صفحات «مدیریت کشتی‌ها»، «ثبت حواله» یا «نظارت بارشمار» باعث کرش فوری می‌شد (فقط در build دیباگ سالم بود). لاگ‌کت واقعی از دستگاه گرفته شد: علت `ClassCastException` در زنجیره‌ی Koin هنگام ساخت `ReportsRepository` بود — اینترفیس جدید `ApiServiceV2` بر خلاف `ApiService`/`ThirdPartyApiService` قانون `-keep interface` در `proguard-rules.pro` نداشت، پس R8 در build release آن را merge/حذف می‌کرد و `retrofit.create(ApiServiceV2::class.java)` شکست می‌خورد. چون هم `CargoViewModel` و هم `ReportsViewModel` به `ReportsRepository` (و در نتیجه `apiServiceV2`) وابسته‌اند، هر صفحه‌ای که این دو ViewModel را نیاز داشت کرش می‌کرد. رفع شد با افزودن `-keep interface com.atk.atk_cargo.api.ApiServiceV2 { *; }`؛ release دوباره ساخته و روی دستگاه واقعی نصب/تأیید شد (بدون کرش). **این یادآوری مهمی است: هر اینترفیس Retrofit جدید که با `retrofit.create()` ساخته می‌شود باید همزمان قانون keep بگیرد، وگرنه فقط در release (نه debug) کرش می‌کند.**
+
+**گروه سوم (Cargo) هم اضافه شد** — این گروه بر خلاف Ships/Quotas فقط از `ReportsRepository` عبور نمی‌کند؛ چند نقطه‌ی تماس مستقیم دیگر هم دارد که همگی به یک flag واحد (`FeatureFlags.USE_API_V2_CARGO`) گیت شدند: ۱۱ متد به `ApiServiceV2.kt` اضافه شد (`getActiveShips`، `checkQuotaExistenceCargo`، `getCargoInfo`، `checkScaleReceiptNumber`، `getCargoInfoByReceiptNumber`، `getCargoInfoByTrackingNumber`، `saveOrUpdateCargoInfo`، `updateCargoInfo`، `deleteCargo`، `confirmCargo`، `saveInitialInfo`)، و call siteهای زیر مطابق همان الگو (branch روی flag) به‌روز شدند: `ReportsRepository.kt` (۵ متد)، `CargoViewModel.kt` (۶ فراخوانی)، `CargoCounterScreen.kt`، `CargoDetailsScreen.kt`، `InitialInfoScreen.kt` (هرکدام یک فراخوانی مستقیم `RetrofitClient.apiService` که در همان‌جا branch گرفت)، و دو کلاس بلااستفاده‌ی `SubmitCargoUseCase.kt`/`CheckQuotaUseCase.kt` (در هیچ‌جای کد فعلی instantiate نمی‌شوند، ولی برای سازگاری آینده هم‌زمان به‌روز شدند). `assembleDebug` و `assembleRelease` هر دو موفق بودند؛ چون دستگاه تست در این مرحله در دسترس نبود، نصب/تأیید زنده روی دستگاه واقعی این‌بار انجام نشد (فقط کامپایل تأیید شد).
+
+**تست کاربر روی دستگاه واقعی (build release با گروه Cargo) موفق بود — بدون کرش.** (توجه: این فقط پایداری build را تأیید می‌کند؛ چون همه‌ی flagها هنوز `false` هستند، مسیرهای v2 واقعاً صدا زده نشده‌اند.)
+
+**گروه چهارم (Users) هم اضافه شد.** ۹ متد به `ApiServiceV2.kt` اضافه شد (`getAllUsers`، `getAllUsersWithStatus`، `getSelfProfile`، `getAdminUsers`، `getActiveDeviceId`، `createUser`، `updateUser`، `deleteUser`، `forceLogoutUser`) پشت `FeatureFlags.USE_API_V2_USERS`. **یک شکاف واقعی در `api_v2.php` کشف و رفع شد:** دو route (`users/self`، `users/admins`) که در فاز ۱.۴ همین ممیزی اضافه شده بودند (برای رفع افشای بیش‌ازحد داده در `getAllUsers`) هرگز به Router v2 اضافه نشده بودند — یعنی v2 برای این دو مورد اصلاً معادلی نداشت. این دو route اضافه شدند (`permission=>null`، دقیقاً مطابق نبودن این دو action در `ADMIN_ONLY_ACTIONS` داخل `UserController`). call siteها به‌روزرسانی شدند: `ChatRepository.kt`، `ProfileMenu.kt`، `UserManagementDialogsSection.kt`، `UserManagementScreen.kt` (۵ فراخوانی)، `ProfileSettingsDialogSection.kt`. `assembleDebug`/`assembleRelease` هر دو موفق، `php -l` تمیز، و مسیرهای جدید با curl تأیید شدند (۵۰۰ برای GETها، ۴۰۵ نه ۴۰۴ برای POSTهایی که با GET تست شدند — یعنی مسیر درست تطبیق یافته).
+
+**گروه پنجم (Chat) هم اضافه شد.** ۵ متد به `ApiServiceV2.kt` اضافه شد (`getChatMessages`، `sendChatMessage`، `editChatMessage`، `deleteChatMessage`، `getUnreadChatCount`) پشت `FeatureFlags.USE_API_V2_CHAT`. call siteها به‌روزرسانی شدند: `ChatRepository.kt` (۵ فراخوانی) و `ChatNotificationWorker.kt`. نکته: `getUnreadChatCount` در کد فعلی از هیچ‌کجا صدا زده نمی‌شود (تعداد نخوانده از دیتابیس محلی Room محاسبه می‌شود، نه سرور) — برای پاریتی کامل با v1 اضافه شد ولی call site‌ای ندارد. همچنین route `chat/messages/{id}/read` در `api_v2.php` وجود دارد ولی معادل v1 در کلاینت اصلاً صدا زده نمی‌شود (علامت‌گذاری خوانده‌شدن کاملاً محلی است)، پس خارج از scope این مهاجرت ماند. `assembleDebug`/`assembleRelease` هر دو موفق؛ مسیرهای جدید با curl تأیید شدند.
+
+**گروه ششم (Analytics) هم اضافه شد.** ۴ متد به `ApiServiceV2.kt` اضافه شد (`getRealTimeLoadingData`، `getComprehensiveAnalysis`، `logAnalyticsExport`، و `getKotazhInfo` برای پاریتی بدون call site فعلی) پشت `FeatureFlags.USE_API_V2_ANALYTICS`. call siteها به‌روزرسانی شدند: `ReportsRepository.kt` (۳ متد) و `CargoCounterScreen.kt`. `assembleDebug`/`assembleRelease` هر دو موفق؛ مسیرها با curl تأیید شدند (۵۰۰، نه ۴۰۴).
+
+**گروه هفتم (Utility) هم اضافه شد.** ۳ متد به `ApiServiceV2.kt` اضافه شد (`checkExistence`، `syncPermissions`، و `checkPassword` برای پاریتی بدون call site فعلی) پشت `FeatureFlags.USE_API_V2_UTILITY`. call siteها به‌روزرسانی شدند: `InitialInfoScreen.kt` و `PermissionPoller.kt`. `assembleDebug`/`assembleRelease` هر دو موفق؛ مسیرها با curl تأیید شدند.
+
+**گروه هشتم و آخر (Auth) هم اضافه شد — همه‌ی گروه‌های route-based گزارش تکمیل شدند.** ۳ متد به `ApiServiceV2.kt` اضافه شد (`checkLogin`، `checkSession`، `logout`؛ `auth/refresh` از قبل جدا در `TokenRefresher.kt` مهاجرت شده بود) پشت `FeatureFlags.USE_API_V2_AUTH`. call siteها به‌روزرسانی شدند: `AuthRepositoryImpl.kt`، `StartupViewModel.kt`، `SessionValidator.kt`، `LogoutUseCase.kt`. `assembleDebug`/`assembleRelease` هر دو موفق؛ مسیرها با curl تأیید شدند.
+
+**جمع‌بندی مهاجرت (Phase 3.1):** ۸ گروه (Ships، Quotas، Cargo، Users، Chat، Analytics، Utility، Auth) با ۴۰+ متد در `ApiServiceV2.kt` ساخته شدند؛ هر کدام پشت یک feature flag مستقل، قابل فعال‌سازی/بازگشت جداگانه. دو route گمشده در `api_v2.php` (`users/self`، `users/admins`) هم پیدا و اضافه شدند. یک باگ واقعی proguard (کرش release روی صفحات وابسته به `ReportsRepository`) در همین مسیر کشف و رفع شد.
+
+**🐛 باگ واقعی کشف و رفع شد (حین تست زنده‌ی کاربر روی دستگاه واقعی):** مسیر `ships/active` (و عملاً هر مسیر v2 دیگری که هندلرش مستقیم یک متد کنترلر قدیمی مثل `CargoController`/`UserController`/`ChatController`/`UtilityController`/`AuthController` را صدا می‌زند) با `PHP Fatal error: Cannot redeclare getFileSize()` با کد ۵۰۰ و بدنه‌ی کاملاً خالی شکست می‌خورد. علت: `update_config.php` دو تابع سراسری بدون گارد تعریف می‌کند و با `include` ساده (نه `include_once`) بارگذاری می‌شود — هم از `MinVersionGate::enforce()` (سطح Router v2، برای هر route با `auth=>true`) و هم از `AuthenticatesRequests::enforceMinAppVersion()` (سطح trait قدیمی که خودِ کنترلر داخلی دوباره صدا می‌زند). برای route هایی که هر دو گیت در یک درخواست اجرا می‌شوند، فایل دوبار include و PHP فتال می‌شد. رفع شد با گارد `function_exists()` دور هر دو تابع در [update_config.php](PHP/update_config.php) — تأیید شد با شبیه‌سازی محلی PHP که include دوگانه دیگر فتال نمی‌دهد و آرایه‌ی تنظیمات صحیح در هر دو بار برمی‌گردد. **این تغییر سمت سرور است و باید روی atk-nk.ir دیپلوی شود؛ ساخت مجدد APK لازم نیست.**
+
+**همه‌ی هشت flag روی دستگاه واقعی کاربر به `true` تغییر یافتند و تست شدند** (نه توسط من — خودِ کاربر روی build دیباگ محلی). حین این تست یک باگ واقعی کشف و رفع شد (بند بالا — `update_config.php`).
+
+**۴–۵. حذف نهایی v1 — ✅ انجام شد (به درخواست صریح کاربر، با آگاهی کامل از ریسک):** `PHP/protected_proxy.php` کاملاً حذف شد. بررسی شد که هیچ فایل دیگری (`api/v2/index.php`، `Router.php`، `.htaccess`، phpstan/composer) به‌صورت تابعی به وجود این فایل وابسته نبود (فقط ارجاعات توضیحی/کامنت). `php -l` روی فایل‌های مرتبط تمیز.
+
+**⚠️ هشدار عملیاتی حیاتی:** چون flagهای Kotlin (`FeatureFlags.kt`) ثابت‌های کامپایل‌تایم‌اند، **همه‌ی نصب‌های فعلی اپ در دست کاربران واقعی** (که با build قدیمی‌تر ساخته شده‌اند و flagهاشون `false` بوده) از این لحظه که این تغییر روی سرور deploy شود، دیگر نمی‌توانند به هیچ API متصل شوند (چون فقط v1/`protected_proxy.php` را می‌شناسند و آن فایل دیگر وجود ندارد) — تا وقتی APK جدید (با هر ۸ flag `true`، از همین commit) ساخته، امضا، و روی دستگاه‌شان نصب شود. **قبل از deploy این تغییر روی atk-nk.ir، حتماً باید:**
+1. یک build release نهایی (امضاشده با کلید تولید واقعی، نه کلید تست من) از commit فعلی بسازید.
+2. این build را به همه‌ی کاربران واقعی برسانید (یا حداقل مطمئن شوید مسیر به‌روزرسانی اجباری/فوری فعال است).
+3. فقط بعد از آن، تغییر `protected_proxy.php` را روی سرور deploy کنید — یا اگر می‌خواهید همزمان deploy کنید، از قبل کاربران را از قطعی موقت مطلع کنید.
+
+**🚨 شکاف واقعی کشف و رفع شد (بعد از حذف protected_proxy.php، حین تست کاربر):** ۸ متد از گروه Quotas که در مهاجرت اولیه فقط بخش «خواندنی»‌شان پوشش داده شده بود، هرگز معادل v2 نداشتند: `editQuota`، `updateQuotaPercentage`، `toggleQuotaStatus`، `updateQuotaPercentageRestriction`، `deleteQuota`، `getGroupedQuotas`، `updateTemporaryTonnage`، `getLoadableTonnage`. بعد از حذف `protected_proxy.php` این ۸ endpoint با ۴۰۴ شکست می‌خوردند (نمونه: `toggleQuotaStatus`). همه به `ApiServiceV2.kt` اضافه شدند (route های متناظر از قبل در `api_v2.php` موجود بودند)؛ call siteها به‌روزرسانی شدند: `ReportsRepository.kt` (۶ متد)، `CargoViewModel.kt` (۳ فراخوانی)، `QuotaManagementDialog.kt`. **صحت‌سنجی کامل انجام شد:** با مقایسه‌ی خودکار همه‌ی متدهای `apiService.X(...)` باقی‌مانده در کل کدبیس در برابر `apiServiceV2.X(...)`، تأیید شد **هیچ متد v1-only دیگری باقی نمانده** — پوشش ۱۰۰٪. `assembleDebug`/`assembleRelease` هر دو موفق.
+
+### فاز ۳.۲ — ✅ انجام شد: حذف ۲۰ فایل ورودی legacy نسخه ۱
+
+هر ۲۰ فایل ورودی v1 که فقط توسط `ApiService.kt` (کلاینت، از طریق `protected_proxy.php?target=...`) هدف‌گیری می‌شدند حذف شدند: `app_api.php`، `chat_api.php`، `checkExistence.php`، `check_Auth.php`، `check_logout.php`، `check_password.php`، `check_scale_receipt.php`، `check_session.php`، `confirm_cargo.php`، `deleteCargoInfo.php`، `getActiveShips.php`، `getInitialInfo.php`، `realTimeLoadingData.php`، `saveInitialInfo.php`، `saveOrUpdateCargoInfo.php`، `search_by_scaleReceipt.php`، `search_by_tracking.php`، `sync_permissions.php`، `updateCargoInfo.php`، `users_api.php`.
+
+**فرآیند تأیید قبل از حذف:** لیست دقیق از رشته‌های `target` پیش‌فرض در `ApiService.kt` استخراج شد (نه حدس)، سپس هر ۲۰ نام فایل در کل repo (هم `PHP/`، هم `app/`) جست‌وجو شد تا مطمئن شویم هیچ `include`/`require` یا مصرف‌کننده‌ی دیگری (پنل وب، لایسنس، FCM و...) به آن‌ها وابسته نیست — همه‌ی نتایج فقط کامنت توضیحی بودند. فایل‌های مشابه که در فایل‌های دیگر `include`/`require` می‌شدند (`jdf.php`, `PermissionManager.php`, `SessionManager.php`, `check_update.php`, `file_manager.php`, `export_schema.php`, `check_signature.php`, `get_csrf_token.php`, `get_license_info.php`, `quota_remaining_api.php`, `update_fcm_token.php`, `validate_license.php`) عمداً **دست‌نخورده** ماندند — این‌ها یا کتابخانه‌اند، یا ابزار/پنل مستقل، یا هنوز مستقیماً توسط اپ (مثل `check_update.php`) مصرف می‌شوند.
+
+### پاک‌سازی نهایی کلاینت — ✅ انجام شد
+
+به درخواست کاربر، `ApiService.kt` (اینترفیس v1) و `FeatureFlags.kt` هر دو حذف شدند و همه‌ی شاخه‌های `if (FeatureFlags...) ... else { apiService.X(...) }` در حدود ۲۰ فایل کاتلین ساده‌سازی شدند (فقط مسیر v2 باقی ماند). `RetrofitClient.apiService` حذف و `AppModule.kt` (Koin) متناسب به‌روزرسانی شد. کلاس‌هایی که `ApiService` را در constructor می‌گرفتند (`ReportsRepository`، `ChatRepository`، `AuthRepositoryImpl`، `LogoutUseCase`، `CheckQuotaUseCase`، `SubmitCargoUseCase`) به `ApiServiceV2` تغییر کردند. `ApiResponse`/`ApiResponse2` (که `ApiServiceV2` هم به آن‌ها نیاز داشت) به `ApiServiceV2.kt` منتقل شدند.
+
+**۲ باگ واقعیِ دیگر همین‌جا کشف و رفع شد** (چون کامپایلر بعد از حذف `ApiService.kt` هر ارجاع باقی‌مانده را به خطای کامپایل تبدیل کرد — یک ابزار تأیید ۱۰۰٪ پوشش، نه صرفاً یک grep):
+- `QuotaValidationUseCase.kt` — مسیر اعتبارسنجی درصد کوتاژ حین ثبت حواله (`validateQuotaStatusAndPercentage`) مستقیم `apiService.getShipQuotas` را صدا می‌زد، هرگز مهاجرت نشده بود، و از وقتی `protected_proxy.php` حذف شده بود در تولید ۴۰۴ می‌گرفت.
+- `ChatRepository.kt` — متدهای `getShipsList()`/`getShipQuotas()` (مصرف‌شده در `ChatViewModel.kt`) هم همین مشکل را داشتند.
+
+هر دو به `apiServiceV2` مهاجرت شدند. `assembleDebug`/`assembleRelease` هر دو موفق؛ کامپایلر صفر ارجاع باقی‌مانده به `ApiService`/`FeatureFlags` را در کل ماژول `app` تأیید کرد.
+
+### فاز ۳.۴ — ✅ انجام شد: وابستگی‌های تست
+
+`kotlinx-coroutines-test` (۱.۱۰.۲، هم‌راستا با `kotlinx-coroutines-android` موجود)، `turbine` (۱.۲.۱) و `mockk` (۱.۱۴.۶) به `gradle/libs.versions.toml` و `app/build.gradle.kts` (`testImplementation`) اضافه شدند. با `testDebugUnitTest --dry-run` تأیید شد که وابستگی‌ها resolve می‌شوند.
+
+### فاز ۳.۳ — ✅ کامل شد: تست‌های Phase 1/2
+
+**دور اول — منطق خالص (بدون نیاز به mock):**
+
+سمت کلاینت (Kotlin):
+- `JalaliDateUtilsTest.kt` (۱۵ تست) — تبدیل میلادی↔جلالی برای `formatDate`/`formatTime`/`getCurrentJalaliDateString`، شامل نمونه‌ی نوروز ۱۴۰۲ و ۱۴۰۳، و **مورد لبه‌ی سال کبیسه (اسفند ۳۰، ۱۴۰۳)** — دقیقاً همان کلاس باگی که در فاز ۲ در `CargoViewModel` کشف و حذف شد. مقادیر مرجع با کتابخانه‌ی مستقل پایتون `jdatetime` (نه با همین الگوریتم) محاسبه و صحت‌سنجی شدند تا تست خودش را تأیید نکند.
+- `ReportsDomainCalculationsTest.kt` (۱۵ تست) — `calculatePercentage`، `calculateProgress` (شامل clamp روی مقادیر منفی/بیش‌ازحد و تقسیم‌بر‌صفر)، `formatNumber`، `formatWeightWithDetail`.
+
+سمت سرور (PHP):
+- `InputValidatorTest.php` (۲۴ تست) — `sanitize`، `validateRequired`، `validateFloat`، `validateDigits`، `validateUsername`، **`validatePassword`** (حداقل ۸ کاراکتر — همان قفل Phase 1.2، شامل تست چندبایتی فارسی)، `validateIdentifier`.
+
+**دور دوم — منطق وابسته به session/DB/زمان (با mock، تکمیل این فاز):**
+
+- **`LoginAttemptLimiter.php` (S-06، Phase 1.1، ۷ تست):** قبلاً به‌خاطر `sleep()` تصاعدی داخل `registerFailedAttempt()` (تا ۸ ثانیه واقعی به‌ازای هر تلاش) رد شده بود. یک refactor کوچک انجام شد: تابع sleep به‌صورت `callable` اختیاری در سازنده تزریق می‌شود (پیش‌فرض همان `sleep()` واقعی برای production؛ همه‌ی سه callsite با `new LoginAttemptLimiter()` بدون آرگومان دست‌نخورده ماندند). تست‌ها این callable را با یک recorder جایگزین می‌کنند — هم توالی backoff تصاعدی (`2, 4, 8, 8, 8`) بدون گذر زمان واقعی سنجیده می‌شود، هم رفتار قفل/عدم‌قفل مستقل username در برابر IP (چرخش IP نباید قفل username را دور بزند، و برعکس)، هم اینکه `resetAttempts` فقط شمارنده‌ی username را پاک می‌کند نه IP را.
+- **`SessionService.php` (I-05: چرخه‌ی refresh token، Phase 2.1، ۱۸ تست):** `SessionRepository`/`UserRepository` قبلاً مستقیم در سازنده با `new` ساخته می‌شدند (اتصال واقعی دیتابیس)، پس تست‌پذیر نبودند. سازنده اکنون این دو را به‌صورت اختیاری می‌پذیرد (پیش‌فرض همان رفتار قبلی؛ هر سه callsite با `new SessionService()` بدون تغییر ماندند) و در تست با mock واقعی PHPUnit جایگزین می‌شوند. پوشش: تشخیص **reuse توکن رفرش‌شده (سرقت) → باطل شدن همه‌ی نشست‌های کاربر**، انقضای refresh token، محدودیت ورود همزمان تک‌دستگاهی (`createMobileSession` با/بدون همان device_id)، throttling فراخوانی `touchLastActivityThrottled` فقط روی نشست معتبر، و مسیرهای موفق/ناموفق `deactivateSession`.
+- **`PermissionService.php` (Phase 2.7، ۶ تست):** مسیر فایل `config/permissions.json` یک `private const` مبتنی بر `__DIR__` است (نه پارامتر تزریق‌پذیر)، پس این تست‌ها به‌جای mock کامل، مستقیم روی همان فایل واقعی اجرا می‌شوند (integration-محور) — نقش admin/operator را در برابر مقادیر واقعی فایل چک می‌کنند، و اولویت override اختصاصی-کاربر بر نقش را با یک نوشتن/بازگردانی موقت فایل (در `finally`) می‌سنجند.
+
+یک `tests/bootstrap.php` مشترک اضافه شد (جایگزین `bootstrap="vendor/autoload.php"` در `phpunit.xml`) که ثابت `APP_ROOT` را (لازم برای فایل fallback نشست‌های `LoginAttemptLimiter` و لاگ فعالیت `SessionService`، چون این‌ها در اجرای عادی از `src/bootstrap.php` می‌آیند که در تست include نمی‌شود) به یک پوشه‌ی موقت جدا از مخزن تعریف می‌کند.
+
+نتیجه‌ی نهایی: ۳۹ تست Kotlin و **۶۸ تست PHP** (بود ۱۳ پیش از فاز ۳، شد ۳۷ در دور اول، شد ۶۸ در دور دوم) — همه سبز، اجرای کامل PHPUnit زیر ۲۰۰ میلی‌ثانیه (تأیید می‌کند که هیچ `sleep()` واقعی در مسیر تست باقی نمانده است).
+
+### فاز ۳.۵ — ✅ کامل: `UiState` واحد در `CargoViewModel` و `ReportsViewModel`
+
+`CargoViewModel` بازنویسی شد: ۱۶ `StateFlow` مستقل (`cargoInfoList`، `filteredCargoInfoList`، `scaleReceiptNumber`، `clearInputFields`، `initialInfo`، `totalNetWeight`، `isSubmitting`، `showNetWeightDialog`، `showDuplicateConfirmationDialog`، `duplicateWarningMessage`، `loadableTonnage`، `loadableTrucks18Wheeler`، `loadableTrucks10Wheeler`، `duplicateTrackingNumbers`، `showDuplicateDialog`، `selectedShipNames`) با یک `data class CargoUiState` و یک `StateFlow<CargoUiState>` واحد جایگزین شدند.
+
+**تصمیم‌های آگاهانه‌ی scope:**
+- سه `StateFlow` مربوط به صف پیام snackbar (`resultMessage`، `showAnimatedMessage`، `messageType`) **عمداً بیرون** از `CargoUiState` ماندند — این‌ها یک صف رویداد یک‌باره‌مصرف‌اند، نه state پایدار صفحه؛ ترکیب‌شان با state دیگر یعنی رفتار متفاوت (recomposition اضافه با هر تغییر state دیگر).
+- state داخلی‌ای که هرگز مستقیم به UI expose نمی‌شد (`_cargoWeight`, `_remainingWeight`, `_averageNetWeight`, `_remainingServices`, `_totalServices`, `_loadedWeight`, `_cargoCount`, `_isQuotaActive`, `_pendingCargoInfo`) **دست‌نخورده** ماند — این‌ها بین dispatcherهای مختلف (`Default`/`IO`/`Main`) جهش می‌کنند و تبدیل به `var` ساده می‌توانست باگ visibility منجر شود؛ تبدیل‌شان خارج از scope «یکدست‌سازی UiState» است.
+- الگوی sealed `activeDialog` که خودِ گزارش پیشنهاد داده بود (برای حذف کامل امکان نمایش هم‌زمان چند دیالوگ) **اعمال نشد** — این یک تغییر رفتاری واقعی است (نه فقط refactor مکانیکی)، پس عمداً بیرون از این قدم نگه داشته شد تا ریسک این مرحله محدود بماند.
+
+**راهبرد صحت‌سنجی:** دقیقاً مثل حذف `ApiService.kt` — هر ۷ فایل Composable مصرف‌کننده (`RegisterCargoScreen`، `CargoDetailsScreen`، `CargoRegistrationNavigation`، `CargoOperationScreen`، `CargoCounterOperationScreen`، `SelectInfoScreen`) به الگوی `val cargoUiState by viewModel.uiState.collectAsStateWithLifecycle()` + `val x = cargoUiState.x` تغییر یافتند (نام‌های local val دست‌نخورده ماندند تا بقیه‌ی هر فایل بدون تغییر کامپایل شود). `CargoCounterScreen.kt` که در جست‌وجوی اولیه به‌اشتباه match شده بود (یک `selectedShipNames` هم‌نام ولی متعلق به `CargoCounterViewModel` کاملاً متفاوت) شناسایی و **دست‌نخورده** ماند. `compileDebugKotlin` صفر خطا داد (یعنی هیچ مصرف‌کننده‌ی جا‌مانده‌ای وجود ندارد)، `assembleDebug`/`assembleRelease` هر دو موفق، و هر ۳۹ تست واحد سبز.
+
+**ادامه — `ReportsViewModel`:** برخلاف `CargoViewModel` (که تقریباً یک صفحه را نمایندگی می‌کند)، `ReportsViewModel` میزبان چند concern کاملاً مستقل از هم است: polling لحظه‌ای (که خودش قبلاً در `RealTimeUiState` یکدست شده بود)، آمار تحلیل جامع (`comprehensiveAnalytics`/`analyticsLoadingState`/`analyticsDateOffset`)، فلگ‌های مرتب‌سازی/گروه‌بندی/جستجو (که برخی‌شان مستقیماً وارد یک `combine()` می‌شوند)، و رویدادهای snackbar/shipNotFound. فقط ۱۲ فیلد `StateFlow` مربوط به «صفحه‌ی گزارش کشتی/کوتاژ» (لیست کشتی‌ها، کشتی/انبار/کوتاژ انتخاب‌شده، خلاصه‌ی فیلترشده، بازه‌ی تاریخ، حالت‌های loading/error مرتبط) در یک `ReportsUiState` واحد جمع شدند؛ بقیه‌ی concernها عمداً دست‌نخورده ماندند — دقیقاً همان فلسفه‌ی scope-محدود که برای `CargoViewModel` هم به کار رفت (هر UiState باید یک concern هم‌بسته را نمایندگی کند، نه کل ViewModel را).
+
+فیلد داخلی `_currentShipName` (که هیچ‌وقت به‌صورت `StateFlow` عمومی expose نشده بود) هم‌راستا با فیلدهای internal-only در `CargoViewModel` بیرون از `ReportsUiState` ماند.
+
+هفت فایل مصرف‌کننده اصلاح شدند: `ShipDetailsScreen.kt`، `QuotaManagementDialog.kt`، `QuotaDetailsScreen.kt`، `QuotasListScreen.kt`، `ShipsListScreen.kt`، `WarehouseDetailsScreen.kt`، `ManageReportsScreen.kt` — با همان الگوی `val reportsUiState by viewModel.uiState.collectAsStateWithLifecycle()` + `val x = reportsUiState.x`. یک false-positive در `ChatScreen.kt` (فیلد هم‌نام `ships` ولی متعلق به `ChatViewModel` کاملاً متفاوت) شناسایی و دست‌نخورده ماند. `compileDebugKotlin`/`compileReleaseKotlin` هر دو صفر خطا دادند و هر ۳۹ تست واحد سبز.
+
+فاز ۳.۵ برای هر دو ViewModel کامل شد.
+
 **File:** `PHP/src/routes/api_v2.php` (۵۹۹ خط)، `PHP/api/v2/index.php`، `PHP/src/Core/Router.php`, `ApiAuthGate.php`, `MinVersionGate.php` در برابر `app/src/main/java/com/atk/atk_cargo/api/ApiService.kt`
 
 **Problem:**
@@ -2901,11 +2996,11 @@ PHP/
 
 | # | اقدام | Effort |
 |---|---|---|
-| 3.1 | **مهاجرت مرحله‌ای کلاینت به Router v2** (گروه به گروه، با flag) | High |
-| 3.2 | حذف `protected_proxy.php` و فایل‌های entry نسخه ۱ پس از تکمیل ۳.۱ | Medium |
-| 3.3 | نوشتن تست‌های Phase 1 و 2 (منطق تجاری + احراز هویت) | High |
-| 3.4 | افزودن وابستگی‌های تست (`coroutines-test`, `turbine`, `mockk`) | Low |
-| 3.5 | معرفی `UiState` واحد در `CargoViewModel` و `ReportsViewModel` | High |
+| 3.1 | ✅ **مهاجرت مرحله‌ای کلاینت به Router v2** — هر ۸ گروه (Ships، Quotas، Cargo، Users، Chat، Analytics، Utility، Auth) ساخته و روی دستگاه واقعی تست شد؛ `protected_proxy.php` (v1) کاملاً حذف شد. ⚠️ نیازمند انتشار فوری APK جدید با flagهای true پیش از/همزمان با deploy سمت سرور — رجوع کنید به هشدار عملیاتی بالا | High |
+| 3.2 | ✅ حذف `protected_proxy.php` (در ۳.۱) و ۲۰ فایل entry نسخه ۱ | Medium |
+| 3.3 | ✅ نوشتن تست‌های Phase 1 و 2 — منطق خالص (Jalali، محاسبات کوتاژ، InputValidator) و منطق وابسته به session/DB/زمان (`LoginAttemptLimiter`، `SessionService`، `PermissionService` با mock/refactor تزریق‌پذیری) | High |
+| 3.4 | ✅ افزودن وابستگی‌های تست (`coroutines-test`, `turbine`, `mockk`) | Low |
+| 3.5 | ✅ معرفی `UiState` واحد در `CargoViewModel` و `ReportsViewModel` | High |
 | 3.6 | تفکیک DTO از مدل دامنه + mapper + value classes برای وزن/تناژ | High |
 | 3.7 | شکستن ۵ God Composable بزرگ‌تر به Screen/Content/Components | High |
 | 3.8 | `enum` برای وضعیت حواله در هر دو سمت | Medium |

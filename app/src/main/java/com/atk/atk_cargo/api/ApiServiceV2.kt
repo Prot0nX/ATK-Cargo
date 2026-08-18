@@ -1,0 +1,365 @@
+package com.atk.atk_cargo.api
+
+import com.atk.atk_cargo.data.model.RealTimeDataResponse
+import com.google.gson.JsonElement
+import com.google.gson.annotations.SerializedName
+import retrofit2.Response
+import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.Query
+
+interface ApiServiceV2 {
+
+    @GET("api/v2/index.php")
+    suspend fun getShipsList(
+        @Query("route") route: String = "ships"
+    ): Response<ApiResponse2<ShipsData>>
+
+    @GET("api/v2/index.php")
+    suspend fun getShipDetails(
+        @Query("route") route: String
+    ): Response<Ship>
+
+    @GET("api/v2/index.php")
+    suspend fun getWarehouseDetails(
+        @Query("route") route: String
+    ): Response<Warehouse>
+
+    @GET("api/v2/index.php")
+    suspend fun getShipQuotas(
+        @Query("route") route: String
+    ): Response<List<Quota>>
+
+    @GET("api/v2/index.php")
+    suspend fun getQuotaDetails(
+        @Query("route") route: String
+    ): Response<QuotaDetails>
+
+    @GET("api/v2/index.php")
+    suspend fun getFilteredQuotas(
+        @Query("route") route: String = "quotas/filtered",
+        @Query("shipName") shipName: String,
+        @Query("startDateTime") startDateTime: String,
+        @Query("endDateTime") endDateTime: String
+    ): Response<List<Quota>>
+
+    @GET("api/v2/index.php")
+    suspend fun getFilteredSummary(
+        @Query("route") route: String = "quotas/filtered-summary",
+        @Query("shipName") shipName: String,
+        @Query("warehouseName") warehouseName: String,
+        @Query("selectedQuota") selectedQuota: String,
+        @Query("startDateTime") startDateTime: String,
+        @Query("endDateTime") endDateTime: String
+    ): Response<FilteredSummaryResponse>
+
+    @GET("api/v2/index.php")
+    suspend fun checkQuotaStatus(
+        @Query("route") route: String,
+        @Query("shipName") shipName: String? = null,
+        @Query("cargoType") cargoType: String? = null,
+        @Query("shippingCompany") shippingCompany: String? = null,
+        @Query("warehouse") warehouse: String? = null
+    ): Response<QuotaStatusResponse>
+
+    @GET("api/v2/index.php")
+    suspend fun getGroupedQuotas(
+        @Query("route") route: String = "quotas/grouped",
+        @Query("shipName") shipName: String
+    ): Response<Map<String, Map<String, List<QuotaItem>>>>
+
+    @GET("api/v2/index.php")
+    suspend fun getLoadableTonnage(
+        @Query("route") route: String,
+        @Query("shippingCompany") shippingCompany: String,
+        @Query("warehouse") warehouse: String,
+        @Query("cargoType") cargoType: String
+    ): Response<LoadableTonnageResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun editQuota(
+        @Query("route") route: String = "quotas/edit",
+        @Query("id") id: Int,
+        @Query("oldQuotaNumber") oldQuotaNumber: String,
+        @Query("newQuotaNumber") newQuotaNumber: String,
+        @Query("shipName") shipName: String,
+        @Query("shippingCompany") shippingCompany: String,
+        @Query("warehouse") warehouse: String,
+        @Query("cargoType") cargoType: String,
+        @Query("totalTonnage") totalTonnage: Float
+    ): Response<SuccessResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun updateQuotaPercentage(
+        @Query("route") route: String,
+        @Query("percentage") percentage: Double
+    ): Response<SuccessResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun toggleQuotaStatus(
+        @Query("route") route: String
+    ): Response<SuccessResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun updateQuotaPercentageRestriction(
+        @Query("route") route: String,
+        @Query("isEnabled") isEnabled: Int
+    ): Response<SuccessResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun deleteQuota(
+        @Query("route") route: String = "quotas/delete",
+        @Query("quotaNumber") quotaNumber: String,
+        @Query("shipName") shipName: String,
+        @Query("warehouse") warehouse: String,
+        @Query("shippingCompany") shippingCompany: String,
+        @Query("cargoType") cargoType: String
+    ): Response<SuccessResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun updateTemporaryTonnage(
+        @Query("route") route: String,
+        @Query("enabled") enabled: Int,
+        @Query("tonnage") tonnage: Double? = null
+    ): Response<SuccessResponse>
+
+    @GET("api/v2/index.php")
+    suspend fun checkQuotaExistenceCargo(
+        @Query("route") route: String = "quotas/existence",
+        @Query("quotaNumber") quotaNumber: String,
+        @Query("shipName") shipName: String
+    ): Response<QuotaExistenceMultipleResponse>
+
+    // ===== CARGO =====
+
+    @GET("api/v2/index.php")
+    suspend fun getActiveShips(
+        @Query("route") route: String = "ships/active"
+    ): Response<List<ActiveShipInfo>>
+
+    @GET("api/v2/index.php")
+    suspend fun getCargoInfo(
+        @Query("route") route: String = "cargo/initial-info",
+        @Query("quotaNumber") quotaNumber: String,
+        @Query("shippingCompany") shippingCompany: String,
+        @Query("warehouse") warehouse: String,
+        @Query("cargoType") cargoType: String
+    ): Response<CargoInfoResponse>
+
+    @GET("api/v2/index.php")
+    suspend fun checkScaleReceiptNumber(
+        @Query("route") route: String = "cargo/scale-receipt/check",
+        @Query("scaleReceiptNumber") scaleReceiptNumber: String
+    ): Response<ScaleReceiptCheckResponse>
+
+    @GET("api/v2/index.php")
+    suspend fun getCargoInfoByReceiptNumber(
+        @Query("route") route: String = "cargo/search/scale-receipt",
+        @Query("receipt") receiptNumber: String
+    ): Response<CargoInfoSearch>
+
+    @GET("api/v2/index.php")
+    suspend fun getCargoInfoByTrackingNumber(
+        @Query("route") route: String = "cargo/search/tracking",
+        @Query("tracking") trackingNumber: String
+    ): Response<CargoSearchResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun saveOrUpdateCargoInfo(
+        @Body cargoInfo: CargoInfo,
+        @Query("route") route: String = "cargo"
+    ): Response<SaveOrUpdateResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun updateCargoInfo(
+        @Body cargoInfo: CargoInfo,
+        @Query("route") route: String = "cargo/update"
+    ): Response<SaveOrUpdateResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun deleteCargo(
+        @Body cargoInfoRequest: CargoInfoRequest,
+        @Query("route") route: String = "cargo/delete"
+    ): Response<CargoDeleteResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun confirmCargo(
+        @Body request: Map<String, String>,
+        @Query("route") route: String = "cargo/confirm"
+    ): Response<Map<String, JsonElement>>
+
+    @POST("api/v2/index.php")
+    suspend fun saveInitialInfo(
+        @Body initialInfo: InitialInfo,
+        @Query("route") route: String = "cargo/initial-info"
+    ): Response<Void>
+
+    // ===== USERS =====
+    // برخلاف الگوی v1 (که action را در query می‌فرستد)، اینجا نیازی به
+    // @Query("action") نیست چون خودِ handler هر route در api_v2.php
+    // $_GET['action'] را قبل از صدا زدن UserController::handle تنظیم می‌کند.
+
+    @GET("api/v2/index.php")
+    suspend fun getAllUsers(
+        @Query("route") route: String = "users"
+    ): List<User>
+
+    @GET("api/v2/index.php")
+    suspend fun getAllUsersWithStatus(
+        @Query("route") route: String = "users/status"
+    ): List<User>
+
+    @GET("api/v2/index.php")
+    suspend fun getSelfProfile(
+        @Query("route") route: String = "users/self"
+    ): User
+
+    @GET("api/v2/index.php")
+    suspend fun getAdminUsers(
+        @Query("route") route: String = "users/admins"
+    ): List<User>
+
+    @GET("api/v2/index.php")
+    suspend fun getActiveDeviceId(
+        @Query("route") route: String = "users/active-device",
+        @Query("username") username: String
+    ): Response<ActiveSessionResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun createUser(
+        @Body request: CreateUserRequest,
+        @Query("route") route: String = "users"
+    ): Response<SuccessResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun updateUser(
+        @Body request: UpdateUserRequest,
+        @Query("route") route: String
+    ): ApiResponse
+
+    @POST("api/v2/index.php")
+    suspend fun deleteUser(
+        @Body request: DeleteUserRequest,
+        @Query("route") route: String
+    ): ApiResponse
+
+    @POST("api/v2/index.php")
+    suspend fun forceLogoutUser(
+        @Body request: ForceLogoutRequest,
+        @Query("route") route: String = "users/force-logout"
+    ): Response<ForceLogoutResponse>
+
+    // ===== CHAT =====
+
+    @GET("api/v2/index.php")
+    suspend fun getChatMessages(
+        @Query("route") route: String = "chat/messages",
+        @Query("lastMessageId") lastMessageId: Int = 0,
+        @Query("olderThanId") olderThanId: Int = 0,
+        @Query("limit") limit: Int = 50,
+        @Query("username") username: String
+    ): Response<ChatMessagesResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun sendChatMessage(
+        @Body request: SendMessageRequest,
+        @Query("route") route: String = "chat/messages"
+    ): Response<SendMessageResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun editChatMessage(
+        @Body request: EditMessageRequest,
+        @Query("route") route: String
+    ): Response<ApiResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun deleteChatMessage(
+        @Body request: DeleteMessageRequest,
+        @Query("route") route: String
+    ): Response<ApiResponse>
+
+    // ===== ANALYTICS =====
+
+    @GET("api/v2/index.php")
+    suspend fun getRealTimeLoadingData(
+        @Query("route") route: String = "analytics/realtime",
+        @Query("shiftOffset") shiftOffset: Int = 0
+    ): Response<RealTimeDataResponse>
+
+    @GET("api/v2/index.php")
+    suspend fun getComprehensiveAnalysis(
+        @Query("route") route: String = "analytics/comprehensive",
+        @Query("offset") offset: Int = 0
+    ): Response<ComprehensiveAnalysisResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun logAnalyticsExport(
+        @Query("route") route: String = "analytics/export-log",
+        @Query("scope") scope: String,
+        @Query("groupCount") groupCount: Int
+    ): Response<Unit>
+
+    // ===== UTILITY =====
+
+    @POST("api/v2/index.php")
+    suspend fun checkExistence(
+        @Body request: CheckExistenceRequest,
+        @Query("route") route: String = "utility/check-existence"
+    ): Response<CheckExistenceResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun syncPermissions(
+        @Body request: PermissionSyncRequest,
+        @Query("route") route: String = "utility/sync-permissions"
+    ): Response<PermissionSyncResponse>
+
+    // ===== AUTH =====
+    // auth/refresh از قبل جدا در TokenRefresher.kt (با OkHttp خام، نه این
+    // interface) مهاجرت شده — همان الگوی route=... را اثبات کرده بود.
+
+    @POST("api/v2/index.php")
+    suspend fun checkLogin(
+        @Body loginRequest: LoginRequest,
+        @Query("route") route: String = "auth/login"
+    ): Response<LoginResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun checkSession(
+        @Body request: SessionCheckRequest,
+        @Query("route") route: String = "auth/session"
+    ): Response<SessionResponse>
+
+    @POST("api/v2/index.php")
+    suspend fun logout(
+        @Body logoutRequest: LogoutRequest,
+        @Query("route") route: String = "auth/logout"
+    ): Response<LogoutResponse>
+}
+
+object ApiV2Routes {
+    fun shipDetails(shipName: String): String = "ships/$shipName"
+    fun warehouseDetails(shipName: String, warehouseName: String): String =
+        "ships/$shipName/warehouses/$warehouseName"
+    fun shipQuotas(shipName: String): String = "ships/$shipName/quotas"
+    fun quotaDetails(quotaNumber: String): String = "quotas/$quotaNumber"
+    fun quotaStatus(quotaNumber: String): String = "quotas/$quotaNumber/status"
+    fun userUpdate(id: Int): String = "users/$id/update"
+    fun userDelete(id: Int): String = "users/$id/delete"
+    fun chatMessageEdit(messageId: Int): String = "chat/messages/$messageId/edit"
+    fun chatMessageDelete(messageId: Int): String = "chat/messages/$messageId/delete"
+    fun quotaPercentage(id: Int): String = "quotas/$id/percentage"
+    fun quotaToggleStatus(id: Int): String = "quotas/$id/toggle-status"
+    fun quotaPercentageRestriction(id: Int): String = "quotas/$id/percentage-restriction"
+    fun quotaTemporaryTonnage(quotaNumber: String): String = "quotas/$quotaNumber/temporary-tonnage"
+    fun quotaLoadableTonnage(quotaNumber: String): String = "quotas/$quotaNumber/loadable-tonnage"
+}
+
+data class ApiResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String
+)
+
+data class ApiResponse2<T>(
+    @SerializedName("data") val data: T
+)

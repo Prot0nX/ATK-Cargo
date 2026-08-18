@@ -505,6 +505,18 @@ return [
         'handler' => function () { $_GET['action'] = 'getAllUsers'; (new UserController())->handle(); },
     ],
     [
+        // Phase1.4 (DEEP_CODE_AUDIT.md): بعد از این‌که getAllUsers پشت
+        // manage_users قفل شد، دو action محدودتر اضافه شدند که هر کاربر
+        // احرازشده (نه فقط ادمین) می‌تواند صدا بزند — permission=>null دقیقاً
+        // مطابق نبودن این دو در ADMIN_ONLY_ACTIONS داخل UserController.
+        'method' => 'GET', 'path' => 'users/self', 'auth' => true, 'permission' => null,
+        'handler' => function () { $_GET['action'] = 'getSelfProfile'; (new UserController())->handle(); },
+    ],
+    [
+        'method' => 'GET', 'path' => 'users/admins', 'auth' => true, 'permission' => null,
+        'handler' => function () { $_GET['action'] = 'getAdminUsers'; (new UserController())->handle(); },
+    ],
+    [
         'method' => 'GET', 'path' => 'users/status', 'auth' => true, 'permission' => 'manage_users',
         'handler' => function () { $_GET['action'] = 'getAllUsersWithStatus'; (new UserController())->handle(); },
     ],

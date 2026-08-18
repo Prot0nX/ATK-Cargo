@@ -20,6 +20,20 @@ final class LoginAttemptLimiter {
     private const CACHE_PREFIX = 'login_gate_attempts_';
     private const MAX_BACKOFF_SECONDS = 8;
 
+    /** @var callable(int): void */
+    private $sleeper;
+
+    // Phase 3.3: sleep() تصاعدی داخل registerFailedAttempt تست واحد این کلاس
+    // را غیرممکن می‌کرد (تا ۸ ثانیه واقعی به‌ازای هر تست). با تزریق یک تابع
+    // sleep قابل جایگزینی (پیش‌فرض همان sleep() واقعی برای کد production)،
+    // تست می‌تواند این تابع را با یک no-op جایگزین کند و فقط منطق شمارش/قفل
+    // را بسنجد، نه گذر زمان واقعی را.
+    public function __construct(?callable $sleeper = null) {
+        $this->sleeper = $sleeper ?? static function (int $seconds): void {
+            sleep($seconds);
+        };
+    }
+
     public function isLocked(string $username, string $ipAddress): bool {
         return $this->getCount($this->userKey($username)) >= self::MAX_USER_ATTEMPTS
             || $this->getCount($this->ipKey($ipAddress)) >= self::MAX_IP_ATTEMPTS;
@@ -31,7 +45,7 @@ final class LoginAttemptLimiter {
 
         // تأخیر تصاعدی: 2, 4, 8, 8, 8... ثانیه به‌ازای تلاش ناموفق روی همین username
         $delay = min(2 ** $userAttempts, self::MAX_BACKOFF_SECONDS);
-        sleep($delay);
+        ($this->sleeper)($delay);
     }
 
     public function resetAttempts(string $username, string $ipAddress): void {

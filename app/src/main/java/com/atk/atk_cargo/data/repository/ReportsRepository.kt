@@ -1,7 +1,8 @@
 package com.atk.atk_cargo.data.repository
 
 import android.util.Log
-import com.atk.atk_cargo.api.ApiService
+import com.atk.atk_cargo.api.ApiServiceV2
+import com.atk.atk_cargo.api.ApiV2Routes
 import com.atk.atk_cargo.data.model.ActiveShipInfo
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoResponse
@@ -27,7 +28,9 @@ import kotlinx.coroutines.withContext
  */
 class HttpStatusException(val statusCode: Int, message: String) : Exception(message)
 
-class ReportsRepository(private val apiService: ApiService) {
+class ReportsRepository(
+    private val apiServiceV2: ApiServiceV2 = com.atk.atk_cargo.api.RetrofitClient.apiServiceV2
+) {
     suspend fun getCargoInfo(
         quotaNumber: String,
         shippingCompany: String,
@@ -35,7 +38,7 @@ class ReportsRepository(private val apiService: ApiService) {
         cargoType: String
     ): CargoInfoResponse = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.getCargoInfo(
+            val response = apiServiceV2.getCargoInfo(
                 quotaNumber = quotaNumber,
                 shippingCompany = shippingCompany,
                 warehouse = warehouse,
@@ -54,7 +57,7 @@ class ReportsRepository(private val apiService: ApiService) {
     }
 
     suspend fun getShipsList(): ShipsData = withContext(Dispatchers.IO) {
-        val response = apiService.getShipsList()
+        val response = apiServiceV2.getShipsList()
         if (response.isSuccessful) {
             response.body()?.data ?: throw Exception("پاسخ سرور خالی است")
         } else {
@@ -63,7 +66,7 @@ class ReportsRepository(private val apiService: ApiService) {
     }
 
     suspend fun getShipDetails(shipName: String): Ship = withContext(Dispatchers.IO) {
-        val response = apiService.getShipDetails(shipName = shipName)
+        val response = apiServiceV2.getShipDetails(route = ApiV2Routes.shipDetails(shipName))
         if (response.isSuccessful) {
             response.body() ?: throw Exception("Ship details not found")
         } else {
@@ -77,9 +80,8 @@ class ReportsRepository(private val apiService: ApiService) {
     suspend fun getWarehouseDetails(shipName: String, warehouseName: String): Warehouse =
         withContext(Dispatchers.IO) {
             try {
-                val response = apiService.getWarehouseDetails(
-                    shipName = shipName,
-                    warehouseName = warehouseName
+                val response = apiServiceV2.getWarehouseDetails(
+                    route = ApiV2Routes.warehouseDetails(shipName, warehouseName)
                 )
                 if (response.isSuccessful) {
                     val warehouseDetails = response.body() ?: throw Exception("Body is null")
@@ -99,7 +101,7 @@ class ReportsRepository(private val apiService: ApiService) {
 
     suspend fun getQuotaDetails(quotaNumber: String): QuotaDetails = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.getQuotaDetails(quotaNumber = quotaNumber)
+            val response = apiServiceV2.getQuotaDetails(route = ApiV2Routes.quotaDetails(quotaNumber))
             if (response.isSuccessful) {
                 val quotaDetails = response.body()
                 quotaDetails ?: throw Exception("Quota details not found")
@@ -113,7 +115,7 @@ class ReportsRepository(private val apiService: ApiService) {
 
     suspend fun getShipQuotas(shipName: String): List<Quota> = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.getShipQuotas(shipName = shipName)
+            val response = apiServiceV2.getShipQuotas(route = ApiV2Routes.shipQuotas(shipName))
             if (response.isSuccessful) {
                 val quotas = response.body() ?: throw Exception("Body is null")
                 quotas
@@ -127,7 +129,7 @@ class ReportsRepository(private val apiService: ApiService) {
 
     suspend fun getFilteredQuotas(shipName: String, startDateTime: String, endDateTime: String): List<Quota> = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.getFilteredQuotas(
+            val response = apiServiceV2.getFilteredQuotas(
                 shipName = shipName,
                 startDateTime = startDateTime,
                 endDateTime = endDateTime
@@ -152,8 +154,8 @@ class ReportsRepository(private val apiService: ApiService) {
         warehouse: String
     ): QuotaStatusResponse = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.checkQuotaStatus(
-                quotaNumber = quotaNumber,
+            val response = apiServiceV2.checkQuotaStatus(
+                route = ApiV2Routes.quotaStatus(quotaNumber),
                 shipName = shipName,
                 cargoType = cargoType,
                 shippingCompany = shippingCompany,
@@ -211,7 +213,7 @@ class ReportsRepository(private val apiService: ApiService) {
         totalTonnage: Float
     ): Boolean = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.editQuota(
+            val response = apiServiceV2.editQuota(
                 id = id,
                 oldQuotaNumber = oldQuotaNumber,
                 newQuotaNumber = newQuotaNumber,
@@ -234,11 +236,9 @@ class ReportsRepository(private val apiService: ApiService) {
     suspend fun updateQuotaPercentage(id: Int, percentage: Double): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                val isEnabled = if (percentage > 0.0) 1 else 0
-                val response = apiService.updateQuotaPercentage(
-                    id = id,
-                    percentage = percentage,
-                    isEnabled = isEnabled
+                val response = apiServiceV2.updateQuotaPercentage(
+                    route = ApiV2Routes.quotaPercentage(id),
+                    percentage = percentage
                 )
                 if (response.isSuccessful) {
                     response.body()?.success == true
@@ -253,7 +253,7 @@ class ReportsRepository(private val apiService: ApiService) {
 
     suspend fun toggleQuotaStatus(id: Int): Boolean = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.toggleQuotaStatus(id = id)
+            val response = apiServiceV2.toggleQuotaStatus(route = ApiV2Routes.quotaToggleStatus(id))
             if (response.isSuccessful) {
                 response.body()?.success ?: false
             } else {
@@ -267,8 +267,8 @@ class ReportsRepository(private val apiService: ApiService) {
     suspend fun updateQuotaPercentageRestriction(id: Int, isEnabled: Int): Boolean =
         withContext(Dispatchers.IO) {
             try {
-                val response = apiService.updateQuotaPercentageRestriction(
-                    id = id,
+                val response = apiServiceV2.updateQuotaPercentageRestriction(
+                    route = ApiV2Routes.quotaPercentageRestriction(id),
                     isEnabled = isEnabled
                 )
                 if (response.isSuccessful) {
@@ -287,8 +287,8 @@ class ReportsRepository(private val apiService: ApiService) {
         tonnage: Double? = null
     ): Boolean = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.updateTemporaryTonnage(
-                quotaNumber = quotaNumber,
+            val response = apiServiceV2.updateTemporaryTonnage(
+                route = ApiV2Routes.quotaTemporaryTonnage(quotaNumber),
                 enabled = enabled,
                 tonnage = tonnage
             )
@@ -310,7 +310,7 @@ class ReportsRepository(private val apiService: ApiService) {
         cargoType: String
     ): Boolean = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.deleteQuota(
+            val response = apiServiceV2.deleteQuota(
                 quotaNumber = quotaNumber,
                 shipName = shipName,
                 warehouse = warehouse,
@@ -335,7 +335,7 @@ class ReportsRepository(private val apiService: ApiService) {
         endDateTime: String
     ): FilteredSummary = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.getFilteredSummary(
+            val response = apiServiceV2.getFilteredSummary(
                 shipName = shipName,
                 warehouseName = warehouseName,
                 selectedQuota = selectedQuota,
@@ -379,7 +379,7 @@ class ReportsRepository(private val apiService: ApiService) {
 
     suspend fun getActiveShips(): List<ActiveShipInfo> = withContext(Dispatchers.IO) {
         try {
-            val response = apiService.getActiveShips()
+            val response = apiServiceV2.getActiveShips()
             if (response.isSuccessful) {
                 response.body() ?: throw Exception("داده‌های دریافتی خالی است")
             } else {
@@ -395,7 +395,7 @@ class ReportsRepository(private val apiService: ApiService) {
     // کلاینت نمی‌توانست بین ۴۰۱ (نشست نامعتبر)، ۴۲۹ (rate limit) و خطای شبکه
     // تشخیص دهد.
     suspend fun getRealTimeLoadingData(shiftOffset: Int = 0): RealTimeDataResponse = withContext(Dispatchers.IO) {
-        val response = apiService.getRealTimeLoadingData(shiftOffset = shiftOffset)
+        val response = apiServiceV2.getRealTimeLoadingData(shiftOffset = shiftOffset)
         if (response.isSuccessful) {
             response.body() ?: throw Exception("داده‌های دریافتی خالی است")
         } else {
@@ -409,7 +409,7 @@ class ReportsRepository(private val apiService: ApiService) {
     suspend fun getCargoInfoByReceiptNumber(receiptNumber: String): CargoInfo? {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.getCargoInfoByReceiptNumber(receiptNumber)
+                val response = apiServiceV2.getCargoInfoByReceiptNumber(receiptNumber = receiptNumber)
 
                 if (response.isSuccessful) {
                     val body = response.body()
@@ -427,7 +427,7 @@ class ReportsRepository(private val apiService: ApiService) {
     suspend fun getCargoInfoByTrackingNumber(trackingNumber: String): List<CargoInfo> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.getCargoInfoByTrackingNumber(trackingNumber)
+                val response = apiServiceV2.getCargoInfoByTrackingNumber(trackingNumber = trackingNumber)
 
                 if (response.isSuccessful) {
                     val responseBody = response.body()
@@ -462,7 +462,7 @@ class ReportsRepository(private val apiService: ApiService) {
     suspend fun updateCargoInfo(cargoInfo: CargoInfo): Result<SaveOrUpdateResponse> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.updateCargoInfo(cargoInfo)
+                val response = apiServiceV2.updateCargoInfo(cargoInfo)
 
                 if (response.isSuccessful) {
                     val body = response.body()
@@ -501,7 +501,7 @@ class ReportsRepository(private val apiService: ApiService) {
     // نمایش داده می‌شد.
     suspend fun getComprehensiveAnalysis(offset: Int = 0): ComprehensiveAnalysisResponse =
         withContext(Dispatchers.IO) {
-            val response = apiService.getComprehensiveAnalysis(offset = offset)
+            val response = apiServiceV2.getComprehensiveAnalysis(offset = offset)
             if (response.isSuccessful) {
                 response.body() ?: throw Exception("داده‌های دریافتی خالی است")
             } else {
@@ -518,7 +518,7 @@ class ReportsRepository(private val apiService: ApiService) {
     suspend fun logAnalyticsExport(scope: String, groupCount: Int) {
         withContext(Dispatchers.IO) {
             try {
-                apiService.logAnalyticsExport(scope = scope, groupCount = groupCount)
+                apiServiceV2.logAnalyticsExport(scope = scope, groupCount = groupCount)
             } catch (e: Exception) {
                 // بی‌اهمیت برای UX؛ فقط ممیزی سمت سرور است.
             }

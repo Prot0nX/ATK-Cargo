@@ -70,7 +70,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -90,6 +89,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.atk.atk_cargo.api.QuotaItem
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
@@ -138,7 +138,8 @@ fun QuotaManagementDialog(
 ) {
     if (!isVisible) return
 
-    val currentShipName by viewModel.selectedShip.collectAsStateWithLifecycle()
+    val reportsUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentShipName = reportsUiState.selectedShip
     var quotaData by remember { mutableStateOf<Map<String, Map<String, List<QuotaItem>>>>(emptyMap()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -154,7 +155,7 @@ fun QuotaManagementDialog(
     LaunchedEffect(currentShipName, refreshTrigger) {
         try {
             isLoading = true
-            val response = RetrofitClient.apiService.getGroupedQuotas(shipName = currentShipName?.name ?: "")
+            val response = RetrofitClient.apiServiceV2.getGroupedQuotas(shipName = currentShipName?.name ?: "")
             if (response.isSuccessful) {
                 quotaData = response.body() ?: emptyMap()
                 errorMessage = null

@@ -5,8 +5,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.atk.atk_cargo.feature.cargo_details.presentation.CargoDetailsScreen
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
@@ -16,7 +16,8 @@ fun CargoCounterOperationScreen(
     navController: NavController,
     viewModel: CargoViewModel
 ) {
-    val initialInfo by viewModel.initialInfo.collectAsStateWithLifecycle()
+    val cargoUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val initialInfo = cargoUiState.initialInfo
 
     AnimatedContent(
         targetState = initialInfo != null,

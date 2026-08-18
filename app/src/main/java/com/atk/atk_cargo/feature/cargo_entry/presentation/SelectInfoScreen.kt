@@ -51,7 +51,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -72,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import com.atk.atk_cargo.api.ActiveShipInfo
@@ -81,7 +81,6 @@ import com.atk.atk_cargo.api.InitialInfo
 import com.atk.atk_cargo.api.MatchingQuota
 import com.atk.atk_cargo.api.MessageType
 import com.atk.atk_cargo.api.RealTimeLoadingData
-import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
@@ -105,7 +104,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 // دسترسی به شبکه از طریق Repository، نه مستقیم از RetrofitClient در کد UI
 // internal (نه private) چون توسط ActiveQuotasDialogSection.kt هم استفاده می‌شود
-internal val reportsRepository by lazy { ReportsRepository(RetrofitClient.apiService) }
+internal val reportsRepository by lazy { ReportsRepository() }
 
 internal val QuotasAccent: Color
     @Composable get() = MaterialTheme.colorScheme.primary
@@ -174,7 +173,8 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
     val shipColorMap = remember { mutableStateOf<Map<String, Color>>(emptyMap()) }
     var snackbarMessage by remember { mutableStateOf<SnackbarMessage?>(null) }
     var showShipSelectionDialog by remember { mutableStateOf(false) }
-    val selectedShipNames by viewModel.selectedShipNames.collectAsStateWithLifecycle(initialValue = emptySet())
+    val cargoUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val selectedShipNames = cargoUiState.selectedShipNames
     val filteredShips = remember(activeShips, selectedShipNames) {
         activeShips.filter { selectedShipNames.contains(it.shipName) }
     }

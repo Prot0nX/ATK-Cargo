@@ -4,7 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.atk.atk_cargo.api.RetrofitClient.apiService
+import com.atk.atk_cargo.api.ApiV2Routes
+import com.atk.atk_cargo.api.RetrofitClient.apiServiceV2
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.data.model.CargoDeleteResponse
 import com.atk.atk_cargo.data.model.CargoInfo
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import retrofit2.Response
@@ -47,70 +49,66 @@ class CargoViewModelFactory(
     }
 }
 
+/**
+ * حالت یکدست صفحه‌ی ثبت/نظارت حواله (DEEP_CODE_AUDIT.md #Phase3.5) —
+ * جایگزین ۱۶ StateFlow مستقلی که قبلاً هر کدام یک subscription جدا در
+ * Composableهای مصرف‌کننده داشتند. پیام‌های snackbar (`resultMessage`/
+ * `showAnimatedMessage`/`messageType`) عمداً بیرون از این state ماندند چون
+ * ماهیت‌شان یک صف رویداد یک‌باره‌مصرف است، نه state پایدار صفحه — با یک
+ * data class واحد ترکیب‌شان به معنای رفتار متفاوت (پیام‌ها با هر تغییر state
+ * دیگر دوباره emit می‌شوند) بود.
+ */
+data class CargoUiState(
+    val cargoInfoList: List<CargoInfo> = emptyList(),
+    val filteredCargoInfoList: List<CargoInfo> = emptyList(),
+    val scaleReceiptNumber: String = "",
+    val clearInputFields: Boolean = false,
+    val initialInfo: InitialInfo? = null,
+    val totalNetWeight: String = "",
+    val isSubmitting: Boolean = false,
+    val showNetWeightDialog: Boolean = false,
+    val showDuplicateConfirmationDialog: Boolean = false,
+    val duplicateWarningMessage: String = "",
+    val loadableTonnage: String = "",
+    val loadableTrucks18Wheeler: String = "",
+    val loadableTrucks10Wheeler: String = "",
+    val duplicateTrackingNumbers: List<String> = emptyList(),
+    val showDuplicateDialog: Boolean = false,
+    val selectedShipNames: Set<String> = emptySet()
+)
+
 class CargoViewModel(
     private val repository: ReportsRepository,
     private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
     private val quotaValidationUseCase = com.atk.atk_cargo.feature.cargo.domain.QuotaValidationUseCase(repository)
-    private val _cargoInfoList = MutableStateFlow<List<CargoInfo>>(emptyList())
-    val cargoInfoList: StateFlow<List<CargoInfo>> = _cargoInfoList.asStateFlow()
-    private val _scaleReceiptNumber = MutableStateFlow("")
-    val scaleReceiptNumber: StateFlow<String> = _scaleReceiptNumber
+
+    private val _uiState = MutableStateFlow(CargoUiState())
+    val uiState: StateFlow<CargoUiState> = _uiState.asStateFlow()
+
+    // ===== state داخلی که هیچ‌وقت مستقیم توسط UI مصرف نمی‌شود (بدون تغییر) =====
     private val _loadedWeight = MutableStateFlow("")
     private val _cargoCount = MutableStateFlow(0)
-    private val _clearInputFields = MutableStateFlow(false)
-    val clearInputFields: StateFlow<Boolean> = _clearInputFields.asStateFlow()
-    private val _initialInfo = MutableStateFlow<InitialInfo?>(null)
-    val initialInfo: StateFlow<InitialInfo?> = _initialInfo.asStateFlow()
     private val _cargoWeight = MutableStateFlow("")
-    private val _totalNetWeight = MutableStateFlow("")
-    val totalNetWeight: StateFlow<String> = _totalNetWeight.asStateFlow()
     private val _remainingWeight = MutableStateFlow("")
     private val _averageNetWeight = MutableStateFlow("")
     private val _remainingServices = MutableStateFlow("")
     private val _totalServices = MutableStateFlow("")
+    private val _isQuotaActive = MutableStateFlow<Boolean?>(null)
+    private val _pendingCargoInfo = MutableStateFlow<CargoInfo?>(null)
+
     private val snackbarQueue = com.atk.atk_cargo.feature.cargo.domain.CargoSnackbarQueue()
     val resultMessage: StateFlow<String> = snackbarQueue.resultMessage
     val showAnimatedMessage: StateFlow<Boolean> = snackbarQueue.showAnimatedMessage
     val messageType: StateFlow<MessageType> = snackbarQueue.messageType
-    private val _showNetWeightDialog = MutableStateFlow(false)
-    val showNetWeightDialog: StateFlow<Boolean> = _showNetWeightDialog.asStateFlow()
 
-    private val _isSubmitting = MutableStateFlow(false)
-    val isSubmitting: StateFlow<Boolean> = _isSubmitting.asStateFlow()
-
-    private val _showDuplicateConfirmationDialog = MutableStateFlow(false)
-    val showDuplicateConfirmationDialog: StateFlow<Boolean> = _showDuplicateConfirmationDialog.asStateFlow()
-    private val _duplicateWarningMessage = MutableStateFlow("")
-    val duplicateWarningMessage: StateFlow<String> = _duplicateWarningMessage.asStateFlow()
-    private val _pendingCargoInfo = MutableStateFlow<CargoInfo?>(null)
-    private val _filteredCargoInfoList = MutableStateFlow<List<CargoInfo>>(emptyList())
-    val filteredCargoInfoList: StateFlow<List<CargoInfo>> = _filteredCargoInfoList.asStateFlow()
     // آخرین جستجوی کاربر؛ باید بعد از هر بارگذاری (polling/refresh/تأیید)
     // دوباره اعمال شود، وگرنه لیست فیلترشده زیر انگشت کاربر با کل لیست
     // جایگزین می‌شود در حالی که متن جستجو هنوز در کادر جستجو باقی است.
     private var lastSearchQuery: String = ""
-    private val _isQuotaActive = MutableStateFlow<Boolean?>(null)
-    private val _loadableTonnage = MutableStateFlow("")
-    val loadableTonnage: StateFlow<String> = _loadableTonnage.asStateFlow()
-
-    private val _loadableTrucks18Wheeler = MutableStateFlow("")
-    val loadableTrucks18Wheeler: StateFlow<String> = _loadableTrucks18Wheeler.asStateFlow()
-
-    private val _loadableTrucks10Wheeler = MutableStateFlow("")
-    val loadableTrucks10Wheeler: StateFlow<String> = _loadableTrucks10Wheeler.asStateFlow()
-
-    private val _duplicateTrackingNumbers = MutableStateFlow<List<String>>(emptyList())
-    val duplicateTrackingNumbers: StateFlow<List<String>> = _duplicateTrackingNumbers.asStateFlow()
-
-    private val _showDuplicateDialog = MutableStateFlow(false)
-    val showDuplicateDialog: StateFlow<Boolean> = _showDuplicateDialog.asStateFlow()
-
-    private val _selectedShipNames = MutableStateFlow<Set<String>>(emptySet())
-    val selectedShipNames: StateFlow<Set<String>> = _selectedShipNames.asStateFlow()
 
     fun updateSelectedShips(ships: Set<String>) {
-        _selectedShipNames.value = ships
+        _uiState.update { it.copy(selectedShipNames = ships) }
     }
 
     private fun addMessageToQueue(message: String, type: MessageType) {
@@ -128,7 +126,7 @@ class CargoViewModel(
     suspend fun checkQuotaExistenceCargo(quotaNumber: String, shipName: String): QuotaExistenceMultipleResponse {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.checkQuotaExistenceCargo(quotaNumber = quotaNumber, shipName = shipName)
+                val response = apiServiceV2.checkQuotaExistenceCargo(quotaNumber = quotaNumber, shipName = shipName)
                 if (response.isSuccessful) {
                     response.body() ?: throw Exception("پاسخ خالی از سرور")
                 } else {
@@ -164,24 +162,29 @@ class CargoViewModel(
 
     fun filterCargoInfoList(query: String) {
         lastSearchQuery = query
-        _filteredCargoInfoList.value = if (query.isEmpty()) {
-            _cargoInfoList.value
-        } else {
-            _cargoInfoList.value.filter { it.trackingNumber.contains(query, ignoreCase = true) }
+        _uiState.update { state ->
+            val filtered = if (query.isEmpty()) {
+                state.cargoInfoList
+            } else {
+                state.cargoInfoList.filter { it.trackingNumber.contains(query, ignoreCase = true) }
+            }
+            state.copy(filteredCargoInfoList = filtered)
         }
     }
 
     fun updateCargoConfirmation(cargoId: Int?) {
-        _cargoInfoList.value = _cargoInfoList.value.map { cargoInfo ->
-            if (cargoInfo.id == cargoId) {
-                cargoInfo.copy(
-                    confirm = "تائید شده",
-                    exitTime = cargoInfo.exitTime?.takeIf { it.isNotBlank() } ?: getCurrentTime(),
-                    exitDate = cargoInfo.exitDate?.takeIf { it.isNotBlank() } ?: getCurrentDate()
-                )
-            } else {
-                cargoInfo
-            }
+        _uiState.update { state ->
+            state.copy(cargoInfoList = state.cargoInfoList.map { cargoInfo ->
+                if (cargoInfo.id == cargoId) {
+                    cargoInfo.copy(
+                        confirm = "تائید شده",
+                        exitTime = cargoInfo.exitTime?.takeIf { it.isNotBlank() } ?: getCurrentTime(),
+                        exitDate = cargoInfo.exitDate?.takeIf { it.isNotBlank() } ?: getCurrentDate()
+                    )
+                } else {
+                    cargoInfo
+                }
+            })
         }
         filterCargoInfoList(lastSearchQuery)
     }
@@ -213,8 +216,7 @@ class CargoViewModel(
     }
 
     fun dismissDuplicateDialog() {
-        _showDuplicateDialog.value = false
-        _duplicateTrackingNumbers.value = emptyList()
+        _uiState.update { it.copy(showDuplicateDialog = false, duplicateTrackingNumbers = emptyList()) }
     }
 
     // این متد از چند مسیر متفاوت صدا زده می‌شود: هم لمس دستی دکمه‌ی
@@ -231,14 +233,14 @@ class CargoViewModel(
     // کاملاً بی‌صدا فقط لیست را همگام می‌کنند.
     fun refreshCargoInfo(onManualRefreshComplete: ((message: String) -> Unit)? = null) {
         viewModelScope.launch {
-            _initialInfo.value?.let { info ->
+            _uiState.value.initialInfo?.let { info ->
                 try {
                     if (info.loadingQuotaNumber.toString().isBlank() || info.shippingCompany.isBlank() ||
                         info.loadingWarehouse.isBlank() || info.cargoType.isBlank()) {
                         return@launch
                     }
 
-                    val oldCargoList = _cargoInfoList.value
+                    val oldCargoList = _uiState.value.cargoInfoList
 
                     loadCargoInfoList(
                         quotaNumber = info.loadingQuotaNumber.toString(),
@@ -247,7 +249,7 @@ class CargoViewModel(
                         cargoType = info.cargoType,
                         onComplete = {
                             val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-                            val newCargoList = _cargoInfoList.value
+                            val newCargoList = _uiState.value.cargoInfoList
                             val hasStatusChanges = oldCargoList.any { oldCargo ->
                                 val newCargo = newCargoList.find { it.trackingNumber == oldCargo.trackingNumber }
                                 newCargo != null && oldCargo.status != newCargo.status
@@ -272,8 +274,7 @@ class CargoViewModel(
     }
 
     fun hideNetWeightDialog() {
-        _showNetWeightDialog.value = false
-        _scaleReceiptNumber.value = ""
+        _uiState.update { it.copy(showNetWeightDialog = false, scaleReceiptNumber = "") }
     }
 
     fun submitCargoInfo(
@@ -286,28 +287,28 @@ class CargoViewModel(
     ) {
         viewModelScope.launch {
             try {
-                if (_isSubmitting.value) {
+                if (_uiState.value.isSubmitting) {
                     return@launch
                 }
 
-                _isSubmitting.value = true
+                _uiState.update { it.copy(isSubmitting = true) }
 
                 if (!performBasicValidation(trackingNumber)) {
                     return@launch
                 }
 
-                val initialInfo = _initialInfo.value ?: run {
+                val initialInfo = _uiState.value.initialInfo ?: run {
                     showErrorMessage("اطلاعات اولیه در دسترس نیست")
                     return@launch
                 }
 
-                val isNewCargo = _cargoInfoList.value.none { it.trackingNumber == trackingNumber }
+                val isNewCargo = _uiState.value.cargoInfoList.none { it.trackingNumber == trackingNumber }
                 val validationResult = quotaValidationUseCase.validateQuotaStatusAndPercentage(initialInfo, isNewCargo)
-                
+
                 if (!validationResult.isValid) {
                     if (validationResult.percentageReached && validationResult.quotaIdToToggle != null) {
                         showMessage(validationResult.warningMessage ?: validationResult.message, MessageType.WARNING)
-                        
+
                         delay(1000.milliseconds)
                         toggleQuotaStatus(validationResult.quotaIdToToggle, initialInfo.loadingQuotaNumber.toString())
                     } else {
@@ -316,7 +317,7 @@ class CargoViewModel(
                     _isQuotaActive.value = validationResult.isActive
                     return@launch
                 }
-                
+
                 _isQuotaActive.value = true
 
                 val tempTonnageResult = quotaValidationUseCase.validateTempTonnage(initialInfo)
@@ -352,7 +353,7 @@ class CargoViewModel(
             } catch (e: Exception) {
                 showErrorMessage("خطا در ثبت اطلاعات بار: ${e.message}")
             } finally {
-                _isSubmitting.value = false
+                _uiState.update { it.copy(isSubmitting = false) }
             }
         }
     }
@@ -364,8 +365,6 @@ class CargoViewModel(
         }
         return true
     }
-
-
 
     private suspend fun getUserInfo(): Pair<String, String>? {
         return try {
@@ -384,8 +383,6 @@ class CargoViewModel(
     private fun showErrorMessage(message: String) {
         snackbarQueue.showMessage(message, MessageType.ERROR)
     }
-
-
 
     private fun prepareCargoInfoForSubmission(
         trackingNumber: String,
@@ -433,7 +430,7 @@ class CargoViewModel(
         excessWeight: String
     ) {
         try {
-            val response = apiService.saveOrUpdateCargoInfo(cargoInfo)
+            val response = apiServiceV2.saveOrUpdateCargoInfo(cargoInfo)
 
             if (response.isSuccessful) {
                 val responseBody = response.body()
@@ -481,8 +478,7 @@ class CargoViewModel(
 
     private fun handle24HourWarning(responseBody: SaveOrUpdateResponse) {
         if (responseBody.requiresConfirmation == true) {
-            _duplicateWarningMessage.value = responseBody.message
-            _showDuplicateConfirmationDialog.value = true
+            _uiState.update { it.copy(duplicateWarningMessage = responseBody.message, showDuplicateConfirmationDialog = true) }
         } else {
             showMessage(responseBody.message, MessageType.WARNING)
         }
@@ -515,7 +511,7 @@ class CargoViewModel(
             else -> responseBody?.message ?: "حواله جدید با شماره [$trackingNumber] ثبت شد."
         }
         showMessage(msg, MessageType.SUCCESS)
-        _clearInputFields.value = true
+        _uiState.update { it.copy(clearInputFields = true) }
 
         if (netWeight.isNotBlank()) {
             updateLocalCargoListForExit(trackingNumber, netWeight, responseBody)
@@ -524,20 +520,21 @@ class CargoViewModel(
     }
 
     private fun updateLocalCargoListForExit(trackingNumber: String, netWeight: String, responseBody: SaveOrUpdateResponse?) {
-        val updatedList = _cargoInfoList.value.map { cargo ->
-            if (cargo.trackingNumber == trackingNumber) {
-                cargo.copy(
-                    status = "خروج",
-                    netWeight = netWeight,
-                    exitDate = responseBody?.exitDate ?: getCurrentDate(),
-                    exitTime = responseBody?.exitTime ?: getCurrentTime()
-                )
-            } else {
-                cargo
+        _uiState.update { state ->
+            val updatedList = state.cargoInfoList.map { cargo ->
+                if (cargo.trackingNumber == trackingNumber) {
+                    cargo.copy(
+                        status = "خروج",
+                        netWeight = netWeight,
+                        exitDate = responseBody?.exitDate ?: getCurrentDate(),
+                        exitTime = responseBody?.exitTime ?: getCurrentTime()
+                    )
+                } else {
+                    cargo
+                }
             }
+            state.copy(cargoInfoList = updatedList, filteredCargoInfoList = updatedList)
         }
-        _cargoInfoList.value = updatedList
-        _filteredCargoInfoList.value = updatedList
     }
 
     private fun parseErrorResponse(errorBody: String?): SaveOrUpdateResponse? {
@@ -549,8 +546,7 @@ class CargoViewModel(
     }
 
     fun dismissDuplicateConfirmationDialog() {
-        _showDuplicateConfirmationDialog.value = false
-        _duplicateWarningMessage.value = ""
+        _uiState.update { it.copy(showDuplicateConfirmationDialog = false, duplicateWarningMessage = "") }
         _pendingCargoInfo.value = null
     }
 
@@ -560,7 +556,7 @@ class CargoViewModel(
             val updatedCargoInfo = cargoInfo.copy(duplicateConfirmation = "proceed")
             viewModelScope.launch {
                 try {
-                    val response = apiService.saveOrUpdateCargoInfo(updatedCargoInfo)
+                    val response = apiServiceV2.saveOrUpdateCargoInfo(updatedCargoInfo)
                     if (response.isSuccessful) {
                         val responseBody = response.body()
                         if (responseBody?.error == true) {
@@ -592,7 +588,7 @@ class CargoViewModel(
     }
 
     fun resetClearInputFields() {
-        _clearInputFields.value = false
+        _uiState.update { it.copy(clearInputFields = false) }
     }
 
     private fun isValidScaleReceipt(scaleReceipt: String): Boolean {
@@ -606,7 +602,7 @@ class CargoViewModel(
         }
 
         return try {
-            val response = apiService.checkScaleReceiptNumber(scaleReceiptNumber)
+            val response = apiServiceV2.checkScaleReceiptNumber(scaleReceiptNumber = scaleReceiptNumber)
             if (response.isSuccessful) {
                 val result = response.body()
                 if (result?.exists == true) {
@@ -638,8 +634,7 @@ class CargoViewModel(
         viewModelScope.launch {
             if (isValidScaleReceipt(barcode)) {
                 if (checkScaleReceiptNumber(barcode)) {
-                    _scaleReceiptNumber.value = barcode
-                    _showNetWeightDialog.value = true
+                    _uiState.update { it.copy(scaleReceiptNumber = barcode, showNetWeightDialog = true) }
                 }
             } else {
                 showMessage("شماره قبض باسکول معتبر نیست. لطفاً دوباره اسکن کنید.", MessageType.ERROR)
@@ -668,20 +663,18 @@ class CargoViewModel(
 
                 val duplicateTrackingNumbers = checkForDuplicateTrackingNumbers(result.cargoInfoList)
                 if (duplicateTrackingNumbers.isNotEmpty()) {
-                    _duplicateTrackingNumbers.value = duplicateTrackingNumbers
-                    _showDuplicateDialog.value = true
+                    _uiState.update { it.copy(duplicateTrackingNumbers = duplicateTrackingNumbers, showDuplicateDialog = true) }
                     Log.w("CargoViewModel_Log", "حواله‌های تکراری شناسایی شدند: ${duplicateTrackingNumbers.joinToString(", ")}")
                 }
 
-                _cargoInfoList.value = result.cargoInfoList
-                _initialInfo.value = result.initialInfo
+                _uiState.update { it.copy(cargoInfoList = result.cargoInfoList, initialInfo = result.initialInfo) }
                 // جستجوی فعال کاربر (در صورت وجود) دوباره اعمال می‌شود؛
                 // وگرنه هر بارگذاری (polling هر ۳۰ ثانیه، refresh، تأیید
                 // حواله) بی‌صدا لیست فیلترشده را با کل لیست جایگزین می‌کرد.
                 filterCargoInfoList(lastSearchQuery)
 
                 _cargoWeight.value = result.initialInfo.cargoWeight.toString()
-                _totalNetWeight.value = result.initialInfo.totalNetWeight.toString()
+                _uiState.update { it.copy(totalNetWeight = result.initialInfo.totalNetWeight.toString()) }
                 _remainingWeight.value = result.initialInfo.remainingWeight.toString()
                 _averageNetWeight.value = result.initialInfo.averageNetWeight.toString()
                 _remainingServices.value = result.initialInfo.remainingServices.toString()
@@ -698,8 +691,8 @@ class CargoViewModel(
                 launch {
                     try {
                         val response = withContext(Dispatchers.IO) {
-                            apiService.getLoadableTonnage(
-                                quotaNumber = qNumber,
+                            apiServiceV2.getLoadableTonnage(
+                                route = ApiV2Routes.quotaLoadableTonnage(qNumber),
                                 shippingCompany = sCompany,
                                 warehouse = wHouse,
                                 cargoType = cType
@@ -714,15 +707,15 @@ class CargoViewModel(
                                 } else {
                                     DecimalFormat("#,###").format(tonnage.roundToInt())
                                 }
-                                _loadableTonnage.value = formattedValue
+                                _uiState.update { it.copy(loadableTonnage = formattedValue) }
                             }
 
                             data.trucks18Wheeler?.let { count ->
-                                _loadableTrucks18Wheeler.value = count.toString()
+                                _uiState.update { it.copy(loadableTrucks18Wheeler = count.toString()) }
                             }
 
                             data.trucks10Wheeler?.let { count ->
-                                _loadableTrucks10Wheeler.value = count.toString()
+                                _uiState.update { it.copy(loadableTrucks10Wheeler = count.toString()) }
                             }
                         } else {
                             Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage during initial load")
@@ -743,7 +736,7 @@ class CargoViewModel(
 
     suspend fun toggleQuotaStatus(id: Int, quotaNumber: String) {
         try {
-            val response = apiService.toggleQuotaStatus(id = id)
+            val response = apiServiceV2.toggleQuotaStatus(route = ApiV2Routes.quotaToggleStatus(id))
             if (response.isSuccessful) {
                 val responseBody = response.body()
                 if (responseBody?.success == true) {
@@ -771,14 +764,14 @@ class CargoViewModel(
                     status = "خروج"
                 )
 
-                val response = apiService.saveOrUpdateCargoInfo(updatedCargoInfo)
+                val response = apiServiceV2.saveOrUpdateCargoInfo(updatedCargoInfo)
                 if (response.isSuccessful) {
-                    val updatedList = _cargoInfoList.value.map { cargo ->
-                        if (cargo.id == cargoInfo.id) updatedCargoInfo else cargo
+                    _uiState.update { state ->
+                        val updatedList = state.cargoInfoList.map { cargo ->
+                            if (cargo.id == cargoInfo.id) updatedCargoInfo else cargo
+                        }
+                        state.copy(cargoInfoList = updatedList, filteredCargoInfoList = updatedList)
                     }
-
-                    _cargoInfoList.value = updatedList
-                    _filteredCargoInfoList.value = updatedList
 
                     clearApiCache()
                     refreshCargoInfo()
@@ -796,7 +789,7 @@ class CargoViewModel(
     fun updateInfoValues() {
         viewModelScope.launch(Dispatchers.Default) {
             try {
-                val exitedCargos = _cargoInfoList.value.filter { it.status == "خروج" }
+                val exitedCargos = _uiState.value.cargoInfoList.filter { it.status == "خروج" }
                 val netWeights = exitedCargos.mapNotNull { it.netWeight.toFloatOrNull() }
                 val totalNet = netWeights.sum()
                 val averageNet = if (netWeights.isNotEmpty()) netWeights.average() else 0.0
@@ -807,13 +800,14 @@ class CargoViewModel(
                 withContext(Dispatchers.Main) {
                     _remainingWeight.value = DecimalFormat("#,###").format(remaining.roundToInt())
                     _loadedWeight.value = DecimalFormat("#,###").format(totalNet.roundToInt())
-                    _totalNetWeight.value = DecimalFormat("#,###").format(totalNet.roundToInt())
+                    _uiState.update { it.copy(totalNetWeight = DecimalFormat("#,###").format(totalNet.roundToInt())) }
                     _averageNetWeight.value = DecimalFormat("#,###").format(averageNet.roundToInt())
                     _remainingServices.value = remainingServicesCount.toString()
                     _totalServices.value = _cargoCount.value.toString()
 
-                    if (_loadableTrucks18Wheeler.value.isBlank() || _loadableTrucks10Wheeler.value.isBlank()) {
-                        val loadableTonnageValue = _loadableTonnage.value.replace(",", "").toDoubleOrNull() ?: 0.0
+                    val state = _uiState.value
+                    if (state.loadableTrucks18Wheeler.isBlank() || state.loadableTrucks10Wheeler.isBlank()) {
+                        val loadableTonnageValue = state.loadableTonnage.replace(",", "").toDoubleOrNull() ?: 0.0
                         updateLoadableTrucksCount(loadableTonnageValue)
                     }
                 }
@@ -832,14 +826,14 @@ class CargoViewModel(
         viewModelScope.launch {
             try {
                 val response = withContext(Dispatchers.IO) {
-                    apiService.deleteCargo(cargoInfoRequest)
+                    apiServiceV2.deleteCargo(cargoInfoRequest)
                 }
                 if (response.isSuccessful) {
                     showMessage(response.body()?.message ?: "حواله با موفقیت حذف شد.", MessageType.SUCCESS)
 
                     updateLoadableTonnageIfNeeded()
 
-                    _initialInfo.value?.let { info ->
+                    _uiState.value.initialInfo?.let { info ->
                         loadCargoInfoList(
                             quotaNumber = info.loadingQuotaNumber.toString(),
                             shippingCompany = info.shippingCompany,
@@ -881,10 +875,10 @@ class CargoViewModel(
 
         viewModelScope.launch(Dispatchers.Default) {
             try {
-                _initialInfo.value?.let { info ->
+                _uiState.value.initialInfo?.let { info ->
                     val response = withContext(Dispatchers.IO) {
-                        apiService.getLoadableTonnage(
-                            quotaNumber = info.loadingQuotaNumber.toString(),
+                        apiServiceV2.getLoadableTonnage(
+                            route = ApiV2Routes.quotaLoadableTonnage(info.loadingQuotaNumber.toString()),
                             shippingCompany = info.shippingCompany,
                             warehouse = info.loadingWarehouse,
                             cargoType = info.cargoType
@@ -896,17 +890,17 @@ class CargoViewModel(
                         withContext(Dispatchers.Main.immediate) {
                             data.loadableTonnage?.let { tonnage ->
                                 val formattedTonnage = DecimalFormat("#,###").format(tonnage.roundToInt())
-                                _loadableTonnage.value = formattedTonnage
+                                _uiState.update { it.copy(loadableTonnage = formattedTonnage) }
                                 cachedLoadableTonnage = formattedTonnage
                                 lastLoadableTonnageUpdate = currentTime
                             }
 
                             data.trucks18Wheeler?.let { count ->
-                                _loadableTrucks18Wheeler.value = count.toString()
+                                _uiState.update { it.copy(loadableTrucks18Wheeler = count.toString()) }
                             }
 
                             data.trucks10Wheeler?.let { count ->
-                                _loadableTrucks10Wheeler.value = count.toString()
+                                _uiState.update { it.copy(loadableTrucks10Wheeler = count.toString()) }
                             }
                         }
                     } else {
@@ -922,24 +916,26 @@ class CargoViewModel(
     private fun updateLoadableTrucksCount(loadableTonnage: Double) {
         val trucks18Wheeler = if (loadableTonnage > 0) (loadableTonnage / 25000.0).toInt() else 0
         val trucks10Wheeler = if (loadableTonnage > 0) (loadableTonnage / 15000.0).toInt() else 0
-        _loadableTrucks18Wheeler.value = trucks18Wheeler.toString()
-        _loadableTrucks10Wheeler.value = trucks10Wheeler.toString()
+        _uiState.update { it.copy(loadableTrucks18Wheeler = trucks18Wheeler.toString(), loadableTrucks10Wheeler = trucks10Wheeler.toString()) }
     }
 
     fun setInitialInfo(initialInfo: InitialInfo) {
-        _initialInfo.value = initialInfo
+        _uiState.update { it.copy(initialInfo = initialInfo) }
     }
 
     fun resetCurrentSelection() {
-        _initialInfo.value = null
-        _cargoInfoList.value = emptyList()
-        _filteredCargoInfoList.value = emptyList()
-        _scaleReceiptNumber.value = ""
-        _clearInputFields.value = true
-        _loadableTonnage.value = ""
-        _loadableTrucks18Wheeler.value = ""
-        _loadableTrucks10Wheeler.value = ""
+        _uiState.update {
+            it.copy(
+                initialInfo = null,
+                cargoInfoList = emptyList(),
+                filteredCargoInfoList = emptyList(),
+                scaleReceiptNumber = "",
+                clearInputFields = true,
+                loadableTonnage = "",
+                loadableTrucks18Wheeler = "",
+                loadableTrucks10Wheeler = ""
+            )
+        }
         clearApiCache()
     }
-
 }

@@ -238,10 +238,9 @@ class StartupViewModel(
         return try {
             val deviceId = userPreferencesManager.deviceId.first()
             val sessionToken = userPreferencesManager.sessionToken.first()
-            val apiService = RetrofitClient.apiService
             val sessionRequest = SessionCheckRequest(username, deviceId, sessionToken.takeIf { it.isNotEmpty() })
 
-            val response = apiService.checkSession(sessionRequest)
+            val response = RetrofitClient.apiServiceV2.checkSession(sessionRequest)
 
             if (!response.isSuccessful && response.code() >= 500) {
                 isWithinSessionOfflineGracePeriod()

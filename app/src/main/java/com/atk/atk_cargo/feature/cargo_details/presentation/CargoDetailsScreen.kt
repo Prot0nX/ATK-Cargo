@@ -34,7 +34,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -113,7 +113,7 @@ suspend fun confirmCargo(info: CargoInfo, username: String, userType: String): R
             "shipName" to info.shipName
         )
 
-        val response = RetrofitClient.apiService.confirmCargo(requestBody)
+        val response = RetrofitClient.apiServiceV2.confirmCargo(requestBody)
 
         if (response.isSuccessful) {
             val responseBody = response.body()
@@ -181,15 +181,16 @@ fun CargoDetailsScreen(
     val context = LocalContext.current
     val userPreferencesManager = koinInject<UserPreferencesManager>()
     val effectiveRepository = remember(repository) {
-        repository ?: ReportsRepository(RetrofitClient.apiService)
+        repository ?: ReportsRepository()
     }
     val viewModel: CargoViewModel = passedViewModel ?: viewModel(factory = CargoViewModelFactory(effectiveRepository, userPreferencesManager))
     val coroutineScope = rememberCoroutineScope()
     val username by userPreferencesManager.username.collectAsStateWithLifecycle(initialValue = "")
     val userType by userPreferencesManager.userType.collectAsStateWithLifecycle(initialValue = "")
-    val cargoInfoList by viewModel.cargoInfoList.collectAsStateWithLifecycle()
-    val filteredCargoInfoList by viewModel.filteredCargoInfoList.collectAsStateWithLifecycle()
-    val initialInfo by viewModel.initialInfo.collectAsStateWithLifecycle()
+    val cargoUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val cargoInfoList = cargoUiState.cargoInfoList
+    val filteredCargoInfoList = cargoUiState.filteredCargoInfoList
+    val initialInfo = cargoUiState.initialInfo
     val resultMessage by viewModel.resultMessage.collectAsStateWithLifecycle()
     val showAnimatedMessage by viewModel.showAnimatedMessage.collectAsStateWithLifecycle()
     val messageType by viewModel.messageType.collectAsStateWithLifecycle()

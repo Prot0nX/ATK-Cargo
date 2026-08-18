@@ -37,7 +37,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.atk.atk_cargo.api.ColorSelector
 import com.atk.atk_cargo.api.Quota
 import com.atk.atk_cargo.api.QuotaEditData
@@ -64,8 +64,9 @@ fun QuotaDetails(
     quotaNumber: String,
     viewModel: ReportsViewModel
 ) {
-    val quotaDetails by viewModel.selectedQuotaDetails.collectAsStateWithLifecycle()
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val reportsUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val quotaDetails = reportsUiState.selectedQuotaDetails
+    val uiState = reportsUiState.status
 
     LaunchedEffect(quotaNumber) {
         viewModel.loadQuotaDetails(quotaNumber)

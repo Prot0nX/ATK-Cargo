@@ -36,7 +36,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +50,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserPreferencesManager
@@ -310,7 +310,7 @@ fun ProfileMenu(
         LaunchedEffect(Unit) {
             if (currentUser == null) {
                 try {
-                    currentUser = RetrofitClient.apiService.getSelfProfile()
+                    currentUser = RetrofitClient.apiServiceV2.getSelfProfile()
                 } catch (_: Exception) {
                     Toast.makeText(context, "خطا در دریافت اطلاعات کاربر", Toast.LENGTH_SHORT).show()
                     showSettings = false

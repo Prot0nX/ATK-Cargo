@@ -53,7 +53,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,6 +66,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.atk.atk_cargo.api.FilteredSummary
 import com.atk.atk_cargo.api.Quota
 import com.atk.atk_cargo.api.Warehouse
@@ -109,9 +109,10 @@ fun WarehouseDetails(
     viewModel: ReportsViewModel,
     onBack: () -> Unit = {}
 ) {
-    val warehouse by viewModel.selectedWarehouse.collectAsStateWithLifecycle()
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val filteredSummary by viewModel.filteredSummary.collectAsStateWithLifecycle()
+    val reportsUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val warehouse = reportsUiState.selectedWarehouse
+    val uiState = reportsUiState.status
+    val filteredSummary = reportsUiState.filteredSummary
     var selectedQuota by remember { mutableStateOf<String?>(null) }
     var startDateTime by remember { mutableStateOf<String?>(null) }
     var endDateTime by remember { mutableStateOf<String?>(null) }

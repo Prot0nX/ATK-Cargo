@@ -110,7 +110,7 @@ class PermissionPoller(
             }
 
             val request  = PermissionSyncRequest(username, deviceId, sessionToken)
-            val response = RetrofitClient.apiService.syncPermissions(request)
+            val response = RetrofitClient.apiServiceV2.syncPermissions(request)
 
             // response.isSuccessful فقط برای کد ۲۰۰-۲۹۹ true است، پس بررسی
             // response.code() == 401 داخل شاخه‌ی isSuccessful هرگز اجرا
