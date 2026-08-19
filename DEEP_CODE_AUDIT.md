@@ -2436,7 +2436,7 @@ define('APP_STORAGE', dirname(APP_ROOT) . '/atk_storage');
 
 ### [MEDIUM] نبود مانیتورینگ و هشدار
 
-**وضعیت:** ⚠️ بخشی برطرف شد (Phase 2.13) — مورد ۱ (health-check) انجام شد. موارد ۲ (اعلان فوری برای رویدادهای امنیتی) و ۳ (logrotate) هنوز باز هستند — خارج از دامنه‌ی Phase 2.13 که فقط «گزارش کرش + health-check» را هدف گرفته بود.
+**وضعیت:** ⚠️ بخشی برطرف شد. مورد ۱ (health-check) در Phase 2.13 و مورد ۳ (logrotate) در Phase 4.11 انجام شدند. مورد ۲ اکنون در Phase 5.2 برطرف شد: `SecurityAlerter.php` (کانال Telegram Bot API، no-op اگر env تنظیم نشود، cooldown ۵ دقیقه‌ای برای جلوگیری از اسپم) به `REFRESH_TOKEN_REUSE_DETECTED` (`SessionService.php`) و قفل‌شدن حساب/IP (`LoginAttemptLimiter.php`، دقیقاً در لحظه‌ی عبور از سقف) وصل شد. «دسترسی از IP مسدود» (بند سوم پیشنهاد اصلی) حذف شد چون چنین مکانیزمی (allow/deny list صریح IP) اصلاً در کدبیس وجود ندارد — چیزی برای اعلان‌دادن نبود.
 
 **Problem:**
 هیچ health-check endpoint، هیچ متریک، و هیچ مکانیزم هشداری وجود ندارد. رویدادهای امنیتی مهم مثل `REFRESH_TOKEN_REUSE_DETECTED` (که نشانه‌ی احتمالی سرقت توکن است) فقط در یک فایل متنی نوشته می‌شوند که کسی نمی‌خواند.
@@ -2520,6 +2520,8 @@ iText 5 تحت **AGPLv3** منتشر می‌شود. برای یک محصول ا�
 با توجه به اینکه فقط یک use case دارد، گزینه‌ی ۲ احتمالاً کم‌هزینه‌ترین است. **توجه:** پشتیبانی از فارسی و RTL باید در هر گزینه‌ی جایگزین تأیید شود — این احتمالاً دلیل انتخاب iText بوده است.
 
 **Priority:** MEDIUM (حقوقی: HIGH) · **Effort:** Medium
+
+**وضعیت:** ✅ برطرف شد (Phase 5.4، تصمیم کاربر: گزینه‌ی چهارم — نه خرید، نه مهاجرت، بلکه حذف کامل). چون خروجی PDF فعلاً مورد نیاز نیست، به‌جای مهاجرت پرریسک (رندر RTL فارسی)، کل قابلیت حذف شد: `ExportPdfUseCase.kt` پاک شد، وابستگی `itextpdf` از `build.gradle.kts`/`libs.versions.toml` حذف شد، و مسیر UI مرتبط (دکمه‌ی «خروجی PDF» در `WarehouseDetailsScreen.kt`، `exportData`/`showFileOptions` در `ReportsViewModel.kt`) پاک‌سازی شد. `compileDebugKotlin` و `compileDebugUnitTestKotlin` سبز. اگر بعداً خروجی PDF دوباره لازم شد، باید از صفر با یک کتابخانه‌ی مجوز-آزاد (مثلاً Apache PDFBox) پیاده‌سازی شود.
 
 ---
 
@@ -2719,9 +2721,7 @@ data class CargoRecord(
 
 **Priority:** HIGH · **Effort:** High
 
----
-
-### [MEDIUM] Magic Strings برای وضعیت حواله
+**وضعیت:** ⚠️ بخشی برطرف شد (Phase 5.1). به‌جای بازنویسی کامل مدل دامنه (که به‌دلیل ریسک/حجم بالا در Phase 3.6 عمداً موکول شده بود)، نوع تایپ‌شده‌ی `Kilograms` (`domain/model/Kilograms.kt`) ساخته و در دقیقاً همان ۳ نقطه‌ای که گزارش به‌عنوان مصداق ذکر کرده بود (`CargoViewModel.updateInfoValues`، خطوط ۷۹۹/۸۰۲/۸۱۶ سابق) جایگزین شد. تفاوت رفتاری واقعی: قبلاً `?: 0f`/`?: 0.0` بی‌صدا صفر برمی‌گرداند؛ اکنون `Kilograms.parse` مقدار نامعتبر را به‌صراحت `null` می‌کند و یک `Log.w` با شماره‌ی حواله/مقدار خام ثبت می‌شود، بعد به ۰ فallback می‌شود (fail-safe، نه fail-silent). فیلدهای `Cargo`/`CargoInfo` (DTO) عمداً `String` باقی ماندند چون این تغییر به ده‌ها Composable مصرف‌کننده سرایت می‌کرد؛ این بخش (تبدیل کامل مدل دامنه) هنوز باز است. `compileDebugKotlin` پاس شد.
 
 **File:** سراسر — `CargoViewModel.kt:417,800`, `CargoController.php:503-505,564`, `CargoDetailsScreen.kt`, ...
 
@@ -2986,7 +2986,7 @@ PHP/
 | 2.13 | ✅ افزودن گزارش کرش خودمیزبان + health-check endpoint (+ رفع کامل محافظت پوشه‌ی `logs/` که در Phase 1.7 جا افتاده بود) | Medium |
 
 **وضعیت Phase 2: تمام ۱۳ مورد پردازش شد (۲.۱ تا ۲.۱۳).** ۱۱ مورد کاملاً رفع شد، یکی (۲.۱۱) بی‌موضوع تشخیص داده شد (بر پایه‌ی schema.sql قدیمی بود)، و یکی (۲.۱۳) بخشی رفع شد (health-check/crash انجام شد؛ alerting/logrotate باز ماند). دو یافته‌ی جدی خارج از دامنه‌ی اصلی این فاز کشف شدند: باگ واقعی تولید `exitDate` نامعتبر در ۳۰ اسفند سال‌های کبیسه (Phase 2.12، نیازمند بررسی داده‌ی تولید توسط شما) و نیاز به اجرای دستی migration/`composer install --no-dev` هنگام deploy (Phase 2.1 و 2.2).
-| 2.14 | تصمیم درباره‌ی مجوز `itextpdf` (خرید یا مهاجرت) | Medium |
+| 2.14 | ✅ تصمیم کاربر: حذف کامل قابلیت خروجی PDF (نیازی به آن فعلاً نیست) — به‌جای خرید لایسنس یا مهاجرت به کتابخانه‌ی جایگزین. جزئیات در Phase 5.4 | Medium |
 
 **نتیجه:** Security ~۸، Performance ~۷.۵، Production Readiness ~۷.
 
@@ -3003,7 +3003,7 @@ PHP/
 | 3.5 | ✅ معرفی `UiState` واحد در `CargoViewModel` و `ReportsViewModel` | High |
 | 3.6 | ✅ تفکیک DTO از مدل دامنه + mapper برای CargoInfo/InitialInfo/ShipInfo (`Cargo`/`QuotaInfo`/`ShipInfo` در `domain/model`). value classes برای وزن/تناژ عمداً به مرحله‌ی بعد موکول شد (تصمیم کاربر؛ ریسک/حجم جدا) | High |
 | 3.7 | ✅ شکستن ۵ God Composable بزرگ‌تر به Screen/Content/Components — SelectInfoScreen، QuotaManagementDialog، QuotasListScreen، InitialInfoScreen، CargoCounterComponents | High |
-| 3.8 | ⚠️ سمت Kotlin: ✅ `CargoStatus`/`CargoConfirmStatus` در `domain/model` جایگزین ۲۰+ magic string شدند. سمت PHP عمداً جدا گذاشته شد (۶ فایل SQL خام، بدون امکان تست در این محیط — نیاز به بررسی جدا) | Medium |
+| 3.8 | ✅ سمت Kotlin: `CargoStatus`/`CargoConfirmStatus` در `domain/model` جایگزین ۲۰+ magic string شدند. سمت PHP در Phase 5.3 تکمیل شد: `App\Enums\CargoStatus`/`CargoConfirmStatus` (native PHP 8.1 enum) در ۶ فایل (`CargoRepository`, `QuotaService`, `ShipService`, `CargoService`, `CargoController`, `AnalyticsController`) جایگزین literal `'ورود'`/`'خروج'`/`'تائید شده'` شدند | Medium |
 | 3.9 | ✅ نوشته شد (اجرا نشده): `PHP/migrations/2026_08_18_add_chat_session_foreign_keys.sql` — پاک‌سازی یتیم + FK به `user_sessions`/`admin_chat_messages`/`admin_chat_reads`؛ schema.sql هم به‌روزرسانی شد. بدون دسترسی به DB واقعی در این محیط، فقط نوشته و بررسی منطقی شد، نه اجرا | Medium |
 | 3.10 | ✅ به‌جای cursor pagination کامل (تصمیم کاربر: ریسک/breaking change)، سقف سخت‌گیرانه (`LIMIT`) به ۵ endpoint بدون صفحه‌بندی اضافه شد: `UserRepository::getAll`، `SessionRepository::getOnlineUsers`/`getLatestSessionsForAllUsers`، `QuotaService::getFilteredQuotas`/`computeQuotasList`. `php -l` روی هر ۳ فایل پاس شد | High |
 | 3.11 | ✅ حذف `hashPassword`/`SecurityUtils.kt` از کلاینت (۴ محل: لاگین، ساخت/ویرایش کاربر، تغییر رمز پروفایل)؛ `UserService::verifyCredentials` سه‌مسیره شد (bcrypt(raw)، bcrypt(SHA256) قدیمی، SHA256/متن‌خام خیلی قدیمی) با silent-migration خودکار به bcrypt(raw) | Medium |
@@ -3022,11 +3022,25 @@ PHP/
 | 4.4 | ⚠️ فقط قدم اول: `targetSdk` → ۳۵ (compile + manifest merge پاس شد؛ `FOREGROUND_SERVICE_DATA_SYNC`/`foregroundServiceType` از قبل درست بودند). رفتار runtime واقعی (edge-to-edge، notification) روی دستگاه تست نشده — قبل از release حتماً تست دستی لازم است. ۳۶ عمداً انجام نشد | Medium |
 | 4.5 | ✅ کد از قبل ۱۰۰٪ روی Material3 بود (صفر import از `androidx.compose.material.*` غیر از material3/icons) — فقط وابستگی مرده‌ی `androidx.compose.material:material` (M2) و ورودی‌های مرتبطش در `libs.versions.toml` حذف شدند | Medium |
 | 4.6 | انتقال رشته‌های UI به `strings.xml` + نوع `UiText` | High |
-| 4.7 | انتقال مجوزها از `permissions.json` به دیتابیس | Medium |
+| 4.7 | ✅ انتقال مجوزها از `permissions.json` به دیتابیس — جزئیات در Phase 5.5 | Medium |
 | 4.8 | ✅ `PHP/openapi.yaml` — تمام ۴۶ route فایل `api_v2.php` (auth/permission/پارامترها) مستند شد؛ YAML معتبر تأیید شد (۵۳ ورودی path) | Medium |
 | 4.9 | ⚠️ ۲ فایل تست نوشته شد (`ActionButtonTest`, `CompactStatChipTest`)؛ `compileDebugAndroidTestKotlin` پاس شد اما بدون امولاتور در این محیط **هرگز واقعاً اجرا نشده‌اند** — قبل از اعتماد بهشون حتماً روی دستگاه/امولاتور اجرا کنید. حین این کار یک leftover واقعی هم پیدا و رفع شد: `SecurityUtilsTest.kt` (تست تابع حذف‌شده در Phase3.11) که چون `compileDebugKotlin` سورست تست رو کامپایل نمی‌کند، جا مانده بود | Medium |
 | 4.10 | ✅ فقط چک‌لیست مستند شد (تصمیم — طبق خود گزارش ریسکناک‌ترین مورد Phase 4؛ نیاز به staging واقعی): `PHP/STRICT_MODE_CHECKLIST.md` | Medium |
 | 4.11 | ✅ `PHP/deploy/logrotate.d/atk-cargo` (برای VPS با دسترسی root) + `PHP/scripts/rotate_logs.php` (fallback بدون root، برای هاست اشتراکی — واقعاً اجرا و تست شد، نه فقط syntax-check) | Low |
+
+---
+
+### Phase 5 — تکمیل موارد باقی‌مانده (اجرا شده پس از بازبینی نهایی گزارش)
+
+| # | اقدام | Effort |
+|---|---|---|
+| 5.1 | ⚠️ Primitive Obsession وزن/تناژ — نوع `Kilograms` ساخته شد و در ۳ نقطه‌ی مصداقی `CargoViewModel.updateInfoValues` جایگزین `?: 0f`/`?: 0.0` بی‌صدا شد (اکنون `Log.w` می‌زند). تبدیل کامل مدل دامنه/DTO هنوز باز است (ریسک بالا، اثر روی ده‌ها Composable) | High |
+| 5.2 | ✅ اعلان فوری تلگرام برای رویدادهای امنیتی (`SecurityAlerter.php`) روی `REFRESH_TOKEN_REUSE_DETECTED` و قفل‌شدن حساب/IP وصل شد؛ no-op بدون تنظیم env، cooldown ۵ دقیقه‌ای. حین پیاده‌سازی یک باگ واقعی کشف و رفع شد: interpolation ساده‌ی PHP بایت‌های UTF-8 کاراکتر «»» را جزو نام متغیر می‌خواند (`"$username»"` → `Undefined variable`) — با `{$var}` رفع شد؛ `phpunit`/`phpstan` سبز | Medium |
+| 5.3 | ✅ تکمیل Phase 3.8 سمت PHP — `App\Enums\CargoStatus`/`CargoConfirmStatus` ساخته و در ۶ فایل جایگزین literal شدند. برای اطمینان از عدم تغییر رفتار بدون دسترسی به DB واقعی: مقدار هر ثابت enum با Reflection مستقیماً استخراج و با رشته‌ی اصلی مقایسه شد (تطابق کامل)، پس متن SQL تولیدشده در runtime **بایت‌به‌بایت با قبل یکسان** است؛ `php -l`، `phpstan`، و کل ۶۸ تست PHPUnit سبز | Medium |
+| 5.4 | ✅ تصمیم کاربر برای Phase 2.14 (مجوز AGPL `itextpdf`): نه خرید لایسنس نه مهاجرت — **حذف کامل** قابلیت خروجی PDF چون فعلاً لازم نیست. `ExportPdfUseCase.kt` حذف، وابستگی از Gradle حذف، UI/ViewModel مرتبط پاک‌سازی شد؛ build سبز | Medium |
+| 5.5 | ✅ تکمیل Phase 4.7 — انتقال مجوزها به دیتابیس. جداول `role_permissions`/`user_permissions` (`migrations/2026_08_19_permissions_to_database.sql` + `schema.sql`)، `PermissionRepository.php` جدید، `PermissionService::getUserPermissions` اکنون DB-first با **fallback خودکار به `permissions.json`** اگر جداول هنوز migrate نشده باشند (خطای احراز هویت/مجوز صفر نمی‌شود)، `PermissionManager.php` برای خواندن/نوشتن از DB بازنویسی شد (با بنر هشدار وقتی DB migrate نشده). چون یک MariaDB واقعی در این محیط در دسترس بود، کل مسیر با دیتابیس throwaway واقعی end-to-end تست شد: اجرای migration، تطابق دقیق seed با `permissions.json` فعلی، round-trip ذخیره/حذف نقش و override کاربر، `ON DELETE CASCADE`، و مسیر DB در `PermissionService` (نه فقط fallback). `php -l`، `phpstan`، و کل ۶۸ تست PHPUnit سبز | Medium |
+
+**نتیجه‌ی موقت Phase 5:** در حال انجام — این جدول بعد از هر مورد به‌روزرسانی می‌شود.
 
 ---
 
@@ -3171,7 +3185,7 @@ Phase 1.4 (گیت `view_reports`) و Phase 4.10 (`STRICT_TRANS_TABLES`) هر د�
 | 17 | `check_logout.php` بدون auth → DoS هدفمند علیه همه‌ی کاربران | Security | MEDIUM | `AuthController.php:258-279` | Low |
 | 18 | `getAllUsers` فهرست کامل کاربران و نقش‌ها را به هر کاربر می‌دهد | Security | MEDIUM | `UserController.php:82-85` | Low |
 | 19 | ۲۲ لیست Lazy بدون `key` در ترکیب با polling ۳۰ ثانیه‌ای | Performance | MEDIUM | ۱۳ فایل | Low |
-| 20 | `itextpdf 5` با مجوز AGPL در یک محصول proprietary | Legal/Deps | MEDIUM | `build.gradle.kts:297` | Medium |
+| 20 | ✅ `itextpdf 5` با مجوز AGPL در یک محصول proprietary (رفع شد — قابلیت PDF کامل حذف شد) | Legal/Deps | MEDIUM | `build.gradle.kts:297` | Medium |
 
 ---
 
