@@ -210,6 +210,9 @@ tasks.matching { it.name == "assembleRelease" }.configureEach {
 
 dependencies {
     implementation(project(":core:designsystem"))
+    implementation(project(":core:common"))
+    implementation(project(":core:network"))
+    implementation(project(":core:database"))
     baselineProfile(project(":baselineprofile"))
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.foundation.layout)
@@ -253,11 +256,6 @@ dependencies {
     // ==================== Data Storage ====================
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.datastore.core)
-
-    // ==================== Room Database ====================
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler)
 
     // ==================== Networking ====================
     implementation(libs.retrofit)

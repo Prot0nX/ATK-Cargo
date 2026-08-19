@@ -39,8 +39,9 @@ class QuotaValidationUseCase(private val repository: ReportsRepository) {
                 val quotas = response.body()
                 val quota = quotas?.find { it.number == initialInfo.loadingQuotaNumber.toString() }
                 
-                if (quota != null && quota.isPercentageRestricted == true && quota.percentage != null) {
-                    val percentageAmount = quota.totalTonnage * (quota.percentage / 100)
+                val quotaPercentage = quota?.percentage
+                if (quota != null && quota.isPercentageRestricted == true && quotaPercentage != null) {
+                    val percentageAmount = quota.totalTonnage * (quotaPercentage / 100)
                     val remainingTonnage = quota.remainingTonnage
                     val loadableTonnage = remainingTonnage - percentageAmount
 

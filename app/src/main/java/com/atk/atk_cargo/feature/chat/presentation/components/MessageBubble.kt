@@ -382,8 +382,9 @@ fun MessageInfoDialog(message: ChatMessageEntity, onDismiss: () -> Unit) {
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
                 
-                if (!message.readByNames.isNullOrEmpty()) {
-                    message.readByNames.split(",").forEach { name ->
+                val readByNames = message.readByNames
+                if (!readByNames.isNullOrEmpty()) {
+                    readByNames.split(",").forEach { name ->
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
                             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp), tint = Color(0xFF2196F3))
                             Spacer(modifier = Modifier.width(4.dp))
@@ -394,9 +395,10 @@ fun MessageInfoDialog(message: ChatMessageEntity, onDismiss: () -> Unit) {
                     Text("هنوز خوانده نشده است", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
 
-                if (message.updatedAt != null) {
+                val updatedAt = message.updatedAt
+                if (updatedAt != null) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    ChatInfoRow("آخرین ویرایش:", message.updatedAt)
+                    ChatInfoRow("آخرین ویرایش:", updatedAt)
                 }
             }
         },

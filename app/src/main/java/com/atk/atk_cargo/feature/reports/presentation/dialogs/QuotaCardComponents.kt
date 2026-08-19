@@ -196,10 +196,11 @@ fun IntegratedQuotaCard(
                                         enabled = !isStatusToggling
                                     )
 
-                                    if (quota.temporaryTonnageEnabled && quota.temporaryTonnageValue != null) {
+                                    val temporaryTonnageValue = quota.temporaryTonnageValue
+                                    if (quota.temporaryTonnageEnabled && temporaryTonnageValue != null) {
                                         CompactStatChip(
                                             icon = Icons.Default.Scale,
-                                            value = "${formatNumber(quota.temporaryTonnageValue.roundToInt())} تن",
+                                            value = "${formatNumber(temporaryTonnageValue.roundToInt())} تن",
                                             color = QuotaAccent
                                         )
                                     }

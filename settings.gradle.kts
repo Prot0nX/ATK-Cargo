@@ -23,3 +23,6 @@ rootProject.name = "ATK-Cargo"
 include(":app")
 include(":baselineprofile")
 include(":core:designsystem")
+include(":core:common")
+include(":core:network")
+include(":core:database")

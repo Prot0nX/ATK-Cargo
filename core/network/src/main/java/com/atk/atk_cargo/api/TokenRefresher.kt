@@ -3,7 +3,6 @@ package com.atk.atk_cargo.api
 import android.util.Log
 import com.atk.atk_cargo.data.model.RefreshTokenResponse
 import com.google.gson.Gson
-import kotlinx.coroutines.flow.first
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -32,18 +31,18 @@ object TokenRefresher {
      * @return access token جدید در صورت موفقیت، یا null (و در صورت رد قطعی
      *         شدن refresh token توسط سرور، پاک‌شدن کامل نشست محلی).
      */
-    suspend fun refresh(baseUrl: String, userPreferencesManager: UserPreferencesManager): String? {
+    suspend fun refresh(baseUrl: String, tokenStore: TokenStore): String? {
         // AuthSession یک singleton درون‌حافظه‌ای است که در AtkCargoApplication
         // با یک coroutine جدا (fire-and-forget) از DataStore پر می‌شود. در
         // cold start (دقیقاً همان لحظه‌ای که این تابع بعد از >۳۰ دقیقه
         // بی‌فعالیتی از StartupViewModel صدا زده می‌شود)، ممکن است این
         // coroutine هنوز کامل نشده باشد و AuthSession.username/deviceId هنوز
         // "" باشند — حتی با یک refreshToken کاملاً معتبر در DataStore. با
-        // خواندن مستقیم از userPreferencesManager (همان منبع پایدار که
-        // refreshToken هم از آن خوانده می‌شود)، این race حذف می‌شود.
-        val username = userPreferencesManager.username.first()
-        val deviceId = userPreferencesManager.deviceId.first()
-        val refreshToken = userPreferencesManager.refreshToken.first()
+        // خواندن مستقیم از tokenStore (همان منبع پایدار که refreshToken هم
+        // از آن خوانده می‌شود)، این race حذف می‌شود.
+        val username = tokenStore.getUsername()
+        val deviceId = tokenStore.getDeviceId()
+        val refreshToken = tokenStore.getRefreshToken()
 
         if (username.isEmpty() || deviceId.isEmpty() || refreshToken.isEmpty()) {
             return null
@@ -70,7 +69,7 @@ object TokenRefresher {
                         // refresh token هم رد شد (منقضی یا نشانه‌ی سرقت که سمت
                         // سرور تمام نشست‌ها را باطل کرده) — نشست محلی هم باید
                         // کاملاً پاک شود تا کاربر واقعاً به صفحه‌ی ورود برود.
-                        userPreferencesManager.clearUserCredentials()
+                        tokenStore.clearCredentials()
                     }
                     return null
                 }
@@ -80,7 +79,7 @@ object TokenRefresher {
                     return null
                 }
 
-                userPreferencesManager.saveRefreshedTokens(parsed.sessionToken, parsed.refreshToken)
+                tokenStore.saveRefreshedTokens(parsed.sessionToken, parsed.refreshToken)
                 parsed.sessionToken
             }
         } catch (e: Exception) {

@@ -1,7 +1,5 @@
 package com.atk.atk_cargo.data.model
 
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import com.google.gson.annotations.SerializedName
 
 data class LoginRequest(
@@ -206,12 +204,4 @@ data class CreateUserRequest(
     val fullName: String,
     val password: String,
     val userType: String
-)
-
-data class UserTypeInfo(
-    val label: String,
-    val description: String,
-    val value: String,
-    val icon: ImageVector,
-    val color: Color
 )

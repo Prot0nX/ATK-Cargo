@@ -21,7 +21,7 @@ import okhttp3.Route
  */
 class TokenAuthenticator(
     private val baseUrl: String,
-    private val userPreferencesManager: UserPreferencesManager
+    private val tokenStore: TokenStore
 ) : Authenticator {
 
     private val mutex = Mutex()
@@ -50,7 +50,7 @@ class TokenAuthenticator(
                 if (current.isNotEmpty() && current != failedToken) {
                     current
                 } else {
-                    TokenRefresher.refresh(baseUrl, userPreferencesManager)
+                    TokenRefresher.refresh(baseUrl, tokenStore)
                 }
             }
         } ?: return null

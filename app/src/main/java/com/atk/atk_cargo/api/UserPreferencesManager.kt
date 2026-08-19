@@ -24,7 +24,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class UserPreferencesManager(
     private val context: Context,
     private val cryptoManager: CryptoManager = CryptoManager()
-) {
+) : TokenStore {
     private val dataStore: DataStore<Preferences> = context.dataStore
 
     // خواندن IOException یک‌بار در یک نقطه (به‌جای ۹+ بار تکرار همان ۷ خط catch)؛
@@ -83,6 +83,13 @@ class UserPreferencesManager(
     // ===== رنگ تم برنامه =====
     val themeColor: Flow<Long> = preference(APP_THEME_COLOR_KEY, DEFAULT_THEME_COLOR)
 
+    // ===== پیاده‌سازی TokenStore (مرز core:network — DEEP_CODE_AUDIT.md #Phase4.2) =====
+    override suspend fun getUsername(): String = username.first()
+    override suspend fun getDeviceId(): String = deviceId.first()
+    override suspend fun getSessionToken(): String = sessionToken.first()
+    override suspend fun getRefreshToken(): String = refreshToken.first()
+    override suspend fun clearCredentials() = clearUserCredentials()
+
     suspend fun saveUserCredentials(username: String, userType: String, deviceId: String = "", sessionToken: String = "", permissions: Map<String, Boolean>? = null) {
         dataStore.edit { preferences ->
             preferences[USERNAME_KEY] = cryptoManager.encrypt(username)
@@ -117,7 +124,7 @@ class UserPreferencesManager(
      * ذخیره‌ی جفت توکن تازه بعد از یک POST /auth/refresh موفق (I-05). جدا از
      * saveSessionToken چون همیشه هر دو مقدار با هم rotate می‌شوند، نه جداگانه.
      */
-    suspend fun saveRefreshedTokens(accessToken: String, refreshToken: String) {
+    override suspend fun saveRefreshedTokens(accessToken: String, refreshToken: String) {
         dataStore.edit { preferences ->
             preferences[SESSION_TOKEN_KEY] = cryptoManager.encrypt(accessToken)
             preferences[REFRESH_TOKEN_KEY] = cryptoManager.encrypt(refreshToken)

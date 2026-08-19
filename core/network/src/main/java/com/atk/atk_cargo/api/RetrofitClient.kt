@@ -2,7 +2,6 @@ package com.atk.atk_cargo.api
 
 import android.content.Context
 import android.util.Log
-import com.atk.atk_cargo.BuildConfig
 import com.google.gson.GsonBuilder
 import com.google.gson.Strictness
 import com.google.gson.TypeAdapter
@@ -34,8 +33,16 @@ object RetrofitClient {
     // به‌موقع در دسترس okHttpClient قرار می‌گیرد.
     private var appContext: Context? = null
 
-    fun init(context: Context) {
+    // core:network به BuildConfig ماژول app دسترسی ندارد (هر ماژول
+    // BuildConfig خودش را دارد) — این پرچم و tokenStore از بیرون (app) در
+    // init تزریق می‌شوند (DEEP_CODE_AUDIT.md #Phase4.2).
+    private var debugLogging: Boolean = false
+    private var tokenStore: TokenStore? = null
+
+    fun init(context: Context, tokenStore: TokenStore, debugLogging: Boolean) {
         appContext = context.applicationContext
+        this.tokenStore = tokenStore
+        this.debugLogging = debugLogging
     }
 
     // نسخه‌ی برنامه فقط یک‌بار خوانده و کش می‌شود؛ برای گیت min_allowed_version
@@ -97,12 +104,18 @@ object RetrofitClient {
         .registerTypeAdapter(Float::class.java, FloatTypeAdapter())
         .create()
 
-    // Logging interceptor for debug builds
-    private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = if (BuildConfig.DEBUG) {
-            HttpLoggingInterceptor.Level.BODY
-        } else {
-            HttpLoggingInterceptor.Level.NONE
+    // Logging interceptor for debug builds. lazy عمداً (نه eager): مقدار
+    // debugLogging تا فراخوانی init() هنوز پیش‌فرض false است؛ eager بودن این
+    // property باعث می‌شد سطح لاگ همیشه با مقدار پیش‌فرض ساخته شود، نه مقداری
+    // که init() واقعاً پاس می‌دهد (چون property initializerهای این object در
+    // همان لحظه‌ی class-load اجرا می‌شوند، قبل از بدنه‌ی تابع init()).
+    private val loggingInterceptor: HttpLoggingInterceptor by lazy {
+        HttpLoggingInterceptor().apply {
+            level = if (debugLogging) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
         }
     }
 
@@ -135,13 +148,13 @@ object RetrofitClient {
     private val connectionPool = ConnectionPool(10, 5, TimeUnit.MINUTES)
 
     // I-05: تمدید خودکار access token با refresh token روی ۴۰۱ با
-    // code=access_token_expired. appContext!! چون همین invariant از قبل روی
+    // code=access_token_expired. tokenStore!! چون همین invariant از قبل روی
     // appContext در این فایل وجود دارد (باید قبل از اولین دسترسی به apiService
     // مقداردهی شود).
     private val tokenAuthenticator: TokenAuthenticator by lazy {
         TokenAuthenticator(
             baseUrl = BASE_URL,
-            userPreferencesManager = UserPreferencesManager(appContext!!)
+            tokenStore = tokenStore!!
         )
     }
 

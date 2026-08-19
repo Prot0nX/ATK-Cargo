@@ -111,9 +111,10 @@ private fun ShipCardContent(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.End
             ) {
-                if (!ship.cargoType.isNullOrBlank()) {
+                val cargoType = ship.cargoType
+                if (!cargoType.isNullOrBlank()) {
                     Text(
-                        text = ship.cargoType,
+                        text = cargoType,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = Teal900
