@@ -540,6 +540,8 @@ if ($updateLastCheck) {
 **Priority:** MEDIUM
 **Estimated Effort:** Low
 
+**Status:** ⚠️ Partially fixed (2026-08-19) — فقط بند ۲ (rate limit) طبق دامنه‌ی تأییدشده‌ی Phase2.14 انجام شد: هر دو `validateLicense()` و `getLicenseInfo()` با `LoginAttemptLimiter` و کلید `license_<IP>` محافظت می‌شوند (سقف مؤثر ۵ درخواست/۱۵دقیقه). با هارنس مستقل تأیید شد که این باکت از `crash_` و از شمارنده‌های واقعی لاگین ایزوله است. بندهای ۱ (GET→POST) و ۳ (حذف `company_name`) هنوز انجام نشده‌اند.
+
 ---
 
 ### [MEDIUM] پیام خطای داخلی به کلاینت نشت می‌کند
@@ -701,6 +703,8 @@ file_put_contents(
 
 **Priority:** MEDIUM
 **Estimated Effort:** Low
+
+**Status:** ✅ Fixed (2026-08-19) — همان `LoginAttemptLimiter` موجود با کلید مجزا (`crash_<IP>`) استفاده شد؛ سقف مؤثر آن ۵ درخواست در ۱۵ دقیقه به‌ازای IP است (به‌جای ۱۰/ساعت پیشنهادی، اما از همان مکانیزم موجود بدون کد جدید). سقف حجم فایل (۵۰MB) هم اضافه شد. با یک هارنس PHP مستقل (بدون APCu، مسیر fallback فایلی) تأیید شد که کلید `crash_` بعد از ۵ تلاش قفل می‌شود و کاملاً از شمارنده‌های واقعی لاگین (حتی با همان IP) و از کلید `license_` (مورد بعدی) ایزوله است. `vendor/bin/phpunit` (۶۸ تست) و `vendor/bin/phpstan analyse` سبز.
 
 ---
 
@@ -2439,7 +2443,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱۱ | انتقال ۹ تماس شبکه از Composable به ViewModel | ۹ فایل | High |
 | ۱۲ | ✅ رفع انیمیشن‌ها با `graphicsLayer` | ۵ فایل | Low |
 | ۱۳ | انتقال shimهای PHP به Router | ۶ فایل | Medium |
-| ۱۴ | rate limit روی `diagnostics/crash` و لایسنس | `DiagnosticsController`، `LicenseController` | Low |
+| ۱۴ | ✅ rate limit روی `diagnostics/crash` و لایسنس | `DiagnosticsController`، `LicenseController` | Low |
 | ۱۵ | ✅ حذف `Log.w` در ProGuard | `proguard-rules.pro` | Low |
 | ۱۶ | ✅ allow-list دامنه برای `downloadUrl` | `UpdateManager.kt` | Low |
 | ۱۷ | پاک‌سازی تاریخچه‌ی git از رازها | `git filter-repo` | Medium |
@@ -2488,13 +2492,13 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۷ | ✅ CI تست اندروید اجرا نمی‌کند | Testing | **HIGH** | `.github/workflows/ci.yml:69` | Low |
 | ۸ | ✅ ایندکس گمشده روی `trackingNumber` | Performance/DB | **HIGH** | `PHP/src/Repositories/CargoRepository.php:299` | Low |
 | ۹ | ✅ recomposition در هر فریم انیمیشن | Performance | **HIGH** | `InitialInfoDialogs.kt:81` + ۴ فایل | Low |
-| ۱۰ | لایسنس بدون auth/rate-limit، کلید در URL | Security | MEDIUM | `PHP/src/Controllers/LicenseController.php:120` | Low |
+| ۱۰ | ⚠️ لایسنس بدون auth/rate-limit، کلید در URL (rate-limit انجام شد؛ auth/URL باقی) | Security | MEDIUM | `PHP/src/Controllers/LicenseController.php:120` | Low |
 | ۱۱ | ✅ نشت پیام استثنا به کلاینت | Security | MEDIUM | `PHP/src/Controllers/UserController.php:83` | Low |
 | ۱۲ | shimهای PHP، Router را دور می‌زنند | Architecture | MEDIUM | ۶ فایل ریشه `PHP/` | Medium |
 | ۱۳ | `<Directory>` نامعتبر در `.htaccess` | Security/Config | MEDIUM | `PHP/.htaccess:20,70,75` | Low |
 | ۱۴ | ✅ `downloadUrl` بدون اعتبارسنجی دامنه | Security | MEDIUM | `UpdateManager.kt:171` | Low |
 | ۱۵ | ✅ `Log.w`/`Log.e` در release باقی می‌مانند | Security/Logging | MEDIUM | `proguard-rules.pro:179` | Low |
-| ۱۶ | گزارش کرش بدون rate limit | Availability | MEDIUM | `DiagnosticsController.php:100` | Low |
+| ۱۶ | ✅ گزارش کرش بدون rate limit | Availability | MEDIUM | `DiagnosticsController.php:100` | Low |
 | ۱۷ | UseCaseها singleton را مستقیم می‌گیرند | Architecture/Testing | MEDIUM | `CheckQuotaUseCase.kt:8` + ۲ فایل | Medium |
 | ۱۸ | ماژول‌بندی نیمه‌کاره (۸۱٪ در `app`) | Architecture | MEDIUM | ساختار پروژه | High |
 | ۱۹ | Compose BOM با نسخه‌ی صریح override شده | Dependencies | MEDIUM | `gradle/libs.versions.toml` | Low |
