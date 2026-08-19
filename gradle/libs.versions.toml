@@ -8,9 +8,7 @@ core-splashscreen = "1.0.1"
 datastore-preferences = "1.1.7"
 desugar_jdk_libs = "2.1.5"
 foundation = "1.9.1"
-itextpdf = "5.5.13.4"
 kotlin = "2.2.20"
-compose-compiler = "1.5.15"
 ksp = "2.2.20-2.0.3"
 kotlinx-coroutines-android = "1.10.2"
 kotlinx-serialization-json = "1.9.0"
@@ -90,7 +88,6 @@ compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = 
 
 desugar_jdk_libs-v215 = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 
-itextpdf = { module = "com.itextpdf:itextpdf", version.ref = "itextpdf" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines-android" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
 lottie-compose = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie-compose" }

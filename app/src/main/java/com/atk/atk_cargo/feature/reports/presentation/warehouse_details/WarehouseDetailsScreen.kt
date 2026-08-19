@@ -38,7 +38,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.Filter
-import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Warehouse
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -185,11 +184,6 @@ fun WarehouseDetails(
                             endDateTime = endDateTime
                         )
                     }
-                },
-                onExport = { format ->
-                    filteredSummary?.let { summary ->
-                        viewModel.exportData(format, summary)
-                    }
                 }
             )
         }
@@ -291,8 +285,7 @@ fun WarehouseContent(
     onQuotaSelected: (Quota) -> Unit,
     onStartDateTimeSelected: (String?) -> Unit,
     onEndDateTimeSelected: (String?) -> Unit,
-    onFilterApplied: () -> Unit,
-    onExport: (String) -> Unit
+    onFilterApplied: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         when (uiState) {
@@ -351,14 +344,6 @@ fun WarehouseContent(
                                     color = WarehouseTitleColor
                                 )
                             }
-
-                            ExportOptions(
-                                onExport = { format ->
-                                    filteredSummary?.let {
-                                        onExport(format)
-                                    }
-                                }
-                            )
                         }
                     }
 
@@ -407,38 +392,6 @@ fun WarehouseContent(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun ExportOptions(onExport: (String) -> Unit) {
-    Surface(
-        onClick = { onExport("pdf") },
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, WarehouseCardBorder),
-        shadowElevation = 1.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "خروجی PDF",
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = WarehouseAccent
-            )
-
-            Icon(
-                imageVector = Icons.Default.PictureAsPdf,
-                contentDescription = "خروجی PDF",
-                tint = WarehouseAccent,
-                modifier = Modifier.size(18.dp)
-            )
         }
     }
 }

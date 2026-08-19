@@ -278,9 +278,6 @@ dependencies {
     // ==================== Animation & UI Effects ====================
     implementation(libs.lottie.compose)
 
-    // ==================== Document Processing ====================
-    implementation(libs.itextpdf)
-
     // ==================== Testing ====================
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
