@@ -30,9 +30,29 @@ final class ApiAuthGate {
         $deviceId = (string)($request->getHeader('X-Device-Id') ?? '');
         $token = (string)($request->getHeader('X-Session-Token') ?? '');
 
-        $userType = (new SessionService())->validateAndGetUserType($username, $deviceId, $token);
+        $sessionService = new SessionService();
+        $userType = $sessionService->validateAndGetUserType($username, $deviceId, $token);
         if ($userType === null) {
-            Response::error('نشست معتبر نیست. لطفاً دوباره وارد شوید.', 401);
+            // I-05: تمایز بین «فقط access token منقضی شده» (کلاینت باید بی‌صدا
+            // POST /auth/refresh بزند) و «کل نشست نامعتبر است» (کلاینت باید
+            // کاربر را به صفحه‌ی login بفرستد). این تمایز قبلاً فقط در گیت
+            // v1 (AuthenticatesRequests) وجود داشت؛ با حذف کامل v1 در فاز ۳،
+            // تنها تولیدکننده‌ی این نشانه از بین رفت و TokenAuthenticator
+            // سمت کلاینت — که دقیقاً منتظر code=access_token_expired است —
+            // دیگر هرگز رفرش نمی‌کرد. نتیجه: کاربر بعد از ۳۰ دقیقه (عمر
+            // access token) از هر منویی بیرون انداخته می‌شد.
+            $code = $sessionService->isAccessTokenExpiredButSessionActive($username, $deviceId, $token)
+                ? 'access_token_expired'
+                : 'session_invalid';
+
+            // Response::error فیلد code را پشتیبانی نمی‌کند (فقط message/details)،
+            // پس اینجا مستقیماً json فرستاده می‌شود — با همان کلیدهای
+            // success/message که بقیه‌ی پاسخ‌های خطای v2 دارند.
+            Response::json([
+                'success' => false,
+                'message' => 'نشست معتبر نیست. لطفاً دوباره وارد شوید.',
+                'code' => $code,
+            ], 401);
         }
 
         return [$username, $userType];

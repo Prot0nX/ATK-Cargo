@@ -33,8 +33,16 @@ object TokenRefresher {
      *         شدن refresh token توسط سرور، پاک‌شدن کامل نشست محلی).
      */
     suspend fun refresh(baseUrl: String, userPreferencesManager: UserPreferencesManager): String? {
-        val username = AuthSession.username
-        val deviceId = AuthSession.deviceId
+        // AuthSession یک singleton درون‌حافظه‌ای است که در AtkCargoApplication
+        // با یک coroutine جدا (fire-and-forget) از DataStore پر می‌شود. در
+        // cold start (دقیقاً همان لحظه‌ای که این تابع بعد از >۳۰ دقیقه
+        // بی‌فعالیتی از StartupViewModel صدا زده می‌شود)، ممکن است این
+        // coroutine هنوز کامل نشده باشد و AuthSession.username/deviceId هنوز
+        // "" باشند — حتی با یک refreshToken کاملاً معتبر در DataStore. با
+        // خواندن مستقیم از userPreferencesManager (همان منبع پایدار که
+        // refreshToken هم از آن خوانده می‌شود)، این race حذف می‌شود.
+        val username = userPreferencesManager.username.first()
+        val deviceId = userPreferencesManager.deviceId.first()
         val refreshToken = userPreferencesManager.refreshToken.first()
 
         if (username.isEmpty() || deviceId.isEmpty() || refreshToken.isEmpty()) {

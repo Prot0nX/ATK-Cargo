@@ -3175,6 +3175,54 @@ Phase 1.4 (گیت `view_reports`) و Phase 4.10 (`STRICT_TRANS_TABLES`) هر د�
 
 ---
 
+## باگ‌های کشف‌شده حین استفاده‌ی واقعی (بعد از فاز ۳)
+
+### ✅ رفع شد: کاربر بعد از ۳۰ دقیقه بی‌فعالیتی مجبور به لاگین مجدد می‌شد، حتی با refresh token معتبر
+
+**File:** [`app/src/main/java/com/atk/atk_cargo/core/startup/StartupViewModel.kt:243`](app/src/main/java/com/atk/atk_cargo/core/startup/StartupViewModel.kt)
+
+**Problem:** طبق طراحی I-05 (`PHP/src/Repositories/SessionRepository.php`)، access token فقط ۳۰ دقیقه (`ACCESS_TOKEN_TTL_SECONDS`) عمر دارد و باید با یک refresh token طولانی‌تر (۲۴ ساعت) به‌صورت خودکار تمدید شود. این منطق silent-refresh در `SessionValidator.kt` (استفاده‌شده داخل صفحات باز) درست پیاده شده بود، اما `StartupViewModel.checkUserSessionAsync()` — مسیر جداگانه‌ای که واقعاً هنگام باز کردن اپ (cold start) تصمیم می‌گیرد صفحه‌ی ورود نشان داده شود یا نه — این fallback را نداشت. چون `checkSession` همیشه HTTP ۲۰۰ برمی‌گرداند (حتی روی شکست، برای سازگاری با کلاینت قدیمی)، انقضای صرف access token همیشه `isValid=false` می‌داد و کاربر را به صفحه‌ی ورود می‌فرستاد، حتی با یک refresh token کاملاً معتبر.
+
+**Fix:** همان الگوی `SessionValidator.kt` به `checkUserSessionAsync()` اضافه شد — روی شکست `checkSession`، قبل از نامعتبر اعلام کردن نشست، `TokenRefresher.refresh()` امتحان می‌شود.
+
+**Verification:** `compileDebugKotlin`/`compileReleaseKotlin` هر دو موفق. ⚠️ نیازمند انتشار APK جدید — تا وقتی کاربران واقعی نسخه‌ی جدید را نصب نکنند، این رفتار همچنان تجربه می‌شود.
+
+### ✅ رفع شد: باگ عمیق‌تر (علت واقعی) — race condition در `AuthSession`، فیکس بالا به‌تنهایی کافی نبود
+
+بعد از نصب APK حاوی فیکس بالا، کاربر گزارش داد مشکل هنوز باقی است. علت واقعی جای دیگری بود:
+
+**File:** [`app/src/main/java/com/atk/atk_cargo/api/TokenRefresher.kt:36`](app/src/main/java/com/atk/atk_cargo/api/TokenRefresher.kt)
+
+**Problem:** `TokenRefresher.refresh()` — که هم توسط `TokenAuthenticator` (رفرش واکنشی روی ۴۰۱) و هم توسط `checkUserSessionAsync`/`SessionValidator.kt` (رفرش در startup) صدا زده می‌شود — `username`/`deviceId` را از singleton درون‌حافظه‌ی `AuthSession` می‌خواند، نه از `userPreferencesManager` (منبع پایدار DataStore). `AuthSession` در `AtkCargoApplication.onCreate()` با یک coroutine جدا و fire-and-forget از DataStore پر می‌شود. بعد از >۳۰ دقیقه بی‌فعالیتی، اندروید پروسه‌ی اپ را kill می‌کند؛ در cold start بعدی، `StartupViewModel.runStartupSequenceOnce()` (از `LaunchedEffect(Unit)` در `MainActivity`) می‌تواند زودتر از تکمیل آن coroutine اجرا شود — یعنی `AuthSession.username`/`deviceId` هنوز `""` هستند. نتیجه: `TokenRefresher.refresh()` حتی HTTP call را امتحان نمی‌کند و بی‌سروصدا `null` برمی‌گرداند، با اینکه یک `refreshToken` کاملاً معتبر همان لحظه در DataStore موجود بود. یعنی فیکس قبلی (اضافه‌شدن فراخوانی `TokenRefresher.refresh()` به `checkUserSessionAsync`) صحیح بود اما به یک تابع مشترکِ خودش شکسته متکی بود.
+
+**Fix:** `TokenRefresher.refresh()` اکنون `username`/`deviceId` را هم از `userPreferencesManager` می‌خواند (دقیقاً همان منبعی که `refreshToken` از قبل از آن خوانده می‌شد)، نه از `AuthSession`. این race را کاملاً حذف می‌کند، مستقل از زمان‌بندی populate شدن `AuthSession`، و هر دو مسیر مصرف‌کننده (`TokenAuthenticator` واکنشی + `checkUserSessionAsync`/`SessionValidator` در startup) را هم‌زمان رفع می‌کند چون هر دو از همین تابع مشترک استفاده می‌کنند.
+
+**Verification:** `compileDebugKotlin`/`compileReleaseKotlin` هر دو موفق. ⚠️ همچنان نیازمند انتشار APK جدید است.
+
+### ✅ رفع شد: **علت اصلی و واقعی** — گیت v2 هرگز `code=access_token_expired` نمی‌فرستاد (رگرسیون ناشی از حذف v1 در فاز ۳)
+
+بعد از نصب APK حاوی دو فیکس بالا، کاربر گزارش داد مشکل **همچنان** پابرجاست، با یک علامت تشخیصی کلیدی: «بعد از ۳۰ دقیقه به هر منویی وارد شوم به صفحه‌ی اصلی برمی‌گردد؛ بعد از بستن و باز کردن اپ، صفحه‌ی لاگین می‌آید». نکته این بود که این اتفاق روی اپِ **باز و warm** می‌افتاد — یعنی هیچ‌کدام از دو فیکس قبلی (که هر دو مربوط به مسیر cold start بودند) اصلاً در این سناریو دخیل نبودند.
+
+**File:** [`PHP/src/Core/ApiAuthGate.php:35`](PHP/src/Core/ApiAuthGate.php)
+
+**Problem:** طراحی I-05 روی یک قرارداد صریح بین سرور و کلاینت بنا شده: وقتی فقط access token منقضی شده (نه کل نشست)، سرور باید ۴۰۱ را همراه با `code: "access_token_expired"` بفرستد تا `TokenAuthenticator` سمت کلاینت بی‌صدا رفرش کند. `TokenAuthenticator.isAccessTokenExpiredError()` صراحتاً و فقط روی همین نشانه واکنش نشان می‌دهد (عمداً — تا روی هر ۴۰۱ دلخواه تلاش بیهوده نکند).
+
+اما این نشانه **فقط** در `AuthenticatesRequests.php` تولید می‌شد — یعنی گیت **سطح-کنترلر مربوط به v1**. گیت واقعی مسیر v2 (`ApiAuthGate::requireAuthenticated`، که Router برای هر route با `auth=>true` صدا می‌زند) یک `Response::error(..., 401)` ساده و بدون هیچ `code` می‌فرستاد. تا وقتی v1 وجود داشت این تفاوت پنهان بود؛ اما با **حذف کامل v1 در فاز ۳.۱/۳.۲**، تنها تولیدکننده‌ی این نشانه از بین رفت و کل مکانیزم silent-refresh در عمل مُرد — بدون اینکه هیچ تست یا کامپایلری متوجه شود، چون این یک قرارداد runtime بین دو runtime جدا (PHP و Kotlin) است، نه یک وابستگی نوعی.
+
+شاهد قاطع: متد `SessionService::isAccessTokenExpiredButSessionActive()` — که کامنت خودش می‌گوید «فقط روی مسیر شکست `validateAndGetUserType` صدا زده می‌شود» و دقیقاً برای همین هدف ساخته شده بود — در کل مسیر v2 هیچ فراخوانی‌کننده‌ای نداشت و عملاً dead code شده بود.
+
+نتیجه‌ی زنجیره‌ای برای کاربر: بعد از ۳۰ دقیقه، هر درخواست API از هر منو → `ApiAuthGate` → ۴۰۱ بدون `code` → `TokenAuthenticator` رفرش نمی‌کند → درخواست شکست می‌خورد → `validateServerSession` هم شکست می‌خورد → `clearUserCredentials()` → پرت‌شدن به صفحه‌ی اصلی، و در باز کردن بعدی، صفحه‌ی لاگین.
+
+**Fix:** همان منطق تمایزدهنده‌ی v1 به `ApiAuthGate` منتقل شد — روی شکست احراز هویت، `isAccessTokenExpiredButSessionActive()` بررسی می‌شود و پاسخ ۴۰۱ با `code` مناسب (`access_token_expired` یا `session_invalid`) فرستاده می‌شود. چون `Response::error` فیلد `code` را پشتیبانی نمی‌کند، مستقیماً `Response::json` با همان کلیدهای `success`/`message` استفاده شد تا شکل پاسخ با بقیه‌ی خطاهای v2 یکسان بماند.
+
+**Verification:** `php -l` پاک؛ هر ۶۸ تست PHPUnit سبز. همچنین با یک probe بی‌عارضه روی سرور تولید تأیید شد که خودِ route رفرش زنده و سالم است (`POST .../api/v2/index.php?route=auth/refresh` بدون پارامتر → `400` با پیام صحیح فارسی) — یعنی مشکل هرگز از deploy نبودن سرور یا نبود endpoint نبود، بلکه دقیقاً همین نشانه‌ی گم‌شده بود.
+
+⚠️ **این فیکس سمت سرور است** — برخلاف دو مورد قبلی، برای اثرگذاری باید `PHP/src/Core/ApiAuthGate.php` روی atk-nk.ir دیپلوی شود (APK جدید به‌تنهایی کافی نیست).
+
+**درس:** حذف یک مسیر «تکراری» (v1) وقتی امن است که قرارداد‌های runtime آن مسیر — نه فقط ارجاع‌های کامپایل‌شدنی‌اش — هم در مسیر جایگزین بازتولید شده باشند. تکنیک «حذف کن و بگذار کامپایلر پیدا کند» که در فاز ۳ برای کلاینت خیلی خوب جواب داد، ذاتاً نمی‌تواند این کلاس از رگرسیون (قرارداد بین دو runtime) را بگیرد.
+
+---
+
 *این گزارش صرفاً حاصل تحلیل ایستای کد است. هیچ فایلی از source تغییر داده نشده، هیچ dependency به‌روزرسانی نشده، و هیچ migration اجرا نشده است. یافته‌هایی که با «Potential Issue» علامت خورده‌اند نیازمند تأیید در محیط اجرا هستند. پیشنهادهای مربوط به ایندکس دیتابیس باید قبل از اعمال با `EXPLAIN` روی داده‌ی واقعی تأیید شوند.*
 
 
