@@ -208,16 +208,21 @@ fun CargoDetailsScreen(
         snackbarMessage = SnackbarMessage(message, type)
     }
     
-    // remember بدون کلید: derivedStateOf خودش خواندن filteredCargoInfoList را
-    // ردیابی می‌کند و فقط با تغییر واقعی state دوباره محاسبه می‌شود. دادن
-    // filteredCargoInfoList به‌عنوان کلید remember باعث می‌شد با هر تغییر
-    // لیست یک derivedStateOf کاملاً جدید ساخته شود — دقیقاً همان هزینه‌ای که
-    // derivedStateOf قرار بود از آن جلوگیری کند.
-    val groupedCargoList by remember {
-        derivedStateOf {
-            filteredCargoInfoList.groupBy { it.confirm == CargoConfirmStatus.CONFIRMED.wireValue }
-                .toSortedMap(compareBy { it })
-        }
+    // باگ واقعی بود (نه بهینه‌سازی): remember بدون کلید یعنی این derivedStateOf
+    // فقط در همان اولین composition ساخته می‌شود و closure آن برای همیشه به
+    // همان مقدار اولیه‌ی filteredCargoInfoList (یک List معمولی، نه یک State)
+    // گیر می‌ماند — derivedStateOf فقط زمانی خودش تغییرات را ردیابی می‌کند که
+    // داخل block خودش یک Compose State بخواند (`.value`)، نه یک val معمولی
+    // که از بیرون closure شده. نتیجه: بعد از اولین بار (معمولاً وقتی لیست هنوز
+    // خالی است، قبل از رسیدن پاسخ شبکه)، groupedCargoList دیگر هرگز بروز
+    // نمی‌شد — دقیقاً همان چیزی که باعث می‌شد تب‌های «تائید نشده/تائید شده»
+    // بعد از بارگذاری واقعی لیست همچنان خالی بمانند. filteredCargoInfoList
+    // اکنون به‌عنوان کلید remember داده می‌شود (همان الگویی که sortedUnconfirmed/
+    // sortedConfirmed/confirmedStats در CargoListSection از قبل درست استفاده
+    // می‌کردند)، پس با هر تغییر واقعی لیست دوباره محاسبه می‌شود.
+    val groupedCargoList = remember(filteredCargoInfoList) {
+        filteredCargoInfoList.groupBy { it.confirm == CargoConfirmStatus.CONFIRMED.wireValue }
+            .toSortedMap(compareBy { it })
     }
 
     LaunchedEffect(Unit) {
