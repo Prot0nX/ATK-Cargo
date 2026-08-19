@@ -58,7 +58,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,14 +66,16 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import com.atk.atk_cargo.api.CheckExistenceRequest
 import com.atk.atk_cargo.api.InitialInfo
-import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.feature.cargo_entry.domain.isValidPersianText
 import com.atk.atk_cargo.feature.cargo_entry.domain.isValidQuotaNumber
 import com.atk.atk_cargo.feature.cargo_entry.domain.isValidShipName
@@ -82,7 +83,6 @@ import com.atk.atk_cargo.feature.cargo_entry.domain.isValidWarehouseName
 import com.atk.atk_cargo.feature.cargo_entry.domain.isValidWeight
 import com.atk.atk_cargo.feature.cargo_registration.navigation.navigateToCargoRegistration
 import com.google.gson.Gson
-import kotlinx.coroutines.launch
 import java.util.Locale
 
 /** رنگ‌های تیل سازگار با تم روشن/تاریک برای صفحه ثبت اطلاعات اولیه بار. */
@@ -109,12 +109,12 @@ internal fun rememberInitialInfoPalette(): InitialInfoPalette {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InitialInfoScreen(navController: NavController) {
+fun InitialInfoScreen(navController: NavController, viewModel: InitialInfoViewModel) {
     val palette = rememberInitialInfoPalette()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     var currentStep by rememberSaveable { mutableIntStateOf(0) }
     var shipName by rememberSaveable { mutableStateOf("") }
@@ -153,6 +153,32 @@ fun InitialInfoScreen(navController: NavController) {
 
     LaunchedEffect(Unit) {
         focusManager.clearFocus()
+    }
+
+    LaunchedEffect(viewModel) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            viewModel.events.collect { event ->
+                when (event) {
+                    is InitialInfoEvent.ExistenceChecked -> when (event.status) {
+                        ExistenceCheckStatus.NOT_EXISTS -> showConfirmationDialog = true
+                        ExistenceCheckStatus.EXISTS -> showDuplicateDialog = true
+                        ExistenceCheckStatus.PARTIAL_MATCH -> showPartialMatchDialog = true
+                    }
+                    is InitialInfoEvent.SubmitSucceeded -> {
+                        dialogMessage = "اطلاعات با موفقیت ثبت شد"
+                        isErrorDialog = false
+                        showDialog = true
+                        shouldNavigate = true
+                        showConfirmationDialog = false
+                    }
+                    is InitialInfoEvent.OperationFailed -> {
+                        dialogMessage = event.message
+                        isErrorDialog = true
+                        showDialog = true
+                    }
+                }
+            }
+        }
     }
 
     Surface(
@@ -531,32 +557,15 @@ fun InitialInfoScreen(navController: NavController) {
                                             trimLoadingWarehouse()
                                             trimShippingCompany()
                                             trimCargoOwner()
-                                            scope.launch {
-                                                try {
-                                                    val request = CheckExistenceRequest(
-                                                        loadingQuotaNumber = loadingQuotaNumber.toInt(),
-                                                        shipName = shipName,
-                                                        loadingWarehouse = loadingWarehouse,
-                                                        cargoType = cargoType,
-                                                        shippingCompany = shippingCompany
-                                                    )
-                                                    val response = RetrofitClient.apiServiceV2.checkExistence(request)
-                                                    when (response.body()?.status) {
-                                                        "not_exists" -> showConfirmationDialog = true
-                                                        "exists" -> showDuplicateDialog = true
-                                                        "partial_match" -> showPartialMatchDialog = true
-                                                        else -> {
-                                                            dialogMessage = "خطا در ارتباط با سرور"
-                                                            isErrorDialog = true
-                                                            showDialog = true
-                                                        }
-                                                    }
-                                                } catch (e: Exception) {
-                                                    dialogMessage = "خطا در ارتباط با سرور: ${e.localizedMessage}"
-                                                    isErrorDialog = true
-                                                    showDialog = true
-                                                }
-                                            }
+                                            viewModel.checkExistence(
+                                                CheckExistenceRequest(
+                                                    loadingQuotaNumber = loadingQuotaNumber.toInt(),
+                                                    shipName = shipName,
+                                                    loadingWarehouse = loadingWarehouse,
+                                                    cargoType = cargoType,
+                                                    shippingCompany = shippingCompany
+                                                )
+                                            )
                                         },
                                         modifier = Modifier
                                             .weight(2f)
@@ -617,40 +626,21 @@ fun InitialInfoScreen(navController: NavController) {
             loadingQuotaNumber = loadingQuotaNumber,
             cargoOwner = cargoOwner,
             onConfirm = {
-                scope.launch {
-                    try {
-                        val initialInfo = InitialInfo(
-                            shipName = shipName,
-                            loadingWarehouse = loadingWarehouse,
-                            cargoType = cargoType,
-                            shippingCompany = shippingCompany,
-                            cargoWeight = cargoWeight.toFloatOrNull() ?: 0f,
-                            loadingQuotaNumber = loadingQuotaNumber.toIntOrNull() ?: 0,
-                            remainingWeight = cargoWeight.toFloatOrNull() ?: 0f,
-                            totalNetWeight = 0f,
-                            averageNetWeight = 0f,
-                            remainingServices = 0,
-                            cargoOwner = cargoOwner
-                        )
-
-                        val response = RetrofitClient.apiServiceV2.saveInitialInfo(initialInfo)
-                        if (response.isSuccessful) {
-                            dialogMessage = "اطلاعات با موفقیت ثبت شد"
-                            isErrorDialog = false
-                            showDialog = true
-                            shouldNavigate = true
-                            showConfirmationDialog = false
-                        } else {
-                            dialogMessage = "خطا در ثبت اطلاعات"
-                            isErrorDialog = true
-                            showDialog = true
-                        }
-                    } catch (e: Exception) {
-                        dialogMessage = "خطا در ارتباط با سرور: ${e.localizedMessage}"
-                        isErrorDialog = true
-                        showDialog = true
-                    }
-                }
+                viewModel.submitInitialInfo(
+                    InitialInfo(
+                        shipName = shipName,
+                        loadingWarehouse = loadingWarehouse,
+                        cargoType = cargoType,
+                        shippingCompany = shippingCompany,
+                        cargoWeight = cargoWeight.toFloatOrNull() ?: 0f,
+                        loadingQuotaNumber = loadingQuotaNumber.toIntOrNull() ?: 0,
+                        remainingWeight = cargoWeight.toFloatOrNull() ?: 0f,
+                        totalNetWeight = 0f,
+                        averageNetWeight = 0f,
+                        remainingServices = 0,
+                        cargoOwner = cargoOwner
+                    )
+                )
             },
             onDismiss = { showConfirmationDialog = false }
         )
