@@ -13,7 +13,9 @@ import androidx.work.WorkManager
 import com.atk.atk_cargo.api.AppNotificationManager
 import com.atk.atk_cargo.api.LoadingNotificationService
 import com.atk.atk_cargo.api.RetrofitClient
+import com.atk.atk_cargo.api.Secrets
 import com.atk.atk_cargo.api.SessionCheckRequest
+import com.atk.atk_cargo.api.TokenRefresher
 import com.atk.atk_cargo.api.UpdateManager
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.data.repository.ChatRepository
@@ -248,9 +250,21 @@ class StartupViewModel(
                 val isValid = response.isSuccessful && response.body()?.success == true
                 if (isValid) {
                     userPreferencesManager.saveLastSessionVerifiedTimestamp(System.currentTimeMillis())
+                    true
+                } else {
+                    // I-05: checkSession همیشه HTTP ۲۰۰ برمی‌گرداند (حتی روی شکست، برای
+                    // سازگاری با کلاینت قدیمی)، پس وقتی فقط access token منقضی شده
+                    // (عمر ۳۰ دقیقه‌ای) اینجا هم isValid=false می‌شود، حتی با یک
+                    // refresh token کاملاً معتبر. بدون این تلاش صریح، کاربری که اپ را
+                    // بعد از >۳۰ دقیقه دوباره باز می‌کند همیشه به صفحه‌ی ورود می‌رفت —
+                    // همان الگوی SessionValidator.kt که این مسیر (چون startup مسیر
+                    // جداگانه‌ای است) شاملش نمی‌شد.
+                    val refreshed = TokenRefresher.refresh(Secrets.getBaseUrl(), userPreferencesManager) != null
+                    if (refreshed) {
+                        userPreferencesManager.saveLastSessionVerifiedTimestamp(System.currentTimeMillis())
+                    }
+                    refreshed
                 }
-
-                isValid
             }
         } catch (e: java.io.IOException) {
             isWithinSessionOfflineGracePeriod()
