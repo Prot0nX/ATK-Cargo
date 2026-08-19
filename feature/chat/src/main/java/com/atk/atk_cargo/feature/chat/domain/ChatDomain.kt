@@ -120,7 +120,7 @@ fun extractShipInfoAndText(message: String): Pair<String, ShipInfoModel?> {
     return Pair(cleanText, shipInfo)
 }
 
-fun replaceUsernamesWithFullNames(text: String, users: List<com.atk.atk_cargo.api.User>): String {
+fun replaceUsernamesWithFullNames(text: String, users: List<com.atk.atk_cargo.data.model.User>): String {
     var result = text
     users.forEach { user ->
         if (result.contains("@${user.username}")) {

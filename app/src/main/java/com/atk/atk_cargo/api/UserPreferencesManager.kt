@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
+import com.atk.atk_cargo.feature.chat.data.ChatPreferencesStore
 import com.atk.atk_cargo.security.CryptoManager
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -25,7 +26,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class UserPreferencesManager(
     private val context: Context,
     private val cryptoManager: CryptoManager = CryptoManager()
-) : TokenStore, UserPreferencesStore {
+) : TokenStore, UserPreferencesStore, ChatPreferencesStore {
     private val dataStore: DataStore<Preferences> = context.dataStore
 
     // خواندن IOException یک‌بار در یک نقطه (به‌جای ۹+ بار تکرار همان ۷ خط catch)؛
@@ -69,15 +70,15 @@ class UserPreferencesManager(
 
     val chatNotificationsEnabled: Flow<Boolean> = preference(CHAT_NOTIFICATIONS_ENABLED_KEY, true)
 
-    val chatFontSize: Flow<Int> = preference(CHAT_FONT_SIZE_KEY, 14)
+    override val chatFontSize: Flow<Int> = preference(CHAT_FONT_SIZE_KEY, 14)
 
-    val chatMyBubbleColor: Flow<Long> = preference(CHAT_MY_BUBBLE_COLOR_KEY, 0xFF1E88E5) // Blue
+    override val chatMyBubbleColor: Flow<Long> = preference(CHAT_MY_BUBBLE_COLOR_KEY, 0xFF1E88E5) // Blue
 
-    val chatOtherBubbleColor: Flow<Long> = preference(CHAT_OTHER_BUBBLE_COLOR_KEY, 0xFFFFFFFF) // White
+    override val chatOtherBubbleColor: Flow<Long> = preference(CHAT_OTHER_BUBBLE_COLOR_KEY, 0xFFFFFFFF) // White
 
-    val chatBackgroundId: Flow<Int> = preference(CHAT_BACKGROUND_ID_KEY, 0)
+    override val chatBackgroundId: Flow<Int> = preference(CHAT_BACKGROUND_ID_KEY, 0)
 
-    val chatBubbleShape: Flow<Int> = preference(CHAT_BUBBLE_SHAPE_KEY, 0)
+    override val chatBubbleShape: Flow<Int> = preference(CHAT_BUBBLE_SHAPE_KEY, 0)
 
     val lastNotifiedMessageId: Flow<Int> = preference(LAST_NOTIFIED_MESSAGE_ID_KEY, 0)
 
@@ -214,7 +215,7 @@ class UserPreferencesManager(
         context.getSharedPreferences("LoadingCheckPrefs", Context.MODE_PRIVATE).edit().clear().apply()
     }
 
-    suspend fun saveChatSettings(fontSize: Int, myColor: Long, otherColor: Long, backgroundId: Int, bubbleShape: Int) {
+    override suspend fun saveChatSettings(fontSize: Int, myColor: Long, otherColor: Long, backgroundId: Int, bubbleShape: Int) {
         dataStore.edit { preferences ->
             preferences[CHAT_FONT_SIZE_KEY] = fontSize
             preferences[CHAT_MY_BUBBLE_COLOR_KEY] = myColor

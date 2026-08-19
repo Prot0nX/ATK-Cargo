@@ -62,10 +62,10 @@ fun MessageInputArea(
     isSending: Boolean,
     myBubbleColor: Color,
     onSendMessage: (String) -> Unit,
-    users: List<com.atk.atk_cargo.api.User> = emptyList(),
-    shipsData: com.atk.atk_cargo.api.ShipsData? = null,
-    shipQuotas: List<com.atk.atk_cargo.api.Quota> = emptyList(),
-    onShipSelected: (com.atk.atk_cargo.api.Ship) -> Unit = {},
+    users: List<com.atk.atk_cargo.data.model.User> = emptyList(),
+    shipsData: com.atk.atk_cargo.data.model.ShipsData? = null,
+    shipQuotas: List<com.atk.atk_cargo.data.model.Quota> = emptyList(),
+    onShipSelected: (com.atk.atk_cargo.data.model.Ship) -> Unit = {},
     onQuotaDialogDismiss: () -> Unit = {}
 ) {
     var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
@@ -242,9 +242,9 @@ fun MessageInputArea(
 
 @Composable
 fun ShipSelectionDialog(
-    shipsData: com.atk.atk_cargo.api.ShipsData,
+    shipsData: com.atk.atk_cargo.data.model.ShipsData,
     onDismiss: () -> Unit,
-    onShipSelected: (com.atk.atk_cargo.api.Ship) -> Unit
+    onShipSelected: (com.atk.atk_cargo.data.model.Ship) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
     val allShips = remember(shipsData) { shipsData.activeShips + shipsData.inactiveShips }
@@ -315,9 +315,9 @@ fun ShipSelectionDialog(
 
 @Composable
 fun QuotaSelectionDialog(
-    quotas: List<com.atk.atk_cargo.api.Quota>,
+    quotas: List<com.atk.atk_cargo.data.model.Quota>,
     onDismiss: () -> Unit,
-    onQuotaSelected: (com.atk.atk_cargo.api.Quota) -> Unit
+    onQuotaSelected: (com.atk.atk_cargo.data.model.Quota) -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
