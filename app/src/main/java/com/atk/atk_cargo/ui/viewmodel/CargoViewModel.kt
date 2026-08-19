@@ -742,6 +742,86 @@ class CargoViewModel(
         }
     }
 
+    private fun parseCargoConfirmError(errorBody: String?): String? {
+        if (errorBody.isNullOrBlank()) return null
+        return try {
+            com.google.gson.JsonParser.parseString(errorBody)
+                .asJsonObject.get("message")?.asString
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /**
+     * قبلاً در CargoDetailsScreen.kt به‌صورت دو تابع مستقل (confirmCargo،
+     * handleCargoConfirmation) بود که با rememberCoroutineScope() فراخوانی
+     * می‌شدند — یک عملیات نوشتن (تأیید حواله) که با خروج کاربر از صفحه در
+     * میانه‌ی راه کنسل می‌شد (DEEP_CODE_REVIEW.md Top20 #5). منطق سطربه‌سطر
+     * عیناً حفظ شده، فقط به viewModelScope منتقل شده است.
+     */
+    fun confirmCargo(
+        info: Cargo,
+        username: String,
+        userType: String,
+        quotaNumber: String,
+        shippingCompany: String,
+        warehouse: String,
+        cargoType: String,
+        onComplete: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            try {
+                val requestBody = mapOf(
+                    "id" to (info.id?.toString() ?: "0"),
+                    "username" to username,
+                    "userType" to userType,
+                    "loadingQuotaNumber" to info.loadingQuotaNumber,
+                    "shipName" to info.shipName
+                )
+
+                val result = try {
+                    val response = apiServiceV2.confirmCargo(requestBody)
+                    if (response.isSuccessful) {
+                        val message = response.body()?.get("message")?.asString ?: "عملیات با موفقیت انجام شد"
+                        Result.success(message)
+                    } else {
+                        // سرور برای خطاهای واقعی (مثل ۴۰۹ تأیید تکراری) پیام
+                        // فارسی گویا در بدنه‌ی خطا می‌فرستد؛ قبلاً این پیام
+                        // دور ریخته می‌شد و کاربر فقط یک عدد کد HTTP بی‌معنی
+                        // می‌دید.
+                        val serverMessage = parseCargoConfirmError(response.errorBody()?.string())
+                        Result.failure(Exception(serverMessage ?: "خطا در ارتباط با سرور: ${response.code()}"))
+                    }
+                } catch (e: Exception) {
+                    Log.e("CargoViewModel_Log", "Error confirming cargo", e)
+                    Result.failure(e)
+                }
+
+                result.fold(
+                    onSuccess = { message ->
+                        updateCargoConfirmation(info.id)
+                        loadCargoInfoList(
+                            quotaNumber = quotaNumber,
+                            shippingCompany = shippingCompany,
+                            warehouse = warehouse,
+                            cargoType = cargoType,
+                            onComplete = { showMessage(message, MessageType.SUCCESS) }
+                        )
+                    },
+                    onFailure = { error ->
+                        Log.e("CargoViewModel_Log", "Error confirming cargo: ${error.message}", error)
+                        showMessage("خطا: ${error.message}", MessageType.ERROR)
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("CargoViewModel_Log", "Exception in cargo confirmation process", e)
+                showMessage("خطای غیرمنتظره: ${e.message}", MessageType.ERROR)
+            } finally {
+                onComplete()
+            }
+        }
+    }
+
     suspend fun toggleQuotaStatus(id: Int, quotaNumber: String) {
         try {
             val response = apiServiceV2.toggleQuotaStatus(route = ApiV2Routes.quotaToggleStatus(id))
