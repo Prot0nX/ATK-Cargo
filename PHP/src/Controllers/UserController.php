@@ -80,7 +80,7 @@ class UserController {
             error_log("Error in UserController: " . $e->getMessage());
             Response::json([
                 'success' => false,
-                'message' => 'خطایی در پردازش درخواست رخ داده است: ' . $e->getMessage()
+                'message' => 'خطایی در پردازش درخواست رخ داده است.'
             ], 400);
         }
     }
