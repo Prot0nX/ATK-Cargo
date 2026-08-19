@@ -11,16 +11,37 @@ use App\Core\Database;
 use App\Core\Logger;
 use App\Core\Request;
 use App\Core\Response;
+use App\Services\LoginAttemptLimiter;
 
 class LicenseController {
     private mysqli $conn;
     private Logger $logger;
     private Request $request;
+    private LoginAttemptLimiter $rateLimiter;
 
     public function __construct() {
         $this->conn = Database::getInstance()->getMysqliConnection();
         $this->logger = Logger::getInstance();
         $this->request = new Request();
+        $this->rateLimiter = new LoginAttemptLimiter();
+    }
+
+    /**
+     * این دو endpoint بدون auth هستند (کلید لایسنس خودش تنها تأییدیه است) و
+     * Router/ApiAuthGate اصلاً مسیریابی‌شان نمی‌کند (shim مستقیم — Phase2.13)،
+     * پس rate limit تنها لایه‌ی دفاعی این‌جاست. کلید افشاشده (Top20 #1) یعنی
+     * هر کسی می‌تواند تعداد نامحدود UPDATE بزند؛ با پیشوند مجزا (license_)
+     * از شمارنده‌های واقعی لاگین ایزوله می‌شود — DEEP_CODE_REVIEW.md Phase2.14.
+     */
+    private function enforceRateLimit(): void {
+        $rateLimitKey = 'license_' . $this->request->getClientIp();
+        if ($this->rateLimiter->isLocked($rateLimitKey, $rateLimitKey)) {
+            Response::json([
+                'success' => false,
+                'message' => 'تعداد درخواست‌ها بیش از حد مجاز است.'
+            ], 429);
+        }
+        $this->rateLimiter->registerFailedAttempt($rateLimitKey, $rateLimitKey);
     }
 
     /**
@@ -32,6 +53,8 @@ class LicenseController {
         header('X-Frame-Options: DENY');
         header('Content-Security-Policy: default-src \'self\'');
         date_default_timezone_set('Asia/Tehran');
+
+        $this->enforceRateLimit();
 
         $rawData = file_get_contents('php://input');
         if (!$rawData) {
@@ -129,6 +152,8 @@ class LicenseController {
             echo json_encode(['success' => false, 'message' => 'روش درخواست معتبر نیست'], JSON_UNESCAPED_UNICODE);
             exit;
         }
+
+        $this->enforceRateLimit();
 
         $licenseKey = trim((string)$this->request->get('licenseKey', ''));
 

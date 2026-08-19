@@ -8,6 +8,7 @@ namespace App\Controllers;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
+use App\Services\LoginAttemptLimiter;
 use PDOException;
 use Throwable;
 
@@ -20,9 +21,14 @@ use Throwable;
  */
 class DiagnosticsController {
     private Request $request;
+    private LoginAttemptLimiter $rateLimiter;
+
+    // سقف حجم crash_reports.log — DEEP_CODE_REVIEW.md Phase2.14.
+    private const MAX_CRASH_LOG_BYTES = 50 * 1024 * 1024;
 
     public function __construct() {
         $this->request = new Request();
+        $this->rateLimiter = new LoginAttemptLimiter();
     }
 
     // تعداد جداولی که باید موجود باشند تا سیستم را «سالم» بدانیم — همان
@@ -72,6 +78,18 @@ class DiagnosticsController {
             Response::json(['success' => false, 'message' => 'روش درخواست مجاز نیست'], 405);
         }
 
+        // بدون auth است (عمداً — کرش می‌تواند قبل از لاگین رخ دهد)، پس بدون
+        // rate limit یک مهاجم می‌تواند دیسک را با نوشتن مکرر پر کند
+        // (DEEP_CODE_REVIEW.md Phase2.14). از همان LoginAttemptLimiter موجود
+        // با یک کلید مجزا (پیشوند crash_) استفاده می‌شود تا با شمارنده‌های
+        // واقعی لاگین قاطی نشود؛ سقف مؤثر آن (۵ در ۱۵ دقیقه) برای این
+        // endpoint کافی است.
+        $rateLimitKey = 'crash_' . $this->request->getClientIp();
+        if ($this->rateLimiter->isLocked($rateLimitKey, $rateLimitKey)) {
+            Response::json(['success' => false, 'message' => 'تعداد درخواست‌ها بیش از حد مجاز است.'], 429);
+        }
+        $this->rateLimiter->registerFailedAttempt($rateLimitKey, $rateLimitKey);
+
         $stackTrace = (string)$this->request->get('stackTrace', '');
         if (trim($stackTrace) === '') {
             Response::json(['success' => false, 'message' => 'stackTrace الزامی است'], 400);
@@ -97,11 +115,17 @@ class DiagnosticsController {
             if (!is_dir($logDir)) {
                 mkdir($logDir, 0755, true);
             }
-            file_put_contents(
-                $logDir . '/crash_reports.log',
-                json_encode($entry, JSON_UNESCAPED_UNICODE) . "\n",
-                FILE_APPEND | LOCK_EX
-            );
+            $logFile = $logDir . '/crash_reports.log';
+
+            // اگر فایل از سقف عبور کرده، دیگر ننویس — logrotate روزانه اجرا
+            // می‌شود که برای سرعت یک حمله‌ی نوشتن مکرر کند است.
+            if (!file_exists($logFile) || filesize($logFile) <= self::MAX_CRASH_LOG_BYTES) {
+                file_put_contents(
+                    $logFile,
+                    json_encode($entry, JSON_UNESCAPED_UNICODE) . "\n",
+                    FILE_APPEND | LOCK_EX
+                );
+            }
         } catch (Throwable $e) {
             error_log('DiagnosticsController::reportCrash - ' . $e->getMessage());
             // best-effort — حتی اگر نوشتن لاگ شکست بخورد، به کلاینت success
