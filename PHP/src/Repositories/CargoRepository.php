@@ -7,9 +7,14 @@ namespace App\Repositories;
 
 use mysqli;
 use App\Core\Database;
+use App\Enums\CargoStatus;
+use App\Enums\CargoConfirmStatus;
 
 class CargoRepository {
     private mysqli $conn;
+    private const ENTERED = CargoStatus::ENTERED->value;
+    private const EXITED = CargoStatus::EXITED->value;
+    private const CONFIRMED = CargoConfirmStatus::CONFIRMED->value;
 
     public function __construct() {
         $this->conn = Database::getInstance()->getMysqliConnection();
@@ -74,7 +79,7 @@ class CargoRepository {
             trackingNumber, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, 
             status, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber, 
             numberOfPeople, username, userType
-        ) VALUES (?, ?, ?, ?, ?, ?, 'ورود', ?, ?, ?, ?, ?, ?, ?, ?)";
+        ) VALUES (?, ?, ?, ?, ?, ?, '" . self::ENTERED . "', ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) return false;
         // netWeight روی رکورد تازه‌ثبت‌شده (وضعیت «ورود») هنوز مقداری ندارد و
@@ -124,7 +129,7 @@ class CargoRepository {
                 SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType,
                     SUM(c.netWeight) as loadedTonnage
                 FROM CargoInfo c
-                WHERE c.status = 'خروج' AND c.shipName = ? AND c.loadingWarehouse = ? AND
+                WHERE c.status = '" . self::EXITED . "' AND c.shipName = ? AND c.loadingWarehouse = ? AND
                       c.cargoType = ? AND c.shippingCompany = ? AND c.loadingQuotaNumber = ?
                 GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
             ) exit_data ON
@@ -182,8 +187,8 @@ class CargoRepository {
     public function updateCargoExit(int $cargoId, string $netWeight, string $scaleReceipt, string $currentTime, string $currentDate, string $username, string $userType): bool {
         $query = "UPDATE CargoInfo SET
             netWeight = ?, scaleReceiptNumber = ?, exitTime = ?, exitDate = ?,
-            status = 'خروج', username = ?, userType = ?
-        WHERE id = ? AND status = 'ورود'";
+            status = '" . self::EXITED . "', username = ?, userType = ?
+        WHERE id = ? AND status = '" . self::ENTERED . "'";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) return false;
         $stmt->bind_param("ssssssi", $netWeight, $scaleReceipt, $currentTime, $currentDate, $username, $userType, $cargoId);
@@ -196,7 +201,7 @@ class CargoRepository {
     public function updateCargoShortageOrExcess(int $cargoId, string $shortageWeight, string $excessWeight, string $username, string $userType): bool {
         $query = "UPDATE CargoInfo SET
             shortageWeight = ?, excessWeight = ?, username = ?, userType = ?
-        WHERE id = ? AND status = 'ورود'";
+        WHERE id = ? AND status = '" . self::ENTERED . "'";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) return false;
         $stmt->bind_param("ssssi", $shortageWeight, $excessWeight, $username, $userType, $cargoId);
@@ -252,12 +257,12 @@ class CargoRepository {
         // کلاینت دکمه‌ی تأیید را فقط برای همین وضعیت نشان می‌دهد؛ سرور باید
         // همان قید را واقعاً اعمال کند، نه فقط UI.
         $query = "UPDATE CargoInfo
-                  SET confirm = 'تائید شده',
+                  SET confirm = '" . self::CONFIRMED . "',
                       confirm_username = ?,
                       confirm_usertype = ?,
                       updated_at = NOW()
                   WHERE id = ? AND loadingQuotaNumber = ? AND shipName = ?
-                        AND status = 'ورود' AND (confirm IS NULL OR confirm != 'تائید شده')";
+                        AND status = '" . self::ENTERED . "' AND (confirm IS NULL OR confirm != '" . self::CONFIRMED . "')";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) return ['success' => false, 'affected' => 0];
         $stmt->bind_param("ssiss", $username, $userType, $cargoId, $loadingQuotaNumber, $shipName);

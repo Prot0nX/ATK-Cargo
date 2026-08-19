@@ -15,9 +15,13 @@ use App\Core\MicroCache;
 use App\Core\Request;
 use App\Core\Response;
 use App\Validators\InputValidator;
+use App\Enums\CargoStatus;
 
 class AnalyticsController {
     use AuthenticatesRequests;
+
+    private const ENTERED = CargoStatus::ENTERED->value;
+    private const EXITED = CargoStatus::EXITED->value;
 
     private mysqli $conn;
     private Logger $logger;
@@ -292,10 +296,10 @@ class AnalyticsController {
             // تفاوت داشتند؛ SELECT/JOIN/GROUP BY مشترک یک‌بار نوشته می‌شود.
             $baseQuery = "SELECT
                 i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType,
-                COUNT(DISTINCT CASE WHEN c.status = 'ورود' THEN c.id END) AS entryVouchers,
-                COUNT(DISTINCT CASE WHEN c.status = 'خروج' THEN c.id END) AS exitVouchers,
+                COUNT(DISTINCT CASE WHEN c.status = '" . self::ENTERED . "' THEN c.id END) AS entryVouchers,
+                COUNT(DISTINCT CASE WHEN c.status = '" . self::EXITED . "' THEN c.id END) AS exitVouchers,
                 COUNT(DISTINCT c.id) AS totalVouchers,
-                SUM(CASE WHEN c.status = 'خروج' THEN c.netWeight ELSE 0 END) AS totalNetWeight
+                SUM(CASE WHEN c.status = '" . self::EXITED . "' THEN c.netWeight ELSE 0 END) AS totalNetWeight
                 FROM InitialInfo i
                 INNER JOIN CargoInfo c ON i.loadingQuotaNumber = c.loadingQuotaNumber
                     AND i.loadingWarehouse = c.loadingWarehouse
@@ -304,11 +308,11 @@ class AnalyticsController {
                 GROUP BY i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType";
 
             if ($shiftInfo['type'] === 'روز') {
-                $shiftCondition = "(c.exitDate = ? AND c.exitTime BETWEEN ? AND ?) OR (c.status = 'ورود' AND c.exitDate IS NULL)";
+                $shiftCondition = "(c.exitDate = ? AND c.exitTime BETWEEN ? AND ?) OR (c.status = '" . self::ENTERED . "' AND c.exitDate IS NULL)";
                 $paramTypes = "sss";
                 $params = [$shiftInfo['startDate'], $shiftInfo['startTime'], $shiftInfo['endTime']];
             } else {
-                $shiftCondition = "(c.exitDate = ? AND c.exitTime >= ?) OR (c.exitDate = ? AND c.exitTime < ?) OR (c.status = 'ورود' AND c.exitDate IS NULL)";
+                $shiftCondition = "(c.exitDate = ? AND c.exitTime >= ?) OR (c.exitDate = ? AND c.exitTime < ?) OR (c.status = '" . self::ENTERED . "' AND c.exitDate IS NULL)";
                 $paramTypes = "ssss";
                 $params = [$shiftInfo['startDate'], $shiftInfo['startTime'], $shiftInfo['endDate'], $shiftInfo['endTime']];
             }
@@ -397,7 +401,7 @@ class AnalyticsController {
                         AND c.loadingWarehouse = i.loadingWarehouse
                         AND c.shippingCompany = i.shippingCompany
                         AND c.cargoType = i.cargoType
-                    WHERE i.isActive = 1 AND c.status = 'خروج' AND ((c.exitDate = ? AND c.exitTime >= '$workdayBoundary') OR (c.exitDate = ? AND c.exitTime < '$workdayBoundary'))
+                    WHERE i.isActive = 1 AND c.status = '" . self::EXITED . "' AND ((c.exitDate = ? AND c.exitTime >= '$workdayBoundary') OR (c.exitDate = ? AND c.exitTime < '$workdayBoundary'))
                     GROUP BY c.loadingQuotaNumber, i.shipName, c.shippingCompany, i.cargoOwner, c.loadingWarehouse, i.cargoType
                     ORDER BY last_24h_vouchers DESC";
 
@@ -505,7 +509,7 @@ class AnalyticsController {
             ];
         }
 
-        $exitQuery = "SELECT loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType, SUM(netWeight) as loadedTonnage, COUNT(DISTINCT trackingNumber) as voucherCount FROM CargoInfo WHERE status = 'خروج' GROUP BY loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType";
+        $exitQuery = "SELECT loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType, SUM(netWeight) as loadedTonnage, COUNT(DISTINCT trackingNumber) as voucherCount FROM CargoInfo WHERE status = '" . self::EXITED . "' GROUP BY loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType";
         $stmtExit = $this->conn->prepare($exitQuery);
         $stmtExit->execute();
         $exitData = $stmtExit->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -611,7 +615,7 @@ class AnalyticsController {
             ];
         }
 
-        $exitQuery = "SELECT loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType, SUM(netWeight) as loadedTonnage, COUNT(DISTINCT trackingNumber) as voucherCount FROM CargoInfo WHERE status = 'خروج' AND shipName = ? GROUP BY loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType";
+        $exitQuery = "SELECT loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType, SUM(netWeight) as loadedTonnage, COUNT(DISTINCT trackingNumber) as voucherCount FROM CargoInfo WHERE status = '" . self::EXITED . "' AND shipName = ? GROUP BY loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType";
         $stmtExit = $this->conn->prepare($exitQuery);
         $stmtExit->bind_param("s", $shipName);
         $stmtExit->execute();

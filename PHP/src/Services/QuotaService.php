@@ -8,6 +8,7 @@ namespace App\Services;
 use App\Core\DatabaseManager;
 use App\Core\MicroCache;
 use App\Validators\InputValidator;
+use App\Enums\CargoStatus;
 
 /**
  * منطق تجاری «کوتاژ» که قبلاً داخل AppApiController بود (C-05) — بدنه‌ی هر
@@ -16,6 +17,8 @@ use App\Validators\InputValidator;
  * کلاس مستقل خودش استخراج شده بود؛ اینجا فقط مصرف می‌شود.
  */
 final class QuotaService {
+    private const EXITED = CargoStatus::EXITED->value;
+
     private DatabaseManager $db;
     private QuotaCalculator $calculator;
 
@@ -46,7 +49,7 @@ final class QuotaService {
         LEFT JOIN CargoInfo c ON
             c.loadingQuotaNumber = i.loadingQuotaNumber AND c.shipName = i.shipName
             AND c.cargoType = i.cargoType AND c.shippingCompany = i.shippingCompany
-            AND c.loadingWarehouse = i.loadingWarehouse AND c.status = 'خروج'
+            AND c.loadingWarehouse = i.loadingWarehouse AND c.status = '" . self::EXITED . "'
         WHERE i.loadingQuotaNumber = ? AND i.shipName = ? AND i.cargoType = ?
             AND i.shippingCompany = ? AND i.loadingWarehouse = ?
         GROUP BY i.loadingQuotaNumber, i.shipName, i.cargoType, i.shippingCompany, i.loadingWarehouse, i.cargoWeight, i.isActive
@@ -112,7 +115,7 @@ final class QuotaService {
             LEFT JOIN CargoInfo c ON
                 c.loadingQuotaNumber = i.loadingQuotaNumber AND c.shipName = i.shipName
                 AND c.cargoType = i.cargoType AND c.shippingCompany = i.shippingCompany
-                AND c.loadingWarehouse = i.loadingWarehouse AND c.status = 'خروج'
+                AND c.loadingWarehouse = i.loadingWarehouse AND c.status = '" . self::EXITED . "'
             WHERE REVERSE(i.loadingQuotaNumber) LIKE ? AND i.shipName = ?
             GROUP BY i.loadingQuotaNumber, i.shipName, i.shippingCompany, i.cargoType, i.loadingWarehouse, i.isActive, i.cargoWeight
             ORDER BY i.loadingQuotaNumber";
@@ -160,7 +163,7 @@ final class QuotaService {
             SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType,
                 SUM(c.netWeight) as loadedTonnage, COUNT(DISTINCT c.trackingNumber) as exitVoucherCount,
                 MIN(c.exitDate) as startDate, MAX(c.exitDate) as endDate
-            FROM CargoInfo c WHERE c.status = 'خروج' AND c.loadingQuotaNumber = ?
+            FROM CargoInfo c WHERE c.status = '" . self::EXITED . "' AND c.loadingQuotaNumber = ?
             GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
         ) exit_data ON
             exit_data.loadingQuotaNumber = i.loadingQuotaNumber AND exit_data.shipName = i.shipName
@@ -238,7 +241,7 @@ final class QuotaService {
         LEFT JOIN (
             SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType,
                 SUM(c.netWeight) as loadedTonnage, COUNT(DISTINCT c.trackingNumber) as exitVoucherCount
-            FROM CargoInfo c WHERE c.status = 'خروج' AND c.shipName = ?
+            FROM CargoInfo c WHERE c.status = '" . self::EXITED . "' AND c.shipName = ?
                 AND ((c.exitDate > ? OR (c.exitDate = ? AND c.exitTime >= ?)) AND (c.exitDate < ? OR (c.exitDate = ? AND c.exitTime <= ?)))
             GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
         ) exit_data ON
@@ -363,7 +366,7 @@ final class QuotaService {
         FROM InitialInfo i
         LEFT JOIN (
             SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType, SUM(c.netWeight) as loadedTonnage, COUNT(DISTINCT c.trackingNumber) as exitVoucherCount
-            FROM CargoInfo c WHERE c.status = 'خروج' AND c.shipName = ?
+            FROM CargoInfo c WHERE c.status = '" . self::EXITED . "' AND c.shipName = ?
             GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
         ) exit_data ON
             exit_data.loadingQuotaNumber = i.loadingQuotaNumber AND exit_data.shipName = i.shipName
@@ -437,7 +440,7 @@ final class QuotaService {
         FROM InitialInfo i
         LEFT JOIN (
             SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType, SUM(c.netWeight) as loadedTonnage
-            FROM CargoInfo c WHERE c.status = 'خروج' AND c.loadingQuotaNumber = ?
+            FROM CargoInfo c WHERE c.status = '" . self::EXITED . "' AND c.loadingQuotaNumber = ?
             GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
         ) exit_data ON
             exit_data.loadingQuotaNumber = i.loadingQuotaNumber AND exit_data.shipName = i.shipName
