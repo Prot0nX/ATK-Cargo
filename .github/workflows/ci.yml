@@ -70,6 +70,20 @@ jobs:
       - name: Compile (debug)
         run: ./gradlew :app:compileDebugKotlin --console=plain
 
+      # بدون qualifier ماژول اجرا می‌شود تا تست‌های core:network
+      # (TokenAuthenticatorTest، TokenRefresherTest — منطق چرخش توکن) هم
+      # پوشش داده شوند، نه فقط app (DEEP_CODE_REVIEW.md Phase1.6).
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --console=plain
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: '**/build/reports/tests/'
+          retention-days: 14
+
       # checkReleaseBuilds=true در app/build.gradle.kts یعنی lintRelease هم
       # به‌طور خودکار بخشی از assembleRelease است؛ اینجا هر دو variant را
       # صریح اجرا می‌کنیم تا گزارش هرکدام جدا در لاگ CI دیده شود.

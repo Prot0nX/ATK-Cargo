@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -7,6 +9,25 @@ plugins {
     alias(libs.plugins.ksp)
     id("kotlin-parcelize")
 }
+
+// امضای release از طریق keystore.properties (خارج از git، الگو در
+// keystore.properties.example) یا متغیرهای محیطی CI — چون این اپ خودش را از
+// downloads/app-release.apk به‌روز می‌کند و امضا در SecurityVerifier به‌عنوان
+// یک شرط عملکردی بررسی می‌شود، نه فقط تشریفات انتشار (DEEP_CODE_REVIEW.md
+// Phase1.3). اگر هیچ‌کدام تنظیم نشده باشند، release بدون امضا build می‌شود
+// (برای لینت/کامپایل محلی کافی است) اما قابل نصب/توزیع نخواهد بود.
+val keystoreProperties = Properties().apply {
+    val propsFile = rootProject.file("keystore.properties")
+    if (propsFile.exists()) {
+        propsFile.inputStream().use { load(it) }
+    }
+}
+
+fun signingProperty(key: String, envVar: String): String? =
+    keystoreProperties.getProperty(key) ?: System.getenv(envVar)
+
+val releaseStorePath = signingProperty("storeFile", "KEYSTORE_PATH")
+val releaseSigningConfigured = releaseStorePath != null
 
 android {
     namespace = "com.atk.atk_cargo"
@@ -33,6 +54,17 @@ android {
         }
     }
 
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            create("release") {
+                storeFile = file(releaseStorePath!!)
+                storePassword = signingProperty("storePassword", "KEYSTORE_PASSWORD")
+                keyAlias = signingProperty("keyAlias", "KEY_ALIAS")
+                keyPassword = signingProperty("keyPassword", "KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isDebuggable = true
@@ -47,6 +79,9 @@ android {
         }
 
         release {
+            if (releaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             isDebuggable = false

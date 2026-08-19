@@ -45,7 +45,9 @@ CREATE TABLE `CargoInfo` (
   UNIQUE KEY `uk_cargo_scale_receipt_number` (`scaleReceiptNumber`),
   KEY `idx_cargo_status_group` (`loadingQuotaNumber`,`shipName`,`loadingWarehouse`,`shippingCompany`,`cargoType`,`status`,`netWeight`),
   KEY `idx_cargo_ship_lookup` (`shipName`,`loadingWarehouse`,`status`,`loadingQuotaNumber`,`shippingCompany`,`cargoType`,`netWeight`),
-  KEY `idx_cargo_exit_window` (`exitDate`,`status`,`exitTime`,`netWeight`)
+  KEY `idx_cargo_exit_window` (`exitDate`,`status`,`exitTime`,`netWeight`),
+  KEY `idx_cargo_tracking` (`trackingNumber`,`entryTime`),
+  KEY `idx_cargo_ship_tracking` (`shipName`,`trackingNumber`,`updated_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --

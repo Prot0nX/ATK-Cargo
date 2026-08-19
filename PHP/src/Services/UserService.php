@@ -29,7 +29,9 @@ class UserService {
      *    دوباره یک لاگین موفق با کلاینت جدید آن را عبور دهد.
      * ۳. SHA-256 یا متن خام مستقیم در دیتابیس (سیستم بسیار قدیمی، پیش از
      *    bcrypt) — با رمز خام و SHA-256(رمز) هر دو مقایسه و روی موفقیت به
-     *    bcrypt(رمز خام) ارتقا می‌یابد.
+     *    bcrypt(رمز خام) ارتقا می‌یابد. **به‌طور پیش‌فرض غیرفعال** — فقط با
+     *    ALLOW_LEGACY_PLAINTEXT_LOGIN=true در .env روشن می‌شود (DEEP_CODE_REVIEW.md
+     *    Phase1.4).
      */
     public function verifyCredentials(string $username, string $password): ?array {
         $user = $this->userRepository->getByUsername($username);
@@ -67,7 +69,16 @@ class UserService {
         }
 
         // ===== حالت ۳: SHA-256 یا متن خام مستقیم در دیتابیس (سیستم بسیار قدیمی) =====
-        if (hash_equals($storedPassword, $password) || hash_equals($storedPassword, hash('sha256', $password))) {
+        // DEEP_CODE_REVIEW.md Phase1.4 — این مسیر به‌طور پیش‌فرض غیرفعال است
+        // چون رمز متن‌خام کاربران مهاجرت‌نشده را می‌پذیرد. قبل از فعال‌سازی
+        // موقت آن (مثلاً برای مهاجرت یک‌بارهٔ کاربران باقی‌مانده)، حتماً روی
+        // دیتابیس تولید بررسی کنید که آیا اصلاً رکوردی باقی مانده:
+        //   SELECT COUNT(*) FROM Users WHERE password NOT LIKE '$2y$%' AND password NOT LIKE '$2a$%';
+        // اگر صفر بود، این بلوک (و متغیر محیطی زیر) را کامل حذف کنید.
+        $legacyPlaintextLoginEnabled = ($_ENV['ALLOW_LEGACY_PLAINTEXT_LOGIN'] ?? getenv('ALLOW_LEGACY_PLAINTEXT_LOGIN') ?: '') === 'true';
+        if ($legacyPlaintextLoginEnabled
+            && (hash_equals($storedPassword, $password) || hash_equals($storedPassword, hash('sha256', $password)))
+        ) {
             $upgradedHash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
             $this->userRepository->updatePassword($user['id'], $upgradedHash);
             return $user;

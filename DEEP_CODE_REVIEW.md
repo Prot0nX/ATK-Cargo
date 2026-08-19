@@ -230,6 +230,8 @@ XOR تک‌بایتی رمزنگاری نیست — یک جایگزینی حرف
 **Priority:** CRITICAL
 **Estimated Effort:** Medium (چرخش: Low · بازطراحی لایسنس: Medium)
 
+**Status:** ⚠️ ابزار آماده شد، چرخش واقعی روی سرور انجام نشده (دسترسی سرور در دسترس نبود). `scripts/xor_secret_codec.php` نوشته و با راستی‌آزمایی round-trip روی مقدار واقعی `getBaseUrl()` تست شد (decode مقدار موجود در `secrets.cpp:16-21` دقیقاً `https://atk-nk.ir/Cargo/test_api/` را برگرداند؛ encode همان رشته دقیقاً همان بایت‌های موجود در فایل را بازتولید کرد). راهنمای گام‌به‌گام در `scripts/ROTATE_SECRETS.md`. **چرخش واقعی کلید (تولید مقدار جدید + جایگزینی در سرور + جایگزینی در `secrets.cpp` + build/deploy هماهنگ) باقی مانده و باید توسط شما با دسترسی سرور انجام شود.**
+
 ---
 
 ## High Issues
@@ -307,6 +309,13 @@ SELECT COUNT(*) FROM Users WHERE password NOT LIKE '$2y$%' AND password NOT LIKE
 **Priority:** HIGH
 **Estimated Effort:** Low
 
+**Status:** ⚠️ Mitigated (2026-08-19) — چون به دیتابیس production دسترسی نبود (نمی‌شد شمارش کاربران مهاجرت‌نشده را اجرا کرد)، حالت ۳ **حذف کامل نشد** بلکه پشت فلگ `ALLOW_LEGACY_PLAINTEXT_LOGIN` (پیش‌فرض `false`) قرار گرفت — یعنی از هم‌اکنون **غیرفعال** است مگر عمداً در `.env` روشن شود. با یک MariaDB throwaway محلی (سه کاربر: bcrypt، plaintext، SHA-256) تأیید شد:
+- پیش‌فرض (فلگ خاموش): کاربر bcrypt طبیعی وارد می‌شود؛ کاربر plaintext و SHA-256 **رد** می‌شوند (رفتار قبلی که رمز خام را می‌پذیرفت، دیگر رخ نمی‌دهد).
+- با فلگ روشن: کاربر plaintext وارد می‌شود و هش او بی‌صدا به bcrypt ارتقا می‌یابد (silent migration همچنان کار می‌کند).
+- `vendor/bin/phpunit` (۶۸ تست) بدون شکست.
+
+**اقدام باقی‌مانده برای شما:** روی دیتابیس production کوئری شمارشی گزارش را اجرا کنید؛ اگر صفر بود، بلوک حالت ۳ و متغیر `ALLOW_LEGACY_PLAINTEXT_LOGIN` را کامل از `UserService.php` حذف کنید (دیگر لازم نیست حتی پشت فلگ بماند).
+
 ---
 
 ### [HIGH] phpMyAdmin روی سرور production نصب است
@@ -336,6 +345,8 @@ phpMyAdmin نسخه‌ی **5.1.1** روی همان میزبانی که API را 
 
 **Priority:** HIGH
 **Estimated Effort:** Low
+
+**Status:** ⚠️ چون کاملاً سمت سرور است، فقط چک‌لیست اجرا آماده شد: `scripts/REMOVE_PHPMYADMIN.md` (هر دو گزینه‌ی حذف کامل و محدودسازی IP + Basic Auth، با دستورات راستی‌آزمایی `curl`). **اجرای واقعی روی سرور با شماست.**
 
 ---
 
@@ -476,6 +487,13 @@ android {
 **Priority:** HIGH
 **Estimated Effort:** Low
 
+**Status:** ✅ Fixed (2026-08-19) — `signingConfigs`/`keystore.properties` (یا متغیرهای محیطی `KEYSTORE_*`) به `app/build.gradle.kts` اضافه شد؛ اگر پیکربندی نباشد release بدون خطا و بدون امضا build می‌شود (برای لینت/CI فعلی کافی است). با یک کیستور throwaway محلی end-to-end تست شد:
+- بدون `keystore.properties`: خروجی `app-release-unsigned.apk` (رفتار قبلی، بدون شکست).
+- با `keystore.properties`: خروجی `app-release.apk` و `apksigner verify --print-certs` امضا را با گواهی throwaway تأیید کرد.
+- `./gradlew :app:lintRelease` (همان مرحله‌ای که CI اجرا می‌کند) هم سبز بود.
+
+`keystore.properties.example` به‌عنوان الگو اضافه و به `.gitignore` هم `keystore.properties` اضافه شد. **کیستور واقعی release و مقداردهی `keystore.properties`/متغیرهای CI باقی مانده — کاری است که باید با کلید امضای واقعی شما (یا تولید یک کیستور جدید در صورت نبود) انجام شود.**
+
 ---
 
 ## Medium Issues
@@ -564,6 +582,8 @@ if ($updateLastCheck) {
 
 **Priority:** MEDIUM
 **Estimated Effort:** Low
+
+**Status:** ✅ Fixed (2026-08-19) — خط ۸۳ به پیام عمومی تغییر کرد؛ `php -l` تأیید شد، هیچ تست/کلاینتی به متن قدیمی پیام وابسته نبود.
 
 ---
 
@@ -808,6 +828,8 @@ Log.w("TokenRefresher", "خطا هنگام تمدید access token", e)         
 **Recommended Fix:** افزودن `php_server_info_*.txt` به `.gitignore`.
 
 **Priority:** LOW · **Effort:** Low
+
+**Status:** ✅ Fixed (2026-08-19, commit `6794d9c`) — پرونده یافت شد که علاوه بر untracked نبودن، **در واقع در آخرین کامیت (`f4792bb`) commit و روی `origin/main` push هم شده بود** (فرض اولیه‌ی گزارش نادرست بود). با `git rm --cached` از ردیابی خارج و الگو به `.gitignore` اضافه شد. تاریخچه‌ی git هنوز حاوی نسخه‌ی قدیمی فایل است — پاک‌سازی کامل تاریخچه به بخش Phase 2 #17 (`git filter-repo`) موکول شد.
 
 ---
 
@@ -1235,6 +1257,13 @@ EXPLAIN SELECT ... FROM CargoInfo WHERE trackingNumber = 'X' ORDER BY entryTime 
 انتظار: تغییر `type` از `ALL` به `ref` و حذف `Using filesort`.
 
 **Priority:** HIGH · **Effort:** Low
+
+**Status:** ✅ Migration نوشته شد (`PHP/migrations/2026_08_19_add_cargo_tracking_index.sql`) — **هنوز روی دیتابیس تولید اجرا نشده** (طبق قرارداد پروژه، دستی و هم‌زمان با deploy). با یک MariaDB throwaway محلی و ۱۰٬۰۰۰ ردیف تصادفی تأیید شد:
+- قبل: `type=ALL, rows=10000, Extra=Using where; Using filesort`
+- بعد: `type=ref, rows=1, Extra=Using where; Using index` (حتی filesort هم حذف شد، بهتر از انتظار گزارش)
+- کوئری دوم (`shipName`+`trackingNumber`+`updated_at`) هم از `idx_cargo_ship_tracking` با `type=range, rows=1` استفاده کرد.
+
+`schema.sql` نیز برای هماهنگی با migration به‌روزرسانی شد.
 
 ---
 
@@ -1996,6 +2025,8 @@ tests/Unit/Validators/InputValidatorTest.php      ✅
 
 **Priority:** HIGH · **Effort:** Low
 
+**Status:** ✅ Fixed (2026-08-19) — مرحله‌ی `Unit tests` (بدون qualifier ماژول، پس همه‌ی زیرپروژه‌ها را شامل می‌شود) + آپلود گزارش به `ci.yml` اضافه شد. اجرای محلی `./gradlew testDebugUnitTest` تأیید کرد: هر ۶ فایل تست (شامل `TokenAuthenticatorTest` و `TokenRefresherTest` در `core:network`) با مجموع ۴۷ تست، صفر شکست.
+
 ---
 
 ## بخش‌های بحرانی بدون تست
@@ -2371,14 +2402,14 @@ buildTypes {
 
 | # | اقدام | فایل | Effort |
 |---|-------|------|--------|
-| ۱ | چرخش `API_KEY` و `LICENSE_KEY` | `secrets.cpp` + `.env` سرور | Low |
-| ۲ | حذف/محدودسازی phpMyAdmin | سرور | Low |
-| ۳ | افزودن `signingConfig` به release | `app/build.gradle.kts` | Low |
-| ۴ | حذف حالت ۳ (رمز متن‌خام) پس از شمارش | `UserService.php:69-76` | Low |
-| ۵ | رفع نشت `$e->getMessage()` | `UserController.php:83` | Low |
-| ۶ | افزودن `testDebugUnitTest` به CI | `.github/workflows/ci.yml` | Low |
-| ۷ | افزودن ایندکس `trackingNumber` | migration جدید | Low |
-| ۸ | افزودن `php_server_info_*.txt` به `.gitignore` | `.gitignore` | Low |
+| ۱ | ⚠️ چرخش `API_KEY` و `LICENSE_KEY` — ابزار آماده شد، اجرای واقعی روی سرور باقی مانده | `secrets.cpp` + `.env` سرور | Low |
+| ۲ | ⚠️ حذف/محدودسازی phpMyAdmin — چک‌لیست آماده شد، اجرای روی سرور باقی مانده | سرور | Low |
+| ۳ | ✅ افزودن `signingConfig` به release (تست شد؛ کیستور واقعی باقی مانده) | `app/build.gradle.kts` | Low |
+| ۴ | ⚠️ پشت فلگ `ALLOW_LEGACY_PLAINTEXT_LOGIN` (پیش‌فرض خاموش) قرار گرفت — حذف کامل بعد از شمارش روی prod باقی مانده | `UserService.php:69-76` | Low |
+| ۵ | ✅ رفع نشت `$e->getMessage()` | `UserController.php:83` | Low |
+| ۶ | ✅ افزودن `testDebugUnitTest` به CI | `.github/workflows/ci.yml` | Low |
+| ۷ | ✅ افزودن ایندکس `trackingNumber` (migration نوشته و تست شد؛ اجرا روی prod باقی مانده) | migration جدید | Low |
+| ۸ | ✅ افزودن `php_server_info_*.txt` به `.gitignore` + حذف از tracking | `.gitignore` | Low |
 
 **بررسی پس از فاز ۱:**
 ```bash
@@ -2438,15 +2469,15 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 |--:|-------|----------|----------|------|--------|
 | ۱ | رازها با XOR تک‌بایتی، در git | Security | **CRITICAL** | `app/src/main/cpp/secrets.cpp:6` | Medium |
 | ۲ | PHP 8.1 بدون پشتیبانی امنیتی | Security/Infra | **HIGH** | سرور production | Medium |
-| ۳ | fallback رمز متن‌خام | Security | **HIGH** | `PHP/src/Services/UserService.php:69` | Low |
+| ۳ | ⚠️ fallback رمز متن‌خام (پشت فلگ خاموش، حذف کامل باقی مانده) | Security | **HIGH** | `PHP/src/Services/UserService.php:69` | Low |
 | ۴ | phpMyAdmin روی production | Security/Infra | **HIGH** | سرور production | Low |
 | ۵ | تماس شبکه در Composable با scope کنسل‌شونده | Architecture | **HIGH** | `InitialInfoScreen.kt:636` + ۸ فایل | High |
-| ۶ | نبود signingConfig برای release | Build | **HIGH** | `app/build.gradle.kts:49` | Low |
-| ۷ | CI تست اندروید اجرا نمی‌کند | Testing | **HIGH** | `.github/workflows/ci.yml:69` | Low |
-| ۸ | ایندکس گمشده روی `trackingNumber` | Performance/DB | **HIGH** | `PHP/src/Repositories/CargoRepository.php:299` | Low |
+| ۶ | ✅ نبود signingConfig برای release | Build | **HIGH** | `app/build.gradle.kts:49` | Low |
+| ۷ | ✅ CI تست اندروید اجرا نمی‌کند | Testing | **HIGH** | `.github/workflows/ci.yml:69` | Low |
+| ۸ | ✅ ایندکس گمشده روی `trackingNumber` | Performance/DB | **HIGH** | `PHP/src/Repositories/CargoRepository.php:299` | Low |
 | ۹ | recomposition در هر فریم انیمیشن | Performance | **HIGH** | `InitialInfoDialogs.kt:81` + ۴ فایل | Low |
 | ۱۰ | لایسنس بدون auth/rate-limit، کلید در URL | Security | MEDIUM | `PHP/src/Controllers/LicenseController.php:120` | Low |
-| ۱۱ | نشت پیام استثنا به کلاینت | Security | MEDIUM | `PHP/src/Controllers/UserController.php:83` | Low |
+| ۱۱ | ✅ نشت پیام استثنا به کلاینت | Security | MEDIUM | `PHP/src/Controllers/UserController.php:83` | Low |
 | ۱۲ | shimهای PHP، Router را دور می‌زنند | Architecture | MEDIUM | ۶ فایل ریشه `PHP/` | Medium |
 | ۱۳ | `<Directory>` نامعتبر در `.htaccess` | Security/Config | MEDIUM | `PHP/.htaccess:20,70,75` | Low |
 | ۱۴ | `downloadUrl` بدون اعتبارسنجی دامنه | Security | MEDIUM | `UpdateManager.kt:171` | Low |
