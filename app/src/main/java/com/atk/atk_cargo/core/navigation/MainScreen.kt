@@ -60,6 +60,7 @@ import com.atk.atk_cargo.feature.cargo_counter.navigation.CargoCounterRoute
 import com.atk.atk_cargo.feature.cargo_entry.navigation.InitialInfoRoute
 import com.atk.atk_cargo.feature.cargo_entry.navigation.SelectInfoRoute
 import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoScreen
+import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoViewModel
 import com.atk.atk_cargo.feature.cargo_registration.navigation.cargoRegistrationScreen
 import com.atk.atk_cargo.feature.chat.navigation.AdminChatRoute
 import com.atk.atk_cargo.feature.chat.navigation.navigateToAdminChat
@@ -168,7 +169,8 @@ fun MainScreen() {
                                             popEnterTransition = initialInfoTransitions.popEnter,
                                             popExitTransition = initialInfoTransitions.popExit
                                         ) {
-                                            InitialInfoScreen(navController = navController)
+                                            val initialInfoViewModel: InitialInfoViewModel = koinViewModel()
+                                            InitialInfoScreen(navController = navController, viewModel = initialInfoViewModel)
                                         }
                                         val selectInfoTransitions = standardTransitions(initialScale = 0.88f, targetScale = 1.08f)
                                         composable<SelectInfoRoute>(

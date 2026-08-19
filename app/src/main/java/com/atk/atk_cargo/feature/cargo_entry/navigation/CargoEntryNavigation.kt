@@ -5,8 +5,10 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.atk.atk_cargo.feature.cargo_entry.presentation.CargoOperationScreen
 import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoScreen
+import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoViewModel
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import kotlinx.serialization.Serializable
+import org.koin.androidx.compose.koinViewModel
 
 @Serializable
 object InitialInfoRoute
@@ -24,7 +26,8 @@ fun NavController.navigateToSelectInfo() {
 
 fun NavGraphBuilder.initialInfoScreen(navController: NavController) {
     composable<InitialInfoRoute> {
-        InitialInfoScreen(navController = navController)
+        val viewModel: InitialInfoViewModel = koinViewModel()
+        InitialInfoScreen(navController = navController, viewModel = viewModel)
     }
 }
 
