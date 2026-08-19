@@ -1,5 +1,8 @@
 package com.atk.atk_cargo.domain.model
 
+import java.text.DecimalFormat
+import kotlin.math.roundToInt
+
 /**
  * وزن تایپ‌شده (کیلوگرم) — جایگزین محاسبات مستقیم روی String خام
  * (DEEP_CODE_AUDIT.md #Primitive Obsession). DTOها همچنان String می‌مانند
@@ -13,6 +16,12 @@ value class Kilograms(val value: Double) {
     operator fun minus(other: Kilograms): Kilograms = Kilograms(value - other.value)
 
     fun coerceAtLeastZero(): Kilograms = Kilograms(value.coerceAtLeast(0.0))
+
+    /** فرمت خام برای DTO سرور — بدون کاما (ستون DB معادل `int unsigned` است). */
+    fun toWireString(): String = value.roundToInt().toString()
+
+    /** فرمت نمایشی با جداکننده‌ی هزارگان، برای UI. */
+    fun formatted(): String = DecimalFormat("#,###").format(value.roundToInt())
 
     companion object {
         val ZERO = Kilograms(0.0)

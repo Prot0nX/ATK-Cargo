@@ -83,7 +83,6 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dial
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.StandardDialogShell
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import kotlinx.coroutines.launch
-import java.text.DecimalFormat
 
 // این فایل دیالوگ «جزئیات حواله» (CargoInfoDetailsDialog) و دیالوگ حذف وابسته‌اش را از
 // RegisterCargoDialogs.kt جدا نگه می‌دارد (A1-6، بازسازی ساختاری). کاملاً خودکفا است —
@@ -484,12 +483,7 @@ private fun MainInfoTabContent(
 @Composable
 private fun WeightInfoTabContent(info: Cargo) {
     val formattedNetWeight = remember(info.netWeight) {
-        try {
-            val weight = info.netWeight.replace(",", "").toDoubleOrNull() ?: 0.0
-            DecimalFormat("#,###").format(weight.toLong())
-        } catch (_: Exception) {
-            info.netWeight
-        }
+        info.netWeight?.formatted() ?: "0"
     }
 
     Column(

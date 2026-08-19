@@ -532,7 +532,7 @@ class CargoViewModel(
                 if (cargo.trackingNumber == trackingNumber) {
                     cargo.copy(
                         status = CargoStatus.EXITED.wireValue,
-                        netWeight = netWeight,
+                        netWeight = Kilograms.parse(netWeight),
                         exitDate = responseBody?.exitDate ?: getCurrentDate(),
                         exitTime = responseBody?.exitTime ?: getCurrentTime()
                     )
@@ -766,7 +766,7 @@ class CargoViewModel(
         viewModelScope.launch {
             try {
                 val updatedCargoInfo = cargoInfo.copy(
-                    netWeight = netWeight,
+                    netWeight = Kilograms.parse(netWeight),
                     exitTime = getCurrentTime(),
                     exitDate = getCurrentDate(),
                     status = CargoStatus.EXITED.wireValue
@@ -799,11 +799,10 @@ class CargoViewModel(
             try {
                 val exitedCargos = _uiState.value.cargoInfoList.filter { it.status == CargoStatus.EXITED.wireValue }
                 val netWeights = exitedCargos.mapNotNull { cargo ->
-                    Kilograms.parse(cargo.netWeight).also { parsed ->
-                        if (parsed == null && cargo.netWeight.isNotBlank()) {
-                            Log.w("CargoViewModel_Log", "وزن خالص نامعتبر برای حواله #${cargo.trackingNumber}: '${cargo.netWeight}'")
-                        }
-                    }
+                    // netWeight null یعنی یا رشته‌ی خام نامعتبر بود (توسط toDomain لاگ
+                    // می‌شود، نه اینجا) یا واقعاً هنوز باسکول نشده — هر دو باید از
+                    // میانگین/جمع کنار گذاشته شوند، نه به ۰ افتند.
+                    cargo.netWeight
                 }
                 val totalNet = netWeights.fold(Kilograms.ZERO) { acc, w -> acc + w }
                 val averageNet = if (netWeights.isNotEmpty()) totalNet.value / netWeights.size else 0.0

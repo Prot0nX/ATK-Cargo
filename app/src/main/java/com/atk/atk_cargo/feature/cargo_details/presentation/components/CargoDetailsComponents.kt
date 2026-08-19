@@ -728,7 +728,7 @@ fun CargoListSection(
 
     val confirmedStats = remember(groupedCargoList[true]) {
         groupedCargoList[true]?.let { confirmedCargos ->
-            val totalWeight = confirmedCargos.sumOf { it.netWeight.toDoubleOrNull() ?: 0.0 }
+            val totalWeight = confirmedCargos.sumOf { it.netWeight?.value ?: 0.0 }
             val avgWeight = if (confirmedCargos.isNotEmpty()) totalWeight / confirmedCargos.size else 0.0
             Triple(confirmedCargos.size, totalWeight, avgWeight)
         } ?: Triple(0, 0.0, 0.0)
