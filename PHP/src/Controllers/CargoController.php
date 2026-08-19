@@ -63,15 +63,27 @@ class CargoController {
         $requiredFields = ['shipName', 'loadingWarehouse', 'cargoType', 'shippingCompany', 'loadingQuotaNumber', 'trackingNumber'];
         $optionalFields = ['entryTime', 'netWeight', 'scaleReceiptNumber', 'shortageWeight', 'excessWeight', 'exitTime', 'exitDate', 'status', 'confirmation', 'numberOfPeople', 'duplicateConfirmation'];
 
+        // ستون‌های متناظر در CargoInfo همه varchar(100) هستند (schema.sql)؛
+        // بدون این سقف، رشته‌ی بلندتر امروز بی‌صدا truncate می‌شود و بعد از
+        // فعال‌سازی احتمالی STRICT_TRANS_TABLES (DEEP_CODE_AUDIT.md #Phase4.10)
+        // باعث خطای ۵۰۰ خام دیتابیس می‌شد، نه پیام اعتبارسنجی قابل‌فهم.
+        $maxFieldLength = 100;
+
         foreach ($requiredFields as $field) {
             if (!isset($params[$field]) || trim((string)$params[$field]) === '') {
                 $this->sendErrorResponse("پارامتر $field الزامی است.");
             }
             $params[$field] = $this->sanitizeString((string)$params[$field]);
+            if (mb_strlen($params[$field], 'UTF-8') > $maxFieldLength) {
+                $this->sendErrorResponse("پارامتر $field نمی‌تواند بیشتر از {$maxFieldLength} کاراکتر باشد.");
+            }
         }
 
         foreach ($optionalFields as $field) {
             $params[$field] = isset($params[$field]) ? $this->sanitizeString((string)$params[$field]) : '';
+            if (mb_strlen($params[$field], 'UTF-8') > $maxFieldLength) {
+                $this->sendErrorResponse("پارامتر $field نمی‌تواند بیشتر از {$maxFieldLength} کاراکتر باشد.");
+            }
         }
 
         try {
@@ -716,11 +728,19 @@ class CargoController {
         return (string)$sanitized;
     }
 
-    private function validateStringField($value, string $fieldName, bool $required = true): string {
+    // $maxLength پیش‌فرض ۱۰۰ چون تمام ستون‌های متنی CargoInfo که این متد برایشان
+    // صدا زده می‌شود varchar(100) هستند (schema.sql) — بدون این سقف، رشته‌ی
+    // بلندتر امروز بی‌صدا truncate می‌شود؛ بعد از فعال‌سازی احتمالی
+    // STRICT_TRANS_TABLES (DEEP_CODE_AUDIT.md #Phase4.10) همان ورودی باعث
+    // خطای ۵۰۰ دیتابیس می‌شد، نه خطای اعتبارسنجی صریح و قابل‌فهم.
+    private function validateStringField($value, string $fieldName, bool $required = true, ?int $maxLength = 100): string {
         $strValue = ($value === null) ? '' : (string)$value;
         $sanitized = htmlspecialchars(trim($strValue), ENT_QUOTES, 'UTF-8');
         if ($required && empty($sanitized)) {
             throw new InvalidArgumentException("فیلد {$fieldName} الزامی است.");
+        }
+        if ($maxLength !== null && mb_strlen($sanitized, 'UTF-8') > $maxLength) {
+            throw new InvalidArgumentException("فیلد {$fieldName} نمی‌تواند بیشتر از {$maxLength} کاراکتر باشد.");
         }
         return $sanitized;
     }
