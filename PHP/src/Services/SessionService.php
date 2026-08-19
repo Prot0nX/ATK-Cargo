@@ -144,6 +144,11 @@ class SessionService {
         if ($storedRefreshTokenHash === '' || !hash_equals($storedRefreshTokenHash, SessionRepository::hashToken($refreshToken))) {
             $this->sessionRepository->deactivateAllSessions($username);
             $this->logActivity($username, 'REFRESH_TOKEN_REUSE_DETECTED', $deviceId);
+            SecurityAlerter::getInstance()->alert(
+                'REFRESH_TOKEN_REUSE_DETECTED',
+                "refresh token غیرمعتبر/استفاده‌شده برای «{$username}» از دستگاه «{$deviceId}» ارسال شد — احتمال سرقت توکن. تمام نشست‌های این کاربر باطل شدند.",
+                'refresh_reuse_' . strtolower($username)
+            );
             return ['success' => false, 'message' => 'نشست به دلایل امنیتی باطل شد. لطفاً دوباره وارد شوید.', 'http_code' => 401];
         }
 

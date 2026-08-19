@@ -23,14 +23,22 @@ final class LoginAttemptLimiter {
     /** @var callable(int): void */
     private $sleeper;
 
+    /** @var callable(string, string, string): void */
+    private $alerter;
+
     // Phase 3.3: sleep() تصاعدی داخل registerFailedAttempt تست واحد این کلاس
     // را غیرممکن می‌کرد (تا ۸ ثانیه واقعی به‌ازای هر تست). با تزریق یک تابع
     // sleep قابل جایگزینی (پیش‌فرض همان sleep() واقعی برای کد production)،
     // تست می‌تواند این تابع را با یک no-op جایگزین کند و فقط منطق شمارش/قفل
-    // را بسنجد، نه گذر زمان واقعی را.
-    public function __construct(?callable $sleeper = null) {
+    // را بسنجد، نه گذر زمان واقعی را. همان الگو برای alerter (Phase 5.2،
+    // DEEP_CODE_AUDIT.md → «نبود مانیتورینگ و هشدار») تکرار شده تا تست‌ها
+    // درخواست شبکه‌ی واقعی نزنند.
+    public function __construct(?callable $sleeper = null, ?callable $alerter = null) {
         $this->sleeper = $sleeper ?? static function (int $seconds): void {
             sleep($seconds);
+        };
+        $this->alerter = $alerter ?? static function (string $event, string $message, string $dedupeKey): void {
+            SecurityAlerter::getInstance()->alert($event, $message, $dedupeKey);
         };
     }
 
@@ -41,7 +49,24 @@ final class LoginAttemptLimiter {
 
     public function registerFailedAttempt(string $username, string $ipAddress): void {
         $userAttempts = $this->increment($this->userKey($username));
-        $this->increment($this->ipKey($ipAddress));
+        $ipAttempts = $this->increment($this->ipKey($ipAddress));
+
+        // اعلان فقط دقیقاً در لحظه‌ی عبور از سقف (نه در هر تلاش بعدی که قفل
+        // از قبل فعال است) تا اسپم نشود.
+        if ($userAttempts === self::MAX_USER_ATTEMPTS) {
+            ($this->alerter)(
+                'ACCOUNT_LOCKED',
+                "حساب کاربری «{$username}» پس از $userAttempts تلاش ناموفق ورود قفل شد (IP: $ipAddress).",
+                'account_locked_' . strtolower($username)
+            );
+        }
+        if ($ipAttempts === self::MAX_IP_ATTEMPTS) {
+            ($this->alerter)(
+                'IP_LOCKED',
+                "آدرس IP «{$ipAddress}» پس از $ipAttempts تلاش ناموفق ورود (احتمال credential-stuffing) مسدود شد.",
+                'ip_locked_' . $ipAddress
+            );
+        }
 
         // تأخیر تصاعدی: 2, 4, 8, 8, 8... ثانیه به‌ازای تلاش ناموفق روی همین username
         $delay = min(2 ** $userAttempts, self::MAX_BACKOFF_SECONDS);
