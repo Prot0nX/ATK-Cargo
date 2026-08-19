@@ -57,7 +57,6 @@ import androidx.navigation.NavController
 import com.atk.atk_cargo.api.CargoViewModel
 import com.atk.atk_cargo.api.CargoViewModelFactory
 import com.atk.atk_cargo.api.ReportsRepository
-import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.data.model.MessageType
@@ -95,80 +94,6 @@ private fun refreshData(
     )
 }
 
-private fun parseErrorMessage(errorBody: String?): String? {
-    if (errorBody.isNullOrBlank()) return null
-    return try {
-        com.google.gson.JsonParser.parseString(errorBody)
-            .asJsonObject.get("message")?.asString
-    } catch (_: Exception) {
-        null
-    }
-}
-
-suspend fun confirmCargo(info: Cargo, username: String, userType: String): Result<String> {
-    return try {
-        val requestBody = mapOf(
-            "id" to (info.id?.toString() ?: "0"),
-            "username" to username,
-            "userType" to userType,
-            "loadingQuotaNumber" to info.loadingQuotaNumber,
-            "shipName" to info.shipName
-        )
-
-        val response = RetrofitClient.apiServiceV2.confirmCargo(requestBody)
-
-        if (response.isSuccessful) {
-            val responseBody = response.body()
-            val message = responseBody?.get("message")?.asString ?: "عملیات با موفقیت انجام شد"
-            Result.success(message)
-        } else {
-            // سرور برای خطاهای واقعی (مثل ۴۰۹ تأیید تکراری) پیام فارسی گویا
-            // در بدنه‌ی خطا می‌فرستد؛ قبلاً این پیام دور ریخته می‌شد و کاربر
-            // فقط یک عدد کد HTTP بی‌معنی می‌دید.
-            val serverMessage = parseErrorMessage(response.errorBody()?.string())
-            Result.failure(Exception(serverMessage ?: "خطا در ارتباط با سرور: ${response.code()}"))
-        }
-    } catch (e: Exception) {
-        Log.e("CargoDetailsScreen", "Error confirming cargo", e)
-        Result.failure(e)
-    }
-}
-
-suspend fun handleCargoConfirmation(
-    viewModel: CargoViewModel,
-    info: Cargo,
-    username: String,
-    userType: String,
-    quotaNumber: String,
-    shippingCompany: String,
-    warehouse: String,
-    cargoType: String
-) {
-    try {
-        val result = confirmCargo(info, username, userType)
-        result.fold(
-            onSuccess = { message ->
-                viewModel.updateCargoConfirmation(info.id)
-                viewModel.loadCargoInfoList(
-                    quotaNumber = quotaNumber,
-                    shippingCompany = shippingCompany,
-                    warehouse = warehouse,
-                    cargoType = cargoType,
-                    onComplete = {
-                        viewModel.showMessage(message, MessageType.SUCCESS)
-                    }
-                )
-            },
-            onFailure = { error ->
-                Log.e("CargoDetailsScreen", "Error confirming cargo: ${error.message}", error)
-                viewModel.showMessage("خطا: ${error.message}", MessageType.ERROR)
-            }
-        )
-    } catch (e: Exception) {
-        Log.e("CargoDetailsScreen", "Exception in cargo confirmation process", e)
-        viewModel.showMessage("خطای غیرمنتظره: ${e.message}", MessageType.ERROR)
-    }
-}
 @Composable
 fun CargoDetailsScreen(
     navController: NavController,
@@ -434,23 +359,19 @@ fun CargoDetailsScreen(
             onConfirm = {
                 if (!isConfirmingCargo) {
                     isConfirmingCargo = true
-                    coroutineScope.launch {
-                        try {
-                            handleCargoConfirmation(
-                                viewModel = viewModel,
-                                info = info,
-                                username = username,
-                                userType = userType,
-                                quotaNumber = quotaNumber,
-                                shippingCompany = shippingCompany,
-                                warehouse = warehouse,
-                                cargoType = cargoType
-                            )
-                            selectedCargoInfo = null
-                        } finally {
+                    viewModel.confirmCargo(
+                        info = info,
+                        username = username,
+                        userType = userType,
+                        quotaNumber = quotaNumber,
+                        shippingCompany = shippingCompany,
+                        warehouse = warehouse,
+                        cargoType = cargoType,
+                        onComplete = {
                             isConfirmingCargo = false
+                            selectedCargoInfo = null
                         }
-                    }
+                    )
                 }
             },
             showConfirmButton = info.status == CargoStatus.ENTERED.wireValue && info.confirm != CargoConfirmStatus.CONFIRMED.wireValue,
