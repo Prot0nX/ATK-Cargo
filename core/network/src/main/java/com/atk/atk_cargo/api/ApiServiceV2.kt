@@ -45,6 +45,7 @@ import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Query
 
@@ -57,7 +58,14 @@ interface ApiServiceV2 {
 
     @GET("api/v2/index.php")
     suspend fun getShipDetails(
-        @Query("route") route: String
+        @Query("route") route: String,
+        // سرور این پاسخ را با Cache-Control: max-age=6 می‌فرستد (سمت‌سرور،
+        // برای بار عادی/polling مفید است)؛ OkHttp طبق آن تا ۶ ثانیه اصلاً
+        // درخواست شبکه نمی‌زند و پاسخ کش‌شده را برمی‌گرداند — یعنی رفرش بلافاصله
+        // بعد از یک نوشتن (toggleQuotaStatus/editQuota/...) می‌توانست همان
+        // پاسخ قدیمی را نشان دهد. "no-cache" این کش محلی را دور می‌زند و
+        // OkHttp را مجبور به یک درخواست شرطی واقعی (If-None-Match) می‌کند.
+        @Header("Cache-Control") cacheControl: String? = null
     ): Response<Ship>
 
     @GET("api/v2/index.php")
@@ -67,7 +75,8 @@ interface ApiServiceV2 {
 
     @GET("api/v2/index.php")
     suspend fun getShipQuotas(
-        @Query("route") route: String
+        @Query("route") route: String,
+        @Header("Cache-Control") cacheControl: String? = null
     ): Response<List<Quota>>
 
     @GET("api/v2/index.php")
