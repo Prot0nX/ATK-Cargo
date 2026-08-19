@@ -390,7 +390,7 @@ private fun ModernWeightInfoSection(info: Cargo) {
 
                 ModernWeightInfoItem(
                     label = "وزن خالص",
-                    value = info.netWeight,
+                    value = info.netWeight?.toWireString() ?: "",
                     icon = Icons.Default.Scale,
                     color = CargoAccent,
                     modifier = Modifier.weight(1f)

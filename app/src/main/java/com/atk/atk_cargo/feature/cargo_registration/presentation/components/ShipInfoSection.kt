@@ -630,7 +630,7 @@ fun CargoInfoRow(
 ) {
     val formattedNetWeight = remember(info.netWeight) {
         try {
-            DecimalFormat("#,###").format(info.netWeight.toDoubleOrNull() ?: 0)
+            DecimalFormat("#,###").format(info.netWeight?.value ?: 0.0)
         } catch (_: Exception) {
             onError("Invalid netWeight: ${info.netWeight}")
             "0"
