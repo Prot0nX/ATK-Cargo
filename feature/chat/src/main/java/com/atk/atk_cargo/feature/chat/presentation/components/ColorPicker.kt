@@ -1,4 +1,4 @@
-package com.atk.atk_cargo.data
+package com.atk.atk_cargo.feature.chat.presentation.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures

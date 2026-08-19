@@ -5,7 +5,6 @@ import com.atk.atk_cargo.api.UpdateManager
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.core.startup.StartupViewModel
 import com.atk.atk_cargo.data.db.AppDatabase
-import com.atk.atk_cargo.data.repository.ChatRepository
 import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import com.atk.atk_cargo.feature.auth.data.AuthRepository
@@ -13,6 +12,8 @@ import com.atk.atk_cargo.feature.auth.data.AuthRepositoryImpl
 import com.atk.atk_cargo.feature.auth.domain.LoginUseCase
 import com.atk.atk_cargo.feature.auth.domain.LogoutUseCase
 import com.atk.atk_cargo.feature.auth.viewmodel.AuthViewModel
+import com.atk.atk_cargo.feature.chat.data.ChatPreferencesStore
+import com.atk.atk_cargo.feature.chat.data.ChatRepository
 import com.atk.atk_cargo.security.CryptoManager
 import com.atk.atk_cargo.security.SecurityVerifier
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
@@ -39,6 +40,9 @@ val appModule = module {
     // اینترفیس مرزی UserPreferencesStore (در core:domain) را می‌خواهند؛ bind
     // این پیاده‌سازی را زیر آن نوع هم در دسترس get()/koinInject() می‌گذارد.
     single { UserPreferencesManager(androidContext(), get()) } bind UserPreferencesStore::class
+    // یک single جدا (نه bind زنجیره‌ای — Koin اجازه نمی‌دهد دو bind پشت‌سرهم
+    // روی انواع نامرتبط زده شود): همان singleton بالا را با get() برمی‌گرداند.
+    single<ChatPreferencesStore> { get<UserPreferencesManager>() }
 
     // ===== دیتابیس محلی و مخازن =====
     single { AppDatabase.getDatabase(androidContext()) }

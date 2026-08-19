@@ -41,10 +41,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.atk.atk_cargo.api.ChatViewModel
-import com.atk.atk_cargo.api.ChatViewModelFactory
-import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.data.db.ChatMessageEntity
+import com.atk.atk_cargo.feature.chat.data.ChatPreferencesStore
 import com.atk.atk_cargo.feature.chat.domain.ChatUiItem
 import com.atk.atk_cargo.feature.chat.domain.getChatBackgroundColor
 import com.atk.atk_cargo.feature.chat.domain.getDateHeaderColor
@@ -53,12 +51,14 @@ import com.atk.atk_cargo.feature.chat.presentation.components.ChatTopBar
 import com.atk.atk_cargo.feature.chat.presentation.components.ErrorView
 import com.atk.atk_cargo.feature.chat.presentation.components.MessageBubble
 import com.atk.atk_cargo.feature.chat.presentation.components.MessageInputArea
+import com.atk.atk_cargo.feature.chat.viewmodel.ChatViewModel
+import com.atk.atk_cargo.feature.chat.viewmodel.ChatViewModelFactory
 import com.atk.atk_cargo.utils.JalaliDateUtils
 import kotlinx.coroutines.awaitCancellation
 
 @Composable
 fun ChatScreen(
-    userPreferencesManager: UserPreferencesManager,
+    userPreferencesManager: ChatPreferencesStore,
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current

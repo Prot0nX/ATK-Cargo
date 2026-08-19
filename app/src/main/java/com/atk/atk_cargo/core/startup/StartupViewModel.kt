@@ -18,7 +18,7 @@ import com.atk.atk_cargo.api.SessionCheckRequest
 import com.atk.atk_cargo.api.TokenRefresher
 import com.atk.atk_cargo.api.UpdateManager
 import com.atk.atk_cargo.api.UserPreferencesManager
-import com.atk.atk_cargo.data.repository.ChatRepository
+import com.atk.atk_cargo.feature.chat.data.ChatRepository
 import com.atk.atk_cargo.security.SecurityErrorType
 import com.atk.atk_cargo.security.SecurityVerifier
 import com.atk.atk_cargo.workers.ChatNotificationWorker

@@ -45,7 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.ColorUtils
-import com.atk.atk_cargo.api.ChatViewModel
+import com.atk.atk_cargo.feature.chat.viewmodel.ChatViewModel
 import com.atk.atk_cargo.data.db.ChatMessageEntity
 import com.atk.atk_cargo.feature.chat.domain.ShipInfoModel
 import com.atk.atk_cargo.feature.chat.domain.extractShipInfoAndText
@@ -63,7 +63,7 @@ fun MessageBubble(
     otherBubbleColor: Color,
     myShape: androidx.compose.ui.graphics.Shape,
     otherShape: androidx.compose.ui.graphics.Shape,
-    users: List<com.atk.atk_cargo.api.User>
+    users: List<com.atk.atk_cargo.data.model.User>
 ) {
     val isMe = message.isSelf
     var showMenu by remember { mutableStateOf(false) }

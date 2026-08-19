@@ -1,4 +1,4 @@
-package com.atk.atk_cargo.data.repository
+package com.atk.atk_cargo.feature.chat.data
 
 import android.util.Log
 import com.atk.atk_cargo.api.ApiServiceV2
@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
 class ChatRepository(
     private val chatDao: ChatDao,
     private val apiServiceV2: ApiServiceV2,
-    private val userPreferencesManager: com.atk.atk_cargo.api.UserPreferencesManager
+    private val userPreferencesManager: ChatPreferencesStore
 ) {
     // دریافت پیام‌ها از دیتابیس به صورت جریان داده (Flow)
     val messages: Flow<List<ChatMessageEntity>> = chatDao.getAllMessages()
@@ -197,7 +197,7 @@ class ChatRepository(
         )
     }
 
-    suspend fun getAdminUsers(): List<com.atk.atk_cargo.api.User> = withContext(Dispatchers.IO) {
+    suspend fun getAdminUsers(): List<com.atk.atk_cargo.data.model.User> = withContext(Dispatchers.IO) {
         try {
             apiServiceV2.getAdminUsers()
         } catch (e: Exception) {
@@ -206,21 +206,21 @@ class ChatRepository(
         }
     }
 
-    suspend fun getShipsList(): com.atk.atk_cargo.api.ShipsData = withContext(Dispatchers.IO) {
+    suspend fun getShipsList(): com.atk.atk_cargo.data.model.ShipsData = withContext(Dispatchers.IO) {
         try {
             val response = apiServiceV2.getShipsList()
             if (response.isSuccessful) {
-                response.body()?.data ?: com.atk.atk_cargo.api.ShipsData(emptyList(), emptyList())
+                response.body()?.data ?: com.atk.atk_cargo.data.model.ShipsData(emptyList(), emptyList())
             } else {
-                com.atk.atk_cargo.api.ShipsData(emptyList(), emptyList())
+                com.atk.atk_cargo.data.model.ShipsData(emptyList(), emptyList())
             }
         } catch (e: Exception) {
             Log.e("ChatRepository", "Error fetching ships list", e)
-            com.atk.atk_cargo.api.ShipsData(emptyList(), emptyList())
+            com.atk.atk_cargo.data.model.ShipsData(emptyList(), emptyList())
         }
     }
 
-    suspend fun getShipQuotas(shipName: String): List<com.atk.atk_cargo.api.Quota> = withContext(Dispatchers.IO) {
+    suspend fun getShipQuotas(shipName: String): List<com.atk.atk_cargo.data.model.Quota> = withContext(Dispatchers.IO) {
         try {
             val response = apiServiceV2.getShipQuotas(route = ApiV2Routes.shipQuotas(shipName))
             if (response.isSuccessful) {

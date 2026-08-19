@@ -1,13 +1,15 @@
-package com.atk.atk_cargo.api
+package com.atk.atk_cargo.feature.chat.viewmodel
 
 import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.data.db.AppDatabase
 import com.atk.atk_cargo.data.db.ChatMessageEntity
-import com.atk.atk_cargo.data.repository.ChatRepository
+import com.atk.atk_cargo.feature.chat.data.ChatPreferencesStore
+import com.atk.atk_cargo.feature.chat.data.ChatRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,7 +20,7 @@ import kotlinx.coroutines.launch
 
 class ChatViewModel(
     private val repository: ChatRepository,
-    private val userPreferencesManager: UserPreferencesManager
+    private val userPreferencesManager: ChatPreferencesStore
 ) : ViewModel() {
 
     // جریان پیام‌ها از دیتابیس لوکال
@@ -57,16 +59,16 @@ class ChatViewModel(
     }
 
     // لیست کاربران برای تگ کردن
-    private val _users = MutableStateFlow<List<com.atk.atk_cargo.api.User>>(emptyList())
-    val users: StateFlow<List<com.atk.atk_cargo.api.User>> = _users.asStateFlow()
+    private val _users = MutableStateFlow<List<com.atk.atk_cargo.data.model.User>>(emptyList())
+    val users: StateFlow<List<com.atk.atk_cargo.data.model.User>> = _users.asStateFlow()
 
     // لیست کشتی‌ها برای ضمیمه کردن اطلاعات
-    private val _ships = MutableStateFlow<com.atk.atk_cargo.api.ShipsData?>(null)
-    val ships: StateFlow<com.atk.atk_cargo.api.ShipsData?> = _ships.asStateFlow()
+    private val _ships = MutableStateFlow<com.atk.atk_cargo.data.model.ShipsData?>(null)
+    val ships: StateFlow<com.atk.atk_cargo.data.model.ShipsData?> = _ships.asStateFlow()
 
     // لیست کوتاژهای کشتی انتخاب شده
-    private val _shipQuotas = MutableStateFlow<List<com.atk.atk_cargo.api.Quota>>(emptyList())
-    val shipQuotas: StateFlow<List<com.atk.atk_cargo.api.Quota>> = _shipQuotas.asStateFlow()
+    private val _shipQuotas = MutableStateFlow<List<com.atk.atk_cargo.data.model.Quota>>(emptyList())
+    val shipQuotas: StateFlow<List<com.atk.atk_cargo.data.model.Quota>> = _shipQuotas.asStateFlow()
 
     init {
         refreshMessages()
@@ -241,7 +243,7 @@ class ChatViewModel(
 
 class ChatViewModelFactory(
     private val context: Context,
-    private val userPreferencesManager: UserPreferencesManager
+    private val userPreferencesManager: ChatPreferencesStore
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ChatViewModel::class.java)) {
