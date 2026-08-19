@@ -1,0 +1,129 @@
+<?php
+// PHP/src/Services/SecurityAlerter.php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Core\Logger;
+
+/**
+ * اعلان فوری برای رویدادهای امنیتی بحرانی (DEEP_CODE_AUDIT.md → «نبود
+ * مانیتورینگ و هشدار» → مورد ۲). قبلاً رویدادهایی مثل REFRESH_TOKEN_REUSE_DETECTED
+ * فقط در یک فایل متنی نوشته می‌شدند که کسی نمی‌خواند.
+ *
+ * کانال: Telegram Bot API (ساده‌ترین راه بدون نیاز به SMTP/mail server روی
+ * هاست اشتراکی). با نبود SECURITY_ALERT_TELEGRAM_BOT_TOKEN/CHAT_ID در .env
+ * کاملاً no-op است — یعنی نصب این قابلیت هیچ رفتار فعلی را نمی‌شکند.
+ *
+ * هرگز نباید مسیر اصلی درخواست (login/refresh) را با خطای شبکه‌ی خودش قطع
+ * کند: تمام خطاها فقط لاگ می‌شوند، هیچ‌کدام throw نمی‌شوند.
+ */
+class SecurityAlerter {
+    private static ?self $instance = null;
+
+    private const COOLDOWN_SECONDS = 300; // ۵ دقیقه — از اسپم یک رویداد تکراری جلوگیری می‌کند
+    private const HTTP_TIMEOUT_SECONDS = 3;
+    private const CACHE_PREFIX = 'security_alert_cooldown_';
+
+    private ?string $botToken;
+    private ?string $chatId;
+
+    private function __construct() {
+        $this->botToken = $_ENV['SECURITY_ALERT_TELEGRAM_BOT_TOKEN'] ?? (getenv('SECURITY_ALERT_TELEGRAM_BOT_TOKEN') ?: null);
+        $this->chatId = $_ENV['SECURITY_ALERT_TELEGRAM_CHAT_ID'] ?? (getenv('SECURITY_ALERT_TELEGRAM_CHAT_ID') ?: null);
+    }
+
+    public static function getInstance(): self {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    public function isConfigured(): bool {
+        return !empty($this->botToken) && !empty($this->chatId);
+    }
+
+    /**
+     * @param string $event شناسه‌ی کوتاه رویداد، مثل REFRESH_TOKEN_REUSE_DETECTED
+     * @param string $message متن فارسی قابل‌خواندن برای ادمین
+     * @param string|null $dedupeKey کلید یکتا برای cooldown (پیش‌فرض: خود $event)؛
+     *        مثلاً "ACCOUNT_LOCKED:username" تا قفل‌شدن مکرر یک حساب طی ۵ دقیقه فقط یک بار اعلان بدهد.
+     */
+    public function alert(string $event, string $message, ?string $dedupeKey = null): void {
+        try {
+            Logger::getInstance()->security("[ALERT] [$event] $message");
+
+            if (!$this->isConfigured()) {
+                return;
+            }
+
+            $cooldownKey = self::CACHE_PREFIX . ($dedupeKey ?? $event);
+            if ($this->isInCooldown($cooldownKey)) {
+                return;
+            }
+            $this->markCooldown($cooldownKey);
+
+            $this->sendTelegram("🔒 هشدار امنیتی ATK-Cargo\n\n[$event]\n$message\n\n" . date('Y-m-d H:i:s'));
+        } catch (\Throwable $e) {
+            // اعلان هرگز نباید مسیر اصلی (login/refresh/...) را بشکند.
+            error_log('SecurityAlerter failed: ' . $e->getMessage());
+        }
+    }
+
+    private function sendTelegram(string $text): void {
+        $url = "https://api.telegram.org/bot{$this->botToken}/sendMessage";
+        $payload = json_encode([
+            'chat_id' => $this->chatId,
+            'text' => $text,
+        ], JSON_UNESCAPED_UNICODE);
+
+        if ($payload === false) {
+            return;
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => "Content-Type: application/json\r\n",
+                'content' => $payload,
+                'timeout' => self::HTTP_TIMEOUT_SECONDS,
+                'ignore_errors' => true,
+            ],
+        ]);
+
+        // @ عمدی: اگر شبکه/DNS در دسترس نباشد نباید warning در پاسخ اصلی درز کند؛ نتیجه هرچه باشد نادیده گرفته می‌شود.
+        @file_get_contents($url, false, $context);
+    }
+
+    private function isInCooldown(string $key): bool {
+        if (function_exists('apcu_fetch')) {
+            $value = apcu_fetch($key, $ok);
+            return $ok && $value !== false;
+        }
+        $file = $this->fallbackFile($key);
+        if (!file_exists($file)) {
+            return false;
+        }
+        $expiresAt = (int)file_get_contents($file);
+        return $expiresAt > time();
+    }
+
+    private function markCooldown(string $key): void {
+        if (function_exists('apcu_store')) {
+            apcu_store($key, 1, self::COOLDOWN_SECONDS);
+            return;
+        }
+        file_put_contents($this->fallbackFile($key), (string)(time() + self::COOLDOWN_SECONDS));
+    }
+
+    private function fallbackFile(string $key): string {
+        $safeKey = preg_replace('/[^a-zA-Z0-9_]/', '_', $key) ?? 'unknown';
+        $dir = APP_ROOT . '/log';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        return $dir . "/{$safeKey}.json";
+    }
+}
