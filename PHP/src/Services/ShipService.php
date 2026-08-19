@@ -18,7 +18,10 @@ use App\Enums\CargoStatus;
  * تغییر رفتار؛ AppApiController اکنون فقط delegate می‌کند.
  */
 final class ShipService {
-    private const EXITED = CargoStatus::EXITED->value;
+    // بدون ->value: property-fetch در class const در PHP 8.1 (نسخه‌ی تولید)
+    // مجاز نیست («Constant expression contains invalid operations»)؛ از
+    // PHP 8.2 پشتیبانی می‌شود. ->value در محل مصرف (self::EXITED->value) اعمال می‌شود.
+    private const EXITED = CargoStatus::EXITED;
 
     private DatabaseManager $db;
 
@@ -46,7 +49,7 @@ final class ShipService {
             FROM InitialInfo i
             LEFT JOIN (
                 SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType, SUM(c.netWeight) as loadedWeight
-                FROM CargoInfo c WHERE c.status = '" . self::EXITED . "'
+                FROM CargoInfo c WHERE c.status = '" . self::EXITED->value . "'
                 GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
             ) loaded ON
                 loaded.loadingQuotaNumber = i.loadingQuotaNumber AND loaded.shipName = i.shipName
@@ -111,7 +114,7 @@ final class ShipService {
         FROM InitialInfo i
         LEFT JOIN (
             SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType, SUM(c.netWeight) as loadedWeight
-            FROM CargoInfo c WHERE c.status = '" . self::EXITED . "' AND c.shipName = ?
+            FROM CargoInfo c WHERE c.status = '" . self::EXITED->value . "' AND c.shipName = ?
             GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
         ) loaded ON
             loaded.loadingQuotaNumber = i.loadingQuotaNumber AND loaded.shipName = i.shipName
@@ -130,7 +133,7 @@ final class ShipService {
         // ردیف گروه (هر انبار) دوباره اجرا می‌شد، با اینکه نتیجه‌اش همیشه
         // یکسان است. یک بار جدا محاسبه می‌شود.
         $voucherStmt = $this->db->prepare(
-            "SELECT COUNT(DISTINCT trackingNumber) as totalVoucherCount FROM CargoInfo WHERE shipName = ? AND status = '" . self::EXITED . "'"
+            "SELECT COUNT(DISTINCT trackingNumber) as totalVoucherCount FROM CargoInfo WHERE shipName = ? AND status = '" . self::EXITED->value . "'"
         );
         $voucherStmt->bind_param("s", $shipName);
         $voucherStmt->execute();
@@ -195,7 +198,7 @@ final class ShipService {
         FROM InitialInfo i
         LEFT JOIN (
             SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType, SUM(c.netWeight) as loadedWeight
-            FROM CargoInfo c WHERE c.status = '" . self::EXITED . "' AND c.shipName = ? AND c.loadingWarehouse = ?
+            FROM CargoInfo c WHERE c.status = '" . self::EXITED->value . "' AND c.shipName = ? AND c.loadingWarehouse = ?
             GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
         ) loaded ON
             loaded.loadingQuotaNumber = i.loadingQuotaNumber AND loaded.shipName = i.shipName
@@ -203,7 +206,7 @@ final class ShipService {
             AND loaded.cargoType = i.cargoType
         LEFT JOIN (
             SELECT c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType, COUNT(DISTINCT c.trackingNumber) as voucherCount
-            FROM CargoInfo c WHERE c.status = '" . self::EXITED . "' AND c.shipName = ? AND c.loadingWarehouse = ?
+            FROM CargoInfo c WHERE c.status = '" . self::EXITED->value . "' AND c.shipName = ? AND c.loadingWarehouse = ?
             GROUP BY c.loadingQuotaNumber, c.shipName, c.loadingWarehouse, c.shippingCompany, c.cargoType
         ) vouchers ON
             vouchers.loadingQuotaNumber = i.loadingQuotaNumber AND vouchers.shipName = i.shipName
@@ -218,7 +221,7 @@ final class ShipService {
 
         $exitDatesByQuota = [];
         $exitQuery = "SELECT DISTINCT loadingQuotaNumber, exitDate, exitTime FROM CargoInfo c WHERE c.shipName = ?
-            AND c.loadingWarehouse = ? AND c.status = '" . self::EXITED . "' ORDER BY loadingQuotaNumber, exitDate, exitTime";
+            AND c.loadingWarehouse = ? AND c.status = '" . self::EXITED->value . "' ORDER BY loadingQuotaNumber, exitDate, exitTime";
         $exitStmt = $this->db->prepare($exitQuery);
         $exitStmt->bind_param("ss", $shipName, $warehouseName);
         $exitStmt->execute();
@@ -353,7 +356,7 @@ final class ShipService {
         $summaryQuery = "SELECT COALESCE(SUM(c.netWeight), 0) as totalNetWeight, COUNT(DISTINCT c.trackingNumber) as voucherCount,
             MIN(c.exitTime) as firstExitTime, MAX(c.exitTime) as lastExitTime, MIN(c.exitDate) as firstExitDate, MAX(c.exitDate) as lastExitDate
         FROM CargoInfo c
-        WHERE c.loadingQuotaNumber = ? AND c.shipName = ? AND c.loadingWarehouse = ? AND c.status = '" . self::EXITED . "'
+        WHERE c.loadingQuotaNumber = ? AND c.shipName = ? AND c.loadingWarehouse = ? AND c.status = '" . self::EXITED->value . "'
             AND $dateRangeCondition";
 
         $stmt = $this->db->prepare($summaryQuery);
@@ -366,7 +369,7 @@ final class ShipService {
             c.username, c.confirm_username, c.cargoType, c.shippingCompany, i.cargoOwner
         FROM CargoInfo c
         JOIN InitialInfo i ON c.loadingQuotaNumber = i.loadingQuotaNumber AND c.shipName = i.shipName
-        WHERE c.loadingQuotaNumber = ? AND c.shipName = ? AND c.loadingWarehouse = ? AND c.status = '" . self::EXITED . "'
+        WHERE c.loadingQuotaNumber = ? AND c.shipName = ? AND c.loadingWarehouse = ? AND c.status = '" . self::EXITED->value . "'
             AND $dateRangeCondition
         ORDER BY c.exitDate, c.exitTime";
 
