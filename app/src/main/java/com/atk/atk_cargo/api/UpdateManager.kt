@@ -268,9 +268,32 @@ class UpdateManager(
         }
     }
 
+    /**
+     * دامنه‌ی `download_url` را با میزبان `Constants.BASE_URL` (همان دامنه‌ای
+     * که سرور واقعی روی آن اجرا می‌شود) مقایسه می‌کند تا نفوذ به سرور نتواند
+     * کلاینت را به دانلود APK از یک میزبان دلخواه هدایت کند — امضای APK
+     * (`PackageManager` + `Secrets.getExpectedSignatureHash()`) در نصب یک
+     * لایه‌ی دفاعی دیگر است، این فقط جلوی شروع دانلود از میزبان نامعتبر را
+     * می‌گیرد (DEEP_CODE_REVIEW.md Phase2.16).
+     */
+    private fun isTrustedDownloadUrl(url: String): Boolean = runCatching {
+        val requestHost = java.net.URI(url).takeIf { it.scheme == "https" }?.host ?: return false
+        val trustedHost = java.net.URI(Constants.BASE_URL).host ?: return false
+        requestHost == trustedHost || requestHost.endsWith(".$trustedHost")
+    }.getOrDefault(false)
+
     @SuppressLint("DefaultLocale")
     internal fun startDownload(downloadUrl: String, startPosition: Long = 0) {
         if (downloadJob?.isActive == true) return
+
+        // download_url و sha256 هر دو از یک پاسخ می‌آیند؛ بدون این بررسی،
+        // نفوذ به سرور (نه فقط MITM شبکه‌ای که certificate pinning آن را
+        // پوشش می‌دهد) می‌تواند APK دلخواه توزیع کند — DEEP_CODE_REVIEW.md
+        // Phase2.16.
+        if (!isTrustedDownloadUrl(downloadUrl)) {
+            _downloadState.value = DownloadState.Error("آدرس به‌روزرسانی نامعتبر است.")
+            return
+        }
 
         downloadJob = CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {

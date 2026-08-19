@@ -750,6 +750,8 @@ if (!isTrustedDownloadUrl(downloadUrl)) {
 **Priority:** MEDIUM
 **Estimated Effort:** Low
 
+**Status:** ✅ Fixed (2026-08-19) — `isTrustedDownloadUrl()` اضافه شد (در ابتدای `startDownload()` که هم مسیر دانلود اولیه و هم `resumeDownload()` از آن عبور می‌کنند). به‌جای hardcode کردن `atk-nk.ir`، میزبان از `Constants.BASE_URL` (همان `Secrets.getBaseUrl()`) خوانده می‌شود تا اگر دامنه‌ی سرور تغییر کرد دو جا از هم واگرا نشوند. با یک هارنس Java مستقل (همان الگوریتم `java.net.URI`) روی ۸ سناریو تست شد: میزبان معتبر، ساب‌دامین معتبر، میزبان مهاجم، ترفند suffix (`notatk-nk.ir`)، `http` به‌جای `https`، تعبیه‌ی دامنه در path، URL بدفرمت، و ترفند userinfo (`https://atk-nk.ir@evil.com/...`) — همه‌ی ۸ مورد مطابق انتظار (fail-closed برای همه‌ی تلاش‌های spoof). `compileDebugKotlin` و `lintDebug` هم سبز.
+
 ---
 
 ### [MEDIUM] `Log.w` و `Log.e` در build release حذف نمی‌شوند
@@ -2433,7 +2435,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱۳ | انتقال shimهای PHP به Router | ۶ فایل | Medium |
 | ۱۴ | rate limit روی `diagnostics/crash` و لایسنس | `DiagnosticsController`، `LicenseController` | Low |
 | ۱۵ | ✅ حذف `Log.w` در ProGuard | `proguard-rules.pro` | Low |
-| ۱۶ | allow-list دامنه برای `downloadUrl` | `UpdateManager.kt` | Low |
+| ۱۶ | ✅ allow-list دامنه برای `downloadUrl` | `UpdateManager.kt` | Low |
 | ۱۷ | پاک‌سازی تاریخچه‌ی git از رازها | `git filter-repo` | Medium |
 
 ## Phase 3 — Medium Priority (ماه‌های ۲–۳)
@@ -2484,7 +2486,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱۱ | ✅ نشت پیام استثنا به کلاینت | Security | MEDIUM | `PHP/src/Controllers/UserController.php:83` | Low |
 | ۱۲ | shimهای PHP، Router را دور می‌زنند | Architecture | MEDIUM | ۶ فایل ریشه `PHP/` | Medium |
 | ۱۳ | `<Directory>` نامعتبر در `.htaccess` | Security/Config | MEDIUM | `PHP/.htaccess:20,70,75` | Low |
-| ۱۴ | `downloadUrl` بدون اعتبارسنجی دامنه | Security | MEDIUM | `UpdateManager.kt:171` | Low |
+| ۱۴ | ✅ `downloadUrl` بدون اعتبارسنجی دامنه | Security | MEDIUM | `UpdateManager.kt:171` | Low |
 | ۱۵ | ✅ `Log.w`/`Log.e` در release باقی می‌مانند | Security/Logging | MEDIUM | `proguard-rules.pro:179` | Low |
 | ۱۶ | گزارش کرش بدون rate limit | Availability | MEDIUM | `DiagnosticsController.php:100` | Low |
 | ۱۷ | UseCaseها singleton را مستقیم می‌گیرند | Architecture/Testing | MEDIUM | `CheckQuotaUseCase.kt:8` + ۲ فایل | Medium |
