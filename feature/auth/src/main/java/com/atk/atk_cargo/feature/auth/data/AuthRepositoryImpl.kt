@@ -7,6 +7,7 @@ import android.provider.Settings
 import com.atk.atk_cargo.api.ApiServiceV2
 import com.atk.atk_cargo.data.model.LoginRequest
 import com.atk.atk_cargo.data.model.SessionResponse
+import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -24,7 +25,7 @@ import java.util.UUID
 class AuthRepositoryImpl(
     private val context: Context,
     private val apiServiceV2: ApiServiceV2,
-    private val userPreferencesManager: AuthPreferencesStore
+    private val userPreferencesManager: UserPreferencesStore
 ) : AuthRepository {
 
     // ===== SERVICES =====

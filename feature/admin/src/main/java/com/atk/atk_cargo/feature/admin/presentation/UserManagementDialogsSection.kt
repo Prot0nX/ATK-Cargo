@@ -65,11 +65,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.atk.atk_cargo.api.CreateUserRequest
+import com.atk.atk_cargo.data.model.CreateUserRequest
 import com.atk.atk_cargo.api.RetrofitClient
-import com.atk.atk_cargo.api.UpdateUserRequest
-import com.atk.atk_cargo.api.User
-import com.atk.atk_cargo.api.UserTypeInfo
+import com.atk.atk_cargo.data.model.UpdateUserRequest
+import com.atk.atk_cargo.data.model.User
+import com.atk.atk_cargo.feature.admin.presentation.UserTypeInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.launch
 

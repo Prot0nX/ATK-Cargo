@@ -10,7 +10,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.atk.atk_cargo.feature.auth.data.AuthPreferencesStore
+import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import com.atk.atk_cargo.security.CryptoManager
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -25,7 +25,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class UserPreferencesManager(
     private val context: Context,
     private val cryptoManager: CryptoManager = CryptoManager()
-) : TokenStore, AuthPreferencesStore {
+) : TokenStore, UserPreferencesStore {
     private val dataStore: DataStore<Preferences> = context.dataStore
 
     // خواندن IOException یک‌بار در یک نقطه (به‌جای ۹+ بار تکرار همان ۷ خط catch)؛
@@ -46,7 +46,7 @@ class UserPreferencesManager(
 
     override val userType: Flow<String> = preference(USER_TYPE_KEY, "")
 
-    val permissions: Flow<Map<String, Boolean>> = preference(PERMISSIONS_KEY, "").map { encryptedJson ->
+    override val permissions: Flow<Map<String, Boolean>> = preference(PERMISSIONS_KEY, "").map { encryptedJson ->
         val json = cryptoManager.decrypt(encryptedJson).ifEmpty { "{}" }
         try {
             val type = object : TypeToken<Map<String, Boolean>>() {}.type

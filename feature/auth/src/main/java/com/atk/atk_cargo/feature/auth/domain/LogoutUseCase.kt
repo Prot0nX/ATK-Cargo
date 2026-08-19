@@ -2,12 +2,12 @@ package com.atk.atk_cargo.feature.auth.domain
 
 import com.atk.atk_cargo.api.ApiServiceV2
 import com.atk.atk_cargo.data.model.LogoutRequest
-import com.atk.atk_cargo.feature.auth.data.AuthPreferencesStore
+import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import kotlinx.coroutines.flow.first
 
 class LogoutUseCase(
     private val apiServiceV2: ApiServiceV2,
-    private val userPreferencesManager: AuthPreferencesStore
+    private val userPreferencesManager: UserPreferencesStore
 ) {
     suspend operator fun invoke(username: String): Result<String?> {
         return try {

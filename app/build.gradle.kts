@@ -216,6 +216,7 @@ dependencies {
     implementation(project(":core:domain"))
     implementation(project(":feature:auth"))
     implementation(project(":feature:startup"))
+    implementation(project(":feature:admin"))
     baselineProfile(project(":baselineprofile"))
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.foundation.layout)
