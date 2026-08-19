@@ -1,19 +1,19 @@
 package com.atk.atk_cargo.api
 
-import kotlinx.coroutines.flow.first
+import com.atk.atk_cargo.data.model.SessionCheckRequest
 
 suspend fun validateServerSession(
-    userPreferencesManager: UserPreferencesManager
+    tokenStore: TokenStore
 ): Result<Boolean> {
     return try {
-        val username = userPreferencesManager.username.first()
-        val deviceId = userPreferencesManager.deviceId.first()
-        val sessionToken = userPreferencesManager.sessionToken.first()
-        
+        val username = tokenStore.getUsername()
+        val deviceId = tokenStore.getDeviceId()
+        val sessionToken = tokenStore.getSessionToken()
+
         if (username.isEmpty()) {
             return Result.failure(Exception("No user logged in"))
         }
-        
+
         val request = SessionCheckRequest(username, deviceId, sessionToken)
         val response = RetrofitClient.apiServiceV2.checkSession(request)
 
@@ -26,12 +26,12 @@ suspend fun validateServerSession(
         // TokenAuthenticator اصلاً برای این درخواست صدا زده نمی‌شود. بدون این
         // تلاش صریح، کاربری که اپ را بعد از >۳۰ دقیقه (عمر access token) دوباره
         // باز می‌کند همیشه به صفحه‌ی ورود می‌رفت، حتی با refresh token کاملاً معتبر.
-        val newAccessToken = TokenRefresher.refresh(Secrets.getBaseUrl(), userPreferencesManager)
+        val newAccessToken = TokenRefresher.refresh(Secrets.getBaseUrl(), tokenStore)
         if (newAccessToken != null) {
             return Result.success(true)
         }
 
-        userPreferencesManager.clearUserCredentials()
+        tokenStore.clearCredentials()
         Result.failure(Exception("Session invalid"))
     } catch (e: Exception) {
         Result.failure(e)

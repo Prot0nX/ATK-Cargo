@@ -312,11 +312,12 @@ class CargoViewModel(
                 val validationResult = quotaValidationUseCase.validateQuotaStatusAndPercentage(initialInfo, isNewCargo)
 
                 if (!validationResult.isValid) {
-                    if (validationResult.percentageReached && validationResult.quotaIdToToggle != null) {
+                    val quotaIdToToggle = validationResult.quotaIdToToggle
+                    if (validationResult.percentageReached && quotaIdToToggle != null) {
                         showMessage(validationResult.warningMessage ?: validationResult.message, MessageType.WARNING)
 
                         delay(1000.milliseconds)
-                        toggleQuotaStatus(validationResult.quotaIdToToggle, initialInfo.loadingQuotaNumber.toString())
+                        toggleQuotaStatus(quotaIdToToggle, initialInfo.loadingQuotaNumber.toString())
                     } else {
                         showErrorMessage(validationResult.message)
                     }

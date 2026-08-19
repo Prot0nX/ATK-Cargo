@@ -39,15 +39,18 @@ class AtkCargoApplication : Application() {
         // اینجا همیشه IllegalStateException می‌داد (بی‌صدا catch می‌شد) و Configuration
         // سفارشی هرگز اعمال نمی‌شد
 
-        // باید قبل از اولین دسترسی به RetrofitClient.apiService (که Koin به‌صورت
-        // lazy در اولین get() می‌سازد) فراخوانی شود تا کش HTTP دیسک فعال شود.
-        RetrofitClient.init(this)
-
         // AuthSession یک نگه‌دارنده‌ی درون‌حافظه است و با هر بار کشته‌شدن پروسه خالی
         // می‌شود؛ اینجا از مقادیر ذخیره‌شده در DataStore (کاربری که قبلاً لاگین کرده)
         // پر می‌شود تا هدرهای احراز هویت از همان اولین درخواست بعد از باز شدن اپ درست
         // ارسال شوند.
         val userPreferencesManager = koinApp.koin.get<UserPreferencesManager>()
+
+        // باید قبل از اولین دسترسی به RetrofitClient.apiService (که Koin به‌صورت
+        // lazy در اولین get() می‌سازد) فراخوانی شود تا کش HTTP دیسک فعال شود.
+        // core:network وابسته به BuildConfig ماژول app نیست (هر ماژول
+        // BuildConfig خودش را دارد)، پس debugLogging از همین‌جا تزریق می‌شود
+        // (DEEP_CODE_AUDIT.md #Phase4.2).
+        RetrofitClient.init(this, userPreferencesManager, debugLogging = BuildConfig.DEBUG)
         applicationScope.launch {
             AuthSession.username = userPreferencesManager.username.first()
             AuthSession.deviceId = userPreferencesManager.deviceId.first()

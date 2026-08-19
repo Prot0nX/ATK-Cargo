@@ -829,7 +829,8 @@ private fun AnalyticsQuotaCard(
                         )
                     }
 
-                    if (quota.cargoType?.isNotBlank() == true) {
+                    val cargoType = quota.cargoType
+                    if (cargoType?.isNotBlank() == true) {
                         Box(
                             modifier = Modifier
                                 .background(
@@ -844,7 +845,7 @@ private fun AnalyticsQuotaCard(
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = quota.cargoType,
+                                text = cargoType,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = AnalyticsTitleColor,
                                 fontWeight = FontWeight.Bold

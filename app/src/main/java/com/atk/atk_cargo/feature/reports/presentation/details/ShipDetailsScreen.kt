@@ -632,15 +632,16 @@ private fun calculateWarningStatus(quota: Quota): WarningStatus? {
     }
 
     val remainingTonnage = quota.remainingTonnage
+    val percentage = quota.percentage
 
-    if (quota.percentage != null && quota.percentage == 0.0 && remainingTonnage < QuotaWarningThresholds.ZERO_PERCENT_REMAINING_KG) {
+    if (percentage != null && percentage == 0.0 && remainingTonnage < QuotaWarningThresholds.ZERO_PERCENT_REMAINING_KG) {
         val totalTonnage = quota.totalTonnage
-        val percentageAmount = totalTonnage * (quota.percentage / 100)
+        val percentageAmount = totalTonnage * (percentage / 100)
         return WarningStatus(
             show = true,
             quotaId = quota.id,
             quotaNumber = quota.number,
-            percentage = quota.percentage,
+            percentage = percentage,
             remainingTonnage = remainingTonnage,
             percentageAmount = percentageAmount,
             isActive = true,
@@ -648,12 +649,12 @@ private fun calculateWarningStatus(quota: Quota): WarningStatus? {
         )
     }
 
-    if (quota.isPercentageRestricted != true || quota.percentage == null) {
+    if (quota.isPercentageRestricted != true || percentage == null) {
         return null
     }
 
     val totalTonnage = quota.totalTonnage
-    val percentageAmount = totalTonnage * (quota.percentage / 100)
+    val percentageAmount = totalTonnage * (percentage / 100)
     val warningThreshold = QuotaWarningThresholds.PERCENTAGE_CAP_PROXIMITY_KG
 
     // قدرمطلق نباید استفاده شود: کوتاژی که چند برابر warningThreshold از سقف
@@ -665,7 +666,7 @@ private fun calculateWarningStatus(quota: Quota): WarningStatus? {
             show = true,
             quotaId = quota.id,
             quotaNumber = quota.number,
-            percentage = quota.percentage,
+            percentage = percentage,
             remainingTonnage = remainingTonnage,
             percentageAmount = percentageAmount,
             isActive = true,
