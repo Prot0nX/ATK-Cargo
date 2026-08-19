@@ -40,30 +40,21 @@ if (!defined('APP_ROOT')) {
 use App\Core\MicroCache;
 use App\Services\LoginAttemptLimiter;
 use App\Services\PermissionService;
+use App\Repositories\PermissionRepository;
 
-/**
- * نوشتن اتمیک permissions.json — قبلاً file_put_contents مستقیم بدون
- * LOCK_EX/tmp+rename بود؛ اگر دو ادمین هم‌زمان ذخیره می‌کردند یا نوشتن
- * نیمه‌تمام می‌ماند (مثلاً قطع اتصال میانه‌ی درخواست)، json_decode بعدی
- * شکست می‌خورد و PermissionService::getUserPermissions همه‌چیز را false
- * برمی‌گرداند — یعنی از کار افتادن کامل سیستم مجوزها
- * (DEEP_CODE_AUDIT.md #Phase2.7). rename روی یک فایل‌سیستم اتمیک است.
- */
-function writePermissionsFileAtomic(string $file, array $data): bool {
-    $tmp = $file . '.tmp.' . uniqid();
-    $written = file_put_contents($tmp, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
-    if ($written === false) {
-        @unlink($tmp);
-        return false;
-    }
-    if (!rename($tmp, $file)) {
-        @unlink($tmp);
-        return false;
-    }
-    // بدون این، تغییرات تا انقضای TTL کش (۳۰ ثانیه) به بررسی‌های مجوز در
-    // حال اجرا اعمال نمی‌شدند.
-    MicroCache::forget(PermissionService::CACHE_KEY);
-    return true;
+// DEEP_CODE_AUDIT.md #Phase4.7 — منبع مجوزها از config/permissions.json به
+// دو جدول دیتابیس (role_permissions/user_permissions) منتقل شد. اگر
+// migrations/2026_08_19_permissions_to_database.sql هنوز روی این سرور اجرا
+// نشده باشد، این پنل با یک پیام صریح خطا می‌دهد (نه نوشتن بی‌صدا در JSON —
+// چون دیگر آن فایل منبع حقیقت نیست)، در حالی که مسیر *بررسی* مجوز
+// (PermissionService::getUserPermissions) در همین حالت هنوز به‌صورت شفاف
+// به فایل قدیمی fallback می‌کند تا لاگین/API از کار نیفتد.
+$permissionRepository = new PermissionRepository();
+$dbMigrated = true;
+try {
+    $permissionRepository->getAllRolePermissions();
+} catch (\Throwable $e) {
+    $dbMigrated = false;
 }
 
 $ADMIN_PASSWORD_HASH = $_ENV['ADMIN_PASSWORD_HASH'] ?? getenv('ADMIN_PASSWORD_HASH') ?: '';
@@ -125,39 +116,26 @@ if ($is_authenticated && (time() - $_SESSION['last_activity'] > 1800)) {
 }
 if ($is_authenticated) $_SESSION['last_activity'] = time();
 
-$permissions_file = __DIR__ . '/config/permissions.json';
-
-// ایجاد ساختار اولیه در صورت عدم وجود
-if (!file_exists($permissions_file)) {
-    $initial_data = [
-        'roles' => [
-            'admin' => [],
-            'operator' => [],
-            'verifier' => []
-        ],
-        'users' => []
-    ];
-    writePermissionsFileAtomic($permissions_file, $initial_data);
-}
-
-// لود کردن و مهاجرت داده‌ها در صورت نیاز (تطبیق با ساختار جدید)
-$all_data = json_decode(file_get_contents($permissions_file), true);
-if (!isset($all_data['roles'])) {
+// $all_data همان شکل قبلی (roles/users) را حفظ می‌کند تا بقیه‌ی این فایل
+// (تمپلیت HTML/JS پایین) بدون تغییر کار کند؛ فقط منبع داده عوض شده است.
+$all_data = ['roles' => ['admin' => [], 'operator' => [], 'verifier' => []], 'users' => []];
+if ($dbMigrated) {
     $all_data = [
-        'roles' => $all_data,
-        'users' => []
+        'roles' => $permissionRepository->getAllRolePermissions(),
+        'users' => $permissionRepository->getAllUserPermissions(),
     ];
-    writePermissionsFileAtomic($permissions_file, $all_data);
 }
 
 // هندل کردن ذخیره‌سازی
 if ($is_authenticated && isset($_POST['save_permissions'])) {
-    if (!$csrf_valid) {
+    if (!$dbMigrated) {
+        $error_msg = "دیتابیس مجوزها هنوز migrate نشده است. ابتدا migrations/2026_08_19_permissions_to_database.sql را روی این سرور اجرا کنید.";
+    } elseif (!$csrf_valid) {
         $error_msg = "توکن امنیتی (CSRF) نامعتبر است. لطفاً صفحه را بازنشانی کنید.";
     } else {
         $type = $_POST['target_type']; // 'role' or 'user'
         $target_name = $_POST['target_name']; // role name or username
-        
+
         $features = [
             'initial_info', 'select_info', 'cargo_counter', 'manage_ships',
             'manage_users', 'admin_chat', 'edit_cargo', 'delete_cargo',
@@ -169,21 +147,28 @@ if ($is_authenticated && isset($_POST['save_permissions'])) {
             $new_perms[$feature] = isset($_POST["perm_{$feature}"]);
         }
 
-        if ($type === 'role') {
-            $all_data['roles'][$target_name] = $new_perms;
-        } else {
-            // اگر تمام گزینه‌ها غیرفعال بود و کاربر خواست "تنظیم اختصاصی" را حذف کند
-            if (isset($_POST['delete_user_custom']) && $_POST['delete_user_custom'] == '1') {
-                unset($all_data['users'][$target_name]);
+        try {
+            if ($type === 'role') {
+                $permissionRepository->saveRolePermissions($target_name, $new_perms);
+                $all_data['roles'][$target_name] = $new_perms;
             } else {
-                $all_data['users'][$target_name] = $new_perms;
+                // اگر تمام گزینه‌ها غیرفعال بود و کاربر خواست "تنظیم اختصاصی" را حذف کند
+                if (isset($_POST['delete_user_custom']) && $_POST['delete_user_custom'] == '1') {
+                    $permissionRepository->deleteUserPermissions($target_name);
+                    unset($all_data['users'][$target_name]);
+                } else {
+                    $permissionRepository->saveUserPermissions($target_name, $new_perms);
+                    $all_data['users'][$target_name] = $new_perms;
+                }
             }
-        }
 
-        if (is_writable(dirname($permissions_file)) && writePermissionsFileAtomic($permissions_file, $all_data)) {
+            // بدون این، تغییرات تا انقضای TTL کش (۳۰ ثانیه) به بررسی‌های
+            // مجوز در حال اجرا اعمال نمی‌شدند (DEEP_CODE_AUDIT.md #Phase2.7).
+            MicroCache::forget(PermissionService::CACHE_KEY);
             $success_msg = "تنظیمات " . ($type === 'role' ? "نقش" : "کاربر") . " با موفقیت به‌روزرسانی شد.";
-        } else {
-            $error_msg = "خطای دسترسی در فایل تنظیمات!";
+        } catch (\Throwable $e) {
+            error_log('PermissionManager save failed: ' . $e->getMessage());
+            $error_msg = "خطای دیتابیس در ذخیره‌سازی تنظیمات!";
         }
     }
 }
@@ -288,6 +273,18 @@ $feature_labels = [
                 </div>
             </div>
 
+            <?php if (!$dbMigrated): ?>
+            <div class="alert alert-info" style="margin: 0 0 16px;">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                    دیتابیس مجوزها هنوز راه‌اندازی نشده — <code>migrations/2026_08_19_permissions_to_database.sql</code>
+                    را روی این سرور اجرا کنید. مقادیر نمایش‌داده‌شده در این صفحه فعلاً پیش‌فرض خالی هستند
+                    (منطق بررسی مجوز در باقی برنامه هنوز از <code>config/permissions.json</code> استفاده می‌کند و کار می‌کند؛
+                    فقط این پنل مدیریت غیرفعال است).
+                </div>
+            </div>
+            <?php endif; ?>
+
             <!-- Stats Bar -->
             <div class="stats-bar">
                 <div class="stat-chip">
@@ -308,7 +305,10 @@ $feature_labels = [
                 <div class="stat-chip">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     <span>آخرین ویرایش</span>
-                    <span class="stat-value" style="font-family:monospace;direction:ltr;"><?php echo date('H:i — Y/m/d', filemtime($permissions_file)); ?></span>
+                    <span class="stat-value" style="font-family:monospace;direction:ltr;"><?php
+                        $lastUpdatedAt = $dbMigrated ? $permissionRepository->getLastUpdatedAt() : null;
+                        echo $lastUpdatedAt ? date('H:i — Y/m/d', strtotime($lastUpdatedAt)) : '—';
+                    ?></span>
                 </div>
             </div>
 
