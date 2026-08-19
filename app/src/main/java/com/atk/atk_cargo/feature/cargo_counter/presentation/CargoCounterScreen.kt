@@ -46,15 +46,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.atk.atk_cargo.api.ActiveShipInfo
+import com.atk.atk_cargo.api.ApiServiceV2
 import com.atk.atk_cargo.api.ColorSelector
 import com.atk.atk_cargo.api.MessageType
-import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.api.validateServerSession
+import com.atk.atk_cargo.data.model.RealTimeDataResponse
 import com.atk.atk_cargo.domain.model.toDomain
 import com.atk.atk_cargo.feature.cargo_counter.presentation.components.AnimatedHeader
 import com.atk.atk_cargo.feature.cargo_counter.presentation.components.GroupedShipList
@@ -64,13 +65,13 @@ import com.atk.atk_cargo.feature.cargo_entry.presentation.ShipSelectionDialog
 import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import com.atk.atk_cargo.feature.reports.navigation.navigateToCargoDetails
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -86,26 +87,74 @@ enum class ShipFilterTab(val title: String) {
     COMPLETED("تکمیل شده")
 }
 
-class CargoCounterViewModel : ViewModel() {
+class CargoCounterViewModel(
+    private val apiServiceV2: ApiServiceV2
+) : ViewModel() {
     private val _selectedShipNames = MutableStateFlow<Set<String>>(emptySet())
     val selectedShipNames: StateFlow<Set<String>> = _selectedShipNames.asStateFlow()
-    
+
     private val _expandedShipName = MutableStateFlow<String?>(null)
     val expandedShipName: StateFlow<String?> = _expandedShipName.asStateFlow()
-    
+
     private val _selectedTab = MutableStateFlow(ShipFilterTab.LOADING)
     val selectedTab: StateFlow<ShipFilterTab> = _selectedTab.asStateFlow()
-    
+
     fun updateSelectedShips(ships: Set<String>) {
         _selectedShipNames.update { ships }
     }
-    
+
     fun updateExpandedShipName(shipName: String?) {
         _expandedShipName.update { shipName }
     }
-    
+
     fun updateSelectedTab(tab: ShipFilterTab) {
         _selectedTab.update { tab }
+    }
+
+    // هر دو تماس شبکه‌ی زیر قبلاً با rememberCoroutineScope() از داخل
+    // Composable اجرا می‌شدند — با خروج کاربر از صفحه کنسل می‌شدند
+    // (DEEP_CODE_REVIEW.md Top20 #5). viewModelScope در برابر ناوبری مقاوم
+    // است؛ منطق سطربه‌سطر عیناً حفظ شده، UI (SnackbarHostState) دست‌نخورده
+    // در Composable می‌ماند و ViewModel فقط نتیجه را با callback برمی‌گرداند.
+    fun loadActiveShips(
+        onSuccess: (List<ActiveShipInfo>) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val response = apiServiceV2.getActiveShips()
+                if (response.isSuccessful) {
+                    response.body()?.let(onSuccess) ?: onError("داده‌های دریافتی خالی است")
+                } else {
+                    onError("خطا در دریافت اطلاعات کشتی‌های فعال")
+                }
+            } catch (e: Exception) {
+                onError("خطا در ارتباط با سرور: ${e.message}")
+            }
+        }
+    }
+
+    fun refreshRealTimeLoadingData(
+        onSuccess: (RealTimeDataResponse) -> Unit,
+        onEmpty: () -> Unit,
+        onError: (String) -> Unit,
+        onFinally: () -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val response = apiServiceV2.getRealTimeLoadingData()
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null) onSuccess(body) else onEmpty()
+                } else {
+                    onError("خطا در دریافت اطلاعات: ${response.code()}")
+                }
+            } catch (_: Exception) {
+                onError("خطا در ارتباط با سرور")
+            } finally {
+                onFinally()
+            }
+        }
     }
 }
 
@@ -132,27 +181,6 @@ fun filterShipsByTab(
                     total > 0 && ship.exitVouchers >= total
                 }
             }.filter { (_, ships) -> ships.isNotEmpty() }
-        }
-    }
-}
-
-private fun loadActiveShips(
-    coroutineScope: CoroutineScope,
-    snackbarHostState: SnackbarHostState,
-    onSuccess: (List<ActiveShipInfo>) -> Unit
-) {
-    coroutineScope.launch {
-        try {
-            val response = RetrofitClient.apiServiceV2.getActiveShips()
-            if (response.isSuccessful) {
-                response.body()?.let { ships ->
-                    onSuccess(ships)
-                } ?: showErrorMessage(snackbarHostState, "داده‌های دریافتی خالی است")
-            } else {
-                showErrorMessage(snackbarHostState, "خطا در دریافت اطلاعات کشتی‌های فعال")
-            }
-        } catch (e: Exception) {
-            showErrorMessage(snackbarHostState, "خطا در ارتباط با سرور: ${e.message}")
         }
     }
 }
@@ -202,10 +230,6 @@ private fun navigateToCargoDetailsScreen(
     }
 }
 
-private suspend fun showErrorMessage(snackbarHostState: SnackbarHostState, message: String) {
-    snackbarHostState.showSnackbar(message)
-}
-
 @Composable
 fun CargoCounterScreen(
     navController: NavController,
@@ -232,7 +256,7 @@ fun CargoCounterScreen(
         }
     }
     
-    val viewModel: CargoCounterViewModel = viewModel()
+    val viewModel: CargoCounterViewModel = koinViewModel()
     
     var isRefreshing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
@@ -277,67 +301,60 @@ fun CargoCounterScreen(
 
     fun updateStatistics() {
         isRefreshing = true
-        coroutineScope.launch {
-            try {
-                val response = RetrofitClient.apiServiceV2.getRealTimeLoadingData()
-                if (response.isSuccessful) {
-                    val realTimeDataResponse = response.body()
-                    if (realTimeDataResponse != null) {
-                        showUpdateMessage("اطلاعات با موفقیت بروزرسانی شد", MessageType.SUCCESS)
-                        if (realTimeDataResponse.data.isNotEmpty()) {
-                            activeShips = activeShips.map { ship ->
-                                val updatedData = realTimeDataResponse.data.find { 
-                                    it.loadingQuotaNumber == ship.loadingQuotaNumber &&
-                                    it.shipName == ship.shipName &&
-                                    it.loadingWarehouse == ship.loadingWarehouse &&
-                                    it.shippingCompany == ship.shippingCompany
-                                }
-                                if (updatedData != null) {
-                                    ship.copy(
-                                        entryVouchers = updatedData.entryVouchers,
-                                        exitVouchers = updatedData.exitVouchers
-                                    )
-                                } else {
-                                    ship
-                                }
-                            }
+        viewModel.refreshRealTimeLoadingData(
+            onSuccess = { realTimeDataResponse ->
+                showUpdateMessage("اطلاعات با موفقیت بروزرسانی شد", MessageType.SUCCESS)
+                if (realTimeDataResponse.data.isNotEmpty()) {
+                    activeShips = activeShips.map { ship ->
+                        val updatedData = realTimeDataResponse.data.find {
+                            it.loadingQuotaNumber == ship.loadingQuotaNumber &&
+                            it.shipName == ship.shipName &&
+                            it.loadingWarehouse == ship.loadingWarehouse &&
+                            it.shippingCompany == ship.shippingCompany
                         }
-                    } else {
-                        showUpdateMessage("داده‌های دریافتی خالی است", MessageType.WARNING)
+                        if (updatedData != null) {
+                            ship.copy(
+                                entryVouchers = updatedData.entryVouchers,
+                                exitVouchers = updatedData.exitVouchers
+                            )
+                        } else {
+                            ship
+                        }
                     }
-                } else {
-                    showUpdateMessage("خطا در دریافت اطلاعات: ${response.code()}", MessageType.ERROR)
                 }
-            } catch (_: Exception) {
-                showUpdateMessage("خطا در ارتباط با سرور", MessageType.ERROR)
-            } finally {
-                isRefreshing = false
-            }
-        }
+            },
+            onEmpty = { showUpdateMessage("داده‌های دریافتی خالی است", MessageType.WARNING) },
+            onError = { message -> showUpdateMessage(message, MessageType.ERROR) },
+            onFinally = { isRefreshing = false }
+        )
     }
 
     fun refreshData() {
         isRefreshing = true
-        coroutineScope.launch {
-            try {
-                loadActiveShips(coroutineScope, snackbarHostState) { ships ->
-                    activeShips = ships
-                    updateShipColors(ships)
-                    updateStatistics()
-                }
-            } catch (_: Exception) {
-                showUpdateMessage("خطا در بروزرسانی داده‌ها", MessageType.ERROR)
+        viewModel.loadActiveShips(
+            onSuccess = { ships ->
+                activeShips = ships
+                updateShipColors(ships)
+                updateStatistics()
+            },
+            onError = { message ->
                 isRefreshing = false
+                coroutineScope.launch { snackbarHostState.showSnackbar(message) }
             }
-        }
+        )
     }
 
     LaunchedEffect(Unit) {
-        loadActiveShips(coroutineScope, snackbarHostState) { ships ->
-            activeShips = ships
-            updateShipColors(ships)
-            updateStatistics()
-        }
+        viewModel.loadActiveShips(
+            onSuccess = { ships ->
+                activeShips = ships
+                updateShipColors(ships)
+                updateStatistics()
+            },
+            onError = { message ->
+                coroutineScope.launch { snackbarHostState.showSnackbar(message) }
+            }
+        )
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current

@@ -12,6 +12,7 @@ import com.atk.atk_cargo.feature.auth.data.AuthRepositoryImpl
 import com.atk.atk_cargo.feature.auth.domain.LoginUseCase
 import com.atk.atk_cargo.feature.auth.domain.LogoutUseCase
 import com.atk.atk_cargo.feature.auth.viewmodel.AuthViewModel
+import com.atk.atk_cargo.feature.cargo_counter.presentation.CargoCounterViewModel
 import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoViewModel
 import com.atk.atk_cargo.feature.chat.data.ChatPreferencesStore
 import com.atk.atk_cargo.feature.chat.data.ChatRepository
@@ -68,5 +69,6 @@ val appModule = module {
     single { UpdateManager(androidContext()) }
     viewModel { StartupViewModel(androidApplication(), get(), get(), get(), get()) }
     viewModel { InitialInfoViewModel(get()) }
+    viewModel { CargoCounterViewModel(get()) }
 }
 

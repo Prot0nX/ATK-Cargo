@@ -413,7 +413,7 @@ onConfirm = { viewModel.saveInitialInfo(info) }
 |------|------|
 | ✅ `feature/cargo_entry/presentation/InitialInfoScreen.kt` | ۵۴۳، ۶۳۶ |
 | ✅ `feature/cargo_details/presentation/CargoDetailsScreen.kt` | ۱۱۸ |
-| `feature/cargo_counter/presentation/CargoCounterScreen.kt` | ۱۴۶، ۲۸۲ |
+| ✅ `feature/cargo_counter/presentation/CargoCounterScreen.kt` | ۱۴۶، ۲۸۲ |
 | `feature/home/presentation/components/ProfileMenu.kt` | ۳۱۳ |
 | `feature/home/presentation/ProfileSettingsDialogSection.kt` | ۳۳۲ |
 | `feature/reports/presentation/dialogs/QuotaManagementDialog.kt` | — |
@@ -429,7 +429,11 @@ onConfirm = { viewModel.saveInitialInfo(info) }
 
 **محدودیت تست:** رسیدن به این صفحه نیازمند لاگین با حساب واقعی روی بک‌اند production (`test_api`) است که به آن دسترسی نداشتم؛ پس فقط در سطح کد/کامپایل/لینت راستی‌آزمایی شد، **نه با کلیک واقعی در اپ روی امولاتور**. منطق سطربه‌سطر عیناً از نسخه‌ی قبلی کپی شد (فقط محل اجرا از `rememberCoroutineScope()` به `viewModelScope` منتقل شد) تا ریسک این محدودیت کم شود.
 
-**۲ از ۹ فایل تمام شد:** `CargoDetailsScreen.kt` — برخلاف فایل اول، این صفحه از قبل یک `CargoViewModel` بزرگ (همان God ViewModel که در بخش Code Quality هم به آن اشاره شده) داشت که `loadCargoInfoList`/`updateCargoConfirmation`/`showMessage` را از قبل با `viewModelScope` پیاده‌سازی کرده بود؛ فقط توابع مستقل `confirmCargo`/`handleCargoConfirmation` (تأیید حواله — یک عملیات نوشتن) بیرون از آن مانده و با `rememberCoroutineScope()` فراخوانی می‌شدند. به‌جای ساخت یک ViewModel جدید، منطق (عیناً، پیام به پیام) به‌عنوان متد `confirmCargo()` داخل همان `CargoViewModel` موجود منتقل شد — سازگارتر با معماری فعلی فایل نسبت به افزودن یک لایه‌ی موازی. `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` سبز؛ همان محدودیت عدم دسترسی به حساب واقعی برای تست کلیکی برقرار است.
+**۳ از ۹ فایل تمام شد:**
+
+`CargoDetailsScreen.kt` — برخلاف فایل اول، این صفحه از قبل یک `CargoViewModel` بزرگ (همان God ViewModel که در بخش Code Quality هم به آن اشاره شده) داشت که `loadCargoInfoList`/`updateCargoConfirmation`/`showMessage` را از قبل با `viewModelScope` پیاده‌سازی کرده بود؛ فقط توابع مستقل `confirmCargo`/`handleCargoConfirmation` (تأیید حواله — یک عملیات نوشتن) بیرون از آن مانده و با `rememberCoroutineScope()` فراخوانی می‌شدند. به‌جای ساخت یک ViewModel جدید، منطق (عیناً، پیام به پیام) به‌عنوان متد `confirmCargo()` داخل همان `CargoViewModel` موجود منتقل شد — سازگارتر با معماری فعلی فایل نسبت به افزودن یک لایه‌ی موازی. `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` سبز؛ همان محدودیت عدم دسترسی به حساب واقعی برای تست کلیکی برقرار است.
+
+`CargoCounterScreen.kt` — این فایل هم از قبل یک `CargoCounterViewModel` محلی داشت (فقط برای state انتخاب کشتی/تب، بدون تماس شبکه). هر دو تماس (`getActiveShips` خط ۱۴۶، `getRealTimeLoadingData` خط ۲۸۲) به‌عنوان متد داخل همان ViewModel منتقل شدند؛ چون `SnackbarHostState` یک نگرانی UI است (نه دامنه‌ی ViewModel)، متدهای جدید فقط با callback (`onSuccess`/`onError`/...) نتیجه را برمی‌گردانند و Composable همچنان خودش تصمیم می‌گیرد پیام را کجا نشان دهد (دقیقاً مثل قبل — بدون تغییر رفتار قابل‌مشاهده). چون این ViewModel حالا وابستگی (`ApiServiceV2`) دارد، از factory پیش‌فرض `viewModel()` به `koinViewModel()` تغییر کرد و در `AppModule.kt` ثبت شد.
 
 ---
 
@@ -2450,7 +2454,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 |---|-------|------|--------|
 | ۹ | ارتقای PHP به 8.3 | سرور | Medium |
 | ۱۰ | بازطراحی لایسنس با امضای سمت سرور | `LicenseController` + `SecurityVerifier` | Medium |
-| ۱۱ | ⚠️ انتقال ۹ تماس شبکه از Composable به ViewModel (۲ از ۹ انجام شد: InitialInfoScreen.kt، CargoDetailsScreen.kt) | ۹ فایل | High |
+| ۱۱ | ⚠️ انتقال ۹ تماس شبکه از Composable به ViewModel (۳ از ۹ انجام شد: InitialInfoScreen.kt، CargoDetailsScreen.kt، CargoCounterScreen.kt) | ۹ فایل | High |
 | ۱۲ | ✅ رفع انیمیشن‌ها با `graphicsLayer` | ۵ فایل | Low |
 | ۱۳ | ⚠️ انتقال shimهای PHP به Router (مسیرهای موازی اضافه شد؛ حذف shimها موکول شد) | ۶ فایل | Medium |
 | ۱۴ | ✅ rate limit روی `diagnostics/crash` و لایسنس | `DiagnosticsController`، `LicenseController` | Low |
@@ -2497,7 +2501,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۲ | PHP 8.1 بدون پشتیبانی امنیتی | Security/Infra | **HIGH** | سرور production | Medium |
 | ۳ | ⚠️ fallback رمز متن‌خام (پشت فلگ خاموش، حذف کامل باقی مانده) | Security | **HIGH** | `PHP/src/Services/UserService.php:69` | Low |
 | ۴ | phpMyAdmin روی production | Security/Infra | **HIGH** | سرور production | Low |
-| ۵ | ⚠️ تماس شبکه در Composable با scope کنسل‌شونده (۲ از ۹ فایل انجام شد) | Architecture | **HIGH** | `InitialInfoScreen.kt:636` + ۸ فایل | High |
+| ۵ | ⚠️ تماس شبکه در Composable با scope کنسل‌شونده (۳ از ۹ فایل انجام شد) | Architecture | **HIGH** | `InitialInfoScreen.kt:636` + ۸ فایل | High |
 | ۶ | ✅ نبود signingConfig برای release | Build | **HIGH** | `app/build.gradle.kts:49` | Low |
 | ۷ | ✅ CI تست اندروید اجرا نمی‌کند | Testing | **HIGH** | `.github/workflows/ci.yml:69` | Low |
 | ۸ | ✅ ایندکس گمشده روی `trackingNumber` | Performance/DB | **HIGH** | `PHP/src/Repositories/CargoRepository.php:299` | Low |
