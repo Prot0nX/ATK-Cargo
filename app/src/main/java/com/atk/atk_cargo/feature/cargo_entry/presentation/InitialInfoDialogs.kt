@@ -41,8 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -74,12 +73,18 @@ fun ConfirmationDialog(
         isVisible = true
     }
 
+    val dialogScale by animateFloatAsState(if (isVisible) 1f else 0.9f, label = "dialog_scale")
+    val dialogAlpha by animateFloatAsState(if (isVisible) 1f else 0f, label = "dialog_alpha")
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .scale(animateFloatAsState(if (isVisible) 1f else 0.9f, label = "").value)
-                .alpha(animateFloatAsState(if (isVisible) 1f else 0f, label = "").value),
+                .graphicsLayer {
+                    scaleX = dialogScale
+                    scaleY = dialogScale
+                    alpha = dialogAlpha
+                },
             shape = RoundedCornerShape(24.dp),
             color = palette.cardBg,
             tonalElevation = 8.dp
@@ -166,12 +171,18 @@ fun DuplicateDialog(
         isVisible = true
     }
 
+    val dialogScale by animateFloatAsState(if (isVisible) 1f else 0.9f, label = "dialog_scale")
+    val dialogAlpha by animateFloatAsState(if (isVisible) 1f else 0f, label = "dialog_alpha")
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .scale(animateFloatAsState(if (isVisible) 1f else 0.9f, label = "").value)
-                .alpha(animateFloatAsState(if (isVisible) 1f else 0f, label = "").value),
+                .graphicsLayer {
+                    scaleX = dialogScale
+                    scaleY = dialogScale
+                    alpha = dialogAlpha
+                },
             shape = RoundedCornerShape(24.dp),
             color = palette.cardBg,
             tonalElevation = 8.dp
@@ -240,12 +251,18 @@ fun PartialMatchDialog(
         isVisible = true
     }
 
+    val dialogScale by animateFloatAsState(if (isVisible) 1f else 0.9f, label = "dialog_scale")
+    val dialogAlpha by animateFloatAsState(if (isVisible) 1f else 0f, label = "dialog_alpha")
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .scale(animateFloatAsState(if (isVisible) 1f else 0.9f, label = "").value)
-                .alpha(animateFloatAsState(if (isVisible) 1f else 0f, label = "").value),
+                .graphicsLayer {
+                    scaleX = dialogScale
+                    scaleY = dialogScale
+                    alpha = dialogAlpha
+                },
             shape = RoundedCornerShape(24.dp),
             color = palette.cardBg,
             tonalElevation = 8.dp
@@ -361,12 +378,18 @@ fun ModernAlertDialog(
     var isVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isVisible = true }
 
+    val dialogScale by animateFloatAsState(if (isVisible) 1f else 0.9f, label = "dialog_scale")
+    val dialogAlpha by animateFloatAsState(if (isVisible) 1f else 0f, label = "dialog_alpha")
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .scale(animateFloatAsState(if (isVisible) 1f else 0.9f, label = "").value)
-                .alpha(animateFloatAsState(if (isVisible) 1f else 0f, label = "").value),
+                .graphicsLayer {
+                    scaleX = dialogScale
+                    scaleY = dialogScale
+                    alpha = dialogAlpha
+                },
             shape = RoundedCornerShape(24.dp),
             color = palette.cardBg,
             tonalElevation = 8.dp

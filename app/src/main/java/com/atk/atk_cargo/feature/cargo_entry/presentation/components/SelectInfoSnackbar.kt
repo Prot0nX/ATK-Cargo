@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -35,8 +34,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -113,8 +112,10 @@ fun StatusSnackbar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentHeight()
-                    .offset(y = translateY)
-                    .alpha(alpha),
+                    .graphicsLayer {
+                        translationY = translateY.toPx()
+                        this.alpha = alpha
+                    },
                 shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(1.dp, accent.copy(alpha = if (isDark) 0.35f else 0.3f)),

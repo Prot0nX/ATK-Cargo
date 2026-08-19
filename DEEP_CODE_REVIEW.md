@@ -1091,6 +1091,12 @@ Modifier.graphicsLayer {          // lambda ← خواندن با تأخیر، �
 
 **Priority:** HIGH · **Effort:** Low (تغییر مکانیکی در ۵ فایل)
 
+**Status:** ✅ Fixed (2026-08-19) — هر ۵ فایل به `graphicsLayer` منتقل شدند:
+- `InitialInfoDialogs.kt` (۴ دیالوگ) و `ConfirmationDialog.kt` (core/ui): `.scale()/.alpha()` → `graphicsLayer { scaleX/scaleY/alpha }`؛ در `InitialInfoDialogs.kt` طبق توصیه‌ی گزارش `label = ""` هم به `"dialog_scale"`/`"dialog_alpha"` تغییر کرد.
+- `SnackbarMessage.kt`، `CargoCounterComponents.kt`، `SelectInfoSnackbar.kt`: این سه فایل علاوه بر `.alpha()` یک `.offset(y = translateY)` هم داشتند (همان اثر روی composition/layout) که به `graphicsLayer { translationY = translateY.toPx() }` تبدیل شد — `GraphicsLayerScope` خودش `Density` است، پس تبدیل Dp→px بدون نیاز به `LocalDensity` انجام می‌شود.
+
+import‌های بلااستفاده‌ی `androidx.compose.ui.draw.alpha/scale/offset` حذف و `graphicsLayer` (از `androidx.compose.ui.graphics`, نه `androidx.compose.ui.draw` — نکته‌ای که در تلاش اول اشتباه import شد و کامپایل شکست) اضافه شد. `compileDebugKotlin` و `lintDebug` هر دو سبز.
+
 ---
 
 ### [MEDIUM] Composableهای خدای‌گونه
@@ -2431,7 +2437,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۹ | ارتقای PHP به 8.3 | سرور | Medium |
 | ۱۰ | بازطراحی لایسنس با امضای سمت سرور | `LicenseController` + `SecurityVerifier` | Medium |
 | ۱۱ | انتقال ۹ تماس شبکه از Composable به ViewModel | ۹ فایل | High |
-| ۱۲ | رفع انیمیشن‌ها با `graphicsLayer` | ۵ فایل | Low |
+| ۱۲ | ✅ رفع انیمیشن‌ها با `graphicsLayer` | ۵ فایل | Low |
 | ۱۳ | انتقال shimهای PHP به Router | ۶ فایل | Medium |
 | ۱۴ | rate limit روی `diagnostics/crash` و لایسنس | `DiagnosticsController`، `LicenseController` | Low |
 | ۱۵ | ✅ حذف `Log.w` در ProGuard | `proguard-rules.pro` | Low |
@@ -2481,7 +2487,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۶ | ✅ نبود signingConfig برای release | Build | **HIGH** | `app/build.gradle.kts:49` | Low |
 | ۷ | ✅ CI تست اندروید اجرا نمی‌کند | Testing | **HIGH** | `.github/workflows/ci.yml:69` | Low |
 | ۸ | ✅ ایندکس گمشده روی `trackingNumber` | Performance/DB | **HIGH** | `PHP/src/Repositories/CargoRepository.php:299` | Low |
-| ۹ | recomposition در هر فریم انیمیشن | Performance | **HIGH** | `InitialInfoDialogs.kt:81` + ۴ فایل | Low |
+| ۹ | ✅ recomposition در هر فریم انیمیشن | Performance | **HIGH** | `InitialInfoDialogs.kt:81` + ۴ فایل | Low |
 | ۱۰ | لایسنس بدون auth/rate-limit، کلید در URL | Security | MEDIUM | `PHP/src/Controllers/LicenseController.php:120` | Low |
 | ۱۱ | ✅ نشت پیام استثنا به کلاینت | Security | MEDIUM | `PHP/src/Controllers/UserController.php:83` | Low |
 | ۱۲ | shimهای PHP، Router را دور می‌زنند | Architecture | MEDIUM | ۶ فایل ریشه `PHP/` | Medium |
