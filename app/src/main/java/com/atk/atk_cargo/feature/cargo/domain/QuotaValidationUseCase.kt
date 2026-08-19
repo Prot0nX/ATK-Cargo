@@ -91,8 +91,12 @@ class QuotaValidationUseCase(private val repository: ReportsRepository) {
     }
 
     fun validateTempTonnage(initialInfo: QuotaInfo): TempTonnageValidationResult {
-        if (initialInfo.tempTonnageStatus && initialInfo.tempTonnageAmount != null) {
-            if (initialInfo.tempTonnageAmount <= 0) {
+        // متغیر محلی لازم است: property از ماژول دیگری (core:domain) می‌آید،
+        // پس Kotlin نمی‌تواند بعد از != null آن را smart-cast کند
+        // (DEEP_CODE_AUDIT.md #Phase5.7 — همان محدودیت smart-cast بین‌ماژولی).
+        val tempTonnageAmount = initialInfo.tempTonnageAmount
+        if (initialInfo.tempTonnageStatus && tempTonnageAmount != null) {
+            if (tempTonnageAmount <= 0) {
                 return TempTonnageValidationResult(
                     isValid = false,
                     errorMessage = "تناژ موقت به پایان رسیده است. امکان ثبت حواله جدید یا خروج وجود ندارد. لطفاً با مسئول خود بررسی کنید."
