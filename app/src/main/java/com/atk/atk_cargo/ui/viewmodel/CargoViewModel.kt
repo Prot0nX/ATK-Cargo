@@ -18,6 +18,7 @@ import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.domain.model.Cargo
 import com.atk.atk_cargo.domain.model.CargoConfirmStatus
 import com.atk.atk_cargo.domain.model.CargoStatus
+import com.atk.atk_cargo.domain.model.Kilograms
 import com.atk.atk_cargo.domain.model.QuotaInfo
 import com.atk.atk_cargo.domain.model.toDomain
 import com.atk.atk_cargo.domain.model.toDto
@@ -796,24 +797,38 @@ class CargoViewModel(
         viewModelScope.launch(Dispatchers.Default) {
             try {
                 val exitedCargos = _uiState.value.cargoInfoList.filter { it.status == CargoStatus.EXITED.wireValue }
-                val netWeights = exitedCargos.mapNotNull { it.netWeight.toFloatOrNull() }
-                val totalNet = netWeights.sum()
-                val averageNet = if (netWeights.isNotEmpty()) netWeights.average() else 0.0
-                val cargoWeightValue = _cargoWeight.value.replace(",", "").toFloatOrNull() ?: 0f
-                val remaining = (cargoWeightValue - totalNet).coerceAtLeast(0f)
-                val remainingServicesCount = if (averageNet > 0) (remaining / averageNet).toInt() else 0
+                val netWeights = exitedCargos.mapNotNull { cargo ->
+                    Kilograms.parse(cargo.netWeight).also { parsed ->
+                        if (parsed == null && cargo.netWeight.isNotBlank()) {
+                            Log.w("CargoViewModel_Log", "وزن خالص نامعتبر برای حواله #${cargo.trackingNumber}: '${cargo.netWeight}'")
+                        }
+                    }
+                }
+                val totalNet = netWeights.fold(Kilograms.ZERO) { acc, w -> acc + w }
+                val averageNet = if (netWeights.isNotEmpty()) totalNet.value / netWeights.size else 0.0
+                val cargoWeightValue = Kilograms.parse(_cargoWeight.value) ?: run {
+                    Log.w("CargoViewModel_Log", "کوتاژ کل نامعتبر است: '${_cargoWeight.value}' — به‌عنوان ۰ در نظر گرفته شد")
+                    Kilograms.ZERO
+                }
+                val remaining = (cargoWeightValue - totalNet).coerceAtLeastZero()
+                val remainingServicesCount = if (averageNet > 0) (remaining.value / averageNet).toInt() else 0
 
                 withContext(Dispatchers.Main) {
-                    _remainingWeight.value = DecimalFormat("#,###").format(remaining.roundToInt())
-                    _loadedWeight.value = DecimalFormat("#,###").format(totalNet.roundToInt())
-                    _uiState.update { it.copy(totalNetWeight = DecimalFormat("#,###").format(totalNet.roundToInt())) }
+                    _remainingWeight.value = DecimalFormat("#,###").format(remaining.value.roundToInt())
+                    _loadedWeight.value = DecimalFormat("#,###").format(totalNet.value.roundToInt())
+                    _uiState.update { it.copy(totalNetWeight = DecimalFormat("#,###").format(totalNet.value.roundToInt())) }
                     _averageNetWeight.value = DecimalFormat("#,###").format(averageNet.roundToInt())
                     _remainingServices.value = remainingServicesCount.toString()
                     _totalServices.value = _cargoCount.value.toString()
 
                     val state = _uiState.value
                     if (state.loadableTrucks18Wheeler.isBlank() || state.loadableTrucks10Wheeler.isBlank()) {
-                        val loadableTonnageValue = state.loadableTonnage.replace(",", "").toDoubleOrNull() ?: 0.0
+                        val loadableTonnageValue = Kilograms.parse(state.loadableTonnage)?.value ?: run {
+                            if (state.loadableTonnage.isNotBlank()) {
+                                Log.w("CargoViewModel_Log", "تناژ قابل‌بارگیری نامعتبر است: '${state.loadableTonnage}' — به‌عنوان ۰ در نظر گرفته شد")
+                            }
+                            0.0
+                        }
                         updateLoadableTrucksCount(loadableTonnageValue)
                     }
                 }
