@@ -213,6 +213,7 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:network"))
     implementation(project(":core:database"))
+    implementation(project(":feature:auth"))
     baselineProfile(project(":baselineprofile"))
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.foundation.layout)

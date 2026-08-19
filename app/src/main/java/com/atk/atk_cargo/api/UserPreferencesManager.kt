@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.atk.atk_cargo.feature.auth.data.AuthPreferencesStore
 import com.atk.atk_cargo.security.CryptoManager
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -24,7 +25,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class UserPreferencesManager(
     private val context: Context,
     private val cryptoManager: CryptoManager = CryptoManager()
-) : TokenStore {
+) : TokenStore, AuthPreferencesStore {
     private val dataStore: DataStore<Preferences> = context.dataStore
 
     // خواندن IOException یک‌بار در یک نقطه (به‌جای ۹+ بار تکرار همان ۷ خط catch)؛
@@ -41,9 +42,9 @@ class UserPreferencesManager(
     private fun <T> preference(key: Preferences.Key<T>, default: T): Flow<T> =
         safePreferences.map { it[key] ?: default }
 
-    val username: Flow<String> = preference(USERNAME_KEY, "").map { cryptoManager.decrypt(it) }
+    override val username: Flow<String> = preference(USERNAME_KEY, "").map { cryptoManager.decrypt(it) }
 
-    val userType: Flow<String> = preference(USER_TYPE_KEY, "")
+    override val userType: Flow<String> = preference(USER_TYPE_KEY, "")
 
     val permissions: Flow<Map<String, Boolean>> = preference(PERMISSIONS_KEY, "").map { encryptedJson ->
         val json = cryptoManager.decrypt(encryptedJson).ifEmpty { "{}" }
@@ -55,9 +56,9 @@ class UserPreferencesManager(
         }
     }
 
-    val deviceId: Flow<String> = preference(DEVICE_ID_KEY, "")
+    override val deviceId: Flow<String> = preference(DEVICE_ID_KEY, "")
 
-    val sessionToken: Flow<String> = preference(SESSION_TOKEN_KEY, "").map { cryptoManager.decrypt(it) }
+    override val sessionToken: Flow<String> = preference(SESSION_TOKEN_KEY, "").map { cryptoManager.decrypt(it) }
 
     // I-05: refresh token — فقط توسط TokenAuthenticator خوانده می‌شود.
     val refreshToken: Flow<String> = preference(REFRESH_TOKEN_KEY, "").map { cryptoManager.decrypt(it) }
@@ -90,7 +91,7 @@ class UserPreferencesManager(
     override suspend fun getRefreshToken(): String = refreshToken.first()
     override suspend fun clearCredentials() = clearUserCredentials()
 
-    suspend fun saveUserCredentials(username: String, userType: String, deviceId: String = "", sessionToken: String = "", permissions: Map<String, Boolean>? = null) {
+    override suspend fun saveUserCredentials(username: String, userType: String, deviceId: String, sessionToken: String, permissions: Map<String, Boolean>?) {
         dataStore.edit { preferences ->
             preferences[USERNAME_KEY] = cryptoManager.encrypt(username)
             preferences[USER_TYPE_KEY] = userType
@@ -113,7 +114,7 @@ class UserPreferencesManager(
         if (sessionToken.isNotEmpty()) AuthSession.sessionToken = sessionToken
     }
 
-    suspend fun saveSessionToken(sessionToken: String) {
+    override suspend fun saveSessionToken(sessionToken: String) {
         dataStore.edit { preferences ->
             preferences[SESSION_TOKEN_KEY] = cryptoManager.encrypt(sessionToken)
         }
@@ -133,7 +134,7 @@ class UserPreferencesManager(
         AuthSession.refreshToken = refreshToken
     }
 
-    suspend fun saveRefreshToken(refreshToken: String) {
+    override suspend fun saveRefreshToken(refreshToken: String) {
         dataStore.edit { preferences ->
             preferences[REFRESH_TOKEN_KEY] = cryptoManager.encrypt(refreshToken)
         }
@@ -147,7 +148,7 @@ class UserPreferencesManager(
         }
     }
 
-    suspend fun setLoginState(isLoggedIn: Boolean) {
+    override suspend fun setLoginState(isLoggedIn: Boolean) {
         dataStore.edit { preferences ->
             preferences[IS_LOGGED_IN_KEY] = isLoggedIn
         }
@@ -197,7 +198,7 @@ class UserPreferencesManager(
         }
     }
 
-    suspend fun clearUserCredentials() {
+    override suspend fun clearUserCredentials() {
         dataStore.edit { preferences ->
             preferences.remove(USERNAME_KEY)
             preferences.remove(USER_TYPE_KEY)

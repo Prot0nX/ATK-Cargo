@@ -7,6 +7,7 @@ import com.atk.atk_cargo.core.startup.StartupViewModel
 import com.atk.atk_cargo.data.db.AppDatabase
 import com.atk.atk_cargo.data.repository.ChatRepository
 import com.atk.atk_cargo.data.repository.ReportsRepository
+import com.atk.atk_cargo.feature.auth.data.AuthPreferencesStore
 import com.atk.atk_cargo.feature.auth.data.AuthRepository
 import com.atk.atk_cargo.feature.auth.data.AuthRepositoryImpl
 import com.atk.atk_cargo.feature.auth.domain.LoginUseCase
@@ -19,6 +20,7 @@ import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 val appModule = module {
@@ -32,7 +34,11 @@ val appModule = module {
     single { SecurityVerifier(androidContext()) }
 
     // ===== Preferences Manager =====
-    single { UserPreferencesManager(androidContext(), get()) }
+    // feature:auth نمی‌تواند به app وابسته شود (app به feature:auth وابسته
+    // است، نه برعکس)، پس AuthRepositoryImpl/LogoutUseCase به‌جای
+    // UserPreferencesManager مستقیم، اینترفیس مرزی AuthPreferencesStore را
+    // می‌خواهند؛ bind این پیاده‌سازی را زیر آن نوع هم در دسترس get() می‌گذارد.
+    single { UserPreferencesManager(androidContext(), get()) } bind AuthPreferencesStore::class
 
     // ===== دیتابیس محلی و مخازن =====
     single { AppDatabase.getDatabase(androidContext()) }
