@@ -446,23 +446,41 @@ class AppApiController {
         return $this->quotaService->getLoadableTonnage($quotaNumber, $shippingCompany, $warehouse, $cargoType);
     }
 
+    /**
+     * ۶ متد نوشتنی زیر همگی با requireAuthenticatedSession() شروع می‌شوند —
+     * نه برای احراز هویت (Router::dispatch از قبل با ApiAuthGate این کار را
+     * کرده)، بلکه چون این تنها راه پر شدن $this->authenticatedUsername روی
+     * این نمونه‌ی AppApiController است. handle() (تنها جای دیگری که این
+     * مقدار را پر می‌کرد) از حذف app_api.php در فاز ۳.۱ دیگر هرگز صدا زده
+     * نمی‌شود، پس بدون این فراخوانی $this->authenticatedUsername همیشه null
+     * می‌ماند و AuditLogger::log در QuotaService (که با actorUsername!==null
+     * گیت شده) بی‌صدا هیچ‌وقت اجرا نمی‌شود — دقیقاً همان چیزی که رخ می‌داد
+     * (کشف‌شده هنگام بررسی خالی‌ماندن audit_log برای عملیات کوتاژ،
+     * DEEP_CODE_AUDIT.md). این همان الگوی «بررسی دوگانه‌ی واقعی» است که
+     * برای CargoController::saveOrUpdate در routes/api_v2.php مستند شده.
+     */
     public function editQuota(int $id, string $oldQuotaNumber, string $newQuotaNumber, string $shipName, string $shippingCompany, string $warehouse, string $cargoType, float $totalTonnage): bool {
+        $this->requireAuthenticatedSession();
         return $this->quotaService->editQuota($id, $oldQuotaNumber, $newQuotaNumber, $shipName, $shippingCompany, $warehouse, $cargoType, $totalTonnage, $this->authenticatedUsername);
     }
 
     public function updateQuotaPercentage(int $id, float $percentage): bool {
+        $this->requireAuthenticatedSession();
         return $this->quotaService->updateQuotaPercentage($id, $percentage, $this->authenticatedUsername);
     }
 
     public function toggleQuotaStatus(int $id): bool {
+        $this->requireAuthenticatedSession();
         return $this->quotaService->toggleQuotaStatus($id, $this->authenticatedUsername);
     }
 
     public function updateQuotaPercentageRestriction(int $id, int $isEnabled): bool {
+        $this->requireAuthenticatedSession();
         return $this->quotaService->updateQuotaPercentageRestriction($id, $isEnabled, $this->authenticatedUsername);
     }
 
     public function deleteQuota(string $quotaNumber, string $shipName, string $warehouse, string $shippingCompany, string $cargoType): bool {
+        $this->requireAuthenticatedSession();
         return $this->quotaService->deleteQuota($quotaNumber, $shipName, $warehouse, $shippingCompany, $cargoType, $this->authenticatedUsername);
     }
 
@@ -471,6 +489,7 @@ class AppApiController {
     }
 
     public function updateTemporaryTonnage(string $quotaNumber, int $enabledVal, ?float $tonnageVal): array {
+        $this->requireAuthenticatedSession();
         return $this->quotaService->updateTemporaryTonnage($quotaNumber, $enabledVal, $tonnageVal, $this->authenticatedUsername);
     }
 }
