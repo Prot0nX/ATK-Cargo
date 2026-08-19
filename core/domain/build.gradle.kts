@@ -31,6 +31,8 @@ dependencies {
     // مدل دامنه‌ی حواله/کوتاژ/کشتی از DTOهای شبکه (CargoInfo/InitialInfo)
     // مپ می‌شود — DEEP_CODE_AUDIT.md #Phase3.6.
     implementation(project(":core:network"))
+    // UserPreferencesStore (مرز DI برای featureها — Phase5.12) از Flow استفاده می‌کند.
+    implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(libs.junit)
 }

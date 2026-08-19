@@ -79,11 +79,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.atk.atk_cargo.api.DeleteUserRequest
-import com.atk.atk_cargo.api.ForceLogoutRequest
+import com.atk.atk_cargo.data.model.DeleteUserRequest
+import com.atk.atk_cargo.data.model.ForceLogoutRequest
 import com.atk.atk_cargo.api.RetrofitClient
-import com.atk.atk_cargo.api.User
-import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.data.model.User
+import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -108,7 +108,7 @@ fun UserManagementDialog(
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val userPreferencesManager = koinInject<UserPreferencesManager>()
+    val userPreferencesManager = koinInject<UserPreferencesStore>()
 
     val currentUsername by userPreferencesManager.username.collectAsStateWithLifecycle(initialValue = "")
     val currentUserType by userPreferencesManager.userType.collectAsStateWithLifecycle(initialValue = "")

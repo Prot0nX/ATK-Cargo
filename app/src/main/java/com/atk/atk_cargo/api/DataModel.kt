@@ -26,7 +26,6 @@ typealias ActiveSessionResponse = com.atk.atk_cargo.data.model.ActiveSessionResp
 typealias UpdateUserRequest = com.atk.atk_cargo.data.model.UpdateUserRequest
 typealias DeleteUserRequest = com.atk.atk_cargo.data.model.DeleteUserRequest
 typealias CreateUserRequest = com.atk.atk_cargo.data.model.CreateUserRequest
-typealias UserTypeInfo = com.atk.atk_cargo.data.model.UserTypeInfo
 
 // ===== RE-EXPORT CARGO MODELS =====
 typealias CargoInfo = com.atk.atk_cargo.data.model.CargoInfo

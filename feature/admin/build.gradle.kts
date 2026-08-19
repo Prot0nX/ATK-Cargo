@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.atk.atk_cargo.feature.auth"
+    namespace = "com.atk.atk_cargo.feature.admin"
     compileSdk = 36
 
     defaultConfig {
@@ -27,8 +27,6 @@ android {
         compose = true
     }
 
-    // بدون این، JVM Unit Test روی android.util.Log با "not mocked" می‌شکند
-    // (همان الگوی core:network — DEEP_CODE_AUDIT.md #Phase5.9).
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
@@ -38,6 +36,7 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:network"))
     implementation(project(":core:domain"))
+    implementation(libs.retrofit)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.ui)
@@ -48,17 +47,10 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.koin.android)
     implementation(libs.koin.compose)
-    // AuthRepositoryImpl مستقیماً Gson را برای پارس بدنه‌ی خطای ۴۰۹ صدا
-    // می‌زند؛ implementation در core:network transitive نیست، پس این ماژول
-    // هم باید خودش این وابستگی را اعلام کند.
-    implementation(libs.retrofit.gson)
 
     testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.mockk)
 }
