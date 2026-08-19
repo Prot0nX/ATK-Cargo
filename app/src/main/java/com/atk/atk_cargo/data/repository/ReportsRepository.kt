@@ -65,8 +65,15 @@ class ReportsRepository(
         }
     }
 
-    suspend fun getShipDetails(shipName: String): Ship = withContext(Dispatchers.IO) {
-        val response = apiServiceV2.getShipDetails(route = ApiV2Routes.shipDetails(shipName))
+    // forceRefresh=true وقتی لازم است که این متد بلافاصله بعد از یک نوشتن
+    // موفق (toggleQuotaStatus/editQuota/deleteQuota/...) صدا زده می‌شود؛
+    // بدون آن، کش دیسک OkHttp تا max-age سرور (۶ ثانیه) پاسخ قدیمی را بدون
+    // حتی یک درخواست شبکه برمی‌گرداند و UI تغییر را نشان نمی‌دهد.
+    suspend fun getShipDetails(shipName: String, forceRefresh: Boolean = false): Ship = withContext(Dispatchers.IO) {
+        val response = apiServiceV2.getShipDetails(
+            route = ApiV2Routes.shipDetails(shipName),
+            cacheControl = if (forceRefresh) "no-cache" else null
+        )
         if (response.isSuccessful) {
             response.body() ?: throw Exception("Ship details not found")
         } else {
@@ -113,9 +120,12 @@ class ReportsRepository(
         }
     }
 
-    suspend fun getShipQuotas(shipName: String): List<Quota> = withContext(Dispatchers.IO) {
+    suspend fun getShipQuotas(shipName: String, forceRefresh: Boolean = false): List<Quota> = withContext(Dispatchers.IO) {
         try {
-            val response = apiServiceV2.getShipQuotas(route = ApiV2Routes.shipQuotas(shipName))
+            val response = apiServiceV2.getShipQuotas(
+                route = ApiV2Routes.shipQuotas(shipName),
+                cacheControl = if (forceRefresh) "no-cache" else null
+            )
             if (response.isSuccessful) {
                 val quotas = response.body() ?: throw Exception("Body is null")
                 quotas

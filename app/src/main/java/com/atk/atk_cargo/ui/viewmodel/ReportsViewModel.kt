@@ -426,8 +426,13 @@ class ReportsViewModel(
         viewModelScope.launch {
             try {
                 supervisorScope {
-                    val shipDetailsDeferred = async { repository.getShipDetails(shipName) }
-                    val shipQuotasDeferred = async { repository.getShipQuotas(shipName) }
+                    // forceRefresh=true: این متد همیشه بلافاصله بعد از یک نوشتن
+                    // موفق (toggleQuotaStatus/editQuota/deleteQuota/...) صدا زده
+                    // می‌شود؛ بدون این، کش دیسک OkHttp (max-age=6 سمت سرور) پاسخ
+                    // قدیمی را بدون حتی یک درخواست شبکه برمی‌گرداند و UI هرگز
+                    // وضعیت واقعی را نشان نمی‌دهد.
+                    val shipDetailsDeferred = async { repository.getShipDetails(shipName, forceRefresh = true) }
+                    val shipQuotasDeferred = async { repository.getShipQuotas(shipName, forceRefresh = true) }
 
                     val shipDetails = shipDetailsDeferred.await()
                     val quotas = shipQuotasDeferred.await()
