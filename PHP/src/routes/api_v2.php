@@ -38,6 +38,7 @@ use App\Controllers\AuthController;
 use App\Controllers\CargoController;
 use App\Controllers\ChatController;
 use App\Controllers\DiagnosticsController;
+use App\Controllers\LicenseController;
 use App\Controllers\UserController;
 use App\Controllers\UtilityController;
 use App\Core\Request;
@@ -628,5 +629,46 @@ return [
     [
         'method' => 'POST', 'path' => 'diagnostics/crash', 'auth' => false, 'permission' => null,
         'handler' => function () { (new DiagnosticsController())->reportCrash(); },
+    ],
+
+    // ===== LEGACY SHIMS — مسیر موازی روی Router (DEEP_CODE_REVIEW.md
+    // Phase2.13). این ۶ کنترلر قبلاً فقط از طریق فایل‌های مستقل ریشه‌ی PHP/
+    // (check_signature.php، check_update.php، validate_license.php،
+    // get_license_info.php، quota_remaining_api.php، update_fcm_token.php)
+    // در دسترس بودند — کاملاً خارج از Router/ApiAuthGate. این ردیف‌ها همان
+    // متدها را از مسیر Router هم در دسترس می‌گذارند، اما shimهای قدیمی
+    // عمداً حذف/redirect نشده‌اند: URLهای آن‌ها به‌صورت hardcode در
+    // secrets.cpp کلاینت (n3/n4/n5) هستند، پس حذفشان بدون آپدیت هم‌زمان
+    // کلاینت (که خودش منتظر چرخش کلید/بازطراحی لایسنس در Phase1 #1 و
+    // Phase2 #10 است) بلافاصله همه‌ی نصب‌های موجود را می‌شکند. هر دو auth/
+    // permission در سطح router دقیقاً هم‌راستا با چیزی است که خودِ متد
+    // داخلاً چک می‌کند (الگوی «Direct passthrough» بالای فایل). =====
+    [
+        'method' => 'POST', 'path' => 'utility/check-signature', 'auth' => false, 'permission' => null,
+        'handler' => function () { (new UtilityController())->checkSignature(); },
+    ],
+    [
+        'method' => 'GET', 'path' => 'utility/check-update', 'auth' => false, 'permission' => null,
+        'handler' => function () { (new UtilityController())->checkUpdate(); },
+    ],
+    [
+        'method' => 'POST', 'path' => 'license/validate', 'auth' => false, 'permission' => null,
+        'handler' => function () { (new LicenseController())->validateLicense(); },
+    ],
+    [
+        'method' => 'GET', 'path' => 'license/info', 'auth' => false, 'permission' => null,
+        'handler' => function () { (new LicenseController())->getLicenseInfo(); },
+    ],
+    [
+        // handleQuotaRemaining داخلاً requireAuthenticatedSession() +
+        // requirePermission('active_quotas') را صدا می‌زند.
+        'method' => 'GET', 'path' => 'analytics/quota-remaining', 'auth' => true, 'permission' => 'active_quotas',
+        'handler' => function () { (new AnalyticsController())->handleQuotaRemaining(); },
+    ],
+    [
+        // updateFcmToken داخلاً requireAuthenticatedSession() را صدا می‌زند و
+        // فقط برای کاربر همان نشست عمل می‌کند (permission جدا لازم ندارد).
+        'method' => 'POST', 'path' => 'users/fcm-token', 'auth' => true, 'permission' => null,
+        'handler' => function () { (new UserController())->updateFcmToken(); },
     ],
 ];
