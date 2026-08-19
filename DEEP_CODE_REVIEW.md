@@ -492,7 +492,9 @@ android {
 - با `keystore.properties`: خروجی `app-release.apk` و `apksigner verify --print-certs` امضا را با گواهی throwaway تأیید کرد.
 - `./gradlew :app:lintRelease` (همان مرحله‌ای که CI اجرا می‌کند) هم سبز بود.
 
-`keystore.properties.example` به‌عنوان الگو اضافه و به `.gitignore` هم `keystore.properties` اضافه شد. **کیستور واقعی release و مقداردهی `keystore.properties`/متغیرهای CI باقی مانده — کاری است که باید با کلید امضای واقعی شما (یا تولید یک کیستور جدید در صورت نبود) انجام شود.**
+`keystore.properties.example` به‌عنوان الگو اضافه و به `.gitignore` هم `keystore.properties` اضافه شد.
+
+**بروزرسانی (فاز ۲):** وقتی کیستور واقعی production را در ریشه‌ی پروژه قرار دادید، یک باگ در پیاده‌سازی اولیه پیدا و رفع شد — مسیر نسبی `storeFile` نسبت به پوشه‌ی ماژول `app/` resolve می‌شد نه ریشه‌ی پروژه (جایی که `keystore.properties` واقعاً هست)، پس `file(...)` باید به `rootProject.file(...)` تغییر می‌کرد. با کیستور واقعی و `apksigner verify --print-certs` روی خروجی `assembleRelease` تأیید شد که امضا با گواهی واقعی production انجام می‌شود.
 
 ---
 
@@ -798,6 +800,8 @@ Log.w("TokenRefresher", "خطا هنگام تمدید access token", e)         
 
 **Priority:** MEDIUM
 **Estimated Effort:** Low
+
+**Status:** ✅ Fixed (2026-08-19) — `w(...)` به `-assumenosideeffects` اضافه شد. با `assembleRelease` واقعی (کیستور production واقعی، نه throwaway) و بررسی `classes.dex` با `dexdump` تأیید شد: تقریباً همه‌ی فراخوانی‌های `Log.w`/`Log.d` حذف شدند و فقط **یک مورد از هرکدام** باقی ماند — نه به‌خاطر نقص proguard، بلکه یک اثر جانبی Kotlin: در [ReportsRepository.kt:456](app/src/main/java/com/atk/atk_cargo/data/repository/ReportsRepository.kt:456) الگوی `} ?: Log.w(...)` دو شاخه‌ی نوع ناسازگار (`Boolean` از `.add()` در برابر `Int` از `Log.w`) به کامپایلر می‌دهد که مجبور به autobox کردن نتیجه می‌شود؛ چون R8 نتیجه را «استفاده‌شده» می‌بیند نمی‌تواند فراخوانی را حذف کند. رفع کامل آن نیازمند بازنویسی آن خط است — خارج از scope همین آیتم (که فقط `proguard-rules.pro` بود).
 
 ---
 
@@ -2428,7 +2432,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱۲ | رفع انیمیشن‌ها با `graphicsLayer` | ۵ فایل | Low |
 | ۱۳ | انتقال shimهای PHP به Router | ۶ فایل | Medium |
 | ۱۴ | rate limit روی `diagnostics/crash` و لایسنس | `DiagnosticsController`، `LicenseController` | Low |
-| ۱۵ | حذف `Log.w` در ProGuard | `proguard-rules.pro` | Low |
+| ۱۵ | ✅ حذف `Log.w` در ProGuard | `proguard-rules.pro` | Low |
 | ۱۶ | allow-list دامنه برای `downloadUrl` | `UpdateManager.kt` | Low |
 | ۱۷ | پاک‌سازی تاریخچه‌ی git از رازها | `git filter-repo` | Medium |
 
@@ -2481,7 +2485,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱۲ | shimهای PHP، Router را دور می‌زنند | Architecture | MEDIUM | ۶ فایل ریشه `PHP/` | Medium |
 | ۱۳ | `<Directory>` نامعتبر در `.htaccess` | Security/Config | MEDIUM | `PHP/.htaccess:20,70,75` | Low |
 | ۱۴ | `downloadUrl` بدون اعتبارسنجی دامنه | Security | MEDIUM | `UpdateManager.kt:171` | Low |
-| ۱۵ | `Log.w`/`Log.e` در release باقی می‌مانند | Security/Logging | MEDIUM | `proguard-rules.pro:179` | Low |
+| ۱۵ | ✅ `Log.w`/`Log.e` در release باقی می‌مانند | Security/Logging | MEDIUM | `proguard-rules.pro:179` | Low |
 | ۱۶ | گزارش کرش بدون rate limit | Availability | MEDIUM | `DiagnosticsController.php:100` | Low |
 | ۱۷ | UseCaseها singleton را مستقیم می‌گیرند | Architecture/Testing | MEDIUM | `CheckQuotaUseCase.kt:8` + ۲ فایل | Medium |
 | ۱۸ | ماژول‌بندی نیمه‌کاره (۸۱٪ در `app`) | Architecture | MEDIUM | ساختار پروژه | High |
