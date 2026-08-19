@@ -29,8 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -60,8 +59,11 @@ fun ConfirmationDialog(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .scale(scale)
-                .alpha(alpha),
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    this.alpha = alpha
+                },
             shape = ATKCargoTheme.appShapes.dialog,
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = ATKCargoTheme.elevation.dialog
