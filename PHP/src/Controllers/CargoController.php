@@ -18,9 +18,13 @@ use App\Exceptions\ApiException;
 use App\Services\CargoService;
 use App\Services\PasswordGateService;
 use App\Repositories\CargoRepository;
+use App\Enums\CargoStatus;
 
 class CargoController {
     use AuthenticatesRequests;
+
+    private const ENTERED = CargoStatus::ENTERED->value;
+    private const EXITED = CargoStatus::EXITED->value;
 
     private mysqli $conn;
     private Request $request;
@@ -503,10 +507,10 @@ class CargoController {
 
             $statsStmt = $this->conn->prepare("SELECT 
                 COUNT(*) as totalVouchers,
-                COALESCE(SUM(CASE WHEN status = 'خروج' THEN netWeight ELSE 0 END), 0) as totalNetWeight,
-                COUNT(CASE WHEN status = 'خروج' THEN 1 END) as exitedVouchers,
-                COUNT(CASE WHEN status = 'ورود' THEN 1 END) as remainingVouchers,
-                COALESCE(AVG(CASE WHEN status = 'خروج' AND netWeight > 0 THEN netWeight END), 0) as avgNetWeight
+                COALESCE(SUM(CASE WHEN status = '" . self::EXITED . "' THEN netWeight ELSE 0 END), 0) as totalNetWeight,
+                COUNT(CASE WHEN status = '" . self::EXITED . "' THEN 1 END) as exitedVouchers,
+                COUNT(CASE WHEN status = '" . self::ENTERED . "' THEN 1 END) as remainingVouchers,
+                COALESCE(AVG(CASE WHEN status = '" . self::EXITED . "' AND netWeight > 0 THEN netWeight END), 0) as avgNetWeight
                 FROM CargoInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ?");
             $statsStmt->bind_param("ssss", $quotaNumber, $shippingCompany, $warehouse, $cargoType);
             $statsStmt->execute();
@@ -564,7 +568,7 @@ class CargoController {
                 COALESCE(loadingQuotaNumber, 0) AS loadingQuotaNumber,
                 COALESCE(confirm, '') AS confirm,
                 confirmation
-                FROM CargoInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ? AND (status = 'ورود' OR (status = 'خروج' AND exitDate >= ? AND exitDate <= ?)) ORDER BY CASE WHEN status = 'ورود' THEN 1 ELSE 2 END, entryTime DESC");
+                FROM CargoInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ? AND (status = '" . self::ENTERED . "' OR (status = '" . self::EXITED . "' AND exitDate >= ? AND exitDate <= ?)) ORDER BY CASE WHEN status = '" . self::ENTERED . "' THEN 1 ELSE 2 END, entryTime DESC");
             $cargoStmt->bind_param("ssssss", $quotaNumber, $shippingCompany, $warehouse, $cargoType, $yesterday, $today);
             $cargoStmt->execute();
             $cargoResult = $cargoStmt->get_result();

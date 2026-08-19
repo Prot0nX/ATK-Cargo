@@ -12,6 +12,8 @@ use App\Core\Logger;
 use App\Core\MicroCache;
 use App\Exceptions\ApiException;
 use App\Exceptions\ConflictException;
+use App\Enums\CargoStatus;
+use App\Enums\CargoConfirmStatus;
 
 class CargoService {
 
@@ -117,7 +119,7 @@ class CargoService {
             $shouldInsertNew = !$existingCargo;
 
             if ($existingCargo) {
-                $isClosedService = $existingCargo['status'] === "خروج";
+                $isClosedService = $existingCargo['status'] === CargoStatus::EXITED->value;
                 $isNewEntryAttempt = $isClosedService || (
                     empty($params['netWeight']) && empty($params['shortageWeight']) && empty($params['excessWeight'])
                 );
@@ -125,8 +127,8 @@ class CargoService {
                 if ($isNewEntryAttempt) {
                     if ($params['duplicateConfirmation'] !== "proceed") {
                         $cargoStatus = $existingCargo['status'];
-                        $cargoDate = $cargoStatus === "خروج" ? $existingCargo['exitDate'] : ($existingCargo['exitDate'] ?: $currentDate);
-                        $cargoTime = $cargoStatus === "خروج" ? $existingCargo['exitTime'] : ($existingCargo['entryTime'] ?: $currentTime);
+                        $cargoDate = $cargoStatus === CargoStatus::EXITED->value ? $existingCargo['exitDate'] : ($existingCargo['exitDate'] ?: $currentDate);
+                        $cargoTime = $cargoStatus === CargoStatus::EXITED->value ? $existingCargo['exitTime'] : ($existingCargo['entryTime'] ?: $currentTime);
                         
                         $warningMessage = "شماره حواله \"{$trackingNumber}\" برای شماره کوتاژ \"{$loadingQuotaNumber}\" برای کشتی [ {$shipName} ] قبلاً در تاریخ {$cargoDate} و ساعت {$cargoTime} در وضعیت [ {$cargoStatus} ] ثبت شده است.\n\nآیا اطمینان دارید که می‌خواهید حواله جدید با همین مشخصات ثبت کنید؟";
                         
@@ -195,9 +197,9 @@ class CargoService {
             } else {
                 $cargoId = (int)$existingCargo['id'];
 
-                if ($existingCargo['status'] === "ورود") {
+                if ($existingCargo['status'] === CargoStatus::ENTERED->value) {
                     if (!empty($params['netWeight'])) {
-                        if ($existingCargo['confirm'] !== "تائید شده") {
+                        if ($existingCargo['confirm'] !== CargoConfirmStatus::CONFIRMED->value) {
                             throw new ApiException("حواله مورد نظر توسط بارشمار هنوز تائید نشده است!", 400);
                         }
                         
@@ -288,7 +290,7 @@ class CargoService {
         }
 
         $deleted = $this->repo->deleteCargoById($cargoId);
-        if ($deleted && $cargoData['status'] === 'خروج' && !empty($cargoData['netWeight'])) {
+        if ($deleted && $cargoData['status'] === CargoStatus::EXITED->value && !empty($cargoData['netWeight'])) {
             $netWeightValue = (float)$cargoData['netWeight'];
 
             $quotaNumber = (string)$cargoData['loadingQuotaNumber'];
