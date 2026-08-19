@@ -57,7 +57,10 @@ android {
     signingConfigs {
         if (releaseSigningConfigured) {
             create("release") {
-                storeFile = file(releaseStorePath!!)
+                // rootProject به‌جای project (که ماژول app است) — چون
+                // keystore.properties در ریشه‌ی پروژه است، مسیر نسبی هم باید
+                // نسبت به همان‌جا resolve شود، نه نسبت به app/.
+                storeFile = rootProject.file(releaseStorePath!!)
                 storePassword = signingProperty("storePassword", "KEYSTORE_PASSWORD")
                 keyAlias = signingProperty("keyAlias", "KEY_ALIAS")
                 keyPassword = signingProperty("keyPassword", "KEY_PASSWORD")
