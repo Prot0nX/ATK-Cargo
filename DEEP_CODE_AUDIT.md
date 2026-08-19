@@ -2752,6 +2752,8 @@ enum class CargoStatus(val wireValue: String) {
 
 **Priority:** MEDIUM · **Effort:** Medium
 
+**وضعیت:** ✅ سمت PHP هم اکنون تکمیل شده (پیش از این بخش، خودِ `src/Enums/CargoStatus.php` و `CargoConfirmStatus.php` از قبل در کد موجود بودند و در `CargoRepository`, `ShipService`, `QuotaService`, `CargoController`, `AnalyticsController` استفاده می‌شدند — ولی گزارش قبلی این را «هنوز باز» ثبت کرده بود؛ اکنون اصلاح شد). **باگ واقعی کشف و رفع شد:** الگوی `private const EXITED = CargoStatus::EXITED->value;` در ۵ فایل (`ShipService.php`, `CargoRepository.php`, `QuotaService.php`, `CargoController.php`, `AnalyticsController.php`) از یک قابلیت PHP به نام «property-fetch در constant expression» استفاده می‌کرد که **فقط از PHP 8.2 پشتیبانی می‌شود**؛ سرور تولید PHP 8.1.2 دارد، پس این ۵ کلاس هرگز load نمی‌شدند (`Fatal error: Constant expression contains invalid operations`) و هر route ای که به آن‌ها نیاز داشت (`ships`, `ships/active`, `analytics/comprehensive`, `analytics/realtime`, ثبت/بروزرسانی/حذف حواله) با ۵۰۰ خالی از کار می‌افتاد — این باگ در تست کاربر روی `test_api` کشف شد. رفع: مقدار const حالا خودِ enum case خام است (`= CargoStatus::EXITED;`، مجاز از ۸.۱) و `->value` به محل مصرف (۳۰+ نقطه در کوئری‌های SQL) منتقل شد. `php -l` روی همه‌ی فایل‌های پروژه پاس شد.
+
 ---
 
 ### [MEDIUM] Magic Numbers بدون نام
