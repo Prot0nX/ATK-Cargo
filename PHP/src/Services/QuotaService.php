@@ -582,7 +582,15 @@ final class QuotaService {
     }
 
     public function toggleQuotaStatus(int $id, ?string $actorUsername = null): bool {
-        $shipName = $this->getShipNameById($id);
+        // یک SELECT اضافه (به‌جای getShipNameById ساده) تا جزئیات معنادار
+        // (نه [] خالی) برای audit_log ثبت شود — وضعیت قبل/بعد از toggle و
+        // شماره‌ی کوتاژ، نه فقط id عددی.
+        $beforeStmt = $this->db->prepare("SELECT shipName, loadingQuotaNumber, isActive FROM InitialInfo WHERE id = ?");
+        $beforeStmt->bind_param("i", $id);
+        $beforeStmt->execute();
+        $before = $beforeStmt->get_result()->fetch_assoc();
+        $shipName = $before['shipName'] ?? null;
+
         $query = "UPDATE InitialInfo SET isActive = NOT isActive WHERE id = ?";
         $stmt = $this->db->prepare($query);
         $stmt->bind_param("i", $id);
@@ -590,8 +598,14 @@ final class QuotaService {
         if ($success) {
             MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
             $this->forgetShipCaches($shipName);
-            if ($actorUsername !== null) {
-                AuditLogger::log($actorUsername, 'toggleQuotaStatus', 'quota', (string)$id, []);
+            if ($actorUsername !== null && $before !== null) {
+                $previousIsActive = (bool)$before['isActive'];
+                AuditLogger::log($actorUsername, 'toggleQuotaStatus', 'quota', (string)$id, [
+                    'quotaNumber' => $before['loadingQuotaNumber'],
+                    'shipName' => $shipName,
+                    'previousIsActive' => $previousIsActive,
+                    'newIsActive' => !$previousIsActive,
+                ]);
             }
         }
         return $success;
