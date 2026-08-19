@@ -1,11 +1,8 @@
 package com.atk.atk_cargo.ui.viewmodel
 
 import android.app.Application
-import android.content.Intent
-import android.os.Environment
 import android.util.Log
 import androidx.compose.ui.graphics.Color
-import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.atk.atk_cargo.data.model.CargoInfo
@@ -53,8 +50,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileNotFoundException
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -62,7 +57,6 @@ class ReportsViewModel(
     private val repository: ReportsRepository,
     application: Application
 ) : AndroidViewModel(application) {
-    private val exportPdfUseCase = com.atk.atk_cargo.feature.reports.domain.ExportPdfUseCase(application)
     // C-1: کل چرخه‌ی polling دیالوگ «بارگیری لحظه‌ای» (داده، شمارنده، وضعیت
     // refresh، خطا) در این یک StateFlow جمع شده تا منطق شبکه/تایمر داخل
     // Composable نباشد و با چرخش صفحه ریست نشود.
@@ -96,7 +90,6 @@ class ReportsViewModel(
     val shipNotFoundEvent = _shipNotFoundEvent.asSharedFlow()
     private fun isShipNotFoundError(e: Exception): Boolean =
         e is HttpStatusException && e.statusCode == 404
-    private val _exportResult = MutableStateFlow<String?>(null)
     private val _comprehensiveAnalytics = MutableStateFlow<ComprehensiveAnalytics?>(null)
     val comprehensiveAnalytics: StateFlow<ComprehensiveAnalytics?> = _comprehensiveAnalytics.asStateFlow()
     private val _analyticsLoadingState = MutableStateFlow<LoadingState>(LoadingState.Idle)
@@ -741,55 +734,6 @@ class ReportsViewModel(
         }
     }
 
-    fun exportData(format: String, data: FilteredSummary) {
-        viewModelScope.launch {
-            try {
-                val result = when (format.lowercase()) {
-                    "pdf" -> exportPdfUseCase(data)
-                    else -> throw IllegalArgumentException("Unsupported format")
-                }
-                _exportResult.value = result
-                showFileOptions(result)
-            } catch (e: Exception) {
-                _exportResult.value = "خطا در ایجاد فایل: ${e.message}"
-                showSnackbar("خطا در ایجاد فایل. لطفاً دوباره تلاش کنید.")
-            }
-        }
-    }
-
-    private fun showFileOptions(fileName: String) {
-        viewModelScope.launch {
-            try {
-                val context = getApplication<Application>().applicationContext
-                val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), fileName)
-                if (!file.exists()) {
-                    throw FileNotFoundException("File not found: $fileName")
-                }
-
-                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-
-                val viewIntent = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(uri, "application/pdf")
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-
-                val shareIntent = Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                    type = "application/pdf"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }, "اشتراک‌گذاری فایل PDF")
-
-                val chooserIntent = Intent.createChooser(viewIntent, "انتخاب عملیات").apply {
-                    putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(shareIntent))
-                }
-
-                chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(chooserIntent)
-            } catch (e: Exception) {
-                showSnackbar("خطا در نمایش گزینه‌های فایل. لطفاً دوباره تلاش کنید.")
-            }
-        }
-    }
 
     fun loadComprehensiveAnalytics() {
         analyticsFetchJob?.cancel()
