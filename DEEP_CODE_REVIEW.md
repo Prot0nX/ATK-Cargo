@@ -222,7 +222,14 @@ XOR تک‌بایتی رمزنگاری نیست — یک جایگزینی حرف
 **Priority:** CRITICAL
 **Estimated Effort:** Medium (چرخش: Low · بازطراحی لایسنس: ~~Medium~~ حذف شد — مدل فعلی درست است)
 
-**Status:** ⚠️ چرخش واقعی کلید هنوز روی سرور انجام نشده (دسترسی سرور در دسترس نبود). `scripts/xor_secret_codec.php` نوشته و با راستی‌آزمایی round-trip روی مقدار واقعی `getBaseUrl()` تست شد (decode مقدار موجود در `secrets.cpp:16-21` دقیقاً `https://atk-nk.ir/Cargo/test_api/` را برگرداند؛ encode همان رشته دقیقاً همان بایت‌های موجود در فایل را بازتولید کرد). راهنمای گام‌به‌گام در `scripts/ROTATE_SECRETS.md`. **چرخش واقعی کلید (تولید مقدار جدید + جایگزینی در سرور + جایگزینی در `secrets.cpp` + build/deploy هماهنگ) باقی مانده و باید توسط شما با دسترسی سرور انجام شود.**
+**Status:** ⚠️→بسته‌شده توسط کاربر (۲۰۲۶-۰۸-۲۰). چرخش واقعی کلید هنوز روی سرور انجام نشده (دسترسی سرور در دسترس نبود). `scripts/xor_secret_codec.php` نوشته و با راستی‌آزمایی round-trip روی مقدار واقعی `getBaseUrl()` تست شد (decode مقدار موجود در `secrets.cpp:16-21` دقیقاً `https://atk-nk.ir/Cargo/test_api/` را برگرداند؛ encode همان رشته دقیقاً همان بایت‌های موجود در فایل را بازتولید کرد). راهنمای گام‌به‌گام در `scripts/ROTATE_SECRETS.md`.
+
+**شفاف‌سازی مدل لایسنس (۲۰۲۶-۰۸-۲۰):** بررسی نشان داد از ۸ مقدار `secrets.cpp`، فقط ۲ مورد واقعاً «راز» به‌معنای رمز مشترک قابل‌مقایسه هستند:
+- `getApiKey()` → یک راز **مشترک و سراسری** (سرور با `hash_equals(UPDATE_CHECK_API_KEY, ...)` در `UtilityController.php:208` مقایسه می‌کند؛ مقدار ثابت از `.env` سرور می‌آید).
+- `getLicenseKey()` → **اختصاصی هر مشتری/شرکت** (سرور در جدول `licenses` جست‌وجو می‌کند، نه مقایسه با ثابت)؛ کلید فعلی در `secrets.cpp` این ریپو فقط مربوط به بیلد **تست/نمونه** است (URL پیش‌فرض `test_api/` در `tools/secrets_generator.html` این را تأیید می‌کند) — مشتریان واقعی دیگر هرکدام کلید اختصاصی خودشان را دارند که هرگز در این ریپو commit نشده و نشتی ندارند.
+- بقیه‌ی ۶ مقدار (URLها + نام کلید `SharedPreferences`) راز نیستند و نیازی به چرخش ندارند.
+
+**تصمیم نهایی کاربر:** این آیتم برای این پروژه/نشست بسته اعلام شد. ابزار و مستندات چرخش (`scripts/ROTATE_SECRETS.md`) آماده‌اند؛ اجرای واقعی (تولید مقدار جدید، جایگزینی در `.env` سرور برای `API_KEY`، بروزرسانی ردیف مربوطه در جدول `licenses` برای `LICENSE_KEY` تست، rebuild/redeploy هماهنگ) خارج از این نشست و به‌عهده‌ی کاربر با دسترسی سرور باقی می‌ماند.
 
 بند ۴ (پاک‌سازی تاریخچه) با `git filter-repo` در Phase2 #17 (۲۰۲۶-۰۸-۲۰) انجام شد — جزئیات کامل در همان بخش. **این پاک‌سازی جایگزین چرخش کلید نیست**: نسخه‌ی فعلی `secrets.cpp` که دوباره در انتهای تاریخچه‌ی جدید commit شد، همچنان همان `LICENSE_KEY`/`API_KEY` چرخش‌نیافته را دارد — فقط ۳۲ نسخه‌ی قدیمی از تاریخچه پاک شدند.
 
@@ -2782,7 +2789,7 @@ buildTypes {
 
 | # | اقدام | فایل | Effort |
 |---|-------|------|--------|
-| ۱ | ⚠️ چرخش `API_KEY` و `LICENSE_KEY` — ابزار آماده شد، اجرای واقعی روی سرور باقی مانده | `secrets.cpp` + `.env` سرور | Low |
+| ۱ | ✅ بسته‌شده (کاربر) — چرخش `API_KEY`/`LICENSE_KEY` تست: ابزار آماده شد؛ اجرای واقعی روی سرور به‌عهده‌ی کاربر ماند | `secrets.cpp` + `.env` سرور | Low |
 | ۲ | ⚠️ حذف/محدودسازی phpMyAdmin — چک‌لیست آماده شد، اجرای روی سرور باقی مانده | سرور | Low |
 | ۳ | ✅ افزودن `signingConfig` به release (تست شد؛ کیستور واقعی باقی مانده) | `app/build.gradle.kts` | Low |
 | ۴ | ⚠️ پشت فلگ `ALLOW_LEGACY_PLAINTEXT_LOGIN` (پیش‌فرض خاموش) قرار گرفت — حذف کامل بعد از شمارش روی prod باقی مانده | `UserService.php:69-76` | Low |
@@ -2847,7 +2854,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 
 | # | Issue | Category | Severity | File | Effort |
 |--:|-------|----------|----------|------|--------|
-| ۱ | رازها با XOR تک‌بایتی، در git | Security | **CRITICAL** | `app/src/main/cpp/secrets.cpp:6` | Medium |
+| ۱ | ✅ بسته‌شده (کاربر) — رازها با XOR تک‌بایتی، در git | Security | **CRITICAL** | `app/src/main/cpp/secrets.cpp:6` | Medium |
 | ۲ | PHP 8.1 بدون پشتیبانی امنیتی | Security/Infra | **HIGH** | سرور production | Medium |
 | ۳ | ⚠️ fallback رمز متن‌خام (پشت فلگ خاموش، حذف کامل باقی مانده) | Security | **HIGH** | `PHP/src/Services/UserService.php:69` | Low |
 | ۴ | phpMyAdmin روی production | Security/Infra | **HIGH** | سرور production | Low |
