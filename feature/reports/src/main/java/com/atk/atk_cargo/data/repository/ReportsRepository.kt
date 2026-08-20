@@ -34,7 +34,7 @@ class HttpStatusException(val statusCode: Int, message: String) : Exception(mess
 class ReportsRepository(
     private val apiServiceV2: ApiServiceV2 = com.atk.atk_cargo.api.RetrofitClient.apiServiceV2
 ) : QuotaRepository {
-    suspend fun getCargoInfo(
+    override suspend fun getCargoInfo(
         quotaNumber: String,
         shippingCompany: String,
         warehouse: String,
