@@ -1,11 +1,11 @@
 package com.atk.atk_cargo.ui.viewmodel
 
-import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoResponse
 import com.atk.atk_cargo.data.model.InitialInfo
 import com.atk.atk_cargo.data.model.MessageType
-import com.atk.atk_cargo.data.repository.ReportsRepository
+import com.atk.atk_cargo.domain.repository.QuotaRepository
+import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -37,8 +37,8 @@ import org.junit.Test
 class CargoViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
-    private lateinit var repository: ReportsRepository
-    private lateinit var userPreferencesManager: UserPreferencesManager
+    private lateinit var repository: QuotaRepository
+    private lateinit var userPreferencesManager: UserPreferencesStore
     private lateinit var viewModel: CargoViewModel
 
     @Before

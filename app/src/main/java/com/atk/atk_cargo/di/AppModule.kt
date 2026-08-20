@@ -6,6 +6,7 @@ import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.core.startup.StartupViewModel
 import com.atk.atk_cargo.data.db.AppDatabase
 import com.atk.atk_cargo.data.repository.ReportsRepository
+import com.atk.atk_cargo.domain.repository.QuotaRepository
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import com.atk.atk_cargo.feature.admin.presentation.UserManagementViewModel
 import com.atk.atk_cargo.feature.auth.data.AuthRepository
@@ -53,7 +54,7 @@ val appModule = module {
     // ===== دیتابیس محلی و مخازن =====
     single { AppDatabase.getDatabase(androidContext()) }
     single { ChatRepository(get<AppDatabase>().chatDao(), get(), get()) }
-    single { ReportsRepository(get()) }
+    single { ReportsRepository(get()) } bind QuotaRepository::class
     single<AuthRepository> {
         AuthRepositoryImpl(
             context = androidContext(),

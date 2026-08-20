@@ -35,8 +35,14 @@ dependencies {
     // (DEEP_CODE_REVIEW.md Phase4 #29).
     implementation(project(":core:domain"))
     implementation(project(":core:network"))
+    implementation(project(":core:common"))
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
 
     implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

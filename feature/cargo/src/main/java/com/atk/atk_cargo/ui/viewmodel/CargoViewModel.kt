@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.atk.atk_cargo.api.ApiV2Routes
 import com.atk.atk_cargo.api.RetrofitClient.apiServiceV2
-import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.data.model.CargoDeleteResponse
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.data.model.CargoInfoRequest
@@ -14,7 +13,6 @@ import com.atk.atk_cargo.data.model.MatchingQuota
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.data.model.QuotaExistenceMultipleResponse
 import com.atk.atk_cargo.data.model.SaveOrUpdateResponse
-import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.domain.model.Cargo
 import com.atk.atk_cargo.domain.model.CargoConfirmStatus
 import com.atk.atk_cargo.domain.model.CargoStatus
@@ -22,6 +20,8 @@ import com.atk.atk_cargo.domain.model.Kilograms
 import com.atk.atk_cargo.domain.model.QuotaInfo
 import com.atk.atk_cargo.domain.model.toDomain
 import com.atk.atk_cargo.domain.model.toDto
+import com.atk.atk_cargo.domain.repository.QuotaRepository
+import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import com.atk.atk_cargo.feature.cargo.domain.CargoSnackbarQueue
 import com.atk.atk_cargo.feature.cargo.domain.QuotaValidationUseCase
 import com.atk.atk_cargo.utils.JalaliDateUtils
@@ -47,8 +47,8 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
 class CargoViewModelFactory(
-    private val repository: ReportsRepository,
-    private val userPreferencesManager: UserPreferencesManager
+    private val repository: QuotaRepository,
+    private val userPreferencesManager: UserPreferencesStore
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(CargoViewModel::class.java)) {
@@ -99,8 +99,8 @@ data class CargoUiState(
 )
 
 class CargoViewModel(
-    private val repository: ReportsRepository,
-    private val userPreferencesManager: UserPreferencesManager,
+    private val repository: QuotaRepository,
+    private val userPreferencesManager: UserPreferencesStore,
     // پیش‌فرض واقعی Dispatchers.IO است؛ فقط برای تست با یک TestDispatcher
     // جایگزین می‌شود تا withContext(ioDispatcher) به‌جای یک ترد پس‌زمینه‌ی
     // واقعی (که نمی‌تواند با runTest/advanceUntilIdle هماهنگ شود)، روی همان
