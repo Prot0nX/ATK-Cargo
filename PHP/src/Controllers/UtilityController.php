@@ -31,6 +31,10 @@ class UtilityController {
 
     /**
      * بررسی امضای اپلیکیشن (POST utility/check-signature)
+     *
+     * پاسخ‌های خطا در Phase3 #21 به Response::error() یکسان شدند؛ تأیید شد
+     * SecurityVerifier.kt::authenticateSignatureWithServer روی هر پاسخ
+     * غیر-۲۰۰ فقط false برمی‌گرداند و اصلاً بدنه‌ی خطا را نمی‌خواند.
      */
     public function checkSignature(): void {
         header('Content-Type: application/json; charset=UTF-8');
@@ -41,37 +45,37 @@ class UtilityController {
         header('Cache-Control: no-cache, no-store, must-revalidate');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            Response::json(['error' => 'روش درخواست غیرمجاز'], 405);
+            Response::error('روش درخواست غیرمجاز', 405);
         }
 
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         if (strpos($contentType, 'application/json') === false) {
-            Response::json(['error' => 'نوع محتوای نامعتبر'], 400);
+            Response::error('نوع محتوای نامعتبر', 400);
         }
 
         try {
             $rawInput = file_get_contents('php://input');
             if (empty($rawInput)) {
-                Response::json(['error' => 'بدنه درخواست خالی است'], 400);
+                Response::error('بدنه درخواست خالی است', 400);
             }
 
             $input = json_decode($rawInput, true);
             if (json_last_error() !== JSON_ERROR_NONE || !is_array($input)) {
-                Response::json(['error' => 'فرمت JSON نامعتبر'], 400);
+                Response::error('فرمت JSON نامعتبر', 400);
             }
 
             if (!isset($input['app_signature']) || !is_string($input['app_signature'])) {
-                Response::json(['error' => 'امضای برنامه ارسال نشده است'], 400);
+                Response::error('امضای برنامه ارسال نشده است', 400);
             }
 
             $receivedSignature = trim($input['app_signature']);
             if (strlen($receivedSignature) !== 64 || !ctype_xdigit($receivedSignature)) {
-                Response::json(['error' => 'فرمت امضای نامعتبر'], 400);
+                Response::error('فرمت امضای نامعتبر', 400);
             }
 
             $packageName = $input['app_package'] ?? null;
             if ($packageName !== null && !preg_match('/^[a-zA-Z][a-zA-Z0-9_]*(?:\.[a-zA-Z][a-zA-Z0-9_]*)*$/', (string)$packageName)) {
-                Response::json(['error' => 'نام بسته نامعتبر'], 400);
+                Response::error('نام بسته نامعتبر', 400);
             }
 
             $stmt = $this->conn->prepare("SELECT 1 FROM SignChecker WHERE app_signature = ? LIMIT 1");
@@ -84,7 +88,7 @@ class UtilityController {
             Response::json(['is_valid' => $isValid]);
         } catch (Exception $e) {
             $this->logger->error("Signature check error: " . $e->getMessage());
-            Response::json(['error' => 'خطای سرور رخ داده است'], 500);
+            Response::error('خطای سرور رخ داده است', 500);
         }
     }
 
@@ -182,6 +186,11 @@ class UtilityController {
 
     /**
      * بررسی نسخه جدید اپلیکیشن (GET utility/check-update)
+     *
+     * پاسخ‌های خطای ۴۰۳/۵۰۰/۴۰۰ زیر در Phase3 #21 به Response::error()
+     * یکسان شدند؛ تأیید شد UpdateManager.kt فقط شاخه‌ی جداگانه‌ی ۴۲۶
+     * (enforceMinAppVersion، دست‌نخورده) را ساختاریافته می‌خواند — این سه
+     * حالت فقط با کد وضعیت شناسایی می‌شوند، بدنه‌شان خوانده نمی‌شود.
      */
     public function checkUpdate(): void {
         header('Content-Type: application/json');
@@ -197,24 +206,18 @@ class UtilityController {
         // hash_equals('', '') خودش true برمی‌گرداند، پس این حالت باید صریحاً
         // قبل از مقایسه رد شود، وگرنه یک درخواست بدون هدر کلید هم عبور می‌کرد.
         if (UPDATE_CHECK_API_KEY === '' || !hash_equals(UPDATE_CHECK_API_KEY, $apiKey)) {
-            http_response_code(403);
-            echo json_encode(['error' => 'دسترسی غیرمجاز'], JSON_UNESCAPED_UNICODE);
-            exit;
+            Response::error('دسترسی غیرمجاز', 403);
         }
 
         $configFile = APP_ROOT . '/update_config.php';
         if (!file_exists($configFile)) {
-            http_response_code(500);
-            echo json_encode(['error' => 'پیکربندی آپدیت یافت نشد'], JSON_UNESCAPED_UNICODE);
-            exit;
+            Response::error('پیکربندی آپدیت یافت نشد', 500);
         }
 
         $config = include $configFile;
         $currentVersion = (string)$this->request->get('current_version', '');
         if (empty($currentVersion)) {
-            http_response_code(400);
-            echo json_encode(['error' => 'نسخه فعلی مشخص نشده است.'], JSON_UNESCAPED_UNICODE);
-            exit;
+            Response::error('نسخه فعلی مشخص نشده است.', 400);
         }
 
         $hasUpdate = version_compare((string)$currentVersion, (string)$config['latest_version'], '<');

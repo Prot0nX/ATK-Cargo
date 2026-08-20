@@ -261,6 +261,10 @@ class UserController {
      * کلاینت ناشناس می‌توانست توکن push هر کاربر دلخواه را با توکن خودش
      * جایگزین کند (S-08). حالا user_id از نشست احرازشده گرفته می‌شود، نه از
      * ورودی — پارامتر user_id ورودی نادیده گرفته می‌شود.
+     *
+     * پاسخ‌های خطا در Phase3 #21 به Response::error() یکسان شدند؛ تأیید شد
+     * کلاینت فعلی اصلاً FCM ندارد (grep سراسری «fcm» در کل سورس Kotlin صفر
+     * نتیجه داد)، پس این endpoint در حال حاضر بدون مصرف‌کننده است.
      */
     public function updateFcmToken(): void {
         $this->requireAuthenticatedSession();
@@ -268,13 +272,13 @@ class UserController {
         $userRepo = new \App\Repositories\UserRepository();
         $currentUser = $userRepo->getByUsername((string)$this->authenticatedUsername);
         if (!$currentUser) {
-            Response::json(['error' => 'کاربر یافت نشد'], 404);
+            Response::error('کاربر یافت نشد', 404);
         }
         $userId = (int)$currentUser['id'];
         $token = (string)$this->request->get('token', '');
 
         if (!$userId || empty($token)) {
-            Response::json(['error' => 'Missing user_id or token'], 400);
+            Response::error('Missing user_id or token', 400);
         }
 
         try {
@@ -290,10 +294,10 @@ class UserController {
                 Response::json(['message' => 'FCM token updated successfully']);
             } else {
                 $stmt->close();
-                Response::json(['error' => 'Failed to update FCM token'], 500);
+                Response::error('Failed to update FCM token', 500);
             }
         } catch (\Exception $e) {
-            Response::json(['error' => 'Failed to update FCM token'], 500);
+            Response::error('Failed to update FCM token', 500);
         }
     }
 }

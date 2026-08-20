@@ -2396,6 +2396,27 @@ PHP/
 | ۳ شکل پاسخ خطا | سراسری | کد مدیریت خطای کلاینت شکننده |
 | PHP EOL | زیرساخت | با هر CVE جدید بدتر می‌شود |
 
+**Phase3 #21 — ✅ Fixed جزئی (۲۰۲۶-۰۸-۲۰)، با یک کشف مهم حین اجرا:**
+
+بررسی نشان داد این «۳ شکل پاسخ خطا» تصادفی نیستند — یک کامنت تفصیلی از پیش از این نشست (`PHP/src/Core/AuthenticatesRequests.php`) صراحتاً مستند کرده بود که یکسان‌سازی این دو شکل **بدون تغییر هم‌زمان کلاینت** یکی از دو مصرف‌کننده‌ی واقعی را می‌شکند، و به همین دلیل عمداً حل‌نشده رها شده بود (با یک مکانیزم override به‌جای یکسان‌سازی).
+
+به‌جای تکرار همان تصمیم (رها کردن)، هر endpoint هدف را جداگانه با کد کلاینت (`ReportsRepository.kt`/`UpdateManager.kt`/`SecurityVerifier.kt`/`CargoViewModel.kt`) مقابله دادم تا مشخص شود کدام‌ها واقعاً بی‌خطر تبدیل‌اند:
+
+**تبدیل شد (`Response::json(['error' => ...])` خام → `Response::error()` استاندارد، شکل `{"success":false,"message":...}`):**
+- `AnalyticsController::handleRealTimeLoadingData`/`handleQuotaRemaining` (۸ نقطه) — هر ۴ اکشن Router-routed آن (`analytics/kotazh`, `analytics/realtime`, `analytics/comprehensive`, `analytics/export-log`) بررسی شد؛ کلاینت یا اصلاً این اکشن‌ها را صدا نمی‌زند (`getKotazhInfo`، `handleQuotaRemaining`) یا فقط کد وضعیت/متن خام را می‌خواند، نه فیلد `error` را ساختاریافته.
+- `AppApiController::handle()` (۲ نقطه) — تأیید شد این دیسپچر قدیمی دیگر از هیچ route/shim ای صدا زده نمی‌شود (Router مستقیماً متدهای عمومی را از طریق `$safeCall` در `routes/api_v2.php` صدا می‌زند)؛ کاملاً غیرقابل‌دسترس است.
+- `UserController::updateFcmToken` (۴ نقطه) — تأیید شد کلاینت فعلی اصلاً FCM ندارد (صفر ارجاع در کل سورس Kotlin).
+- `UtilityController::checkSignature` (۸ نقطه) — `SecurityVerifier.kt::authenticateSignatureWithServer` روی هر پاسخ ناموفق فقط `false` برمی‌گرداند، بدنه‌ی خطا را نمی‌خواند.
+- `UtilityController::checkUpdate` (۳ نقطه، فقط خطاهای ۴۰۳/۵۰۰/۴۰۰ خودش) — `UpdateManager.kt` فقط شاخه‌ی ۴۲۶ (`enforceMinAppVersion`) را ساختاریافته می‌خواند؛ این سه فقط با کد وضعیت شناسایی می‌شوند.
+
+**عمداً دست‌نخورده ماند (تأیید شد مصرف‌کننده‌ی زنده دارند):**
+- `AppApiController::sendAuthErrorResponse` override + `$safeCall` در `routes/api_v2.php` — `ReportsRepository.kt:200` (`ErrorResponse.error`) دقیقاً همین شکل را برای `checkQuotaStatus` می‌خواند (کامنت خودِ کد هم این را صراحتاً تأیید می‌کند).
+- `AnalyticsController::sendAuthErrorResponse` override — گیت‌های ۴۰۱/۴۰۳ که از داخل همان ۴ اکشن Router-routed صدا زده می‌شوند؛ محدوده‌ی بررسی‌شده فقط خطاهای کسب‌وکاری بود، نه این مسیر جدا.
+- `CargoController` (`{"error":true/false,"message":"..."}`) — طبق تصمیم اولیه، این یک flag درون‌بدنه‌ای روی پاسخ ۲۰۰ موفق است (نه پاسخ خطای HTTP)، معنای متفاوتی دارد و `CargoViewModel.kt` دقیقاً همین را می‌خواند.
+- `UtilityController::checkPassword`/`checkExistence` (`{"status":"exists"|"partial_match"|"not_exists"|"error",...}`) — یک قرارداد enum چندحالته‌ی عمدی برای این عملیات خاص، نه یک خطای دوحالته؛ تبدیلش به `success:false` باینری معنا را از بین می‌برد.
+
+`php -l`، `phpstan` (سطح ۵؛ یک قانون `ignoreErrors` که دیگر match نمی‌شد چون خطای متناظرش با این تغییر برطرف شد، از `phpstan.neon` حذف شد)، `phpunit` (۶۸ تست) سبز. هیچ فایل Kotlin ای تغییر نکرد — هر ۲ نقطه‌ی خواندن ساختاریافته‌ی سمت کلاینت که پیدا شد (`ReportsRepository.kt`, `UpdateManager.kt`) دقیقاً به مسیرهایی اشاره داشتند که عمداً دست‌نخورده ماندند.
+
 **نکته‌ی مهم:** این پروژه بدهی فنی را **مستند** می‌کند (کامنت‌های ارجاع‌دهنده به `DEEP_CODE_AUDIT.md`). این نشانه‌ی سلامت است، نه بیماری — تیم می‌داند بدهی کجاست.
 
 ---
@@ -2499,7 +2520,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱۸ | ✅ تزریق وابستگی در UseCaseها (۲ فایل کد مرده بودند و حذف شدند؛ ۱ فایل اصلاح شد) | Medium |
 | ۱۹ | نوشتن تست برای `Router`، `UserController`، `QuotaService` | Medium |
 | ۲۰ | ✅ نوشتن تست برای `CargoViewModel` (۱۲ تست + رفع ۲ مشکل معماری واقعی که حین تست کشف شد) | Medium |
-| ۲۱ | یکسان‌سازی شکل پاسخ خطا | Medium |
+| ۲۱ | ✅ یکسان‌سازی شکل پاسخ خطا (بخشی؛ جزئیات و استثناهای عمدی در بدنه‌ی گزارش) | Medium |
 | ۲۲ | لایه‌ی متمرکز نگاشت خطا در کلاینت | Medium |
 | ۲۳ | انتقال `feature/reports` به ماژول مستقل | High |
 | ۲۴ | جدول `schema_migrations` + اسکریپت migrate | Medium |
