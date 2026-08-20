@@ -57,6 +57,8 @@ import com.atk.atk_cargo.feature.admin.presentation.UserManagementDialog
 import com.atk.atk_cargo.feature.auth.presentation.LoginScreen
 import com.atk.atk_cargo.feature.auth.viewmodel.AuthViewModel
 import com.atk.atk_cargo.feature.cargo_counter.navigation.CargoCounterRoute
+import com.atk.atk_cargo.feature.cargo_details.navigation.cargoDetailsScreen
+import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import com.atk.atk_cargo.feature.cargo_entry.navigation.InitialInfoRoute
 import com.atk.atk_cargo.feature.cargo_entry.navigation.SelectInfoRoute
 import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoScreen
@@ -179,7 +181,7 @@ fun MainScreen() {
                                             popExitTransition = selectInfoTransitions.popExit
                                         ) {
                                             val cargoViewModel: CargoViewModel = koinViewModel()
-                                            com.atk.atk_cargo.feature.cargo_entry.presentation.CargoOperationScreen(navController = navController, viewModel = cargoViewModel)
+                                            com.atk.atk_cargo.feature.cargo_entry.presentation.CargoOperationScreen(navController = navController, viewModel = cargoViewModel, onSessionInvalid = { navController.navigateToHome() })
                                         }
                                         cargoRegistrationScreen(
                                             navController = navController
@@ -192,7 +194,7 @@ fun MainScreen() {
                                             popExitTransition = cargoCounterTransitions.popExit
                                         ) {
                                             val cargoViewModel: CargoViewModel = koinViewModel()
-                                            com.atk.atk_cargo.feature.cargo_counter.presentation.CargoCounterOperationScreen(navController = navController, viewModel = cargoViewModel)
+                                            com.atk.atk_cargo.feature.cargo_counter.presentation.CargoCounterOperationScreen(navController = navController, viewModel = cargoViewModel, onSessionInvalid = { navController.navigateToHome() })
                                         }
                                         val manageShipsTransitions = standardTransitions(initialScale = 0.86f, targetScale = 1.10f)
                                         composable<ManageShipsRoute>(
@@ -216,7 +218,7 @@ fun MainScreen() {
                                                 onBackClick = { navController.popBackStack() }
                                             )
                                         }
-                                        cargoDetailsScreen(navController = navController)
+                                        cargoDetailsScreen(navController = navController, onSessionInvalid = { navController.navigateToHome() })
                                     }
                                 }
                             }

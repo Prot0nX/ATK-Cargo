@@ -263,6 +263,7 @@ dependencies {
     implementation(project(":feature:cargo"))
     implementation(project(":feature:reports"))
     implementation(project(":feature:update"))
+    implementation(project(":feature:cargo-workflow"))
     baselineProfile(project(":baselineprofile"))
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.foundation.layout)
