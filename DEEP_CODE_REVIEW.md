@@ -417,13 +417,13 @@ onConfirm = { viewModel.saveInitialInfo(info) }
 | ✅ `feature/home/presentation/components/ProfileMenu.kt` | ۳۱۳ |
 | ✅ `feature/home/presentation/ProfileSettingsDialogSection.kt` | ۳۳۲ |
 | ✅ `feature/reports/presentation/dialogs/QuotaManagementDialog.kt` | ۱۰۷ |
-| `feature/admin/.../UserManagementScreen.kt` | — |
-| `feature/admin/.../UserManagementDialogsSection.kt` | — |
+| ✅ `feature/admin/.../UserManagementScreen.kt` | ۱۲۶، ۱۲۸، ۳۲۴، ۳۵۰، ۳۷۷، ۳۸۷ |
+| ✅ `feature/admin/.../UserManagementDialogsSection.kt` | ۲۸۰ |
 
 **Priority:** HIGH
 **Estimated Effort:** High (۹ فایل، نیازمند ساخت ViewModel و Repository جدید)
 
-**Status:** ⚠️ In progress (2026-08-19) — فایل‌به‌فایل با تأیید جدا در حال انجام (Phase2 #11). **۱ از ۹ فایل تمام شد:**
+**Status:** ✅ Done (2026-08-20) — فایل‌به‌فایل با تأیید جدا در ۸ کامیت انجام شد (Phase2 #11)، ۹ از ۹ فایل تمام. جزئیات هر فایل:
 
 `InitialInfoScreen.kt` — هر دو تماس (`checkExistence` خط ۵۴۳ خواندنی، `saveInitialInfo` خط ۶۳۶ نوشتنی و پرریسک‌تر) به `InitialInfoViewModel` جدید (`viewModelScope`) منتقل شدند؛ نتیجه از طریق `Channel<InitialInfoEvent>` + `repeatOnLifecycle(STARTED)` (همان الگوی موجود در `StartupViewModel`/`MainActivity`) به UI برمی‌گردد. `rememberCoroutineScope()` و import مستقیم `RetrofitClient` کاملاً حذف شدند. یک نقطه‌ی فراخوانی مرده (`CargoEntryNavigation.kt::initialInfoScreen`) و یک نقطه‌ی فراخوانی واقعی (`MainScreen.kt:171`، جایی که route واقعاً ثبت می‌شود) هر دو با امضای جدید هماهنگ شدند. با `compileDebugKotlin`، `lintDebug`، و `testDebugUnitTest` تأیید شد.
 
@@ -442,6 +442,10 @@ onConfirm = { viewModel.saveInitialInfo(info) }
 **۶ از ۹ فایل تمام شد:**
 
 `QuotaManagementDialog.kt` — برخلاف سه فایل قبلی، این Composable از قبل `viewModel: ReportsViewModel` را به‌عنوان پارامتر دریافت می‌کرد (فراخوان بالادستی آن را با `koinViewModel()` می‌سازد)، فقط تماس `getGroupedQuotas` (خط ۱۰۷، داخل `LaunchedEffect(currentShipName, refreshTrigger)`) مستقیماً `RetrofitClient.apiServiceV2` را صدا می‌زد. به‌جای ساخت ViewModel جدید، دو لایه اضافه شد: (۱) متد `ReportsRepository.getGroupedQuotas(shipName)` که پاسخ ناموفق را با همان پیام فارسی قبلی (`"خطا در دریافت داده‌ها: ${code}"`) به‌عنوان Exception پرتاب می‌کند، (۲) متد `ReportsViewModel.loadGroupedQuotas(shipName, onResult: (Result<...>) -> Unit)` با `viewModelScope`، دقیقاً هم‌الگو با `performAdvancedSearch`/`performAdvancedSearchByTracking` که از قبل در همین ViewModel وجود داشتند. state محلی دیالوگ (`quotaData`/`isLoading`/`errorMessage`/...) دست‌نخورده ماند — فقط منبع تماس شبکه از Composable به ViewModel منتقل شد؛ رفتار قابل‌مشاهده (پیام خطا، ترتیب loading) عیناً حفظ شد. `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` (۱۶ تست) سبز.
+
+**۷ و ۸ از ۹ فایل تمام شد (آخرین دو فایل):**
+
+`UserManagementScreen.kt` + `UserManagementDialogsSection.kt` — بزرگ‌ترین و پرریسک‌ترین جفت از ۹ فایل (۱٬۸۶۷ خط مجموعاً، ۶ تماس شبکه‌ی مختلف: `getAllUsersWithStatus`/`getAllUsers` fallback، `updateUser`، `deleteUser`، `getActiveDeviceId`+`forceLogoutUser`، و `createUser` در فایل دوم). برخلاف ۶ فایل قبلی، این دو در ماژول Gradle جدای `feature:admin` هستند نه در `app` — پس یک ViewModel جدید مستقیماً داخل همان ماژول ساخته شد: `feature/admin/.../UserManagementViewModel.kt` با پنج متد callback-محور (`fetchUsersWithStatus`، `updateUser`، `deleteUser`، `forceLogoutUser`، `createUser`) که هر کدام دقیقاً همان try/catch/finally و پیام‌های فارسی قبلی را با `viewModelScope` بازتولید می‌کنند. چون `feature:admin` قبلاً وابستگی `androidx.lifecycle.viewmodel.ktx` نداشت (تنها ماژولی از ۹ فایل که نداشت)، این وابستگی — که در کاتالوگ نسخه‌ها (`libs.versions.toml`) از قبل موجود بود و در ماژول‌های دیگر (`app`، `feature:auth`) استفاده می‌شد — به `feature/admin/build.gradle.kts` اضافه شد. یک نمونه‌ی `UserManagementViewModel` در `UserManagementDialog` (تابع اصلی) با `koinViewModel()` ساخته و به `EnhancedAddUserDialog` (که حالا پارامتر `viewModel` می‌گیرد) پاس داده می‌شود. در `AppModule.kt` با `viewModel { UserManagementViewModel(get()) }` ثبت شد (چون `app` از قبل به `feature:admin` وابسته است). `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` (۳۵ تست) سبز. **این آخرین فایل از ۹ فایل بود — Phase 2.11 (انتقال تماس‌های شبکه از Composable به ViewModel) اکنون ۹ از ۹ کامل است.**
 
 ---
 
@@ -2462,7 +2466,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 |---|-------|------|--------|
 | ۹ | ارتقای PHP به 8.3 | سرور | Medium |
 | ۱۰ | بازطراحی لایسنس با امضای سمت سرور | `LicenseController` + `SecurityVerifier` | Medium |
-| ۱۱ | ⚠️ انتقال ۹ تماس شبکه از Composable به ViewModel (۶ از ۹ انجام شد: InitialInfoScreen.kt، CargoDetailsScreen.kt، CargoCounterScreen.kt، ProfileMenu.kt، ProfileSettingsDialogSection.kt، QuotaManagementDialog.kt) | ۹ فایل | High |
+| ۱۱ | ✅ انتقال ۹ تماس شبکه از Composable به ViewModel (۹ از ۹ انجام شد) | ۹ فایل | High |
 | ۱۲ | ✅ رفع انیمیشن‌ها با `graphicsLayer` | ۵ فایل | Low |
 | ۱۳ | ⚠️ انتقال shimهای PHP به Router (مسیرهای موازی اضافه شد؛ حذف shimها موکول شد) | ۶ فایل | Medium |
 | ۱۴ | ✅ rate limit روی `diagnostics/crash` و لایسنس | `DiagnosticsController`، `LicenseController` | Low |
@@ -2509,7 +2513,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۲ | PHP 8.1 بدون پشتیبانی امنیتی | Security/Infra | **HIGH** | سرور production | Medium |
 | ۳ | ⚠️ fallback رمز متن‌خام (پشت فلگ خاموش، حذف کامل باقی مانده) | Security | **HIGH** | `PHP/src/Services/UserService.php:69` | Low |
 | ۴ | phpMyAdmin روی production | Security/Infra | **HIGH** | سرور production | Low |
-| ۵ | ⚠️ تماس شبکه در Composable با scope کنسل‌شونده (۶ از ۹ فایل انجام شد) | Architecture | **HIGH** | `InitialInfoScreen.kt:636` + ۸ فایل | High |
+| ۵ | ✅ تماس شبکه در Composable با scope کنسل‌شونده (۹ از ۹ فایل انجام شد) | Architecture | **HIGH** | `InitialInfoScreen.kt:636` + ۸ فایل | High |
 | ۶ | ✅ نبود signingConfig برای release | Build | **HIGH** | `app/build.gradle.kts:49` | Low |
 | ۷ | ✅ CI تست اندروید اجرا نمی‌کند | Testing | **HIGH** | `.github/workflows/ci.yml:69` | Low |
 | ۸ | ✅ ایندکس گمشده روی `trackingNumber` | Performance/DB | **HIGH** | `PHP/src/Repositories/CargoRepository.php:299` | Low |
