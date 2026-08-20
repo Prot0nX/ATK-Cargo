@@ -2494,12 +2494,16 @@ data class LoadableCapacity(val tonnage: Float, val trucks18: Int, val trucks10:
 
 **Priority:** MEDIUM · **Effort:** High
 
-**وضعیت (Phase4 #31 — ✅ انجام شد، با دامنه‌ی عمداً محدود):**
+**وضعیت (Phase4 #31 — ✅ کامل انجام شد):**
 
-طبق تأیید کاربر، فقط مشکل ۱ (سه پرچم boolean مستقل دیالوگ) رفع شد؛ مشکل
-۲ (اعداد به‌صورت String) و مشکل ۳ (حذف `filteredCargoInfoList` با
-`derivedStateOf`) خارج از دامنه ماندند — هرکدام تغییر معماری جداگانه‌ای
-هستند که باید مستقل بررسی شوند.
+مشکل ۱ (سه پرچم boolean مستقل دیالوگ) در همین نشست رفع شد. مشکل ۲
+(اعداد به‌صورت String) و مشکل ۳ (حذف `filteredCargoInfoList`) در ابتدا
+عمداً خارج از دامنه ماندند (هرکدام تغییر معماری جداگانه) اما در یک نشست
+بعدی همان تصمیم دنبال و هر دو تکمیل شدند: `totalNetWeight`/`loadableTonnage`
+به `Float?`، `loadableTrucks18Wheeler`/`loadableTrucks10Wheeler` به `Int?`
+تبدیل شدند (فرمت‌دهی به لایه‌ی UI منتقل شد)، و `filteredCargoInfoList` حذف
+و با `remember(cargoInfoList, searchQuery)` در تنها مصرف‌کننده‌ی واقعی
+(`CargoDetailsScreen.kt`) جایگزین شد.
 
 - `sealed interface CargoDialog` (در همان `CargoViewModel.kt`) اضافه شد:
   `None` / `NetWeight` / `DuplicateConfirmation(message)` /
@@ -2899,7 +2903,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 |---|-------|--------|
 | ۲۹ | ✅ انجام شد (تکمیل) — همه‌ی ۷ feature هدف (cargo، reports، update، cargo-workflow [ادغام ۴ فایل به‌هم‌گره‌خورده]، home) در ماژول مستقل‌اند | High |
 | ۳۰ | ✅ تفکیک ۳۱ فایل بزرگ (شروع شد؛ فقط بزرگ‌ترین — ActiveQuotasContent.kt — به عنوان proof-of-concept؛ ۳۰ فایل دیگر باقی مانده) | High |
-| ۳۱ | ✅ بازطراحی `CargoUiState` با sealed dialog (فقط دیالوگ‌ها؛ String→Float و حذف filteredCargoInfoList باقی مانده) | High |
+| ۳۱ | ✅ بازطراحی کامل `CargoUiState` — sealed dialog + اعداد Float/Int + حذف filteredCargoInfoList | High |
 | ۳۲ | ستون‌های `DATETIME` موازی برای تاریخ | High |
 | ۳۳ | ✅ متدهای HTTP صحیح (PATCH/DELETE) — تغییر هم‌زمان کلاینت+سرور | Medium |
 | ۳۴ | ✅ مشروط‌سازی انیمیشن‌های بی‌نهایت + Reduce Motion (دامنه محدود؛ AnimationManager موجود به ۱۳ نقطه متصل شد) | Medium |
