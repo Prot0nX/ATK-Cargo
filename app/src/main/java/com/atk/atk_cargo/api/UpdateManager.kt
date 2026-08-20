@@ -119,7 +119,7 @@ class UpdateManager(
                 val encodedVersion = URLEncoder.encode(currentAppVersion, "UTF-8")
 
                 val request = Request.Builder()
-                    .url("${Constants.BASE_URL}/check_update.php?current_version=$encodedVersion")
+                    .url("${Constants.BASE_URL}api/v2/index.php?route=utility/check-update&current_version=$encodedVersion")
                     .addHeader("X-Api-Key", Constants.API_KEY)
                     .build()
 
