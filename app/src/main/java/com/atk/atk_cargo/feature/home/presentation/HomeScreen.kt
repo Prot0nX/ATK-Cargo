@@ -95,6 +95,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.core.startup.LocalStartupViewModel
 import com.atk.atk_cargo.data.model.MenuItem
 import com.atk.atk_cargo.feature.auth.domain.LogoutUseCase
@@ -316,16 +317,25 @@ private fun SummaryStatsButton(onClick: () -> Unit, warningsCount: Int = 0) {
         label = "button_scale"
     )
 
-    val infiniteTransition = rememberInfiniteTransition(label = "badge_pulse")
-    val badgeScale by infiniteTransition.animateFloat(
-        initialValue = 0.92f,
-        targetValue = 1.12f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "badge_scale"
-    )
+    // قبلاً بدون قید warningsCount اجرا می‌شد — یعنی حتی وقتی Badge اصلاً
+    // نمایش داده نمی‌شد (warningsCount == 0) هم یک frame callback دائمی
+    // فعال بود (DEEP_CODE_REVIEW.md Phase4 #34). همچنین تنظیم سیستمی
+    // «حذف انیمیشن‌ها» را هم احترام می‌گذارد.
+    val badgeScale: Float = if (warningsCount > 0 && AnimationManager.areAnimationsEnabled()) {
+        val infiniteTransition = rememberInfiniteTransition(label = "badge_pulse")
+        val scale by infiniteTransition.animateFloat(
+            initialValue = 0.92f,
+            targetValue = 1.12f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(900, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "badge_scale"
+        )
+        scale
+    } else {
+        1f
+    }
 
     val isDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     val containerColor = if (isDark) {
@@ -446,25 +456,37 @@ private fun SystemAwarenessBanner() {
     val networkText = if (isOnline) "آنلاین" else "آفلاین"
     val syncText = if (isOnline) "همگام" else "در انتظار شبکه"
 
-    val pulseTransition = rememberInfiniteTransition(label = "status_pulse")
-    val pulseAlpha by pulseTransition.animateFloat(
-        initialValue = 0.45f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1600, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "status_pulse_alpha"
-    )
-    val pulseScale by pulseTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 2.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1600, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "status_pulse_scale"
-    )
+    // این پالس تزئینی («زنده بودن» وضعیت آنلاین/آفلاین) عمداً مشروط به هیچ
+    // state ای نشد (برخلاف badgeScale بالا) چون همیشه معنادار است؛ فقط
+    // تنظیم سیستمی «حذف انیمیشن‌ها» را احترام می‌گذارد (Phase4 #34).
+    val pulseAlpha: Float
+    val pulseScale: Float
+    if (AnimationManager.areAnimationsEnabled()) {
+        val pulseTransition = rememberInfiniteTransition(label = "status_pulse")
+        pulseAlpha = pulseTransition.animateFloat(
+            initialValue = 0.45f,
+            targetValue = 0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1600, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "status_pulse_alpha"
+        ).value
+        pulseScale = pulseTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 2.2f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1600, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "status_pulse_scale"
+        ).value
+    } else {
+        // حلقه‌ی پالس مخفی می‌شود؛ نقطه‌ی توپر ثابت زیرش (بدون alpha/scale)
+        // همچنان وضعیت را نشان می‌دهد.
+        pulseAlpha = 0f
+        pulseScale = 1f
+    }
 
     Card(
         modifier = Modifier

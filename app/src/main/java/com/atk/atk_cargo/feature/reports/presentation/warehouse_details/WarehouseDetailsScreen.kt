@@ -69,6 +69,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.atk.atk_cargo.api.FilteredSummary
 import com.atk.atk_cargo.api.Quota
 import com.atk.atk_cargo.api.Warehouse
+import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.presentation.warehouse_details.components.DateTimePicker
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
@@ -501,16 +502,23 @@ fun QuotaChip(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    val infiniteTransition = rememberInfiniteTransition(label = "dot pulse")
-    val dotAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "dot alpha"
-    )
+    // dotAlpha فقط وقتی isSelected==true واقعاً روی صفحه دیده می‌شود (خط ۵۷۶)
+    // اما قبلاً بدون این قید همیشه اجرا می‌شد — همان الگوی باگ badgeScale در
+    // HomeScreen.kt (DEEP_CODE_REVIEW.md Phase4 #34).
+    val dotAlpha: Float = if (isSelected && AnimationManager.areAnimationsEnabled()) {
+        val infiniteTransition = rememberInfiniteTransition(label = "dot pulse")
+        infiniteTransition.animateFloat(
+            initialValue = 0.4f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(800, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "dot alpha"
+        ).value
+    } else {
+        1f
+    }
 
     val accent = WarehouseAccent
     val onAccent = MaterialTheme.colorScheme.onPrimary

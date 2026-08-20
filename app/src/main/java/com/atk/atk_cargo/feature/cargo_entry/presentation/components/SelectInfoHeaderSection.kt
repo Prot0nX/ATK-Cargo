@@ -35,7 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.atk.atk_cargo.feature.startup.domain.AnimationManager
+import com.atk.atk_cargo.core.domain.AnimationManager
 
 @Composable
 fun AnimatedHeader(

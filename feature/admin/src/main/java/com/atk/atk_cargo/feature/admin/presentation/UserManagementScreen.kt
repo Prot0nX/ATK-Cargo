@@ -78,6 +78,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.data.model.User
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
@@ -937,16 +938,20 @@ private fun UserMenuRow(
 
 @Composable
 private fun ShimmerUserLoadingList() {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val alphaAnim by transition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "shimmer_alpha"
-    )
+    val alphaAnim: Float = if (AnimationManager.areAnimationsEnabled()) {
+        val transition = rememberInfiniteTransition(label = "shimmer")
+        transition.animateFloat(
+            initialValue = 0.2f,
+            targetValue = 0.6f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "shimmer_alpha"
+        ).value
+    } else {
+        0.4f
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),

@@ -1,5 +1,12 @@
-package com.atk.atk_cargo.feature.startup.domain
+package com.atk.atk_cargo.core.domain
 
+/**
+ * از `feature/startup/domain` به `core:domain` منتقل شد (Phase4 #34) — یک
+ * `object` سراسری بدون هیچ وابستگی به Compose/Context است، پس محل طبیعی‌اش
+ * ماژولی است که همه‌ی featureهای دارای انیمیشن (از جمله feature:admin که
+ * به feature:startup وابسته نیست) بتوانند بدون یک لبه‌ی ماژولی جدید و
+ * نامرتبط به آن دسترسی داشته باشند.
+ */
 object AnimationManager {
     private var performanceScore: Int = 50
     private var performanceAllowsAnimations: Boolean = true

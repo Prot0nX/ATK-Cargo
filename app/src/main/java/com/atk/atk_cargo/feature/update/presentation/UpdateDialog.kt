@@ -61,6 +61,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.api.UpdateInfo
 import com.atk.atk_cargo.api.UpdateManager
+import com.atk.atk_cargo.core.domain.AnimationManager
 
 @Composable
 fun UpdateDialog(
@@ -387,16 +388,20 @@ private fun ModernUpdateContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        val infiniteTransition = rememberInfiniteTransition(label = "")
-        val bounce by infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = -12f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1000, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = ""
-        )
+        val bounce: Float = if (AnimationManager.areAnimationsEnabled()) {
+            val infiniteTransition = rememberInfiniteTransition(label = "")
+            infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = -12f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1000, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = ""
+            ).value
+        } else {
+            0f
+        }
         
         Surface(
             modifier = Modifier

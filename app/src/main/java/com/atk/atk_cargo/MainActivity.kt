@@ -47,7 +47,7 @@ import com.atk.atk_cargo.core.startup.LocalStartupViewModel
 import com.atk.atk_cargo.core.startup.StartupEvent
 import com.atk.atk_cargo.core.startup.StartupState
 import com.atk.atk_cargo.core.startup.StartupViewModel
-import com.atk.atk_cargo.feature.startup.domain.AnimationManager
+import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.feature.startup.presentation.ServerSyncingScreen
 import com.atk.atk_cargo.feature.startup.presentation.SplashScreen
 import com.atk.atk_cargo.feature.update.presentation.UpdateDialog

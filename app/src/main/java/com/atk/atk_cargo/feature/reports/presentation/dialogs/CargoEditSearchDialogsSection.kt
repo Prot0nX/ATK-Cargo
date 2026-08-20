@@ -86,6 +86,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.api.CargoInfo
+import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlinx.coroutines.launch
@@ -583,16 +584,20 @@ private fun CargoEditConfirmHeader() {
                 ),
             contentAlignment = Alignment.Center
         ) {
-            val infiniteTransition = rememberInfiniteTransition(label = "")
-            val scale by infiniteTransition.animateFloat(
-                initialValue = 1f,
-                targetValue = 1.2f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(800),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = ""
-            )
+            val scale: Float = if (AnimationManager.areAnimationsEnabled()) {
+                val infiniteTransition = rememberInfiniteTransition(label = "")
+                infiniteTransition.animateFloat(
+                    initialValue = 1f,
+                    targetValue = 1.2f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(800),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = ""
+                ).value
+            } else {
+                1f
+            }
 
             Icon(
                 imageVector = Icons.Default.Save,

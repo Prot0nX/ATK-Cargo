@@ -94,7 +94,7 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.Mess
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.NetWeightDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.QuotaEntryDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.ShipInfoSection
-import com.atk.atk_cargo.feature.startup.domain.AnimationManager
+import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.ui.theme.Amber700
 import com.atk.atk_cargo.ui.theme.Green600
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel

@@ -1225,6 +1225,47 @@ val animationsEnabled = Settings.Global.getFloat(
 
 **Priority:** MEDIUM · **Effort:** Medium
 
+**وضعیت (Phase4 #34 — ✅ انجام شد، با دامنه‌ی عمداً محدود):**
+
+بررسی دقیق‌تر نشان داد شمار واقعی `rememberInfiniteTransition` در کد فعلی
+**۱۳ نمونه در ۸ فایل** است (نه ۲۱ مورد گزارش — عدد قدیمی، پیش از
+ماژول‌بندی‌های Phase قبلی). مهم‌تر: هنگام investigate، معلوم شد یک مکانیزم
+Reduce Motion **از قبل وجود داشت** (`AnimationManager` — از یک audit قدیمی‌تر،
+`DEEP_CODE_AUDIT.md #Phase3.12`)، فقط در ۳ محل `AnimatedVisibility` استفاده
+می‌شد و هیچ‌کدام از ۱۳ `rememberInfiniteTransition` آن را چک نمی‌کردند.
+
+- `AnimationManager.kt` از `feature/startup/domain` به **`core/domain`**
+  منتقل شد — یک `object` سراسری بدون وابستگی Compose/Context بود، پس محل
+  طبیعی‌اش ماژولی است که همه‌ی featureهای دارای انیمیشن (از جمله
+  `feature:admin` که به `feature:startup` وابسته نبود) بدون افزودن یک لبه‌ی
+  ماژولی جدید و نامرتبط بتوانند به آن دسترسی داشته باشند. ۴ فایل مصرف‌کننده‌ی
+  موجود (`MainActivity.kt` و ۳ فایل دیگر در `app`) با تغییر import آپدیت
+  شدند؛ `feature/startup/build.gradle.kts` یک `implementation(project(":core:domain"))`
+  جدید گرفت (برای `ServerSyncingScreen.kt`).
+- **باگ مصداقی گزارش** در [HomeScreen.kt](app/src/main/java/com/atk/atk_cargo/feature/home/presentation/HomeScreen.kt) رفع شد: انیمیشن `badgeScale` حالا
+  فقط وقتی `warningsCount > 0` (یعنی Badge واقعاً نمایش داده می‌شود) اجرا
+  می‌شود.
+- یک نمونه‌ی مشابه‌ی همین باگ هم حین کار پیدا و رفع شد:
+  [WarehouseDetailsScreen.kt](app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/warehouse_details/WarehouseDetailsScreen.kt) — `dotAlpha` فقط وقتی `isSelected == true`
+  واقعاً روی صفحه دیده می‌شد، اما بدون قید همیشه اجرا می‌شد.
+- در تمام ۱۳ نقطه (شامل `SecurityScreen.kt` ×۵، `HomeScreen.kt` ×۲،
+  `UpdateDialog.kt`، `WarehouseDetailsScreen.kt`،
+  `CargoEditSearchDialogsSection.kt`، `RealTimeLoadingBottomSheet.kt`،
+  `UserManagementScreen.kt`، `ServerSyncingScreen.kt`)
+  `AnimationManager.areAnimationsEnabled()` اضافه شد: وقتی کاربر «حذف
+  انیمیشن‌ها» را در تنظیمات سیستم فعال کرده، `rememberInfiniteTransition`
+  اصلاً animate نمی‌کند و یک مقدار ثابتِ «حالت مستقر» (مثلاً scale=1f،
+  alpha=0f برای حلقه‌های پالس نامرئی) به‌جایش استفاده می‌شود — نه فقط
+  duration را صفر کردن، بلکه کاملاً از ثبت frame callback جلوگیری می‌شود.
+- **دامنه‌ی عمداً حذف‌شده:** اعمال Reduce Motion به بقیه‌ی انواع انیمیشن
+  (۷۴ `animateFloatAsState`، ۳۸ `Animatable` و غیره) خارج از دامنه ماند —
+  طبق تأیید کاربر، فقط انیمیشن‌های بی‌نهایت (که مصداق مستقیم مشکل battery/
+  frame-callback گزارش‌اند) پوشش داده شدند.
+
+تأیید شد: `./gradlew :app:compileDebugKotlin` (شامل `core:domain`،
+`feature:startup`، `feature:admin`)، `:app:lintDebug`،
+`:app:testDebugUnitTest` همگی سبز.
+
 ## [LOW] عدم پشتیبانی از Reduce Motion
 
 هیچ‌جای پروژه `ANIMATOR_DURATION_SCALE` یا معادل آن بررسی نمی‌شود. کاربرانی که در تنظیمات سیستم انیمیشن را غیرفعال کرده‌اند (اغلب به‌دلایل پزشکی مثل حساسیت به حرکت، یا برای دستگاه‌های ضعیف) همچنان همه‌ی انیمیشن‌ها را می‌بینند.
@@ -1232,6 +1273,16 @@ val animationsEnabled = Settings.Global.getFloat(
 **Recommended Fix:** یک `CompositionLocal` مرکزی تعریف کنید که مقیاس مدت انیمیشن را حمل کند و در تمام `tween(...)`ها ضرب شود.
 
 **Priority:** LOW · **Effort:** Medium
+
+**وضعیت (Phase4 #34 — ✅ تا حد زیادی از قبل موجود بود + تکمیل جزئی):**
+
+برخلاف ارزیابی این بخش از گزارش، `Settings.Global.ANIMATOR_DURATION_SCALE`
+از قبل در `MainActivity.kt` خوانده می‌شد و در `AnimationManager`
+(اکنون در `core/domain`) ذخیره می‌شد — فقط مصرف‌کننده‌های آن ناقص بودند
+(۳ محل `AnimatedVisibility`، هیچ‌کدام از ۱۳ `rememberInfiniteTransition`).
+به‌جای یک `CompositionLocal` جدید و مستقل (که یک سیستم موازی می‌ساخت)،
+همان `AnimationManager` موجود به ۱۳ نقطه‌ی جدید هم متصل شد — جزئیات در
+بخش «انیمیشن‌های بی‌نهایت» بالا.
 
 ---
 
@@ -2652,7 +2703,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۳۱ | بازطراحی `CargoUiState` با sealed dialog | High |
 | ۳۲ | ستون‌های `DATETIME` موازی برای تاریخ | High |
 | ۳۳ | متدهای HTTP صحیح (PATCH/DELETE) | Medium |
-| ۳۴ | مشروط‌سازی انیمیشن‌های بی‌نهایت + Reduce Motion | Medium |
+| ۳۴ | ✅ مشروط‌سازی انیمیشن‌های بی‌نهایت + Reduce Motion (دامنه محدود؛ AnimationManager موجود به ۱۳ نقطه متصل شد) | Medium |
 | ۳۵ | ارتقا به `targetSdk = 36` | Medium |
 | ۳۶ | ✅ ارتقای Koin به 4.x (4.1.1) | Low |
 

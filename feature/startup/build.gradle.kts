@@ -33,6 +33,9 @@ android {
 }
 
 dependencies {
+    // AnimationManager (Phase4 #34: پشتیبانی Reduce Motion برای ServerSyncingScreen).
+    implementation(project(":core:domain"))
+
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
