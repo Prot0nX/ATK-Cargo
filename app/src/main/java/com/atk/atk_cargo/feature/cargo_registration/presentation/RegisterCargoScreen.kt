@@ -79,6 +79,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.domain.model.Cargo
 import com.atk.atk_cargo.domain.model.CargoConfirmStatus
@@ -94,7 +95,6 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.Mess
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.NetWeightDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.QuotaEntryDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.ShipInfoSection
-import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.ui.theme.Amber700
 import com.atk.atk_cargo.ui.theme.Green600
 import com.atk.atk_cargo.ui.viewmodel.CargoDialog

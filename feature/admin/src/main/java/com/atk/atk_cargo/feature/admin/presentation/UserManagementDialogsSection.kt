@@ -67,7 +67,6 @@ import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.data.model.CreateUserRequest
 import com.atk.atk_cargo.data.model.UpdateUserRequest
 import com.atk.atk_cargo.data.model.User
-import com.atk.atk_cargo.feature.admin.presentation.UserTypeInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 
 // این فایل دیالوگ‌های افزودن/ویرایش/حذف/خروج‌اجباری کاربر را از UserManagementScreen.kt
