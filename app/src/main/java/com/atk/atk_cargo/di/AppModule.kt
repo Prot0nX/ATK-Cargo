@@ -24,7 +24,9 @@ import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
-import org.koin.androidx.viewmodel.dsl.viewModel
+// Koin 4.x: ViewModel DSL از org.koin.androidx.viewmodel.dsl به یک ماژول
+// چندسکویی (Multiplatform) در org.koin.core.module.dsl منتقل شد — Phase4 #36.
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.bind
 import org.koin.dsl.module
 

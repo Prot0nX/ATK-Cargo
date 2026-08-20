@@ -95,7 +95,7 @@ ATK-Cargo/
 └── .github/workflows/ci.yml
 ```
 
-**Stack:** Kotlin 2.2.20 · AGP 8.13.0 · Compose BOM 2025.09.00 · Koin 3.5.6 · Retrofit 3.0.0 · OkHttp 5.1.0 · Room 2.7.0 · PHP 8.1 · MySQL 8.0 · Apache 2.4.52
+**Stack:** Kotlin 2.2.20 · AGP 8.13.0 · Compose BOM 2025.09.00 · Koin 4.1.1 · Retrofit 3.0.0 · OkHttp 5.1.0 · Room 2.7.0 · PHP 8.1 · MySQL 8.0 · Apache 2.4.52
 
 ---
 
@@ -2046,7 +2046,7 @@ context-specific و متفاوت‌اند (مثلاً «خطا در بررسی �
 | OkHttp | 5.1.0 | ✅ به‌روز |
 | Room | 2.7.0 | ✅ |
 | Coroutines | 1.10.2 | ✅ |
-| **Koin** | **3.5.6** | ⚠️ نسخه‌ی ۴.x موجود است |
+| **Koin** | **4.1.1** | ✅ Phase4 #36 |
 | PHPUnit / PHPStan | (dev-only) | ✅ در production بارگذاری نمی‌شوند |
 
 ## [MEDIUM] Compose BOM عملاً بی‌اثر است
@@ -2091,6 +2091,30 @@ androidx-foundation = { module = "androidx.compose.foundation:foundation" }    #
 **Recommended Fix:** ارتقا به Koin 4.x. مهاجرت عمدتاً مکانیکی است. با توجه به اینکه فقط یک ماژول DI وجود دارد (`AppModule.kt`، ۶۹ خط)، ریسک پایین است.
 
 **Priority:** LOW · **Effort:** Low
+
+**وضعیت (Phase4 #36 — ✅ انجام شد):**
+
+نسخه‌ی موجود در npm/Maven بررسی شد (جست‌وجوی وب) — آخرین نسخه‌ی پایدار
+`4.1.1` است (نه صرفاً «۴.x»). ارتقا واقعاً مکانیکی بود:
+
+- `gradle/libs.versions.toml`: `koin = "3.5.6"` → `"4.1.1"` (هم
+  `koin-android` و هم `koin-androidx-compose` از همین یک `version.ref`
+  می‌آیند، پس هر دو با یک تغییر آپدیت شدند).
+- تنها breaking change‌ی مرتبط با استفاده‌ی این پروژه: ViewModel DSL ماژول
+  (`viewModel { ... }` در `di/AppModule.kt`) از
+  `org.koin.androidx.viewmodel.dsl` به `org.koin.core.module.dsl` منتقل
+  شده (import اصلاح شد). بقیه‌ی API‌های استفاده‌شده در پروژه
+  (`startKoin`، `androidLogger`، `androidContext`/`androidApplication`،
+  `koinViewModel`، `koinInject`، `KoinComponent`/`inject()`، افزونه‌ی
+  کلاسیک `by viewModel()` در `MainActivity.kt`) بدون تغییر باقی ماندند —
+  هیچ‌کدام deprecated/removed نشده بودند.
+- پروژه فقط از دو artifact (`koin-android`, `koin-compose`) در ۳ ماژول
+  (`app`, `feature:auth`, `feature:admin`) استفاده می‌کند — بدون
+  `koin-test`/`koin-annotations`، پس ریسک واقعاً پایین بود، مطابق پیش‌بینی
+  گزارش.
+- تأیید شد: `./gradlew :app:compileDebugKotlin` (شامل کامپایل
+  `feature:auth`/`feature:admin`)، `:app:lintDebug`، `:app:testDebugUnitTest`
+  همگی سبز، بدون هشدار deprecation مرتبط با Koin.
 
 ---
 
@@ -2630,7 +2654,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۳۳ | متدهای HTTP صحیح (PATCH/DELETE) | Medium |
 | ۳۴ | مشروط‌سازی انیمیشن‌های بی‌نهایت + Reduce Motion | Medium |
 | ۳۵ | ارتقا به `targetSdk = 36` | Medium |
-| ۳۶ | ارتقای Koin به 4.x | Low |
+| ۳۶ | ✅ ارتقای Koin به 4.x (4.1.1) | Low |
 
 ---
 
