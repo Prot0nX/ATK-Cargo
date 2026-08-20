@@ -1,7 +1,7 @@
 package com.atk.atk_cargo.feature.reports.domain
 
-import com.atk.atk_cargo.api.Ship
-import com.atk.atk_cargo.api.ShipSortingMode
+import com.atk.atk_cargo.data.model.Ship
+import com.atk.atk_cargo.data.model.ShipSortingMode
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

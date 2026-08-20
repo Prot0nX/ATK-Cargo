@@ -3,9 +3,9 @@ package com.atk.atk_cargo.feature.reports.domain
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import com.atk.atk_cargo.api.Quota
-import com.atk.atk_cargo.api.Ship
-import com.atk.atk_cargo.api.ShipSortingMode
+import com.atk.atk_cargo.data.model.Quota
+import com.atk.atk_cargo.data.model.Ship
+import com.atk.atk_cargo.data.model.ShipSortingMode
 import java.text.Collator
 import java.text.NumberFormat
 import java.util.Locale

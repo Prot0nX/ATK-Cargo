@@ -527,14 +527,15 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
-                                    if (!group.cargoType.isNullOrBlank() && group.cargoType != "نامشخص") {
+                                    val cargoType = group.cargoType
+                                    if (!cargoType.isNullOrBlank() && cargoType != "نامشخص") {
                                         Text(
                                             text = "|",
                                             style = MaterialTheme.typography.labelLarge,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            text = group.cargoType,
+                                            text = cargoType,
                                             style = MaterialTheme.typography.labelLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurface
