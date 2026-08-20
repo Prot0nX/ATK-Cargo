@@ -231,7 +231,7 @@ XOR تک‌بایتی رمزنگاری نیست — یک جایگزینی حرف
 
 **تصمیم نهایی کاربر:** این آیتم برای این پروژه/نشست بسته اعلام شد. ابزار و مستندات چرخش (`scripts/ROTATE_SECRETS.md`) آماده‌اند؛ اجرای واقعی (تولید مقدار جدید، جایگزینی در `.env` سرور برای `API_KEY`، بروزرسانی ردیف مربوطه در جدول `licenses` برای `LICENSE_KEY` تست، rebuild/redeploy هماهنگ) خارج از این نشست و به‌عهده‌ی کاربر با دسترسی سرور باقی می‌ماند.
 
-بند ۴ (پاک‌سازی تاریخچه) با `git filter-repo` در Phase2 #17 (۲۰۲۶-۰۸-۲۰) انجام شد — جزئیات کامل در همان بخش. **این پاک‌سازی جایگزین چرخش کلید نیست**: نسخه‌ی فعلی `secrets.cpp` که دوباره در انتهای تاریخچه‌ی جدید commit شد، همچنان همان `LICENSE_KEY`/`API_KEY` چرخش‌نیافته را دارد — فقط ۳۲ نسخه‌ی قدیمی از تاریخچه پاک شدند.
+بند ۴ (پاک‌سازی تاریخچه) با `git filter-repo` در Phase2 #17 (۲۰۲۶-۰۸-۲۰) انجام شد و با تأیید کاربر force-push به `origin/main` نیز اکنون انجام شده — تاریخچه‌ی remote هم پاک‌سازی‌شده است. **این پاک‌سازی جایگزین چرخش کلید نیست**: نسخه‌ی فعلی `secrets.cpp` که دوباره در انتهای تاریخچه‌ی جدید commit شد، همچنان همان `LICENSE_KEY`/`API_KEY` چرخش‌نیافته را دارد — فقط ۳۲ نسخه‌ی قدیمی از تاریخچه پاک شدند.
 
 ---
 
@@ -356,7 +356,7 @@ phpMyAdmin نسخه‌ی **5.1.1** روی همان میزبانی که API را 
 **Priority:** HIGH
 **Estimated Effort:** Low
 
-**Status:** ⚠️ چون کاملاً سمت سرور است، فقط چک‌لیست اجرا آماده شد: `scripts/REMOVE_PHPMYADMIN.md` (هر دو گزینه‌ی حذف کامل و محدودسازی IP + Basic Auth، با دستورات راستی‌آزمایی `curl`). **اجرای واقعی روی سرور با شماست.**
+**Status:** ✅ Done (2026-08-20) — اجرا روی سرور production توسط کاربر انجام شد.
 
 ---
 
@@ -1412,7 +1412,7 @@ EXPLAIN SELECT ... FROM CargoInfo WHERE trackingNumber = 'X' ORDER BY entryTime 
 
 **Priority:** HIGH · **Effort:** Low
 
-**Status:** ✅ Migration نوشته شد (`PHP/migrations/2026_08_19_add_cargo_tracking_index.sql`) — **هنوز روی دیتابیس تولید اجرا نشده** (طبق قرارداد پروژه، دستی و هم‌زمان با deploy). با یک MariaDB throwaway محلی و ۱۰٬۰۰۰ ردیف تصادفی تأیید شد:
+**Status:** ✅ Done (2026-08-20) — Migration نوشته شد (`PHP/migrations/2026_08_19_add_cargo_tracking_index.sql`) و روی دیتابیس production توسط کاربر اجرا شد. با یک MariaDB throwaway محلی و ۱۰٬۰۰۰ ردیف تصادفی از قبل تأیید شده بود:
 - قبل: `type=ALL, rows=10000, Extra=Using where; Using filesort`
 - بعد: `type=ref, rows=1, Extra=Using where; Using index` (حتی filesort هم حذف شد، بهتر از انتظار گزارش)
 - کوئری دوم (`shipName`+`trackingNumber`+`updated_at`) هم از `idx_cargo_ship_tracking` با `type=range, rows=1` استفاده کرد.
@@ -2759,8 +2759,8 @@ proof-of-concept برای الگوی migration؛ بقیه برای نشست‌ه
 | Security — TLS/Pinning | ✅ | عالی |
 | Security — ذخیره‌سازی روی دستگاه | ✅ | AES-GCM + Keystore |
 | زیرساخت — نسخه PHP | ❌ | **مسدودکننده** — EOL |
-| زیرساخت — phpMyAdmin | ❌ | **مسدودکننده** |
-| Build — امضای release | ❌ | **مسدودکننده** — signingConfig ندارد |
+| زیرساخت — phpMyAdmin | ✅ | حذف/محدودسازی شد |
+| Build — امضای release | ✅ | signingConfig + کیستور واقعی production |
 | Build — ProGuard/R8 | ✅ | `fullMode` + `shrinkResources` |
 | Build — بایگانی mapping | ✅ | `archiveReleaseMapping` |
 | مدیریت کرش | ⚠️ | جمع‌آوری می‌شود، اما rate limit ندارد |
@@ -2812,12 +2812,12 @@ buildTypes {
 | # | اقدام | فایل | Effort |
 |---|-------|------|--------|
 | ۱ | ✅ بسته‌شده (کاربر) — چرخش `API_KEY`/`LICENSE_KEY` تست: ابزار آماده شد؛ اجرای واقعی روی سرور به‌عهده‌ی کاربر ماند | `secrets.cpp` + `.env` سرور | Low |
-| ۲ | ⚠️ حذف/محدودسازی phpMyAdmin — چک‌لیست آماده شد، اجرای روی سرور باقی مانده | سرور | Low |
-| ۳ | ✅ افزودن `signingConfig` به release (تست شد؛ کیستور واقعی باقی مانده) | `app/build.gradle.kts` | Low |
+| ۲ | ✅ حذف/محدودسازی phpMyAdmin — روی سرور production انجام شد | سرور | Low |
+| ۳ | ✅ افزودن `signingConfig` به release (تست شد، با کیستور واقعی production) | `app/build.gradle.kts` | Low |
 | ۴ | ✅ حذف کامل fallback رمز متن‌خام — ۳۶ کاربر باقی‌مانده به bcrypt مهاجرت شدند، بلوک/فلگ کامل حذف شد | `UserService.php` | Low |
 | ۵ | ✅ رفع نشت `$e->getMessage()` | `UserController.php:83` | Low |
 | ۶ | ✅ افزودن `testDebugUnitTest` به CI | `.github/workflows/ci.yml` | Low |
-| ۷ | ✅ افزودن ایندکس `trackingNumber` (migration نوشته و تست شد؛ اجرا روی prod باقی مانده) | migration جدید | Low |
+| ۷ | ✅ افزودن ایندکس `trackingNumber` (migration نوشته، تست و روی prod اجرا شد) | migration جدید | Low |
 | ۸ | ✅ افزودن `php_server_info_*.txt` به `.gitignore` + حذف از tracking | `.gitignore` | Low |
 
 **بررسی پس از فاز ۱:**
@@ -2839,7 +2839,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱۴ | ✅ rate limit روی `diagnostics/crash` و لایسنس | `DiagnosticsController`، `LicenseController` | Low |
 | ۱۵ | ✅ حذف `Log.w` در ProGuard | `proguard-rules.pro` | Low |
 | ۱۶ | ✅ allow-list دامنه برای `downloadUrl` | `UpdateManager.kt` | Low |
-| ۱۷ | ✅ پاک‌سازی تاریخچه‌ی git از رازها (محلی انجام شد؛ force-push به origin تأیید جدا نیاز دارد) | `git filter-repo` | Medium |
+| ۱۷ | ✅ پاک‌سازی تاریخچه‌ی git از رازها (شامل force-push به origin) | `git filter-repo` | Medium |
 
 ## Phase 3 — Medium Priority (ماه‌های ۲–۳)
 
@@ -2879,7 +2879,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱ | ✅ بسته‌شده (کاربر) — رازها با XOR تک‌بایتی، در git | Security | **CRITICAL** | `app/src/main/cpp/secrets.cpp:6` | Medium |
 | ۲ | PHP 8.1 بدون پشتیبانی امنیتی | Security/Infra | **HIGH** | سرور production | Medium |
 | ۳ | ✅ fallback رمز متن‌خام کامل حذف شد (بعد از مهاجرت ۳۶ کاربر باقی‌مانده) | Security | **HIGH** | `PHP/src/Services/UserService.php` | Low |
-| ۴ | phpMyAdmin روی production | Security/Infra | **HIGH** | سرور production | Low |
+| ۴ | ✅ phpMyAdmin روی production حذف/محدود شد | Security/Infra | **HIGH** | سرور production | Low |
 | ۵ | ✅ تماس شبکه در Composable با scope کنسل‌شونده (۹ از ۹ فایل انجام شد) | Architecture | **HIGH** | `InitialInfoScreen.kt:636` + ۸ فایل | High |
 | ۶ | ✅ نبود signingConfig برای release | Build | **HIGH** | `app/build.gradle.kts:49` | Low |
 | ۷ | ✅ CI تست اندروید اجرا نمی‌کند | Testing | **HIGH** | `.github/workflows/ci.yml:69` | Low |
