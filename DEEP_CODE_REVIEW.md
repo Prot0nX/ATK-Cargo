@@ -215,22 +215,16 @@ XOR تک‌بایتی رمزنگاری نیست — یک جایگزینی حرف
 
 ۲. `API_KEY` را از کلاینت حذف کنید. یک راز مشترک که در هر نصب وجود دارد، راز نیست. `check_update.php` را به‌جای آن با گیت نشست معمولی (`X-Session-Token`) محافظت کنید، یا اگر باید بدون auth بماند، صرفاً به rate limiting اتکا کنید و تظاهر به امنیت نکنید.
 
-۳. برای `LICENSE_KEY`: اعتبارسنجی لایسنس را به یک challenge–response با امضای سمت سرور تبدیل کنید:
-
-```
-کلاینت → سرور:  { deviceId, nonce, appSignatureHash }
-سرور  → کلاینت: { verdict, expiresAt, signature = Ed25519_sign(privKey, payload) }
-کلاینت: با کلید عمومی جاسازی‌شده (که راز نیست) امضا را تأیید می‌کند
-```
-
-کلید عمومی می‌تواند آزادانه در APK باشد؛ کلید خصوصی هرگز دستگاه را ترک نمی‌کند.
+۳. ~~برای `LICENSE_KEY`: اعتبارسنجی لایسنس را به یک challenge–response با امضای سمت سرور تبدیل کنید~~ — **اصلاحیه (۲۰۲۶-۰۸-۲۰):** طبق توضیح صریح کاربر، مدل لایسنس این پروژه عمداً per-customer و client-side است (هر مشتری یک `LICENSE_KEY` اختصاصی در زمان build داخل `secrets.cpp` embed می‌شود، سرور آن را در جدول `licenses` چک می‌کند). این پیشنهاد (امضای سمت سرور) فرض اشتباهی از این گزارش بود و **نباید اجرا شود** — جزئیات در بخش «endpointهای لایسنس بدون احراز هویت» (Phase2 #10).
 
 ۴. تاریخچه‌ی git را با `git filter-repo` پاک‌سازی کنید (پس از چرخش کلیدها، نه به‌جای آن).
 
 **Priority:** CRITICAL
-**Estimated Effort:** Medium (چرخش: Low · بازطراحی لایسنس: Medium)
+**Estimated Effort:** Medium (چرخش: Low · بازطراحی لایسنس: ~~Medium~~ حذف شد — مدل فعلی درست است)
 
-**Status:** ⚠️ ابزار آماده شد، چرخش واقعی روی سرور انجام نشده (دسترسی سرور در دسترس نبود). `scripts/xor_secret_codec.php` نوشته و با راستی‌آزمایی round-trip روی مقدار واقعی `getBaseUrl()` تست شد (decode مقدار موجود در `secrets.cpp:16-21` دقیقاً `https://atk-nk.ir/Cargo/test_api/` را برگرداند؛ encode همان رشته دقیقاً همان بایت‌های موجود در فایل را بازتولید کرد). راهنمای گام‌به‌گام در `scripts/ROTATE_SECRETS.md`. **چرخش واقعی کلید (تولید مقدار جدید + جایگزینی در سرور + جایگزینی در `secrets.cpp` + build/deploy هماهنگ) باقی مانده و باید توسط شما با دسترسی سرور انجام شود.**
+**Status:** ⚠️ چرخش واقعی کلید هنوز روی سرور انجام نشده (دسترسی سرور در دسترس نبود). `scripts/xor_secret_codec.php` نوشته و با راستی‌آزمایی round-trip روی مقدار واقعی `getBaseUrl()` تست شد (decode مقدار موجود در `secrets.cpp:16-21` دقیقاً `https://atk-nk.ir/Cargo/test_api/` را برگرداند؛ encode همان رشته دقیقاً همان بایت‌های موجود در فایل را بازتولید کرد). راهنمای گام‌به‌گام در `scripts/ROTATE_SECRETS.md`. **چرخش واقعی کلید (تولید مقدار جدید + جایگزینی در سرور + جایگزینی در `secrets.cpp` + build/deploy هماهنگ) باقی مانده و باید توسط شما با دسترسی سرور انجام شود.**
+
+بند ۴ (پاک‌سازی تاریخچه) با `git filter-repo` در Phase2 #17 (۲۰۲۶-۰۸-۲۰) انجام شد — جزئیات کامل در همان بخش. **این پاک‌سازی جایگزین چرخش کلید نیست**: نسخه‌ی فعلی `secrets.cpp` که دوباره در انتهای تاریخچه‌ی جدید commit شد، همچنان همان `LICENSE_KEY`/`API_KEY` چرخش‌نیافته را دارد — فقط ۳۲ نسخه‌ی قدیمی از تاریخچه پاک شدند.
 
 ---
 
@@ -865,7 +859,7 @@ Log.w("TokenRefresher", "خطا هنگام تمدید access token", e)         
 
 **Priority:** LOW · **Effort:** Low
 
-**Status:** ✅ Fixed (2026-08-19, commit `6794d9c`) — پرونده یافت شد که علاوه بر untracked نبودن، **در واقع در آخرین کامیت (`f4792bb`) commit و روی `origin/main` push هم شده بود** (فرض اولیه‌ی گزارش نادرست بود). با `git rm --cached` از ردیابی خارج و الگو به `.gitignore` اضافه شد. تاریخچه‌ی git هنوز حاوی نسخه‌ی قدیمی فایل است — پاک‌سازی کامل تاریخچه به بخش Phase 2 #17 (`git filter-repo`) موکول شد.
+**Status:** ✅ Fixed (2026-08-19, commit `6794d9c`) — پرونده یافت شد که علاوه بر untracked نبودن، **در واقع در آخرین کامیت (`f4792bb`) commit و روی `origin/main` push هم شده بود** (فرض اولیه‌ی گزارش نادرست بود). با `git rm --cached` از ردیابی خارج و الگو به `.gitignore` اضافه شد. تاریخچه‌ی git هنوز حاوی نسخه‌ی قدیمی فایل بود — با پاک‌سازی کامل تاریخچه در Phase 2 #17 (۲۰۲۶-۰۸-۲۰) این فایل هم به‌طور کامل حذف شد؛ `git fsck --full --unreachable` صفر ارجاع باقی‌مانده نشان داد.
 
 ---
 
@@ -2480,7 +2474,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱۴ | ✅ rate limit روی `diagnostics/crash` و لایسنس | `DiagnosticsController`، `LicenseController` | Low |
 | ۱۵ | ✅ حذف `Log.w` در ProGuard | `proguard-rules.pro` | Low |
 | ۱۶ | ✅ allow-list دامنه برای `downloadUrl` | `UpdateManager.kt` | Low |
-| ۱۷ | پاک‌سازی تاریخچه‌ی git از رازها | `git filter-repo` | Medium |
+| ۱۷ | ✅ پاک‌سازی تاریخچه‌ی git از رازها (محلی انجام شد؛ force-push به origin تأیید جدا نیاز دارد) | `git filter-repo` | Medium |
 
 ## Phase 3 — Medium Priority (ماه‌های ۲–۳)
 
