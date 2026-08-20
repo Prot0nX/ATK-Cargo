@@ -1155,6 +1155,40 @@ import‌های بلااستفاده‌ی `androidx.compose.ui.draw.alpha/scale/
 
 **Priority:** MEDIUM · **Effort:** High
 
+**وضعیت (Phase4 #30 — ✅ انجام شد، با دامنه‌ی عمداً محدود):**
+
+بررسی نشان داد `ActiveQuotasContent.kt` (بزرگ‌ترین فایل، ۱۴۲۰ خط) از قبل
+به چند تابع `@Composable` جدا تقسیم شده بود (`ShipCard`، `ShipHeader`،
+`FlatQuotaCard`، `WarehouseSection`، `QuotaItem`، ...) — یعنی محدوده‌ی
+recomposition هرکدام از قبل جدا بود؛ مشکل واقعی «فایل بزرگ» بود، نه «یک
+composable غول‌پیکر». طبق تأیید کاربر، فقط همین یک فایل (به‌عنوان
+proof-of-concept، مکانیکی و بدون تغییر منطق) تفکیک شد؛ ۳۰ فایل دیگر باقی
+ماندند.
+
+فایل به ۳ فایل تقسیم شد (بر اساس نمودار فراخوانی واقعی، نه حدسی):
+
+- **`ActiveQuotasContent.kt`** (۱۴۲۰ → ۳۱۸ خط): پوسته‌ی هر دو نما
+  (`GroupedShipsContent`/`FlatQuotasContent`)، حالت خالی مشترک
+  (`EmptySearchResult`) و `FilterChip` (که ۲ فایل دیگر خارج از این دیالوگ
+  هم مصرفش می‌کنند، پس اینجا ماند).
+- **`ActiveQuotasGroupedComponents.kt`** (جدید، ۸۲۳ خط): نمای «گروه‌بندی
+  بر اساس کشتی» — `ShipCard` (تنها تابعی که از فایل اصلی صدا زده می‌شود،
+  پس `internal` شد)، `ShipHeader`/`WarehouseSection`/`QuotaItem`/
+  `extractLastDigits` (فقط داخل همین فایل به هم وابسته‌اند، `private`
+  ماندند).
+- **`ActiveQuotasFlatComponents.kt`** (جدید، ۴۲۶ خط): `FlatQuotaCard`
+  (`internal`، از فایل اصلی صدا زده می‌شود).
+
+تصمیم فنی: به‌جای curate کردن دستی importهای هر فایل جدید (که در Phase4
+#22 باعث یک باگ واقعی build‌شکن با `androidx.compose.foundation.lazy.items`
+شده بود)، همان بلوک کامل importهای فایل اصلی در هر ۳ فایل کپی شد — چند
+هشدار بی‌خطر «unused import» در ازای صفر ریسک کامپایل.
+
+تأیید شد: `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` سبز؛ چون
+هیچ تابعی (جز دو مورد `internal`شده) امضا/رفتارش تغییر نکرد، هیچ فایل
+مصرف‌کننده‌ی دیگری (مثل `ActiveQuotasDialogSection.kt`) نیاز به تغییر
+نداشت.
+
 ---
 
 # Animation Audit
@@ -2799,7 +2833,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | # | اقدام | Effort |
 |---|-------|--------|
 | ۲۹ | ✅ انتقال بقیه featureها به ماژول مستقل (شروع شد؛ فقط feature:cargo به‌عنوان proof-of-concept — ۶ feature دیگر باقی مانده) | High |
-| ۳۰ | تفکیک ۳۱ فایل بزرگ | High |
+| ۳۰ | ✅ تفکیک ۳۱ فایل بزرگ (شروع شد؛ فقط بزرگ‌ترین — ActiveQuotasContent.kt — به عنوان proof-of-concept؛ ۳۰ فایل دیگر باقی مانده) | High |
 | ۳۱ | ✅ بازطراحی `CargoUiState` با sealed dialog (فقط دیالوگ‌ها؛ String→Float و حذف filteredCargoInfoList باقی مانده) | High |
 | ۳۲ | ستون‌های `DATETIME` موازی برای تاریخ | High |
 | ۳۳ | ✅ متدهای HTTP صحیح (PATCH/DELETE) — تغییر هم‌زمان کلاینت+سرور | Medium |
