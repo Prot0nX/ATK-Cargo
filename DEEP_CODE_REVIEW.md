@@ -2897,7 +2897,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 
 | # | اقدام | Effort |
 |---|-------|--------|
-| ۲۹ | ✅ انتقال بقیه featureها به ماژول مستقل (feature:cargo، feature:reports، feature:update، و feature:cargo-workflow — ادغام cargo_entry/cargo_registration/cargo_counter/cargo_details که به‌هم گره خورده بودند — انجام شد؛ فقط home باقی مانده، به ۳ مانع دیگر نیاز دارد) | High |
+| ۲۹ | ✅ انجام شد (تکمیل) — همه‌ی ۷ feature هدف (cargo، reports، update، cargo-workflow [ادغام ۴ فایل به‌هم‌گره‌خورده]، home) در ماژول مستقل‌اند | High |
 | ۳۰ | ✅ تفکیک ۳۱ فایل بزرگ (شروع شد؛ فقط بزرگ‌ترین — ActiveQuotasContent.kt — به عنوان proof-of-concept؛ ۳۰ فایل دیگر باقی مانده) | High |
 | ۳۱ | ✅ بازطراحی `CargoUiState` با sealed dialog (فقط دیالوگ‌ها؛ String→Float و حذف filteredCargoInfoList باقی مانده) | High |
 | ۳۲ | ستون‌های `DATETIME` موازی برای تاریخ | High |
@@ -2929,7 +2929,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱۵ | ✅ `Log.w`/`Log.e` در release باقی می‌مانند | Security/Logging | MEDIUM | `proguard-rules.pro:179` | Low |
 | ۱۶ | ✅ گزارش کرش بدون rate limit | Availability | MEDIUM | `DiagnosticsController.php:100` | Low |
 | ۱۷ | ✅ UseCaseها singleton را مستقیم می‌گیرند (۲ فایل کد مرده حذف شد؛ ۱ فایل اصلاح شد) | Architecture/Testing | MEDIUM | `CheckQuotaUseCase.kt:8` + ۲ فایل | Medium |
-| ۱۸ | ماژول‌بندی نیمه‌کاره (۸۱٪ در `app`) | Architecture | MEDIUM | ساختار پروژه | High |
+| ۱۸ | ✅ ماژول‌بندی نیمه‌کاره — تکمیل شد (Top20 #29): ۷ feature (cargo، reports، update، cargo-workflow، home) از app استخراج شدند؛ درصد دقیق باقی‌مانده بازمحاسبه نشده اما بخش عمده‌ی کد presentation دیگر در app نیست | Architecture | MEDIUM | ساختار پروژه | High |
 | ۱۹ | ✅ Compose BOM با نسخه‌ی صریح override شده | Dependencies | MEDIUM | `gradle/libs.versions.toml` | Low |
 | ۲۰ | تاریخ/عدد در `varchar(100)` | Database | MEDIUM | `PHP/schema.sql` | High |
 
