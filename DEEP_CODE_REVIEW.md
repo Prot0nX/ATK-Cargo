@@ -2613,7 +2613,8 @@ featureهای بزرگ هنوز داخل `app` مانده‌اند:
 
 ```
 app/src/main/java/com/atk/atk_cargo/feature/
-├── reports/          ۲۷ فایل   ← بزرگ‌ترین feature، هنوز در app
+├── reports/          ✅ به feature:reports منتقل شد (Top20 #23، ۲۰۲۶-۰۸-۲۰) —
+│                        فقط ManageReportsScreen.kt (composition root) عمداً در app ماند
 ├── home/              ۷ فایل
 ├── cargo/             ۴ فایل
 ├── cargo_entry/       ...
@@ -2747,6 +2748,41 @@ proof-of-concept برای الگوی migration؛ بقیه برای نشست‌ه
 `:app:lintDebug`، `:app:testDebugUnitTest` (شامل ۱۲ تست `CargoViewModelTest`
 که غیرمستقیم از این کد استفاده می‌کنند) همگی سبز.
 
+**Top20 #23 — ✅ انجام شد (۲۰۲۶-۰۸-۲۰)، تقریباً کامل با یک استثنای عمدی مستند:**
+
+بزرگ‌ترین feature پروژه (۲۶ فایل زیر `feature/reports/` + `ReportsRepository.kt`/
+`ReportsViewModel.kt` که در ساختار قدیمی `app/data`/`app/ui/viewmodel` بودند
+— در مجموع ~۱۷٬۱۰۰ خط) فایل‌به‌فایل و با تأیید جدا در ۴ مرحله به ماژول جدید
+`feature:reports` منتقل شد (Compose + Koin + navigation-compose، هم‌الگوی
+`feature:admin`/`feature:chat`):
+
+۱. اسکلت ماژول + لایه‌ی domain خالص (`ReportsDomain.kt`, `AnalyticsGrouping.kt`)
+۲. `ReportsRepository.kt`/`ReportsViewModel.kt` (پرریسک‌ترین بخش — بدون تغییر
+   import چون از قبل فقط به core:network/core:domain وابسته بودند)
+۳. ۲۳ فایل Compose باقی‌مانده (دیالوگ‌ها، صفحات جزئیات، کامپوننت‌ها)
+۴. جداسازی `ReportsNavigation.kt`
+
+حین انتقال، ۳ وابستگی مشترک واقعی کشف و به‌درستی به `core:designsystem`
+منتقل شدند (نه به `feature:reports`، چون فایل‌های دیگری خارج از reports هم
+به آن‌ها وابسته بودند — انتقال اشتباه یک چرخه‌ی وابستگی می‌ساخت): `ColorSelector.kt`
+(در ۲۹ فایل دیگر استفاده می‌شود)، `ErrorState.kt` و `StatisticsCard.kt` (هر
+دو در `feature/update` هم استفاده می‌شوند). هر سه با همان بسته‌بندی قبلی
+منتقل شدند تا importهای موجود در سراسر پروژه دست‌نخورده بمانند.
+
+**استثنای عمدی (با تأیید کاربر):** `ManageReportsScreen.kt` (۱٬۰۴۳ خط، صفحه‌ی
+اصلی reports) در `app` باقی ماند — به ۴ چیز app-only وابسته است که استخراجشان
+یک کار مستقل و هم‌سنگ خودِ #۲۳ است، به‌خصوص `UserPreferencesManager` (۲۶۸
+خط، به `CryptoManager` و `feature:chat` وابسته و در ۲۳ فایل دیگر استفاده
+می‌شود). این هم‌راستا با الگوی خودِ Top20 #18/Phase4 #29 است: composition
+root در `app` می‌ماند، منطق قابل‌استخراج به feature منتقل می‌شود. نیمی از
+`ReportsNavigation.kt` (`CargoDetailsRoute`/`navigateToCargoDetails`/
+`cargoDetailsScreen`) هم چون به `feature/cargo_details` وابسته و توسط
+`cargo_counter` هم استفاده می‌شود، به reports تعلق نداشت و به
+`app/core/navigation/CargoDetailsNavigation.kt` (فایل جدید) منتقل شد.
+
+تأیید نهایی: `./gradlew assembleDebug testDebugUnitTest lintDebug` روی کل
+پروژه (همه‌ی ماژول‌ها) سبز.
+
 ---
 
 # Production Readiness
@@ -2850,7 +2886,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۲۰ | ✅ نوشتن تست برای `CargoViewModel` (۱۲ تست + رفع ۲ مشکل معماری واقعی که حین تست کشف شد) | Medium |
 | ۲۱ | ✅ یکسان‌سازی شکل پاسخ خطا (بخشی؛ جزئیات و استثناهای عمدی در بدنه‌ی گزارش) | Medium |
 | ۲۲ | ✅ لایه‌ی متمرکز نگاشت خطا در کلاینت (دامنه محدود؛ رفع باگ CancellationException در ۹ فایل + AppError.kt برای آینده) | Medium |
-| ۲۳ | انتقال `feature/reports` به ماژول مستقل | High |
+| ۲۳ | ✅ انتقال `feature/reports` به ماژول مستقل (تقریباً کامل؛ جزئیات پایین) | High |
 | ۲۴ | جدول `schema_migrations` + اسکریپت migrate | Medium |
 | ۲۵ | انتقال document root به `public/` | Medium |
 | ۲۶ | ✅ حذف `version.ref` از کتابخانه‌های Compose BOM | Low |
