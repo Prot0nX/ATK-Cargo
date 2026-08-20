@@ -68,7 +68,6 @@ import com.atk.atk_cargo.feature.chat.presentation.ChatScreen
 import com.atk.atk_cargo.feature.home.navigation.HomeRoute
 import com.atk.atk_cargo.feature.home.navigation.homeScreen
 import com.atk.atk_cargo.feature.reports.navigation.ManageShipsRoute
-import com.atk.atk_cargo.feature.reports.navigation.cargoDetailsScreen
 import com.atk.atk_cargo.ui.screens.ManageReportsScreen
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel

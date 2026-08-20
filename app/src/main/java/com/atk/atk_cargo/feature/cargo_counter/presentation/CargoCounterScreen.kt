@@ -63,7 +63,7 @@ import com.atk.atk_cargo.feature.cargo_counter.presentation.components.StatusSna
 import com.atk.atk_cargo.feature.cargo_counter.presentation.components.TabBar
 import com.atk.atk_cargo.feature.cargo_entry.presentation.ShipSelectionDialog
 import com.atk.atk_cargo.feature.home.navigation.navigateToHome
-import com.atk.atk_cargo.feature.reports.navigation.navigateToCargoDetails
+import com.atk.atk_cargo.core.navigation.navigateToCargoDetails
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay

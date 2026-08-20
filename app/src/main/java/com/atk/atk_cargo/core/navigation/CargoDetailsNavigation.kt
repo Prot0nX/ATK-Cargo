@@ -1,4 +1,4 @@
-package com.atk.atk_cargo.feature.reports.navigation
+package com.atk.atk_cargo.core.navigation
 
 import androidx.compose.runtime.remember
 import androidx.navigation.NavController
@@ -7,13 +7,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.feature.cargo_details.presentation.CargoDetailsScreen
-import com.atk.atk_cargo.ui.screens.ManageReportsScreen
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlinx.serialization.Serializable
 
-@Serializable
-object ManageShipsRoute
-
+// در ReportsNavigation.kt (feature:reports) بود، اما به feature/cargo_details
+// (که هنوز در app است) و به cargo_counter (مصرف‌کننده‌ی دیگر navigateToCargoDetails)
+// وابسته است — یعنی به reports تعلق ندارد، بلکه یک مسیر ناوبری مشترک بین
+// featureهاست؛ در Phase4 #23 (۵/۶) جدا و در app نگه داشته شد تا وابستگی
+// معکوس feature:reports → app ایجاد نشود.
 @Serializable
 data class CargoDetailsRoute(
     val quotaNumber: String,
@@ -21,10 +21,6 @@ data class CargoDetailsRoute(
     val warehouse: String? = null,
     val cargoType: String? = null
 )
-
-fun NavController.navigateToManageShips() {
-    navigate(ManageShipsRoute)
-}
 
 fun NavController.navigateToCargoDetails(
     quotaNumber: String,
@@ -35,20 +31,11 @@ fun NavController.navigateToCargoDetails(
     navigate(CargoDetailsRoute(quotaNumber, shippingCompany, warehouse, cargoType))
 }
 
-fun NavGraphBuilder.manageShipsScreen(
-    navController: NavController,
-    viewModel: ReportsViewModel
-) {
-    composable<ManageShipsRoute> {
-        ManageReportsScreen(viewModel = viewModel, navController = navController)
-    }
-}
-
 fun NavGraphBuilder.cargoDetailsScreen(navController: NavController) {
     composable<CargoDetailsRoute> { backStackEntry ->
         val route: CargoDetailsRoute = backStackEntry.toRoute()
         val repository = remember { ReportsRepository() }
-        
+
         CargoDetailsScreen(
             navController = navController,
             quotaNumber = route.quotaNumber,
