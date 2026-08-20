@@ -51,8 +51,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.atk.atk_cargo.api.User
-import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.data.model.User
+import com.atk.atk_cargo.domain.session.UserSettingsStore
 import com.atk.atk_cargo.core.startup.LocalNotificationPermissionRequester
 import com.atk.atk_cargo.core.startup.LocalStartupViewModel
 import com.atk.atk_cargo.feature.home.presentation.ProfileSettingsDialog
@@ -102,7 +102,7 @@ fun ProfileMenu(
     val context = LocalContext.current
     val startupViewModel = LocalStartupViewModel.current
     val requestNotificationPermission = LocalNotificationPermissionRequester.current
-    val userPreferencesManager = koinInject<UserPreferencesManager>()
+    val userPreferencesManager = koinInject<UserSettingsStore>()
     val profileViewModel: ProfileViewModel = koinViewModel()
     val hardwareScore by userPreferencesManager.hardwareScore.collectAsStateWithLifecycle(initialValue = -1)
     val loadingEnabled by userPreferencesManager.loadingNotificationsEnabled.collectAsStateWithLifecycle(initialValue = true)

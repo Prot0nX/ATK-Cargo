@@ -48,7 +48,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.atk.atk_cargo.api.User
+import com.atk.atk_cargo.data.model.User
 import com.atk.atk_cargo.feature.admin.presentation.getUserTypeDisplay
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

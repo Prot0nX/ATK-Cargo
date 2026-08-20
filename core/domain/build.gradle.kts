@@ -33,6 +33,11 @@ dependencies {
     implementation(project(":core:network"))
     // UserPreferencesStore (مرز DI برای featureها — Phase5.12) از Flow استفاده می‌کند.
     implementation(libs.kotlinx.coroutines.android)
+    // فقط برای staticCompositionLocalOf در LocalStartupViewModel/
+    // LocalNotificationPermissionRequester (Phase4 #29) — runtime تنها، بدون
+    // نیاز به UI toolkit کامل.
+    implementation(platform(libs.compose.bom))
+    implementation(libs.androidx.compose.runtime)
 
     testImplementation(libs.junit)
 }

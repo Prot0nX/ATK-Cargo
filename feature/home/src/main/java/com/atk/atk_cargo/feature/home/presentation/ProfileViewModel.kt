@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.atk.atk_cargo.api.ApiServiceV2
 import com.atk.atk_cargo.api.ApiV2Routes
-import com.atk.atk_cargo.api.UpdateUserRequest
-import com.atk.atk_cargo.api.User
+import com.atk.atk_cargo.data.model.UpdateUserRequest
+import com.atk.atk_cargo.data.model.User
 import kotlinx.coroutines.launch
 
 // هر دو تماس شبکه‌ی زیر قبلاً با rememberCoroutineScope()/LaunchedEffect از داخل

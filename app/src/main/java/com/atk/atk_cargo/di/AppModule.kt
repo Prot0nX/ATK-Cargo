@@ -9,6 +9,7 @@ import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.domain.repository.QuotaRepository
 import com.atk.atk_cargo.api.TokenStore
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
+import com.atk.atk_cargo.domain.session.UserSettingsStore
 import com.atk.atk_cargo.feature.admin.presentation.UserManagementViewModel
 import com.atk.atk_cargo.feature.auth.data.AuthRepository
 import com.atk.atk_cargo.feature.auth.data.AuthRepositoryImpl
@@ -55,6 +56,9 @@ val appModule = module {
     // چند feature (cargo_entry، cargo_counter) به این اینترفیس نیاز دارد، نه
     // به کلاس concrete app-only (Phase4 #29 پیشنیاز).
     single<TokenStore> { get<UserPreferencesManager>() }
+    // مشابه بالا برای UserSettingsStore (core:domain) — تنظیمات تم/اعلان که
+    // home به آن‌ها نیاز دارد، نه به کلاس concrete app-only.
+    single<UserSettingsStore> { get<UserPreferencesManager>() }
 
     // ===== دیتابیس محلی و مخازن =====
     single { AppDatabase.getDatabase(androidContext()) }

@@ -1,6 +1,6 @@
 package com.atk.atk_cargo.feature.home.domain
 
-import com.atk.atk_cargo.R
+import com.atk.atk_cargo.feature.home.R
 import com.atk.atk_cargo.data.model.MenuItem
 
 fun getMenuItemsForUserType(userPermissions: Map<String, Boolean>): List<MenuItem> {

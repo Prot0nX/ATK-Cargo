@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
+import com.atk.atk_cargo.domain.session.UserSettingsStore
 import com.atk.atk_cargo.feature.chat.data.ChatPreferencesStore
 import com.atk.atk_cargo.security.CryptoManager
 import com.google.gson.Gson
@@ -26,7 +27,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class UserPreferencesManager(
     private val context: Context,
     private val cryptoManager: CryptoManager = CryptoManager()
-) : TokenStore, UserPreferencesStore, ChatPreferencesStore {
+) : TokenStore, UserPreferencesStore, ChatPreferencesStore, UserSettingsStore {
     private val dataStore: DataStore<Preferences> = context.dataStore
 
     // خواندن IOException یک‌بار در یک نقطه (به‌جای ۹+ بار تکرار همان ۷ خط catch)؛
@@ -64,11 +65,11 @@ class UserPreferencesManager(
     // I-05: refresh token — فقط توسط TokenAuthenticator خوانده می‌شود.
     val refreshToken: Flow<String> = preference(REFRESH_TOKEN_KEY, "").map { cryptoManager.decrypt(it) }
 
-    val hardwareScore: Flow<Int> = preference(HARDWARE_SCORE_KEY, -1)
+    override val hardwareScore: Flow<Int> = preference(HARDWARE_SCORE_KEY, -1)
 
-    val loadingNotificationsEnabled: Flow<Boolean> = preference(LOADING_NOTIFICATIONS_ENABLED_KEY, true)
+    override val loadingNotificationsEnabled: Flow<Boolean> = preference(LOADING_NOTIFICATIONS_ENABLED_KEY, true)
 
-    val chatNotificationsEnabled: Flow<Boolean> = preference(CHAT_NOTIFICATIONS_ENABLED_KEY, true)
+    override val chatNotificationsEnabled: Flow<Boolean> = preference(CHAT_NOTIFICATIONS_ENABLED_KEY, true)
 
     override val chatFontSize: Flow<Int> = preference(CHAT_FONT_SIZE_KEY, 14)
 
@@ -83,7 +84,7 @@ class UserPreferencesManager(
     val lastNotifiedMessageId: Flow<Int> = preference(LAST_NOTIFIED_MESSAGE_ID_KEY, 0)
 
     // ===== رنگ تم برنامه =====
-    val themeColor: Flow<Long> = preference(APP_THEME_COLOR_KEY, DEFAULT_THEME_COLOR)
+    override val themeColor: Flow<Long> = preference(APP_THEME_COLOR_KEY, DEFAULT_THEME_COLOR)
 
     // ===== پیاده‌سازی TokenStore (مرز core:network — DEEP_CODE_AUDIT.md #Phase4.2) =====
     override suspend fun getUsername(): String = username.first()
@@ -155,13 +156,13 @@ class UserPreferencesManager(
         }
     }
 
-    suspend fun setLoadingNotificationsEnabled(enabled: Boolean) {
+    override suspend fun setLoadingNotificationsEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[LOADING_NOTIFICATIONS_ENABLED_KEY] = enabled
         }
     }
 
-    suspend fun setChatNotificationsEnabled(enabled: Boolean) {
+    override suspend fun setChatNotificationsEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[CHAT_NOTIFICATIONS_ENABLED_KEY] = enabled
         }
@@ -231,7 +232,7 @@ class UserPreferencesManager(
         }
     }
 
-    suspend fun saveThemeColor(color: Long) {
+    override suspend fun saveThemeColor(color: Long) {
         dataStore.edit { preferences ->
             preferences[APP_THEME_COLOR_KEY] = color
         }

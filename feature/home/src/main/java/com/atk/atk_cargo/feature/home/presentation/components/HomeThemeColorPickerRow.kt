@@ -35,7 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.domain.session.UserSettingsStore
 import com.atk.atk_cargo.ui.theme.ThemeBlue
 import com.atk.atk_cargo.ui.theme.ThemeBlueDark
 import com.atk.atk_cargo.ui.theme.ThemeBlueOcean
@@ -81,7 +81,7 @@ private val themeColorOptions = listOf(
 
 @Composable
 fun ThemeColorPickerRow(
-    userPreferencesManager: UserPreferencesManager
+    userPreferencesManager: UserSettingsStore
 ) {
     val currentColorLong by userPreferencesManager.themeColor.collectAsStateWithLifecycle(initialValue = 0xFF137fecL)
     val coroutineScope = rememberCoroutineScope()

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.PowerManager
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
+import com.atk.atk_cargo.domain.session.StartupController
 import androidx.lifecycle.viewModelScope
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -67,7 +68,7 @@ class StartupViewModel(
     private val securityVerifier: SecurityVerifier,
     private val updateManager: UpdateManager,
     private val chatRepository: ChatRepository
-) : AndroidViewModel(application) {
+) : AndroidViewModel(application), StartupController {
 
     private val appContext get() = getApplication<Application>()
     val themeColor: Flow<Long> = userPreferencesManager.themeColor
@@ -90,13 +91,13 @@ class StartupViewModel(
     }.stateIn(viewModelScope, SharingStarted.Eagerly, StartupState.Splash)
 
     private val _isSessionValid = MutableStateFlow(false)
-    val isSessionValid: StateFlow<Boolean> = _isSessionValid.asStateFlow()
+    override val isSessionValid: StateFlow<Boolean> = _isSessionValid.asStateFlow()
 
     private val _isUpdateAvailable = MutableStateFlow(false)
     val isUpdateAvailable: StateFlow<Boolean> = _isUpdateAvailable.asStateFlow()
 
     private val _pendingNavigationDestination = MutableStateFlow<String?>(null)
-    val pendingNavigationDestination: StateFlow<String?> = _pendingNavigationDestination.asStateFlow()
+    override val pendingNavigationDestination: StateFlow<String?> = _pendingNavigationDestination.asStateFlow()
 
     private val _shouldOpenWarningsDialog = MutableStateFlow(false)
 
@@ -194,11 +195,11 @@ class StartupViewModel(
         }
     }
 
-    fun updateSessionValidity(isValid: Boolean) {
+    override fun updateSessionValidity(isValid: Boolean) {
         _isSessionValid.value = isValid
     }
 
-    fun consumePendingNavigation() {
+    override fun consumePendingNavigation() {
         _pendingNavigationDestination.value = null
     }
 
@@ -294,7 +295,7 @@ class StartupViewModel(
         }
     }
 
-    fun startLoadingNotificationService() {
+    override fun startLoadingNotificationService() {
         viewModelScope.launch {
             if (!userPreferencesManager.loadingNotificationsEnabled.first()) {
                 stopLoadingNotificationService()
@@ -312,17 +313,17 @@ class StartupViewModel(
         }
     }
 
-    fun stopLoadingNotificationService() {
+    override fun stopLoadingNotificationService() {
         val loadingIntent = Intent(appContext, LoadingNotificationService::class.java)
         loadingIntent.action = LoadingNotificationService.ACTION_STOP_SERVICE
         appContext.startService(loadingIntent)
     }
 
-    fun stopChatNotificationService() {
+    override fun stopChatNotificationService() {
         WorkManager.getInstance(appContext).cancelUniqueWork("ChatNotificationWorker")
     }
 
-    fun startChatNotificationWorker() {
+    override fun startChatNotificationWorker() {
         viewModelScope.launch {
             if (!userPreferencesManager.chatNotificationsEnabled.first()) {
                 stopChatNotificationService()
