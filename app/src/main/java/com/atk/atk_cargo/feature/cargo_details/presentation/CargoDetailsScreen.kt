@@ -56,7 +56,8 @@ import androidx.navigation.NavController
 import com.atk.atk_cargo.api.CargoViewModel
 import com.atk.atk_cargo.api.CargoViewModelFactory
 import com.atk.atk_cargo.api.ReportsRepository
-import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.api.TokenStore
+import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.domain.model.Cargo
@@ -105,7 +106,8 @@ fun CargoDetailsScreen(
     onChangeSelectionClick: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
-    val userPreferencesManager = koinInject<UserPreferencesManager>()
+    val userPreferencesManager = koinInject<UserPreferencesStore>()
+    val tokenStore = koinInject<TokenStore>()
     val effectiveRepository = remember(repository) {
         repository ?: ReportsRepository()
     }
@@ -151,7 +153,7 @@ fun CargoDetailsScreen(
 
     LaunchedEffect(Unit) {
         try {
-            val result = validateServerSession(userPreferencesManager)
+            val result = validateServerSession(tokenStore)
             result.fold(
                 onSuccess = {
                     // Session معتبر است، ادامه می‌دهد

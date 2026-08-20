@@ -52,7 +52,7 @@ import com.atk.atk_cargo.api.ActiveShipInfo
 import com.atk.atk_cargo.api.ApiServiceV2
 import com.atk.atk_cargo.api.ColorSelector
 import com.atk.atk_cargo.api.MessageType
-import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.api.TokenStore
 import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.data.model.RealTimeDataResponse
@@ -241,7 +241,7 @@ fun CargoCounterScreen(
     sharedViewModel: com.atk.atk_cargo.api.CargoViewModel? = null
 ) {
     val context = LocalContext.current
-    val userPreferencesManager = koinInject<UserPreferencesManager>()
+    val userPreferencesManager = koinInject<TokenStore>()
     
     LaunchedEffect(Unit) {
         try {

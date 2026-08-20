@@ -57,7 +57,7 @@ import com.atk.atk_cargo.api.InitialInfo
 import com.atk.atk_cargo.api.MatchingQuota
 import com.atk.atk_cargo.api.MessageType
 import com.atk.atk_cargo.api.RealTimeLoadingData
-import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.api.TokenStore
 import com.atk.atk_cargo.api.adjustColorForTheme
 import com.atk.atk_cargo.api.cardColors
 import com.atk.atk_cargo.api.validateServerSession
@@ -119,7 +119,7 @@ internal val QuotasScreenBg: Color
 @Composable
 fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewModel) {
     val context = LocalContext.current
-    val userPreferencesManager = koinInject<UserPreferencesManager>()
+    val userPreferencesManager = koinInject<TokenStore>()
 
     LaunchedEffect(Unit) {
         try {

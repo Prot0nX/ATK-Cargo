@@ -7,6 +7,7 @@ import com.atk.atk_cargo.core.startup.StartupViewModel
 import com.atk.atk_cargo.data.db.AppDatabase
 import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.domain.repository.QuotaRepository
+import com.atk.atk_cargo.api.TokenStore
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import com.atk.atk_cargo.feature.admin.presentation.UserManagementViewModel
 import com.atk.atk_cargo.feature.auth.data.AuthRepository
@@ -50,6 +51,10 @@ val appModule = module {
     // یک single جدا (نه bind زنجیره‌ای — Koin اجازه نمی‌دهد دو bind پشت‌سرهم
     // روی انواع نامرتبط زده شود): همان singleton بالا را با get() برمی‌گرداند.
     single<ChatPreferencesStore> { get<UserPreferencesManager>() }
+    // مشابه بالا برای TokenStore (core:network) — validateServerSession در
+    // چند feature (cargo_entry، cargo_counter) به این اینترفیس نیاز دارد، نه
+    // به کلاس concrete app-only (Phase4 #29 پیشنیاز).
+    single<TokenStore> { get<UserPreferencesManager>() }
 
     // ===== دیتابیس محلی و مخازن =====
     single { AppDatabase.getDatabase(androidContext()) }
