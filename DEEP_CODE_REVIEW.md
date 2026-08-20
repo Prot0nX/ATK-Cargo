@@ -1905,6 +1905,58 @@ fun AppError.toUserMessage(): String = when (this) {
 
 **Priority:** MEDIUM · **Effort:** Medium
 
+**وضعیت (Phase3 #22 — ✅ انجام شد، با دامنه‌ی عمداً محدود):**
+
+بررسی دقیق‌تر نشان داد این الگو در واقع در **۹ فایل واقعی** (نه فرضی) و
+**۴۰+ نقطه‌ی `catch`** تکرار شده، اما پیام‌های فارسی هرکدام
+context-specific و متفاوت‌اند (مثلاً «خطا در بررسی شماره قبض باسکول»، «خطا
+در ثبت اطلاعات بار»)، نه یک پیام تکراری یکسان مثل نمونه‌ی گزارش. یکسان‌سازی
+کامل همه‌ی پیام‌ها به یک `AppError.toUserMessage()` عمومی این پیام‌های
+مفید و خاص را از بین می‌برد — رگرسیون UX بود، نه بهبود.
+
+**تصمیم (تأییدشده توسط کاربر):** دامنه به رفع خودِ باگ مستقل و واقعی گزارش
+محدود شد، نه یکسان‌سازی سبک پیام‌ها:
+
+- `core/domain/AppError.kt` (جدید) اضافه شد — سلاخته‌ی `AppError`/
+  `toAppError()`/`toUserMessage()` برای استفاده‌ی تدریجی/آینده، هنوز به
+  کد فراخوانی‌کننده سیم‌کشی نشده.
+- در تمام ۹ فایل (`CargoViewModel.kt`، `UpdateManager.kt`،
+  `ReportsRepository.kt`، `CargoCounterScreen.kt`، `SelectInfoScreen.kt`،
+  `ManageReportsScreen.kt`، `ActiveQuotasDialogSection.kt`؛
+  `InitialInfoViewModel.kt` از قبل درست بود) پیش از هر `catch (e: Exception)`
+  یک `catch (e: CancellationException) { throw e }` اضافه شد — بدون تغییر
+  پیام‌های موجود. `CancellationException` در Kotlin زیرمجموعه‌ی `Exception`
+  است، پس بدون این جداسازی، لغو یک coroutine (مثلاً خروج کاربر از صفحه حین
+  یک درخواست شبکه) به‌اشتباه به‌عنوان «خطای سرور» به کاربر نمایش داده
+  می‌شد و/یا لغوِ coroutine به‌درستی propagate نمی‌شد.
+- یک مورد مشابه‌ی دقیق‌تر هم در `CargoViewModel.kt` پیدا و رفع شد: بلوک
+  `catch (e: Throwable)` که در Phase3 #20 عمداً برای گرفتن `Error`های واقعی
+  (مثل `LinkageError`) اضافه شده بود، چون `Throwable` ابرمجموعه‌ی
+  `CancellationException` هم هست، بدون قصد لغو coroutine را هم می‌بلعید؛
+  یک `catch (e: CancellationException) { throw e }` پیش از آن اضافه شد تا
+  فقط لغو دوباره propagate شود، بدون شکستن هدف اصلی #20.
+- `CargoEditSearchDialogsSection.kt` از فهرست ۹ فایل گزارش خارج ماند: خطای
+  آن از طریق یک callback نوع `Result`/`onFailure` می‌رسد، نه یک
+  `catch (e: Exception)` مستقیم — این الگوی متفاوت خارج از دامنه‌ی همین
+  باگ مشخص است.
+
+**یافته‌ی جانبی (خارج از دامنه‌ی #۲۲، به کاربر گزارش شد):** حین این کار،
+یک تغییر دست‌نخورده‌ی pre-existing و نامرتبط در working tree پیدا شد — یک
+اقدام IDE («حذف import استفاده‌نشده») import صریح
+`androidx.compose.foundation.lazy.items` را از ۷ فایل UI (که در این فاز
+لمس نشدند) حذف کرده بود؛ چون آن import در واقع extension function مورد
+نیاز DSL این‌است `LazyColumn`/`LazyRow` است، حذفش کل build را می‌شکست
+(کامپایل با ده‌ها خطای Type mismatch شکست می‌خورد). این ۷ فایل به `HEAD`
+بازگردانده شدند (بدون از دست رفتن داده — صرفاً بازگرداندن یک ویرایش
+ناخواسته‌ی بیرون از این نشست) تا کامپایل خودِ تغییرات #۲۲ قابل‌تأیید شود.
+هم‌زمان `PHP/config/permissions.json` از دیسک حذف شده بود (بدون ارتباط با
+این نشست یا نشست‌های قبلی Phase3) — این مورد **دست‌نخورده گزارش شد**، نه
+بازگردانی‌شده، چون علتش هنوز مشخص نیست.
+
+تأیید شد: `./gradlew :app:compileDebugKotlin`، `:app:lintDebug`،
+`:app:testDebugUnitTest` (شامل ۱۲ تست موجود `CargoViewModelTest`) همگی
+سبز.
+
 ---
 
 # Logging & Observability
@@ -2559,7 +2611,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱۹ | نوشتن تست برای `Router`، `UserController`، `QuotaService` | Medium |
 | ۲۰ | ✅ نوشتن تست برای `CargoViewModel` (۱۲ تست + رفع ۲ مشکل معماری واقعی که حین تست کشف شد) | Medium |
 | ۲۱ | ✅ یکسان‌سازی شکل پاسخ خطا (بخشی؛ جزئیات و استثناهای عمدی در بدنه‌ی گزارش) | Medium |
-| ۲۲ | لایه‌ی متمرکز نگاشت خطا در کلاینت | Medium |
+| ۲۲ | ✅ لایه‌ی متمرکز نگاشت خطا در کلاینت (دامنه محدود؛ رفع باگ CancellationException در ۹ فایل + AppError.kt برای آینده) | Medium |
 | ۲۳ | انتقال `feature/reports` به ماژول مستقل | High |
 | ۲۴ | جدول `schema_migrations` + اسکریپت migrate | Medium |
 | ۲۵ | انتقال document root به `public/` | Medium |

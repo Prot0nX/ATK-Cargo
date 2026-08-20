@@ -19,6 +19,7 @@ import com.atk.atk_cargo.data.model.ShipsData
 import com.atk.atk_cargo.data.model.Warehouse
 import com.google.gson.Gson
 import com.google.gson.JsonObject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -52,6 +53,8 @@ class ReportsRepository(
                 val errorBody = response.errorBody()?.string()
                 throw Exception("Failed to fetch cargo info. Response code: ${response.code()}, Error body: $errorBody")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw e
         }
@@ -102,6 +105,8 @@ class ReportsRepository(
                         }"
                     )
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 throw Exception("Error fetching warehouse details: ${e.message}")
             }
@@ -116,6 +121,8 @@ class ReportsRepository(
             } else {
                 throw Exception("Failed to fetch quota details: ${response.errorBody()?.string()}")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw Exception("Error fetching quota details: ${e.message}")
         }
@@ -133,6 +140,8 @@ class ReportsRepository(
             } else {
                 throw Exception("Server error: ${response.code()}")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw Exception("Error fetching ship quotas: ${e.message}")
         }
@@ -152,6 +161,8 @@ class ReportsRepository(
                 val errorBody = response.errorBody()?.string()
                 throw Exception("Server error: ${response.code()} - $errorBody")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw Exception("Error fetching filtered quotas: ${e.message}")
         }
@@ -210,6 +221,8 @@ class ReportsRepository(
                     details = null
                 )
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             QuotaStatusResponse(
                 isActive = false,
@@ -251,6 +264,8 @@ class ReportsRepository(
             } else {
                 throw Exception("Server error: ${response.code()}")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw Exception("Error editing quota: ${e.message}")
         }
@@ -268,6 +283,8 @@ class ReportsRepository(
                 } else {
                     throw Exception("Server error: ${response.code()}")
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 throw Exception("Error updating quota percentage: ${e.message}")
             }
@@ -282,6 +299,8 @@ class ReportsRepository(
             } else {
                 throw Exception("Server error: ${response.code()}")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw Exception("Error toggling quota status: ${e.message}")
         }
@@ -299,6 +318,8 @@ class ReportsRepository(
                 } else {
                     throw Exception("Server error: ${response.code()}")
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 throw Exception("Error updating quota percentage restriction: ${e.message}")
             }
@@ -320,6 +341,8 @@ class ReportsRepository(
             } else {
                 throw Exception("Server error: ${response.code()}")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw Exception("Error updating temporary tonnage: ${e.message}")
         }
@@ -345,6 +368,8 @@ class ReportsRepository(
             } else {
                 throw Exception("Server error: ${response.code()}")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw Exception("Error deleting quota: ${e.message}")
         }
@@ -395,6 +420,8 @@ class ReportsRepository(
                 val errorBody = response.errorBody()?.string()
                 throw Exception("Server error: ${response.code()}, Error body: $errorBody")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw Exception("Error fetching filtered summary: ${e.message}")
         }
@@ -408,6 +435,8 @@ class ReportsRepository(
             } else {
                 throw Exception("خطا در دریافت اطلاعات کشتی‌های فعال")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw Exception("خطا در ارتباط با سرور: ${e.message}")
         }
@@ -441,6 +470,8 @@ class ReportsRepository(
                 } else {
                     null
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 null
             }
@@ -476,6 +507,8 @@ class ReportsRepository(
                 } else {
                     return@withContext emptyList()
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 return@withContext emptyList()
             }
@@ -505,12 +538,16 @@ class ReportsRepository(
                                 Log.e("ReportsRepository", "💬 پیام خطا: ${errorJson.get("message").asString}")
                             }
                         }
+                    } catch (e: CancellationException) {
+                        throw e
                     } catch (e: Exception) {
                         Log.e("ReportsRepository", "خطا در parse کردن JSON: ${e.message}")
                     }
 
                     Result.failure(Exception("خطا در بروزرسانی: $errorBody"))
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Result.failure(e)
             }
@@ -542,6 +579,8 @@ class ReportsRepository(
         withContext(Dispatchers.IO) {
             try {
                 apiServiceV2.logAnalyticsExport(scope = scope, groupCount = groupCount)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 // بی‌اهمیت برای UX؛ فقط ممیزی سمت سرور است.
             }

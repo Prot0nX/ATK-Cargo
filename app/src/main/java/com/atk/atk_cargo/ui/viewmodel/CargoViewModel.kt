@@ -25,6 +25,7 @@ import com.atk.atk_cargo.domain.model.toDto
 import com.atk.atk_cargo.feature.cargo.domain.QuotaValidationUseCase
 import com.atk.atk_cargo.utils.JalaliDateUtils
 import com.google.gson.Gson
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -145,6 +146,8 @@ class CargoViewModel(
                 } else {
                     throw Exception("خطا در درخواست: ${response.code()}")
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 throw Exception("خطا در بررسی وجود کوتاژ: ${e.message}")
             }
@@ -277,6 +280,8 @@ class CargoViewModel(
                             )
                         }
                     )
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     showErrorMessage("خطا در به‌روزرسانی اطلاعات: ${e.message}")
                 }
@@ -364,6 +369,8 @@ class CargoViewModel(
                     cargoInfo, trackingNumber, netWeight,
                     scaleReceiptNumber, shortageWeight, excessWeight
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 showErrorMessage("خطا در ثبت اطلاعات بار: ${e.message}")
             } finally {
@@ -465,6 +472,8 @@ class CargoViewModel(
                 _pendingCargoInfo.value = cargoInfo
                 handleErrorHttpResponse(response)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             showErrorMessage("خطا در ارتباط با سرور: ${e.message}")
         }
@@ -485,6 +494,8 @@ class CargoViewModel(
             } else {
                 showErrorMessage("خطا در ارسال اطلاعات بار: کد خطا $errorCode")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             showErrorMessage("خطا در پردازش پاسخ سرور: ${e.message}")
         }
@@ -588,6 +599,8 @@ class CargoViewModel(
                     } else {
                         handleErrorHttpResponse(response)
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     showErrorMessage("خطا در ارتباط با سرور: ${e.message}")
                 }
@@ -638,6 +651,8 @@ class CargoViewModel(
                 showMessage("خطا در بررسی شماره قبض باسکول: $errorBody", MessageType.ERROR)
                 false
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             showMessage("خطا در ارتباط با سرور: ${e.message}", MessageType.ERROR)
             false
@@ -735,6 +750,11 @@ class CargoViewModel(
                         } else {
                             Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage during initial load")
                         }
+                    } catch (e: CancellationException) {
+                        // برخلاف بلوک Throwable زیر، لغو خودِ این coroutine باید عادی
+                        // propagate شود (Phase3 #22) — در غیر این صورت لغو (مثلاً با پاک
+                        // شدن ViewModel) بی‌صدا بلعیده می‌شد.
+                        throw e
                     } catch (e: Throwable) {
                         // Throwable عمداً: این یک بروزرسانی جانبی/best-effort است؛ نباید
                         // با لغو parent coroutine (loadCargoInfoList) کل بارگذاری لیست
@@ -746,6 +766,8 @@ class CargoViewModel(
 
                 updateInfoValues()
                 onComplete()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 showMessage("خطا در ارتباط با سرور: ${e.localizedMessage}", MessageType.ERROR)
                 onComplete()
@@ -803,6 +825,8 @@ class CargoViewModel(
                         val serverMessage = parseCargoConfirmError(response.errorBody()?.string())
                         Result.failure(Exception(serverMessage ?: "خطا در ارتباط با سرور: ${response.code()}"))
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     Log.e("CargoViewModel_Log", "Error confirming cargo", e)
                     Result.failure(e)
@@ -824,6 +848,8 @@ class CargoViewModel(
                         showMessage("خطا: ${error.message}", MessageType.ERROR)
                     }
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e("CargoViewModel_Log", "Exception in cargo confirmation process", e)
                 showMessage("خطای غیرمنتظره: ${e.message}", MessageType.ERROR)
@@ -848,6 +874,8 @@ class CargoViewModel(
                 val errorBody = response.errorBody()?.string()
                 addMessageToQueue("خطا در تغییر وضعیت کوتاژ: $errorBody", MessageType.ERROR)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             addMessageToQueue("خطا در ارتباط با سرور: ${e.message}", MessageType.ERROR)
         }
@@ -879,6 +907,8 @@ class CargoViewModel(
                 } else {
                     showErrorMessage("خطا در به روز رسانی اطلاعات بار")
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 showErrorMessage("خطا در به روز رسانی اطلاعات بار: ${e.message}")
             }
@@ -923,6 +953,8 @@ class CargoViewModel(
                         updateLoadableTrucksCount(loadableTonnageValue)
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e("CargoViewModel_Log", "Error updating info values", e)
             }
@@ -957,6 +989,8 @@ class CargoViewModel(
                 } else {
                     showErrorMessage(parseDeleteErrorMessage(response.errorBody()?.string()))
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 showErrorMessage("استثنا در حذف حواله: ${e.message}")
             }
@@ -1019,6 +1053,8 @@ class CargoViewModel(
                         Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage: ${response.errorBody()?.string()}")
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e("CargoViewModel_Log", "Error updating loadable tonnage", e)
             }

@@ -57,6 +57,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.api.ActiveShipInfo
 import com.atk.atk_cargo.api.RealTimeLoadingData
 import com.atk.atk_cargo.api.formatNumber
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 // این فایل بخش «دیالوگ کوتاژهای فعال» را از SelectInfoScreen.kt جدا نگه می‌دارد (A1-6، بازسازی ساختاری).
@@ -92,6 +93,8 @@ internal fun ActiveQuotasDialog(
         try {
             isLoading = true
             realTimeData = reportsRepository.getRealTimeLoadingData().data
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             errorMessage = "خطا در ارتباط با سرور: ${e.message}"
         } finally {
@@ -170,6 +173,8 @@ internal fun ActiveQuotasDialog(
                                 isLoading = true
                                 realTimeData = reportsRepository.getRealTimeLoadingData().data
                                 errorMessage = null
+                            } catch (e: CancellationException) {
+                                throw e
                             } catch (e: Exception) {
                                 errorMessage = "خطا در ارتباط با سرور: ${e.message}"
                             } finally {

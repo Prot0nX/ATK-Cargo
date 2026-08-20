@@ -73,6 +73,7 @@ import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import com.google.gson.Gson
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -131,6 +132,8 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                     navController.navigateToHome()
                 }
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("SelectInfoScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
             navController.navigateToHome()
@@ -279,6 +282,8 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                     } ?: run {
                         showUpdateMessage("لطفاً ابتدا یک کشتی را انتخاب کنید.", MessageType.ERROR)
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     showUpdateMessage(
                         "خطا در بررسی کوتاژ: ${e.message}",MessageType.ERROR)
@@ -318,6 +323,8 @@ fun SelectInfoScreenContent(navController: NavController, viewModel: CargoViewMo
                                     navigateToRegisterCargoActivity(navController, response.matchingQuotas[0], viewModel)
                                 }
                             }
+                        } catch (e: CancellationException) {
+                            throw e
                         } catch (e: Exception) {
                             showUpdateMessage("خطا در بررسی کوتاژ: ${e.message}", MessageType.ERROR)
                         }
@@ -789,6 +796,8 @@ private suspend fun loadActiveShips(
 ) {
     try {
         onSuccess(reportsRepository.getActiveShips())
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: Exception) {
         Log.e("LoadActiveShips", "استثنا در بارگیری کشتی‌های فعال", e)
         throw e
