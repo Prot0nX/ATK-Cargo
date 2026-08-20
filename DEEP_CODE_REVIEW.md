@@ -416,7 +416,7 @@ onConfirm = { viewModel.saveInitialInfo(info) }
 | ✅ `feature/cargo_counter/presentation/CargoCounterScreen.kt` | ۱۴۶، ۲۸۲ |
 | ✅ `feature/home/presentation/components/ProfileMenu.kt` | ۳۱۳ |
 | ✅ `feature/home/presentation/ProfileSettingsDialogSection.kt` | ۳۳۲ |
-| `feature/reports/presentation/dialogs/QuotaManagementDialog.kt` | — |
+| ✅ `feature/reports/presentation/dialogs/QuotaManagementDialog.kt` | ۱۰۷ |
 | `feature/admin/.../UserManagementScreen.kt` | — |
 | `feature/admin/.../UserManagementDialogsSection.kt` | — |
 
@@ -438,6 +438,10 @@ onConfirm = { viewModel.saveInitialInfo(info) }
 **۵ از ۹ فایل تمام شد:**
 
 `ProfileMenu.kt` + `ProfileSettingsDialogSection.kt` — این دو فایل با هم منتقل شدند چون تنگاتنگ به هم وابسته‌اند (`ProfileMenu` دیالوگ `ProfileSettingsDialog` را نمایش می‌دهد و `currentUser` بینشان مشترک است). یک `ProfileViewModel` جدید (`feature/home/presentation/ProfileViewModel.kt`) با دو متد ساخته شد: `loadSelfProfile()` (تماس خواندنی `getSelfProfile`، قبلاً داخل `LaunchedEffect(Unit)`) و `changePassword()` (تماس نوشتنی `updateUser` برای تغییر رمز عبور — پرریسک‌تر، قبلاً با `rememberCoroutineScope()` که با ناوبری کنسل می‌شد). هر دو با `viewModelScope` اجرا می‌شوند و نتیجه از طریق callback برمی‌گردد. یک نمونه‌ی `ProfileViewModel` در `ProfileMenu` با `koinViewModel()` ساخته و به `ProfileSettingsDialog` (که حالا پارامتر `viewModel` می‌گیرد) پاس داده می‌شود تا هر دو از یک instance استفاده کنند. `delay(600ms)` + Toast بعد از موفقیت (صرفاً UI، نه تماس شبکه) در Composable با همان `rememberCoroutineScope()` باقی ماند چون کنسل‌شدنش پس از موفقیت سرور بی‌ضرر است. در `AppModule.kt` با `viewModel { ProfileViewModel(get()) }` ثبت شد. `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` سبز؛ همان محدودیت عدم دسترسی به حساب واقعی برای تست کلیکی برقرار است.
+
+**۶ از ۹ فایل تمام شد:**
+
+`QuotaManagementDialog.kt` — برخلاف سه فایل قبلی، این Composable از قبل `viewModel: ReportsViewModel` را به‌عنوان پارامتر دریافت می‌کرد (فراخوان بالادستی آن را با `koinViewModel()` می‌سازد)، فقط تماس `getGroupedQuotas` (خط ۱۰۷، داخل `LaunchedEffect(currentShipName, refreshTrigger)`) مستقیماً `RetrofitClient.apiServiceV2` را صدا می‌زد. به‌جای ساخت ViewModel جدید، دو لایه اضافه شد: (۱) متد `ReportsRepository.getGroupedQuotas(shipName)` که پاسخ ناموفق را با همان پیام فارسی قبلی (`"خطا در دریافت داده‌ها: ${code}"`) به‌عنوان Exception پرتاب می‌کند، (۲) متد `ReportsViewModel.loadGroupedQuotas(shipName, onResult: (Result<...>) -> Unit)` با `viewModelScope`، دقیقاً هم‌الگو با `performAdvancedSearch`/`performAdvancedSearchByTracking` که از قبل در همین ViewModel وجود داشتند. state محلی دیالوگ (`quotaData`/`isLoading`/`errorMessage`/...) دست‌نخورده ماند — فقط منبع تماس شبکه از Composable به ViewModel منتقل شد؛ رفتار قابل‌مشاهده (پیام خطا، ترتیب loading) عیناً حفظ شد. `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` (۱۶ تست) سبز.
 
 ---
 
@@ -2458,7 +2462,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 |---|-------|------|--------|
 | ۹ | ارتقای PHP به 8.3 | سرور | Medium |
 | ۱۰ | بازطراحی لایسنس با امضای سمت سرور | `LicenseController` + `SecurityVerifier` | Medium |
-| ۱۱ | ⚠️ انتقال ۹ تماس شبکه از Composable به ViewModel (۵ از ۹ انجام شد: InitialInfoScreen.kt، CargoDetailsScreen.kt، CargoCounterScreen.kt، ProfileMenu.kt، ProfileSettingsDialogSection.kt) | ۹ فایل | High |
+| ۱۱ | ⚠️ انتقال ۹ تماس شبکه از Composable به ViewModel (۶ از ۹ انجام شد: InitialInfoScreen.kt، CargoDetailsScreen.kt، CargoCounterScreen.kt، ProfileMenu.kt، ProfileSettingsDialogSection.kt، QuotaManagementDialog.kt) | ۹ فایل | High |
 | ۱۲ | ✅ رفع انیمیشن‌ها با `graphicsLayer` | ۵ فایل | Low |
 | ۱۳ | ⚠️ انتقال shimهای PHP به Router (مسیرهای موازی اضافه شد؛ حذف shimها موکول شد) | ۶ فایل | Medium |
 | ۱۴ | ✅ rate limit روی `diagnostics/crash` و لایسنس | `DiagnosticsController`، `LicenseController` | Low |
@@ -2505,7 +2509,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۲ | PHP 8.1 بدون پشتیبانی امنیتی | Security/Infra | **HIGH** | سرور production | Medium |
 | ۳ | ⚠️ fallback رمز متن‌خام (پشت فلگ خاموش، حذف کامل باقی مانده) | Security | **HIGH** | `PHP/src/Services/UserService.php:69` | Low |
 | ۴ | phpMyAdmin روی production | Security/Infra | **HIGH** | سرور production | Low |
-| ۵ | ⚠️ تماس شبکه در Composable با scope کنسل‌شونده (۵ از ۹ فایل انجام شد) | Architecture | **HIGH** | `InitialInfoScreen.kt:636` + ۸ فایل | High |
+| ۵ | ⚠️ تماس شبکه در Composable با scope کنسل‌شونده (۶ از ۹ فایل انجام شد) | Architecture | **HIGH** | `InitialInfoScreen.kt:636` + ۸ فایل | High |
 | ۶ | ✅ نبود signingConfig برای release | Build | **HIGH** | `app/build.gradle.kts:49` | Low |
 | ۷ | ✅ CI تست اندروید اجرا نمی‌کند | Testing | **HIGH** | `.github/workflows/ci.yml:69` | Low |
 | ۸ | ✅ ایندکس گمشده روی `trackingNumber` | Performance/DB | **HIGH** | `PHP/src/Repositories/CargoRepository.php:299` | Low |

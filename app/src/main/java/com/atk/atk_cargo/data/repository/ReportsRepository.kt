@@ -10,6 +10,7 @@ import com.atk.atk_cargo.data.model.ComprehensiveAnalysisResponse
 import com.atk.atk_cargo.data.model.FilteredSummary
 import com.atk.atk_cargo.data.model.Quota
 import com.atk.atk_cargo.data.model.QuotaDetails
+import com.atk.atk_cargo.data.model.QuotaItem
 import com.atk.atk_cargo.data.model.QuotaStatusResponse
 import com.atk.atk_cargo.data.model.RealTimeDataResponse
 import com.atk.atk_cargo.data.model.SaveOrUpdateResponse
@@ -155,6 +156,18 @@ class ReportsRepository(
             throw Exception("Error fetching filtered quotas: ${e.message}")
         }
     }
+
+    // منتقل‌شده از QuotaManagementDialog.kt که مستقیماً RetrofitClient.apiServiceV2
+    // را از داخل LaunchedEffect صدا می‌زد (DEEP_CODE_REVIEW.md Top20 #5).
+    suspend fun getGroupedQuotas(shipName: String): Map<String, Map<String, List<QuotaItem>>> =
+        withContext(Dispatchers.IO) {
+            val response = apiServiceV2.getGroupedQuotas(shipName = shipName)
+            if (response.isSuccessful) {
+                response.body() ?: emptyMap()
+            } else {
+                throw Exception("خطا در دریافت داده‌ها: ${response.code()}")
+            }
+        }
 
     suspend fun checkQuotaStatus(
         quotaNumber: String,
