@@ -2017,6 +2017,7 @@ app/src/test/.../ExampleUnitTest.kt                        ← الگوی پیش
 app/src/test/.../ReportsDomainCalculationsTest.kt          ✅ واقعی
 app/src/test/.../ReportsDomainTest.kt                      ✅ واقعی
 app/src/test/.../JalaliDateUtilsTest.kt                    ✅ واقعی
+app/src/test/.../ui/viewmodel/CargoViewModelTest.kt         ✅ واقعی (Phase3 #20، ۲۰۲۶-۰۸-۲۰، ۱۲ تست)
 core/network/src/test/.../TokenAuthenticatorTest.kt        ✅ واقعی و ارزشمند
 core/network/src/test/.../TokenRefresherTest.kt            ✅ واقعی و ارزشمند
 app/src/androidTest/.../ExampleInstrumentedTest.kt         ← الگوی پیش‌فرض
@@ -2034,6 +2035,15 @@ tests/Unit/Validators/InputValidatorTest.php      ✅
 ```
 
 نکته‌ی مثبت: `SessionService` عمداً برای تست‌پذیری طراحی شده (`SessionService.php:19` — تزریق اختیاری repository). این نشان می‌دهد تیم می‌داند چطور تست بنویسد.
+
+**Phase3 #20 (`CargoViewModel`) — ✅ Fixed (2026-08-20)، با دو کشف واقعی حین اجرا:**
+
+۱۲ تست نوشته شد که با mock کردن `ReportsRepository`/`UserPreferencesManager` (mockk) اجرا می‌شوند: `loadCargoInfoList` (موفقیت، خطای repository، تشخیص حواله‌ی تکراری)، `filterCargoInfoList`، `updateCargoConfirmation`، `dismissDuplicateDialog`، `updateSelectedShips`، صف پیام snackbar. حین نوشتن، اجرای واقعی تست‌ها ۲ مشکل معماری واقعی را آشکار کرد — نه فقط مشکل تست:
+
+۱. **`Secrets.<clinit>` باعث `UnsatisfiedLinkError` در JVM می‌شد.** مسیر موفقیت `loadCargoInfoList` بدون قید‌وشرط یک coroutine فرزند برای گرفتن «تناژ قابل‌بارگیری» از `apiServiceV2` (singleton سراسری) اجرا می‌کند؛ خواندن آن به `System.loadLibrary("secrets")` می‌رسد که در JVM (بدون دستگاه) شکست می‌خورد — و چون `catch (e: Exception)` بود نه `catch (e: Throwable)`، این `Error` گرفته نمی‌شد و **کل `loadCargoInfoList` را کنسل می‌کرد**، نه فقط بخش تناژ را. تغییر به `catch (e: Throwable)` (`CargoViewModel.kt`) هم مشکل تست را حل کرد هم یک شکنندگی واقعی production را (هر `Error` غیرمنتظره در این بخش جانبی، قبلاً کل بارگذاری لیست حواله‌ها را می‌شکست).
+۲. **race شرطی بین تست و `Dispatchers.IO` واقعی.** `loadCargoInfoList` تماس `repository.getCargoInfo` را با `withContext(Dispatchers.IO)` می‌پیچید — یک دیسپچر واقعی که `advanceUntilIdle()` تست نمی‌تواند با آن هماهنگ شود. یک پارامتر `ioDispatcher: CoroutineDispatcher = Dispatchers.IO` به سازنده‌ی `CargoViewModel` اضافه شد (پیش‌فرض بدون تغییر برای کد واقعی؛ تست‌ها همان `StandardTestDispatcher` را تزریق می‌کنند) و هر ۵ محل `Dispatchers.IO` داخل کلاس با آن جایگزین شد.
+
+`compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` (۳۳ تست کل، همگی سبز) تأیید شد. **خارج از دامنه ماند:** `submitCargoInfo`، `confirmCargo`، `toggleQuotaStatus` هنوز مستقیماً `apiServiceV2` سراسری را صدا می‌زنند (نه از طریق `repository`/`ioDispatcher`) — همان الگوی معماری‌ای که Phase3 #18 برای فایل‌های دیگر رفع کرد، این‌جا به همان دلیل باقی ماند تا دامنه‌ی تغییر کنترل‌شده بماند.
 
 ## [HIGH] CI هیچ تست اندرویدی اجرا نمی‌کند
 
@@ -2488,7 +2498,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 |---|-------|--------|
 | ۱۸ | ✅ تزریق وابستگی در UseCaseها (۲ فایل کد مرده بودند و حذف شدند؛ ۱ فایل اصلاح شد) | Medium |
 | ۱۹ | نوشتن تست برای `Router`، `UserController`، `QuotaService` | Medium |
-| ۲۰ | نوشتن تست برای `CargoViewModel` (پس از #۱۸) | Medium |
+| ۲۰ | ✅ نوشتن تست برای `CargoViewModel` (۱۲ تست + رفع ۲ مشکل معماری واقعی که حین تست کشف شد) | Medium |
 | ۲۱ | یکسان‌سازی شکل پاسخ خطا | Medium |
 | ۲۲ | لایه‌ی متمرکز نگاشت خطا در کلاینت | Medium |
 | ۲۳ | انتقال `feature/reports` به ماژول مستقل | High |

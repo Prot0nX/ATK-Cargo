@@ -147,6 +147,10 @@ android {
         checkReleaseBuilds = true
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     packaging {
         resources {
             excludes += setOf(

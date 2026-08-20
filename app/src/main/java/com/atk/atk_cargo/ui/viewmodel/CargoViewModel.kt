@@ -25,6 +25,7 @@ import com.atk.atk_cargo.domain.model.toDto
 import com.atk.atk_cargo.feature.cargo.domain.QuotaValidationUseCase
 import com.atk.atk_cargo.utils.JalaliDateUtils
 import com.google.gson.Gson
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -86,7 +87,12 @@ data class CargoUiState(
 
 class CargoViewModel(
     private val repository: ReportsRepository,
-    private val userPreferencesManager: UserPreferencesManager
+    private val userPreferencesManager: UserPreferencesManager,
+    // پیش‌فرض واقعی Dispatchers.IO است؛ فقط برای تست با یک TestDispatcher
+    // جایگزین می‌شود تا withContext(ioDispatcher) به‌جای یک ترد پس‌زمینه‌ی
+    // واقعی (که نمی‌تواند با runTest/advanceUntilIdle هماهنگ شود)، روی همان
+    // scheduler مجازی تست اجرا شود (DEEP_CODE_REVIEW.md Phase3 #20).
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
     private val quotaValidationUseCase = QuotaValidationUseCase(repository)
 
@@ -131,7 +137,7 @@ class CargoViewModel(
     // ازای هر کوتاژ منطبق یک درخواست جداگانه‌ی checkQuotaStatus زده شود
     // (رِیس N+1 قبلی).
     suspend fun checkQuotaExistenceCargo(quotaNumber: String, shipName: String): QuotaExistenceMultipleResponse {
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
             try {
                 val response = apiServiceV2.checkQuotaExistenceCargo(quotaNumber = quotaNumber, shipName = shipName)
                 if (response.isSuccessful) {
@@ -665,7 +671,7 @@ class CargoViewModel(
     ) {
         viewModelScope.launch {
             try {
-                val result = withContext(Dispatchers.IO) {
+                val result = withContext(ioDispatcher) {
                     repository.getCargoInfo(quotaNumber, shippingCompany, warehouse, cargoType)
                 }
 
@@ -699,7 +705,7 @@ class CargoViewModel(
                 // بین رفتن ViewModel به‌درستی لغو می‌شود.
                 launch {
                     try {
-                        val response = withContext(Dispatchers.IO) {
+                        val response = withContext(ioDispatcher) {
                             apiServiceV2.getLoadableTonnage(
                                 route = ApiV2Routes.quotaLoadableTonnage(qNumber),
                                 shippingCompany = sCompany,
@@ -729,7 +735,11 @@ class CargoViewModel(
                         } else {
                             Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage during initial load")
                         }
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
+                        // Throwable عمداً: این یک بروزرسانی جانبی/best-effort است؛ نباید
+                        // با لغو parent coroutine (loadCargoInfoList) کل بارگذاری لیست
+                        // حواله‌ها را هم خراب کند. قبلاً فقط Exception گرفته می‌شد، پس
+                        // یک Error واقعی (مثلاً LinkageError) این ضمانت را دور می‌زد.
                         Log.e("CargoViewModel_Log", "Error calculating loadable tonnage", e)
                     }
                 }
@@ -927,7 +937,7 @@ class CargoViewModel(
     fun deleteCargo(cargoInfoRequest: CargoInfoRequest) {
         viewModelScope.launch {
             try {
-                val response = withContext(Dispatchers.IO) {
+                val response = withContext(ioDispatcher) {
                     apiServiceV2.deleteCargo(cargoInfoRequest)
                 }
                 if (response.isSuccessful) {
@@ -978,7 +988,7 @@ class CargoViewModel(
         viewModelScope.launch(Dispatchers.Default) {
             try {
                 _uiState.value.initialInfo?.let { info ->
-                    val response = withContext(Dispatchers.IO) {
+                    val response = withContext(ioDispatcher) {
                         apiServiceV2.getLoadableTonnage(
                             route = ApiV2Routes.quotaLoadableTonnage(info.loadingQuotaNumber.toString()),
                             shippingCompany = info.shippingCompany,
