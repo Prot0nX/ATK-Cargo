@@ -60,6 +60,21 @@ class CargoViewModelFactory(
 }
 
 /**
+ * دیالوگ‌های صفحه‌ی ثبت/نظارت حواله، به‌عنوان یک state یکتا به‌جای ۳ پرچم
+ * boolean مستقل (DEEP_CODE_REVIEW.md Phase4 #31) — قبلاً `showNetWeightDialog`،
+ * `showDuplicateConfirmationDialog` و `showDuplicateDialog` هرکدام جدا بودند
+ * و از نظر type-system چیزی مانع نمایش هم‌زمان‌شان نمی‌شد (یک حالت نامعتبر
+ * که هرگز عمداً تولید نمی‌شد، اما ممکن بود). با sealed interface، حداکثر
+ * یک دیالوگ می‌تواند در هر لحظه فعال باشد.
+ */
+sealed interface CargoDialog {
+    data object None : CargoDialog
+    data object NetWeight : CargoDialog
+    data class DuplicateConfirmation(val message: String) : CargoDialog
+    data class Duplicates(val trackingNumbers: List<String>) : CargoDialog
+}
+
+/**
  * حالت یکدست صفحه‌ی ثبت/نظارت حواله (DEEP_CODE_AUDIT.md #Phase3.5) —
  * جایگزین ۱۶ StateFlow مستقلی که قبلاً هر کدام یک subscription جدا در
  * Composableهای مصرف‌کننده داشتند. پیام‌های snackbar (`resultMessage`/
@@ -76,14 +91,10 @@ data class CargoUiState(
     val initialInfo: QuotaInfo? = null,
     val totalNetWeight: String = "",
     val isSubmitting: Boolean = false,
-    val showNetWeightDialog: Boolean = false,
-    val showDuplicateConfirmationDialog: Boolean = false,
-    val duplicateWarningMessage: String = "",
+    val dialog: CargoDialog = CargoDialog.None,
     val loadableTonnage: String = "",
     val loadableTrucks18Wheeler: String = "",
     val loadableTrucks10Wheeler: String = "",
-    val duplicateTrackingNumbers: List<String> = emptyList(),
-    val showDuplicateDialog: Boolean = false,
     val selectedShipNames: Set<String> = emptySet()
 )
 
@@ -233,7 +244,7 @@ class CargoViewModel(
     }
 
     fun dismissDuplicateDialog() {
-        _uiState.update { it.copy(showDuplicateDialog = false, duplicateTrackingNumbers = emptyList()) }
+        _uiState.update { it.copy(dialog = CargoDialog.None) }
     }
 
     // این متد از چند مسیر متفاوت صدا زده می‌شود: هم لمس دستی دکمه‌ی
@@ -293,7 +304,7 @@ class CargoViewModel(
     }
 
     fun hideNetWeightDialog() {
-        _uiState.update { it.copy(showNetWeightDialog = false, scaleReceiptNumber = "") }
+        _uiState.update { it.copy(dialog = CargoDialog.None, scaleReceiptNumber = "") }
     }
 
     fun submitCargoInfo(
@@ -504,7 +515,7 @@ class CargoViewModel(
 
     private fun handle24HourWarning(responseBody: SaveOrUpdateResponse) {
         if (responseBody.requiresConfirmation == true) {
-            _uiState.update { it.copy(duplicateWarningMessage = responseBody.message, showDuplicateConfirmationDialog = true) }
+            _uiState.update { it.copy(dialog = CargoDialog.DuplicateConfirmation(responseBody.message)) }
         } else {
             showMessage(responseBody.message, MessageType.WARNING)
         }
@@ -572,7 +583,7 @@ class CargoViewModel(
     }
 
     fun dismissDuplicateConfirmationDialog() {
-        _uiState.update { it.copy(showDuplicateConfirmationDialog = false, duplicateWarningMessage = "") }
+        _uiState.update { it.copy(dialog = CargoDialog.None) }
         _pendingCargoInfo.value = null
     }
 
@@ -664,7 +675,7 @@ class CargoViewModel(
         viewModelScope.launch {
             if (isValidScaleReceipt(barcode)) {
                 if (checkScaleReceiptNumber(barcode)) {
-                    _uiState.update { it.copy(scaleReceiptNumber = barcode, showNetWeightDialog = true) }
+                    _uiState.update { it.copy(scaleReceiptNumber = barcode, dialog = CargoDialog.NetWeight) }
                 }
             } else {
                 showMessage("شماره قبض باسکول معتبر نیست. لطفاً دوباره اسکن کنید.", MessageType.ERROR)
@@ -694,7 +705,7 @@ class CargoViewModel(
                 val cargoList = result.cargoInfoList.map { it.toDomain() }
                 val duplicateTrackingNumbers = checkForDuplicateTrackingNumbers(cargoList)
                 if (duplicateTrackingNumbers.isNotEmpty()) {
-                    _uiState.update { it.copy(duplicateTrackingNumbers = duplicateTrackingNumbers, showDuplicateDialog = true) }
+                    _uiState.update { it.copy(dialog = CargoDialog.Duplicates(duplicateTrackingNumbers)) }
                     Log.w("CargoViewModel_Log", "حواله‌های تکراری شناسایی شدند: ${duplicateTrackingNumbers.joinToString(", ")}")
                 }
 

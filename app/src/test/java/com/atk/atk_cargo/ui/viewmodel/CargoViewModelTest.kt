@@ -150,8 +150,7 @@ class CargoViewModelTest {
         load()
 
         val state = viewModel.uiState.value
-        assertTrue(state.showDuplicateDialog)
-        assertEquals(listOf("SAME"), state.duplicateTrackingNumbers)
+        assertEquals(CargoDialog.Duplicates(listOf("SAME")), state.dialog)
         assertEquals(2, state.cargoInfoList.size)
     }
 
@@ -164,8 +163,7 @@ class CargoViewModelTest {
 
         load()
 
-        assertFalse(viewModel.uiState.value.showDuplicateDialog)
-        assertTrue(viewModel.uiState.value.duplicateTrackingNumbers.isEmpty())
+        assertEquals(CargoDialog.None, viewModel.uiState.value.dialog)
     }
 
     // dismissDuplicateDialog seeded via a real duplicate load, not a test-only setter.
@@ -176,12 +174,11 @@ class CargoViewModelTest {
             cargoInfo(id = 2, trackingNumber = "SAME")
         )
         load()
-        assertTrue(viewModel.uiState.value.showDuplicateDialog)
+        assertEquals(CargoDialog.Duplicates(listOf("SAME")), viewModel.uiState.value.dialog)
 
         viewModel.dismissDuplicateDialog()
 
-        assertFalse(viewModel.uiState.value.showDuplicateDialog)
-        assertTrue(viewModel.uiState.value.duplicateTrackingNumbers.isEmpty())
+        assertEquals(CargoDialog.None, viewModel.uiState.value.dialog)
     }
 
     // ===== filterCargoInfoList (seeded via a real load) =====

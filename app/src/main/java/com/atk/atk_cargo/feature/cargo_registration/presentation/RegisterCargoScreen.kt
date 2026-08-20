@@ -97,6 +97,7 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.Ship
 import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.ui.theme.Amber700
 import com.atk.atk_cargo.ui.theme.Green600
+import com.atk.atk_cargo.ui.viewmodel.CargoDialog
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
@@ -164,17 +165,17 @@ fun RegisterCargoScreen(
     var isFormExpanded by remember { mutableStateOf(true) }
     val cargoUiState by viewModel.uiState.collectAsStateWithLifecycle()
     val clearInputFields = cargoUiState.clearInputFields
-    val showNetWeightDialog = cargoUiState.showNetWeightDialog
     val scaleReceiptNumber = cargoUiState.scaleReceiptNumber
     val focusManager = LocalFocusManager.current
     val loadableTonnage = cargoUiState.loadableTonnage
     val loadableTrucks18Wheeler = cargoUiState.loadableTrucks18Wheeler
     val loadableTrucks10Wheeler = cargoUiState.loadableTrucks10Wheeler
     val listState = rememberLazyListState()
-    val showDuplicateConfirmationDialog = cargoUiState.showDuplicateConfirmationDialog
-    val duplicateWarningMessage = cargoUiState.duplicateWarningMessage
-    val showDuplicateDialog = cargoUiState.showDuplicateDialog
-    val duplicateTrackingNumbers = cargoUiState.duplicateTrackingNumbers
+    // duplicateTrackingNumbers هم برای دیالوگ (پایین) هم برای هایلایت ردیف‌های
+    // تکراری در لیست اصلی (پایین‌تر) لازم است؛ چون dismissDuplicateDialog()
+    // خودِ dialog را به None برمی‌گرداند، این دو همیشه هم‌زمان پاک می‌شوند —
+    // دقیقاً همان رفتار قبلی (Phase4 #31).
+    val duplicateTrackingNumbers = (cargoUiState.dialog as? CargoDialog.Duplicates)?.trackingNumbers ?: emptyList()
     val isSubmitting = cargoUiState.isSubmitting
     var showQuotaEntryDialog by remember { mutableStateOf(false) }
 
@@ -770,7 +771,7 @@ fun RegisterCargoScreen(
             }
         }
 
-        if (showNetWeightDialog) {
+        if (cargoUiState.dialog is CargoDialog.NetWeight) {
             NetWeightDialog(
                 scaleReceiptNumber = scaleReceiptNumber,
                 onConfirm = { enteredNetWeight ->
@@ -792,9 +793,10 @@ fun RegisterCargoScreen(
         }
     }
 
-    if (showDuplicateConfirmationDialog) {
+    val duplicateConfirmationDialog = cargoUiState.dialog as? CargoDialog.DuplicateConfirmation
+    if (duplicateConfirmationDialog != null) {
         DuplicateConfirmationDialog(
-            message = duplicateWarningMessage,
+            message = duplicateConfirmationDialog.message,
             onConfirm = {
                 viewModel.confirmDuplicateCargoRegistration()
             },
@@ -807,7 +809,7 @@ fun RegisterCargoScreen(
         )
     }
 
-    if (showDuplicateDialog) {
+    if (cargoUiState.dialog is CargoDialog.Duplicates) {
         DuplicateTrackingNumbersDialog(
             duplicateNumbers = duplicateTrackingNumbers,
             onDismiss = {

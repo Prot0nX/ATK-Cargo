@@ -2431,6 +2431,37 @@ data class LoadableCapacity(val tonnage: Float, val trucks18: Int, val trucks10:
 
 **Priority:** MEDIUM · **Effort:** High
 
+**وضعیت (Phase4 #31 — ✅ انجام شد، با دامنه‌ی عمداً محدود):**
+
+طبق تأیید کاربر، فقط مشکل ۱ (سه پرچم boolean مستقل دیالوگ) رفع شد؛ مشکل
+۲ (اعداد به‌صورت String) و مشکل ۳ (حذف `filteredCargoInfoList` با
+`derivedStateOf`) خارج از دامنه ماندند — هرکدام تغییر معماری جداگانه‌ای
+هستند که باید مستقل بررسی شوند.
+
+- `sealed interface CargoDialog` (در همان `CargoViewModel.kt`) اضافه شد:
+  `None` / `NetWeight` / `DuplicateConfirmation(message)` /
+  `Duplicates(trackingNumbers)`. `showNetWeightDialog`،
+  `showDuplicateConfirmationDialog`، `duplicateWarningMessage`،
+  `showDuplicateDialog`، `duplicateTrackingNumbers` (۵ فیلد) با یک فیلد
+  `dialog: CargoDialog` جایگزین شدند.
+- بررسی مصرف‌کننده‌ها نشان داد فقط **یک** فایل UI واقعاً این فیلدها را از
+  `CargoViewModel` می‌خواند: `RegisterCargoScreen.kt` (۳ بلوک `if` مستقل →
+  یک `dialog is/as? CargoDialog.X`). ۳ فایل دیگری که در جست‌وجوی اولیه
+  یافت شدند (`CargoDetailsScreen.kt`، `InitialInfoScreen.kt`،
+  `ShipInfoSection.kt`) یا اصلاً منبعشان این state نبود (یک
+  `remember { mutableStateOf }` محلی و بی‌ربط در `InitialInfoScreen.kt`
+  با نام مشابه) یا فقط پارامتر تابع بودند.
+- نکته‌ی رفتاری تأییدشده پیش از تغییر: `duplicateTrackingNumbers` هم برای
+  دیالوگ هم برای هایلایت ردیف‌های تکراری در لیست اصلی استفاده می‌شد؛ چون
+  `dismissDuplicateDialog()` از قبل هر دو را هم‌زمان پاک می‌کرد، ادغام‌شان
+  در یک state واحد هیچ رفتاری را تغییر نداد.
+- `CargoViewModelTest.kt` (۱۲ تست از Phase3 #20): ۲ assertion که مستقیماً
+  `showDuplicateDialog`/`duplicateTrackingNumbers` را چک می‌کردند به
+  `assertEquals(CargoDialog.Duplicates(...), state.dialog)` تغییر یافتند.
+
+تأیید شد: `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` (هر ۱۲
+تست `CargoViewModelTest` سبز) بدون تغییر رفتار قابل‌مشاهده.
+
 ---
 
 ### [LOW] نام کاملاً واجد شرایط (FQN) درون بدنه‌ی کلاس
@@ -2769,7 +2800,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 |---|-------|--------|
 | ۲۹ | ✅ انتقال بقیه featureها به ماژول مستقل (شروع شد؛ فقط feature:cargo به‌عنوان proof-of-concept — ۶ feature دیگر باقی مانده) | High |
 | ۳۰ | تفکیک ۳۱ فایل بزرگ | High |
-| ۳۱ | بازطراحی `CargoUiState` با sealed dialog | High |
+| ۳۱ | ✅ بازطراحی `CargoUiState` با sealed dialog (فقط دیالوگ‌ها؛ String→Float و حذف filteredCargoInfoList باقی مانده) | High |
 | ۳۲ | ستون‌های `DATETIME` موازی برای تاریخ | High |
 | ۳۳ | ✅ متدهای HTTP صحیح (PATCH/DELETE) — تغییر هم‌زمان کلاینت+سرور | Medium |
 | ۳۴ | ✅ مشروط‌سازی انیمیشن‌های بی‌نهایت + Reduce Motion (دامنه محدود؛ AnimationManager موجود به ۱۳ نقطه متصل شد) | Medium |
