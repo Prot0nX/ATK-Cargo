@@ -71,7 +71,6 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieAnimatable
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.atk.atk_cargo.feature.cargoworkflow.R
 import com.atk.atk_cargo.data.model.CargoInfoRequest
 import com.atk.atk_cargo.domain.model.Cargo
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogBadgeSize
@@ -81,6 +80,7 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dial
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogMessageText
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogTitle
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.StandardDialogShell
+import com.atk.atk_cargo.feature.cargoworkflow.R
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import kotlinx.coroutines.launch
 

@@ -58,7 +58,6 @@ import com.atk.atk_cargo.feature.auth.presentation.LoginScreen
 import com.atk.atk_cargo.feature.auth.viewmodel.AuthViewModel
 import com.atk.atk_cargo.feature.cargo_counter.navigation.CargoCounterRoute
 import com.atk.atk_cargo.feature.cargo_details.navigation.cargoDetailsScreen
-import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import com.atk.atk_cargo.feature.cargo_entry.navigation.InitialInfoRoute
 import com.atk.atk_cargo.feature.cargo_entry.navigation.SelectInfoRoute
 import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoScreen
@@ -69,6 +68,7 @@ import com.atk.atk_cargo.feature.chat.navigation.navigateToAdminChat
 import com.atk.atk_cargo.feature.chat.presentation.ChatScreen
 import com.atk.atk_cargo.feature.home.navigation.HomeRoute
 import com.atk.atk_cargo.feature.home.navigation.homeScreen
+import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import com.atk.atk_cargo.feature.reports.navigation.ManageShipsRoute
 import com.atk.atk_cargo.ui.screens.ManageReportsScreen
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel

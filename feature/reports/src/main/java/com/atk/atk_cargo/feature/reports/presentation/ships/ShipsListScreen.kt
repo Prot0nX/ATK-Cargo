@@ -50,8 +50,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.atk.atk_cargo.data.model.Ship
 import com.atk.atk_cargo.core.ui.components.ErrorState
+import com.atk.atk_cargo.data.model.Ship
 import com.atk.atk_cargo.feature.reports.domain.sortShips
 import com.atk.atk_cargo.feature.reports.presentation.components.EmptyShipsState
 import com.atk.atk_cargo.feature.reports.presentation.ships.components.ShipCard

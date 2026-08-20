@@ -66,7 +66,6 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieAnimatable
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.atk.atk_cargo.feature.cargoworkflow.R
 import com.atk.atk_cargo.data.model.MatchingQuota
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogBadge
@@ -78,6 +77,7 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dial
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogMessageText
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogTitle
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.StandardDialogShell
+import com.atk.atk_cargo.feature.cargoworkflow.R
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions

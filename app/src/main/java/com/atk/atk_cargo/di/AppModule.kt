@@ -1,13 +1,15 @@
 package com.atk.atk_cargo.di
 
+// Koin 4.x: ViewModel DSL از org.koin.androidx.viewmodel.dsl به یک ماژول
+// چندسکویی (Multiplatform) در org.koin.core.module.dsl منتقل شد — Phase4 #36.
 import com.atk.atk_cargo.api.RetrofitClient
+import com.atk.atk_cargo.api.TokenStore
 import com.atk.atk_cargo.api.UpdateManager
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.core.startup.StartupViewModel
 import com.atk.atk_cargo.data.db.AppDatabase
 import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.domain.repository.QuotaRepository
-import com.atk.atk_cargo.api.TokenStore
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import com.atk.atk_cargo.domain.session.UserSettingsStore
 import com.atk.atk_cargo.feature.admin.presentation.UserManagementViewModel
@@ -27,8 +29,6 @@ import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
-// Koin 4.x: ViewModel DSL از org.koin.androidx.viewmodel.dsl به یک ماژول
-// چندسکویی (Multiplatform) در org.koin.core.module.dsl منتقل شد — Phase4 #36.
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.bind
 import org.koin.dsl.module

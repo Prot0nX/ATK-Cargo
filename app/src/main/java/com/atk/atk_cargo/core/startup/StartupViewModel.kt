@@ -6,7 +6,6 @@ import android.content.Intent
 import android.os.PowerManager
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
-import com.atk.atk_cargo.domain.session.StartupController
 import androidx.lifecycle.viewModelScope
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -19,6 +18,7 @@ import com.atk.atk_cargo.api.SessionCheckRequest
 import com.atk.atk_cargo.api.TokenRefresher
 import com.atk.atk_cargo.api.UpdateManager
 import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.domain.session.StartupController
 import com.atk.atk_cargo.feature.chat.data.ChatRepository
 import com.atk.atk_cargo.security.SecurityErrorType
 import com.atk.atk_cargo.security.SecurityVerifier
@@ -42,6 +42,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.milliseconds
+
 sealed interface StartupState {
     data object Splash : StartupState
     data object Syncing : StartupState

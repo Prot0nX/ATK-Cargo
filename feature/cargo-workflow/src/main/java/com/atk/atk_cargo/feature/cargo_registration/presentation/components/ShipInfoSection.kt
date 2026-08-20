@@ -63,13 +63,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.atk.atk_cargo.feature.cargoworkflow.R
 import com.atk.atk_cargo.domain.model.Cargo
 import com.atk.atk_cargo.domain.model.CargoConfirmStatus
 import com.atk.atk_cargo.domain.model.CargoStatus
 import com.atk.atk_cargo.domain.model.ShipInfo
 import com.atk.atk_cargo.feature.cargo_registration.domain.format.formatNumber
 import com.atk.atk_cargo.feature.cargo_registration.domain.format.toEnglishNumbers
+import com.atk.atk_cargo.feature.cargoworkflow.R
 import java.text.DecimalFormat
 import java.util.Locale
 

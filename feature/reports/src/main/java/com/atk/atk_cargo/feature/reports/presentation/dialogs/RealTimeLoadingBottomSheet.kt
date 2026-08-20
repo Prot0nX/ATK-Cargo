@@ -81,10 +81,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import com.atk.atk_cargo.data.model.RealTimeLoadingData
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel.RealTimeUiState
-import com.atk.atk_cargo.data.model.ShiftInfo
 import com.atk.atk_cargo.core.domain.AnimationManager
+import com.atk.atk_cargo.data.model.RealTimeLoadingData
+import com.atk.atk_cargo.data.model.ShiftInfo
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
 import com.atk.atk_cargo.ui.theme.Green300
@@ -93,6 +92,7 @@ import com.atk.atk_cargo.ui.theme.Green700
 import com.atk.atk_cargo.ui.theme.Red400
 import com.atk.atk_cargo.ui.theme.Red50
 import com.atk.atk_cargo.ui.theme.Red700
+import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel.RealTimeUiState
 import kotlinx.coroutines.launch
 
 // internal (نه private) چون RealTimeLoadingCardSection.kt هم به این‌ها نیاز دارد

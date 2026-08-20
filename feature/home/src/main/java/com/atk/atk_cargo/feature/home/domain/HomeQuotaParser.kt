@@ -1,7 +1,7 @@
 package com.atk.atk_cargo.feature.home.domain
 
-import com.atk.atk_cargo.feature.home.R
 import com.atk.atk_cargo.data.model.MenuItem
+import com.atk.atk_cargo.feature.home.R
 
 fun getMenuItemsForUserType(userPermissions: Map<String, Boolean>): List<MenuItem> {
     val items = mutableListOf<MenuItem>()
