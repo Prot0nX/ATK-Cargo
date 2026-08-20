@@ -1,7 +1,7 @@
 # Graph Report - ATK-Cargo  (2026-08-20)
 
 ## Corpus Check
-- 337 files · ~432,864 words
+- 337 files · ~433,146 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `aa0f256a`
+- Built from commit: `ca4d3d7d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -286,16 +286,16 @@
 10. `ActiveShipInfo` - 32 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `cargoDetailsScreen()` --calls--> `ReportsRepository`  [INFERRED]
-  app/src/main/java/com/atk/atk_cargo/core/navigation/CargoDetailsNavigation.kt → feature/reports/src/main/java/com/atk/atk_cargo/data/repository/ReportsRepository.kt
 - `CargoCounterScreen()` --calls--> `ColorSelector`  [INFERRED]
   app/src/main/java/com/atk/atk_cargo/feature/cargo_counter/presentation/CargoCounterScreen.kt → core/designsystem/src/main/java/com/atk/atk_cargo/data/model/ColorSelector.kt
-- `CargoCounterScreen()` --calls--> `validateServerSession()`  [INFERRED]
-  app/src/main/java/com/atk/atk_cargo/feature/cargo_counter/presentation/CargoCounterScreen.kt → core/network/src/main/java/com/atk/atk_cargo/api/SessionValidator.kt
 - `QuotasDialog()` --calls--> `ColorSelector`  [INFERRED]
   feature/reports/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/QuotaDetailsScreen.kt → core/designsystem/src/main/java/com/atk/atk_cargo/data/model/ColorSelector.kt
 - `InitialInfoScreen()` --calls--> `InitialInfo`  [INFERRED]
   app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/InitialInfoScreen.kt → core/network/src/main/java/com/atk/atk_cargo/data/model/CargoModels.kt
+- `navigateToRegisterCargoActivity()` --calls--> `InitialInfo`  [INFERRED]
+  app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/SelectInfoScreen.kt → core/network/src/main/java/com/atk/atk_cargo/data/model/CargoModels.kt
+- `QuotaPercentageDialog()` --calls--> `QuotaPercentageData`  [INFERRED]
+  feature/reports/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/QuotaPercentageDialogSection.kt → core/network/src/main/java/com/atk/atk_cargo/data/model/ReportModels.kt
 
 ## Import Cycles
 - None detected.
@@ -775,7 +775,7 @@ Cohesion: 0.50
 Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify reference: commit hook and native CLAUDE.md integration
 
 ## Knowledge Gaps
-- **399 isolated node(s):** `ALL`, `LOADING`, `COMPLETED`, `Ready`, `RequestBatteryOptimization` (+394 more)
+- **399 isolated node(s):** `وضعیت کلی`, `مهم‌ترین ریسک‌های امنیتی`, `مهم‌ترین مشکلات Architecture`, `مهم‌ترین مشکلات Performance`, `Technical Debt` (+394 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **139 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -783,14 +783,14 @@ Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify refer
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `HttpStatusException` connect `HttpStatusException` to `Exception`, `ReportsViewModel`?**
-  _High betweenness centrality (0.090) - this node is a cross-community bridge._
+  _High betweenness centrality (0.098) - this node is a cross-community bridge._
+- **Why does `CargoViewModel` connect `CargoViewModel` to `formatNumber`, `TextAlign`, `QuotaExistenceMultipleResponse`, `MessageType`, `ApiV2Routes`, `AppModule.kt`, `CargoDetailsScreen.kt`?**
+  _High betweenness centrality (0.063) - this node is a cross-community bridge._
 - **Why does `ApiException` connect `ApiException` to `Exception`, `InputValidator`, `Database`, `Request`, `MicroCache`, `QuotaCalculatorTest`?**
-  _High betweenness centrality (0.046) - this node is a cross-community bridge._
-- **Why does `ReportsRepository` connect `Exception` to `HttpStatusException`, `CargoDetailsNavigation.kt`, `ReportsViewModel`?**
-  _High betweenness centrality (0.033) - this node is a cross-community bridge._
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
 - **Are the 10 inferred relationships involving `InputValidator` (e.g. with `.handle()` and `.handlePost()`) actually correct?**
   _`InputValidator` has 10 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `ALL`, `LOADING`, `COMPLETED` to the rest of the system?**
+- **What connects `وضعیت کلی`, `مهم‌ترین ریسک‌های امنیتی`, `مهم‌ترین مشکلات Architecture` to the rest of the system?**
   _399 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `StartupViewModel` be split into smaller, more focused modules?**
   _Cohesion score 0.13105413105413105 - nodes in this community are weakly interconnected._
