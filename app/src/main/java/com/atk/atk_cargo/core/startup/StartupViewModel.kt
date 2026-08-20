@@ -414,8 +414,8 @@ class StartupViewModel(
     }
 
     companion object {
-        private const val SPLASH_MIN_DURATION = 4500L
-        private const val SPLASH_MAX_DURATION = 5500L
+        private const val SPLASH_MIN_DURATION = 4200L
+        private const val SPLASH_MAX_DURATION = 5000L
         private const val SESSION_OFFLINE_GRACE_PERIOD_MS = 3 * 24 * 60 * 60 * 1000L // ۳ روز
     }
 }
