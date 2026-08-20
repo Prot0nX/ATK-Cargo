@@ -324,6 +324,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
     testImplementation(libs.mockk)
+    androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.androidx.ui.test.junit4)

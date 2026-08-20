@@ -1986,6 +1986,8 @@ androidx-foundation = { module = "androidx.compose.foundation:foundation" }    #
 
 **Priority:** MEDIUM · **Effort:** Low
 
+**Status:** ✅ Fixed (2026-08-20) — `version.ref` از هر ۱۰ کتابخانه‌ی تحت پوشش BOM حذف شد (`androidx-ui`, `androidx-ui-graphics`, `androidx-ui-tooling`, `androidx-ui-tooling-preview`, `androidx-ui-test-junit4`, `androidx-ui-test-manifest`, `androidx-foundation`, `androidx-foundation-layout`, `androidx-material3`, `androidx-material-icons-extended`)؛ ۹ کلید `version` که دیگر مصرفی نداشتند هم از `[versions]` پاک شدند. `androidTestImplementation` در `app/build.gradle.kts` به `platform(libs.compose.bom)` نیاز داشت (این configuration جدا از `implementation` است و BOM را ارث‌بری نمی‌کرد) — اضافه شد، وگرنه `androidTestImplementation(libs.androidx.ui.test.junit4)` بدون نسخه resolve نمی‌شد. با `./gradlew :app:dependencies` تأیید شد که نسخه‌ها اکنون واقعاً از طریق BOM constraint (`(c)`) می‌آیند، نه پین دستی — مثلاً تناقض‌های `ui:1.0.1 -> 1.9.1` و `foundation:1.7.0 -> 1.9.1` توسط BOM حل می‌شوند. `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` سبز.
+
 ---
 
 ## [LOW] Koin 3.5.6
@@ -2488,7 +2490,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۲۳ | انتقال `feature/reports` به ماژول مستقل | High |
 | ۲۴ | جدول `schema_migrations` + اسکریپت migrate | Medium |
 | ۲۵ | انتقال document root به `public/` | Medium |
-| ۲۶ | حذف `version.ref` از کتابخانه‌های Compose BOM | Low |
+| ۲۶ | ✅ حذف `version.ref` از کتابخانه‌های Compose BOM | Low |
 | ۲۷ | تفکیک محیط با `buildConfigField` | Medium |
 | ۲۸ | مانیتورینگ health + هشدار کرش | Low |
 
@@ -2529,7 +2531,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱۶ | ✅ گزارش کرش بدون rate limit | Availability | MEDIUM | `DiagnosticsController.php:100` | Low |
 | ۱۷ | UseCaseها singleton را مستقیم می‌گیرند | Architecture/Testing | MEDIUM | `CheckQuotaUseCase.kt:8` + ۲ فایل | Medium |
 | ۱۸ | ماژول‌بندی نیمه‌کاره (۸۱٪ در `app`) | Architecture | MEDIUM | ساختار پروژه | High |
-| ۱۹ | Compose BOM با نسخه‌ی صریح override شده | Dependencies | MEDIUM | `gradle/libs.versions.toml` | Low |
+| ۱۹ | ✅ Compose BOM با نسخه‌ی صریح override شده | Dependencies | MEDIUM | `gradle/libs.versions.toml` | Low |
 | ۲۰ | تاریخ/عدد در `varchar(100)` | Database | MEDIUM | `PHP/schema.sql` | High |
 
 ---
