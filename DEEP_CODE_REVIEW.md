@@ -2897,7 +2897,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 
 | # | اقدام | Effort |
 |---|-------|--------|
-| ۲۹ | ✅ انتقال بقیه featureها به ماژول مستقل (شروع شد؛ فقط feature:cargo به‌عنوان proof-of-concept — ۶ feature دیگر باقی مانده) | High |
+| ۲۹ | ✅ انتقال بقیه featureها به ماژول مستقل (feature:cargo و feature:reports انجام شد — ۶ feature دیگر باقی مانده: home، cargo_entry، cargo_registration، cargo_counter، cargo_details، update) | High |
 | ۳۰ | ✅ تفکیک ۳۱ فایل بزرگ (شروع شد؛ فقط بزرگ‌ترین — ActiveQuotasContent.kt — به عنوان proof-of-concept؛ ۳۰ فایل دیگر باقی مانده) | High |
 | ۳۱ | ✅ بازطراحی `CargoUiState` با sealed dialog (فقط دیالوگ‌ها؛ String→Float و حذف filteredCargoInfoList باقی مانده) | High |
 | ۳۲ | ستون‌های `DATETIME` موازی برای تاریخ | High |
