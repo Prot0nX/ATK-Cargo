@@ -1500,7 +1500,9 @@ require_once __DIR__ . '/src/bootstrap.php';
 
 **Priority:** MEDIUM · **Effort:** Medium
 
-**Status:** ⚠️ Partially fixed (2026-08-19) — هر ۶ متد به‌عنوان route موازی به `routes/api_v2.php` اضافه شدند (`utility/check-signature`, `utility/check-update`, `license/validate`, `license/info`, `analytics/quota-remaining`, `users/fcm-token`)، با auth/permission دقیقاً هم‌راستا با چیزی که خودِ متد داخلاً چک می‌کند. **شش فایل shim قدیمی عمداً دست‌نخورده باقی ماندند** — چون بررسی شد URLهای آن‌ها (`getSignatureCheckUrl`/`getLicenseCheckUrl`/`getLicenseInfoUrl`) به‌صورت hardcode در `secrets.cpp` کلاینت هستند و حذف/redirectشان بدون آپدیت هم‌زمان کلاینت بلافاصله همه‌ی نصب‌های موجود را می‌شکند؛ این دقیقاً همان هشدار خودِ گزارش بود. با یک هارنس PHP روی `api/v2/index.php` واقعی (با throwaway DB شامل جداول `Users`/`SignChecker`/`licenses`/`user_sessions`) هر ۶ مسیر + یک مورد ۴۰۵ (متد اشتباه) تست شد — همه‌ی کدهای HTTP (۴۰۰/۴۰۳/۲۰۰/۲۰۰/۴۰۱/۴۰۱/۴۰۵) دقیقاً مطابق انتظار بودند، و دو مسیر `auth=>true` (`analytics/quota-remaining`, `users/fcm-token`) پیش از رسیدن به handler توسط `ApiAuthGate` رد شدند. `phpstan`/`phpunit` سبز. **حذف واقعی shimها به Phase1 #1 (چرخش کلید) و Phase2 #10 (بازطراحی لایسنس) موکول شد.**
+**Status:** ✅ Fixed (2026-08-20) — هر ۶ متد به‌عنوان route موازی به `routes/api_v2.php` اضافه شدند (`utility/check-signature`, `utility/check-update`, `license/validate`, `license/info`, `analytics/quota-remaining`, `users/fcm-token`)، با auth/permission دقیقاً هم‌راستا با چیزی که خودِ متد داخلاً چک می‌کند. با یک هارنس PHP روی `api/v2/index.php` واقعی (با throwaway DB شامل جداول `Users`/`SignChecker`/`licenses`/`user_sessions`) هر ۶ مسیر + یک مورد ۴۰۵ (متد اشتباه) تست شد — همه‌ی کدهای HTTP (۴۰۰/۴۰۳/۲۰۰/۲۰۰/۴۰۱/۴۰۱/۴۰۵) دقیقاً مطابق انتظار بودند، و دو مسیر `auth=>true` (`analytics/quota-remaining`, `users/fcm-token`) پیش از رسیدن به handler توسط `ApiAuthGate` رد شدند.
+
+در ادامه (۲۰۲۶-۰۸-۲۰)، هر ۶ فایل shim قدیمی (`check_signature.php`، `check_update.php`، `validate_license.php`، `get_license_info.php`، `quota_remaining_api.php`، `update_fcm_token.php`) از ریشه‌ی `PHP/` حذف شدند — بدون rewrite جایگزین برای URLهای قدیمی. طبق تأیید صریح کاربر، سرور فعلی صرفاً محیط تست/توسعه است و هنوز کاربر واقعی روی این نسخه نیست؛ حذف بدون rewrite قصداً انتخاب شد تا هیچ مسیر bypass باقی نماند. **قبل از انتشار برای کاربران واقعی، کلاینت (که هنوز URLهای قدیمی را در `secrets.cpp`/`UpdateManager.kt` hardcode دارد) باید به مسیرهای جدید Router به‌روزرسانی شود** — این کار با چرخش کلید (Phase1 #1) و بازطراحی لایسنس (Phase2 #10) هم‌زمان و پیش از عرضه‌ی نهایی باید انجام شود. کامنت‌های داخلی کنترلرها که به نام فایل‌های حذف‌شده اشاره می‌کردند به نام مسیر Router جدید به‌روز شدند. `php -l`، `phpstan`، `phpunit` (۶۸ تست) سبز.
 
 ---
 
@@ -2468,7 +2470,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱۰ | بازطراحی لایسنس با امضای سمت سرور | `LicenseController` + `SecurityVerifier` | Medium |
 | ۱۱ | ✅ انتقال ۹ تماس شبکه از Composable به ViewModel (۹ از ۹ انجام شد) | ۹ فایل | High |
 | ۱۲ | ✅ رفع انیمیشن‌ها با `graphicsLayer` | ۵ فایل | Low |
-| ۱۳ | ⚠️ انتقال shimهای PHP به Router (مسیرهای موازی اضافه شد؛ حذف shimها موکول شد) | ۶ فایل | Medium |
+| ۱۳ | ✅ انتقال shimهای PHP به Router (مسیرهای موازی اضافه و ۶ shim قدیمی حذف شد) | ۶ فایل | Medium |
 | ۱۴ | ✅ rate limit روی `diagnostics/crash` و لایسنس | `DiagnosticsController`، `LicenseController` | Low |
 | ۱۵ | ✅ حذف `Log.w` در ProGuard | `proguard-rules.pro` | Low |
 | ۱۶ | ✅ allow-list دامنه برای `downloadUrl` | `UpdateManager.kt` | Low |
@@ -2520,7 +2522,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۹ | ✅ recomposition در هر فریم انیمیشن | Performance | **HIGH** | `InitialInfoDialogs.kt:81` + ۴ فایل | Low |
 | ۱۰ | ⚠️ لایسنس بدون auth/rate-limit، کلید در URL (rate-limit انجام شد؛ auth/URL باقی) | Security | MEDIUM | `PHP/src/Controllers/LicenseController.php:120` | Low |
 | ۱۱ | ✅ نشت پیام استثنا به کلاینت | Security | MEDIUM | `PHP/src/Controllers/UserController.php:83` | Low |
-| ۱۲ | ⚠️ shimهای PHP، Router را دور می‌زنند | Architecture | MEDIUM | ۶ فایل ریشه `PHP/` | Medium |
+| ۱۲ | ✅ shimهای PHP، Router را دور می‌زدند (۶ فایل حذف شد) | Architecture | MEDIUM | ۶ فایل ریشه `PHP/` | Medium |
 | ۱۳ | `<Directory>` نامعتبر در `.htaccess` | Security/Config | MEDIUM | `PHP/.htaccess:20,70,75` | Low |
 | ۱۴ | ✅ `downloadUrl` بدون اعتبارسنجی دامنه | Security | MEDIUM | `UpdateManager.kt:171` | Low |
 | ۱۵ | ✅ `Log.w`/`Log.e` در release باقی می‌مانند | Security/Logging | MEDIUM | `proguard-rules.pro:179` | Low |

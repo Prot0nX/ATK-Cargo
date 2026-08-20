@@ -45,7 +45,7 @@ class LicenseController {
     }
 
     /**
-     * اعتبارسنجی لایسنس (validate_license.php)
+     * اعتبارسنجی لایسنس (POST license/validate)
      */
     public function validateLicense(): void {
         header('Content-Type: application/json');
@@ -138,7 +138,7 @@ class LicenseController {
     }
 
     /**
-     * دریافت اطلاعات لایسنس (get_license_info.php)
+     * دریافت اطلاعات لایسنس (GET license/info)
      */
     public function getLicenseInfo(): void {
         header('Content-Type: application/json');

@@ -30,7 +30,7 @@ class UtilityController {
     }
 
     /**
-     * بررسی امضای اپلیکیشن (check_signature.php)
+     * بررسی امضای اپلیکیشن (POST utility/check-signature)
      */
     public function checkSignature(): void {
         header('Content-Type: application/json; charset=UTF-8');
@@ -181,7 +181,7 @@ class UtilityController {
     }
 
     /**
-     * بررسی نسخه جدید اپلیکیشن (check_update.php)
+     * بررسی نسخه جدید اپلیکیشن (GET utility/check-update)
      */
     public function checkUpdate(): void {
         header('Content-Type: application/json');

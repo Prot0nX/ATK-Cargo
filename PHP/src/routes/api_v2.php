@@ -631,18 +631,18 @@ return [
         'handler' => function () { (new DiagnosticsController())->reportCrash(); },
     ],
 
-    // ===== LEGACY SHIMS — مسیر موازی روی Router (DEEP_CODE_REVIEW.md
-    // Phase2.13). این ۶ کنترلر قبلاً فقط از طریق فایل‌های مستقل ریشه‌ی PHP/
-    // (check_signature.php، check_update.php، validate_license.php،
-    // get_license_info.php، quota_remaining_api.php، update_fcm_token.php)
-    // در دسترس بودند — کاملاً خارج از Router/ApiAuthGate. این ردیف‌ها همان
-    // متدها را از مسیر Router هم در دسترس می‌گذارند، اما shimهای قدیمی
-    // عمداً حذف/redirect نشده‌اند: URLهای آن‌ها به‌صورت hardcode در
-    // secrets.cpp کلاینت (n3/n4/n5) هستند، پس حذفشان بدون آپدیت هم‌زمان
-    // کلاینت (که خودش منتظر چرخش کلید/بازطراحی لایسنس در Phase1 #1 و
-    // Phase2 #10 است) بلافاصله همه‌ی نصب‌های موجود را می‌شکند. هر دو auth/
-    // permission در سطح router دقیقاً هم‌راستا با چیزی است که خودِ متد
-    // داخلاً چک می‌کند (الگوی «Direct passthrough» بالای فایل). =====
+    // ===== این ۶ مسیر جایگزین ۶ shim مستقل ریشه‌ی PHP/ شدند (check_signature.php،
+    // check_update.php، validate_license.php، get_license_info.php،
+    // quota_remaining_api.php، update_fcm_token.php — DEEP_CODE_REVIEW.md
+    // Phase2.13/#۱۳) که کاملاً خارج از Router/ApiAuthGate بودند. خودِ shimها
+    // در Phase2.13(ادامه) حذف شدند؛ این‌ها اکنون تنها راه دسترسی به این متدها
+    // هستند. auth/permission در سطح router دقیقاً هم‌راستا با چیزی است که
+    // خودِ متد داخلاً چک می‌کند (الگوی «Direct passthrough» بالای فایل).
+    //
+    // هشدار: URLهای قدیمی (`/check_signature.php` و ...) در نسخه‌ی فعلی
+    // secrets.cpp کلاینت (n3/n4/n5) و UpdateManager.kt hardcode هستند و اکنون
+    // ۴۰۴ می‌دهند. قبل از انتشار نسخه‌ی نهایی برای کاربران، کلاینت باید به
+    // این مسیرهای جدید (`utility/check-signature` و ...) آپدیت شود. =====
     [
         'method' => 'POST', 'path' => 'utility/check-signature', 'auth' => false, 'permission' => null,
         'handler' => function () { (new UtilityController())->checkSignature(); },

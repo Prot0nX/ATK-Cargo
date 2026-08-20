@@ -116,7 +116,7 @@ class AnalyticsController {
     }
 
     /**
-     * مدیریت درخواست‌های quota_remaining_api.php
+     * مدیریت درخواست‌های GET analytics/quota-remaining
      */
     public function handleQuotaRemaining(): void {
         header('Content-Type: application/json; charset=UTF-8');
@@ -132,8 +132,8 @@ class AnalyticsController {
 
         // این متد قبلاً هیچ گیت احراز هویتی نداشت — با اینکه داده‌ی تجاری
         // کامل (نام کشتی، کوتاژ، شرکت حمل، صاحب کالا، تناژ) برمی‌گرداند، هر
-        // کلاینت ناشناس با دانستن آدرس سرور می‌توانست quota_remaining_api.php
-        // را صدا بزند. مطابق الگوی handleRealTimeLoadingData همین کنترلر.
+        // کلاینت ناشناس با دانستن آدرس سرور می‌توانست این مسیر را صدا بزند.
+        // مطابق الگوی handleRealTimeLoadingData همین کنترلر.
         $this->requireAuthenticatedSession();
         $this->requirePermission('active_quotas');
 
