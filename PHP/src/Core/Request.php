@@ -69,6 +69,18 @@ class Request {
     }
 
     /**
+     * آیا این یک درخواست نوشتنی (غیر GET) است؟ برای شیم‌های چندعملیاتی مثل
+     * UserController::handle و ChatController::handleChatRequest لازم است:
+     * چند action با فعل‌های HTTP متفاوت (مثلاً sendMessage=POST،
+     * editMessage=PATCH، deleteMessage=DELETE) از یک شاخه‌ی مشترک عبور
+     * می‌کنند، پس آن شاخه نمی‌تواند فقط isPost() را چک کند
+     * (DEEP_CODE_REVIEW.md Phase4 #33).
+     */
+    public function isWrite(): bool {
+        return in_array($this->getMethod(), ['POST', 'PUT', 'PATCH', 'DELETE'], true);
+    }
+
+    /**
      * دریافت هدر خاص
      */
     public function getHeader(string $name): ?string {

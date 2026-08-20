@@ -45,7 +45,9 @@ import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.HTTP
 import retrofit2.http.Header
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Query
 
@@ -219,13 +221,18 @@ interface ApiServiceV2 {
         @Query("route") route: String = "cargo"
     ): Response<SaveOrUpdateResponse>
 
-    @POST("api/v2/index.php")
+    // PATCH/DELETE — قبلاً POST بودند؛ فعل معنایی درست، هماهنگ با
+    // routes/api_v2.php سمت سرور (DEEP_CODE_REVIEW.md Phase4 #33).
+    @PATCH("api/v2/index.php")
     suspend fun updateCargoInfo(
         @Body cargoInfo: CargoInfo,
         @Query("route") route: String = "cargo/update"
     ): Response<SaveOrUpdateResponse>
 
-    @POST("api/v2/index.php")
+    // @DELETE استاندارد Retrofit اجازه‌ی @Body نمی‌دهد ("Non-body HTTP
+    // method cannot contain @Body") — این endpoint id/password را در بدنه
+    // می‌فرستد، پس از @HTTP(hasBody=true) استفاده می‌شود.
+    @HTTP(method = "DELETE", path = "api/v2/index.php", hasBody = true)
     suspend fun deleteCargo(
         @Body cargoInfoRequest: CargoInfoRequest,
         @Query("route") route: String = "cargo/delete"
@@ -280,13 +287,16 @@ interface ApiServiceV2 {
         @Query("route") route: String = "users"
     ): Response<SuccessResponse>
 
-    @POST("api/v2/index.php")
+    // PATCH/DELETE — قبلاً POST بودند (Phase4 #33؛ همان دلیل بالا).
+    @PATCH("api/v2/index.php")
     suspend fun updateUser(
         @Body request: UpdateUserRequest,
         @Query("route") route: String
     ): ApiResponse
 
-    @POST("api/v2/index.php")
+    // @HTTP(hasBody=true) نه @DELETE — همان دلیل بالا (@DELETE استاندارد
+    // Retrofit با @Body کامپایل نمی‌شود).
+    @HTTP(method = "DELETE", path = "api/v2/index.php", hasBody = true)
     suspend fun deleteUser(
         @Body request: DeleteUserRequest,
         @Query("route") route: String
@@ -315,13 +325,16 @@ interface ApiServiceV2 {
         @Query("route") route: String = "chat/messages"
     ): Response<SendMessageResponse>
 
-    @POST("api/v2/index.php")
+    // PATCH/DELETE — قبلاً POST بودند (Phase4 #33؛ همان دلیل بالا).
+    @PATCH("api/v2/index.php")
     suspend fun editChatMessage(
         @Body request: EditMessageRequest,
         @Query("route") route: String
     ): Response<ApiResponse>
 
-    @POST("api/v2/index.php")
+    // @HTTP(hasBody=true) نه @DELETE — همان دلیل بالا (@DELETE استاندارد
+    // Retrofit با @Body کامپایل نمی‌شود).
+    @HTTP(method = "DELETE", path = "api/v2/index.php", hasBody = true)
     suspend fun deleteChatMessage(
         @Body request: DeleteMessageRequest,
         @Query("route") route: String

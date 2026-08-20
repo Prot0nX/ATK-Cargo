@@ -113,8 +113,10 @@ class CargoController {
         header('X-Frame-Options: DENY');
         header('X-XSS-Protection: 1; mode=block');
 
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            Response::json(['error' => true, 'message' => 'روش درخواست نامعتبر است. فقط POST مجاز است.'], 405);
+        // PATCH — قبلاً POST بود (Phase4 #33: هماهنگ با تغییر فعل در
+        // routes/api_v2.php و کلاینت اندروید).
+        if ($_SERVER['REQUEST_METHOD'] !== 'PATCH') {
+            Response::json(['error' => true, 'message' => 'روش درخواست نامعتبر است. فقط PATCH مجاز است.'], 405);
         }
 
         $this->requireAuthenticatedSession();
@@ -297,8 +299,10 @@ class CargoController {
     public function deleteCargoInfo(): void {
         header('Content-Type: application/json; charset=UTF-8');
 
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            Response::json(["status" => "error", "message" => "روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید."], 405);
+        // DELETE — قبلاً POST بود (Phase4 #33: هماهنگ با تغییر فعل در
+        // routes/api_v2.php و کلاینت اندروید).
+        if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+            Response::json(["status" => "error", "message" => "روش درخواست مجاز نیست. لطفاً از روش DELETE استفاده کنید."], 405);
         }
 
         $this->requireAuthenticatedSession();

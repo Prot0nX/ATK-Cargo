@@ -1643,6 +1643,47 @@ public function isWrite(): bool {
 
 **Priority:** MEDIUM · **Effort:** Medium
 
+**وضعیت (Phase4 #33 — ✅ انجام شد، با یک انحراف عمدی کلیدی از پیشنهاد گزارش):**
+
+بررسی دقیق‌تر نشان داد `Router::dispatch()` هر route را دقیقاً با **یک**
+فعل HTTP (نه چند فعل) تطبیق می‌دهد؛ یعنی راهکار «`isWrite()` در کنترلر +
+جدول route با فعل درست» به‌تنهایی کلاینت‌های موجود را می‌شکند مگر Router هم
+از چند فعل برای یک route پشتیبانی کند — چیزی که پیشنهاد گزارش صراحتاً به آن
+اشاره نمی‌کند. چون این پروژه **یک کلاینت اندروید تک‌نسخه‌ای** با مکانیزم
+به‌روزرسانی اجباری (`VersionExpiredDialog`) دارد، به‌جای ساخت زیرساخت
+چندفعلی برای Router (که یک بدهی فنی جدید و مسیر migration دائمی می‌ساخت)،
+**کلاینت و سرور هم‌زمان و هماهنگ** تغییر کردند — الگویی که در فازهای قبلی
+این پروژه (حذف shimهای PHP، حذف v1) هم به‌کار رفته بود.
+
+- **`Request.php`**: متد `isWrite()` اضافه شد (`POST`/`PUT`/`PATCH`/`DELETE`)
+  — نه برای سازگاری با نسخه‌های قدیمی کلاینت (که رد شد)، بلکه چون
+  `UserController::handle()` و `ChatController::handleChatRequest()` هرکدام
+  یک شاخه‌ی مشترک دارند که چند action با فعل‌های متفاوت (مثلاً
+  createUser=POST، updateUser=PATCH، deleteUser=DELETE) را سرویس می‌دهند —
+  آن شاخه نمی‌تواند فقط `isPost()` باشد.
+- **`routes/api_v2.php`**: ۶ route (`cargo/update`→PATCH، `cargo/delete`→DELETE،
+  `users/{id}/update`→PATCH، `users/{id}/delete`→DELETE،
+  `chat/messages/{id}/edit`→PATCH، `chat/messages/{id}/delete`→DELETE) به
+  فعل معنایی درست تغییر کردند؛ کامنت‌های قدیمی («POST نه PATCH چون...»)
+  بازنویسی شدند.
+- **کنترلرها**: چک داخلی `CargoController::updateCargoInfo`/`deleteCargoInfo`
+  به فعل جدید تغییر کرد؛ `UserController::handle`/`ChatController::handleChatRequest`
+  از `isWrite()` استفاده می‌کنند (دلیل بالا).
+- **`ApiServiceV2.kt`**: ۶ متد Retrofit از `@POST` به `@PATCH`/`@DELETE`
+  تغییر کردند. **نکته‌ی فنی مهم:** `@DELETE` استاندارد Retrofit با `@Body`
+  کامپایل نمی‌شود («Non-body HTTP method cannot contain @Body»)؛ ۳ متدی که
+  بدنه دارند (`deleteCargo`، `deleteUser`، `deleteChatMessage`) به‌جای
+  `@DELETE` از `@HTTP(method="DELETE", hasBody=true)` استفاده می‌کنند.
+- **`openapi.yaml`**: ۶ کلید فعل (`post:`) متناظر به `patch:`/`delete:`
+  به‌روزرسانی شدند.
+
+تأیید شد: `php -l` تمام فایل‌های PHP تغییریافته، PHPStan بدون خطا، Kotlin
+`compileDebugKotlin`/`lintDebug`/`testDebugUnitTest` سبز. `phpunit` (۶۸
+تست) با ۶ خطای preexisting و نامرتبط اجرا شد — همگی در
+`PermissionServiceTest` به‌خاطر `PHP/config/permissions.json` که از دیسک
+حذف شده (یافته‌ی جانبی گزارش‌شده در Phase3 #22/#28/Phase4 #34، هنوز
+منتظر تصمیم کاربر)، نه به‌خاطر این تغییرات.
+
 ---
 
 ## [MEDIUM] دو شکل ناسازگار برای پاسخ خطا
@@ -2702,7 +2743,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۳۰ | تفکیک ۳۱ فایل بزرگ | High |
 | ۳۱ | بازطراحی `CargoUiState` با sealed dialog | High |
 | ۳۲ | ستون‌های `DATETIME` موازی برای تاریخ | High |
-| ۳۳ | متدهای HTTP صحیح (PATCH/DELETE) | Medium |
+| ۳۳ | ✅ متدهای HTTP صحیح (PATCH/DELETE) — تغییر هم‌زمان کلاینت+سرور | Medium |
 | ۳۴ | ✅ مشروط‌سازی انیمیشن‌های بی‌نهایت + Reduce Motion (دامنه محدود؛ AnimationManager موجود به ۱۳ نقطه متصل شد) | Medium |
 | ۳۵ | ارتقا به `targetSdk = 36` | Medium |
 | ۳۶ | ✅ ارتقای Koin به 4.x (4.1.1) | Low |

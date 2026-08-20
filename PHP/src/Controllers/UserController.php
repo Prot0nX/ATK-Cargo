@@ -66,7 +66,11 @@ class UserController {
 
             if ($this->request->isGet()) {
                 $this->handleGet($action);
-            } elseif ($this->request->isPost()) {
+            } elseif ($this->request->isWrite()) {
+                // isWrite() نه فقط isPost(): این شاخه‌ی مشترک هم createUser
+                // (POST) هم updateUser (PATCH) هم deleteUser (DELETE) را
+                // پوشش می‌دهد — تفکیک واقعی با action انجام می‌شود، نه فعل
+                // HTTP (DEEP_CODE_REVIEW.md Phase4 #33).
                 $this->handlePost($action);
             } else {
                 throw new ApiException('روش درخواست نامعتبر است', 405);

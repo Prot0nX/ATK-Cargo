@@ -69,7 +69,11 @@ class ChatController {
                 } else {
                     throw new ApiException('عملیات نامعتبر است', 400);
                 }
-            } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            } elseif ($this->request->isWrite()) {
+                // isWrite() نه فقط REQUEST_METHOD==='POST': این شاخه هم
+                // sendMessage/markAsRead (POST) هم editMessage (PATCH) هم
+                // deleteMessage (DELETE) را پوشش می‌دهد — تفکیک واقعی با
+                // action انجام می‌شود (DEEP_CODE_REVIEW.md Phase4 #33).
                 // قبلاً اینجا php://input جداگانه و مستقیم decode می‌شد (برخلاف
                 // شاخه‌ی GET بالا که از Request::get() استفاده می‌کند)؛
                 // Request::get() از قبل JSON body/POST/GET را به همین ترتیب

@@ -435,11 +435,10 @@ return [
         'handler' => function () { (new CargoController())->saveOrUpdate(); },
     ],
     [
-        // POST نه PATCH — CargoController::updateCargoInfo داخلاً
-        // $_SERVER['REQUEST_METHOD'] !== 'POST' را رد می‌کند (کنترلرهای
-        // legacy فقط GET/POST را می‌شناسند)؛ استفاده از PATCH اینجا باعث
-        // می‌شد router مسیر را تطبیق دهد ولی خودِ متد قدیمی با ۴۰۵ رد کند.
-        'method' => 'POST', 'path' => 'cargo/update', 'auth' => true, 'permission' => 'edit_cargo',
+        // PATCH — قبلاً POST بود چون CargoController::updateCargoInfo داخلاً
+        // فقط POST را می‌شناخت؛ با هماهنگی کلاینت اندروید (ApiServiceV2.kt)
+        // به فعل معنایی درست تغییر کرد (DEEP_CODE_REVIEW.md Phase4 #33).
+        'method' => 'PATCH', 'path' => 'cargo/update', 'auth' => true, 'permission' => 'edit_cargo',
         'handler' => function () { (new CargoController())->updateCargoInfo(); },
     ],
     [
@@ -447,7 +446,8 @@ return [
         'handler' => function () { (new CargoController())->confirmCargo(); },
     ],
     [
-        'method' => 'POST', 'path' => 'cargo/delete', 'auth' => true, 'permission' => 'delete_cargo',
+        // DELETE — همان دلیل بالا (Phase4 #33).
+        'method' => 'DELETE', 'path' => 'cargo/delete', 'auth' => true, 'permission' => 'delete_cargo',
         'handler' => function () { (new CargoController())->deleteCargoInfo(); },
     ],
     [
@@ -530,9 +530,12 @@ return [
         'handler' => function () { $_GET['action'] = 'createUser'; (new UserController())->handle(); },
     ],
     [
-        // POST نه PATCH — UserController::handle فقط isGet()/isPost() را
-        // می‌شناسد (نه PATCH/DELETE)؛ همان محدودیت بالا در مورد cargo/update.
-        'method' => 'POST', 'path' => 'users/{id}/update', 'auth' => true, 'permission' => null,
+        // PATCH — قبلاً POST بود؛ UserController::handle حالا با
+        // Request::isWrite() به‌جای isPost() این شاخه را برای هر فعل
+        // نوشتنی (POST/PATCH/DELETE) باز می‌کند تا createUser (POST) و
+        // updateUser (PATCH) و deleteUser (DELETE) هرکدام فعل معنایی
+        // خودشان را داشته باشند (DEEP_CODE_REVIEW.md Phase4 #33).
+        'method' => 'PATCH', 'path' => 'users/{id}/update', 'auth' => true, 'permission' => null,
         'handler' => function (array $params) {
             $_GET['action'] = 'updateUser';
             $_GET['id'] = $params['id'];
@@ -540,7 +543,8 @@ return [
         },
     ],
     [
-        'method' => 'POST', 'path' => 'users/{id}/delete', 'auth' => true, 'permission' => 'manage_users',
+        // DELETE — همان دلیل بالا (Phase4 #33).
+        'method' => 'DELETE', 'path' => 'users/{id}/delete', 'auth' => true, 'permission' => 'manage_users',
         'handler' => function (array $params) {
             $_GET['action'] = 'deleteUser';
             $_GET['userId'] = $params['id']; // نام فیلد داخلی UserController متفاوت از {id} مسیر است
@@ -569,11 +573,12 @@ return [
         'handler' => function () { $_GET['action'] = 'sendMessage'; (new ChatController())->handleChatRequest(); },
     ],
     [
-        // POST نه PATCH — ChatController::handleChatRequest فقط GET یا
-        // دقیقاً REQUEST_METHOD==='POST' را می‌شناسد؛ با PATCH نه شاخه‌ی GET
-        // اجرا می‌شد نه شاخه‌ی POST، یعنی پاسخ کاملاً خالی (بدون هیچ echo)
-        // برمی‌گشت — حتی بی‌سروصداتر از یک ۴۰۵.
-        'method' => 'POST', 'path' => 'chat/messages/{id}/edit', 'auth' => true, 'permission' => null,
+        // PATCH — قبلاً POST بود؛ ChatController::handleChatRequest حالا با
+        // Request::isWrite() به‌جای چک خام REQUEST_METHOD==='POST' این
+        // شاخه را برای هر فعل نوشتنی باز می‌کند تا sendMessage/markAsRead
+        // (POST) و editMessage (PATCH) و deleteMessage (DELETE) هرکدام
+        // فعل معنایی خودشان را داشته باشند (DEEP_CODE_REVIEW.md Phase4 #33).
+        'method' => 'PATCH', 'path' => 'chat/messages/{id}/edit', 'auth' => true, 'permission' => null,
         'handler' => function (array $params) {
             $_GET['action'] = 'editMessage';
             $_GET['messageId'] = $params['id'];
@@ -581,7 +586,8 @@ return [
         },
     ],
     [
-        'method' => 'POST', 'path' => 'chat/messages/{id}/delete', 'auth' => true, 'permission' => null,
+        // DELETE — همان دلیل بالا (Phase4 #33).
+        'method' => 'DELETE', 'path' => 'chat/messages/{id}/delete', 'auth' => true, 'permission' => null,
         'handler' => function (array $params) {
             $_GET['action'] = 'deleteMessage';
             $_GET['messageId'] = $params['id'];
