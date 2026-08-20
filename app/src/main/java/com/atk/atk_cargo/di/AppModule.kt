@@ -16,6 +16,7 @@ import com.atk.atk_cargo.feature.cargo_counter.presentation.CargoCounterViewMode
 import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoViewModel
 import com.atk.atk_cargo.feature.chat.data.ChatPreferencesStore
 import com.atk.atk_cargo.feature.chat.data.ChatRepository
+import com.atk.atk_cargo.feature.home.presentation.ProfileViewModel
 import com.atk.atk_cargo.security.CryptoManager
 import com.atk.atk_cargo.security.SecurityVerifier
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
@@ -70,5 +71,6 @@ val appModule = module {
     viewModel { StartupViewModel(androidApplication(), get(), get(), get(), get()) }
     viewModel { InitialInfoViewModel(get()) }
     viewModel { CargoCounterViewModel(get()) }
+    viewModel { ProfileViewModel(get()) }
 }
 

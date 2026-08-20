@@ -48,8 +48,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.atk.atk_cargo.api.RetrofitClient
-import com.atk.atk_cargo.api.UpdateUserRequest
 import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.feature.admin.presentation.getUserTypeDisplay
 import kotlinx.coroutines.delay
@@ -63,6 +61,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 fun ProfileSettingsDialog(
     user: User,
+    viewModel: ProfileViewModel,
     onDismiss: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -318,37 +317,31 @@ fun ProfileSettingsDialog(
             confirmButton = {
                 Button(
                     onClick = {
-                        scope.launch {
-                            isLoading = true
-                            try {
-                                val updateRequest = UpdateUserRequest(
-                                    id = user.id,
-                                    username = user.username,
-                                    fullName = null,
-                                    password = password,
-                                    currentPassword = currentPassword,
-                                    userType = user.userType
-                                )
-                                val response = RetrofitClient.apiServiceV2.updateUser(
-                                    request = updateRequest,
-                                    route = com.atk.atk_cargo.api.ApiV2Routes.userUpdate(updateRequest.id)
-                                )
-                                if (response.success) {
-                                    Toast.makeText(context, "رمز عبور با موفقیت تغییر کرد", Toast.LENGTH_SHORT).show()
+                        isLoading = true
+                        viewModel.changePassword(
+                            user = user,
+                            currentPassword = currentPassword,
+                            newPassword = password,
+                            onSuccess = {
+                                isLoading = false
+                                Toast.makeText(context, "رمز عبور با موفقیت تغییر کرد", Toast.LENGTH_SHORT).show()
+                                scope.launch {
                                     delay(600.milliseconds)
                                     onDismiss()
                                     onLogout()
-                                } else {
-                                    errorMessage = response.message
-                                    showConfirmation = false
                                 }
-                            } catch (e: Exception) {
-                                errorMessage = "خطا در تغییر رمز عبور: ${e.message}"
-                                showConfirmation = false
-                            } finally {
+                            },
+                            onFailure = { message ->
                                 isLoading = false
+                                errorMessage = message
+                                showConfirmation = false
+                            },
+                            onError = { message ->
+                                isLoading = false
+                                errorMessage = "خطا در تغییر رمز عبور: $message"
+                                showConfirmation = false
                             }
-                        }
+                        )
                     },
                     enabled = !isLoading,
                     modifier = Modifier.height(48.dp)
