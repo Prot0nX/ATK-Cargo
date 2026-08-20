@@ -269,9 +269,12 @@ class SecurityVerifier(private val context: Context) {
     private fun fetchLicenseInfo(): JSONObject? {
         var connection: HttpURLConnection? = null
         return try {
-            val infoUrl = URL("$LICENSE_INFO_URL?licenseKey=$LICENSE_KEY")
+            // کلید در هدر، نه query string، تا در لاگ دسترسی وب‌سرور/پروکسی
+            // ثبت نشود (DEEP_CODE_REVIEW.md Top20 #10).
+            val infoUrl = URL(LICENSE_INFO_URL)
             connection = infoUrl.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
+            connection.setRequestProperty("X-License-Key", LICENSE_KEY)
             connection.connectTimeout = BUFFER_DURATION
             connection.readTimeout = BUFFER_DURATION
 

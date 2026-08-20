@@ -155,7 +155,11 @@ class LicenseController {
 
         $this->enforceRateLimit();
 
-        $licenseKey = trim((string)$this->request->get('licenseKey', ''));
+        // کلید در هدر (نه query string که در لاگ دسترسی وب‌سرور/پروکسی ثبت
+        // می‌شود) — DEEP_CODE_REVIEW.md Top20 #10. بدون fallback به GET، چون
+        // سرور فعلی صرفاً محیط تست است و هیچ نصب واقعی به این endpoint وابسته
+        // نیست (تأیید صریح کاربر).
+        $licenseKey = trim((string)($this->request->getHeader('X-License-Key') ?? ''));
 
         if (empty($licenseKey) || strlen($licenseKey) !== 32) {
             Response::json([

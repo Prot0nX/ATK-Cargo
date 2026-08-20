@@ -564,7 +564,9 @@ if ($updateLastCheck) {
 **Priority:** MEDIUM
 **Estimated Effort:** Low
 
-**Status:** ⚠️ Partially fixed (2026-08-19) — فقط بند ۲ (rate limit) طبق دامنه‌ی تأییدشده‌ی Phase2.14 انجام شد: هر دو `validateLicense()` و `getLicenseInfo()` با `LoginAttemptLimiter` و کلید `license_<IP>` محافظت می‌شوند (سقف مؤثر ۵ درخواست/۱۵دقیقه). با هارنس مستقل تأیید شد که این باکت از `crash_` و از شمارنده‌های واقعی لاگین ایزوله است. بندهای ۱ (GET→POST) و ۳ (حذف `company_name`) هنوز انجام نشده‌اند.
+**Status:** ✅ Fixed (2026-08-20) — بند ۲ (rate limit) در Phase2.14 انجام شد: هر دو `validateLicense()` و `getLicenseInfo()` با `LoginAttemptLimiter` و کلید `license_<IP>` محافظت می‌شوند (سقف مؤثر ۵ درخواست/۱۵دقیقه)؛ با هارنس مستقل تأیید شد که این باکت از `crash_` و از شمارنده‌های واقعی لاگین ایزوله است.
+
+بند ۱ (کلید در URL) با یک راه‌حل جایگزین بسته شد، نه دقیقاً پیشنهاد اولیه‌ی گزارش. **توضیح مهم از کاربر:** مدل لایسنس این پروژه per-customer است — هر مشتری یک `LICENSE_KEY` اختصاصی در زمان build داخل `secrets.cpp` embed می‌شود و در جدول `licenses` سرور چک می‌شود (در برابر `SignChecker` هم که ثابت است، برای همه‌ی مشتری‌ها یکسان). یعنی «بازطراحی لایسنس با امضای سمت سرور» (پیشنهاد اولیه‌ی Phase2 #10) فرض غلطی بود — این مدل عمداً کاملاً کلاینت‌محور طراحی شده و نباید به سمت سرور منتقل شود. تنها مشکل واقعی همان نشت کلید در query string بود، نه کل مدل auth. به‌جای تغییر `getLicenseInfo` از GET به POST (که شکل endpoint را عوض می‌کرد)، کلید از هدر سفارشی `X-License-Key` خوانده می‌شود (`LicenseController.php`) و کلاینت (`SecurityVerifier.kt::fetchLicenseInfo`) هم به همین ترتیب تغییر کرد — نتیجه یکسان (کلید دیگر در URL/لاگ سرور ثبت نمی‌شود) با تغییر کمتر. طبق تأیید صریح کاربر، چون سرور فعلی صرفاً محیط تست است، **بدون fallback به GET قدیمی** (سازگاری با نصب‌های موجود لازم نیست). بند ۳ (حذف `company_name` از پاسخ) هنوز انجام نشده — خارج از دامنه‌ی این تغییر بود. `php -l`، `phpstan` (سطح ۵)، `phpunit` (۶۸ تست)، `compileDebugKotlin` سبز.
 
 ---
 
@@ -2471,7 +2473,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | # | اقدام | فایل | Effort |
 |---|-------|------|--------|
 | ۹ | ارتقای PHP به 8.3 | سرور | Medium |
-| ۱۰ | بازطراحی لایسنس با امضای سمت سرور | `LicenseController` + `SecurityVerifier` | Medium |
+| ۱۰ | ✅ رفع نشت کلید لایسنس در URL — مدل per-customer client-side دست‌نخورده ماند | `LicenseController` + `SecurityVerifier` | Low |
 | ۱۱ | ✅ انتقال ۹ تماس شبکه از Composable به ViewModel (۹ از ۹ انجام شد) | ۹ فایل | High |
 | ۱۲ | ✅ رفع انیمیشن‌ها با `graphicsLayer` | ۵ فایل | Low |
 | ۱۳ | ✅ انتقال shimهای PHP به Router (مسیرهای موازی اضافه و ۶ shim قدیمی حذف شد) | ۶ فایل | Medium |
@@ -2524,7 +2526,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۷ | ✅ CI تست اندروید اجرا نمی‌کند | Testing | **HIGH** | `.github/workflows/ci.yml:69` | Low |
 | ۸ | ✅ ایندکس گمشده روی `trackingNumber` | Performance/DB | **HIGH** | `PHP/src/Repositories/CargoRepository.php:299` | Low |
 | ۹ | ✅ recomposition در هر فریم انیمیشن | Performance | **HIGH** | `InitialInfoDialogs.kt:81` + ۴ فایل | Low |
-| ۱۰ | ⚠️ لایسنس بدون auth/rate-limit، کلید در URL (rate-limit انجام شد؛ auth/URL باقی) | Security | MEDIUM | `PHP/src/Controllers/LicenseController.php:120` | Low |
+| ۱۰ | ✅ لایسنس بدون auth/rate-limit، کلید در URL (rate-limit + انتقال کلید به هدر انجام شد) | Security | MEDIUM | `PHP/src/Controllers/LicenseController.php:120` | Low |
 | ۱۱ | ✅ نشت پیام استثنا به کلاینت | Security | MEDIUM | `PHP/src/Controllers/UserController.php:83` | Low |
 | ۱۲ | ✅ shimهای PHP، Router را دور می‌زدند (۶ فایل حذف شد) | Architecture | MEDIUM | ۶ فایل ریشه `PHP/` | Medium |
 | ۱۳ | `<Directory>` نامعتبر در `.htaccess` | Security/Config | MEDIUM | `PHP/.htaccess:20,70,75` | Low |
