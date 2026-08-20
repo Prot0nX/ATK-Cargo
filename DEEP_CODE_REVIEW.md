@@ -677,6 +677,19 @@ curl -sI https://atk-nk.ir/Cargo/test_api/logs/session_activity.log  # باید 
 **Priority:** MEDIUM
 **Estimated Effort:** Low
 
+**Status:** ✅ Fixed (2026-08-20) — هر ۳ دستور نامعتبر (`<Directory "uploads">`، `<Directory "config">`، `<DirectoryMatch ...>`) از `PHP/.htaccess` حذف شدند؛ به‌جایشان یک کامنت توضیح می‌دهد کدام پوشه‌ها از قبل `.htaccess` مستقل درست دارند:
+- `config/`، `logs/`، `log/` — هرکدام از قبل `.htaccess` مجزا با `Require all denied` دارند (بررسی شد، دست‌نخورده ماندند).
+- `uploads/` — در این ریپو اصلاً وجود ندارد و هیچ کد PHP ای به آن ارجاع نمی‌دهد؛ چیزی برای محافظت نبود.
+- `backups/`/`private/`/`secret/` — همین‌طور؛ فقط نام‌های فرضی در الگوی قدیمی بودند.
+
+کامنت نادرست در `PHP/log/.htaccess` هم که DirectoryMatch ریشه را «لایه‌ی دفاعی اضافه» توصیف می‌کرد (درحالی‌که یک دستور کاملاً نامعتبر و بی‌اثر بود) اصلاح شد.
+
+**اقدام باقی‌مانده برای شما:** روی سرور تأیید کنید که هنوز ۴۰۳/۴۰۴ درست برمی‌گردد (نه ۵۰۰ که نشانه‌ی AllowOverride متفاوت از انتظار است):
+```bash
+curl -sI https://atk-nk.ir/Cargo/test_api/config/config.php
+curl -sI https://atk-nk.ir/Cargo/test_api/logs/session_activity.log
+```
+
 ---
 
 ### [MEDIUM] فیلتر User-Agent، ابزارهای مانیتورینگ را مسدود می‌کند
@@ -2875,7 +2888,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱۰ | ✅ لایسنس بدون auth/rate-limit، کلید در URL (rate-limit + انتقال کلید به هدر انجام شد) | Security | MEDIUM | `PHP/src/Controllers/LicenseController.php:120` | Low |
 | ۱۱ | ✅ نشت پیام استثنا به کلاینت | Security | MEDIUM | `PHP/src/Controllers/UserController.php:83` | Low |
 | ۱۲ | ✅ shimهای PHP، Router را دور می‌زدند (۶ فایل حذف شد) | Architecture | MEDIUM | ۶ فایل ریشه `PHP/` | Medium |
-| ۱۳ | `<Directory>` نامعتبر در `.htaccess` | Security/Config | MEDIUM | `PHP/.htaccess:20,70,75` | Low |
+| ۱۳ | ✅ `<Directory>` نامعتبر در `.htaccess` | Security/Config | MEDIUM | `PHP/.htaccess:20,70,75` | Low |
 | ۱۴ | ✅ `downloadUrl` بدون اعتبارسنجی دامنه | Security | MEDIUM | `UpdateManager.kt:171` | Low |
 | ۱۵ | ✅ `Log.w`/`Log.e` در release باقی می‌مانند | Security/Logging | MEDIUM | `proguard-rules.pro:179` | Low |
 | ۱۶ | ✅ گزارش کرش بدون rate limit | Availability | MEDIUM | `DiagnosticsController.php:100` | Low |
