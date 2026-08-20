@@ -34,9 +34,11 @@ android {
 
 dependencies {
     implementation(project(":core:designsystem"))
+    implementation(project(":core:common"))
     implementation(project(":core:network"))
     implementation(project(":core:domain"))
     implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.ui)
