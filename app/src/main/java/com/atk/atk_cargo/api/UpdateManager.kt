@@ -119,7 +119,7 @@ class UpdateManager(
                 val encodedVersion = URLEncoder.encode(currentAppVersion, "UTF-8")
 
                 val request = Request.Builder()
-                    .url("${Constants.BASE_URL}/check_update.php?current_version=$encodedVersion")
+                    .url("${Constants.BASE_URL}api/v2/index.php?route=utility/check-update&current_version=$encodedVersion")
                     .addHeader("X-Api-Key", Constants.API_KEY)
                     .build()
 
@@ -215,6 +215,8 @@ class UpdateManager(
                         }
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 val errorMsg = "خطا در بررسی بروزرسانی: ${e.localizedMessage}"
                 _downloadState.value = DownloadState.Error(errorMsg)
@@ -374,6 +376,8 @@ class UpdateManager(
                     totalBytes = totalBytes,
                     progress = lastProgress
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 handleDownloadError(e)
             }
@@ -392,6 +396,8 @@ class UpdateManager(
             }
             val actualHash = digest.digest().joinToString("") { "%02x".format(it) }
             actualHash.equals(expectedHash.trim(), ignoreCase = true)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("UpdateManager_Log", "خطا در محاسبه SHA-256: ${e.message}", e)
             false
@@ -412,6 +418,8 @@ class UpdateManager(
                 response.headers["content-length"]?.toLongOrNull()
                     ?: throw IOException("Content length not found")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw IOException("Error getting file size: ${e.message}", e)
         }
@@ -473,6 +481,8 @@ class UpdateManager(
             try {
                 executeDownload()
                 break
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 attempt++
                 if (attempt >= maxAttempts) throw e
@@ -585,6 +595,8 @@ class UpdateManager(
             } else {
                 throw Exception("برنامه‌ای برای نصب فایل APK یافت نشد")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             val errorMessage = when {
                 e is IOException && e.message?.contains("ENOSPC") == true -> "فضای کافی در دستگاه موجود نیست"
@@ -623,6 +635,8 @@ class UpdateManager(
                     }
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("UpdateManager_Log", "Error cleaning up download files", e)
         }

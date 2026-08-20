@@ -18,7 +18,10 @@ class UserService {
     /**
      * بررسی اعتبار کاربر و احراز هویت
      *
-     * استراتژی هشینگ سه‌مسیره (DEEP_CODE_AUDIT.md #Phase3.11):
+     * استراتژی هشینگ دومسیره (DEEP_CODE_AUDIT.md #Phase3.11؛ حالت سوم/
+     * legacy در Phase1 #4 حذف شد — همه‌ی کاربران production با
+     * scripts/migrate_legacy_passwords_to_bcrypt.php به bcrypt مهاجرت
+     * کردند، تأیید ۲۰۲۶-۰۸-۲۰: ۰ از ۳۸ کاربر غیر-bcrypt باقی مانده):
      * کلاینت از این مرحله به بعد رمز خام (نه SHA-256 آن) می‌فرستد، اما تا
      * وقتی همه‌ی دستگاه‌های یک کاربر به نسخه‌ی جدید آپدیت نشده‌اند، دستگاه‌های
      * قدیمی همچنان SHA-256(رمز) می‌فرستند — پس هر دو باید امتحان شوند:
@@ -27,11 +30,6 @@ class UserService {
      *    هش دیتابیس بی‌صدا به حالت ۱ ارتقا می‌یابد (Silent Migration) — از آن
      *    پس فقط دستگاه‌های آپدیت‌شده‌ی همان کاربر می‌توانند وارد شوند تا
      *    دوباره یک لاگین موفق با کلاینت جدید آن را عبور دهد.
-     * ۳. SHA-256 یا متن خام مستقیم در دیتابیس (سیستم بسیار قدیمی، پیش از
-     *    bcrypt) — با رمز خام و SHA-256(رمز) هر دو مقایسه و روی موفقیت به
-     *    bcrypt(رمز خام) ارتقا می‌یابد. **به‌طور پیش‌فرض غیرفعال** — فقط با
-     *    ALLOW_LEGACY_PLAINTEXT_LOGIN=true در .env روشن می‌شود (DEEP_CODE_REVIEW.md
-     *    Phase1.4).
      */
     public function verifyCredentials(string $username, string $password): ?array {
         $user = $this->userRepository->getByUsername($username);
@@ -41,46 +39,17 @@ class UserService {
 
         $storedPassword = $user['password'];
 
-        // ===== تشخیص نوع هش: bcrypt پیشوند $2y$ یا $2a$ دارد =====
-        // از بررسی password_get_info['algo'] اجتناب می‌شود چون در PHP 8
-        // برای هش‌های ناشناخته null برمی‌گرداند (نه 0 مثل PHP 7) و
-        // باعث می‌شود شرط algo !== 0 به اشتباه true شود.
-        $isBcrypt = (
-            strlen($storedPassword) >= 60
-            && (str_starts_with($storedPassword, '$2y$') || str_starts_with($storedPassword, '$2a$'))
-        );
-
-        if ($isBcrypt) {
-            // ===== حالت ۱: bcrypt(رمز خام) — طرح جدید =====
-            if (password_verify($password, $storedPassword)) {
-                if (password_needs_rehash($storedPassword, PASSWORD_BCRYPT, ['cost' => 12])) {
-                    $this->userRepository->updatePassword($user['id'], password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]));
-                }
-                return $user;
-            }
-
-            // ===== حالت ۲: bcrypt(SHA-256(رمز)) — طرح قبلی، کلاینت هنوز آپدیت نشده =====
-            if (password_verify(hash('sha256', $password), $storedPassword)) {
+        // ===== حالت ۱: bcrypt(رمز خام) — طرح جدید =====
+        if (password_verify($password, $storedPassword)) {
+            if (password_needs_rehash($storedPassword, PASSWORD_BCRYPT, ['cost' => 12])) {
                 $this->userRepository->updatePassword($user['id'], password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]));
-                return $user;
             }
-
-            return null;
+            return $user;
         }
 
-        // ===== حالت ۳: SHA-256 یا متن خام مستقیم در دیتابیس (سیستم بسیار قدیمی) =====
-        // DEEP_CODE_REVIEW.md Phase1.4 — این مسیر به‌طور پیش‌فرض غیرفعال است
-        // چون رمز متن‌خام کاربران مهاجرت‌نشده را می‌پذیرد. قبل از فعال‌سازی
-        // موقت آن (مثلاً برای مهاجرت یک‌بارهٔ کاربران باقی‌مانده)، حتماً روی
-        // دیتابیس تولید بررسی کنید که آیا اصلاً رکوردی باقی مانده:
-        //   SELECT COUNT(*) FROM Users WHERE password NOT LIKE '$2y$%' AND password NOT LIKE '$2a$%';
-        // اگر صفر بود، این بلوک (و متغیر محیطی زیر) را کامل حذف کنید.
-        $legacyPlaintextLoginEnabled = ($_ENV['ALLOW_LEGACY_PLAINTEXT_LOGIN'] ?? getenv('ALLOW_LEGACY_PLAINTEXT_LOGIN') ?: '') === 'true';
-        if ($legacyPlaintextLoginEnabled
-            && (hash_equals($storedPassword, $password) || hash_equals($storedPassword, hash('sha256', $password)))
-        ) {
-            $upgradedHash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
-            $this->userRepository->updatePassword($user['id'], $upgradedHash);
+        // ===== حالت ۲: bcrypt(SHA-256(رمز)) — طرح قبلی، کلاینت هنوز آپدیت نشده =====
+        if (password_verify(hash('sha256', $password), $storedPassword)) {
+            $this->userRepository->updatePassword($user['id'], password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]));
             return $user;
         }
 

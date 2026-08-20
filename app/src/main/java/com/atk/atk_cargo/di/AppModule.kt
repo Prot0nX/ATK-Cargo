@@ -7,6 +7,7 @@ import com.atk.atk_cargo.core.startup.StartupViewModel
 import com.atk.atk_cargo.data.db.AppDatabase
 import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
+import com.atk.atk_cargo.feature.admin.presentation.UserManagementViewModel
 import com.atk.atk_cargo.feature.auth.data.AuthRepository
 import com.atk.atk_cargo.feature.auth.data.AuthRepositoryImpl
 import com.atk.atk_cargo.feature.auth.domain.LoginUseCase
@@ -16,13 +17,16 @@ import com.atk.atk_cargo.feature.cargo_counter.presentation.CargoCounterViewMode
 import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoViewModel
 import com.atk.atk_cargo.feature.chat.data.ChatPreferencesStore
 import com.atk.atk_cargo.feature.chat.data.ChatRepository
+import com.atk.atk_cargo.feature.home.presentation.ProfileViewModel
 import com.atk.atk_cargo.security.CryptoManager
 import com.atk.atk_cargo.security.SecurityVerifier
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
-import org.koin.androidx.viewmodel.dsl.viewModel
+// Koin 4.x: ViewModel DSL از org.koin.androidx.viewmodel.dsl به یک ماژول
+// چندسکویی (Multiplatform) در org.koin.core.module.dsl منتقل شد — Phase4 #36.
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
@@ -70,5 +74,7 @@ val appModule = module {
     viewModel { StartupViewModel(androidApplication(), get(), get(), get(), get()) }
     viewModel { InitialInfoViewModel(get()) }
     viewModel { CargoCounterViewModel(get()) }
+    viewModel { ProfileViewModel(get()) }
+    viewModel { UserManagementViewModel(get()) }
 }
 

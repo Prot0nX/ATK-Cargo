@@ -22,8 +22,12 @@ import com.atk.atk_cargo.domain.model.Kilograms
 import com.atk.atk_cargo.domain.model.QuotaInfo
 import com.atk.atk_cargo.domain.model.toDomain
 import com.atk.atk_cargo.domain.model.toDto
+import com.atk.atk_cargo.feature.cargo.domain.CargoSnackbarQueue
+import com.atk.atk_cargo.feature.cargo.domain.QuotaValidationUseCase
 import com.atk.atk_cargo.utils.JalaliDateUtils
 import com.google.gson.Gson
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,6 +60,21 @@ class CargoViewModelFactory(
 }
 
 /**
+ * دیالوگ‌های صفحه‌ی ثبت/نظارت حواله، به‌عنوان یک state یکتا به‌جای ۳ پرچم
+ * boolean مستقل (DEEP_CODE_REVIEW.md Phase4 #31) — قبلاً `showNetWeightDialog`،
+ * `showDuplicateConfirmationDialog` و `showDuplicateDialog` هرکدام جدا بودند
+ * و از نظر type-system چیزی مانع نمایش هم‌زمان‌شان نمی‌شد (یک حالت نامعتبر
+ * که هرگز عمداً تولید نمی‌شد، اما ممکن بود). با sealed interface، حداکثر
+ * یک دیالوگ می‌تواند در هر لحظه فعال باشد.
+ */
+sealed interface CargoDialog {
+    data object None : CargoDialog
+    data object NetWeight : CargoDialog
+    data class DuplicateConfirmation(val message: String) : CargoDialog
+    data class Duplicates(val trackingNumbers: List<String>) : CargoDialog
+}
+
+/**
  * حالت یکدست صفحه‌ی ثبت/نظارت حواله (DEEP_CODE_AUDIT.md #Phase3.5) —
  * جایگزین ۱۶ StateFlow مستقلی که قبلاً هر کدام یک subscription جدا در
  * Composableهای مصرف‌کننده داشتند. پیام‌های snackbar (`resultMessage`/
@@ -72,22 +91,23 @@ data class CargoUiState(
     val initialInfo: QuotaInfo? = null,
     val totalNetWeight: String = "",
     val isSubmitting: Boolean = false,
-    val showNetWeightDialog: Boolean = false,
-    val showDuplicateConfirmationDialog: Boolean = false,
-    val duplicateWarningMessage: String = "",
+    val dialog: CargoDialog = CargoDialog.None,
     val loadableTonnage: String = "",
     val loadableTrucks18Wheeler: String = "",
     val loadableTrucks10Wheeler: String = "",
-    val duplicateTrackingNumbers: List<String> = emptyList(),
-    val showDuplicateDialog: Boolean = false,
     val selectedShipNames: Set<String> = emptySet()
 )
 
 class CargoViewModel(
     private val repository: ReportsRepository,
-    private val userPreferencesManager: UserPreferencesManager
+    private val userPreferencesManager: UserPreferencesManager,
+    // پیش‌فرض واقعی Dispatchers.IO است؛ فقط برای تست با یک TestDispatcher
+    // جایگزین می‌شود تا withContext(ioDispatcher) به‌جای یک ترد پس‌زمینه‌ی
+    // واقعی (که نمی‌تواند با runTest/advanceUntilIdle هماهنگ شود)، روی همان
+    // scheduler مجازی تست اجرا شود (DEEP_CODE_REVIEW.md Phase3 #20).
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
-    private val quotaValidationUseCase = com.atk.atk_cargo.feature.cargo.domain.QuotaValidationUseCase(repository)
+    private val quotaValidationUseCase = QuotaValidationUseCase(repository)
 
     private val _uiState = MutableStateFlow(CargoUiState())
     val uiState: StateFlow<CargoUiState> = _uiState.asStateFlow()
@@ -103,7 +123,7 @@ class CargoViewModel(
     private val _isQuotaActive = MutableStateFlow<Boolean?>(null)
     private val _pendingCargoInfo = MutableStateFlow<CargoInfo?>(null)
 
-    private val snackbarQueue = com.atk.atk_cargo.feature.cargo.domain.CargoSnackbarQueue()
+    private val snackbarQueue = CargoSnackbarQueue()
     val resultMessage: StateFlow<String> = snackbarQueue.resultMessage
     val showAnimatedMessage: StateFlow<Boolean> = snackbarQueue.showAnimatedMessage
     val messageType: StateFlow<MessageType> = snackbarQueue.messageType
@@ -130,7 +150,7 @@ class CargoViewModel(
     // ازای هر کوتاژ منطبق یک درخواست جداگانه‌ی checkQuotaStatus زده شود
     // (رِیس N+1 قبلی).
     suspend fun checkQuotaExistenceCargo(quotaNumber: String, shipName: String): QuotaExistenceMultipleResponse {
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
             try {
                 val response = apiServiceV2.checkQuotaExistenceCargo(quotaNumber = quotaNumber, shipName = shipName)
                 if (response.isSuccessful) {
@@ -138,6 +158,8 @@ class CargoViewModel(
                 } else {
                     throw Exception("خطا در درخواست: ${response.code()}")
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 throw Exception("خطا در بررسی وجود کوتاژ: ${e.message}")
             }
@@ -222,7 +244,7 @@ class CargoViewModel(
     }
 
     fun dismissDuplicateDialog() {
-        _uiState.update { it.copy(showDuplicateDialog = false, duplicateTrackingNumbers = emptyList()) }
+        _uiState.update { it.copy(dialog = CargoDialog.None) }
     }
 
     // این متد از چند مسیر متفاوت صدا زده می‌شود: هم لمس دستی دکمه‌ی
@@ -270,6 +292,8 @@ class CargoViewModel(
                             )
                         }
                     )
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     showErrorMessage("خطا در به‌روزرسانی اطلاعات: ${e.message}")
                 }
@@ -280,7 +304,7 @@ class CargoViewModel(
     }
 
     fun hideNetWeightDialog() {
-        _uiState.update { it.copy(showNetWeightDialog = false, scaleReceiptNumber = "") }
+        _uiState.update { it.copy(dialog = CargoDialog.None, scaleReceiptNumber = "") }
     }
 
     fun submitCargoInfo(
@@ -357,6 +381,8 @@ class CargoViewModel(
                     cargoInfo, trackingNumber, netWeight,
                     scaleReceiptNumber, shortageWeight, excessWeight
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 showErrorMessage("خطا در ثبت اطلاعات بار: ${e.message}")
             } finally {
@@ -458,6 +484,8 @@ class CargoViewModel(
                 _pendingCargoInfo.value = cargoInfo
                 handleErrorHttpResponse(response)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             showErrorMessage("خطا در ارتباط با سرور: ${e.message}")
         }
@@ -478,6 +506,8 @@ class CargoViewModel(
             } else {
                 showErrorMessage("خطا در ارسال اطلاعات بار: کد خطا $errorCode")
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             showErrorMessage("خطا در پردازش پاسخ سرور: ${e.message}")
         }
@@ -485,7 +515,7 @@ class CargoViewModel(
 
     private fun handle24HourWarning(responseBody: SaveOrUpdateResponse) {
         if (responseBody.requiresConfirmation == true) {
-            _uiState.update { it.copy(duplicateWarningMessage = responseBody.message, showDuplicateConfirmationDialog = true) }
+            _uiState.update { it.copy(dialog = CargoDialog.DuplicateConfirmation(responseBody.message)) }
         } else {
             showMessage(responseBody.message, MessageType.WARNING)
         }
@@ -553,7 +583,7 @@ class CargoViewModel(
     }
 
     fun dismissDuplicateConfirmationDialog() {
-        _uiState.update { it.copy(showDuplicateConfirmationDialog = false, duplicateWarningMessage = "") }
+        _uiState.update { it.copy(dialog = CargoDialog.None) }
         _pendingCargoInfo.value = null
     }
 
@@ -581,6 +611,8 @@ class CargoViewModel(
                     } else {
                         handleErrorHttpResponse(response)
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     showErrorMessage("خطا در ارتباط با سرور: ${e.message}")
                 }
@@ -631,6 +663,8 @@ class CargoViewModel(
                 showMessage("خطا در بررسی شماره قبض باسکول: $errorBody", MessageType.ERROR)
                 false
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             showMessage("خطا در ارتباط با سرور: ${e.message}", MessageType.ERROR)
             false
@@ -641,7 +675,7 @@ class CargoViewModel(
         viewModelScope.launch {
             if (isValidScaleReceipt(barcode)) {
                 if (checkScaleReceiptNumber(barcode)) {
-                    _uiState.update { it.copy(scaleReceiptNumber = barcode, showNetWeightDialog = true) }
+                    _uiState.update { it.copy(scaleReceiptNumber = barcode, dialog = CargoDialog.NetWeight) }
                 }
             } else {
                 showMessage("شماره قبض باسکول معتبر نیست. لطفاً دوباره اسکن کنید.", MessageType.ERROR)
@@ -664,14 +698,14 @@ class CargoViewModel(
     ) {
         viewModelScope.launch {
             try {
-                val result = withContext(Dispatchers.IO) {
+                val result = withContext(ioDispatcher) {
                     repository.getCargoInfo(quotaNumber, shippingCompany, warehouse, cargoType)
                 }
 
                 val cargoList = result.cargoInfoList.map { it.toDomain() }
                 val duplicateTrackingNumbers = checkForDuplicateTrackingNumbers(cargoList)
                 if (duplicateTrackingNumbers.isNotEmpty()) {
-                    _uiState.update { it.copy(duplicateTrackingNumbers = duplicateTrackingNumbers, showDuplicateDialog = true) }
+                    _uiState.update { it.copy(dialog = CargoDialog.Duplicates(duplicateTrackingNumbers)) }
                     Log.w("CargoViewModel_Log", "حواله‌های تکراری شناسایی شدند: ${duplicateTrackingNumbers.joinToString(", ")}")
                 }
 
@@ -698,7 +732,7 @@ class CargoViewModel(
                 // بین رفتن ViewModel به‌درستی لغو می‌شود.
                 launch {
                     try {
-                        val response = withContext(Dispatchers.IO) {
+                        val response = withContext(ioDispatcher) {
                             apiServiceV2.getLoadableTonnage(
                                 route = ApiV2Routes.quotaLoadableTonnage(qNumber),
                                 shippingCompany = sCompany,
@@ -728,13 +762,24 @@ class CargoViewModel(
                         } else {
                             Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage during initial load")
                         }
-                    } catch (e: Exception) {
+                    } catch (e: CancellationException) {
+                        // برخلاف بلوک Throwable زیر، لغو خودِ این coroutine باید عادی
+                        // propagate شود (Phase3 #22) — در غیر این صورت لغو (مثلاً با پاک
+                        // شدن ViewModel) بی‌صدا بلعیده می‌شد.
+                        throw e
+                    } catch (e: Throwable) {
+                        // Throwable عمداً: این یک بروزرسانی جانبی/best-effort است؛ نباید
+                        // با لغو parent coroutine (loadCargoInfoList) کل بارگذاری لیست
+                        // حواله‌ها را هم خراب کند. قبلاً فقط Exception گرفته می‌شد، پس
+                        // یک Error واقعی (مثلاً LinkageError) این ضمانت را دور می‌زد.
                         Log.e("CargoViewModel_Log", "Error calculating loadable tonnage", e)
                     }
                 }
 
                 updateInfoValues()
                 onComplete()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 showMessage("خطا در ارتباط با سرور: ${e.localizedMessage}", MessageType.ERROR)
                 onComplete()
@@ -792,6 +837,8 @@ class CargoViewModel(
                         val serverMessage = parseCargoConfirmError(response.errorBody()?.string())
                         Result.failure(Exception(serverMessage ?: "خطا در ارتباط با سرور: ${response.code()}"))
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     Log.e("CargoViewModel_Log", "Error confirming cargo", e)
                     Result.failure(e)
@@ -813,6 +860,8 @@ class CargoViewModel(
                         showMessage("خطا: ${error.message}", MessageType.ERROR)
                     }
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e("CargoViewModel_Log", "Exception in cargo confirmation process", e)
                 showMessage("خطای غیرمنتظره: ${e.message}", MessageType.ERROR)
@@ -837,6 +886,8 @@ class CargoViewModel(
                 val errorBody = response.errorBody()?.string()
                 addMessageToQueue("خطا در تغییر وضعیت کوتاژ: $errorBody", MessageType.ERROR)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             addMessageToQueue("خطا در ارتباط با سرور: ${e.message}", MessageType.ERROR)
         }
@@ -868,6 +919,8 @@ class CargoViewModel(
                 } else {
                     showErrorMessage("خطا در به روز رسانی اطلاعات بار")
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 showErrorMessage("خطا در به روز رسانی اطلاعات بار: ${e.message}")
             }
@@ -912,6 +965,8 @@ class CargoViewModel(
                         updateLoadableTrucksCount(loadableTonnageValue)
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e("CargoViewModel_Log", "Error updating info values", e)
             }
@@ -926,7 +981,7 @@ class CargoViewModel(
     fun deleteCargo(cargoInfoRequest: CargoInfoRequest) {
         viewModelScope.launch {
             try {
-                val response = withContext(Dispatchers.IO) {
+                val response = withContext(ioDispatcher) {
                     apiServiceV2.deleteCargo(cargoInfoRequest)
                 }
                 if (response.isSuccessful) {
@@ -946,6 +1001,8 @@ class CargoViewModel(
                 } else {
                     showErrorMessage(parseDeleteErrorMessage(response.errorBody()?.string()))
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 showErrorMessage("استثنا در حذف حواله: ${e.message}")
             }
@@ -977,7 +1034,7 @@ class CargoViewModel(
         viewModelScope.launch(Dispatchers.Default) {
             try {
                 _uiState.value.initialInfo?.let { info ->
-                    val response = withContext(Dispatchers.IO) {
+                    val response = withContext(ioDispatcher) {
                         apiServiceV2.getLoadableTonnage(
                             route = ApiV2Routes.quotaLoadableTonnage(info.loadingQuotaNumber.toString()),
                             shippingCompany = info.shippingCompany,
@@ -1008,6 +1065,8 @@ class CargoViewModel(
                         Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage: ${response.errorBody()?.string()}")
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e("CargoViewModel_Log", "Error updating loadable tonnage", e)
             }

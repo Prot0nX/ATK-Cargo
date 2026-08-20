@@ -65,7 +65,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,13 +78,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.atk.atk_cargo.data.model.DeleteUserRequest
-import com.atk.atk_cargo.data.model.ForceLogoutRequest
-import com.atk.atk_cargo.api.RetrofitClient
+import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.data.model.User
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
-import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
@@ -106,9 +103,9 @@ fun UserManagementDialog(
     // Single expanded role state (accordion behavior - only one role open at a time)
     var expandedRole by remember { mutableStateOf<String?>("admin") }
 
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val userPreferencesManager = koinInject<UserPreferencesStore>()
+    val viewModel: UserManagementViewModel = koinViewModel()
 
     val currentUsername by userPreferencesManager.username.collectAsStateWithLifecycle(initialValue = "")
     val currentUserType by userPreferencesManager.userType.collectAsStateWithLifecycle(initialValue = "")
@@ -119,21 +116,16 @@ fun UserManagementDialog(
 
     fun fetchUsersWithStatus() {
         isLoading = true
-        scope.launch {
-            try {
-                // Try getAllUsersWithStatus first, fallback to getAllUsers if needed
-                val response = try {
-                    RetrofitClient.apiServiceV2.getAllUsersWithStatus()
-                } catch (_: Exception) {
-                    RetrofitClient.apiServiceV2.getAllUsers()
-                }
+        viewModel.fetchUsersWithStatus(
+            onSuccess = { response ->
                 users = sortUsersByType(response)
                 isLoading = false
-            } catch (e: Exception) {
-                Toast.makeText(context, "خطا در دریافت لیست کاربران: ${e.message}", Toast.LENGTH_LONG).show()
+            },
+            onError = { message ->
+                Toast.makeText(context, "خطا در دریافت لیست کاربران: $message", Toast.LENGTH_LONG).show()
                 isLoading = false
             }
-        }
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -307,6 +299,7 @@ fun UserManagementDialog(
 
     if (showAddDialog) {
         EnhancedAddUserDialog(
+            viewModel = viewModel,
             onDismiss = { showAddDialog = false },
             onUserAdded = { fetchUsersWithStatus() },
             isMainAdmin = isMainAdmin
@@ -319,23 +312,20 @@ fun UserManagementDialog(
             isMainAdmin = isMainAdmin,
             onDismiss = { showEditDialog = null },
             onSave = { updateRequest ->
-                scope.launch {
-                    try {
-                        val response = RetrofitClient.apiServiceV2.updateUser(
-                            request = updateRequest,
-                            route = com.atk.atk_cargo.api.ApiV2Routes.userUpdate(updateRequest.id)
-                        )
-                        if (response.success) {
-                            fetchUsersWithStatus()
-                            showEditDialog = null
-                            Toast.makeText(context, "اطلاعات کاربر با موفقیت بروزرسانی شد", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(context, response.message, Toast.LENGTH_LONG).show()
-                        }
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "خطا در ویرایش کاربر: ${e.message}", Toast.LENGTH_LONG).show()
+                viewModel.updateUser(
+                    request = updateRequest,
+                    onSuccess = {
+                        fetchUsersWithStatus()
+                        showEditDialog = null
+                        Toast.makeText(context, "اطلاعات کاربر با موفقیت بروزرسانی شد", Toast.LENGTH_SHORT).show()
+                    },
+                    onFailure = { message ->
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                    },
+                    onError = { message ->
+                        Toast.makeText(context, "خطا در ویرایش کاربر: $message", Toast.LENGTH_LONG).show()
                     }
-                }
+                )
             }
         )
     }
@@ -344,24 +334,20 @@ fun UserManagementDialog(
         EnhancedDeleteConfirmationDialog(
             user = user,
             onConfirm = {
-                scope.launch {
-                    try {
-                        val request = DeleteUserRequest(userId = user.id)
-                        val response = RetrofitClient.apiServiceV2.deleteUser(
-                            request = request,
-                            route = com.atk.atk_cargo.api.ApiV2Routes.userDelete(user.id)
-                        )
-                        if (response.success) {
-                            fetchUsersWithStatus()
-                            showDeleteConfirmation = null
-                            Toast.makeText(context, "کاربر با موفقیت حذف شد", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(context, response.message, Toast.LENGTH_LONG).show()
-                        }
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "خطا در حذف کاربر: ${e.message}", Toast.LENGTH_LONG).show()
+                viewModel.deleteUser(
+                    userId = user.id,
+                    onSuccess = {
+                        fetchUsersWithStatus()
+                        showDeleteConfirmation = null
+                        Toast.makeText(context, "کاربر با موفقیت حذف شد", Toast.LENGTH_SHORT).show()
+                    },
+                    onFailure = { message ->
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                    },
+                    onError = { message ->
+                        Toast.makeText(context, "خطا در حذف کاربر: $message", Toast.LENGTH_LONG).show()
                     }
-                }
+                )
             },
             onDismiss = { showDeleteConfirmation = null }
         )
@@ -371,33 +357,22 @@ fun UserManagementDialog(
         EnhancedForceLogoutDialog(
             user = user,
             onConfirm = {
-                scope.launch {
-                    try {
-                        val activeDeviceId: String = try {
-                            val sessionResponse = RetrofitClient.apiServiceV2.getActiveDeviceId(username = user.username)
-                            if (sessionResponse.isSuccessful && sessionResponse.body()?.success == true) {
-                                sessionResponse.body()?.deviceId ?: ""
-                            } else ""
-                        } catch (_: Exception) { "" }
-
-                        val request = ForceLogoutRequest(
-                            username = user.username,
-                            deviceId = activeDeviceId
-                        )
-                        val response = RetrofitClient.apiServiceV2.forceLogoutUser(request)
-                        if (response.isSuccessful && response.body()?.success == true) {
-                            Toast.makeText(context, "کاربر ${user.username} با موفقیت از سیستم خارج شد", Toast.LENGTH_SHORT).show()
-                            fetchUsersWithStatus()
-                        } else {
-                            val errorMsg = response.body()?.message ?: "خطا در خروج اجباری کاربر"
-                            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
-                        }
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "خطا در ارتباط با سرور: ${e.message}", Toast.LENGTH_LONG).show()
-                    } finally {
+                viewModel.forceLogoutUser(
+                    user = user,
+                    onSuccess = { message ->
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                        fetchUsersWithStatus()
+                    },
+                    onFailure = { message ->
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                    },
+                    onError = { message ->
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                    },
+                    onFinally = {
                         showForceLogoutConfirmation = null
                     }
-                }
+                )
             },
             onDismiss = { showForceLogoutConfirmation = null }
         )
@@ -963,16 +938,20 @@ private fun UserMenuRow(
 
 @Composable
 private fun ShimmerUserLoadingList() {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val alphaAnim by transition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "shimmer_alpha"
-    )
+    val alphaAnim: Float = if (AnimationManager.areAnimationsEnabled()) {
+        val transition = rememberInfiniteTransition(label = "shimmer")
+        transition.animateFloat(
+            initialValue = 0.2f,
+            targetValue = 0.6f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "shimmer_alpha"
+        ).value
+    } else {
+        0.4f
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),

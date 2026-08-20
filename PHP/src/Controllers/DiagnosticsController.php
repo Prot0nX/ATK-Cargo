@@ -39,7 +39,16 @@ class DiagnosticsController {
         'admin_chat_messages', 'admin_chat_reads', 'audit_log',
     ];
 
-    public function health(): void {
+    /**
+     * منطق واقعی health-check، جدا از HTTP (Phase3 #28). scripts/health_monitor.php
+     * که از cron اجرا می‌شود همین متد را مستقیماً صدا می‌زند (بدون HTTP
+     * round-trip روی localhost و بدون برخورد با فیلتر User-Agent در
+     * config/.htaccess که curl/wget را مسدود می‌کند)، تا منطق «سالم بودن»
+     * در یک‌جا بماند و health() و مانیتور از آن دور نیفتند.
+     *
+     * @return array{healthy: bool, status: array, missingTables: array}
+     */
+    public function evaluateHealth(): array {
         $status = [
             'database' => false,
             'requiredTables' => false,
@@ -62,15 +71,23 @@ class DiagnosticsController {
         } catch (PDOException|Throwable $e) {
             // پیام خام اتصال (که می‌تواند host/db name را افشا کند) هرگز به
             // پاسخ نمی‌رود، فقط لاگ می‌شود.
-            error_log('DiagnosticsController::health - ' . $e->getMessage());
+            error_log('DiagnosticsController::evaluateHealth - ' . $e->getMessage());
         }
 
-        $healthy = $status['database'] && $status['requiredTables'];
-        Response::json([
-            'success' => $healthy,
+        return [
+            'healthy' => $status['database'] && $status['requiredTables'],
             'status' => $status,
             'missingTables' => $missingTables,
-        ], $healthy ? 200 : 503);
+        ];
+    }
+
+    public function health(): void {
+        $result = $this->evaluateHealth();
+        Response::json([
+            'success' => $result['healthy'],
+            'status' => $result['status'],
+            'missingTables' => $result['missingTables'],
+        ], $result['healthy'] ? 200 : 503);
     }
 
     public function reportCrash(): void {

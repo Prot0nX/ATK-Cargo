@@ -15,6 +15,7 @@ import com.atk.atk_cargo.data.model.QuotaCompletionData
 import com.atk.atk_cargo.data.model.QuotaDetails
 import com.atk.atk_cargo.data.model.QuotaEditData
 import com.atk.atk_cargo.data.model.QuotaGroupingMode
+import com.atk.atk_cargo.data.model.QuotaItem
 import com.atk.atk_cargo.data.model.QuotaPercentageData
 import com.atk.atk_cargo.data.model.QuotaSortingMode
 import com.atk.atk_cargo.data.model.RealTimeLoadingData
@@ -694,6 +695,19 @@ class ReportsViewModel(
 
     fun clearFilteredSummary() {
         _uiState.update { it.copy(filteredSummary = null) }
+    }
+
+    fun loadGroupedQuotas(
+        shipName: String,
+        onResult: (Result<Map<String, Map<String, List<QuotaItem>>>>) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                onResult(Result.success(repository.getGroupedQuotas(shipName)))
+            } catch (e: Exception) {
+                onResult(Result.failure(e))
+            }
+        }
     }
 
     fun performAdvancedSearch(receiptNumber: String, onResult: (Result<CargoInfo?>) -> Unit) {

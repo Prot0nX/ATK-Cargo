@@ -66,7 +66,11 @@ class UserController {
 
             if ($this->request->isGet()) {
                 $this->handleGet($action);
-            } elseif ($this->request->isPost()) {
+            } elseif ($this->request->isWrite()) {
+                // isWrite() نه فقط isPost(): این شاخه‌ی مشترک هم createUser
+                // (POST) هم updateUser (PATCH) هم deleteUser (DELETE) را
+                // پوشش می‌دهد — تفکیک واقعی با action انجام می‌شود، نه فعل
+                // HTTP (DEEP_CODE_REVIEW.md Phase4 #33).
                 $this->handlePost($action);
             } else {
                 throw new ApiException('روش درخواست نامعتبر است', 405);
@@ -255,12 +259,16 @@ class UserController {
     }
 
     /**
-     * به‌روزرسانی توکن FCM (update_fcm_token.php)
+     * به‌روزرسانی توکن FCM (POST users/fcm-token)
      *
      * قبلاً بدون احراز هویت بود و user_id مستقیم از ورودی خوانده می‌شد؛ هر
      * کلاینت ناشناس می‌توانست توکن push هر کاربر دلخواه را با توکن خودش
      * جایگزین کند (S-08). حالا user_id از نشست احرازشده گرفته می‌شود، نه از
      * ورودی — پارامتر user_id ورودی نادیده گرفته می‌شود.
+     *
+     * پاسخ‌های خطا در Phase3 #21 به Response::error() یکسان شدند؛ تأیید شد
+     * کلاینت فعلی اصلاً FCM ندارد (grep سراسری «fcm» در کل سورس Kotlin صفر
+     * نتیجه داد)، پس این endpoint در حال حاضر بدون مصرف‌کننده است.
      */
     public function updateFcmToken(): void {
         $this->requireAuthenticatedSession();
@@ -268,13 +276,13 @@ class UserController {
         $userRepo = new \App\Repositories\UserRepository();
         $currentUser = $userRepo->getByUsername((string)$this->authenticatedUsername);
         if (!$currentUser) {
-            Response::json(['error' => 'کاربر یافت نشد'], 404);
+            Response::error('کاربر یافت نشد', 404);
         }
         $userId = (int)$currentUser['id'];
         $token = (string)$this->request->get('token', '');
 
         if (!$userId || empty($token)) {
-            Response::json(['error' => 'Missing user_id or token'], 400);
+            Response::error('Missing user_id or token', 400);
         }
 
         try {
@@ -290,10 +298,10 @@ class UserController {
                 Response::json(['message' => 'FCM token updated successfully']);
             } else {
                 $stmt->close();
-                Response::json(['error' => 'Failed to update FCM token'], 500);
+                Response::error('Failed to update FCM token', 500);
             }
         } catch (\Exception $e) {
-            Response::json(['error' => 'Failed to update FCM token'], 500);
+            Response::error('Failed to update FCM token', 500);
         }
     }
 }

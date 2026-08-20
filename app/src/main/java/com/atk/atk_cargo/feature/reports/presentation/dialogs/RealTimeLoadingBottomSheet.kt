@@ -84,6 +84,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.atk.atk_cargo.api.RealTimeLoadingData
 import com.atk.atk_cargo.api.RealTimeUiState
 import com.atk.atk_cargo.api.ShiftInfo
+import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
 import com.atk.atk_cargo.ui.theme.Green300
@@ -496,24 +497,31 @@ fun RefreshOverlay(
     isRefreshing: Boolean,
     remainingSeconds: Int
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "")
-    val rotationAngle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ), label = ""
-    )
+    val rotationAngle: Float
+    val rippleEffect: Float
+    if (AnimationManager.areAnimationsEnabled()) {
+        val infiniteTransition = rememberInfiniteTransition(label = "")
+        rotationAngle = infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ), label = ""
+        ).value
 
-    val rippleEffect by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Restart
-        ), label = ""
-    )
+        rippleEffect = infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Restart
+            ), label = ""
+        ).value
+    } else {
+        rotationAngle = 0f
+        rippleEffect = 0f
+    }
 
     Box(
         modifier = Modifier

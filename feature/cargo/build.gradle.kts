@@ -1,0 +1,42 @@
+plugins {
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.jetbrains.kotlin.android)
+}
+
+android {
+    namespace = "com.atk.atk_cargo.feature.cargo"
+    compileSdk = 36
+
+    defaultConfig {
+        minSdk = 28
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        }
+    }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+}
+
+dependencies {
+    // QuotaValidationUseCase به QuotaRepository (core:domain) و
+    // MessageType/QuotaValidationResult (core:network) نیاز دارد؛ بدون
+    // Compose چون هر دو کلاس این ماژول (CargoSnackbarQueue،
+    // QuotaValidationUseCase) خالص Kotlin/coroutines هستند
+    // (DEEP_CODE_REVIEW.md Phase4 #29).
+    implementation(project(":core:domain"))
+    implementation(project(":core:network"))
+
+    implementation(libs.kotlinx.coroutines.android)
+
+    testImplementation(libs.junit)
+}

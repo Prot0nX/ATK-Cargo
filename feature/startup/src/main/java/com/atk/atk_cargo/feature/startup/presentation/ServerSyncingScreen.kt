@@ -34,7 +34,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +45,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.atk.atk_cargo.core.domain.AnimationManager
 import kotlinx.coroutines.launch
 
 @Composable
@@ -54,72 +54,80 @@ fun ServerSyncingScreen() {
     val bgColor = MaterialTheme.colorScheme.background
     val onBgColor = MaterialTheme.colorScheme.onBackground
 
+    // Reduce Motion (Phase4 #34): این صفحه گذراست (فقط حین StartupState.Syncing
+    // نمایش داده می‌شود)، اما مجموعاً ۱۰ انیمیشن هم‌زمان (این ۸ مورد + ۲ مورد
+    // dotAlpha/dotScale پایین‌تر که همین infiniteTransition را به اشتراک
+    // می‌گذارند) یک frame callback مصرف می‌کنند؛ تنظیم سیستمی «حذف
+    // انیمیشن‌ها» را احترام می‌گذارند. خودِ rememberInfiniteTransition
+    // بدون‌قید‌وشرط باقی می‌ماند (چیزی را خودش انیمیت نمی‌کند)، فقط هر
+    // .animateFloat مشروط شده.
+    val animationsEnabled = AnimationManager.areAnimationsEnabled()
     val infiniteTransition = rememberInfiniteTransition(label = "server_sync")
 
     // ===== ANIMATIONS =====
-    val orbitRotation1 by infiniteTransition.animateFloat(
+    val orbitRotation1 = if (animationsEnabled) infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 360f,
         animationSpec = infiniteRepeatable(
             animation = tween(4000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ), label = "orbit1"
-    )
-    val orbitRotation2 by infiniteTransition.animateFloat(
+    ).value else 0f
+    val orbitRotation2 = if (animationsEnabled) infiniteTransition.animateFloat(
         initialValue = 360f, targetValue = 0f,
         animationSpec = infiniteRepeatable(
             animation = tween(5500, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ), label = "orbit2"
-    )
-    val orbitRotation3 by infiniteTransition.animateFloat(
+    ).value else 0f
+    val orbitRotation3 = if (animationsEnabled) infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 360f,
         animationSpec = infiniteRepeatable(
             animation = tween(7000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ), label = "orbit3"
-    )
-    val glowAlpha by infiniteTransition.animateFloat(
+    ).value else 0f
+    val glowAlpha = if (animationsEnabled) infiniteTransition.animateFloat(
         initialValue = 0.15f, targetValue = 0.5f,
         animationSpec = infiniteRepeatable(
             animation = tween(1500, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ), label = "glow"
-    )
-    val iconScale by infiniteTransition.animateFloat(
+    ).value else 0.3f
+    val iconScale = if (animationsEnabled) infiniteTransition.animateFloat(
         initialValue = 0.95f, targetValue = 1.05f,
         animationSpec = infiniteRepeatable(
             animation = tween(2000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ), label = "iconScale"
-    )
-    val particleOffset1 by infiniteTransition.animateFloat(
+    ).value else 1f
+    val particleOffset1 = if (animationsEnabled) infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(3000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ), label = "p1"
-    )
-    val particleOffset2 by infiniteTransition.animateFloat(
+    ).value else 0f
+    val particleOffset2 = if (animationsEnabled) infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(4200, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ), label = "p2"
-    )
-    val particleOffset3 by infiniteTransition.animateFloat(
+    ).value else 0f
+    val particleOffset3 = if (animationsEnabled) infiniteTransition.animateFloat(
         initialValue = 0f, targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(2700, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ), label = "p3"
-    )
-    val shimmerOffset by infiniteTransition.animateFloat(
+    ).value else 0f
+    val shimmerOffset = if (animationsEnabled) infiniteTransition.animateFloat(
         initialValue = -1f, targetValue = 2f,
         animationSpec = infiniteRepeatable(
             animation = tween(1800, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ), label = "shimmer"
-    )
+    ).value else -1f
 
     val contentAlpha = remember { Animatable(0f) }
     val contentTranslateY = remember { Animatable(30f) }
@@ -369,7 +377,7 @@ fun ServerSyncingScreen() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     repeat(3) { index ->
-                        val dotAlpha by infiniteTransition.animateFloat(
+                        val dotAlpha = if (animationsEnabled) infiniteTransition.animateFloat(
                             initialValue = 0.2f,
                             targetValue = 1f,
                             animationSpec = infiniteRepeatable(
@@ -381,8 +389,8 @@ fun ServerSyncingScreen() {
                                 repeatMode = RepeatMode.Reverse
                             ),
                             label = "dot$index"
-                        )
-                        val dotScale by infiniteTransition.animateFloat(
+                        ).value else 1f
+                        val dotScale = if (animationsEnabled) infiniteTransition.animateFloat(
                             initialValue = 0.7f,
                             targetValue = 1f,
                             animationSpec = infiniteRepeatable(
@@ -394,7 +402,7 @@ fun ServerSyncingScreen() {
                                 repeatMode = RepeatMode.Reverse
                             ),
                             label = "dotScale$index"
-                        )
+                        ).value else 1f
                         Box(
                             modifier = Modifier
                                 .size(6.dp)

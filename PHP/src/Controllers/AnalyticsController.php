@@ -48,9 +48,14 @@ class AnalyticsController {
     }
 
     /**
-     * کلاینت این کنترلر پاسخ خطا را با شکل {"error": "متن پیام"} می‌خواند —
-     * مطابق همان قرارداد قبلی این دو متد (نه قرارداد boolean که
-     * CargoController/UtilityController استفاده می‌کنند).
+     * پاسخ‌های خطای کسب‌وکاری این کنترلر (handleRealTimeLoadingData،
+     * handleQuotaRemaining) در Phase3 #21 به Response::error() یکسان‌سازی
+     * شدند — بررسی شد که هیچ مصرف‌کننده‌ی فعلی کلاینت (ReportsRepository)
+     * فیلد «error» این دو متد را ساختاریافته نمی‌خواند (فقط status
+     * code/متن خام). این override اما دست‌نخورده ماند، چون رد کردن گیت
+     * احراز هویت (401/403/426) مسیر جدایی است که جداگانه verify نشد؛
+     * override بودنش (نه صرفاً استفاده از پیش‌فرض trait) به همین دلیل
+     * حفظ شده تا محدوده‌ی تغییر همان چیزی بماند که بررسی شد.
      */
     protected function sendAuthErrorResponse(string $message, int $httpCode, ?string $code = null): void {
         header('Content-Type: application/json; charset=UTF-8');
@@ -76,7 +81,7 @@ class AnalyticsController {
         // POST مجازند؛ بقیه actionهای این کنترلر فقط-خواندنی می‌مانند و کلاینت
         // برایشان همچنان GET می‌فرستد.
         if (!$this->request->isGet() && !$this->request->isPost()) {
-            Response::json(['error' => 'فقط متد GET یا POST مجاز است.'], 400);
+            Response::error('فقط متد GET یا POST مجاز است.', 400);
         }
 
         $this->requireAuthenticatedSession();
@@ -99,24 +104,24 @@ class AnalyticsController {
                     break;
                 case 'logAnalyticsExport':
                     if (!$this->request->isPost()) {
-                        Response::json(['error' => 'این عملیات فقط با POST مجاز است.'], 400);
+                        Response::error('این عملیات فقط با POST مجاز است.', 400);
                     }
                     $this->requirePermission('view_reports');
                     $this->handleLogAnalyticsExport();
                     break;
                 default:
-                    Response::json(['error' => 'عملیات نامعتبر است.'], 400);
+                    Response::error('عملیات نامعتبر است.', 400);
             }
         } catch (InvalidArgumentException $e) {
-            Response::json(['error' => $e->getMessage()], 400);
+            Response::error($e->getMessage(), 400);
         } catch (Exception $e) {
             $this->logger->error("Error in handleRealTimeLoadingData: " . $e->getMessage());
-            Response::json(['error' => 'خطایی در سرور رخ داد.'], 500);
+            Response::error('خطایی در سرور رخ داد.', 500);
         }
     }
 
     /**
-     * مدیریت درخواست‌های quota_remaining_api.php
+     * مدیریت درخواست‌های GET analytics/quota-remaining
      */
     public function handleQuotaRemaining(): void {
         header('Content-Type: application/json; charset=UTF-8');
@@ -127,13 +132,13 @@ class AnalyticsController {
         // برای application/json فعال کرده؛ فشرده‌سازی دوباره اینجا فقط CPU
         // اضافه بدون فایده بود.
         if (!$this->request->isGet()) {
-            Response::json(['success' => false, 'error' => 'روش درخواست نامعتبر است'], 500);
+            Response::error('روش درخواست نامعتبر است', 500);
         }
 
         // این متد قبلاً هیچ گیت احراز هویتی نداشت — با اینکه داده‌ی تجاری
         // کامل (نام کشتی، کوتاژ، شرکت حمل، صاحب کالا، تناژ) برمی‌گرداند، هر
-        // کلاینت ناشناس با دانستن آدرس سرور می‌توانست quota_remaining_api.php
-        // را صدا بزند. مطابق الگوی handleRealTimeLoadingData همین کنترلر.
+        // کلاینت ناشناس با دانستن آدرس سرور می‌توانست این مسیر را صدا بزند.
+        // مطابق الگوی handleRealTimeLoadingData همین کنترلر.
         $this->requireAuthenticatedSession();
         $this->requirePermission('active_quotas');
 
@@ -165,10 +170,7 @@ class AnalyticsController {
             }
         } catch (Exception $e) {
             $this->logger->error("Error in handleQuotaRemaining: " . $e->getMessage());
-            Response::json([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 500);
+            Response::error($e->getMessage(), 500);
         }
     }
 
@@ -188,7 +190,7 @@ class AnalyticsController {
         $stmt->close();
 
         if (!$kotazhInfo) {
-            Response::json(['error' => 'کوتاژ مورد نظر یافت نشد.'], 404);
+            Response::error('کوتاژ مورد نظر یافت نشد.', 404);
         }
 
         $stmt2 = $this->conn->prepare("SELECT trackingNumber, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, exitTime, exitDate, status FROM CargoInfo WHERE loadingQuotaNumber = ?");

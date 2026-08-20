@@ -492,7 +492,7 @@ paths:
         '409': { description: تداخل (حواله‌ی تکراری / نیاز به تأیید) }
 
   /cargo/update:
-    post:
+    patch:
       tags: [Cargo]
       summary: بروزرسانی اطلاعات حواله (خروج/کسری/اضافه)
       description: "permission: edit_cargo"
@@ -508,7 +508,7 @@ paths:
         '200': { description: OK }
 
   /cargo/delete:
-    post:
+    delete:
       tags: [Cargo]
       summary: حذف یک حواله (با گیت رمز عملیاتی)
       description: "permission: delete_cargo"
@@ -646,7 +646,7 @@ paths:
         '200': { description: OK }
 
   /users/{id}/update:
-    post:
+    patch:
       tags: [Users]
       summary: ویرایش کاربر (خودِ کاربر یا ادمین — تمایز داخل کنترلر)
       description: "permission: بدون قید در سطح router؛ تمایز خودِ‌کاربر/ادمین داخل UserController::handle"
@@ -669,7 +669,7 @@ paths:
         '403': { description: "رمز فعلی نادرست (وقتی currentPassword لازم بوده)" }
 
   /users/{id}/delete:
-    post:
+    delete:
       tags: [Users]
       summary: حذف کاربر
       description: "permission: manage_users"
@@ -709,7 +709,7 @@ paths:
         '200': { description: OK }
 
   /chat/messages/{id}/edit:
-    post:
+    patch:
       tags: [Chat]
       summary: ویرایش یک پیام چت
       parameters:
@@ -718,7 +718,7 @@ paths:
         '200': { description: OK }
 
   /chat/messages/{id}/delete:
-    post:
+    delete:
       tags: [Chat]
       summary: حذف (soft-delete) یک پیام چت
       parameters:

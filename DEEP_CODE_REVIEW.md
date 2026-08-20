@@ -95,7 +95,7 @@ ATK-Cargo/
 └── .github/workflows/ci.yml
 ```
 
-**Stack:** Kotlin 2.2.20 · AGP 8.13.0 · Compose BOM 2025.09.00 · Koin 3.5.6 · Retrofit 3.0.0 · OkHttp 5.1.0 · Room 2.7.0 · PHP 8.1 · MySQL 8.0 · Apache 2.4.52
+**Stack:** Kotlin 2.2.20 · AGP 8.13.0 · Compose BOM 2025.09.00 · Koin 4.1.1 · Retrofit 3.0.0 · OkHttp 5.1.0 · Room 2.7.0 · PHP 8.1 · MySQL 8.0 · Apache 2.4.52
 
 ---
 
@@ -215,22 +215,23 @@ XOR تک‌بایتی رمزنگاری نیست — یک جایگزینی حرف
 
 ۲. `API_KEY` را از کلاینت حذف کنید. یک راز مشترک که در هر نصب وجود دارد، راز نیست. `check_update.php` را به‌جای آن با گیت نشست معمولی (`X-Session-Token`) محافظت کنید، یا اگر باید بدون auth بماند، صرفاً به rate limiting اتکا کنید و تظاهر به امنیت نکنید.
 
-۳. برای `LICENSE_KEY`: اعتبارسنجی لایسنس را به یک challenge–response با امضای سمت سرور تبدیل کنید:
-
-```
-کلاینت → سرور:  { deviceId, nonce, appSignatureHash }
-سرور  → کلاینت: { verdict, expiresAt, signature = Ed25519_sign(privKey, payload) }
-کلاینت: با کلید عمومی جاسازی‌شده (که راز نیست) امضا را تأیید می‌کند
-```
-
-کلید عمومی می‌تواند آزادانه در APK باشد؛ کلید خصوصی هرگز دستگاه را ترک نمی‌کند.
+۳. ~~برای `LICENSE_KEY`: اعتبارسنجی لایسنس را به یک challenge–response با امضای سمت سرور تبدیل کنید~~ — **اصلاحیه (۲۰۲۶-۰۸-۲۰):** طبق توضیح صریح کاربر، مدل لایسنس این پروژه عمداً per-customer و client-side است (هر مشتری یک `LICENSE_KEY` اختصاصی در زمان build داخل `secrets.cpp` embed می‌شود، سرور آن را در جدول `licenses` چک می‌کند). این پیشنهاد (امضای سمت سرور) فرض اشتباهی از این گزارش بود و **نباید اجرا شود** — جزئیات در بخش «endpointهای لایسنس بدون احراز هویت» (Phase2 #10).
 
 ۴. تاریخچه‌ی git را با `git filter-repo` پاک‌سازی کنید (پس از چرخش کلیدها، نه به‌جای آن).
 
 **Priority:** CRITICAL
-**Estimated Effort:** Medium (چرخش: Low · بازطراحی لایسنس: Medium)
+**Estimated Effort:** Medium (چرخش: Low · بازطراحی لایسنس: ~~Medium~~ حذف شد — مدل فعلی درست است)
 
-**Status:** ⚠️ ابزار آماده شد، چرخش واقعی روی سرور انجام نشده (دسترسی سرور در دسترس نبود). `scripts/xor_secret_codec.php` نوشته و با راستی‌آزمایی round-trip روی مقدار واقعی `getBaseUrl()` تست شد (decode مقدار موجود در `secrets.cpp:16-21` دقیقاً `https://atk-nk.ir/Cargo/test_api/` را برگرداند؛ encode همان رشته دقیقاً همان بایت‌های موجود در فایل را بازتولید کرد). راهنمای گام‌به‌گام در `scripts/ROTATE_SECRETS.md`. **چرخش واقعی کلید (تولید مقدار جدید + جایگزینی در سرور + جایگزینی در `secrets.cpp` + build/deploy هماهنگ) باقی مانده و باید توسط شما با دسترسی سرور انجام شود.**
+**Status:** ⚠️→بسته‌شده توسط کاربر (۲۰۲۶-۰۸-۲۰). چرخش واقعی کلید هنوز روی سرور انجام نشده (دسترسی سرور در دسترس نبود). `scripts/xor_secret_codec.php` نوشته و با راستی‌آزمایی round-trip روی مقدار واقعی `getBaseUrl()` تست شد (decode مقدار موجود در `secrets.cpp:16-21` دقیقاً `https://atk-nk.ir/Cargo/test_api/` را برگرداند؛ encode همان رشته دقیقاً همان بایت‌های موجود در فایل را بازتولید کرد). راهنمای گام‌به‌گام در `scripts/ROTATE_SECRETS.md`.
+
+**شفاف‌سازی مدل لایسنس (۲۰۲۶-۰۸-۲۰):** بررسی نشان داد از ۸ مقدار `secrets.cpp`، فقط ۲ مورد واقعاً «راز» به‌معنای رمز مشترک قابل‌مقایسه هستند:
+- `getApiKey()` → یک راز **مشترک و سراسری** (سرور با `hash_equals(UPDATE_CHECK_API_KEY, ...)` در `UtilityController.php:208` مقایسه می‌کند؛ مقدار ثابت از `.env` سرور می‌آید).
+- `getLicenseKey()` → **اختصاصی هر مشتری/شرکت** (سرور در جدول `licenses` جست‌وجو می‌کند، نه مقایسه با ثابت)؛ کلید فعلی در `secrets.cpp` این ریپو فقط مربوط به بیلد **تست/نمونه** است (URL پیش‌فرض `test_api/` در `tools/secrets_generator.html` این را تأیید می‌کند) — مشتریان واقعی دیگر هرکدام کلید اختصاصی خودشان را دارند که هرگز در این ریپو commit نشده و نشتی ندارند.
+- بقیه‌ی ۶ مقدار (URLها + نام کلید `SharedPreferences`) راز نیستند و نیازی به چرخش ندارند.
+
+**تصمیم نهایی کاربر:** این آیتم برای این پروژه/نشست بسته اعلام شد. ابزار و مستندات چرخش (`scripts/ROTATE_SECRETS.md`) آماده‌اند؛ اجرای واقعی (تولید مقدار جدید، جایگزینی در `.env` سرور برای `API_KEY`، بروزرسانی ردیف مربوطه در جدول `licenses` برای `LICENSE_KEY` تست، rebuild/redeploy هماهنگ) خارج از این نشست و به‌عهده‌ی کاربر با دسترسی سرور باقی می‌ماند.
+
+بند ۴ (پاک‌سازی تاریخچه) با `git filter-repo` در Phase2 #17 (۲۰۲۶-۰۸-۲۰) انجام شد — جزئیات کامل در همان بخش. **این پاک‌سازی جایگزین چرخش کلید نیست**: نسخه‌ی فعلی `secrets.cpp` که دوباره در انتهای تاریخچه‌ی جدید commit شد، همچنان همان `LICENSE_KEY`/`API_KEY` چرخش‌نیافته را دارد — فقط ۳۲ نسخه‌ی قدیمی از تاریخچه پاک شدند.
 
 ---
 
@@ -315,6 +316,15 @@ SELECT COUNT(*) FROM Users WHERE password NOT LIKE '$2y$%' AND password NOT LIKE
 - `vendor/bin/phpunit` (۶۸ تست) بدون شکست.
 
 **اقدام باقی‌مانده برای شما:** روی دیتابیس production کوئری شمارشی گزارش را اجرا کنید؛ اگر صفر بود، بلوک حالت ۳ و متغیر `ALLOW_LEGACY_PLAINTEXT_LOGIN` را کامل از `UserService.php` حذف کنید (دیگر لازم نیست حتی پشت فلگ بماند).
+
+**بروزرسانی (۲۰۲۶-۰۸-۲۰):** کاربر کوئری شمارشی را روی production اجرا کرد — نتیجه **۳۶ از ۳۸ کاربر** هنوز رمز غیر-bcrypt دارند (نه صفر). چون امتناع از حذف صرفِ fallback باعث قفل‌شدن خاموش ۳۶ حساب می‌شد، اسکریپت مهاجرت یک‌بارمصرف `PHP/scripts/migrate_legacy_passwords_to_bcrypt.php` نوشته شد:
+
+- هرچه فعلاً در ستون `password` ذخیره است (چه متن خام، چه از قبل SHA-256) را مستقیماً `password_hash(..., PASSWORD_BCRYPT)` می‌کند و ذخیره می‌کند — بدون نیاز به دانستن رمز واقعی کاربر یا تشخیص این‌که کدام حالت بوده، چون `verifyCredentials()` از قبل هر دو حالت را زیر bcrypt («حالت ۱» و «حالت ۲») پوشش می‌دهد؛ منطق با یک اسکریپت مستقل (بدون دیتابیس) برای هر دو سناریو تأیید شد.
+- در یک تراکنش واحد اجرا می‌شود (rollback خودکار روی هر خطا) و در پایان خودش دوباره کوئری شمارشی را اجرا و صفر بودن را تأیید می‌کند.
+- **اجرا شد روی production (۲۰۲۶-۰۸-۲۰):** کاربر اسکریپت را اجرا کرد؛ هر ۳۶ کاربر با موفقیت مهاجرت کردند و کوئری شمارشی تأییدی صفر برگرداند.
+- در پی آن، بلوک «حالت ۳» و متغیر `ALLOW_LEGACY_PLAINTEXT_LOGIN` **کامل از `UserService.php` حذف شدند** (نه فقط پشت فلگ خاموش) — رفتار ورود کاربران فعلی (که همه bcrypt‌اند) بدون تغییر می‌ماند؛ خط مربوطه در `PHP/.env.example` هم حذف شد. `php -l`/`phpstan`/`phpunit` (۶۸ تست، همان ۶ خطای preexisting نامرتبط `permissions.json`) سبز.
+
+**این آیتم (Top20 #3 / Phase1 #4) کامل بسته شد — نه فقط mitigated.**
 
 ---
 
@@ -414,16 +424,16 @@ onConfirm = { viewModel.saveInitialInfo(info) }
 | ✅ `feature/cargo_entry/presentation/InitialInfoScreen.kt` | ۵۴۳، ۶۳۶ |
 | ✅ `feature/cargo_details/presentation/CargoDetailsScreen.kt` | ۱۱۸ |
 | ✅ `feature/cargo_counter/presentation/CargoCounterScreen.kt` | ۱۴۶، ۲۸۲ |
-| `feature/home/presentation/components/ProfileMenu.kt` | ۳۱۳ |
-| `feature/home/presentation/ProfileSettingsDialogSection.kt` | ۳۳۲ |
-| `feature/reports/presentation/dialogs/QuotaManagementDialog.kt` | — |
-| `feature/admin/.../UserManagementScreen.kt` | — |
-| `feature/admin/.../UserManagementDialogsSection.kt` | — |
+| ✅ `feature/home/presentation/components/ProfileMenu.kt` | ۳۱۳ |
+| ✅ `feature/home/presentation/ProfileSettingsDialogSection.kt` | ۳۳۲ |
+| ✅ `feature/reports/presentation/dialogs/QuotaManagementDialog.kt` | ۱۰۷ |
+| ✅ `feature/admin/.../UserManagementScreen.kt` | ۱۲۶، ۱۲۸، ۳۲۴، ۳۵۰، ۳۷۷، ۳۸۷ |
+| ✅ `feature/admin/.../UserManagementDialogsSection.kt` | ۲۸۰ |
 
 **Priority:** HIGH
 **Estimated Effort:** High (۹ فایل، نیازمند ساخت ViewModel و Repository جدید)
 
-**Status:** ⚠️ In progress (2026-08-19) — فایل‌به‌فایل با تأیید جدا در حال انجام (Phase2 #11). **۱ از ۹ فایل تمام شد:**
+**Status:** ✅ Done (2026-08-20) — فایل‌به‌فایل با تأیید جدا در ۸ کامیت انجام شد (Phase2 #11)، ۹ از ۹ فایل تمام. جزئیات هر فایل:
 
 `InitialInfoScreen.kt` — هر دو تماس (`checkExistence` خط ۵۴۳ خواندنی، `saveInitialInfo` خط ۶۳۶ نوشتنی و پرریسک‌تر) به `InitialInfoViewModel` جدید (`viewModelScope`) منتقل شدند؛ نتیجه از طریق `Channel<InitialInfoEvent>` + `repeatOnLifecycle(STARTED)` (همان الگوی موجود در `StartupViewModel`/`MainActivity`) به UI برمی‌گردد. `rememberCoroutineScope()` و import مستقیم `RetrofitClient` کاملاً حذف شدند. یک نقطه‌ی فراخوانی مرده (`CargoEntryNavigation.kt::initialInfoScreen`) و یک نقطه‌ی فراخوانی واقعی (`MainScreen.kt:171`، جایی که route واقعاً ثبت می‌شود) هر دو با امضای جدید هماهنگ شدند. با `compileDebugKotlin`، `lintDebug`، و `testDebugUnitTest` تأیید شد.
 
@@ -434,6 +444,18 @@ onConfirm = { viewModel.saveInitialInfo(info) }
 `CargoDetailsScreen.kt` — برخلاف فایل اول، این صفحه از قبل یک `CargoViewModel` بزرگ (همان God ViewModel که در بخش Code Quality هم به آن اشاره شده) داشت که `loadCargoInfoList`/`updateCargoConfirmation`/`showMessage` را از قبل با `viewModelScope` پیاده‌سازی کرده بود؛ فقط توابع مستقل `confirmCargo`/`handleCargoConfirmation` (تأیید حواله — یک عملیات نوشتن) بیرون از آن مانده و با `rememberCoroutineScope()` فراخوانی می‌شدند. به‌جای ساخت یک ViewModel جدید، منطق (عیناً، پیام به پیام) به‌عنوان متد `confirmCargo()` داخل همان `CargoViewModel` موجود منتقل شد — سازگارتر با معماری فعلی فایل نسبت به افزودن یک لایه‌ی موازی. `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` سبز؛ همان محدودیت عدم دسترسی به حساب واقعی برای تست کلیکی برقرار است.
 
 `CargoCounterScreen.kt` — این فایل هم از قبل یک `CargoCounterViewModel` محلی داشت (فقط برای state انتخاب کشتی/تب، بدون تماس شبکه). هر دو تماس (`getActiveShips` خط ۱۴۶، `getRealTimeLoadingData` خط ۲۸۲) به‌عنوان متد داخل همان ViewModel منتقل شدند؛ چون `SnackbarHostState` یک نگرانی UI است (نه دامنه‌ی ViewModel)، متدهای جدید فقط با callback (`onSuccess`/`onError`/...) نتیجه را برمی‌گردانند و Composable همچنان خودش تصمیم می‌گیرد پیام را کجا نشان دهد (دقیقاً مثل قبل — بدون تغییر رفتار قابل‌مشاهده). چون این ViewModel حالا وابستگی (`ApiServiceV2`) دارد، از factory پیش‌فرض `viewModel()` به `koinViewModel()` تغییر کرد و در `AppModule.kt` ثبت شد.
+
+**۵ از ۹ فایل تمام شد:**
+
+`ProfileMenu.kt` + `ProfileSettingsDialogSection.kt` — این دو فایل با هم منتقل شدند چون تنگاتنگ به هم وابسته‌اند (`ProfileMenu` دیالوگ `ProfileSettingsDialog` را نمایش می‌دهد و `currentUser` بینشان مشترک است). یک `ProfileViewModel` جدید (`feature/home/presentation/ProfileViewModel.kt`) با دو متد ساخته شد: `loadSelfProfile()` (تماس خواندنی `getSelfProfile`، قبلاً داخل `LaunchedEffect(Unit)`) و `changePassword()` (تماس نوشتنی `updateUser` برای تغییر رمز عبور — پرریسک‌تر، قبلاً با `rememberCoroutineScope()` که با ناوبری کنسل می‌شد). هر دو با `viewModelScope` اجرا می‌شوند و نتیجه از طریق callback برمی‌گردد. یک نمونه‌ی `ProfileViewModel` در `ProfileMenu` با `koinViewModel()` ساخته و به `ProfileSettingsDialog` (که حالا پارامتر `viewModel` می‌گیرد) پاس داده می‌شود تا هر دو از یک instance استفاده کنند. `delay(600ms)` + Toast بعد از موفقیت (صرفاً UI، نه تماس شبکه) در Composable با همان `rememberCoroutineScope()` باقی ماند چون کنسل‌شدنش پس از موفقیت سرور بی‌ضرر است. در `AppModule.kt` با `viewModel { ProfileViewModel(get()) }` ثبت شد. `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` سبز؛ همان محدودیت عدم دسترسی به حساب واقعی برای تست کلیکی برقرار است.
+
+**۶ از ۹ فایل تمام شد:**
+
+`QuotaManagementDialog.kt` — برخلاف سه فایل قبلی، این Composable از قبل `viewModel: ReportsViewModel` را به‌عنوان پارامتر دریافت می‌کرد (فراخوان بالادستی آن را با `koinViewModel()` می‌سازد)، فقط تماس `getGroupedQuotas` (خط ۱۰۷، داخل `LaunchedEffect(currentShipName, refreshTrigger)`) مستقیماً `RetrofitClient.apiServiceV2` را صدا می‌زد. به‌جای ساخت ViewModel جدید، دو لایه اضافه شد: (۱) متد `ReportsRepository.getGroupedQuotas(shipName)` که پاسخ ناموفق را با همان پیام فارسی قبلی (`"خطا در دریافت داده‌ها: ${code}"`) به‌عنوان Exception پرتاب می‌کند، (۲) متد `ReportsViewModel.loadGroupedQuotas(shipName, onResult: (Result<...>) -> Unit)` با `viewModelScope`، دقیقاً هم‌الگو با `performAdvancedSearch`/`performAdvancedSearchByTracking` که از قبل در همین ViewModel وجود داشتند. state محلی دیالوگ (`quotaData`/`isLoading`/`errorMessage`/...) دست‌نخورده ماند — فقط منبع تماس شبکه از Composable به ViewModel منتقل شد؛ رفتار قابل‌مشاهده (پیام خطا، ترتیب loading) عیناً حفظ شد. `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` (۱۶ تست) سبز.
+
+**۷ و ۸ از ۹ فایل تمام شد (آخرین دو فایل):**
+
+`UserManagementScreen.kt` + `UserManagementDialogsSection.kt` — بزرگ‌ترین و پرریسک‌ترین جفت از ۹ فایل (۱٬۸۶۷ خط مجموعاً، ۶ تماس شبکه‌ی مختلف: `getAllUsersWithStatus`/`getAllUsers` fallback، `updateUser`، `deleteUser`، `getActiveDeviceId`+`forceLogoutUser`، و `createUser` در فایل دوم). برخلاف ۶ فایل قبلی، این دو در ماژول Gradle جدای `feature:admin` هستند نه در `app` — پس یک ViewModel جدید مستقیماً داخل همان ماژول ساخته شد: `feature/admin/.../UserManagementViewModel.kt` با پنج متد callback-محور (`fetchUsersWithStatus`، `updateUser`، `deleteUser`، `forceLogoutUser`، `createUser`) که هر کدام دقیقاً همان try/catch/finally و پیام‌های فارسی قبلی را با `viewModelScope` بازتولید می‌کنند. چون `feature:admin` قبلاً وابستگی `androidx.lifecycle.viewmodel.ktx` نداشت (تنها ماژولی از ۹ فایل که نداشت)، این وابستگی — که در کاتالوگ نسخه‌ها (`libs.versions.toml`) از قبل موجود بود و در ماژول‌های دیگر (`app`، `feature:auth`) استفاده می‌شد — به `feature/admin/build.gradle.kts` اضافه شد. یک نمونه‌ی `UserManagementViewModel` در `UserManagementDialog` (تابع اصلی) با `koinViewModel()` ساخته و به `EnhancedAddUserDialog` (که حالا پارامتر `viewModel` می‌گیرد) پاس داده می‌شود. در `AppModule.kt` با `viewModel { UserManagementViewModel(get()) }` ثبت شد (چون `app` از قبل به `feature:admin` وابسته است). `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` (۳۵ تست) سبز. **این آخرین فایل از ۹ فایل بود — Phase 2.11 (انتقال تماس‌های شبکه از Composable به ViewModel) اکنون ۹ از ۹ کامل است.**
 
 ---
 
@@ -552,7 +574,9 @@ if ($updateLastCheck) {
 **Priority:** MEDIUM
 **Estimated Effort:** Low
 
-**Status:** ⚠️ Partially fixed (2026-08-19) — فقط بند ۲ (rate limit) طبق دامنه‌ی تأییدشده‌ی Phase2.14 انجام شد: هر دو `validateLicense()` و `getLicenseInfo()` با `LoginAttemptLimiter` و کلید `license_<IP>` محافظت می‌شوند (سقف مؤثر ۵ درخواست/۱۵دقیقه). با هارنس مستقل تأیید شد که این باکت از `crash_` و از شمارنده‌های واقعی لاگین ایزوله است. بندهای ۱ (GET→POST) و ۳ (حذف `company_name`) هنوز انجام نشده‌اند.
+**Status:** ✅ Fixed (2026-08-20) — بند ۲ (rate limit) در Phase2.14 انجام شد: هر دو `validateLicense()` و `getLicenseInfo()` با `LoginAttemptLimiter` و کلید `license_<IP>` محافظت می‌شوند (سقف مؤثر ۵ درخواست/۱۵دقیقه)؛ با هارنس مستقل تأیید شد که این باکت از `crash_` و از شمارنده‌های واقعی لاگین ایزوله است.
+
+بند ۱ (کلید در URL) با یک راه‌حل جایگزین بسته شد، نه دقیقاً پیشنهاد اولیه‌ی گزارش. **توضیح مهم از کاربر:** مدل لایسنس این پروژه per-customer است — هر مشتری یک `LICENSE_KEY` اختصاصی در زمان build داخل `secrets.cpp` embed می‌شود و در جدول `licenses` سرور چک می‌شود (در برابر `SignChecker` هم که ثابت است، برای همه‌ی مشتری‌ها یکسان). یعنی «بازطراحی لایسنس با امضای سمت سرور» (پیشنهاد اولیه‌ی Phase2 #10) فرض غلطی بود — این مدل عمداً کاملاً کلاینت‌محور طراحی شده و نباید به سمت سرور منتقل شود. تنها مشکل واقعی همان نشت کلید در query string بود، نه کل مدل auth. به‌جای تغییر `getLicenseInfo` از GET به POST (که شکل endpoint را عوض می‌کرد)، کلید از هدر سفارشی `X-License-Key` خوانده می‌شود (`LicenseController.php`) و کلاینت (`SecurityVerifier.kt::fetchLicenseInfo`) هم به همین ترتیب تغییر کرد — نتیجه یکسان (کلید دیگر در URL/لاگ سرور ثبت نمی‌شود) با تغییر کمتر. طبق تأیید صریح کاربر، چون سرور فعلی صرفاً محیط تست است، **بدون fallback به GET قدیمی** (سازگاری با نصب‌های موجود لازم نیست). بند ۳ (حذف `company_name` از پاسخ) هنوز انجام نشده — خارج از دامنه‌ی این تغییر بود. `php -l`، `phpstan` (سطح ۵)، `phpunit` (۶۸ تست)، `compileDebugKotlin` سبز.
 
 ---
 
@@ -652,6 +676,19 @@ curl -sI https://atk-nk.ir/Cargo/test_api/logs/session_activity.log  # باید 
 
 **Priority:** MEDIUM
 **Estimated Effort:** Low
+
+**Status:** ✅ Fixed (2026-08-20) — هر ۳ دستور نامعتبر (`<Directory "uploads">`، `<Directory "config">`، `<DirectoryMatch ...>`) از `PHP/.htaccess` حذف شدند؛ به‌جایشان یک کامنت توضیح می‌دهد کدام پوشه‌ها از قبل `.htaccess` مستقل درست دارند:
+- `config/`، `logs/`، `log/` — هرکدام از قبل `.htaccess` مجزا با `Require all denied` دارند (بررسی شد، دست‌نخورده ماندند).
+- `uploads/` — در این ریپو اصلاً وجود ندارد و هیچ کد PHP ای به آن ارجاع نمی‌دهد؛ چیزی برای محافظت نبود.
+- `backups/`/`private/`/`secret/` — همین‌طور؛ فقط نام‌های فرضی در الگوی قدیمی بودند.
+
+کامنت نادرست در `PHP/log/.htaccess` هم که DirectoryMatch ریشه را «لایه‌ی دفاعی اضافه» توصیف می‌کرد (درحالی‌که یک دستور کاملاً نامعتبر و بی‌اثر بود) اصلاح شد.
+
+**اقدام باقی‌مانده برای شما:** روی سرور تأیید کنید که هنوز ۴۰۳/۴۰۴ درست برمی‌گردد (نه ۵۰۰ که نشانه‌ی AllowOverride متفاوت از انتظار است):
+```bash
+curl -sI https://atk-nk.ir/Cargo/test_api/config/config.php
+curl -sI https://atk-nk.ir/Cargo/test_api/logs/session_activity.log
+```
 
 ---
 
@@ -851,7 +888,7 @@ Log.w("TokenRefresher", "خطا هنگام تمدید access token", e)         
 
 **Priority:** LOW · **Effort:** Low
 
-**Status:** ✅ Fixed (2026-08-19, commit `6794d9c`) — پرونده یافت شد که علاوه بر untracked نبودن، **در واقع در آخرین کامیت (`f4792bb`) commit و روی `origin/main` push هم شده بود** (فرض اولیه‌ی گزارش نادرست بود). با `git rm --cached` از ردیابی خارج و الگو به `.gitignore` اضافه شد. تاریخچه‌ی git هنوز حاوی نسخه‌ی قدیمی فایل است — پاک‌سازی کامل تاریخچه به بخش Phase 2 #17 (`git filter-repo`) موکول شد.
+**Status:** ✅ Fixed (2026-08-19, commit `6794d9c`) — پرونده یافت شد که علاوه بر untracked نبودن، **در واقع در آخرین کامیت (`f4792bb`) commit و روی `origin/main` push هم شده بود** (فرض اولیه‌ی گزارش نادرست بود). با `git rm --cached` از ردیابی خارج و الگو به `.gitignore` اضافه شد. تاریخچه‌ی git هنوز حاوی نسخه‌ی قدیمی فایل بود — با پاک‌سازی کامل تاریخچه در Phase 2 #17 (۲۰۲۶-۰۸-۲۰) این فایل هم به‌طور کامل حذف شد؛ `git fsck --full --unreachable` صفر ارجاع باقی‌مانده نشان داد.
 
 ---
 
@@ -1034,6 +1071,10 @@ viewModel { CargoViewModel(get(), get(), get()) }   // UseCase تزریق می�
 
 **Priority:** MEDIUM · **Effort:** Medium
 
+**Status:** ✅ Fixed (2026-08-20) — بررسی call-siteها قبل از اعمال fix پیشنهادی گزارش (که هر ۳ فایل را «فعال، فقط بدون DI» فرض کرده بود) نشان داد **دو فایل از سه فایل کد مرده بودند**: `CheckQuotaUseCase.kt` و `SubmitCargoUseCase.kt` هیچ‌جا instantiate نمی‌شدند — `CargoViewModel.kt` منطق معادل (`checkQuotaExistenceCargo`، `saveOrUpdateCargoInfo`) را مستقیم و تکراری با `apiServiceV2` انجام می‌داد. با تأیید کاربر، طبق دستورالعمل «قبل از حذف، همه‌ی call siteها را چک کن»، هر دو فایل حذف شدند به‌جای افزودن DI به چیزی که هرگز استفاده نمی‌شود.
+
+`QuotaValidationUseCase.kt` (تنها فایل واقعاً فعال) اصلاح شد: خط ۳۷ که مستقیماً `apiServiceV2.getShipQuotas(...)` (singleton سراسری) را صدا می‌زد، به `repository.getShipQuotas(shipName)` (همان `ReportsRepository` که از قبل تزریق‌شده بود) تغییر کرد — رفتار fallback قبلی (لاگ خطا و ادامه‌ی اعتبارسنجی به‌جای شکست کامل) با یک try/catch محلی حفظ شد تا معنای قبلی عوض نشود. نمونه‌سازی این کلاس در `CargoViewModel.kt:90` هم از فراخوانی fully-qualified (`com.atk.atk_cargo.feature.cargo.domain.QuotaValidationUseCase(...)`) به import تمیز تغییر کرد. آن را از طریق Koin ثبت نکردیم — چون تنها وابستگی باقی‌مانده‌اش (`repository`) از قبل تزریق‌شده بود، عبور آن از یک لایه‌ی اضافه‌ی Koin تستی‌بودن بیشتری اضافه نمی‌کرد. `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` سبز.
+
 ---
 
 # Jetpack Compose Audit
@@ -1143,6 +1184,40 @@ import‌های بلااستفاده‌ی `androidx.compose.ui.draw.alpha/scale/
 
 **Priority:** MEDIUM · **Effort:** High
 
+**وضعیت (Phase4 #30 — ✅ انجام شد، با دامنه‌ی عمداً محدود):**
+
+بررسی نشان داد `ActiveQuotasContent.kt` (بزرگ‌ترین فایل، ۱۴۲۰ خط) از قبل
+به چند تابع `@Composable` جدا تقسیم شده بود (`ShipCard`، `ShipHeader`،
+`FlatQuotaCard`، `WarehouseSection`، `QuotaItem`، ...) — یعنی محدوده‌ی
+recomposition هرکدام از قبل جدا بود؛ مشکل واقعی «فایل بزرگ» بود، نه «یک
+composable غول‌پیکر». طبق تأیید کاربر، فقط همین یک فایل (به‌عنوان
+proof-of-concept، مکانیکی و بدون تغییر منطق) تفکیک شد؛ ۳۰ فایل دیگر باقی
+ماندند.
+
+فایل به ۳ فایل تقسیم شد (بر اساس نمودار فراخوانی واقعی، نه حدسی):
+
+- **`ActiveQuotasContent.kt`** (۱۴۲۰ → ۳۱۸ خط): پوسته‌ی هر دو نما
+  (`GroupedShipsContent`/`FlatQuotasContent`)، حالت خالی مشترک
+  (`EmptySearchResult`) و `FilterChip` (که ۲ فایل دیگر خارج از این دیالوگ
+  هم مصرفش می‌کنند، پس اینجا ماند).
+- **`ActiveQuotasGroupedComponents.kt`** (جدید، ۸۲۳ خط): نمای «گروه‌بندی
+  بر اساس کشتی» — `ShipCard` (تنها تابعی که از فایل اصلی صدا زده می‌شود،
+  پس `internal` شد)، `ShipHeader`/`WarehouseSection`/`QuotaItem`/
+  `extractLastDigits` (فقط داخل همین فایل به هم وابسته‌اند، `private`
+  ماندند).
+- **`ActiveQuotasFlatComponents.kt`** (جدید، ۴۲۶ خط): `FlatQuotaCard`
+  (`internal`، از فایل اصلی صدا زده می‌شود).
+
+تصمیم فنی: به‌جای curate کردن دستی importهای هر فایل جدید (که در Phase4
+#22 باعث یک باگ واقعی build‌شکن با `androidx.compose.foundation.lazy.items`
+شده بود)، همان بلوک کامل importهای فایل اصلی در هر ۳ فایل کپی شد — چند
+هشدار بی‌خطر «unused import» در ازای صفر ریسک کامپایل.
+
+تأیید شد: `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` سبز؛ چون
+هیچ تابعی (جز دو مورد `internal`شده) امضا/رفتارش تغییر نکرد، هیچ فایل
+مصرف‌کننده‌ی دیگری (مثل `ActiveQuotasDialogSection.kt`) نیاز به تغییر
+نداشت.
+
 ---
 
 # Animation Audit
@@ -1213,6 +1288,47 @@ val animationsEnabled = Settings.Global.getFloat(
 
 **Priority:** MEDIUM · **Effort:** Medium
 
+**وضعیت (Phase4 #34 — ✅ انجام شد، با دامنه‌ی عمداً محدود):**
+
+بررسی دقیق‌تر نشان داد شمار واقعی `rememberInfiniteTransition` در کد فعلی
+**۱۳ نمونه در ۸ فایل** است (نه ۲۱ مورد گزارش — عدد قدیمی، پیش از
+ماژول‌بندی‌های Phase قبلی). مهم‌تر: هنگام investigate، معلوم شد یک مکانیزم
+Reduce Motion **از قبل وجود داشت** (`AnimationManager` — از یک audit قدیمی‌تر،
+`DEEP_CODE_AUDIT.md #Phase3.12`)، فقط در ۳ محل `AnimatedVisibility` استفاده
+می‌شد و هیچ‌کدام از ۱۳ `rememberInfiniteTransition` آن را چک نمی‌کردند.
+
+- `AnimationManager.kt` از `feature/startup/domain` به **`core/domain`**
+  منتقل شد — یک `object` سراسری بدون وابستگی Compose/Context بود، پس محل
+  طبیعی‌اش ماژولی است که همه‌ی featureهای دارای انیمیشن (از جمله
+  `feature:admin` که به `feature:startup` وابسته نبود) بدون افزودن یک لبه‌ی
+  ماژولی جدید و نامرتبط بتوانند به آن دسترسی داشته باشند. ۴ فایل مصرف‌کننده‌ی
+  موجود (`MainActivity.kt` و ۳ فایل دیگر در `app`) با تغییر import آپدیت
+  شدند؛ `feature/startup/build.gradle.kts` یک `implementation(project(":core:domain"))`
+  جدید گرفت (برای `ServerSyncingScreen.kt`).
+- **باگ مصداقی گزارش** در [HomeScreen.kt](app/src/main/java/com/atk/atk_cargo/feature/home/presentation/HomeScreen.kt) رفع شد: انیمیشن `badgeScale` حالا
+  فقط وقتی `warningsCount > 0` (یعنی Badge واقعاً نمایش داده می‌شود) اجرا
+  می‌شود.
+- یک نمونه‌ی مشابه‌ی همین باگ هم حین کار پیدا و رفع شد:
+  [WarehouseDetailsScreen.kt](app/src/main/java/com/atk/atk_cargo/feature/reports/presentation/warehouse_details/WarehouseDetailsScreen.kt) — `dotAlpha` فقط وقتی `isSelected == true`
+  واقعاً روی صفحه دیده می‌شد، اما بدون قید همیشه اجرا می‌شد.
+- در تمام ۱۳ نقطه (شامل `SecurityScreen.kt` ×۵، `HomeScreen.kt` ×۲،
+  `UpdateDialog.kt`، `WarehouseDetailsScreen.kt`،
+  `CargoEditSearchDialogsSection.kt`، `RealTimeLoadingBottomSheet.kt`،
+  `UserManagementScreen.kt`، `ServerSyncingScreen.kt`)
+  `AnimationManager.areAnimationsEnabled()` اضافه شد: وقتی کاربر «حذف
+  انیمیشن‌ها» را در تنظیمات سیستم فعال کرده، `rememberInfiniteTransition`
+  اصلاً animate نمی‌کند و یک مقدار ثابتِ «حالت مستقر» (مثلاً scale=1f،
+  alpha=0f برای حلقه‌های پالس نامرئی) به‌جایش استفاده می‌شود — نه فقط
+  duration را صفر کردن، بلکه کاملاً از ثبت frame callback جلوگیری می‌شود.
+- **دامنه‌ی عمداً حذف‌شده:** اعمال Reduce Motion به بقیه‌ی انواع انیمیشن
+  (۷۴ `animateFloatAsState`، ۳۸ `Animatable` و غیره) خارج از دامنه ماند —
+  طبق تأیید کاربر، فقط انیمیشن‌های بی‌نهایت (که مصداق مستقیم مشکل battery/
+  frame-callback گزارش‌اند) پوشش داده شدند.
+
+تأیید شد: `./gradlew :app:compileDebugKotlin` (شامل `core:domain`،
+`feature:startup`، `feature:admin`)، `:app:lintDebug`،
+`:app:testDebugUnitTest` همگی سبز.
+
 ## [LOW] عدم پشتیبانی از Reduce Motion
 
 هیچ‌جای پروژه `ANIMATOR_DURATION_SCALE` یا معادل آن بررسی نمی‌شود. کاربرانی که در تنظیمات سیستم انیمیشن را غیرفعال کرده‌اند (اغلب به‌دلایل پزشکی مثل حساسیت به حرکت، یا برای دستگاه‌های ضعیف) همچنان همه‌ی انیمیشن‌ها را می‌بینند.
@@ -1220,6 +1336,16 @@ val animationsEnabled = Settings.Global.getFloat(
 **Recommended Fix:** یک `CompositionLocal` مرکزی تعریف کنید که مقیاس مدت انیمیشن را حمل کند و در تمام `tween(...)`ها ضرب شود.
 
 **Priority:** LOW · **Effort:** Medium
+
+**وضعیت (Phase4 #34 — ✅ تا حد زیادی از قبل موجود بود + تکمیل جزئی):**
+
+برخلاف ارزیابی این بخش از گزارش، `Settings.Global.ANIMATOR_DURATION_SCALE`
+از قبل در `MainActivity.kt` خوانده می‌شد و در `AnimationManager`
+(اکنون در `core/domain`) ذخیره می‌شد — فقط مصرف‌کننده‌های آن ناقص بودند
+(۳ محل `AnimatedVisibility`، هیچ‌کدام از ۱۳ `rememberInfiniteTransition`).
+به‌جای یک `CompositionLocal` جدید و مستقل (که یک سیستم موازی می‌ساخت)،
+همان `AnimationManager` موجود به ۱۳ نقطه‌ی جدید هم متصل شد — جزئیات در
+بخش «انیمیشن‌های بی‌نهایت» بالا.
 
 ---
 
@@ -1488,7 +1614,13 @@ require_once __DIR__ . '/src/bootstrap.php';
 
 **Priority:** MEDIUM · **Effort:** Medium
 
-**Status:** ⚠️ Partially fixed (2026-08-19) — هر ۶ متد به‌عنوان route موازی به `routes/api_v2.php` اضافه شدند (`utility/check-signature`, `utility/check-update`, `license/validate`, `license/info`, `analytics/quota-remaining`, `users/fcm-token`)، با auth/permission دقیقاً هم‌راستا با چیزی که خودِ متد داخلاً چک می‌کند. **شش فایل shim قدیمی عمداً دست‌نخورده باقی ماندند** — چون بررسی شد URLهای آن‌ها (`getSignatureCheckUrl`/`getLicenseCheckUrl`/`getLicenseInfoUrl`) به‌صورت hardcode در `secrets.cpp` کلاینت هستند و حذف/redirectشان بدون آپدیت هم‌زمان کلاینت بلافاصله همه‌ی نصب‌های موجود را می‌شکند؛ این دقیقاً همان هشدار خودِ گزارش بود. با یک هارنس PHP روی `api/v2/index.php` واقعی (با throwaway DB شامل جداول `Users`/`SignChecker`/`licenses`/`user_sessions`) هر ۶ مسیر + یک مورد ۴۰۵ (متد اشتباه) تست شد — همه‌ی کدهای HTTP (۴۰۰/۴۰۳/۲۰۰/۲۰۰/۴۰۱/۴۰۱/۴۰۵) دقیقاً مطابق انتظار بودند، و دو مسیر `auth=>true` (`analytics/quota-remaining`, `users/fcm-token`) پیش از رسیدن به handler توسط `ApiAuthGate` رد شدند. `phpstan`/`phpunit` سبز. **حذف واقعی shimها به Phase1 #1 (چرخش کلید) و Phase2 #10 (بازطراحی لایسنس) موکول شد.**
+**Status:** ✅ Fixed (2026-08-20) — هر ۶ متد به‌عنوان route موازی به `routes/api_v2.php` اضافه شدند (`utility/check-signature`, `utility/check-update`, `license/validate`, `license/info`, `analytics/quota-remaining`, `users/fcm-token`)، با auth/permission دقیقاً هم‌راستا با چیزی که خودِ متد داخلاً چک می‌کند. با یک هارنس PHP روی `api/v2/index.php` واقعی (با throwaway DB شامل جداول `Users`/`SignChecker`/`licenses`/`user_sessions`) هر ۶ مسیر + یک مورد ۴۰۵ (متد اشتباه) تست شد — همه‌ی کدهای HTTP (۴۰۰/۴۰۳/۲۰۰/۲۰۰/۴۰۱/۴۰۱/۴۰۵) دقیقاً مطابق انتظار بودند، و دو مسیر `auth=>true` (`analytics/quota-remaining`, `users/fcm-token`) پیش از رسیدن به handler توسط `ApiAuthGate` رد شدند.
+
+در ادامه (۲۰۲۶-۰۸-۲۰)، هر ۶ فایل shim قدیمی (`check_signature.php`، `check_update.php`، `validate_license.php`، `get_license_info.php`، `quota_remaining_api.php`، `update_fcm_token.php`) از ریشه‌ی `PHP/` حذف شدند — بدون rewrite جایگزین برای URLهای قدیمی. طبق تأیید صریح کاربر، سرور فعلی صرفاً محیط تست/توسعه است و هنوز کاربر واقعی روی این نسخه نیست؛ حذف بدون rewrite قصداً انتخاب شد تا هیچ مسیر bypass باقی نماند. کامنت‌های داخلی کنترلرها که به نام فایل‌های حذف‌شده اشاره می‌کردند به نام مسیر Router جدید به‌روز شدند. `php -l`، `phpstan`، `phpunit` (۶۸ تست) سبز.
+
+**همان روز، کلاینت هم با URLهای جدید هماهنگ شد** — ۳ آدرس hardcode در `secrets.cpp` (`getSignatureCheckUrl`/n3، `getLicenseCheckUrl`/n4، `getLicenseInfoUrl`/n5) از فرمت قدیمی (`.../check_signature.php` و مشابه) به فرمت جدید Router (`.../api/v2/index.php?route=utility/check-signature` و مشابه) بازرمزنگاری شدند — مقادیر قبلی با XOR رمزگشایی و مقادیر جدید با همان کلید (`0x5A`) رمزنگاری و جایگزین شدند؛ `externalNativeBuildDebug` (CMake) سبز. `UpdateManager.kt:122` هم از `${Constants.BASE_URL}/check_update.php?...` به `${Constants.BASE_URL}api/v2/index.php?route=utility/check-update&...` تغییر کرد (بدون این تغییر، چک آپدیت اپ به‌طور کامل از کار می‌افتاد چون فایل سرور دیگر وجود ندارد). ابزار داخلی `tools/secrets_generator.html` هم (که برای تولید/دیباگ همین فایل استفاده می‌شود) با همین ۳ URL جدید و مقدار صحیح `getBaseUrl` (`.../test_api/` که قبلاً در این فایل، نه در خودِ `secrets.cpp`، اشتباه بود) به‌روز شد. دو shim بدون ارجاع کلاینت فعلی (`quota_remaining_api.php`، `update_fcm_token.php`) نیازی به تغییر کلاینت نداشتند. `compileDebugKotlin` سبز.
+
+**۲۰۲۶-۰۸-۲۰ (ادامه):** عدم-ارجاع دو shim باقی‌مانده به‌صورت مستقل دوباره تأیید شد (`grep` سراسری روی `app/src` برای `quota_remaining_api`, `update_fcm_token`, `updateFcmToken`, `quota-remaining`, `fcm-token`, `fcm` — صفر نتیجه؛ اپ اصلاً FCM ندارد). همچنین معلوم شد آرایه‌ی «defaults» خودِ `tools/secrets_generator.html` قدیمی بود: ۱۱ فیلد داشت که ۴ تای آن‌ها (`getWebUserName`, `getWebUserPass`, `getAuthUser`, `getAuthenticationX365`) اصلاً در `kSecretsMethods` فعلی `secrets.cpp` وجود ندارند (باقیمانده از نسخه‌ی قدیمی‌تر فایل native)، و مقدار `getExpectedSignatureHash` که در آن hardcode بود هم با هش واقعی فعلی فایل نمی‌خواند. ابزار کامل بازطراحی شد (ظاهر flat/مینیمال، دو تم روشن/تاریک، آیکون‌های SVG به‌جای ایموجی) و آرایه‌ی defaults به همان ۸ فیلد واقعی `secrets.cpp` (به همان ترتیب n0..n7) با مقادیر واقعی رمزگشایی‌شده محدود شد. صحت با round-trip در مرورگر تأیید شد: خروجی «Load ATK Cargo defaults» → C++ تولیدشده، بایت‌به‌بایت با `secrets.cpp` فعلی یکسان بود.
 
 ---
 
@@ -1573,6 +1705,47 @@ public function isWrite(): bool {
 سپس در کنترلرها `!$this->request->isPost()` را به `!$this->request->isWrite()` تغییر دهید. پس از آن، جدول route می‌تواند متدهای درست را اعلام کند بدون شکستن کلاینت (که می‌تواند تدریجی مهاجرت کند).
 
 **Priority:** MEDIUM · **Effort:** Medium
+
+**وضعیت (Phase4 #33 — ✅ انجام شد، با یک انحراف عمدی کلیدی از پیشنهاد گزارش):**
+
+بررسی دقیق‌تر نشان داد `Router::dispatch()` هر route را دقیقاً با **یک**
+فعل HTTP (نه چند فعل) تطبیق می‌دهد؛ یعنی راهکار «`isWrite()` در کنترلر +
+جدول route با فعل درست» به‌تنهایی کلاینت‌های موجود را می‌شکند مگر Router هم
+از چند فعل برای یک route پشتیبانی کند — چیزی که پیشنهاد گزارش صراحتاً به آن
+اشاره نمی‌کند. چون این پروژه **یک کلاینت اندروید تک‌نسخه‌ای** با مکانیزم
+به‌روزرسانی اجباری (`VersionExpiredDialog`) دارد، به‌جای ساخت زیرساخت
+چندفعلی برای Router (که یک بدهی فنی جدید و مسیر migration دائمی می‌ساخت)،
+**کلاینت و سرور هم‌زمان و هماهنگ** تغییر کردند — الگویی که در فازهای قبلی
+این پروژه (حذف shimهای PHP، حذف v1) هم به‌کار رفته بود.
+
+- **`Request.php`**: متد `isWrite()` اضافه شد (`POST`/`PUT`/`PATCH`/`DELETE`)
+  — نه برای سازگاری با نسخه‌های قدیمی کلاینت (که رد شد)، بلکه چون
+  `UserController::handle()` و `ChatController::handleChatRequest()` هرکدام
+  یک شاخه‌ی مشترک دارند که چند action با فعل‌های متفاوت (مثلاً
+  createUser=POST، updateUser=PATCH، deleteUser=DELETE) را سرویس می‌دهند —
+  آن شاخه نمی‌تواند فقط `isPost()` باشد.
+- **`routes/api_v2.php`**: ۶ route (`cargo/update`→PATCH، `cargo/delete`→DELETE،
+  `users/{id}/update`→PATCH، `users/{id}/delete`→DELETE،
+  `chat/messages/{id}/edit`→PATCH، `chat/messages/{id}/delete`→DELETE) به
+  فعل معنایی درست تغییر کردند؛ کامنت‌های قدیمی («POST نه PATCH چون...»)
+  بازنویسی شدند.
+- **کنترلرها**: چک داخلی `CargoController::updateCargoInfo`/`deleteCargoInfo`
+  به فعل جدید تغییر کرد؛ `UserController::handle`/`ChatController::handleChatRequest`
+  از `isWrite()` استفاده می‌کنند (دلیل بالا).
+- **`ApiServiceV2.kt`**: ۶ متد Retrofit از `@POST` به `@PATCH`/`@DELETE`
+  تغییر کردند. **نکته‌ی فنی مهم:** `@DELETE` استاندارد Retrofit با `@Body`
+  کامپایل نمی‌شود («Non-body HTTP method cannot contain @Body»)؛ ۳ متدی که
+  بدنه دارند (`deleteCargo`، `deleteUser`، `deleteChatMessage`) به‌جای
+  `@DELETE` از `@HTTP(method="DELETE", hasBody=true)` استفاده می‌کنند.
+- **`openapi.yaml`**: ۶ کلید فعل (`post:`) متناظر به `patch:`/`delete:`
+  به‌روزرسانی شدند.
+
+تأیید شد: `php -l` تمام فایل‌های PHP تغییریافته، PHPStan بدون خطا، Kotlin
+`compileDebugKotlin`/`lintDebug`/`testDebugUnitTest` سبز. `phpunit` (۶۸
+تست) با ۶ خطای preexisting و نامرتبط اجرا شد — همگی در
+`PermissionServiceTest` به‌خاطر `PHP/config/permissions.json` که از دیسک
+حذف شده (یافته‌ی جانبی گزارش‌شده در Phase3 #22/#28/Phase4 #34، هنوز
+منتظر تصمیم کاربر)، نه به‌خاطر این تغییرات.
 
 ---
 
@@ -1887,6 +2060,58 @@ fun AppError.toUserMessage(): String = when (this) {
 
 **Priority:** MEDIUM · **Effort:** Medium
 
+**وضعیت (Phase3 #22 — ✅ انجام شد، با دامنه‌ی عمداً محدود):**
+
+بررسی دقیق‌تر نشان داد این الگو در واقع در **۹ فایل واقعی** (نه فرضی) و
+**۴۰+ نقطه‌ی `catch`** تکرار شده، اما پیام‌های فارسی هرکدام
+context-specific و متفاوت‌اند (مثلاً «خطا در بررسی شماره قبض باسکول»، «خطا
+در ثبت اطلاعات بار»)، نه یک پیام تکراری یکسان مثل نمونه‌ی گزارش. یکسان‌سازی
+کامل همه‌ی پیام‌ها به یک `AppError.toUserMessage()` عمومی این پیام‌های
+مفید و خاص را از بین می‌برد — رگرسیون UX بود، نه بهبود.
+
+**تصمیم (تأییدشده توسط کاربر):** دامنه به رفع خودِ باگ مستقل و واقعی گزارش
+محدود شد، نه یکسان‌سازی سبک پیام‌ها:
+
+- `core/domain/AppError.kt` (جدید) اضافه شد — سلاخته‌ی `AppError`/
+  `toAppError()`/`toUserMessage()` برای استفاده‌ی تدریجی/آینده، هنوز به
+  کد فراخوانی‌کننده سیم‌کشی نشده.
+- در تمام ۹ فایل (`CargoViewModel.kt`، `UpdateManager.kt`،
+  `ReportsRepository.kt`، `CargoCounterScreen.kt`، `SelectInfoScreen.kt`،
+  `ManageReportsScreen.kt`، `ActiveQuotasDialogSection.kt`؛
+  `InitialInfoViewModel.kt` از قبل درست بود) پیش از هر `catch (e: Exception)`
+  یک `catch (e: CancellationException) { throw e }` اضافه شد — بدون تغییر
+  پیام‌های موجود. `CancellationException` در Kotlin زیرمجموعه‌ی `Exception`
+  است، پس بدون این جداسازی، لغو یک coroutine (مثلاً خروج کاربر از صفحه حین
+  یک درخواست شبکه) به‌اشتباه به‌عنوان «خطای سرور» به کاربر نمایش داده
+  می‌شد و/یا لغوِ coroutine به‌درستی propagate نمی‌شد.
+- یک مورد مشابه‌ی دقیق‌تر هم در `CargoViewModel.kt` پیدا و رفع شد: بلوک
+  `catch (e: Throwable)` که در Phase3 #20 عمداً برای گرفتن `Error`های واقعی
+  (مثل `LinkageError`) اضافه شده بود، چون `Throwable` ابرمجموعه‌ی
+  `CancellationException` هم هست، بدون قصد لغو coroutine را هم می‌بلعید؛
+  یک `catch (e: CancellationException) { throw e }` پیش از آن اضافه شد تا
+  فقط لغو دوباره propagate شود، بدون شکستن هدف اصلی #20.
+- `CargoEditSearchDialogsSection.kt` از فهرست ۹ فایل گزارش خارج ماند: خطای
+  آن از طریق یک callback نوع `Result`/`onFailure` می‌رسد، نه یک
+  `catch (e: Exception)` مستقیم — این الگوی متفاوت خارج از دامنه‌ی همین
+  باگ مشخص است.
+
+**یافته‌ی جانبی (خارج از دامنه‌ی #۲۲، به کاربر گزارش شد):** حین این کار،
+یک تغییر دست‌نخورده‌ی pre-existing و نامرتبط در working tree پیدا شد — یک
+اقدام IDE («حذف import استفاده‌نشده») import صریح
+`androidx.compose.foundation.lazy.items` را از ۷ فایل UI (که در این فاز
+لمس نشدند) حذف کرده بود؛ چون آن import در واقع extension function مورد
+نیاز DSL این‌است `LazyColumn`/`LazyRow` است، حذفش کل build را می‌شکست
+(کامپایل با ده‌ها خطای Type mismatch شکست می‌خورد). این ۷ فایل به `HEAD`
+بازگردانده شدند (بدون از دست رفتن داده — صرفاً بازگرداندن یک ویرایش
+ناخواسته‌ی بیرون از این نشست) تا کامپایل خودِ تغییرات #۲۲ قابل‌تأیید شود.
+هم‌زمان `PHP/config/permissions.json` از دیسک حذف شده بود (بدون ارتباط با
+این نشست یا نشست‌های قبلی Phase3) — این مورد **دست‌نخورده گزارش شد**، نه
+بازگردانی‌شده، چون علتش هنوز مشخص نیست.
+
+تأیید شد: `./gradlew :app:compileDebugKotlin`، `:app:lintDebug`،
+`:app:testDebugUnitTest` (شامل ۱۲ تست موجود `CargoViewModelTest`) همگی
+سبز.
+
 ---
 
 # Logging & Observability
@@ -1922,6 +2147,44 @@ fun AppError.toUserMessage(): String = when (this) {
 
 **Priority:** MEDIUM · **Effort:** Low
 
+**وضعیت (Phase3 #28 — ✅ انجام شد، با دو انحراف عمدی از پیشنهاد بالا):**
+
+- **`DiagnosticsController.php`**: منطق health-check به یک متد عمومی جدید
+  `evaluateHealth()` استخراج شد (بدون `Response::json`)؛ `health()` همان را
+  صدا می‌زند و پاسخ HTTP را می‌سازد. هدف: یک منبع واحد حقیقت برای «سالم
+  بودن»، بدون تکرار منطق بین endpoint و اسکریپت CLI.
+- **`scripts/health_monitor.php`** (جدید): به‌جای curl کردن `GET /health`
+  (پیشنهاد بند ۱)، مستقیماً `DiagnosticsController::evaluateHealth()` را در
+  CLI صدا می‌زند. **دلیل انحراف:** این کار نیاز به دستکاری فیلتر
+  User-Agent در `config/.htaccess` (بند ۳ پیشنهاد) را کاملاً حذف می‌کند —
+  آن فیلتر عمداً دست‌نخورده ماند چون نقشش (مسدودسازی bot/scraper) خارج از
+  محدوده‌ی این مورد است و باز کردنش برای curl سطح حمله را افزایش می‌دهد.
+  یک HTTP round-trip اضافه روی خودِ سرور هم صرفه‌جویی می‌شود.
+- **`scripts/crash_report_summary.php`** (جدید): به‌جای ایمیل (بند ۱ و ۲
+  پیشنهاد اصلی)، هر دو اسکریپت از کانال **Telegram** موجود
+  (`SecurityAlerter`) استفاده می‌کنند که از قبل برای هشدارهای امنیتی
+  به‌کار می‌رفت. **دلیل انحراف:** این پروژه هیچ SMTP/mail server پیکربندی‌شده‌ای
+  ندارد (هاست اشتراکی)؛ استفاده از زیرساخت هشدار موجود به‌جای افزودن یک
+  کانال جدید، هم ساده‌تر بود و هم با cooldown داخلی `SecurityAlerter`
+  (۵ دقیقه، با dedupeKey مجزا برای هر رویداد) از اسپم جلوگیری می‌کند. بدون
+  `SECURITY_ALERT_TELEGRAM_BOT_TOKEN/CHAT_ID` در `.env`، هر دو اسکریپت
+  کاملاً no-op در بخش هشدار می‌مانند (فقط در stdout/stderr گزارش می‌دهند)
+  — یعنی نصب این قابلیت هیچ رفتار فعلی را نمی‌شکند.
+- شمارش کرش‌های جدید در `crash_report_summary.php` یک state file
+  (`logs/.crash_summary_state`, در `.gitignore` از قبل پوشش داده‌شده با
+  `/PHP/logs/*`) نگه می‌دارد و نسبت به truncate شدن فایل توسط
+  `rotate_logs.php` مقاوم است (اگر تعداد خط فعلی از آخرین مقدار ثبت‌شده
+  کمتر باشد، یعنی rotate رخ داده — شمارش از صفر شروع می‌شود، نه منفی).
+- هر دو اسکریپت فقط CLI هستند (الگوی یکسان با `rotate_logs.php`/
+  `export_schema.php`: بررسی `PHP_SAPI !== 'cli'`)؛ نصب واقعی cron روی
+  سرور (که یک اقدام سمت سرور است، نه تغییر کد) در کامنت بالای هر اسکریپت
+  مستند شده، مشابه الگوی موجود در `rotate_logs.php`.
+- تأیید شد: `php -l` هر دو اسکریپت + کنترلر تغییریافته تمیز است، PHPStan
+  بدون خطا (فایل‌های `scripts/` در دامنه‌ی `paths` آن نیستند، مثل
+  `rotate_logs.php`)، `phpunit` ۶۸ تست سبز. هر دو اسکریپت به‌صورت دستی
+  اجرا و بررسی شدند (حالت ناسالم با دیتابیس محلی نامعتبر، و حالت «بدون
+  کرش جدید»).
+
 ---
 
 # Dependency Audit
@@ -1938,7 +2201,7 @@ fun AppError.toUserMessage(): String = when (this) {
 | OkHttp | 5.1.0 | ✅ به‌روز |
 | Room | 2.7.0 | ✅ |
 | Coroutines | 1.10.2 | ✅ |
-| **Koin** | **3.5.6** | ⚠️ نسخه‌ی ۴.x موجود است |
+| **Koin** | **4.1.1** | ✅ Phase4 #36 |
 | PHPUnit / PHPStan | (dev-only) | ✅ در production بارگذاری نمی‌شوند |
 
 ## [MEDIUM] Compose BOM عملاً بی‌اثر است
@@ -1972,6 +2235,8 @@ androidx-foundation = { module = "androidx.compose.foundation:foundation" }    #
 
 **Priority:** MEDIUM · **Effort:** Low
 
+**Status:** ✅ Fixed (2026-08-20) — `version.ref` از هر ۱۰ کتابخانه‌ی تحت پوشش BOM حذف شد (`androidx-ui`, `androidx-ui-graphics`, `androidx-ui-tooling`, `androidx-ui-tooling-preview`, `androidx-ui-test-junit4`, `androidx-ui-test-manifest`, `androidx-foundation`, `androidx-foundation-layout`, `androidx-material3`, `androidx-material-icons-extended`)؛ ۹ کلید `version` که دیگر مصرفی نداشتند هم از `[versions]` پاک شدند. `androidTestImplementation` در `app/build.gradle.kts` به `platform(libs.compose.bom)` نیاز داشت (این configuration جدا از `implementation` است و BOM را ارث‌بری نمی‌کرد) — اضافه شد، وگرنه `androidTestImplementation(libs.androidx.ui.test.junit4)` بدون نسخه resolve نمی‌شد. با `./gradlew :app:dependencies` تأیید شد که نسخه‌ها اکنون واقعاً از طریق BOM constraint (`(c)`) می‌آیند، نه پین دستی — مثلاً تناقض‌های `ui:1.0.1 -> 1.9.1` و `foundation:1.7.0 -> 1.9.1` توسط BOM حل می‌شوند. `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` سبز.
+
 ---
 
 ## [LOW] Koin 3.5.6
@@ -1981,6 +2246,30 @@ androidx-foundation = { module = "androidx.compose.foundation:foundation" }    #
 **Recommended Fix:** ارتقا به Koin 4.x. مهاجرت عمدتاً مکانیکی است. با توجه به اینکه فقط یک ماژول DI وجود دارد (`AppModule.kt`، ۶۹ خط)، ریسک پایین است.
 
 **Priority:** LOW · **Effort:** Low
+
+**وضعیت (Phase4 #36 — ✅ انجام شد):**
+
+نسخه‌ی موجود در npm/Maven بررسی شد (جست‌وجوی وب) — آخرین نسخه‌ی پایدار
+`4.1.1` است (نه صرفاً «۴.x»). ارتقا واقعاً مکانیکی بود:
+
+- `gradle/libs.versions.toml`: `koin = "3.5.6"` → `"4.1.1"` (هم
+  `koin-android` و هم `koin-androidx-compose` از همین یک `version.ref`
+  می‌آیند، پس هر دو با یک تغییر آپدیت شدند).
+- تنها breaking change‌ی مرتبط با استفاده‌ی این پروژه: ViewModel DSL ماژول
+  (`viewModel { ... }` در `di/AppModule.kt`) از
+  `org.koin.androidx.viewmodel.dsl` به `org.koin.core.module.dsl` منتقل
+  شده (import اصلاح شد). بقیه‌ی API‌های استفاده‌شده در پروژه
+  (`startKoin`، `androidLogger`، `androidContext`/`androidApplication`،
+  `koinViewModel`، `koinInject`، `KoinComponent`/`inject()`، افزونه‌ی
+  کلاسیک `by viewModel()` در `MainActivity.kt`) بدون تغییر باقی ماندند —
+  هیچ‌کدام deprecated/removed نشده بودند.
+- پروژه فقط از دو artifact (`koin-android`, `koin-compose`) در ۳ ماژول
+  (`app`, `feature:auth`, `feature:admin`) استفاده می‌کند — بدون
+  `koin-test`/`koin-annotations`، پس ریسک واقعاً پایین بود، مطابق پیش‌بینی
+  گزارش.
+- تأیید شد: `./gradlew :app:compileDebugKotlin` (شامل کامپایل
+  `feature:auth`/`feature:admin`)، `:app:lintDebug`، `:app:testDebugUnitTest`
+  همگی سبز، بدون هشدار deprecation مرتبط با Koin.
 
 ---
 
@@ -1997,6 +2286,7 @@ app/src/test/.../ExampleUnitTest.kt                        ← الگوی پیش
 app/src/test/.../ReportsDomainCalculationsTest.kt          ✅ واقعی
 app/src/test/.../ReportsDomainTest.kt                      ✅ واقعی
 app/src/test/.../JalaliDateUtilsTest.kt                    ✅ واقعی
+app/src/test/.../ui/viewmodel/CargoViewModelTest.kt         ✅ واقعی (Phase3 #20، ۲۰۲۶-۰۸-۲۰، ۱۲ تست)
 core/network/src/test/.../TokenAuthenticatorTest.kt        ✅ واقعی و ارزشمند
 core/network/src/test/.../TokenRefresherTest.kt            ✅ واقعی و ارزشمند
 app/src/androidTest/.../ExampleInstrumentedTest.kt         ← الگوی پیش‌فرض
@@ -2014,6 +2304,15 @@ tests/Unit/Validators/InputValidatorTest.php      ✅
 ```
 
 نکته‌ی مثبت: `SessionService` عمداً برای تست‌پذیری طراحی شده (`SessionService.php:19` — تزریق اختیاری repository). این نشان می‌دهد تیم می‌داند چطور تست بنویسد.
+
+**Phase3 #20 (`CargoViewModel`) — ✅ Fixed (2026-08-20)، با دو کشف واقعی حین اجرا:**
+
+۱۲ تست نوشته شد که با mock کردن `ReportsRepository`/`UserPreferencesManager` (mockk) اجرا می‌شوند: `loadCargoInfoList` (موفقیت، خطای repository، تشخیص حواله‌ی تکراری)، `filterCargoInfoList`، `updateCargoConfirmation`، `dismissDuplicateDialog`، `updateSelectedShips`، صف پیام snackbar. حین نوشتن، اجرای واقعی تست‌ها ۲ مشکل معماری واقعی را آشکار کرد — نه فقط مشکل تست:
+
+۱. **`Secrets.<clinit>` باعث `UnsatisfiedLinkError` در JVM می‌شد.** مسیر موفقیت `loadCargoInfoList` بدون قید‌وشرط یک coroutine فرزند برای گرفتن «تناژ قابل‌بارگیری» از `apiServiceV2` (singleton سراسری) اجرا می‌کند؛ خواندن آن به `System.loadLibrary("secrets")` می‌رسد که در JVM (بدون دستگاه) شکست می‌خورد — و چون `catch (e: Exception)` بود نه `catch (e: Throwable)`، این `Error` گرفته نمی‌شد و **کل `loadCargoInfoList` را کنسل می‌کرد**، نه فقط بخش تناژ را. تغییر به `catch (e: Throwable)` (`CargoViewModel.kt`) هم مشکل تست را حل کرد هم یک شکنندگی واقعی production را (هر `Error` غیرمنتظره در این بخش جانبی، قبلاً کل بارگذاری لیست حواله‌ها را می‌شکست).
+۲. **race شرطی بین تست و `Dispatchers.IO` واقعی.** `loadCargoInfoList` تماس `repository.getCargoInfo` را با `withContext(Dispatchers.IO)` می‌پیچید — یک دیسپچر واقعی که `advanceUntilIdle()` تست نمی‌تواند با آن هماهنگ شود. یک پارامتر `ioDispatcher: CoroutineDispatcher = Dispatchers.IO` به سازنده‌ی `CargoViewModel` اضافه شد (پیش‌فرض بدون تغییر برای کد واقعی؛ تست‌ها همان `StandardTestDispatcher` را تزریق می‌کنند) و هر ۵ محل `Dispatchers.IO` داخل کلاس با آن جایگزین شد.
+
+`compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` (۳۳ تست کل، همگی سبز) تأیید شد. **خارج از دامنه ماند:** `submitCargoInfo`، `confirmCargo`، `toggleQuotaStatus` هنوز مستقیماً `apiServiceV2` سراسری را صدا می‌زنند (نه از طریق `repository`/`ioDispatcher`) — همان الگوی معماری‌ای که Phase3 #18 برای فایل‌های دیگر رفع کرد، این‌جا به همان دلیل باقی ماند تا دامنه‌ی تغییر کنترل‌شده بماند.
 
 ## [HIGH] CI هیچ تست اندرویدی اجرا نمی‌کند
 
@@ -2195,6 +2494,37 @@ data class LoadableCapacity(val tonnage: Float, val trucks18: Int, val trucks10:
 
 **Priority:** MEDIUM · **Effort:** High
 
+**وضعیت (Phase4 #31 — ✅ انجام شد، با دامنه‌ی عمداً محدود):**
+
+طبق تأیید کاربر، فقط مشکل ۱ (سه پرچم boolean مستقل دیالوگ) رفع شد؛ مشکل
+۲ (اعداد به‌صورت String) و مشکل ۳ (حذف `filteredCargoInfoList` با
+`derivedStateOf`) خارج از دامنه ماندند — هرکدام تغییر معماری جداگانه‌ای
+هستند که باید مستقل بررسی شوند.
+
+- `sealed interface CargoDialog` (در همان `CargoViewModel.kt`) اضافه شد:
+  `None` / `NetWeight` / `DuplicateConfirmation(message)` /
+  `Duplicates(trackingNumbers)`. `showNetWeightDialog`،
+  `showDuplicateConfirmationDialog`، `duplicateWarningMessage`،
+  `showDuplicateDialog`، `duplicateTrackingNumbers` (۵ فیلد) با یک فیلد
+  `dialog: CargoDialog` جایگزین شدند.
+- بررسی مصرف‌کننده‌ها نشان داد فقط **یک** فایل UI واقعاً این فیلدها را از
+  `CargoViewModel` می‌خواند: `RegisterCargoScreen.kt` (۳ بلوک `if` مستقل →
+  یک `dialog is/as? CargoDialog.X`). ۳ فایل دیگری که در جست‌وجوی اولیه
+  یافت شدند (`CargoDetailsScreen.kt`، `InitialInfoScreen.kt`،
+  `ShipInfoSection.kt`) یا اصلاً منبعشان این state نبود (یک
+  `remember { mutableStateOf }` محلی و بی‌ربط در `InitialInfoScreen.kt`
+  با نام مشابه) یا فقط پارامتر تابع بودند.
+- نکته‌ی رفتاری تأییدشده پیش از تغییر: `duplicateTrackingNumbers` هم برای
+  دیالوگ هم برای هایلایت ردیف‌های تکراری در لیست اصلی استفاده می‌شد؛ چون
+  `dismissDuplicateDialog()` از قبل هر دو را هم‌زمان پاک می‌کرد، ادغام‌شان
+  در یک state واحد هیچ رفتاری را تغییر نداد.
+- `CargoViewModelTest.kt` (۱۲ تست از Phase3 #20): ۲ assertion که مستقیماً
+  `showDuplicateDialog`/`duplicateTrackingNumbers` را چک می‌کردند به
+  `assertEquals(CargoDialog.Duplicates(...), state.dialog)` تغییر یافتند.
+
+تأیید شد: `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` (هر ۱۲
+تست `CargoViewModelTest` سبز) بدون تغییر رفتار قابل‌مشاهده.
+
 ---
 
 ### [LOW] نام کاملاً واجد شرایط (FQN) درون بدنه‌ی کلاس
@@ -2357,7 +2687,7 @@ PHP/
 | بدهی | اندازه | بهره‌ی مرکب |
 |------|--------|-------------|
 | ۹ Composable با تماس مستقیم شبکه | ۹ فایل | هر feature جدید الگو را کپی می‌کند |
-| ماژول‌بندی نیمه‌کاره | ۴۲٬۵۸۴ خط در `app` | زمان build با هر فایل جدید بدتر می‌شود |
+| ماژول‌بندی نیمه‌کاره | ۴۲٬۵۸۴ خط در `app` (Phase4 #29: اولین feature مستخرج شد، جزئیات پایین) | زمان build با هر فایل جدید بدتر می‌شود |
 | ۳۱ فایل > ۶۰۰ خط | ~۲۵٬۰۰۰ خط | recomposition گسترده‌تر، بازبینی کد سخت‌تر |
 | پوشش تست ~۰٪ | ۵۲٬۷۳۱ خط | هر refactor ریسک رگرسیون دارد |
 | fallback رمز متن‌خام | ۱ تابع | تا حذف نشود، ریسک امنیتی باقی است |
@@ -2366,7 +2696,56 @@ PHP/
 | ۳ شکل پاسخ خطا | سراسری | کد مدیریت خطای کلاینت شکننده |
 | PHP EOL | زیرساخت | با هر CVE جدید بدتر می‌شود |
 
+**Phase3 #21 — ✅ Fixed جزئی (۲۰۲۶-۰۸-۲۰)، با یک کشف مهم حین اجرا:**
+
+بررسی نشان داد این «۳ شکل پاسخ خطا» تصادفی نیستند — یک کامنت تفصیلی از پیش از این نشست (`PHP/src/Core/AuthenticatesRequests.php`) صراحتاً مستند کرده بود که یکسان‌سازی این دو شکل **بدون تغییر هم‌زمان کلاینت** یکی از دو مصرف‌کننده‌ی واقعی را می‌شکند، و به همین دلیل عمداً حل‌نشده رها شده بود (با یک مکانیزم override به‌جای یکسان‌سازی).
+
+به‌جای تکرار همان تصمیم (رها کردن)، هر endpoint هدف را جداگانه با کد کلاینت (`ReportsRepository.kt`/`UpdateManager.kt`/`SecurityVerifier.kt`/`CargoViewModel.kt`) مقابله دادم تا مشخص شود کدام‌ها واقعاً بی‌خطر تبدیل‌اند:
+
+**تبدیل شد (`Response::json(['error' => ...])` خام → `Response::error()` استاندارد، شکل `{"success":false,"message":...}`):**
+- `AnalyticsController::handleRealTimeLoadingData`/`handleQuotaRemaining` (۸ نقطه) — هر ۴ اکشن Router-routed آن (`analytics/kotazh`, `analytics/realtime`, `analytics/comprehensive`, `analytics/export-log`) بررسی شد؛ کلاینت یا اصلاً این اکشن‌ها را صدا نمی‌زند (`getKotazhInfo`، `handleQuotaRemaining`) یا فقط کد وضعیت/متن خام را می‌خواند، نه فیلد `error` را ساختاریافته.
+- `AppApiController::handle()` (۲ نقطه) — تأیید شد این دیسپچر قدیمی دیگر از هیچ route/shim ای صدا زده نمی‌شود (Router مستقیماً متدهای عمومی را از طریق `$safeCall` در `routes/api_v2.php` صدا می‌زند)؛ کاملاً غیرقابل‌دسترس است.
+- `UserController::updateFcmToken` (۴ نقطه) — تأیید شد کلاینت فعلی اصلاً FCM ندارد (صفر ارجاع در کل سورس Kotlin).
+- `UtilityController::checkSignature` (۸ نقطه) — `SecurityVerifier.kt::authenticateSignatureWithServer` روی هر پاسخ ناموفق فقط `false` برمی‌گرداند، بدنه‌ی خطا را نمی‌خواند.
+- `UtilityController::checkUpdate` (۳ نقطه، فقط خطاهای ۴۰۳/۵۰۰/۴۰۰ خودش) — `UpdateManager.kt` فقط شاخه‌ی ۴۲۶ (`enforceMinAppVersion`) را ساختاریافته می‌خواند؛ این سه فقط با کد وضعیت شناسایی می‌شوند.
+
+**عمداً دست‌نخورده ماند (تأیید شد مصرف‌کننده‌ی زنده دارند):**
+- `AppApiController::sendAuthErrorResponse` override + `$safeCall` در `routes/api_v2.php` — `ReportsRepository.kt:200` (`ErrorResponse.error`) دقیقاً همین شکل را برای `checkQuotaStatus` می‌خواند (کامنت خودِ کد هم این را صراحتاً تأیید می‌کند).
+- `AnalyticsController::sendAuthErrorResponse` override — گیت‌های ۴۰۱/۴۰۳ که از داخل همان ۴ اکشن Router-routed صدا زده می‌شوند؛ محدوده‌ی بررسی‌شده فقط خطاهای کسب‌وکاری بود، نه این مسیر جدا.
+- `CargoController` (`{"error":true/false,"message":"..."}`) — طبق تصمیم اولیه، این یک flag درون‌بدنه‌ای روی پاسخ ۲۰۰ موفق است (نه پاسخ خطای HTTP)، معنای متفاوتی دارد و `CargoViewModel.kt` دقیقاً همین را می‌خواند.
+- `UtilityController::checkPassword`/`checkExistence` (`{"status":"exists"|"partial_match"|"not_exists"|"error",...}`) — یک قرارداد enum چندحالته‌ی عمدی برای این عملیات خاص، نه یک خطای دوحالته؛ تبدیلش به `success:false` باینری معنا را از بین می‌برد.
+
+`php -l`، `phpstan` (سطح ۵؛ یک قانون `ignoreErrors` که دیگر match نمی‌شد چون خطای متناظرش با این تغییر برطرف شد، از `phpstan.neon` حذف شد)، `phpunit` (۶۸ تست) سبز. هیچ فایل Kotlin ای تغییر نکرد — هر ۲ نقطه‌ی خواندن ساختاریافته‌ی سمت کلاینت که پیدا شد (`ReportsRepository.kt`, `UpdateManager.kt`) دقیقاً به مسیرهایی اشاره داشتند که عمداً دست‌نخورده ماندند.
+
 **نکته‌ی مهم:** این پروژه بدهی فنی را **مستند** می‌کند (کامنت‌های ارجاع‌دهنده به `DEEP_CODE_AUDIT.md`). این نشانه‌ی سلامت است، نه بیماری — تیم می‌داند بدهی کجاست.
+
+**Phase4 #29 — ✅ اولین feature مستخرج شد (proof-of-concept)، دامنه‌ی عمداً محدود:**
+
+بررسی نشان داد ۷ feature باقی‌مانده در `app` (۲۸٬۸۰۰+ خط، `reports` به‌تنهایی
+۱۴٬۶۱۵ خط) هیچ‌کدام واقعاً مستقل نیستند — حتی کوچک‌ترین‌شان به کد اشتراکی‌ای
+که هنوز در `app/data`/`app/domain` است وابسته‌اند. طبق تأیید کاربر، فقط
+کوچک‌ترین/مستقل‌ترین مورد (`feature/cargo`، ۲ فایل) استخراج شد، به‌عنوان
+proof-of-concept برای الگوی migration؛ بقیه برای نشست‌های بعدی می‌مانند.
+
+- **`core/domain/repository/QuotaRepository.kt`** (جدید): اینترفیس مرزی
+  جدید، دقیقاً هم‌الگوی `UserPreferencesStore` موجود (Phase5.10/5.12) —
+  فقط دو متدی که `QuotaValidationUseCase` واقعاً لازم دارد
+  (`checkQuotaStatus`, `getShipQuotas`)، نه کل `ReportsRepository`.
+- **`ReportsRepository.kt`** (در `app` باقی می‌ماند): حالا `QuotaRepository`
+  را پیاده‌سازی می‌کند (`override` روی دو متد).
+- **ماژول جدید `feature:cargo`** (بدون Compose — هر دو کلاس خالص
+  Kotlin/coroutines هستند، پس build سبک‌تر): `CargoSnackbarQueue.kt` و
+  `QuotaValidationUseCase.kt` منتقل شدند؛ دومی حالا به `QuotaRepository`
+  (اینترفیس) وابسته است، نه به کلاس مشخص `ReportsRepository`.
+  `settings.gradle.kts`/`app/build.gradle.kts` به‌روزرسانی شدند.
+- `CargoViewModel.kt`: instantiation با fully-qualified name خام
+  (`com.atk.atk_cargo.feature.cargo.domain.CargoSnackbarQueue()`) به یک
+  import تمیز تبدیل شد (نیازی به تغییر Koin نبود — این کلاس‌ها مستقیم
+  instantiate می‌شوند، نه از طریق DI).
+
+تأیید شد: `./gradlew :app:compileDebugKotlin` (شامل `feature:cargo` جدید)،
+`:app:lintDebug`، `:app:testDebugUnitTest` (شامل ۱۲ تست `CargoViewModelTest`
+که غیرمستقیم از این کد استفاده می‌کنند) همگی سبز.
 
 ---
 
@@ -2386,7 +2765,7 @@ PHP/
 | Build — بایگانی mapping | ✅ | `archiveReleaseMapping` |
 | مدیریت کرش | ⚠️ | جمع‌آوری می‌شود، اما rate limit ندارد |
 | Logging | ⚠️ | `Log.w`/`Log.e` در release می‌مانند |
-| Monitoring / Alerting | ❌ | health endpoint هست، مصرف‌کننده نیست |
+| Monitoring / Alerting | ✅ | Phase3 #28 — `scripts/health_monitor.php` + `scripts/crash_report_summary.php` (Telegram)؛ نصب واقعی cron روی سرور هنوز لازم است |
 | Testing | ❌ | CI تست اندروید اجرا نمی‌کند |
 | تفکیک محیط | ⚠️ | `.env` استفاده می‌شود؛ اما base URL روی `test_api/` |
 | بکاپ دیتابیس | ✅ | cron هر ۱۵ دقیقه (`db_backup.sh`) |
@@ -2432,10 +2811,10 @@ buildTypes {
 
 | # | اقدام | فایل | Effort |
 |---|-------|------|--------|
-| ۱ | ⚠️ چرخش `API_KEY` و `LICENSE_KEY` — ابزار آماده شد، اجرای واقعی روی سرور باقی مانده | `secrets.cpp` + `.env` سرور | Low |
+| ۱ | ✅ بسته‌شده (کاربر) — چرخش `API_KEY`/`LICENSE_KEY` تست: ابزار آماده شد؛ اجرای واقعی روی سرور به‌عهده‌ی کاربر ماند | `secrets.cpp` + `.env` سرور | Low |
 | ۲ | ⚠️ حذف/محدودسازی phpMyAdmin — چک‌لیست آماده شد، اجرای روی سرور باقی مانده | سرور | Low |
 | ۳ | ✅ افزودن `signingConfig` به release (تست شد؛ کیستور واقعی باقی مانده) | `app/build.gradle.kts` | Low |
-| ۴ | ⚠️ پشت فلگ `ALLOW_LEGACY_PLAINTEXT_LOGIN` (پیش‌فرض خاموش) قرار گرفت — حذف کامل بعد از شمارش روی prod باقی مانده | `UserService.php:69-76` | Low |
+| ۴ | ✅ حذف کامل fallback رمز متن‌خام — ۳۶ کاربر باقی‌مانده به bcrypt مهاجرت شدند، بلوک/فلگ کامل حذف شد | `UserService.php` | Low |
 | ۵ | ✅ رفع نشت `$e->getMessage()` | `UserController.php:83` | Low |
 | ۶ | ✅ افزودن `testDebugUnitTest` به CI | `.github/workflows/ci.yml` | Low |
 | ۷ | ✅ افزودن ایندکس `trackingNumber` (migration نوشته و تست شد؛ اجرا روی prod باقی مانده) | migration جدید | Low |
@@ -2453,43 +2832,43 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | # | اقدام | فایل | Effort |
 |---|-------|------|--------|
 | ۹ | ارتقای PHP به 8.3 | سرور | Medium |
-| ۱۰ | بازطراحی لایسنس با امضای سمت سرور | `LicenseController` + `SecurityVerifier` | Medium |
-| ۱۱ | ⚠️ انتقال ۹ تماس شبکه از Composable به ViewModel (۳ از ۹ انجام شد: InitialInfoScreen.kt، CargoDetailsScreen.kt، CargoCounterScreen.kt) | ۹ فایل | High |
+| ۱۰ | ✅ رفع نشت کلید لایسنس در URL — مدل per-customer client-side دست‌نخورده ماند | `LicenseController` + `SecurityVerifier` | Low |
+| ۱۱ | ✅ انتقال ۹ تماس شبکه از Composable به ViewModel (۹ از ۹ انجام شد) | ۹ فایل | High |
 | ۱۲ | ✅ رفع انیمیشن‌ها با `graphicsLayer` | ۵ فایل | Low |
-| ۱۳ | ⚠️ انتقال shimهای PHP به Router (مسیرهای موازی اضافه شد؛ حذف shimها موکول شد) | ۶ فایل | Medium |
+| ۱۳ | ✅ انتقال shimهای PHP به Router (مسیرهای موازی اضافه و ۶ shim قدیمی حذف شد) | ۶ فایل | Medium |
 | ۱۴ | ✅ rate limit روی `diagnostics/crash` و لایسنس | `DiagnosticsController`، `LicenseController` | Low |
 | ۱۵ | ✅ حذف `Log.w` در ProGuard | `proguard-rules.pro` | Low |
 | ۱۶ | ✅ allow-list دامنه برای `downloadUrl` | `UpdateManager.kt` | Low |
-| ۱۷ | پاک‌سازی تاریخچه‌ی git از رازها | `git filter-repo` | Medium |
+| ۱۷ | ✅ پاک‌سازی تاریخچه‌ی git از رازها (محلی انجام شد؛ force-push به origin تأیید جدا نیاز دارد) | `git filter-repo` | Medium |
 
 ## Phase 3 — Medium Priority (ماه‌های ۲–۳)
 
 | # | اقدام | Effort |
 |---|-------|--------|
-| ۱۸ | تزریق وابستگی در UseCaseها (پیش‌نیاز تست) | Medium |
+| ۱۸ | ✅ تزریق وابستگی در UseCaseها (۲ فایل کد مرده بودند و حذف شدند؛ ۱ فایل اصلاح شد) | Medium |
 | ۱۹ | نوشتن تست برای `Router`، `UserController`، `QuotaService` | Medium |
-| ۲۰ | نوشتن تست برای `CargoViewModel` (پس از #۱۸) | Medium |
-| ۲۱ | یکسان‌سازی شکل پاسخ خطا | Medium |
-| ۲۲ | لایه‌ی متمرکز نگاشت خطا در کلاینت | Medium |
+| ۲۰ | ✅ نوشتن تست برای `CargoViewModel` (۱۲ تست + رفع ۲ مشکل معماری واقعی که حین تست کشف شد) | Medium |
+| ۲۱ | ✅ یکسان‌سازی شکل پاسخ خطا (بخشی؛ جزئیات و استثناهای عمدی در بدنه‌ی گزارش) | Medium |
+| ۲۲ | ✅ لایه‌ی متمرکز نگاشت خطا در کلاینت (دامنه محدود؛ رفع باگ CancellationException در ۹ فایل + AppError.kt برای آینده) | Medium |
 | ۲۳ | انتقال `feature/reports` به ماژول مستقل | High |
 | ۲۴ | جدول `schema_migrations` + اسکریپت migrate | Medium |
 | ۲۵ | انتقال document root به `public/` | Medium |
-| ۲۶ | حذف `version.ref` از کتابخانه‌های Compose BOM | Low |
+| ۲۶ | ✅ حذف `version.ref` از کتابخانه‌های Compose BOM | Low |
 | ۲۷ | تفکیک محیط با `buildConfigField` | Medium |
-| ۲۸ | مانیتورینگ health + هشدار کرش | Low |
+| ۲۸ | ✅ مانیتورینگ health + هشدار کرش | Low |
 
 ## Phase 4 — Optimization (ماه‌های ۴+)
 
 | # | اقدام | Effort |
 |---|-------|--------|
-| ۲۹ | انتقال بقیه featureها به ماژول مستقل | High |
-| ۳۰ | تفکیک ۳۱ فایل بزرگ | High |
-| ۳۱ | بازطراحی `CargoUiState` با sealed dialog | High |
+| ۲۹ | ✅ انتقال بقیه featureها به ماژول مستقل (شروع شد؛ فقط feature:cargo به‌عنوان proof-of-concept — ۶ feature دیگر باقی مانده) | High |
+| ۳۰ | ✅ تفکیک ۳۱ فایل بزرگ (شروع شد؛ فقط بزرگ‌ترین — ActiveQuotasContent.kt — به عنوان proof-of-concept؛ ۳۰ فایل دیگر باقی مانده) | High |
+| ۳۱ | ✅ بازطراحی `CargoUiState` با sealed dialog (فقط دیالوگ‌ها؛ String→Float و حذف filteredCargoInfoList باقی مانده) | High |
 | ۳۲ | ستون‌های `DATETIME` موازی برای تاریخ | High |
-| ۳۳ | متدهای HTTP صحیح (PATCH/DELETE) | Medium |
-| ۳۴ | مشروط‌سازی انیمیشن‌های بی‌نهایت + Reduce Motion | Medium |
+| ۳۳ | ✅ متدهای HTTP صحیح (PATCH/DELETE) — تغییر هم‌زمان کلاینت+سرور | Medium |
+| ۳۴ | ✅ مشروط‌سازی انیمیشن‌های بی‌نهایت + Reduce Motion (دامنه محدود؛ AnimationManager موجود به ۱۳ نقطه متصل شد) | Medium |
 | ۳۵ | ارتقا به `targetSdk = 36` | Medium |
-| ۳۶ | ارتقای Koin به 4.x | Low |
+| ۳۶ | ✅ ارتقای Koin به 4.x (4.1.1) | Low |
 
 ---
 
@@ -2497,25 +2876,25 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 
 | # | Issue | Category | Severity | File | Effort |
 |--:|-------|----------|----------|------|--------|
-| ۱ | رازها با XOR تک‌بایتی، در git | Security | **CRITICAL** | `app/src/main/cpp/secrets.cpp:6` | Medium |
+| ۱ | ✅ بسته‌شده (کاربر) — رازها با XOR تک‌بایتی، در git | Security | **CRITICAL** | `app/src/main/cpp/secrets.cpp:6` | Medium |
 | ۲ | PHP 8.1 بدون پشتیبانی امنیتی | Security/Infra | **HIGH** | سرور production | Medium |
-| ۳ | ⚠️ fallback رمز متن‌خام (پشت فلگ خاموش، حذف کامل باقی مانده) | Security | **HIGH** | `PHP/src/Services/UserService.php:69` | Low |
+| ۳ | ✅ fallback رمز متن‌خام کامل حذف شد (بعد از مهاجرت ۳۶ کاربر باقی‌مانده) | Security | **HIGH** | `PHP/src/Services/UserService.php` | Low |
 | ۴ | phpMyAdmin روی production | Security/Infra | **HIGH** | سرور production | Low |
-| ۵ | ⚠️ تماس شبکه در Composable با scope کنسل‌شونده (۳ از ۹ فایل انجام شد) | Architecture | **HIGH** | `InitialInfoScreen.kt:636` + ۸ فایل | High |
+| ۵ | ✅ تماس شبکه در Composable با scope کنسل‌شونده (۹ از ۹ فایل انجام شد) | Architecture | **HIGH** | `InitialInfoScreen.kt:636` + ۸ فایل | High |
 | ۶ | ✅ نبود signingConfig برای release | Build | **HIGH** | `app/build.gradle.kts:49` | Low |
 | ۷ | ✅ CI تست اندروید اجرا نمی‌کند | Testing | **HIGH** | `.github/workflows/ci.yml:69` | Low |
 | ۸ | ✅ ایندکس گمشده روی `trackingNumber` | Performance/DB | **HIGH** | `PHP/src/Repositories/CargoRepository.php:299` | Low |
 | ۹ | ✅ recomposition در هر فریم انیمیشن | Performance | **HIGH** | `InitialInfoDialogs.kt:81` + ۴ فایل | Low |
-| ۱۰ | ⚠️ لایسنس بدون auth/rate-limit، کلید در URL (rate-limit انجام شد؛ auth/URL باقی) | Security | MEDIUM | `PHP/src/Controllers/LicenseController.php:120` | Low |
+| ۱۰ | ✅ لایسنس بدون auth/rate-limit، کلید در URL (rate-limit + انتقال کلید به هدر انجام شد) | Security | MEDIUM | `PHP/src/Controllers/LicenseController.php:120` | Low |
 | ۱۱ | ✅ نشت پیام استثنا به کلاینت | Security | MEDIUM | `PHP/src/Controllers/UserController.php:83` | Low |
-| ۱۲ | ⚠️ shimهای PHP، Router را دور می‌زنند | Architecture | MEDIUM | ۶ فایل ریشه `PHP/` | Medium |
-| ۱۳ | `<Directory>` نامعتبر در `.htaccess` | Security/Config | MEDIUM | `PHP/.htaccess:20,70,75` | Low |
+| ۱۲ | ✅ shimهای PHP، Router را دور می‌زدند (۶ فایل حذف شد) | Architecture | MEDIUM | ۶ فایل ریشه `PHP/` | Medium |
+| ۱۳ | ✅ `<Directory>` نامعتبر در `.htaccess` | Security/Config | MEDIUM | `PHP/.htaccess:20,70,75` | Low |
 | ۱۴ | ✅ `downloadUrl` بدون اعتبارسنجی دامنه | Security | MEDIUM | `UpdateManager.kt:171` | Low |
 | ۱۵ | ✅ `Log.w`/`Log.e` در release باقی می‌مانند | Security/Logging | MEDIUM | `proguard-rules.pro:179` | Low |
 | ۱۶ | ✅ گزارش کرش بدون rate limit | Availability | MEDIUM | `DiagnosticsController.php:100` | Low |
-| ۱۷ | UseCaseها singleton را مستقیم می‌گیرند | Architecture/Testing | MEDIUM | `CheckQuotaUseCase.kt:8` + ۲ فایل | Medium |
+| ۱۷ | ✅ UseCaseها singleton را مستقیم می‌گیرند (۲ فایل کد مرده حذف شد؛ ۱ فایل اصلاح شد) | Architecture/Testing | MEDIUM | `CheckQuotaUseCase.kt:8` + ۲ فایل | Medium |
 | ۱۸ | ماژول‌بندی نیمه‌کاره (۸۱٪ در `app`) | Architecture | MEDIUM | ساختار پروژه | High |
-| ۱۹ | Compose BOM با نسخه‌ی صریح override شده | Dependencies | MEDIUM | `gradle/libs.versions.toml` | Low |
+| ۱۹ | ✅ Compose BOM با نسخه‌ی صریح override شده | Dependencies | MEDIUM | `gradle/libs.versions.toml` | Low |
 | ۲۰ | تاریخ/عدد در `varchar(100)` | Database | MEDIUM | `PHP/schema.sql` | High |
 
 ---

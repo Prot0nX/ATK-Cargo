@@ -5,6 +5,8 @@ parameters:
     paths:
         - src
         - api
+        # پنل مدیریت لایسنس — کد واقعی است و باید مثل بقیه آنالیز شود.
+        - Lic
     excludePaths:
         - vendor/*
     tmpDir: build/phpstan
@@ -30,12 +32,13 @@ parameters:
     # CI هرگز UPDATE_CHECK_API_KEY را در محیط phpstan تنظیم نمی‌کند تا این
     # حالت (که واقعاً می‌خواهیم تضمین شود) پایدار و قابل‌تکرار بماند —
     # بررسی دستی خط ۲۰۰-۲۰۶ UtilityController.php تأیید می‌کند منطق درست است.
+    # نکته‌ی Phase3 #21: پیام «Unreachable statement» که قبلاً اینجا ignore
+    # می‌شد (خطاهای checkUpdate با echo/exit خام) با یکسان‌سازی این خطاها به
+    # Response::error() برطرف شد — PHPStan دیگر آن هشدار را تولید نمی‌کند،
+    # پس قانون ignore متناظرش حذف شد (وگرنه چون دیگر match نمی‌شد، خودش
+    # خطای «unmatched ignore» می‌داد).
     ignoreErrors:
         -
             message: '#^Result of \|\| is always true\.$#'
-            path: src/Controllers/UtilityController.php
-            count: 1
-        -
-            message: '#^Unreachable statement - code above always terminates\.$#'
             path: src/Controllers/UtilityController.php
             count: 1

@@ -48,7 +48,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,12 +65,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.data.model.CreateUserRequest
-import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.data.model.UpdateUserRequest
 import com.atk.atk_cargo.data.model.User
-import com.atk.atk_cargo.feature.admin.presentation.UserTypeInfo
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
-import kotlinx.coroutines.launch
 
 // این فایل دیالوگ‌های افزودن/ویرایش/حذف/خروج‌اجباری کاربر را از UserManagementScreen.kt
 // جدا نگه می‌دارد (A1-6، بازسازی ساختاری). وابسته به قطعات internal تعریف‌شده در
@@ -81,6 +77,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun EnhancedAddUserDialog(
+    viewModel: UserManagementViewModel,
     onDismiss: () -> Unit,
     onUserAdded: () -> Unit,
     isMainAdmin: Boolean
@@ -92,7 +89,6 @@ fun EnhancedAddUserDialog(
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
 
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
     fun isValidFullName(name: String): Boolean {
@@ -268,29 +264,24 @@ fun EnhancedAddUserDialog(
                                     password.isEmpty() -> errorMessage = "لطفاً رمز عبور را وارد کنید"
                                     password.length < 8 -> errorMessage = "رمز عبور باید حداقل ۸ کاراکتر باشد"
                                     else -> {
-                                        scope.launch {
-                                            isLoading = true
-                                            try {
-                                                val request = CreateUserRequest(
-                                                    username = username,
-                                                    fullName = fullName,
-                                                    password = password,
-                                                    userType = selectedUserType
-                                                )
-                                                val response = RetrofitClient.apiServiceV2.createUser(request)
-                                                if (response.isSuccessful && response.body()?.success == true) {
-                                                    Toast.makeText(context, "کاربر با موفقیت ایجاد شد", Toast.LENGTH_SHORT).show()
-                                                    onUserAdded()
-                                                    onDismiss()
-                                                } else {
-                                                    errorMessage = "خطا در ایجاد کاربر: ${response.errorBody()?.string()}"
-                                                }
-                                            } catch (e: Exception) {
-                                                errorMessage = "خطا در ارتباط: ${e.message}"
-                                            } finally {
-                                                isLoading = false
-                                            }
-                                        }
+                                        isLoading = true
+                                        val request = CreateUserRequest(
+                                            username = username,
+                                            fullName = fullName,
+                                            password = password,
+                                            userType = selectedUserType
+                                        )
+                                        viewModel.createUser(
+                                            request = request,
+                                            onSuccess = {
+                                                Toast.makeText(context, "کاربر با موفقیت ایجاد شد", Toast.LENGTH_SHORT).show()
+                                                onUserAdded()
+                                                onDismiss()
+                                            },
+                                            onFailure = { message -> errorMessage = message },
+                                            onError = { message -> errorMessage = message },
+                                            onFinally = { isLoading = false }
+                                        )
                                     }
                                 }
                             }

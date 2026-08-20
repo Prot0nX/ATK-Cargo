@@ -51,15 +51,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.User
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.core.startup.LocalNotificationPermissionRequester
 import com.atk.atk_cargo.core.startup.LocalStartupViewModel
 import com.atk.atk_cargo.feature.home.presentation.ProfileSettingsDialog
+import com.atk.atk_cargo.feature.home.presentation.ProfileViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 
 /** رنگ‌های تیل سازگار با تم روشن/تاریک برای منوی پروفایل. */
@@ -102,6 +103,7 @@ fun ProfileMenu(
     val startupViewModel = LocalStartupViewModel.current
     val requestNotificationPermission = LocalNotificationPermissionRequester.current
     val userPreferencesManager = koinInject<UserPreferencesManager>()
+    val profileViewModel: ProfileViewModel = koinViewModel()
     val hardwareScore by userPreferencesManager.hardwareScore.collectAsStateWithLifecycle(initialValue = -1)
     val loadingEnabled by userPreferencesManager.loadingNotificationsEnabled.collectAsStateWithLifecycle(initialValue = true)
     val chatEnabled by userPreferencesManager.chatNotificationsEnabled.collectAsStateWithLifecycle(initialValue = true)
@@ -309,19 +311,21 @@ fun ProfileMenu(
     if (showSettings) {
         LaunchedEffect(Unit) {
             if (currentUser == null) {
-                try {
-                    currentUser = RetrofitClient.apiServiceV2.getSelfProfile()
-                } catch (_: Exception) {
-                    Toast.makeText(context, "خطا در دریافت اطلاعات کاربر", Toast.LENGTH_SHORT).show()
-                    showSettings = false
-                    currentUser = null
-                }
+                profileViewModel.loadSelfProfile(
+                    onSuccess = { currentUser = it },
+                    onError = {
+                        Toast.makeText(context, "خطا در دریافت اطلاعات کاربر", Toast.LENGTH_SHORT).show()
+                        showSettings = false
+                        currentUser = null
+                    }
+                )
             }
         }
 
         currentUser?.let { user ->
             ProfileSettingsDialog(
                 user = user,
+                viewModel = profileViewModel,
                 onDismiss = {
                     showSettings = false
                     currentUser = null

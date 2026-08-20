@@ -172,18 +172,30 @@ CREATE TABLE `audit_log` (
 
 --
 -- Table structure for table `licenses`
+-- ستون‌های plan/expires_at/contact_*/notes/updated_at و دو ایندکس جدید:
+-- migrations/2026_08_20_extend_licenses_table.sql
+-- توجه: `expires_at IS NULL` به معنای لایسنس نامحدود است.
 --
 DROP TABLE IF EXISTS `licenses`;
 CREATE TABLE `licenses` (
   `id` int NOT NULL AUTO_INCREMENT,
   `license_key` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `company_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `plan` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'standard',
   `activation_date` datetime DEFAULT CURRENT_TIMESTAMP,
+  `expires_at` datetime DEFAULT NULL,
   `is_active` tinyint(1) DEFAULT '1',
+  `contact_name` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `contact_phone` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `contact_email` varchar(190) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `last_check` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `license_key` (`license_key`)
+  UNIQUE KEY `license_key` (`license_key`),
+  KEY `idx_created_at` (`created_at`),
+  KEY `idx_expires_at` (`expires_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --

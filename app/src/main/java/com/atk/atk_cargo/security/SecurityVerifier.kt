@@ -7,7 +7,6 @@ import android.content.pm.Signature
 import android.os.Debug
 import android.util.Log
 import androidx.core.content.edit
-import com.atk.atk_cargo.BuildConfig
 import com.atk.atk_cargo.api.Secrets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -37,8 +36,6 @@ class SecurityVerifier(private val context: Context) {
         private const val BUFFER_DURATION = 8000
         private const val CONNECTION_ATTEMPTS = 2
 
-        // اگر آخرین بررسی امنیتی موفق در این بازه‌ی زمانی رخ داده باشد، خطای شبکه
-        // (نه TAMPERED/LICENSE_INACTIVE) به‌جای قفل کامل، اجازه‌ی ورود موقت می‌دهد
         private const val OFFLINE_GRACE_PERIOD_MS = 3 * 24 * 60 * 60 * 1000L // ۳ روز
         private const val LAST_SUCCESS_TIMESTAMP_KEY = "last_verified_success_timestamp"
 
@@ -52,12 +49,6 @@ class SecurityVerifier(private val context: Context) {
     private val securityPrefs = context.getSharedPreferences("x1y2z3", Context.MODE_PRIVATE)
 
     suspend fun verifySecurityStatus(): Pair<Boolean, SecurityErrorType?> = withContext(Dispatchers.IO) {
-        // بیلد benchmark با کلید debug امضا می‌شود (برای پروفایلینگ macrobenchmark/baseline profile)
-        // در حالی که minify مثل release روشن است؛ بنابراین امضا هرگز با EXPECTED_SIGNATURE_HASH
-        // مطابقت نخواهد داشت. این مسیر فقط برای بیلدهای پروفایلینگ محلی است و هرگز توزیع نمی‌شود.
-        if (BuildConfig.BUILD_TYPE == "benchmark") {
-            return@withContext Pair(true, null)
-        }
         repeat(CONNECTION_ATTEMPTS) { attemptNumber ->
             try {
                 // بررسی امضای برنامه به صورت محلی
@@ -114,11 +105,6 @@ class SecurityVerifier(private val context: Context) {
         resolveNetworkFailure(SecurityErrorType.UNKNOWN_ERROR)
     }
 
-    /**
-     * تصمیم نهایی وقتی سرور اصلاً قابل دسترس نبوده (نه اینکه صراحتاً پاسخ نامعتبر داده باشد):
-     * اگر آخرین تأیید موفق کمتر از OFFLINE_GRACE_PERIOD_MS پیش بوده، اجازه‌ی ورود موقت داده می‌شود
-     * تا کاربر در محیط‌های بدون اینترنت (انبار/بندر) کاملاً از کار نیفتد.
-     */
     private fun resolveNetworkFailure(errorType: SecurityErrorType): Pair<Boolean, SecurityErrorType?> {
         val lastSuccess = securityPrefs.getLong(LAST_SUCCESS_TIMESTAMP_KEY, 0L)
         val withinGracePeriod = lastSuccess > 0L &&
@@ -191,8 +177,6 @@ class SecurityVerifier(private val context: Context) {
                 false
             }
         } catch (e: IOException) {
-            // خطای شبکه (نه پاسخ صریح نامعتبر) — باید به بیرون منتقل شود تا verifySecurityStatus
-            // بتواند بین «سرور صراحتاً رد کرد» و «اصلاً قابل دسترس نبود» تفاوت بگذارد
             throw e
         } catch (e: Exception) {
             Log.e("SecurityVerifier", "Error in server signature authentication: ${e.message}", e)
@@ -223,12 +207,6 @@ class SecurityVerifier(private val context: Context) {
         }
     }
 
-    /**
-     * license_info و license_check قبلاً به‌صورت سریال فراخوانی می‌شدند (تا ۳۰s+ در بدترین حالت)
-     * ولی هیچ وابستگی داده‌ای بین payload هایشان وجود ندارد؛ تنها وابستگی منطقی این است که
-     * اگر لایسنس اصلاً پیدا نشود، نتیجه‌ی validation بی‌اثر می‌شود. با فراخوانی موازی این دو،
-     * زمان کل به بزرگترین یکی از دو درخواست کاهش می‌یابد.
-     */
     private suspend fun validateLicenseWithServer(): Pair<Boolean, SecurityErrorType?> = coroutineScope {
         try {
             val infoDeferred = async(Dispatchers.IO) { fetchLicenseInfo() }
@@ -257,8 +235,6 @@ class SecurityVerifier(private val context: Context) {
                 Pair(false, SecurityErrorType.LICENSE_INACTIVE)
             }
         } catch (e: IOException) {
-            // خطای شبکه — نباید به‌عنوان LICENSE_NOT_FOUND برچسب بخورد؛ باید به بیرون
-            // منتقل شود تا verifySecurityStatus بتواند grace period آفلاین را اعمال کند
             throw e
         } catch (e: Exception) {
             Log.e("SecurityVerifier", "Error in server license validation: ${e.message}", e)
@@ -269,9 +245,10 @@ class SecurityVerifier(private val context: Context) {
     private fun fetchLicenseInfo(): JSONObject? {
         var connection: HttpURLConnection? = null
         return try {
-            val infoUrl = URL("$LICENSE_INFO_URL?licenseKey=$LICENSE_KEY")
+            val infoUrl = URL(LICENSE_INFO_URL)
             connection = infoUrl.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
+            connection.setRequestProperty("X-License-Key", LICENSE_KEY)
             connection.connectTimeout = BUFFER_DURATION
             connection.readTimeout = BUFFER_DURATION
 
@@ -319,15 +296,7 @@ class SecurityVerifier(private val context: Context) {
             connection?.disconnect()
         }
     }
-    
-    /**
-     * برخلاف پیاده‌سازی قبلی (که فقط اسامی PID داخل /proc را می‌گشت — رشته‌ای مثل
-     * "frida" هرگز در نام یک PID عددی ظاهر نمی‌شود، پس همیشه false بود)، این نسخه
-     * دو سیگنال واقعی را بررسی می‌کند:
-     *   ۱. کتابخانه‌های تزریق‌شده در نگاشت حافظه‌ی پروسه‌ی جاری (/proc/self/maps)
-     *   ۲. باز بودن پورت پیش‌فرض frida-server (۲۷۰۴۲) روی localhost
-     * و نتیجه واقعاً مسیر امنیتی را مسدود می‌کند، نه فقط لاگ.
-     */
+
     private fun isEnvironmentCompromised(): Boolean {
         if (Debug.isDebuggerConnected()) {
             Log.w("SecurityVerifier", "Debugger detected")

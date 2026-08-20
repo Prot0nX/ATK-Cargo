@@ -85,6 +85,11 @@ class AppApiController {
         'getRealTimeData',
     ];
 
+    // هیچ‌جای دیگری (route/shim) دیگر این متد را صدا نمی‌زند — تأیید شد حین
+    // Phase3 #21؛ Router مستقیماً متدهای عمومی زیر را از طریق $safeCall در
+    // routes/api_v2.php صدا می‌زند، نه این dispatcher قدیمی. پاسخ‌های خطای
+    // داخل همین متد به Response::error() یکسان شدند چون دسترس‌ناپذیر بودن
+    // آن‌ها تأیید شد؛ خودِ حذف متد خارج از دامنه‌ی این تغییر ماند.
     public function handle(): void {
         try {
             if (!$this->request->isGet() && !$this->request->isPost()) {
@@ -152,7 +157,7 @@ class AppApiController {
                     }
                     $quotaDetails = $this->getQuotaDetails((string)$quotaNumber);
                     if ($quotaDetails === null) {
-                        Response::json(['error' => 'کوتاژ مورد نظر یافت نشد'], 404);
+                        Response::error('کوتاژ مورد نظر یافت نشد', 404);
                     } else {
                         Response::json($quotaDetails);
                     }
@@ -359,20 +364,14 @@ class AppApiController {
                     throw new ApiException('عملیات نامعتبر است', 400);
             }
         } catch (ApiException $e) {
-            // ApiException برای خطاهایی که کد وضعیت HTTP معنادار دارند (مثلاً
-            // «یافت نشد» → 404) استفاده می‌شود؛ کلاینت به‌جای تطبیق رشته‌ی
-            // فارسی پیام خطا، بر اساس details['code'] یا کد وضعیت تصمیم می‌گیرد.
-            Response::json(
-                ['error' => $e->getMessage()] + ($e->getDetails() ?? []),
-                $e->getStatusCode()
-            );
+            Response::error($e->getMessage(), $e->getStatusCode(), $e->getDetails());
         } catch (\Throwable $e) {
             // فقط ApiException (پیام‌های فارسی عمدی) به کلاینت می‌رود؛ بقیه
             // (مثل خطای خام دیتابیس از ShipService/QuotaService) فقط لاگ
             // می‌شود تا ساختار جدول/کوئری افشا نشود (DEEP_CODE_AUDIT.md
             // #Phase2.4).
             error_log('AppApiController: ' . $e->getMessage());
-            Response::json(['error' => 'خطای داخلی سرور رخ داده است.'], 500);
+            Response::error('خطای داخلی سرور رخ داده است.', 500);
         }
     }
 

@@ -65,6 +65,7 @@ import com.atk.atk_cargo.feature.cargo_entry.presentation.ShipSelectionDialog
 import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import com.atk.atk_cargo.feature.reports.navigation.navigateToCargoDetails
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -128,6 +129,8 @@ class CargoCounterViewModel(
                 } else {
                     onError("خطا در دریافت اطلاعات کشتی‌های فعال")
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 onError("خطا در ارتباط با سرور: ${e.message}")
             }
@@ -223,6 +226,8 @@ private fun navigateToCargoDetailsScreen(
                 warehouse = encodedWarehouse,
                 cargoType = encodedCargoType
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("Navigation", "Navigation error: ${e.message}")
             e.printStackTrace()
@@ -249,6 +254,8 @@ fun CargoCounterScreen(
                     navController.navigateToHome()
                 }
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("CargoCounterScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
             navController.navigateToHome()

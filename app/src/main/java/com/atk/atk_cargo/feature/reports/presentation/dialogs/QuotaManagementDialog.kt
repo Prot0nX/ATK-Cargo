@@ -42,7 +42,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.atk.atk_cargo.api.QuotaItem
-import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 
@@ -102,18 +101,14 @@ fun QuotaManagementDialog(
     }
 
     LaunchedEffect(currentShipName, refreshTrigger) {
-        try {
-            isLoading = true
-            val response = RetrofitClient.apiServiceV2.getGroupedQuotas(shipName = currentShipName?.name ?: "")
-            if (response.isSuccessful) {
-                quotaData = response.body() ?: emptyMap()
+        isLoading = true
+        viewModel.loadGroupedQuotas(currentShipName?.name ?: "") { result ->
+            result.onSuccess { data ->
+                quotaData = data
                 errorMessage = null
-            } else {
-                errorMessage = "خطا در دریافت داده‌ها: ${response.code()}"
+            }.onFailure { e ->
+                errorMessage = e.message
             }
-        } catch (e: Exception) {
-            errorMessage = e.message
-        } finally {
             isLoading = false
         }
     }

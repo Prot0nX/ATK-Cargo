@@ -88,6 +88,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.atk.atk_cargo.core.domain.AnimationManager
 import kotlinx.coroutines.launch
 import java.security.MessageDigest
 import kotlin.math.cos
@@ -140,16 +141,20 @@ fun SecurityBlockScreen(
                     AdvancedOrbitalScanner()
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    val infiniteTransition = rememberInfiniteTransition(label = "loading_text")
-                    val textAlpha by infiniteTransition.animateFloat(
-                        initialValue = 0.4f,
-                        targetValue = 1.0f,
-                        animationSpec = infiniteRepeatable(
-                            animation = tween(1200, easing = EaseInOutCubic),
-                            repeatMode = RepeatMode.Reverse
-                        ),
-                        label = "textAlpha"
-                    )
+                    val textAlpha: Float = if (AnimationManager.areAnimationsEnabled()) {
+                        val infiniteTransition = rememberInfiniteTransition(label = "loading_text")
+                        infiniteTransition.animateFloat(
+                            initialValue = 0.4f,
+                            targetValue = 1.0f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(1200, easing = EaseInOutCubic),
+                                repeatMode = RepeatMode.Reverse
+                            ),
+                            label = "textAlpha"
+                        ).value
+                    } else {
+                        1f
+                    }
                     Text(
                         text = "در حال ارزیابی امنیت برنامه...",
                         style = MaterialTheme.typography.titleMedium.copy(
@@ -698,27 +703,34 @@ fun SignatureHashCard(
 
 @Composable
 private fun DynamicPremiumBackground(isDark: Boolean) {
-    val infiniteTransition = rememberInfiniteTransition(label = "bg_flow")
-    
-    val t1 by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 2 * Math.PI.toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(UIConfig.BG_ANIMATION_DURATION_1, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "t1"
-    )
-    
-    val t2 by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 2 * Math.PI.toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(UIConfig.BG_ANIMATION_DURATION_2, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "t2"
-    )
+    val t1: Float
+    val t2: Float
+    if (AnimationManager.areAnimationsEnabled()) {
+        val infiniteTransition = rememberInfiniteTransition(label = "bg_flow")
+
+        t1 = infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 2 * Math.PI.toFloat(),
+            animationSpec = infiniteRepeatable(
+                animation = tween(UIConfig.BG_ANIMATION_DURATION_1, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "t1"
+        ).value
+
+        t2 = infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 2 * Math.PI.toFloat(),
+            animationSpec = infiniteRepeatable(
+                animation = tween(UIConfig.BG_ANIMATION_DURATION_2, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "t2"
+        ).value
+    } else {
+        t1 = 0f
+        t2 = 0f
+    }
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val errorColor = MaterialTheme.colorScheme.error
@@ -766,47 +778,58 @@ private fun DynamicPremiumBackground(isDark: Boolean) {
 
 @Composable
 private fun AdvancedOrbitalScanner(modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition(label = "scanner")
-    
-    val rotation1 by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(4000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "rotation1"
-    )
-    
-    val rotation2 by infiniteTransition.animateFloat(
-        initialValue = 360f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(6000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "rotation2"
-    )
-    
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.9f,
-        targetValue = 1.1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = EaseInOutCubic),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse"
-    )
-    
-    val scanOffset by infiniteTransition.animateFloat(
-        initialValue = -35.dp.value,
-        targetValue = 35.dp.value,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = EaseInOutCubic),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scan"
-    )
+    val rotation1: Float
+    val rotation2: Float
+    val pulseScale: Float
+    val scanOffset: Float
+    if (AnimationManager.areAnimationsEnabled()) {
+        val infiniteTransition = rememberInfiniteTransition(label = "scanner")
+
+        rotation1 = infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(4000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "rotation1"
+        ).value
+
+        rotation2 = infiniteTransition.animateFloat(
+            initialValue = 360f,
+            targetValue = 0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(6000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "rotation2"
+        ).value
+
+        pulseScale = infiniteTransition.animateFloat(
+            initialValue = 0.9f,
+            targetValue = 1.1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1500, easing = EaseInOutCubic),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "pulse"
+        ).value
+
+        scanOffset = infiniteTransition.animateFloat(
+            initialValue = -35.dp.value,
+            targetValue = 35.dp.value,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2000, easing = EaseInOutCubic),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "scan"
+        ).value
+    } else {
+        rotation1 = 0f
+        rotation2 = 0f
+        pulseScale = 1f
+        scanOffset = 0f
+    }
     
     val primaryColor = MaterialTheme.colorScheme.primary
     val errorColor = MaterialTheme.colorScheme.error
@@ -876,35 +899,44 @@ private fun AdvancedOrbitalScanner(modifier: Modifier = Modifier) {
 
 @Composable
 private fun AnimatedWarningIcon() {
-    val pulseTransition = rememberInfiniteTransition(label = "pulse_warning")
-    
-    val pulseScale by pulseTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.45f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = EaseOutCubic),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "pulseScale"
-    )
-    val pulseAlpha by pulseTransition.animateFloat(
-        initialValue = 0.5f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = EaseOutCubic),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "pulseAlpha"
-    )
-    val shakeAngle by pulseTransition.animateFloat(
-        initialValue = -6f,
-        targetValue = 6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = EaseInOutCubic),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "shakeAngle"
-    )
+    val pulseScale: Float
+    val pulseAlpha: Float
+    val shakeAngle: Float
+    if (AnimationManager.areAnimationsEnabled()) {
+        val pulseTransition = rememberInfiniteTransition(label = "pulse_warning")
+
+        pulseScale = pulseTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.45f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1800, easing = EaseOutCubic),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "pulseScale"
+        ).value
+        pulseAlpha = pulseTransition.animateFloat(
+            initialValue = 0.5f,
+            targetValue = 0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1800, easing = EaseOutCubic),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "pulseAlpha"
+        ).value
+        shakeAngle = pulseTransition.animateFloat(
+            initialValue = -6f,
+            targetValue = 6f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(900, easing = EaseInOutCubic),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "shakeAngle"
+        ).value
+    } else {
+        pulseScale = 1f
+        pulseAlpha = 0f
+        shakeAngle = 0f
+    }
 
     val errorColor = MaterialTheme.colorScheme.error
 
@@ -950,26 +982,33 @@ private fun AnimatedWarningIcon() {
 
 @Composable
 private fun AnimatedUpdateIcon(isDark: Boolean) {
-    val pulseTransition = rememberInfiniteTransition(label = "pulse_update")
-    
-    val arrowOffset by pulseTransition.animateFloat(
-        initialValue = -10f,
-        targetValue = 10f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = EaseInOutCubic),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "arrow"
-    )
-    val iconScale by pulseTransition.animateFloat(
-        initialValue = 0.95f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = EaseInOutCubic),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale"
-    )
+    val arrowOffset: Float
+    val iconScale: Float
+    if (AnimationManager.areAnimationsEnabled()) {
+        val pulseTransition = rememberInfiniteTransition(label = "pulse_update")
+
+        arrowOffset = pulseTransition.animateFloat(
+            initialValue = -10f,
+            targetValue = 10f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1400, easing = EaseInOutCubic),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "arrow"
+        ).value
+        iconScale = pulseTransition.animateFloat(
+            initialValue = 0.95f,
+            targetValue = 1.05f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1400, easing = EaseInOutCubic),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "scale"
+        ).value
+    } else {
+        arrowOffset = 0f
+        iconScale = 1f
+    }
 
     val primaryColor = MaterialTheme.colorScheme.primary
 
