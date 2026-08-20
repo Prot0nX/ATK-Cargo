@@ -82,18 +82,3 @@ fun formatNumber(number: Number): String {
 
 typealias RealTimeUiState = com.atk.atk_cargo.ui.viewmodel.ReportsViewModel.RealTimeUiState
 
-// ===== COMMON TYPES IN ORIGINAL DATA MODEL =====
-data class UpdateInfo(
-    val latestVersion: String,
-    val downloadUrl: String,
-    val minRequiredVersion: String = "1.0",
-    val updatePriority: String = "normal",
-    val updateMessage: String = "",
-    val forceUpdate: Boolean = false,
-    val updateSize: String = "0",
-    val releaseDate: String = "",
-    val minAndroidVersion: Int = 21,
-    val minAppVersion: String = "1.0",
-    val excludedVersions: List<String> = emptyList(),
-    val sha256: String = ""
-)

@@ -262,6 +262,7 @@ dependencies {
     implementation(project(":feature:chat"))
     implementation(project(":feature:cargo"))
     implementation(project(":feature:reports"))
+    implementation(project(":feature:update"))
     baselineProfile(project(":baselineprofile"))
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.foundation.layout)

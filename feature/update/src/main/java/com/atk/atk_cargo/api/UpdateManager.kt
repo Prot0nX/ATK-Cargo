@@ -32,6 +32,21 @@ import java.util.concurrent.TimeUnit
 import kotlin.math.pow
 import kotlin.time.Duration.Companion.milliseconds
 
+data class UpdateInfo(
+    val latestVersion: String,
+    val downloadUrl: String,
+    val minRequiredVersion: String = "1.0",
+    val updatePriority: String = "normal",
+    val updateMessage: String = "",
+    val forceUpdate: Boolean = false,
+    val updateSize: String = "0",
+    val releaseDate: String = "",
+    val minAndroidVersion: Int = 21,
+    val minAppVersion: String = "1.0",
+    val excludedVersions: List<String> = emptyList(),
+    val sha256: String = ""
+)
+
 class UpdateManager(
     context: Context
 ) {
@@ -285,7 +300,7 @@ class UpdateManager(
     }.getOrDefault(false)
 
     @SuppressLint("DefaultLocale")
-    internal fun startDownload(downloadUrl: String, startPosition: Long = 0) {
+    fun startDownload(downloadUrl: String, startPosition: Long = 0) {
         if (downloadJob?.isActive == true) return
 
         // download_url و sha256 هر دو از یک پاسخ می‌آیند؛ بدون این بررسی،
