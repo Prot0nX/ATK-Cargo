@@ -40,17 +40,34 @@ class Request {
         return $this->jsonParams;
     }
 
+    /**
+     * استخراج و نرمال‌سازی هدرهای HTTP.
+     *
+     * مطابق RFC 7230 §3.2، نام هدرها case-insensitive هستند؛ بنابراین
+     * تمام کلیدها به lowercase تبدیل می‌شوند تا جستجو مستقل از نحوه‌ی
+     * نرمال‌سازی وب‌سرور (Apache، Nginx، IIS، PHP-FPM) باشد.
+     *
+     * مشکل قبلی: ucwords(strtolower(...)) مقدار HTTP_X_CSRF_TOKEN را به
+     * "X-Csrf-Token" تبدیل می‌کرد اما getHeader دنبال "X-CSRF-Token"
+     * می‌گشت — نتیجه null و شکست اعتبارسنجی CSRF.
+     */
     private function getHeadersParsed(): array {
         if ($this->headers === null) {
-            $this->headers = [];
+            $raw = [];
             if (function_exists('getallheaders')) {
-                $this->headers = getallheaders();
+                $raw = getallheaders();
             } else {
                 foreach ($_SERVER as $name => $value) {
-                    if (substr($name, 0, 5) == 'HTTP_') {
-                        $this->headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+                    if (substr($name, 0, 5) === 'HTTP_') {
+                        $key = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))));
+                        $raw[$key] = $value;
                     }
                 }
+            }
+            // نرمال‌سازی به lowercase — RFC 7230 §3.2
+            $this->headers = [];
+            foreach ($raw as $key => $value) {
+                $this->headers[strtolower($key)] = $value;
             }
         }
         return $this->headers;
@@ -81,11 +98,11 @@ class Request {
     }
 
     /**
-     * دریافت هدر خاص
+     * دریافت هدر خاص — جستجو همواره case-insensitive.
      */
     public function getHeader(string $name): ?string {
         $headers = $this->getHeadersParsed();
-        return $headers[$name] ?? $headers[strtolower($name)] ?? null;
+        return $headers[strtolower($name)] ?? null;
     }
 
     /**

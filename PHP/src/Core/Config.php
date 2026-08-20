@@ -23,8 +23,35 @@ class Config {
             // مستقیماً از env می‌خواند)، اما نگه‌داشتنش یک راز زنده در سورس بود.
             'admin_password_hash' => $_ENV['ADMIN_PASSWORD_HASH'] ?? getenv('ADMIN_PASSWORD_HASH') ?: '',
             'session_timeout' => 86400, // 24 ساعت به ثانیه
+
+            // پنل مدیریت لایسنس (PHP/Lic) — رمزش عمداً از ADMIN_PASSWORD_HASH
+            // (پنل PermissionManager) جداست تا دسترسی به این دو پنل مستقل
+            // بتواند به دو نفر متفاوت داده و مستقل چرخانده شود.
+            'lic_admin_password_hash' => self::env('LIC_ADMIN_PASSWORD_HASH', ''),
+            'lic_session_idle_timeout' => (int)(self::env('LIC_SESSION_IDLE_TIMEOUT', '1800') ?: '1800'),
         ];
 
+    }
+
+    /**
+     * خواندن یک متغیر محیطی (بارگذاری‌شده از .env توسط config/config.php).
+     *
+     * الگوی `$_ENV['X'] ?? getenv('X') ?: $default` پیش از این در چهار فایل
+     * جداگانه (PermissionManager، SecurityAlerter، UserService و همین کلاس)
+     * دست‌نویس تکرار شده بود؛ این متد همان معنا را در یک جا متمرکز می‌کند.
+     *
+     * توجه: `?:` عمدی است نه `??` — یعنی رشته‌ی خالی هم مثل مقدار تنظیم‌نشده
+     * رفتار می‌کند، چون کلیدهای خالی در .env (مثل `LIC_ADMIN_PASSWORD_HASH=`)
+     * به معنای «تنظیم نشده» هستند نه «عمداً خالی».
+     */
+    public static function env(string $key, ?string $default = null): ?string {
+        // `??` خودش حالت null را به getenv واگذار می‌کند، پس اینجا فقط
+        // false (کلید تعریف‌نشده) و رشته‌ی خالی باقی می‌ماند.
+        $value = $_ENV[$key] ?? getenv($key);
+        if ($value === false || $value === '') {
+            return $default;
+        }
+        return (string)$value;
     }
 
     public static function getInstance(): self {

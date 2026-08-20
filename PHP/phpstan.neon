@@ -5,6 +5,8 @@ parameters:
     paths:
         - src
         - api
+        # پنل مدیریت لایسنس — کد واقعی است و باید مثل بقیه آنالیز شود.
+        - Lic
     excludePaths:
         - vendor/*
     tmpDir: build/phpstan
