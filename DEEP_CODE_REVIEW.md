@@ -321,7 +321,10 @@ SELECT COUNT(*) FROM Users WHERE password NOT LIKE '$2y$%' AND password NOT LIKE
 
 - هرچه فعلاً در ستون `password` ذخیره است (چه متن خام، چه از قبل SHA-256) را مستقیماً `password_hash(..., PASSWORD_BCRYPT)` می‌کند و ذخیره می‌کند — بدون نیاز به دانستن رمز واقعی کاربر یا تشخیص این‌که کدام حالت بوده، چون `verifyCredentials()` از قبل هر دو حالت را زیر bcrypt («حالت ۱» و «حالت ۲») پوشش می‌دهد؛ منطق با یک اسکریپت مستقل (بدون دیتابیس) برای هر دو سناریو تأیید شد.
 - در یک تراکنش واحد اجرا می‌شود (rollback خودکار روی هر خطا) و در پایان خودش دوباره کوئری شمارشی را اجرا و صفر بودن را تأیید می‌کند.
-- **باید یک‌بار دستی روی سرور production اجرا شود:** `php PHP/scripts/migrate_legacy_passwords_to_bcrypt.php`. بعد از تأیید صفر شدن نتیجه، بلوک «حالت ۳» و `ALLOW_LEGACY_PLAINTEXT_LOGIN` از `UserService.php` حذف خواهند شد (این بخش هنوز انجام نشده — منتظر تأیید اجرای موفق اسکریپت روی production).
+- **اجرا شد روی production (۲۰۲۶-۰۸-۲۰):** کاربر اسکریپت را اجرا کرد؛ هر ۳۶ کاربر با موفقیت مهاجرت کردند و کوئری شمارشی تأییدی صفر برگرداند.
+- در پی آن، بلوک «حالت ۳» و متغیر `ALLOW_LEGACY_PLAINTEXT_LOGIN` **کامل از `UserService.php` حذف شدند** (نه فقط پشت فلگ خاموش) — رفتار ورود کاربران فعلی (که همه bcrypt‌اند) بدون تغییر می‌ماند؛ خط مربوطه در `PHP/.env.example` هم حذف شد. `php -l`/`phpstan`/`phpunit` (۶۸ تست، همان ۶ خطای preexisting نامرتبط `permissions.json`) سبز.
+
+**این آیتم (Top20 #3 / Phase1 #4) کامل بسته شد — نه فقط mitigated.**
 
 ---
 
@@ -2798,7 +2801,7 @@ buildTypes {
 | ۱ | ✅ بسته‌شده (کاربر) — چرخش `API_KEY`/`LICENSE_KEY` تست: ابزار آماده شد؛ اجرای واقعی روی سرور به‌عهده‌ی کاربر ماند | `secrets.cpp` + `.env` سرور | Low |
 | ۲ | ⚠️ حذف/محدودسازی phpMyAdmin — چک‌لیست آماده شد، اجرای روی سرور باقی مانده | سرور | Low |
 | ۳ | ✅ افزودن `signingConfig` به release (تست شد؛ کیستور واقعی باقی مانده) | `app/build.gradle.kts` | Low |
-| ۴ | ⚠️ پشت فلگ `ALLOW_LEGACY_PLAINTEXT_LOGIN` (پیش‌فرض خاموش) قرار گرفت — حذف کامل بعد از شمارش روی prod باقی مانده | `UserService.php:69-76` | Low |
+| ۴ | ✅ حذف کامل fallback رمز متن‌خام — ۳۶ کاربر باقی‌مانده به bcrypt مهاجرت شدند، بلوک/فلگ کامل حذف شد | `UserService.php` | Low |
 | ۵ | ✅ رفع نشت `$e->getMessage()` | `UserController.php:83` | Low |
 | ۶ | ✅ افزودن `testDebugUnitTest` به CI | `.github/workflows/ci.yml` | Low |
 | ۷ | ✅ افزودن ایندکس `trackingNumber` (migration نوشته و تست شد؛ اجرا روی prod باقی مانده) | migration جدید | Low |
@@ -2862,7 +2865,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 |--:|-------|----------|----------|------|--------|
 | ۱ | ✅ بسته‌شده (کاربر) — رازها با XOR تک‌بایتی، در git | Security | **CRITICAL** | `app/src/main/cpp/secrets.cpp:6` | Medium |
 | ۲ | PHP 8.1 بدون پشتیبانی امنیتی | Security/Infra | **HIGH** | سرور production | Medium |
-| ۳ | ⚠️ fallback رمز متن‌خام (پشت فلگ خاموش، حذف کامل باقی مانده) | Security | **HIGH** | `PHP/src/Services/UserService.php:69` | Low |
+| ۳ | ✅ fallback رمز متن‌خام کامل حذف شد (بعد از مهاجرت ۳۶ کاربر باقی‌مانده) | Security | **HIGH** | `PHP/src/Services/UserService.php` | Low |
 | ۴ | phpMyAdmin روی production | Security/Infra | **HIGH** | سرور production | Low |
 | ۵ | ✅ تماس شبکه در Composable با scope کنسل‌شونده (۹ از ۹ فایل انجام شد) | Architecture | **HIGH** | `InitialInfoScreen.kt:636` + ۸ فایل | High |
 | ۶ | ✅ نبود signingConfig برای release | Build | **HIGH** | `app/build.gradle.kts:49` | Low |
