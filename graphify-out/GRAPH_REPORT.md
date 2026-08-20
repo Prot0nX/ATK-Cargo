@@ -5,59 +5,59 @@
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2561 nodes · 4831 edges · 239 communities (157 shown, 82 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 144 edges (avg confidence: 0.8)
+- 2678 nodes · 4889 edges · 295 communities (154 shown, 141 thin omitted)
+- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 184 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `616e946c`
+- Built from commit: `2c3d67c2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - StartupViewModel
-- ReportsRepository
+- Exception
 - Security Audit
-- CargoCounterScreen.kt
-- RegisterCargoDialogs.kt
-- QuotaAnalysisSection.kt
+- ActiveShipInfo
+- TextAlign
+- ShipsListScreen.kt
 - ChatDao
 - **5.2 / 10**
-- SecurityScreen.kt
-- MicroCache
-- ActiveQuotasContent.kt
+- Exception
+- QuotaService
+- formatNumber
 - Color
-- TextAlign
+- ReportsViewModel
 - JalaliDateUtilsTest
 - CargoModels.kt
-- Exception
+- Database
 - Executive Summary
 - DEEP_CODE_REVIEW.md
 - PermissionService
-- quota_details/QuotaCardComponents.kt
+- Color.kt
 - SessionService
-- CargoInfo
+- Color
 - HomeScreen.kt
 - ManageReportsScreen.kt
 - Result
 - SessionRepository
-- MessageType
-- MainActivity.kt
+- CargoDetailsScreen.kt
+- CargoEditSearchDialogsSection.kt
 - Medium Issues
-- QuotaManagementContent.kt
+- Color
 - SessionServiceTest
 - CargoViewModel
 - SecurityAlerter
 - ApiServiceV2.kt
-- VoucherDetailsDialogSection.kt
+- WarehouseDateTimePicker.kt
 - androidx
 - UsersManager
 - Flow
 - CargoRepository
-- ReportsViewModel
+- QuotaAnalysisSection.kt
 - Logger
 - API Audit
-- DatabaseManager
+- ReportsViewModel.kt
 - ATKCargoTheme
 - ApiServiceV2
 - ImageVector
@@ -69,52 +69,51 @@
 - LoginAttemptLimiterTest
 - ReportModels.kt
 - Performance Audit
-- QuotaDetailsScreen.kt
+- VoucherDetailsDialogSection.kt
 - Kotlin Audit
-- App\Core\AuthenticatesRequests
+- UserService
 - Context
 - CrashReporter.kt
 - CargoController
-- SearchDialogs.kt
+- RetrofitClient
 - PermissionPoller
 - QuotaPercentageDialogSection.kt
-- UserService
+- UtilityController
 - androidx
 - DateRangePicker.kt
 - QuotaWarningDialog.kt
-- ColorSelector
-- AdvancedSearchDialog.kt
+- Color
+- Modifier
 - Android Audit
 - Code Quality
 - Database Audit
-- LoginAttemptLimiter
-- ManageReportsScreen
+- quota_details/QuotaCardComponents.kt
+- MainScreen.kt
 - Final Recommendations
 - Jetpack Compose Audit
 - ApiV2Routes
 - PHP Backend Audit
 - ChatMessage.kt
-- AuthController
 - Logging & Observability
-- PermissionServiceTest
-- RetrofitClient
+- SecurityScreen.kt
+- ReportsCommonWidgets.kt
 - InitialInfoScreen
-- Router
+- User
 - Code Smells شناسایی‌شده
 - Authentication & Authorization
 - Color
-- Color.kt
-- ReportsCommonWidgets.kt
-- RealTimeLoadingBottomSheet
+- ImageVector
+- DataModel.kt
+- Color
 - Dependency Audit
 - Animation Audit
 - Migrations
-- Quota
-- SelectInfoScreen.kt
+- ApiResponse
+- WarehouseDetailsScreen.kt
 - پلن بازساختاردهی PHP به `public/` (DEEP_CODE_AUDIT.md #Phase3.13)
 - UserRepository
-- Ship
-- Database
+- ShipSortingMode
+- Config
 - ShipInfoSection.kt
 - High Issues
 - Memory Audit
@@ -123,41 +122,41 @@
 - com
 - CargoInfoDetailsDialogSection.kt
 - jdate
-- ChatNotificationWorker.kt
+- QuotaValidationUseCase.kt
 - Android Audit
-- StartupState
+- ShipDetailsScreen.kt
 - PasswordGateService
 - UpdateManager
-- ComprehensiveAnalyticsDialog.kt
+- Modifier
 - API Audit
 - Testing Audit
 - Jetpack Compose Audit
-- ActiveShipInfo
-- QuotaSelectionDialog.kt
+- MainActivity.kt
+- DatabaseManager
 - چک‌لیست فعال‌سازی `STRICT_TRANS_TABLES` (DEEP_CODE_AUDIT.md #Phase4.10)
 - preprocessImage
 - What You Must Do When Invoked
 - Performance Audit
 - Prioritized Action Plan
 - ComponentDefaults.kt
-- QuotaEntryDialog.kt
-- QuotaCard
+- QuotaDetailsScreen.kt
+- androidx
 - Architecture Overview
 - Error Handling
 - حذف/محدودسازی phpMyAdmin روی سرور production (Phase 1, آیتم #۲)
 - AnalyticsController
-- AuthenticatesRequests.php
-- CargoCounterComponents.kt
-- QuotaManagementDialog
+- ColorSelector
+- CargoEntryNavigation.kt
+- QuotasListScreen.kt
 - Animation Audit
 - Authentication & Authorization
 - Database Audit
-- RealTimeLoadingCardSection.kt
+- Color
 - Error Handling
 - Kotlin Audit
 - UserPreferencesManager
 - SecurityVerifier
-- WindowSizeClass
+- MicroCache
 - AppModule.kt
 - PHP Backend Audit
 - چرخش رازهای `secrets.cpp` (Phase 1, آیتم #۱)
@@ -193,25 +192,81 @@
 - Color
 - com
 - QuotaExistenceMultipleResponse
-- ColorScheme.kt
-- CargoRegistrationNavigation.kt
-- StatisticsCard.kt
+- LoginAttemptLimiter
+- Secrets
+- QuotaGroupContent.kt
 - QuotaCalculatorTest
-- update.md
-- Typography.kt
+- ReportsNavigation.kt
+- JalaliDateUtils
 - KeyboardType
 - Modifier
 - Context
+- LoadingState
+- ComprehensiveAnalyticsDialog.kt
+- Result
+- AndroidViewModel
+- Color
+- Job
+- StateFlow
+- ChatNotificationWorker.kt
+- QuotasListDialogs.kt
+- InitialInfoFormComponents.kt
+- Composable
+- QuotaManagementDialog.kt
+- QuotaGroupingMode
+- AuthenticatesRequests.php
+- QuotaGroupingMode
+- ImageVector
+- Modifier
+- Color
+- ImageVector
+- Modifier
+- Color
+- ImageVector
+- Modifier
+- ImageVector
 - secrets.cpp
 - AppNotificationManager
+- ImageVector
 - SessionManager
+- Context
 - SessionManager
+- ImageVector
+- Modifier
+- Modifier
+- Color
+- ImageVector
+- Modifier
+- Modifier
+- ImageVector
+- Modifier
+- Color
+- Context
+- ImageVector
+- Color
+- Color
+- Composable
+- ImageVector
+- KeyboardOptions
+- Modifier
+- Modifier
+- Color
+- ImageVector
+- Modifier
+- ImageVector
+- Modifier
+- StateFlow
+- ImageVector
+- Modifier
+- Modifier
+- Modifier
+- Modifier
+- ReportsViewModel
 - Request
 - ChatController
 - DatabaseSchemaExporter
 - graphify reference: extra exports and benchmark
 - NavRoutes
-- LoadingState
 - NotificationActionReceiver.kt
 - gradlew
 - graphify reference: add a URL and watch a folder
@@ -228,57 +283,53 @@
 - extraction-spec.md
 
 ## God Nodes (most connected - your core abstractions)
-1. `ReportsViewModel` - 93 edges
-2. `CargoViewModel` - 77 edges
+1. `CargoViewModel` - 77 edges
+2. `ReportsViewModel` - 61 edges
 3. `InputValidator` - 58 edges
-4. `ApiServiceV2` - 55 edges
+4. `ApiServiceV2` - 54 edges
 5. `UserPreferencesManager` - 45 edges
-6. `ActiveShipInfo` - 37 edges
-7. `UpdateManager` - 37 edges
-8. `ReportsRepository` - 35 edges
-9. `SessionRepository` - 35 edges
+6. `UpdateManager` - 37 edges
+7. `ActiveShipInfo` - 35 edges
+8. `SessionRepository` - 35 edges
+9. `formatNumber()` - 34 edges
 10. `Logger` - 34 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `ActiveQuotasDialog()` --calls--> `ActiveShipInfo`  [INFERRED]
-  app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/ActiveQuotasDialogSection.kt → core/network/src/main/java/com/atk/atk_cargo/data/model/ReportModels.kt
-- `InitialInfoScreen()` --calls--> `InitialInfo`  [INFERRED]
-  app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/InitialInfoScreen.kt → core/network/src/main/java/com/atk/atk_cargo/data/model/CargoModels.kt
-- `navigateToRegisterCargoActivity()` --calls--> `InitialInfo`  [INFERRED]
-  app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/SelectInfoScreen.kt → core/network/src/main/java/com/atk/atk_cargo/data/model/CargoModels.kt
-- `navigateToRegisterCargoActivity()` --references--> `MatchingQuota`  [EXTRACTED]
-  app/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/SelectInfoScreen.kt → core/network/src/main/java/com/atk/atk_cargo/data/model/CargoModels.kt
-- `filterShipsByTab()` --references--> `ActiveShipInfo`  [EXTRACTED]
-  app/src/main/java/com/atk/atk_cargo/feature/cargo_counter/presentation/CargoCounterScreen.kt → core/network/src/main/java/com/atk/atk_cargo/data/model/ReportModels.kt
+- `QuotasDialog()` --calls--> `adjustColorForTheme()`  [INFERRED]
+  feature/reports/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/QuotaDetailsScreen.kt → app/src/main/java/com/atk/atk_cargo/api/DataModel.kt
+- `ProgressBar()` --calls--> `formatNumber()`  [INFERRED]
+  feature/reports/src/main/java/com/atk/atk_cargo/feature/reports/presentation/components/ReportsCommonWidgets.kt → app/src/main/java/com/atk/atk_cargo/api/DataModel.kt
+- `ShipHeaderCard()` --calls--> `formatNumber()`  [INFERRED]
+  feature/reports/src/main/java/com/atk/atk_cargo/feature/reports/presentation/details/ShipDetailsScreen.kt → app/src/main/java/com/atk/atk_cargo/api/DataModel.kt
+- `CargoWeightInfo()` --calls--> `formatNumber()`  [INFERRED]
+  feature/reports/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/CargoEditSearchDialogsSection.kt → app/src/main/java/com/atk/atk_cargo/api/DataModel.kt
+- `AnalyticsOwnerSummaryCard()` --calls--> `formatNumber()`  [INFERRED]
+  feature/reports/src/main/java/com/atk/atk_cargo/feature/reports/presentation/dialogs/QuotaAnalysisSection.kt → app/src/main/java/com/atk/atk_cargo/api/DataModel.kt
 
 ## Import Cycles
 - None detected.
 
-## Communities (239 total, 82 thin omitted)
+## Communities (295 total, 141 thin omitted)
 
 ### Community 0 - "StartupViewModel"
-Cohesion: 0.13
-Nodes (9): AndroidViewModel, Flow, Intent, StateFlow, RequestBatteryOptimization, SecurityCheckState, ShowMessage, StartupEvent (+1 more)
-
-### Community 1 - "ReportsRepository"
-Cohesion: 0.09
-Nodes (10): ErrorResponse, HttpStatusException, Exception, Result, ReportsRepository, CargoInfoResponse, ComprehensiveAnalysisResponse, QuotaDetails (+2 more)
+Cohesion: 0.11
+Nodes (15): AndroidViewModel, Flow, Intent, StateFlow, Ready, RequestBatteryOptimization, SecurityBlocked, SecurityCheckState (+7 more)
 
 ### Community 2 - "Security Audit"
 Cohesion: 0.09
 Nodes (23): Critical Issues, [CRITICAL] فضای رمز عبور ۴ رقمی عددی + هش بدون salt + قفل قابل دور زدن = تصاحب کامل حساب, [HIGH] `app_api.php` تمام داده‌ی گزارش‌گیری را بدون بررسی مجوز `view_reports` می‌دهد, High Issues, [HIGH] `PermissionManager.php`: نبود `session_regenerate_id` و نبود قفل brute-force, [HIGH] `PHP/vendor/` (شامل phpunit و phpstan) در web root و کامیت‌شده در گیت, [HIGH] `protected_proxy.php` یک مرز امنیتی نیست — همه‌ی endpointها مستقیماً هم قابل فراخوانی‌اند, [HIGH] session token و refresh token به‌صورت plaintext در دیتابیس ذخیره می‌شوند (+15 more)
 
-### Community 3 - "CargoCounterScreen.kt"
-Cohesion: 0.18
-Nodes (19): CargoCounterScreen(), CargoCounterViewModel, filterShipsByTab(), com, CoroutineScope, NavController, SnackbarHostState, StateFlow (+11 more)
+### Community 3 - "ActiveShipInfo"
+Cohesion: 0.06
+Nodes (70): CargoCounterScreen(), CargoCounterViewModel, CargoSnackbarMessage, filterShipsByTab(), com, CoroutineScope, NavController, SnackbarHostState (+62 more)
 
-### Community 4 - "RegisterCargoDialogs.kt"
-Cohesion: 0.29
-Nodes (20): DeleteDialog(), DialogBadge(), DialogButtonRow(), DialogContentCard(), DialogMessageText(), DialogTitle(), Color, ImageVector (+12 more)
+### Community 4 - "TextAlign"
+Cohesion: 0.28
+Nodes (21): DeleteDialog(), DialogBadge(), DialogButtonRow(), DialogContentCard(), DialogMessageText(), DialogTitle(), Color, ImageVector (+13 more)
 
-### Community 5 - "QuotaAnalysisSection.kt"
+### Community 5 - "ShipsListScreen.kt"
 Cohesion: 0.07
-Nodes (35): AnalyticsGroupingModeButton(), AnalyticsOwnerSummaryCard(), AnalyticsQuotaCard(), AnalyticsQuotaGroupExpansionPanel(), AnalyticsStatChip(), Context, OwnerQuotasDialog(), QuotaAnalysis() (+27 more)
+Nodes (30): ErrorState(), ImageVector, Modifier, buildQuotasShareText(), calculatePercentage(), calculateProgress(), format(), formatNumber() (+22 more)
 
 ### Community 6 - "ChatDao"
 Cohesion: 0.09
@@ -288,29 +339,29 @@ Nodes (11): For /graphify explain, For /graphify path, graphify reference: query
 Cohesion: 0.11
 Nodes (18): **5.2 / 10**, [CRITICAL] نبود پوشش تست روی مسیرهای بحرانی, Final Score, Overall Score, Production Readiness, Project Overview, Project Structure, Recommended Architecture (+10 more)
 
-### Community 8 - "SecurityScreen.kt"
-Cohesion: 0.25
-Nodes (13): AdvancedOrbitalScanner(), AnimatedUpdateIcon(), AnimatedWarningIcon(), DynamicPremiumBackground(), InteractiveExitButton(), Modifier, RetryButton(), SecurityBlockScreen() (+5 more)
+### Community 8 - "Exception"
+Cohesion: 0.07
+Nodes (20): ActiveShipInfo, CargoInfoResponse, ComprehensiveAnalysisResponse, Exception, ErrorResponse, HttpStatusException, CargoInfo, Quota (+12 more)
 
-### Community 9 - "MicroCache"
+### Community 9 - "QuotaService"
+Cohesion: 0.11
+Nodes (4): AppApiCacheKeys, AuditLogger, QuotaService, QuotaCalculator
+
+### Community 10 - "formatNumber"
+Cohesion: 0.07
+Nodes (52): formatNumber(), EmptySearchResult(), extractLastDigits(), FilterChip(), FilterState, ALL, COMPLETED, PENDING (+44 more)
+
+### Community 12 - "ReportsViewModel"
 Cohesion: 0.09
-Nodes (5): MicroCache, AppApiCacheKeys, QuotaService, ShipService, QuotaCalculator
-
-### Community 10 - "ActiveQuotasContent.kt"
-Cohesion: 0.14
-Nodes (28): formatNumber(), EmptySearchResult(), extractLastDigits(), FilterChip(), FilterState, ALL, COMPLETED, PENDING (+20 more)
-
-### Community 12 - "TextAlign"
-Cohesion: 0.22
-Nodes (11): ConfirmationDialog(), ImageVector, EmptyState(), ImageVector, Modifier, DateTimePicker(), Modifier, PersianDateItem() (+3 more)
+Nodes (5): ComprehensiveAnalytics, QuotaCompletionData, RealTimeUiState, ReportsUiState, ReportsViewModel
 
 ### Community 14 - "CargoModels.kt"
-Cohesion: 0.11
-Nodes (11): CargoDeleteResponse, CargoInfoSearch, CargoSearchResponse, CargoStats, CheckExistenceResponse, ExistingCargo, InitialInfo, LoadableTonnageResponse (+3 more)
+Cohesion: 0.09
+Nodes (14): SubmitCargoUseCase, CargoDeleteResponse, CargoInfo, CargoInfoResponse, CargoInfoSearch, CargoSearchResponse, CargoStats, CheckExistenceResponse (+6 more)
 
-### Community 15 - "Exception"
-Cohesion: 0.12
-Nodes (8): App\Enums\CargoConfirmStatus, App\Enums\CargoStatus, Exception, InvalidArgumentException, Response, ApiException, ConflictException, DatabaseException
+### Community 15 - "Database"
+Cohesion: 0.11
+Nodes (12): App\Core\AuthenticatesRequests, App\Enums\CargoConfirmStatus, App\Enums\CargoStatus, InvalidArgumentException, mysqli, PDO, PDOException, Database (+4 more)
 
 ### Community 16 - "Executive Summary"
 Cohesion: 0.10
@@ -320,73 +371,73 @@ Nodes (19): Deep Code Audit Report, Executive Summary, Final Recommendations, **
 Cohesion: 0.10
 Nodes (19): Dependency Audit, Final Score, Logging & Observability, [LOW] Koin 3.5.6, [LOW] `lateinit var currentDownloadFile` بدون گارد کامل, [MEDIUM] Compose BOM عملاً بی‌اثر است, [MEDIUM] آدرس پایه به مسیر `test_api/` اشاره می‌کند, [MEDIUM] نبود مانیتورینگ خودکار (+11 more)
 
-### Community 19 - "quota_details/QuotaCardComponents.kt"
-Cohesion: 0.21
-Nodes (15): ActionButtonTest, ActionButton(), ConfirmationDialogHeader(), EditFieldBox(), EditFieldColumn(), EditQuotaDialog(), EditQuotaDialogHeader(), Color (+7 more)
-
-### Community 21 - "CargoInfo"
-Cohesion: 0.24
-Nodes (18): SubmitCargoUseCase, CargoChangesPreview(), CargoEditConfirmDialog(), CargoEditConfirmHeader(), CargoMainInfo(), CargoShippingInfo(), CargoTimeInfo(), CargoWeightInfo() (+10 more)
+### Community 18 - "PermissionService"
+Cohesion: 0.07
+Nodes (5): ApiAuthGate, Router, PermissionRepository, PermissionService, PermissionServiceTest
 
 ### Community 22 - "HomeScreen.kt"
 Cohesion: 0.13
 Nodes (24): getMenuItemsForUserType(), CompactSwitch(), Color, ImageVector, Modifier, NotificationSettingRow(), ActionButtons(), getUserTypeDisplay() (+16 more)
 
 ### Community 23 - "ManageReportsScreen.kt"
-Cohesion: 0.36
-Nodes (11): addOneDayToPersianDate(), DatePickerDialog(), DateTimeSelectionCard(), getDaysInPersianMonth(), isPersianLeapYear(), Color, ImageVector, Modifier (+3 more)
+Cohesion: 0.31
+Nodes (13): addOneDayToPersianDate(), DatePickerDialog(), DateTimeSelectionCard(), getDaysInPersianMonth(), isPersianLeapYear(), Color, ImageVector, Modifier (+5 more)
 
-### Community 26 - "MessageType"
-Cohesion: 0.07
-Nodes (51): Modifier, StatusSnackbar(), CargoDetailsScreen(), confirmCargo(), FloatingActionButtonItem(), handleCargoConfirmation(), Color, ImageVector (+43 more)
+### Community 26 - "CargoDetailsScreen.kt"
+Cohesion: 0.11
+Nodes (35): CargoDetailsScreen(), confirmCargo(), FloatingActionButtonItem(), handleCargoConfirmation(), Color, ImageVector, NavController, Result (+27 more)
 
-### Community 27 - "MainActivity.kt"
-Cohesion: 0.28
-Nodes (5): Intent, MainActivity, StartupErrorScreen(), Bundle, ComponentActivity
+### Community 27 - "CargoEditSearchDialogsSection.kt"
+Cohesion: 0.08
+Nodes (59): AdvancedSearchDialog(), Modifier, SearchTabInfo, SearchTypeTabRow(), CargoChangesPreview(), CargoEditConfirmDialog(), CargoEditConfirmHeader(), CargoMainInfo() (+51 more)
 
 ### Community 28 - "Medium Issues"
 Cohesion: 0.12
 Nodes (16): Critical Issues, [CRITICAL] کلیدهای API و لایسنس با XOR تک‌بایتی محافظت شده و در git ذخیره‌اند, Low Issues, [LOW] استفاده از `!!` روی state در Composable, [LOW] تابع native تعریف‌شده اما هرگز استفاده نشده, [LOW] فایل اطلاعات سرور در `.gitignore` نیست, [MEDIUM] endpointهای لایسنس بدون احراز هویت و بدون rate limit, Medium Issues (+8 more)
 
-### Community 29 - "QuotaManagementContent.kt"
-Cohesion: 0.15
-Nodes (29): AnalyticsStatChipMini(), CompactStatChip(), InfoChip(), IntegratedQuotaCard(), Color, ImageVector, Modifier, QuotaShipExpansionPanel() (+21 more)
-
 ### Community 31 - "CargoViewModel"
 Cohesion: 0.05
-Nodes (26): CargoCounterRoute, cargoCounterScreen(), NavController, navigateToCargoCounter(), CargoCounterOperationScreen(), NavController, InitialInfoRoute, initialInfoScreen() (+18 more)
+Nodes (29): Modifier, StatusSnackbar(), CargoCounterRoute, cargoCounterScreen(), NavController, navigateToCargoCounter(), CargoCounterOperationScreen(), NavController (+21 more)
 
 ### Community 33 - "ApiServiceV2.kt"
 Cohesion: 0.12
 Nodes (18): ApiResponse2, Result, validateServerSession(), ActiveSessionResponse, CreateUserRequest, DeleteUserRequest, ForceLogoutRequest, ForceLogoutResponse (+10 more)
 
-### Community 34 - "VoucherDetailsDialogSection.kt"
-Cohesion: 0.22
-Nodes (17): EmptyVoucherList(), Modifier, SearchTextField(), SortChip(), VoucherDetailsDialog(), VoucherExpandedDetails(), VoucherItem(), VoucherSearchAndFilter() (+9 more)
+### Community 34 - "WarehouseDateTimePicker.kt"
+Cohesion: 0.60
+Nodes (5): DateTimePicker(), Modifier, PersianDateItem(), TimePickerDialog(), TimePickerState
 
 ### Community 36 - "UsersManager"
 Cohesion: 0.07
 Nodes (7): ApiManager, CONFIG, ModalManager, ThemeManager, UIManager, UsersManager, Utils
 
+### Community 39 - "QuotaAnalysisSection.kt"
+Cohesion: 0.27
+Nodes (17): AnalyticsGroupingModeButton(), AnalyticsOwnerSummaryCard(), AnalyticsQuotaCard(), AnalyticsQuotaGroupExpansionPanel(), AnalyticsStatChip(), Context, ImageVector, Modifier (+9 more)
+
 ### Community 40 - "Logger"
-Cohesion: 0.14
-Nodes (3): UtilityController, Logger, self
+Cohesion: 0.18
+Nodes (3): LicenseController, Logger, self
 
 ### Community 41 - "API Audit"
 Cohesion: 0.17
 Nodes (12): API Audit, [HIGH] دو API stack موازی — نسخه‌ی امن‌تر بلااستفاده است, [MEDIUM] طراحی API غیر-RESTful و ناسازگار, فاز ۳.۲ — ✅ انجام شد: حذف ۲۰ فایل ورودی legacy نسخه ۱, فاز ۳.۳ — ✅ کامل شد: تست‌های Phase 1/2, فاز ۳.۴ — ✅ انجام شد: وابستگی‌های تست, فاز ۳.۵ — ✅ کامل: `UiState` واحد در `CargoViewModel` و `ReportsViewModel`, فهرست endpointها (+4 more)
 
+### Community 42 - "ReportsViewModel.kt"
+Cohesion: 0.18
+Nodes (7): AndroidViewModel, CargoInfo, Color, Quota, GroupSortingMode, Job, WarehouseQuotaGroupingMode
+
 ### Community 43 - "ATKCargoTheme"
-Cohesion: 0.14
-Nodes (11): ComponentStyles, Dimensions, Elevation, ATKCargoTheme, Motion, SemanticColors, AppShapes, Spacing (+3 more)
+Cohesion: 0.09
+Nodes (22): ColorScheme, AdaptiveLayoutConfig, rememberAdaptiveLayoutConfig(), WindowSizeClass, COMPACT, EXPANDED, MEDIUM, buildAppDarkColorScheme() (+14 more)
 
 ### Community 44 - "ApiServiceV2"
-Cohesion: 0.09
-Nodes (10): ProfileSettingsDialog(), ApiResponse, ApiServiceV2, DeleteMessageRequest, EditMessageRequest, UpdateUserRequest, User, SuccessResponse (+2 more)
+Cohesion: 0.16
+Nodes (5): ApiServiceV2, SuccessResponse, ComprehensiveAnalysisResponse, Quota, JsonElement
 
 ### Community 46 - "FontWeight"
-Cohesion: 0.23
-Nodes (6): AnimatedCounter(), ExitStatusDialog(), ImageVector, VazirmatnFontFamily, FontFamily, FontWeight
+Cohesion: 0.15
+Nodes (11): ConfirmationDialog(), ImageVector, EmptyState(), ImageVector, Modifier, AnimatedCounter(), ExitStatusDialog(), ImageVector (+3 more)
 
 ### Community 48 - "Executive Summary"
 Cohesion: 0.13
@@ -397,60 +448,48 @@ Cohesion: 0.17
 Nodes (13): EnhancedNumberAnalyzer, extractNumber(), ImageProxy, InputImage, recognizeTextFromImage(), EnhancedCameraPreview(), ImageCapture, Color (+5 more)
 
 ### Community 52 - "ReportModels.kt"
-Cohesion: 0.08
-Nodes (23): AndroidViewModel, Color, Job, StateFlow, AnalyticsData, ComprehensiveAnalytics, DateInfo, ExistingQuota (+15 more)
+Cohesion: 0.05
+Nodes (31): AnalyticsData, CalculationResult, ComprehensiveAnalytics, DateInfo, ExistingQuota, ExitDateInfo, FilteredSummary, FilteredSummaryResponse (+23 more)
 
 ### Community 53 - "Performance Audit"
 Cohesion: 0.20
 Nodes (10): [HIGH] `permissions.json` در هر بررسی مجوز از دیسک خوانده و parse می‌شود, [LOW] subquery همبسته در فهرست پیام‌های چت, [MEDIUM] `updateUser` کل جدول کاربران را برای یافتن رکورد خود کاربر می‌خواند, [MEDIUM] `user_sessions` با ۱۳ ایندکس که در هر درخواست به‌روزرسانی می‌شود, [MEDIUM] درخواست‌های شبکه‌ی زائد بعد از هر ثبت حواله, [MEDIUM] نبود صفحه‌بندی در endpointهای فهرستی, Performance Audit, خلاصه‌ی اثر (+2 more)
 
-### Community 54 - "QuotaDetailsScreen.kt"
-Cohesion: 0.29
-Nodes (11): ApiQuotaDetails, adjustColorForTheme(), Color, toTon(), ProgressBar(), QuotaAdditionalInfo(), QuotaDetails(), QuotaInfoCards() (+3 more)
+### Community 54 - "VoucherDetailsDialogSection.kt"
+Cohesion: 0.22
+Nodes (16): persianDateFormat(), EmptyVoucherList(), FilteredSummary, Modifier, SearchTextField(), SortChip(), VoucherDetailsDialog(), VoucherExpandedDetails() (+8 more)
 
 ### Community 55 - "Kotlin Audit"
 Cohesion: 0.22
 Nodes (9): [HIGH] باگ منطقی: مسیر پاک‌سازی نشست منقضی در `PermissionPoller` هرگز اجرا نمی‌شود, Kotlin Audit, [LOW] `Strictness.LENIENT` در Gson, [MEDIUM] `runBlocking` داخل `Authenticator` روی thread شبکه‌ی OkHttp, [MEDIUM] بسته‌بندی مکرر استثنا که نوع و stack trace را نابود می‌کند, [MEDIUM] بلعیدن خطا و بازگرداندن نتیجه‌ی خالی در جستجوها, [MEDIUM] پیاده‌سازی دوگانه‌ی تبدیل تاریخ جلالی, نکات مثبت (+1 more)
 
-### Community 56 - "App\Core\AuthenticatesRequests"
-Cohesion: 0.18
-Nodes (9): App\Core\AuthenticatesRequests, App\Core\DatabaseManager, App\Core\MicroCache, App\Core\Request, App\Core\Response, App\Services\LoginAttemptLimiter, App\Services\ShipService, App\Validators\InputValidator (+1 more)
+### Community 56 - "UserService"
+Cohesion: 0.10
+Nodes (11): App\Core\DatabaseManager, App\Core\MicroCache, App\Core\Request, App\Core\Response, App\Exceptions\ApiException, App\Repositories\UserRepository, App\Services\LoginAttemptLimiter, App\Services\ShipService (+3 more)
 
 ### Community 58 - "CrashReporter.kt"
 Cohesion: 0.46
 Nodes (4): CrashReporter, Context, CoroutineScope, PendingCrashReport
 
-### Community 60 - "SearchDialogs.kt"
-Cohesion: 0.29
-Nodes (10): CargoSearchResultCard(), InfoRowCompact(), Color, Context, ImageVector, MultipleSearchResultDialog(), SearchType, RECEIPT_NUMBER (+2 more)
+### Community 60 - "RetrofitClient"
+Cohesion: 0.07
+Nodes (21): CryptoManager, Authenticator, ByteArray, Cipher, FloatTypeAdapter, Context, OkHttpClient, RetrofitClient (+13 more)
 
 ### Community 61 - "PermissionPoller"
 Cohesion: 0.36
 Nodes (3): Job, StateFlow, PermissionPoller
 
 ### Community 62 - "QuotaPercentageDialogSection.kt"
-Cohesion: 0.21
-Nodes (18): calculateValues(), AnimatedNumber(), DialogHeader(), Color, ImageVector, Modifier, lerp(), PercentageDisplay() (+10 more)
-
-### Community 63 - "UserService"
-Cohesion: 0.14
-Nodes (4): App\Exceptions\ApiException, App\Repositories\UserRepository, AuditLogger, UserService
+Cohesion: 0.17
+Nodes (21): createTypography(), QuotaPercentageData, AnimatedNumber(), DialogHeader(), CalculationResult, Color, ImageVector, Modifier (+13 more)
 
 ### Community 65 - "DateRangePicker.kt"
 Cohesion: 0.57
 Nodes (7): DateClickableField(), DateRangePicker(), getDaysInPersianMonth(), isPersianLeapYear(), Color, Modifier, PersianDatePickerDialog()
 
 ### Community 66 - "QuotaWarningDialog.kt"
-Cohesion: 0.26
-Nodes (16): CompactInfoSection(), DialogHeader(), Color, ImageVector, Modifier, LoadingActionButton(), NavigationButton(), PageIndicatorDot() (+8 more)
-
-### Community 67 - "ColorSelector"
-Cohesion: 0.46
-Nodes (3): adjustColorForTheme(), ColorSelector, Color
-
-### Community 68 - "AdvancedSearchDialog.kt"
-Cohesion: 0.70
-Nodes (4): AdvancedSearchDialog(), Modifier, SearchTabInfo, SearchTypeTabRow()
+Cohesion: 0.25
+Nodes (17): CompactInfoSection(), DialogHeader(), Color, ImageVector, Modifier, ReportsViewModel, WarningStatus, LoadingActionButton() (+9 more)
 
 ### Community 69 - "Android Audit"
 Cohesion: 0.29
@@ -464,9 +503,13 @@ Nodes (6): Code Quality, Code Smells شناسایی‌شده, [HIGH] Primitive O
 Cohesion: 0.29
 Nodes (7): Database Audit, [LOW] `SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION'` حالت strict را خاموش می‌کند, [MEDIUM] `schema.sql` قدیمی و ناقص است, [MEDIUM] هیچ FOREIGN KEY در کل schema وجود ندارد, ساختار (از `schema.sql` — ✅ به‌روزرسانی شد در Phase 2.3، اکنون کامل), نکات مثبت, یافته‌ها
 
-### Community 73 - "ManageReportsScreen"
-Cohesion: 0.18
-Nodes (16): MainScreen(), RouteTransitions, standardTransitions(), HomeRoute, homeScreen(), NavController, navigateToHome(), CargoDetailsRoute (+8 more)
+### Community 72 - "quota_details/QuotaCardComponents.kt"
+Cohesion: 0.27
+Nodes (16): ActionButton(), calculateValues(), ConfirmationDialogHeader(), EditFieldBox(), EditFieldColumn(), EditQuotaDialog(), EditQuotaDialogHeader(), CalculationResult (+8 more)
+
+### Community 73 - "MainScreen.kt"
+Cohesion: 0.23
+Nodes (11): MainScreen(), RouteTransitions, standardTransitions(), CargoRegistrationRoute, cargoRegistrationScreen(), NavController, navigateToCargoRegistration(), HomeRoute (+3 more)
 
 ### Community 74 - "Final Recommendations"
 Cohesion: 0.25
@@ -475,10 +518,6 @@ Nodes (8): Final Recommendations, Roadmap عملی, ارزیابی صادقان�
 ### Community 75 - "Jetpack Compose Audit"
 Cohesion: 0.29
 Nodes (7): [HIGH] God Composable — فایل‌های نمایشی با بیش از ۱۰۰۰ خط, [HIGH] صفر مورد `collectAsStateWithLifecycle` در برابر ۸۵ مورد `collectAsState`, Jetpack Compose Audit, [LOW] تمام رشته‌های UI به‌صورت literal در کد, [MEDIUM] استفاده‌ی کم از `derivedStateOf` در جاهایی که واقعاً لازم است, [MEDIUM] نبود `UiState` واحد — ۲۰+ `StateFlow` مجزا در هر ViewModel, [MEDIUM] ۲۲ مورد از ۳۵ فراخوانی `items(...)` بدون `key`
-
-### Community 76 - "ApiV2Routes"
-Cohesion: 0.10
-Nodes (5): InputValidationResult, QuotaValidationUseCase, TempTonnageValidationResult, ApiV2Routes, QuotaValidationResult
 
 ### Community 77 - "PHP Backend Audit"
 Cohesion: 0.29
@@ -492,13 +531,21 @@ Nodes (5): ChatMessage, ChatMessagesResponse, SendMessageRequest, SendMessageRes
 Cohesion: 0.29
 Nodes (7): [HIGH] پوشه‌های لاگ ممکن است از طریق وب قابل دسترس باشند, Logging & Observability, [LOW] ~۹۰ فراخوانی `Log.*` در کد تولید, [MEDIUM] نبود مانیتورینگ و هشدار, آنچه لاگ می‌شود, نکات مثبت, یافته‌ها
 
-### Community 82 - "RetrofitClient"
-Cohesion: 0.07
-Nodes (21): CryptoManager, Authenticator, ByteArray, Cipher, FloatTypeAdapter, Context, OkHttpClient, RetrofitClient (+13 more)
+### Community 81 - "SecurityScreen.kt"
+Cohesion: 0.25
+Nodes (13): AdvancedOrbitalScanner(), AnimatedUpdateIcon(), AnimatedWarningIcon(), DynamicPremiumBackground(), InteractiveExitButton(), Modifier, RetryButton(), SecurityBlockScreen() (+5 more)
+
+### Community 82 - "ReportsCommonWidgets.kt"
+Cohesion: 0.29
+Nodes (14): CompactStatChip(), EmptyQuotaState(), EmptyShipsState(), EmptyStateCard(), ErrorStateCard(), FabItem, FloatingActionButton(), InfoCard() (+6 more)
 
 ### Community 83 - "InitialInfoScreen"
-Cohesion: 0.17
-Nodes (23): formatNumber(), isValidPersianText(), isValidQuotaNumber(), isValidShipName(), isValidWarehouseName(), isValidWeight(), ConfirmationDialog(), DuplicateDialog() (+15 more)
+Cohesion: 0.22
+Nodes (18): formatNumber(), isValidPersianText(), isValidQuotaNumber(), isValidShipName(), isValidWarehouseName(), isValidWeight(), ConfirmationDialog(), DuplicateDialog() (+10 more)
+
+### Community 84 - "User"
+Cohesion: 0.28
+Nodes (3): ProfileSettingsDialog(), UpdateUserRequest, User
 
 ### Community 85 - "Code Smells شناسایی‌شده"
 Cohesion: 0.29
@@ -507,18 +554,6 @@ Nodes (7): Code Quality, Code Smells شناسایی‌شده, God Files (۳۱ ف
 ### Community 86 - "Authentication & Authorization"
 Cohesion: 0.40
 Nodes (5): Authentication & Authorization, [MEDIUM] `check_logout.php` بدون احراز هویت, ارزیابی, جریان کامل احراز هویت, یافته‌ی اضافی
-
-### Community 88 - "Color.kt"
-Cohesion: 0.16
-Nodes (14): CompactStatChipTest, GroupingModeButton(), GroupingModeSelector(), ImageVector, Modifier, ImageVector, Modifier, StateFlow (+6 more)
-
-### Community 89 - "ReportsCommonWidgets.kt"
-Cohesion: 0.29
-Nodes (14): FabItem, CompactStatChip(), EmptyQuotaState(), EmptyShipsState(), EmptyStateCard(), ErrorStateCard(), FloatingActionButton(), InfoCard() (+6 more)
-
-### Community 90 - "RealTimeLoadingBottomSheet"
-Cohesion: 0.35
-Nodes (9): DialogHeader(), Color, Modifier, RealTimeLoadingBottomSheet(), RealTimeShiftNavigation(), RefreshOverlay(), ShipCard(), RealTimeUiState (+1 more)
 
 ### Community 91 - "Dependency Audit"
 Cohesion: 0.33
@@ -532,29 +567,21 @@ Nodes (6): Animation Audit, [INFO] نقاط قوت انیمیشن, [LOW] انی�
 Cohesion: 0.33
 Nodes (5): Migrations, migrationهای اعمال‌شده تاکنون, قرارداد نام‌گذاری, نحوه‌ی اجرا, وضعیت schema.sql
 
-### Community 94 - "Quota"
-Cohesion: 0.17
-Nodes (17): calculateWarningStatus(), ErrorStateCard(), ImageVector, ShipDetails(), ShipHeaderCard(), TabItem(), WarehouseQuotasTabs(), WarehousesAndQuotasTab() (+9 more)
+### Community 94 - "ApiResponse"
+Cohesion: 0.33
+Nodes (3): ApiResponse, DeleteMessageRequest, EditMessageRequest
 
-### Community 95 - "SelectInfoScreen.kt"
-Cohesion: 0.25
-Nodes (14): AnimatedHeader(), GroupedShipList(), Color, Modifier, NavController, Result, navigateToRegisterCargoActivity(), SelectInfoScreenContent() (+6 more)
+### Community 95 - "WarehouseDetailsScreen.kt"
+Cohesion: 0.32
+Nodes (13): FilteredSummary, Modifier, Quota, ReportsViewModel, QuotaChip(), QuotaSelector(), VoucherDetailsButton(), WarehouseCard() (+5 more)
 
 ### Community 96 - "پلن بازساختاردهی PHP به `public/` (DEEP_CODE_AUDIT.md #Phase3.13)"
 Cohesion: 0.22
 Nodes (8): ساختار فعلی (مستند شده در این جلسه), ساختار هدف, مراحل اجرا (ترتیب دقیق مهم است), معیار موفقیت, پلن بازساختاردهی PHP به `public/` (DEEP_CODE_AUDIT.md #Phase3.13), پیش‌نیازهای جانبی که باید قبل از این کار حل شوند, چرا فقط .htaccess کافی نیست, چرا لازم است
 
-### Community 97 - "UserRepository"
-Cohesion: 0.12
-Nodes (3): PDO, PDO, UserRepository
-
-### Community 98 - "Ship"
-Cohesion: 0.13
-Nodes (21): ErrorState(), ImageVector, Modifier, ImageVector, Modifier, ShipCard(), ShipCardContent(), ShipSortingModeButton() (+13 more)
-
-### Community 99 - "Database"
-Cohesion: 0.10
-Nodes (7): mysqli, PDOException, LicenseController, Config, self, Database, self
+### Community 98 - "ShipSortingMode"
+Cohesion: 0.29
+Nodes (7): ShipSortingMode, LOADED_TONNAGE_ASC, LOADED_TONNAGE_DESC, NAME_ASC, NAME_DESC, REMAINING_TONNAGE_ASC, REMAINING_TONNAGE_DESC
 
 ### Community 100 - "ShipInfoSection.kt"
 Cohesion: 0.30
@@ -584,25 +611,21 @@ Nodes (12): CargoDetailsPalette, CargoDetailTabItem(), CargoInfoDetailsDialog(),
 Cohesion: 0.53
 Nodes (9): gregorian_to_jalali(), jalali_to_gregorian(), jcheckdate(), jdate(), jdate_words(), jgetdate(), jmktime(), jstrftime() (+1 more)
 
-### Community 108 - "ChatNotificationWorker.kt"
-Cohesion: 0.48
-Nodes (4): ChatNotificationWorker, KoinComponent, CoroutineWorker, ListenableWorker
+### Community 108 - "QuotaValidationUseCase.kt"
+Cohesion: 0.36
+Nodes (4): InputValidationResult, QuotaValidationUseCase, TempTonnageValidationResult, QuotaValidationResult
 
 ### Community 109 - "Android Audit"
 Cohesion: 0.40
 Nodes (5): Android Audit, [LOW] پرچم منسوخ در `gradle.properties`, [MEDIUM] `targetSdk = 34` در حالی که `compileSdk = 36`, مشکلات, نقاط قوت
 
-### Community 110 - "StartupState"
+### Community 110 - "ShipDetailsScreen.kt"
 Cohesion: 0.33
-Nodes (6): Ready, SecurityBlocked, Splash, StartupState, Syncing, VersionExpired
+Nodes (12): calculateWarningStatus(), ErrorStateCard(), ImageVector, Quota, ReportsViewModel, Ship, WarningStatus, ShipDetails() (+4 more)
 
 ### Community 113 - "UpdateManager"
 Cohesion: 0.08
 Nodes (24): UpdateInfo, Completed, Downloading, DownloadProgress, DownloadState, Error, Idle, Context (+16 more)
-
-### Community 114 - "ComprehensiveAnalyticsDialog.kt"
-Cohesion: 0.57
-Nodes (6): AnalyticsDateNavigation(), AnalyticsHeaderCard(), ComprehensiveAnalyticsDialog(), EmptyStateCard(), ErrorStateCard(), Modifier
 
 ### Community 115 - "API Audit"
 Cohesion: 0.40
@@ -616,13 +639,9 @@ Nodes (5): [HIGH] CI هیچ تست اندرویدی اجرا نمی‌کند, Te
 Cohesion: 0.40
 Nodes (5): [HIGH] انیمیشن‌ها باعث recomposition در هر فریم می‌شوند, Jetpack Compose Audit, [MEDIUM] Composableهای خدای‌گونه, مشکلات, نقاط قوت (واقعاً چشمگیر)
 
-### Community 118 - "ActiveShipInfo"
-Cohesion: 0.44
-Nodes (9): GroupedShipList(), Color, QuotaCard(), ShipGroup(), ShipHeader(), WarehouseCard(), WarehouseList(), ShipSelectionDialog() (+1 more)
-
-### Community 119 - "QuotaSelectionDialog.kt"
-Cohesion: 0.42
-Nodes (10): DialogHeader(), findDifferentFields(), InactiveIndicator(), ImageVector, QuotaDetailItem(), QuotaDetails(), QuotaHeader(), QuotaItem() (+2 more)
+### Community 118 - "MainActivity.kt"
+Cohesion: 0.32
+Nodes (5): Intent, MainActivity, StartupErrorScreen(), Bundle, ComponentActivity
 
 ### Community 120 - "چک‌لیست فعال‌سازی `STRICT_TRANS_TABLES` (DEEP_CODE_AUDIT.md #Phase4.10)"
 Cohesion: 0.33
@@ -644,13 +663,9 @@ Nodes (5): [HIGH] ایندکس گمشده روی `trackingNumber`, [MEDIUM] تا
 Cohesion: 0.40
 Nodes (5): Phase 1 — Immediate (هفته‌ی ۱), Phase 2 — High Priority (هفته‌های ۲–۴), Phase 3 — Medium Priority (ماه‌های ۲–۳), Phase 4 — Optimization (ماه‌های ۴+), Prioritized Action Plan
 
-### Community 128 - "QuotaEntryDialog.kt"
-Cohesion: 0.57
-Nodes (7): FocusRequester, QuotaEntryActions(), QuotaEntryContent(), QuotaEntryDialog(), QuotaEntryPalette, rememberQuotaEntryPalette(), validateAndSubmit()
-
-### Community 129 - "QuotaCard"
-Cohesion: 0.39
-Nodes (7): DeleteQuotaDialog(), androidx, Color, QuotaConfirmDialog(), ToggleQuotaStatusDialog(), QuotaCard(), QuotaGroupExpansionPanel()
+### Community 128 - "QuotaDetailsScreen.kt"
+Cohesion: 0.38
+Nodes (10): ApiQuotaDetails, ProgressBar(), Quota, ReportsViewModel, QuotaAdditionalInfo(), QuotaDetails(), QuotaInfoCards(), QuotaMainCard() (+2 more)
 
 ### Community 130 - "Architecture Overview"
 Cohesion: 0.50
@@ -664,13 +679,17 @@ Nodes (4): Error Handling, [MEDIUM] نبود مکانیزم مرکزی گزار�
 Cohesion: 0.40
 Nodes (4): حذف/محدودسازی phpMyAdmin روی سرور production (Phase 1, آیتم #۲), راستی‌آزمایی نهایی, گزینه‌ی ۱ — حذف کامل (توصیه‌شده), گزینه‌ی ۲ — اگر حذف فوری ممکن نیست
 
-### Community 134 - "AuthenticatesRequests.php"
-Cohesion: 0.80
-Nodes (4): enforceMinAppVersion(), requireAuthenticatedSession(), requirePermission(), sendAuthErrorResponse()
+### Community 134 - "ColorSelector"
+Cohesion: 0.46
+Nodes (3): adjustColorForTheme(), ColorSelector, Color
 
-### Community 135 - "CargoCounterComponents.kt"
-Cohesion: 0.57
-Nodes (6): CargoSnackbarMessage, Color, Modifier, snackbarAccent(), snackbarAccentBg(), StatusSnackbar()
+### Community 135 - "CargoEntryNavigation.kt"
+Cohesion: 0.25
+Nodes (9): InitialInfoRoute, initialInfoScreen(), NavController, navigateToInitialInfo(), navigateToSelectInfo(), SelectInfoRoute, selectInfoScreen(), CargoOperationScreen() (+1 more)
+
+### Community 136 - "QuotasListScreen.kt"
+Cohesion: 0.31
+Nodes (9): ImageVector, Modifier, Quota, ReportsViewModel, WarehouseQuotaGroupingMode, QuotasList(), SortPill(), QuotaSortingMode (+1 more)
 
 ### Community 137 - "Animation Audit"
 Cohesion: 0.50
@@ -683,10 +702,6 @@ Nodes (4): Authentication & Authorization, [MEDIUM] نشست‌های پنل و�
 ### Community 139 - "Database Audit"
 Cohesion: 0.50
 Nodes (4): Database Audit, [LOW] نبود جدول ردیابی migration, مشکلات, نقاط قوت
-
-### Community 140 - "RealTimeLoadingCardSection.kt"
-Cohesion: 0.43
-Nodes (6): CompactInfo(), Color, ImageVector, Modifier, RealTimeLoadingCard(), StatisticItem()
 
 ### Community 141 - "Error Handling"
 Cohesion: 0.50
@@ -701,12 +716,8 @@ Cohesion: 0.05
 Nodes (19): BootReceiver, BroadcastReceiver, Context, Intent, KoinComponent, Context, Intent, KoinComponent (+11 more)
 
 ### Community 145 - "SecurityVerifier"
-Cohesion: 0.10
-Nodes (11): SecurityErrorType, LICENSE_INACTIVE, LICENSE_NOT_FOUND, NETWORK_ERROR, TAMPERED, UNKNOWN_ERROR, SecurityVerifier, Secrets (+3 more)
-
-### Community 147 - "WindowSizeClass"
-Cohesion: 0.33
-Nodes (6): AdaptiveLayoutConfig, rememberAdaptiveLayoutConfig(), WindowSizeClass, COMPACT, EXPANDED, MEDIUM
+Cohesion: 0.17
+Nodes (10): SecurityErrorType, LICENSE_INACTIVE, LICENSE_NOT_FOUND, NETWORK_ERROR, TAMPERED, UNKNOWN_ERROR, SecurityVerifier, JSONObject (+2 more)
 
 ### Community 149 - "PHP Backend Audit"
 Cohesion: 0.50
@@ -720,41 +731,69 @@ Nodes (3): تاریخچه‌ی git, مراحل, چرخش رازهای `secrets.c
 Cohesion: 0.09
 Nodes (21): autoload, autoload-dev, psr-4, psr-4, config, optimize-autoloader, sort-packages, description (+13 more)
 
-### Community 187 - "ColorScheme.kt"
-Cohesion: 0.80
-Nodes (5): ColorScheme, buildAppDarkColorScheme(), buildAppLightColorScheme(), compositeOver(), Color
+### Community 189 - "QuotaGroupContent.kt"
+Cohesion: 0.36
+Nodes (8): GroupingModeButton(), GroupingModeSelector(), ImageVector, Modifier, Quota, WarehouseQuotaGroupingMode, QuotaGroupExpansionPanel(), QuotaPercentageData
 
-### Community 188 - "CargoRegistrationNavigation.kt"
+### Community 190 - "QuotaCalculatorTest"
+Cohesion: 0.09
+Nodes (3): QuotaCalculator, QuotaCalculatorTest, PHPUnit\Framework\TestCase
+
+### Community 191 - "ReportsNavigation.kt"
+Cohesion: 0.36
+Nodes (7): CargoDetailsRoute, cargoDetailsScreen(), NavController, ManageShipsRoute, manageShipsScreen(), navigateToCargoDetails(), navigateToManageShips()
+
+### Community 197 - "LoadingState"
+Cohesion: 0.47
+Nodes (6): Error, Idle, Loading, LoadingState, Success, UiState
+
+### Community 198 - "ComprehensiveAnalyticsDialog.kt"
+Cohesion: 0.54
+Nodes (7): AnalyticsDateNavigation(), AnalyticsHeaderCard(), ComprehensiveAnalyticsDialog(), EmptyStateCard(), ErrorStateCard(), Modifier, ReportsViewModel
+
+### Community 204 - "ChatNotificationWorker.kt"
+Cohesion: 0.48
+Nodes (4): ChatNotificationWorker, KoinComponent, CoroutineWorker, ListenableWorker
+
+### Community 205 - "QuotasListDialogs.kt"
+Cohesion: 0.53
+Nodes (5): androidx, DeleteQuotaDialog(), Color, QuotaConfirmDialog(), ToggleQuotaStatusDialog()
+
+### Community 206 - "InitialInfoFormComponents.kt"
 Cohesion: 0.60
-Nodes (4): CargoRegistrationRoute, cargoRegistrationScreen(), NavController, navigateToCargoRegistration()
+Nodes (5): CustomInput(), ImageVector, KeyboardActions, KeyboardOptions, SummaryCard()
 
-### Community 189 - "StatisticsCard.kt"
-Cohesion: 0.70
-Nodes (4): Color, ImageVector, Modifier, StatisticsCard()
+### Community 207 - "Composable"
+Cohesion: 0.53
+Nodes (5): Composable, Color, ImageVector, Modifier, StatisticsCard()
 
-### Community 191 - "update.md"
+### Community 208 - "QuotaManagementDialog.kt"
+Cohesion: 0.47
+Nodes (5): ReportsViewModel, QuotaManagementDialog(), QuotaManagementHeaderCard(), Modifier, QuotaItem
+
+### Community 209 - "QuotaGroupingMode"
+Cohesion: 0.60
+Nodes (3): buildQuotaGroups(), QuotaGroup, QuotaGroupingMode
+
+### Community 210 - "AuthenticatesRequests.php"
+Cohesion: 0.80
+Nodes (4): enforceMinAppVersion(), requireAuthenticatedSession(), requirePermission(), sendAuthErrorResponse()
+
+### Community 211 - "QuotaGroupingMode"
 Cohesion: 0.50
-Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
-
-### Community 192 - "Typography.kt"
-Cohesion: 0.83
-Nodes (3): createTypography(), TextStyle, Typography
+Nodes (4): QuotaGroupingMode, BY_CARGO_OWNER, BY_CARRIER, BY_SHIP
 
 ### Community 221 - "secrets.cpp"
 Cohesion: 0.34
 Nodes (16): decryptXor(), JNI_OnLoad(), n0(), n1(), n2(), n3(), n4(), n5() (+8 more)
 
 ### Community 272 - "Request"
-Cohesion: 0.10
-Nodes (5): DiagnosticsController, OnlineUsersController, MinVersionGate, Request, Throwable
+Cohesion: 0.08
+Nodes (5): AuthController, DiagnosticsController, OnlineUsersController, MinVersionGate, Request
 
 ### Community 319 - "graphify reference: extra exports and benchmark"
 Cohesion: 0.22
 Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only if --wiki flag), Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag), Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag), Step 7b - SVG export (only if --svg flag), Step 7c - GraphML export (only if --graphml flag), Step 7d - MCP server (only if --mcp flag), Step 8 - Token reduction benchmark (only if total_words > 5000)
-
-### Community 355 - "LoadingState"
-Cohesion: 0.47
-Nodes (6): Error, Idle, Loading, LoadingState, Success, UiState
 
 ### Community 371 - "NotificationActionReceiver.kt"
 Cohesion: 0.53
@@ -773,24 +812,24 @@ Cohesion: 0.50
 Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify reference: commit hook and native CLAUDE.md integration
 
 ## Knowledge Gaps
-- **388 isolated node(s):** `QuotaWarningThresholds`, `RequestBatteryOptimization`, `ErrorResponse`, `ShipsTabItem`, `Ready` (+383 more)
+- **395 isolated node(s):** `NAME_ASC`, `NAME_DESC`, `QUOTA_COUNT_ASC`, `QUOTA_COUNT_DESC`, `TOTAL_WEIGHT_ASC` (+390 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **82 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **141 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `ReportsViewModel` connect `ReportsViewModel` to `QuotaWarningDialog.kt`, `Ship`, `VoucherDetailsDialogSection.kt`, `ColorSelector`, `LoadingState`, `QuotaManagementDialog`, `ManageReportsScreen`, `ComprehensiveAnalyticsDialog.kt`, `AppModule.kt`, `CargoInfo`, `QuotaDetailsScreen.kt`, `ManageReportsScreen.kt`, `Color.kt`, `ReportModels.kt`, `RealTimeLoadingBottomSheet`, `QuotaManagementContent.kt`, `Quota`?**
-  _High betweenness centrality (0.044) - this node is a cross-community bridge._
-- **Why does `RetrofitClient` connect `RetrofitClient` to `StartupViewModel`, `CargoCounterScreen.kt`, `QuotaManagementDialog`, `ApiServiceV2`, `ChatNotificationWorker.kt`, `InitialInfoScreen`, `AppModule.kt`, `HomeScreen.kt`, `MessageType`?**
-  _High betweenness centrality (0.036) - this node is a cross-community bridge._
-- **Why does `ApiServiceV2` connect `ApiServiceV2` to `ReportsRepository`, `ApiServiceV2.kt`, `Ship`, `ApiV2Routes`, `CargoModels.kt`, `ChatMessage.kt`, `RetrofitClient`, `CargoInfo`, `ActiveShipInfo`, `QuotaExistenceMultipleResponse`, `QuotaManagementContent.kt`, `Quota`, `CargoViewModel`?**
-  _High betweenness centrality (0.028) - this node is a cross-community bridge._
+- **Why does `HttpStatusException` connect `Exception` to `ReportsViewModel.kt`?**
+  _High betweenness centrality (0.118) - this node is a cross-community bridge._
+- **Why does `ApiException` connect `Exception` to `InputValidator`, `Database`, `Request`, `MicroCache`, `QuotaCalculatorTest`?**
+  _High betweenness centrality (0.071) - this node is a cross-community bridge._
+- **Why does `InputValidator` connect `InputValidator` to `AnalyticsController`, `Exception`, `QuotaService`, `Database`, `Request`, `MicroCache`, `UserService`, `ChatController`, `AppApiController`?**
+  _High betweenness centrality (0.045) - this node is a cross-community bridge._
 - **Are the 10 inferred relationships involving `InputValidator` (e.g. with `.handle()` and `.handlePost()`) actually correct?**
   _`InputValidator` has 10 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `QuotaWarningThresholds`, `RequestBatteryOptimization`, `ErrorResponse` to the rest of the system?**
-  _388 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `NAME_ASC`, `NAME_DESC`, `QUOTA_COUNT_ASC` to the rest of the system?**
+  _395 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `StartupViewModel` be split into smaller, more focused modules?**
-  _Cohesion score 0.13105413105413105 - nodes in this community are weakly interconnected._
-- **Should `ReportsRepository` be split into smaller, more focused modules?**
-  _Cohesion score 0.08961593172119488 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10685483870967742 - nodes in this community are weakly interconnected._
+- **Should `Security Audit` be split into smaller, more focused modules?**
+  _Cohesion score 0.08695652173913043 - nodes in this community are weakly interconnected._
