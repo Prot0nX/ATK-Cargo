@@ -1,7 +1,7 @@
 # Graph Report - ATK-Cargo  (2026-08-20)
 
 ## Corpus Check
-- 338 files · ~432,631 words
+- 338 files · ~432,661 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2d6620f6`
+- Built from commit: `494536a8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -378,8 +378,6 @@
 10. `Request` - 31 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `CargoDetailsScreen()` --calls--> `validateServerSession()`  [INFERRED]
-  feature/cargo-workflow/src/main/java/com/atk/atk_cargo/feature/cargo_details/presentation/CargoDetailsScreen.kt → core/network/src/main/java/com/atk/atk_cargo/api/SessionValidator.kt
 - `CargoCounterScreen()` --calls--> `ColorSelector`  [INFERRED]
   feature/cargo-workflow/src/main/java/com/atk/atk_cargo/feature/cargo_counter/presentation/CargoCounterScreen.kt → core/designsystem/src/main/java/com/atk/atk_cargo/data/model/ColorSelector.kt
 - `SelectInfoScreenContent()` --calls--> `ColorSelector`  [INFERRED]
@@ -388,6 +386,8 @@
   feature/reports/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/QuotaDetailsScreen.kt → core/designsystem/src/main/java/com/atk/atk_cargo/data/model/ColorSelector.kt
 - `CargoInfoDetailsDialog()` --calls--> `CargoInfoRequest`  [INFERRED]
   feature/cargo-workflow/src/main/java/com/atk/atk_cargo/feature/cargo_registration/presentation/components/CargoInfoDetailsDialogSection.kt → core/network/src/main/java/com/atk/atk_cargo/data/model/CargoModels.kt
+- `QuotaPercentageDialog()` --calls--> `QuotaPercentageData`  [INFERRED]
+  feature/reports/src/main/java/com/atk/atk_cargo/feature/reports/presentation/quota_details/QuotaPercentageDialogSection.kt → core/network/src/main/java/com/atk/atk_cargo/data/model/ReportModels.kt
 
 ## Import Cycles
 - None detected.
@@ -871,7 +871,7 @@ Cohesion: 0.50
 Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify reference: commit hook and native CLAUDE.md integration
 
 ## Knowledge Gaps
-- **406 isolated node(s):** `None`, `NetWeight`, `RequestBatteryOptimization`, `RealTimeUiState`, `ReportsUiState` (+401 more)
+- **406 isolated node(s):** `وضعیت کلی`, `مهم‌ترین ریسک‌های امنیتی`, `مهم‌ترین مشکلات Architecture`, `مهم‌ترین مشکلات Performance`, `Technical Debt` (+401 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **230 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -879,16 +879,16 @@ Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify refer
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `ApiException` connect `Exception` to `Database`, `InputValidator`, `MicroCache`, `UtilityController`, `PermissionServiceTest`?**
-  _High betweenness centrality (0.067) - this node is a cross-community bridge._
+  _High betweenness centrality (0.079) - this node is a cross-community bridge._
 - **Why does `HttpStatusException` connect `Exception` to `ReportsViewModel.kt`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+  _High betweenness centrality (0.066) - this node is a cross-community bridge._
 - **Why does `ReportsRepository` connect `Exception` to `AppModule.kt`, `ReportsViewModel.kt`?**
-  _High betweenness centrality (0.052) - this node is a cross-community bridge._
+  _High betweenness centrality (0.045) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `ReportsViewModel` (e.g. with `AppModule.kt` and `buildQuotaGroups()`) actually correct?**
   _`ReportsViewModel` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 10 inferred relationships involving `InputValidator` (e.g. with `.handle()` and `.handlePost()`) actually correct?**
   _`InputValidator` has 10 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `None`, `NetWeight`, `RequestBatteryOptimization` to the rest of the system?**
+- **What connects `وضعیت کلی`, `مهم‌ترین ریسک‌های امنیتی`, `مهم‌ترین مشکلات Architecture` to the rest of the system?**
   _406 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Security Audit` be split into smaller, more focused modules?**
   _Cohesion score 0.08695652173913043 - nodes in this community are weakly interconnected._
