@@ -1042,6 +1042,10 @@ viewModel { CargoViewModel(get(), get(), get()) }   // UseCase تزریق می�
 
 **Priority:** MEDIUM · **Effort:** Medium
 
+**Status:** ✅ Fixed (2026-08-20) — بررسی call-siteها قبل از اعمال fix پیشنهادی گزارش (که هر ۳ فایل را «فعال، فقط بدون DI» فرض کرده بود) نشان داد **دو فایل از سه فایل کد مرده بودند**: `CheckQuotaUseCase.kt` و `SubmitCargoUseCase.kt` هیچ‌جا instantiate نمی‌شدند — `CargoViewModel.kt` منطق معادل (`checkQuotaExistenceCargo`، `saveOrUpdateCargoInfo`) را مستقیم و تکراری با `apiServiceV2` انجام می‌داد. با تأیید کاربر، طبق دستورالعمل «قبل از حذف، همه‌ی call siteها را چک کن»، هر دو فایل حذف شدند به‌جای افزودن DI به چیزی که هرگز استفاده نمی‌شود.
+
+`QuotaValidationUseCase.kt` (تنها فایل واقعاً فعال) اصلاح شد: خط ۳۷ که مستقیماً `apiServiceV2.getShipQuotas(...)` (singleton سراسری) را صدا می‌زد، به `repository.getShipQuotas(shipName)` (همان `ReportsRepository` که از قبل تزریق‌شده بود) تغییر کرد — رفتار fallback قبلی (لاگ خطا و ادامه‌ی اعتبارسنجی به‌جای شکست کامل) با یک try/catch محلی حفظ شد تا معنای قبلی عوض نشود. نمونه‌سازی این کلاس در `CargoViewModel.kt:90` هم از فراخوانی fully-qualified (`com.atk.atk_cargo.feature.cargo.domain.QuotaValidationUseCase(...)`) به import تمیز تغییر کرد. آن را از طریق Koin ثبت نکردیم — چون تنها وابستگی باقی‌مانده‌اش (`repository`) از قبل تزریق‌شده بود، عبور آن از یک لایه‌ی اضافه‌ی Koin تستی‌بودن بیشتری اضافه نمی‌کرد. `compileDebugKotlin`، `lintDebug`، `testDebugUnitTest` سبز.
+
 ---
 
 # Jetpack Compose Audit
@@ -2482,7 +2486,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 
 | # | اقدام | Effort |
 |---|-------|--------|
-| ۱۸ | تزریق وابستگی در UseCaseها (پیش‌نیاز تست) | Medium |
+| ۱۸ | ✅ تزریق وابستگی در UseCaseها (۲ فایل کد مرده بودند و حذف شدند؛ ۱ فایل اصلاح شد) | Medium |
 | ۱۹ | نوشتن تست برای `Router`، `UserController`، `QuotaService` | Medium |
 | ۲۰ | نوشتن تست برای `CargoViewModel` (پس از #۱۸) | Medium |
 | ۲۱ | یکسان‌سازی شکل پاسخ خطا | Medium |
@@ -2529,7 +2533,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۱۴ | ✅ `downloadUrl` بدون اعتبارسنجی دامنه | Security | MEDIUM | `UpdateManager.kt:171` | Low |
 | ۱۵ | ✅ `Log.w`/`Log.e` در release باقی می‌مانند | Security/Logging | MEDIUM | `proguard-rules.pro:179` | Low |
 | ۱۶ | ✅ گزارش کرش بدون rate limit | Availability | MEDIUM | `DiagnosticsController.php:100` | Low |
-| ۱۷ | UseCaseها singleton را مستقیم می‌گیرند | Architecture/Testing | MEDIUM | `CheckQuotaUseCase.kt:8` + ۲ فایل | Medium |
+| ۱۷ | ✅ UseCaseها singleton را مستقیم می‌گیرند (۲ فایل کد مرده حذف شد؛ ۱ فایل اصلاح شد) | Architecture/Testing | MEDIUM | `CheckQuotaUseCase.kt:8` + ۲ فایل | Medium |
 | ۱۸ | ماژول‌بندی نیمه‌کاره (۸۱٪ در `app`) | Architecture | MEDIUM | ساختار پروژه | High |
 | ۱۹ | ✅ Compose BOM با نسخه‌ی صریح override شده | Dependencies | MEDIUM | `gradle/libs.versions.toml` | Low |
 | ۲۰ | تاریخ/عدد در `varchar(100)` | Database | MEDIUM | `PHP/schema.sql` | High |

@@ -22,6 +22,7 @@ import com.atk.atk_cargo.domain.model.Kilograms
 import com.atk.atk_cargo.domain.model.QuotaInfo
 import com.atk.atk_cargo.domain.model.toDomain
 import com.atk.atk_cargo.domain.model.toDto
+import com.atk.atk_cargo.feature.cargo.domain.QuotaValidationUseCase
 import com.atk.atk_cargo.utils.JalaliDateUtils
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -87,7 +88,7 @@ class CargoViewModel(
     private val repository: ReportsRepository,
     private val userPreferencesManager: UserPreferencesManager
 ) : ViewModel() {
-    private val quotaValidationUseCase = com.atk.atk_cargo.feature.cargo.domain.QuotaValidationUseCase(repository)
+    private val quotaValidationUseCase = QuotaValidationUseCase(repository)
 
     private val _uiState = MutableStateFlow(CargoUiState())
     val uiState: StateFlow<CargoUiState> = _uiState.asStateFlow()

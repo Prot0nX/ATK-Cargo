@@ -1,8 +1,6 @@
 package com.atk.atk_cargo.feature.cargo.domain
 
 import android.util.Log
-import com.atk.atk_cargo.api.ApiV2Routes
-import com.atk.atk_cargo.api.RetrofitClient.apiServiceV2
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.data.model.QuotaValidationResult
 import com.atk.atk_cargo.data.repository.ReportsRepository
@@ -34,11 +32,15 @@ class QuotaValidationUseCase(private val repository: ReportsRepository) {
                 )
             }
 
-            val response = apiServiceV2.getShipQuotas(route = ApiV2Routes.shipQuotas(initialInfo.shipName))
-            if (response.isSuccessful) {
-                val quotas = response.body()
-                val quota = quotas?.find { it.number == initialInfo.loadingQuotaNumber.toString() }
-                
+            val quotas = try {
+                repository.getShipQuotas(initialInfo.shipName)
+            } catch (e: Exception) {
+                Log.e("ATK-Log", "QuotaValidationUseCase: Failed to fetch quotas for percentage check: ${e.message}")
+                null
+            }
+            if (quotas != null) {
+                val quota = quotas.find { it.number == initialInfo.loadingQuotaNumber.toString() }
+
                 val quotaPercentage = quota?.percentage
                 if (quota != null && quota.isPercentageRestricted == true && quotaPercentage != null) {
                     val percentageAmount = quota.totalTonnage * (quotaPercentage / 100)
@@ -68,8 +70,6 @@ class QuotaValidationUseCase(private val repository: ReportsRepository) {
                         )
                     }
                 }
-            } else {
-                Log.e("ATK-Log", "QuotaValidationUseCase: Failed to fetch quotas for percentage check: ${response.code()}")
             }
 
             return QuotaValidationResult(
