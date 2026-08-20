@@ -51,7 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.atk.atk_cargo.api.QuotaItem
+import com.atk.atk_cargo.data.model.QuotaItem
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 
 // محتوای بدنه‌ی دیالوگ «مدیریت کوتاژها» (تب‌ها/فیلتر/مرتب‌سازی/لیست کشتی‌ها) —

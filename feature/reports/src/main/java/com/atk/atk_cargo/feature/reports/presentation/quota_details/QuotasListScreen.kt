@@ -45,11 +45,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.atk.atk_cargo.api.GroupSortingMode
-import com.atk.atk_cargo.api.Quota
-import com.atk.atk_cargo.api.QuotaEditData
-import com.atk.atk_cargo.api.QuotaSortingMode
-import com.atk.atk_cargo.api.WarehouseQuotaGroupingMode
+import com.atk.atk_cargo.data.model.GroupSortingMode
+import com.atk.atk_cargo.data.model.Quota
+import com.atk.atk_cargo.data.model.QuotaEditData
+import com.atk.atk_cargo.data.model.QuotaSortingMode
+import com.atk.atk_cargo.data.model.WarehouseQuotaGroupingMode
 import com.atk.atk_cargo.feature.reports.domain.buildQuotasShareText
 import com.atk.atk_cargo.feature.reports.domain.persianCollator
 import com.atk.atk_cargo.feature.reports.domain.shareQuotasData

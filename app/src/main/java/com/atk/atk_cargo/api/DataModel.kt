@@ -1,7 +1,6 @@
 package com.atk.atk_cargo.api
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 
 // ===== RE-EXPORT VIEWMODELS & REPOSITORIES =====
 typealias CargoViewModel = com.atk.atk_cargo.ui.viewmodel.CargoViewModel
@@ -84,12 +83,6 @@ fun formatNumber(number: Number): String {
 typealias RealTimeUiState = com.atk.atk_cargo.ui.viewmodel.ReportsViewModel.RealTimeUiState
 
 // ===== COMMON TYPES IN ORIGINAL DATA MODEL =====
-data class FabItem(
-    val icon: ImageVector,
-    val label: String,
-    val onClick: () -> Unit
-)
-
 data class UpdateInfo(
     val latestVersion: String,
     val downloadUrl: String,

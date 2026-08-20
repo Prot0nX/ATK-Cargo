@@ -55,9 +55,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.atk.atk_cargo.api.Quota
-import com.atk.atk_cargo.api.Ship
-import com.atk.atk_cargo.api.WarningStatus
+import com.atk.atk_cargo.data.model.Quota
+import com.atk.atk_cargo.data.model.Ship
+import com.atk.atk_cargo.data.model.WarningStatus
 import com.atk.atk_cargo.feature.reports.domain.QuotaWarningThresholds
 import com.atk.atk_cargo.feature.reports.domain.calculateProgress
 import com.atk.atk_cargo.feature.reports.domain.formatNumber

@@ -80,8 +80,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.atk.atk_cargo.api.QuotaCompletionData
-import com.atk.atk_cargo.api.QuotaGroupingMode
+import com.atk.atk_cargo.data.model.QuotaCompletionData
+import com.atk.atk_cargo.data.model.QuotaGroupingMode
 import com.atk.atk_cargo.feature.reports.domain.QuotaGroup
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel

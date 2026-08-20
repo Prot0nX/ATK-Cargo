@@ -57,9 +57,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.atk.atk_cargo.api.CalculationResult
-import com.atk.atk_cargo.api.Quota
-import com.atk.atk_cargo.api.QuotaPercentageData
+import com.atk.atk_cargo.data.model.CalculationResult
+import com.atk.atk_cargo.data.model.Quota
+import com.atk.atk_cargo.data.model.QuotaPercentageData
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt

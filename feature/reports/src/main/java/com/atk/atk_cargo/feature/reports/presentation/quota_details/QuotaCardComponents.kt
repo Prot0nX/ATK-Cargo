@@ -72,10 +72,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.atk.atk_cargo.api.CalculationResult
-import com.atk.atk_cargo.api.Quota
-import com.atk.atk_cargo.api.QuotaEditData
-import com.atk.atk_cargo.api.QuotaPercentageData
+import com.atk.atk_cargo.data.model.CalculationResult
+import com.atk.atk_cargo.data.model.Quota
+import com.atk.atk_cargo.data.model.QuotaEditData
+import com.atk.atk_cargo.data.model.QuotaPercentageData
 import com.atk.atk_cargo.feature.reports.domain.calculateProgress
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.domain.formatWeightWithDetail

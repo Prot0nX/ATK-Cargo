@@ -47,7 +47,7 @@ import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.atk.atk_cargo.api.RealTimeLoadingData
+import com.atk.atk_cargo.data.model.RealTimeLoadingData
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.ui.theme.Green300
 import com.atk.atk_cargo.ui.theme.Green50

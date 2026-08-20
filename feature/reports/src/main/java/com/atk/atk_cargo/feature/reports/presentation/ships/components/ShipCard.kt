@@ -30,8 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.atk.atk_cargo.api.Ship
-import com.atk.atk_cargo.api.ShipSortingMode
+import com.atk.atk_cargo.data.model.Ship
+import com.atk.atk_cargo.data.model.ShipSortingMode
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.presentation.quota_details.QuotaDeepOrangeAccent
 import com.atk.atk_cargo.feature.reports.presentation.quota_details.QuotaDeepOrangeAccentBg

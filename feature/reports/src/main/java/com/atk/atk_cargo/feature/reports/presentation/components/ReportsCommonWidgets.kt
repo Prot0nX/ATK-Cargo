@@ -80,9 +80,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.atk.atk_cargo.api.FabItem
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import kotlinx.coroutines.delay
+
+data class FabItem(
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val label: String,
+    val onClick: () -> Unit
+)
 
 @Composable
 fun FloatingActionButton(

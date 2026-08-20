@@ -81,9 +81,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import com.atk.atk_cargo.api.RealTimeLoadingData
-import com.atk.atk_cargo.api.RealTimeUiState
-import com.atk.atk_cargo.api.ShiftInfo
+import com.atk.atk_cargo.data.model.RealTimeLoadingData
+import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel.RealTimeUiState
+import com.atk.atk_cargo.data.model.ShiftInfo
 import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
