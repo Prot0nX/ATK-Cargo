@@ -1,5 +1,3 @@
-<navigation xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<navigation xmlns:app="http://schemas.android.com/apk/res-auto"
     app:startDestination="@id/nav_home">
 </navigation>

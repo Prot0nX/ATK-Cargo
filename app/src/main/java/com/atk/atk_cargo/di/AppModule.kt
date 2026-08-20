@@ -7,6 +7,7 @@ import com.atk.atk_cargo.core.startup.StartupViewModel
 import com.atk.atk_cargo.data.db.AppDatabase
 import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
+import com.atk.atk_cargo.feature.admin.presentation.UserManagementViewModel
 import com.atk.atk_cargo.feature.auth.data.AuthRepository
 import com.atk.atk_cargo.feature.auth.data.AuthRepositoryImpl
 import com.atk.atk_cargo.feature.auth.domain.LoginUseCase
@@ -14,7 +15,6 @@ import com.atk.atk_cargo.feature.auth.domain.LogoutUseCase
 import com.atk.atk_cargo.feature.auth.viewmodel.AuthViewModel
 import com.atk.atk_cargo.feature.cargo_counter.presentation.CargoCounterViewModel
 import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoViewModel
-import com.atk.atk_cargo.feature.admin.presentation.UserManagementViewModel
 import com.atk.atk_cargo.feature.chat.data.ChatPreferencesStore
 import com.atk.atk_cargo.feature.chat.data.ChatRepository
 import com.atk.atk_cargo.feature.home.presentation.ProfileViewModel

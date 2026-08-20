@@ -66,3 +66,4 @@ php_server_info_*.txt
 /graphify-out/.graphify_python
 /graphify-out/.graphify_root
 /app/release/baselineProfiles
+php_server_info.txt

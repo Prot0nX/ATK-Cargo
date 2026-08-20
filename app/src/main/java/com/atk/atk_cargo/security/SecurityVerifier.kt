@@ -7,7 +7,6 @@ import android.content.pm.Signature
 import android.os.Debug
 import android.util.Log
 import androidx.core.content.edit
-import com.atk.atk_cargo.BuildConfig
 import com.atk.atk_cargo.api.Secrets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -297,7 +296,7 @@ class SecurityVerifier(private val context: Context) {
             connection?.disconnect()
         }
     }
-    
+
     private fun isEnvironmentCompromised(): Boolean {
         if (Debug.isDebuggerConnected()) {
             Log.w("SecurityVerifier", "Debugger detected")
