@@ -78,9 +78,9 @@ fun ShipInfoSection(
     shipInfo: ShipInfo,
     isInfoVisible: Boolean,
     onToggleVisibility: () -> Unit,
-    loadableTonnage: String,
-    loadableTrucks18Wheeler: String,
-    loadableTrucks10Wheeler: String,
+    loadableTonnage: Float?,
+    loadableTrucks18Wheeler: Int?,
+    loadableTrucks10Wheeler: Int?,
     onChangeSelectionClick: (() -> Unit)? = null
 ) {
     val loadedPercentage = remember(shipInfo.cargoWeight, shipInfo.totalNetWeight) {
@@ -144,9 +144,9 @@ private fun TopHeader(
     shipName: String,
     cargoType: String,
     quotaNumber: String,
-    loadableTonnage: String,
-    loadableTrucks18Wheeler: String,
-    loadableTrucks10Wheeler: String,
+    loadableTonnage: Float?,
+    loadableTrucks18Wheeler: Int?,
+    loadableTrucks10Wheeler: Int?,
     isExpanded: Boolean,
     tempTonnageStatus: Boolean = false,
     tempTonnageAmount: Float? = null,
@@ -159,7 +159,7 @@ private fun TopHeader(
         label = "rotation"
     )
 
-    val tonnageValue = loadableTonnage.replace(",", "").toDoubleOrNull() ?: 0.0
+    val tonnageValue = loadableTonnage ?: 0f
     val tonnageColor = if (tonnageValue < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
 
     Column(
@@ -264,11 +264,12 @@ private fun TopHeader(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
+                    val formattedTonnage = DecimalFormat("#,###").format(tonnageValue.toInt())
                     val displayText = if (tempTonnageStatus && tempTonnageAmount != null) {
                         val formattedTempTonnage = DecimalFormat("#,###").format(tempTonnageAmount.toInt())
-                        "$loadableTonnage ($formattedTempTonnage)"
+                        "$formattedTonnage ($formattedTempTonnage)"
                     } else {
-                        loadableTonnage
+                        formattedTonnage
                     }
 
                     Text(
@@ -316,7 +317,7 @@ private fun TopHeader(
                                 )
                             }
                             Text(
-                                text = "= $loadableTrucks10Wheeler",
+                                text = "= ${loadableTrucks10Wheeler ?: 0}",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = truck10Color
@@ -353,7 +354,7 @@ private fun TopHeader(
                                 )
                             }
                             Text(
-                                text = "= $loadableTrucks18Wheeler",
+                                text = "= ${loadableTrucks18Wheeler ?: 0}",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = truck18Color

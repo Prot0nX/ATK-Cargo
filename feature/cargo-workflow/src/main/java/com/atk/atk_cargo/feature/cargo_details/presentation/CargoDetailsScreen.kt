@@ -117,13 +117,23 @@ fun CargoDetailsScreen(
     val userType by userPreferencesManager.userType.collectAsStateWithLifecycle(initialValue = "")
     val cargoUiState by viewModel.uiState.collectAsStateWithLifecycle()
     val cargoInfoList = cargoUiState.cargoInfoList
-    val filteredCargoInfoList = cargoUiState.filteredCargoInfoList
     val initialInfo = cargoUiState.initialInfo
     val resultMessage by viewModel.resultMessage.collectAsStateWithLifecycle()
     val showAnimatedMessage by viewModel.showAnimatedMessage.collectAsStateWithLifecycle()
     val messageType by viewModel.messageType.collectAsStateWithLifecycle()
     var selectedCargoInfo by remember { mutableStateOf<Cargo?>(null) }
     var searchQuery by remember { mutableStateOf("") }
+    // filteredCargoInfoList دیگر بخشی از CargoUiState نیست (DEEP_CODE_REVIEW.md
+    // Phase4 #31) — نگهداری دو لیست هم‌زمان (کامل + فیلترشده) در ViewModel
+    // ریسک ناسازگاری داشت؛ اینجا مستقیماً از cargoInfoList + searchQuery
+    // محلی مشتق می‌شود.
+    val filteredCargoInfoList = remember(cargoInfoList, searchQuery) {
+        if (searchQuery.isEmpty()) {
+            cargoInfoList
+        } else {
+            cargoInfoList.filter { it.trackingNumber.contains(searchQuery, ignoreCase = true) }
+        }
+    }
     var isLoading by remember { mutableStateOf(true) }
     var snackbarMessage by remember { mutableStateOf<SnackbarMessage?>(null) }
     var isFabExpanded by remember { mutableStateOf(false) }
@@ -190,7 +200,6 @@ fun CargoDetailsScreen(
     }
 
     LaunchedEffect(cargoInfoList) {
-        viewModel.filterCargoInfoList(searchQuery)
         viewModel.updateInfoValues()
     }
 
@@ -233,7 +242,6 @@ fun CargoDetailsScreen(
                     searchQuery = searchQuery,
                     onSearchQueryChange = {
                         searchQuery = it
-                        viewModel.filterCargoInfoList(it)
                     },
                     onRefresh = {
                         coroutineScope.launch {

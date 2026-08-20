@@ -181,35 +181,9 @@ class CargoViewModelTest {
         assertEquals(CargoDialog.None, viewModel.uiState.value.dialog)
     }
 
-    // ===== filterCargoInfoList (seeded via a real load) =====
-
-    @Test
-    fun `filterCargoInfoList - matches tracking number case-insensitively`() = runTest(dispatcher) {
-        stubCargoInfo(
-            cargoInfo(id = 1, trackingNumber = "ABC-100"),
-            cargoInfo(id = 2, trackingNumber = "XYZ-200")
-        )
-        load()
-
-        viewModel.filterCargoInfoList("abc")
-
-        val filtered = viewModel.uiState.value.filteredCargoInfoList
-        assertEquals(1, filtered.size)
-        assertEquals("ABC-100", filtered.first().trackingNumber)
-    }
-
-    @Test
-    fun `filterCargoInfoList - empty query returns full list`() = runTest(dispatcher) {
-        stubCargoInfo(
-            cargoInfo(id = 1, trackingNumber = "ABC-100"),
-            cargoInfo(id = 2, trackingNumber = "XYZ-200")
-        )
-        load()
-
-        viewModel.filterCargoInfoList("")
-
-        assertEquals(2, viewModel.uiState.value.filteredCargoInfoList.size)
-    }
+    // فیلترسازی جستجو دیگر بخشی از CargoViewModel نیست (DEEP_CODE_REVIEW.md
+    // Phase4 #31) — به یک derived value محلی در CargoDetailsScreen.kt منتقل
+    // شد، پس دیگر اینجا قابل‌تست نیست.
 
     // ===== updateCargoConfirmation (seeded via a real load) =====
 

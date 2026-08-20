@@ -42,7 +42,6 @@ import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -85,16 +84,15 @@ sealed interface CargoDialog {
  */
 data class CargoUiState(
     val cargoInfoList: List<Cargo> = emptyList(),
-    val filteredCargoInfoList: List<Cargo> = emptyList(),
     val scaleReceiptNumber: String = "",
     val clearInputFields: Boolean = false,
     val initialInfo: QuotaInfo? = null,
-    val totalNetWeight: String = "",
+    val totalNetWeight: Float = 0f,
     val isSubmitting: Boolean = false,
     val dialog: CargoDialog = CargoDialog.None,
-    val loadableTonnage: String = "",
-    val loadableTrucks18Wheeler: String = "",
-    val loadableTrucks10Wheeler: String = "",
+    val loadableTonnage: Float? = null,
+    val loadableTrucks18Wheeler: Int? = null,
+    val loadableTrucks10Wheeler: Int? = null,
     val selectedShipNames: Set<String> = emptySet()
 )
 
@@ -127,11 +125,6 @@ class CargoViewModel(
     val resultMessage: StateFlow<String> = snackbarQueue.resultMessage
     val showAnimatedMessage: StateFlow<Boolean> = snackbarQueue.showAnimatedMessage
     val messageType: StateFlow<MessageType> = snackbarQueue.messageType
-
-    // آخرین جستجوی کاربر؛ باید بعد از هر بارگذاری (polling/refresh/تأیید)
-    // دوباره اعمال شود، وگرنه لیست فیلترشده زیر انگشت کاربر با کل لیست
-    // جایگزین می‌شود در حالی که متن جستجو هنوز در کادر جستجو باقی است.
-    private var lastSearchQuery: String = ""
 
     fun updateSelectedShips(ships: Set<String>) {
         _uiState.update { it.copy(selectedShipNames = ships) }
@@ -188,18 +181,6 @@ class CargoViewModel(
         }
     }
 
-    fun filterCargoInfoList(query: String) {
-        lastSearchQuery = query
-        _uiState.update { state ->
-            val filtered = if (query.isEmpty()) {
-                state.cargoInfoList
-            } else {
-                state.cargoInfoList.filter { it.trackingNumber.contains(query, ignoreCase = true) }
-            }
-            state.copy(filteredCargoInfoList = filtered)
-        }
-    }
-
     fun updateCargoConfirmation(cargoId: Int?) {
         _uiState.update { state ->
             state.copy(cargoInfoList = state.cargoInfoList.map { cargoInfo ->
@@ -214,7 +195,6 @@ class CargoViewModel(
                 }
             })
         }
-        filterCargoInfoList(lastSearchQuery)
     }
 
     fun showMessage(message: String, type: MessageType) {
@@ -224,7 +204,7 @@ class CargoViewModel(
     private var lastQuotaStatusCheck: Long = 0
     private var lastLoadableTonnageUpdate: Long = 0
     private var cachedQuotaStatus: Boolean? = null
-    private var cachedLoadableTonnage: String? = null
+    private var cachedLoadableTonnage: Float? = null
     private val loadableTonnageCacheTimeout = 30_000L
 
     private fun clearApiCache() {
@@ -570,7 +550,7 @@ class CargoViewModel(
                     cargo
                 }
             }
-            state.copy(cargoInfoList = updatedList, filteredCargoInfoList = updatedList)
+            state.copy(cargoInfoList = updatedList)
         }
     }
 
@@ -710,13 +690,9 @@ class CargoViewModel(
                 }
 
                 _uiState.update { it.copy(cargoInfoList = cargoList, initialInfo = result.initialInfo.toDomain()) }
-                // جستجوی فعال کاربر (در صورت وجود) دوباره اعمال می‌شود؛
-                // وگرنه هر بارگذاری (polling هر ۳۰ ثانیه، refresh، تأیید
-                // حواله) بی‌صدا لیست فیلترشده را با کل لیست جایگزین می‌کرد.
-                filterCargoInfoList(lastSearchQuery)
 
                 _cargoWeight.value = result.initialInfo.cargoWeight.toString()
-                _uiState.update { it.copy(totalNetWeight = result.initialInfo.totalNetWeight.toString()) }
+                _uiState.update { it.copy(totalNetWeight = result.initialInfo.totalNetWeight) }
                 _remainingWeight.value = result.initialInfo.remainingWeight.toString()
                 _averageNetWeight.value = result.initialInfo.averageNetWeight.toString()
                 _remainingServices.value = result.initialInfo.remainingServices.toString()
@@ -744,20 +720,15 @@ class CargoViewModel(
                         if (response.isSuccessful && response.body()?.success == true) {
                             val data = response.body()!!
                             data.loadableTonnage?.let { tonnage ->
-                                val formattedValue = if (tonnage < 0) {
-                                    "-" + DecimalFormat("#,###").format(abs(tonnage.roundToInt()))
-                                } else {
-                                    DecimalFormat("#,###").format(tonnage.roundToInt())
-                                }
-                                _uiState.update { it.copy(loadableTonnage = formattedValue) }
+                                _uiState.update { it.copy(loadableTonnage = tonnage) }
                             }
 
                             data.trucks18Wheeler?.let { count ->
-                                _uiState.update { it.copy(loadableTrucks18Wheeler = count.toString()) }
+                                _uiState.update { it.copy(loadableTrucks18Wheeler = count) }
                             }
 
                             data.trucks10Wheeler?.let { count ->
-                                _uiState.update { it.copy(loadableTrucks10Wheeler = count.toString()) }
+                                _uiState.update { it.copy(loadableTrucks10Wheeler = count) }
                             }
                         } else {
                             Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage during initial load")
@@ -909,7 +880,7 @@ class CargoViewModel(
                         val updatedList = state.cargoInfoList.map { cargo ->
                             if (cargo.id == cargoInfo.id) updatedCargoInfo else cargo
                         }
-                        state.copy(cargoInfoList = updatedList, filteredCargoInfoList = updatedList)
+                        state.copy(cargoInfoList = updatedList)
                     }
 
                     clearApiCache()
@@ -949,20 +920,14 @@ class CargoViewModel(
                 withContext(Dispatchers.Main) {
                     _remainingWeight.value = DecimalFormat("#,###").format(remaining.value.roundToInt())
                     _loadedWeight.value = DecimalFormat("#,###").format(totalNet.value.roundToInt())
-                    _uiState.update { it.copy(totalNetWeight = DecimalFormat("#,###").format(totalNet.value.roundToInt())) }
+                    _uiState.update { it.copy(totalNetWeight = totalNet.value.toFloat()) }
                     _averageNetWeight.value = DecimalFormat("#,###").format(averageNet.roundToInt())
                     _remainingServices.value = remainingServicesCount.toString()
                     _totalServices.value = _cargoCount.value.toString()
 
                     val state = _uiState.value
-                    if (state.loadableTrucks18Wheeler.isBlank() || state.loadableTrucks10Wheeler.isBlank()) {
-                        val loadableTonnageValue = Kilograms.parse(state.loadableTonnage)?.value ?: run {
-                            if (state.loadableTonnage.isNotBlank()) {
-                                Log.w("CargoViewModel_Log", "تناژ قابل‌بارگیری نامعتبر است: '${state.loadableTonnage}' — به‌عنوان ۰ در نظر گرفته شد")
-                            }
-                            0.0
-                        }
-                        updateLoadableTrucksCount(loadableTonnageValue)
+                    if (state.loadableTrucks18Wheeler == null || state.loadableTrucks10Wheeler == null) {
+                        updateLoadableTrucksCount(state.loadableTonnage ?: 0f)
                     }
                 }
             } catch (e: CancellationException) {
@@ -1047,18 +1012,17 @@ class CargoViewModel(
                         val data = response.body()!!
                         withContext(Dispatchers.Main.immediate) {
                             data.loadableTonnage?.let { tonnage ->
-                                val formattedTonnage = DecimalFormat("#,###").format(tonnage.roundToInt())
-                                _uiState.update { it.copy(loadableTonnage = formattedTonnage) }
-                                cachedLoadableTonnage = formattedTonnage
+                                _uiState.update { it.copy(loadableTonnage = tonnage) }
+                                cachedLoadableTonnage = tonnage
                                 lastLoadableTonnageUpdate = currentTime
                             }
 
                             data.trucks18Wheeler?.let { count ->
-                                _uiState.update { it.copy(loadableTrucks18Wheeler = count.toString()) }
+                                _uiState.update { it.copy(loadableTrucks18Wheeler = count) }
                             }
 
                             data.trucks10Wheeler?.let { count ->
-                                _uiState.update { it.copy(loadableTrucks10Wheeler = count.toString()) }
+                                _uiState.update { it.copy(loadableTrucks10Wheeler = count) }
                             }
                         }
                     } else {
@@ -1073,10 +1037,10 @@ class CargoViewModel(
         }
     }
 
-    private fun updateLoadableTrucksCount(loadableTonnage: Double) {
-        val trucks18Wheeler = if (loadableTonnage > 0) (loadableTonnage / 25000.0).toInt() else 0
-        val trucks10Wheeler = if (loadableTonnage > 0) (loadableTonnage / 15000.0).toInt() else 0
-        _uiState.update { it.copy(loadableTrucks18Wheeler = trucks18Wheeler.toString(), loadableTrucks10Wheeler = trucks10Wheeler.toString()) }
+    private fun updateLoadableTrucksCount(loadableTonnage: Float) {
+        val trucks18Wheeler = if (loadableTonnage > 0) (loadableTonnage / 25000f).toInt() else 0
+        val trucks10Wheeler = if (loadableTonnage > 0) (loadableTonnage / 15000f).toInt() else 0
+        _uiState.update { it.copy(loadableTrucks18Wheeler = trucks18Wheeler, loadableTrucks10Wheeler = trucks10Wheeler) }
     }
 
     fun setInitialInfo(initialInfo: QuotaInfo) {
@@ -1088,12 +1052,11 @@ class CargoViewModel(
             it.copy(
                 initialInfo = null,
                 cargoInfoList = emptyList(),
-                filteredCargoInfoList = emptyList(),
                 scaleReceiptNumber = "",
                 clearInputFields = true,
-                loadableTonnage = "",
-                loadableTrucks18Wheeler = "",
-                loadableTrucks10Wheeler = ""
+                loadableTonnage = null,
+                loadableTrucks18Wheeler = null,
+                loadableTrucks10Wheeler = null
             )
         }
         clearApiCache()
