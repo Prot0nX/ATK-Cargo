@@ -1940,6 +1940,44 @@ fun AppError.toUserMessage(): String = when (this) {
 
 **Priority:** MEDIUM · **Effort:** Low
 
+**وضعیت (Phase3 #28 — ✅ انجام شد، با دو انحراف عمدی از پیشنهاد بالا):**
+
+- **`DiagnosticsController.php`**: منطق health-check به یک متد عمومی جدید
+  `evaluateHealth()` استخراج شد (بدون `Response::json`)؛ `health()` همان را
+  صدا می‌زند و پاسخ HTTP را می‌سازد. هدف: یک منبع واحد حقیقت برای «سالم
+  بودن»، بدون تکرار منطق بین endpoint و اسکریپت CLI.
+- **`scripts/health_monitor.php`** (جدید): به‌جای curl کردن `GET /health`
+  (پیشنهاد بند ۱)، مستقیماً `DiagnosticsController::evaluateHealth()` را در
+  CLI صدا می‌زند. **دلیل انحراف:** این کار نیاز به دستکاری فیلتر
+  User-Agent در `config/.htaccess` (بند ۳ پیشنهاد) را کاملاً حذف می‌کند —
+  آن فیلتر عمداً دست‌نخورده ماند چون نقشش (مسدودسازی bot/scraper) خارج از
+  محدوده‌ی این مورد است و باز کردنش برای curl سطح حمله را افزایش می‌دهد.
+  یک HTTP round-trip اضافه روی خودِ سرور هم صرفه‌جویی می‌شود.
+- **`scripts/crash_report_summary.php`** (جدید): به‌جای ایمیل (بند ۱ و ۲
+  پیشنهاد اصلی)، هر دو اسکریپت از کانال **Telegram** موجود
+  (`SecurityAlerter`) استفاده می‌کنند که از قبل برای هشدارهای امنیتی
+  به‌کار می‌رفت. **دلیل انحراف:** این پروژه هیچ SMTP/mail server پیکربندی‌شده‌ای
+  ندارد (هاست اشتراکی)؛ استفاده از زیرساخت هشدار موجود به‌جای افزودن یک
+  کانال جدید، هم ساده‌تر بود و هم با cooldown داخلی `SecurityAlerter`
+  (۵ دقیقه، با dedupeKey مجزا برای هر رویداد) از اسپم جلوگیری می‌کند. بدون
+  `SECURITY_ALERT_TELEGRAM_BOT_TOKEN/CHAT_ID` در `.env`، هر دو اسکریپت
+  کاملاً no-op در بخش هشدار می‌مانند (فقط در stdout/stderr گزارش می‌دهند)
+  — یعنی نصب این قابلیت هیچ رفتار فعلی را نمی‌شکند.
+- شمارش کرش‌های جدید در `crash_report_summary.php` یک state file
+  (`logs/.crash_summary_state`, در `.gitignore` از قبل پوشش داده‌شده با
+  `/PHP/logs/*`) نگه می‌دارد و نسبت به truncate شدن فایل توسط
+  `rotate_logs.php` مقاوم است (اگر تعداد خط فعلی از آخرین مقدار ثبت‌شده
+  کمتر باشد، یعنی rotate رخ داده — شمارش از صفر شروع می‌شود، نه منفی).
+- هر دو اسکریپت فقط CLI هستند (الگوی یکسان با `rotate_logs.php`/
+  `export_schema.php`: بررسی `PHP_SAPI !== 'cli'`)؛ نصب واقعی cron روی
+  سرور (که یک اقدام سمت سرور است، نه تغییر کد) در کامنت بالای هر اسکریپت
+  مستند شده، مشابه الگوی موجود در `rotate_logs.php`.
+- تأیید شد: `php -l` هر دو اسکریپت + کنترلر تغییریافته تمیز است، PHPStan
+  بدون خطا (فایل‌های `scripts/` در دامنه‌ی `paths` آن نیستند، مثل
+  `rotate_logs.php`)، `phpunit` ۶۸ تست سبز. هر دو اسکریپت به‌صورت دستی
+  اجرا و بررسی شدند (حالت ناسالم با دیتابیس محلی نامعتبر، و حالت «بدون
+  کرش جدید»).
+
 ---
 
 # Dependency Audit
@@ -2437,7 +2475,7 @@ PHP/
 | Build — بایگانی mapping | ✅ | `archiveReleaseMapping` |
 | مدیریت کرش | ⚠️ | جمع‌آوری می‌شود، اما rate limit ندارد |
 | Logging | ⚠️ | `Log.w`/`Log.e` در release می‌مانند |
-| Monitoring / Alerting | ❌ | health endpoint هست، مصرف‌کننده نیست |
+| Monitoring / Alerting | ✅ | Phase3 #28 — `scripts/health_monitor.php` + `scripts/crash_report_summary.php` (Telegram)؛ نصب واقعی cron روی سرور هنوز لازم است |
 | Testing | ❌ | CI تست اندروید اجرا نمی‌کند |
 | تفکیک محیط | ⚠️ | `.env` استفاده می‌شود؛ اما base URL روی `test_api/` |
 | بکاپ دیتابیس | ✅ | cron هر ۱۵ دقیقه (`db_backup.sh`) |
@@ -2527,7 +2565,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 | ۲۵ | انتقال document root به `public/` | Medium |
 | ۲۶ | ✅ حذف `version.ref` از کتابخانه‌های Compose BOM | Low |
 | ۲۷ | تفکیک محیط با `buildConfigField` | Medium |
-| ۲۸ | مانیتورینگ health + هشدار کرش | Low |
+| ۲۸ | ✅ مانیتورینگ health + هشدار کرش | Low |
 
 ## Phase 4 — Optimization (ماه‌های ۴+)
 
