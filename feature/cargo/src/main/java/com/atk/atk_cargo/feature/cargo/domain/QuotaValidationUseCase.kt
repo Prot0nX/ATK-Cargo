@@ -3,10 +3,17 @@ package com.atk.atk_cargo.feature.cargo.domain
 import android.util.Log
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.data.model.QuotaValidationResult
-import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.domain.model.QuotaInfo
+import com.atk.atk_cargo.domain.repository.QuotaRepository
 
-class QuotaValidationUseCase(private val repository: ReportsRepository) {
+/**
+ * وابسته به اینترفیس QuotaRepository (core:domain)، نه کلاس مشخص
+ * ReportsRepository (که در app باقی می‌ماند و آن را پیاده‌سازی می‌کند) —
+ * این ماژول (feature:cargo) اولین feature مستخرج‌شده در Phase4 #29 است؛
+ * بدون این مرز، وابستگی مستقیم به یک کلاس در app جهت وابستگی ماژول‌ها را
+ * برعکس می‌کرد (DEEP_CODE_REVIEW.md Phase4 #29).
+ */
+class QuotaValidationUseCase(private val repository: QuotaRepository) {
 
     companion object {
         const val NEW_ENTRY_TONNAGE_BUFFER_KG = 7000f

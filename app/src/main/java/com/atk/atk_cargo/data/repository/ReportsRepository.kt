@@ -17,6 +17,7 @@ import com.atk.atk_cargo.data.model.SaveOrUpdateResponse
 import com.atk.atk_cargo.data.model.Ship
 import com.atk.atk_cargo.data.model.ShipsData
 import com.atk.atk_cargo.data.model.Warehouse
+import com.atk.atk_cargo.domain.repository.QuotaRepository
 import com.google.gson.Gson
 import com.google.gson.JsonObject
 import kotlinx.coroutines.CancellationException
@@ -32,7 +33,7 @@ class HttpStatusException(val statusCode: Int, message: String) : Exception(mess
 
 class ReportsRepository(
     private val apiServiceV2: ApiServiceV2 = com.atk.atk_cargo.api.RetrofitClient.apiServiceV2
-) {
+) : QuotaRepository {
     suspend fun getCargoInfo(
         quotaNumber: String,
         shippingCompany: String,
@@ -128,7 +129,7 @@ class ReportsRepository(
         }
     }
 
-    suspend fun getShipQuotas(shipName: String, forceRefresh: Boolean = false): List<Quota> = withContext(Dispatchers.IO) {
+    override suspend fun getShipQuotas(shipName: String, forceRefresh: Boolean): List<Quota> = withContext(Dispatchers.IO) {
         try {
             val response = apiServiceV2.getShipQuotas(
                 route = ApiV2Routes.shipQuotas(shipName),
@@ -180,7 +181,7 @@ class ReportsRepository(
             }
         }
 
-    suspend fun checkQuotaStatus(
+    override suspend fun checkQuotaStatus(
         quotaNumber: String,
         shipName: String,
         cargoType: String,

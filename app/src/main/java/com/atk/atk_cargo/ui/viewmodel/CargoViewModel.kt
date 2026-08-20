@@ -22,6 +22,7 @@ import com.atk.atk_cargo.domain.model.Kilograms
 import com.atk.atk_cargo.domain.model.QuotaInfo
 import com.atk.atk_cargo.domain.model.toDomain
 import com.atk.atk_cargo.domain.model.toDto
+import com.atk.atk_cargo.feature.cargo.domain.CargoSnackbarQueue
 import com.atk.atk_cargo.feature.cargo.domain.QuotaValidationUseCase
 import com.atk.atk_cargo.utils.JalaliDateUtils
 import com.google.gson.Gson
@@ -111,7 +112,7 @@ class CargoViewModel(
     private val _isQuotaActive = MutableStateFlow<Boolean?>(null)
     private val _pendingCargoInfo = MutableStateFlow<CargoInfo?>(null)
 
-    private val snackbarQueue = com.atk.atk_cargo.feature.cargo.domain.CargoSnackbarQueue()
+    private val snackbarQueue = CargoSnackbarQueue()
     val resultMessage: StateFlow<String> = snackbarQueue.resultMessage
     val showAnimatedMessage: StateFlow<Boolean> = snackbarQueue.showAnimatedMessage
     val messageType: StateFlow<MessageType> = snackbarQueue.messageType

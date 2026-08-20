@@ -2593,7 +2593,7 @@ PHP/
 | بدهی | اندازه | بهره‌ی مرکب |
 |------|--------|-------------|
 | ۹ Composable با تماس مستقیم شبکه | ۹ فایل | هر feature جدید الگو را کپی می‌کند |
-| ماژول‌بندی نیمه‌کاره | ۴۲٬۵۸۴ خط در `app` | زمان build با هر فایل جدید بدتر می‌شود |
+| ماژول‌بندی نیمه‌کاره | ۴۲٬۵۸۴ خط در `app` (Phase4 #29: اولین feature مستخرج شد، جزئیات پایین) | زمان build با هر فایل جدید بدتر می‌شود |
 | ۳۱ فایل > ۶۰۰ خط | ~۲۵٬۰۰۰ خط | recomposition گسترده‌تر، بازبینی کد سخت‌تر |
 | پوشش تست ~۰٪ | ۵۲٬۷۳۱ خط | هر refactor ریسک رگرسیون دارد |
 | fallback رمز متن‌خام | ۱ تابع | تا حذف نشود، ریسک امنیتی باقی است |
@@ -2624,6 +2624,34 @@ PHP/
 `php -l`، `phpstan` (سطح ۵؛ یک قانون `ignoreErrors` که دیگر match نمی‌شد چون خطای متناظرش با این تغییر برطرف شد، از `phpstan.neon` حذف شد)، `phpunit` (۶۸ تست) سبز. هیچ فایل Kotlin ای تغییر نکرد — هر ۲ نقطه‌ی خواندن ساختاریافته‌ی سمت کلاینت که پیدا شد (`ReportsRepository.kt`, `UpdateManager.kt`) دقیقاً به مسیرهایی اشاره داشتند که عمداً دست‌نخورده ماندند.
 
 **نکته‌ی مهم:** این پروژه بدهی فنی را **مستند** می‌کند (کامنت‌های ارجاع‌دهنده به `DEEP_CODE_AUDIT.md`). این نشانه‌ی سلامت است، نه بیماری — تیم می‌داند بدهی کجاست.
+
+**Phase4 #29 — ✅ اولین feature مستخرج شد (proof-of-concept)، دامنه‌ی عمداً محدود:**
+
+بررسی نشان داد ۷ feature باقی‌مانده در `app` (۲۸٬۸۰۰+ خط، `reports` به‌تنهایی
+۱۴٬۶۱۵ خط) هیچ‌کدام واقعاً مستقل نیستند — حتی کوچک‌ترین‌شان به کد اشتراکی‌ای
+که هنوز در `app/data`/`app/domain` است وابسته‌اند. طبق تأیید کاربر، فقط
+کوچک‌ترین/مستقل‌ترین مورد (`feature/cargo`، ۲ فایل) استخراج شد، به‌عنوان
+proof-of-concept برای الگوی migration؛ بقیه برای نشست‌های بعدی می‌مانند.
+
+- **`core/domain/repository/QuotaRepository.kt`** (جدید): اینترفیس مرزی
+  جدید، دقیقاً هم‌الگوی `UserPreferencesStore` موجود (Phase5.10/5.12) —
+  فقط دو متدی که `QuotaValidationUseCase` واقعاً لازم دارد
+  (`checkQuotaStatus`, `getShipQuotas`)، نه کل `ReportsRepository`.
+- **`ReportsRepository.kt`** (در `app` باقی می‌ماند): حالا `QuotaRepository`
+  را پیاده‌سازی می‌کند (`override` روی دو متد).
+- **ماژول جدید `feature:cargo`** (بدون Compose — هر دو کلاس خالص
+  Kotlin/coroutines هستند، پس build سبک‌تر): `CargoSnackbarQueue.kt` و
+  `QuotaValidationUseCase.kt` منتقل شدند؛ دومی حالا به `QuotaRepository`
+  (اینترفیس) وابسته است، نه به کلاس مشخص `ReportsRepository`.
+  `settings.gradle.kts`/`app/build.gradle.kts` به‌روزرسانی شدند.
+- `CargoViewModel.kt`: instantiation با fully-qualified name خام
+  (`com.atk.atk_cargo.feature.cargo.domain.CargoSnackbarQueue()`) به یک
+  import تمیز تبدیل شد (نیازی به تغییر Koin نبود — این کلاس‌ها مستقیم
+  instantiate می‌شوند، نه از طریق DI).
+
+تأیید شد: `./gradlew :app:compileDebugKotlin` (شامل `feature:cargo` جدید)،
+`:app:lintDebug`، `:app:testDebugUnitTest` (شامل ۱۲ تست `CargoViewModelTest`
+که غیرمستقیم از این کد استفاده می‌کنند) همگی سبز.
 
 ---
 
@@ -2739,7 +2767,7 @@ mysql -e "EXPLAIN SELECT id FROM CargoInfo WHERE trackingNumber='X' ORDER BY ent
 
 | # | اقدام | Effort |
 |---|-------|--------|
-| ۲۹ | انتقال بقیه featureها به ماژول مستقل | High |
+| ۲۹ | ✅ انتقال بقیه featureها به ماژول مستقل (شروع شد؛ فقط feature:cargo به‌عنوان proof-of-concept — ۶ feature دیگر باقی مانده) | High |
 | ۳۰ | تفکیک ۳۱ فایل بزرگ | High |
 | ۳۱ | بازطراحی `CargoUiState` با sealed dialog | High |
 | ۳۲ | ستون‌های `DATETIME` موازی برای تاریخ | High |
