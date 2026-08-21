@@ -1,7 +1,6 @@
 package com.atk.atk_cargo.di
 
-// Koin 4.x: ViewModel DSL از org.koin.androidx.viewmodel.dsl به یک ماژول
-// چندسکویی (Multiplatform) در org.koin.core.module.dsl منتقل شد — Phase4 #36.
+// ارتقای DSL ویومدل به Koin 4.x چندسکویی در org.koin.core.module.dsl (Phase4 #36).
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.TokenStore
 import com.atk.atk_cargo.api.UpdateManager
@@ -35,8 +34,7 @@ import org.koin.dsl.module
 
 val appModule = module {
     // ===== API Service =====
-    // v1 (protected_proxy.php) کاملاً حذف شده — Router v2 تنها API stack
-    // کلاینت است (DEEP_CODE_AUDIT.md #Phase3.1/3.2).
+    // استفاده انحصاری از Router v2 به عنوان تنها API stack کلاینت (DEEP_CODE_AUDIT.md #Phase3.1/3.2).
     single { RetrofitClient.apiServiceV2 }
 
     // ===== Security =====
@@ -44,20 +42,13 @@ val appModule = module {
     single { SecurityVerifier(androidContext()) }
 
     // ===== Preferences Manager =====
-    // featureها (auth، admin، ...) نمی‌توانند به app وابسته شوند (app به
-    // آن‌ها وابسته است، نه برعکس)، پس به‌جای UserPreferencesManager مستقیم،
-    // اینترفیس مرزی UserPreferencesStore (در core:domain) را می‌خواهند؛ bind
-    // این پیاده‌سازی را زیر آن نوع هم در دسترس get()/koinInject() می‌گذارد.
+    // اتصال UserPreferencesManager به اینترفیس مرزی UserPreferencesStore برای استفاده در فیچرهای مستقل.
     single { UserPreferencesManager(androidContext(), get()) } bind UserPreferencesStore::class
-    // یک single جدا (نه bind زنجیره‌ای — Koin اجازه نمی‌دهد دو bind پشت‌سرهم
-    // روی انواع نامرتبط زده شود): همان singleton بالا را با get() برمی‌گرداند.
+    // بازگردانی سینگلتون UserPreferencesManager به عنوان ChatPreferencesStore.
     single<ChatPreferencesStore> { get<UserPreferencesManager>() }
-    // مشابه بالا برای TokenStore (core:network) — validateServerSession در
-    // چند feature (cargo_entry، cargo_counter) به این اینترفیس نیاز دارد، نه
-    // به کلاس concrete app-only (Phase4 #29 پیشنیاز).
+    // اتصال UserPreferencesManager به TokenStore (core:network) برای استفاده در لایه‌های دیگر.
     single<TokenStore> { get<UserPreferencesManager>() }
-    // مشابه بالا برای UserSettingsStore (core:domain) — تنظیمات تم/اعلان که
-    // home به آن‌ها نیاز دارد، نه به کلاس concrete app-only.
+    // اتصال UserPreferencesManager به UserSettingsStore (core:domain) جهت تفکیک وابستگی.
     single<UserSettingsStore> { get<UserPreferencesManager>() }
 
     // ===== دیتابیس محلی و مخازن =====

@@ -3,10 +3,7 @@ package com.atk.atk_cargo.utils
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/**
- * مقادیر مرجع با کتابخانه‌ی مستقل پایتون jdatetime (نه با همین الگوریتم)
- * محاسبه و تأیید شدند تا تست خودش را تأیید نکند.
- */
+// مقادیر مرجع با کتابخانه‌ی پایتون jdatetime تأیید شدند تا تست خودش را تأیید نکند.
 class JalaliDateUtilsTest {
 
     @Test

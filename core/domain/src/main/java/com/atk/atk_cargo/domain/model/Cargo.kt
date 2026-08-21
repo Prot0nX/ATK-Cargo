@@ -3,8 +3,7 @@ package com.atk.atk_cargo.domain.model
 import android.util.Log
 import com.atk.atk_cargo.data.model.CargoInfo
 
-// مدل دامنه/UI حواله، جدا از DTO شبکه‌ی CargoInfo تا فرمت پاسخ سرور مستقیم به UI/ViewModel سرایت نکند
-// netWeight تایپ‌شده‌ی Kilograms است چون عددی است؛ shortageWeight/excessWeight چون در DB آزاد (varchar) هستند عمداً String ماندند
+// مدل دامنه/UI حواله با فیلد خالص تایپ‌شده، تفکیک‌شده از DTO شبکه جهت استقلال معماری.
 data class Cargo(
     val id: Int? = null,
     val trackingNumber: String,

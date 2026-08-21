@@ -23,9 +23,7 @@ class BaselineProfileGenerator {
         pressHome()
         startActivityAndWait()
 
-        // منتظر عبور از Splash/ServerSyncing/SecurityBlock و رسیدن به صفحه‌ی لاگین می‌مانیم.
-        // بین click() و text=... حتماً باید object را دوباره fetch کرد چون کلیک باعث
-        // recomposition می‌شود و reference قدیمی StaleObjectException می‌دهد.
+        // انتظار برای رسیدن به صفحه لاگین و بازیابی مجدد عنصر پس از کلیک جهت جلوگیری از StaleObjectException.
         device.wait(Until.findObject(By.desc("فیلد نام کاربری")), 15_000)?.click() ?: return@collect
         device.waitForIdle()
         device.wait(Until.findObject(By.desc("فیلد نام کاربری")), 3_000)
@@ -40,13 +38,11 @@ class BaselineProfileGenerator {
 
         device.wait(Until.findObject(By.desc("دکمه ورود به سامانه")), 5_000)?.click()
 
-        // منتظر می‌مانیم تا یا وارد HomeScreen شویم (دکمه‌ی ورود دیگر وجود ندارد) یا
-        // خطای اعتبارسنجی نمایش داده شود — هر دو بخشی از مسیر بحرانی login هستند
+        // انتظار برای ورود به HomeScreen یا دریافت خطای لاگین در مسیر اجرای برنامه.
         device.wait(Until.gone(By.desc("دکمه ورود به سامانه")), 12_000)
         device.waitForIdle(3_000)
 
-        // اگر لاگین موفق بود، دیالوگ سیستمی مجوز POST_NOTIFICATIONS ممکن است ظاهر شود؛
-        // برای رسیدن واقعی به HomeScreen (نه ماندن پشت دیالوگ سیستمی) باید رد شود
+        // تایید دسترسی POST_NOTIFICATIONS در صورت نمایش جهت ورود نهایی به HomeScreen.
         device.findObject(By.textContains("Allow"))?.click()
         device.waitForIdle(2_000)
     }

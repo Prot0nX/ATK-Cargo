@@ -74,8 +74,7 @@ val Red900 = Color(0xFFB71C1C)
 val DarkBackground = Color(0xFF121212)
 val DarkSurface = Color(0xFF1E1E1E)
 
-// رنگ‌های جدید برای تم‌های Light و Dark (ATK-Cargo)
-// رنگ اصلی آبی
+// رنگ‌های اصلی آبی تم‌های روشن و تاریک (ATK-Cargo).
 val PrimaryBlue = Color(0xFF137fec)
 val PrimaryBlueDark = Color(0xFF0D47A1)
 val PrimaryBlueLight = Color(0xFF64B5F6)

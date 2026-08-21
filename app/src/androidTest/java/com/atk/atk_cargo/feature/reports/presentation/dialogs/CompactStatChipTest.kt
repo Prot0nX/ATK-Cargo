@@ -9,11 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import org.junit.Rule
 import org.junit.Test
 
-/**
- * تست Compose برای یک composable بی‌حالت دیگر (DEEP_CODE_AUDIT.md #Phase4.9)
- * — CompactStatChip فقط یک مقدار متنی را با یک آیکون نمایش می‌دهد، بدون هیچ
- * state یا تعامل داخلی.
- */
+// تست Compose برای CompactStatChip که فقط مقدار متنی و آیکون نمایش می‌دهد، بدون state داخلی.
 class CompactStatChipTest {
 
     @get:Rule

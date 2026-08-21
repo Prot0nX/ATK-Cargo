@@ -136,9 +136,7 @@ fun MainScreen() {
                                 if (!isSessionValid) {
                                     val requestNotificationPermission = LocalNotificationPermissionRequester.current
                                     val authViewModel: AuthViewModel = koinViewModel()
-                                    // پس از خروج کاربر، AuthViewModel همچنان در حالت Success
-                                    // کش شده است. بدون ریست، LoginScreen بلافاصله onLoginSuccess
-                                    // را صدا زده و حلقه بی‌نهایت ایجاد می‌شود (صفحه سفید).
+                                    // ریست وضعیت AuthViewModel پس از لاگ‌اوت برای جلوگیری از لوپ بی‌نهایت Success در LoginScreen.
                                     LaunchedEffect(Unit) {
                                         authViewModel.resetState()
                                     }

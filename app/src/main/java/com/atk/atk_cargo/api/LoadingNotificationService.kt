@@ -54,8 +54,7 @@ class LoadingNotificationService : Service(), KoinComponent {
         
         // راه‌اندازی سرویس نوتیفیکیشن بارگیری لحظه‌ای، فقط برای کاربران admin
         fun startLoadingNotification(context: Context) {
-            // سرویس برای همه کاربران شروع می‌شود
-            // اما در onStartCommand بررسی می‌شود که فقط برای کاربران admin ادامه پیدا کند
+            // سرویس شروع میشود ولی در onStartCommand بررسی میشود که فقط کاربران admin ادامه دهند
             val intent = Intent(context, LoadingNotificationService::class.java)
             context.startForegroundService(intent)
             Log.d("LoadingNotificationService", "Service requested to start - will check user permissions")
@@ -155,8 +154,7 @@ class LoadingNotificationService : Service(), KoinComponent {
         }
     }
     
-    // دریافت اطلاعات بارگیری از سرور و نمایش نوتیفیکیشن
-    // @param isRefresh آیا این درخواست برای بروزرسانی دستی است
+    // دریافت اطلاعات بارگیری از سرور و نمایش نوتیفیکیشن؛ isRefresh=true یعنی بروزرسانی دستی.
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     private suspend fun fetchAndNotify(isRefresh: Boolean = false) {
         // بررسی سطح دسترسی کاربر

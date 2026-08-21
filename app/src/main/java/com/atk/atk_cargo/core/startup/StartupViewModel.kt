@@ -127,8 +127,7 @@ class StartupViewModel(
 
                     val versionResult = versionAndUpdateJob.await()
                     if (!versionResult.isVersionAllowed) {
-                        // چون securityJob/sessionJob فرزند همین coroutine هستند، تا پایان
-                        // کارشان return@async کامل نمی‌شود مگر صریحاً cancel شوند
+                        // لغو صریح جاب‌های فرزند برای تکمیل فوری async در صورت نامعتبر بودن نسخه.
                         securityJob.cancel()
                         sessionJob.cancel()
                         return@async Pair(false, false)
@@ -141,8 +140,7 @@ class StartupViewModel(
                     Pair(true, sessionValid)
                 }
 
-                // تایمر تطبیقی Splash: حداقل نمایش برای جلوگیری از پرش بصری، سپس به‌محض
-                // آماده شدن شبکه بسته می‌شود (حداکثر تا سقف SPLASH_MAX_DURATION)
+                // تایمر تطبیقی اسپلش با حداقل زمان برای پرش بصری و حداکثر تا سقف SPLASH_MAX_DURATION.
                 val splashTimer = launch {
                     delay(SPLASH_MIN_DURATION.milliseconds)
                     withTimeoutOrNull((SPLASH_MAX_DURATION - SPLASH_MIN_DURATION).milliseconds) {
@@ -254,13 +252,7 @@ class StartupViewModel(
                     userPreferencesManager.saveLastSessionVerifiedTimestamp(System.currentTimeMillis())
                     true
                 } else {
-                    // I-05: checkSession همیشه HTTP ۲۰۰ برمی‌گرداند (حتی روی شکست، برای
-                    // سازگاری با کلاینت قدیمی)، پس وقتی فقط access token منقضی شده
-                    // (عمر ۳۰ دقیقه‌ای) اینجا هم isValid=false می‌شود، حتی با یک
-                    // refresh token کاملاً معتبر. بدون این تلاش صریح، کاربری که اپ را
-                    // بعد از >۳۰ دقیقه دوباره باز می‌کند همیشه به صفحه‌ی ورود می‌رفت —
-                    // همان الگوی SessionValidator.kt که این مسیر (چون startup مسیر
-                    // جداگانه‌ای است) شاملش نمی‌شد.
+                    // تلاش صریح برای refresh توکن در صورت انقضای access token در زمان استارتاپ اپ (I-05).
                     val refreshed = TokenRefresher.refresh(Secrets.getBaseUrl(), userPreferencesManager) != null
                     if (refreshed) {
                         userPreferencesManager.saveLastSessionVerifiedTimestamp(System.currentTimeMillis())

@@ -173,8 +173,7 @@ class ReportsViewModel(
         _searchQuery.value = query
     }
 
-    // بارگذاری اولیه توسط ShipsListScreen (LaunchedEffect) انجام می‌شود؛ فراخوانی
-    // این‌جا هم باعث دو درخواست هم‌زمان روی سنگین‌ترین کوئری سرور می‌شد.
+    // بارگذاری اولیه توسط ShipsListScreen انجام می‌شود تا از فراخوانی همزمان کوئری سنگین سرور جلوگیری گردد.
 
     fun formatNumber(number: Number): String {
         return NumberFormat.getNumberInstance(Locale.US).format(number)
@@ -205,12 +204,7 @@ class ReportsViewModel(
     companion object {
         private const val REAL_TIME_REFRESH_INTERVAL_MS = 30_000L
 
-        // C-4 (گزارش تحلیل جامع عملیات): قبلاً عدد -7 مستقل هم اینجا و هم در
-        // ComprehensiveAnalyticsDialog.kt hardcode شده بود و هیچ‌چیز هماهنگی
-        // آن‌ها را تضمین نمی‌کرد. معادل سمت سرور همین مقدار
-        // AnalyticsController::MAX_ANALYTICS_DAYS_BACK در PHP است؛ چون کلاینت
-        // و سرور دو runtime جدا هستند، این عدد باید دستی هم‌زمان با آن ثابت
-        // تغییر کند.
+        // حداکثر بازه روزهای مجاز برای گزارش تحلیل جامع عملیات (معادل AnalyticsController::MAX_ANALYTICS_DAYS_BACK سمت سرور).
         const val ANALYTICS_MAX_DAYS_BACK = 7
     }
 
@@ -259,8 +253,7 @@ class ReportsViewModel(
                 fetchRealTimeDataCoordinated(isDarkTheme)
                 delay(500)
                 _realTimeUiState.update { it.copy(isRefreshing = false, secondsToNextRefresh = 30) }
-                // هدف بعدی از روی هدف قبلی محاسبه می‌شود نه "الان + ۳۰ ثانیه"،
-                // وگرنه مدت fetch/delay(500) هر دور به drift اضافه می‌شود.
+                // محاسبه هدف بعدی بر اساس زمان‌بندی قبلی جهت جلوگیری از drift تدریجی زمان polling.
                 nextRefreshAt = maxOf(
                     nextRefreshAt + REAL_TIME_REFRESH_INTERVAL_MS,
                     System.currentTimeMillis() + 1000L

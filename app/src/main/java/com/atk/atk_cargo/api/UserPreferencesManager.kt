@@ -30,9 +30,7 @@ class UserPreferencesManager(
 ) : TokenStore, UserPreferencesStore, ChatPreferencesStore, UserSettingsStore {
     private val dataStore: DataStore<Preferences> = context.dataStore
 
-    // خواندن IOException یک‌بار در یک نقطه (به‌جای ۹+ بار تکرار همان ۷ خط catch)؛
-    // خطای دیگری غیر از IOException همچنان پرتاب می‌شود، فقط خطای عدم دسترسی به
-    // دیسک با preferences خالی جایگزین می‌شود
+    // مدیریت خطای خواندن preferences دیسک و صدور مقادیر پیش‌فرض در صورت وقوع IOException.
     private val safePreferences: Flow<Preferences> = dataStore.data.catch { exception ->
         if (exception is IOException) {
             emit(emptyPreferences())
@@ -109,8 +107,7 @@ class UserPreferencesManager(
                 preferences[PERMISSIONS_KEY] = cryptoManager.encrypt(json)
             }
         }
-        // AuthSession باید بلافاصله (نه با تأخیر خواندن مجدد DataStore) به‌روز شود
-        // چون درخواست‌های بعدی API فوراً به این مقادیر برای هدرهای احراز هویت نیاز دارند
+        // به‌روزرسانی آنی AuthSession برای دسترسی فوری ریکوئست‌های بعدی API به هدرهای احراز هویت.
         AuthSession.username = username
         if (deviceId.isNotEmpty()) AuthSession.deviceId = deviceId
         if (sessionToken.isNotEmpty()) AuthSession.sessionToken = sessionToken
@@ -123,10 +120,7 @@ class UserPreferencesManager(
         AuthSession.sessionToken = sessionToken
     }
 
-    /**
-     * ذخیره‌ی جفت توکن تازه بعد از یک POST /auth/refresh موفق (I-05). جدا از
-     * saveSessionToken چون همیشه هر دو مقدار با هم rotate می‌شوند، نه جداگانه.
-     */
+    // ذخیره‌ی همزمان جفت توکن جدید پس از refresh موفق توکن‌ها (I-05).
     override suspend fun saveRefreshedTokens(accessToken: String, refreshToken: String) {
         dataStore.edit { preferences ->
             preferences[SESSION_TOKEN_KEY] = cryptoManager.encrypt(accessToken)

@@ -4,12 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
 
-/**
- * کمک‌کننده‌های رنگ فقط-UI — بر خلاف بقیه‌ی این پکیج (DTOهای شبکه‌ای) که در
- * core:network زندگی می‌کنند، این‌ها باید در ماژول app بمانند چون core:network
- * وابستگی به Compose UI ندارد (DEEP_CODE_AUDIT.md #Phase4.2، استخراج
- * core:network — این فایل از ReportModels.kt عمداً جدا نگه داشته شد).
- */
+// کمک‌کننده‌های رنگ مخصوص UI که به‌دلیل وابستگی به Compose در designsystem نگه داشته شده‌اند، نه core:network.
 class ColorSelector(private val colors: List<Color>) {
     private val assignedColors = mutableMapOf<String, Color>()
     private val usedColors = mutableMapOf<Color, Boolean>()

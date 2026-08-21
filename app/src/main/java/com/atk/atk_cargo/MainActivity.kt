@@ -90,10 +90,7 @@ class MainActivity : ComponentActivity() {
                     startupViewModel.runStartupSequenceOnce()
                 }
 
-                // پشتیبانی از Reduce Motion (DEEP_CODE_AUDIT.md #Phase3.12) —
-                // اگر کاربر «حذف انیمیشن‌ها» را در تنظیمات سیستم فعال کرده،
-                // AnimationManager (نقطه‌ی مرکزی روشن/خاموش کردن انیمیشن‌ها
-                // در سراسر اپ) از این پس false برمی‌گرداند.
+                // پشتیبانی از قابلیت Reduce Motion تنظیمات سیستم در AnimationManager اپ (Phase3 #3.12).
                 LaunchedEffect(Unit) {
                     val animatorDurationScale = android.provider.Settings.Global.getFloat(
                         contentResolver,

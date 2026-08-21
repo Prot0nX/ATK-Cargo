@@ -10,11 +10,7 @@ import androidx.compose.ui.test.performClick
 import org.junit.Rule
 import org.junit.Test
 
-/**
- * تست Compose برای یک composable بی‌حالت (DEEP_CODE_AUDIT.md #Phase4.9) —
- * ActionButton فقط از پارامترهای ورودی رندر می‌شود، هیچ remember/state
- * داخلی ندارد، پس ایده‌آل برای اولین نمونه‌ی این نوع تست است.
- */
+// تست Compose برای ActionButton که فقط از پارامترهای ورودی رندر می‌شود و هیچ state داخلی ندارد.
 class ActionButtonTest {
 
     @get:Rule
