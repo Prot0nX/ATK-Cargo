@@ -46,9 +46,14 @@ class AtkCargoApplication : Application() {
         // باید قبل از اولین دسترسی lazy به RetrofitClient.apiService فراخوانی شود تا کش HTTP دیسک فعال شود؛ debugLogging از اینجا تزریق می‌شود چون core:network به BuildConfig ماژول app دسترسی ندارد (DEEP_CODE_AUDIT.md #Phase4.2)
         RetrofitClient.init(this, userPreferencesManager, debugLogging = BuildConfig.DEBUG)
         applicationScope.launch {
-            AuthSession.username = userPreferencesManager.username.first()
-            AuthSession.deviceId = userPreferencesManager.deviceId.first()
-            AuthSession.sessionToken = userPreferencesManager.sessionToken.first()
+            try {
+                AuthSession.username = userPreferencesManager.username.first()
+                AuthSession.deviceId = userPreferencesManager.deviceId.first()
+                AuthSession.sessionToken = userPreferencesManager.sessionToken.first()
+            } finally {
+                // finally تضمین می‌کند حتی با خطای غیرمنتظره در خواندن DataStore، headersInterceptor برای همیشه مسدود نماند (DEEP_CODE_AUDIT.md #۱۵)
+                AuthSession.markReady()
+            }
 
             // ارسال best-effort گزارش کرشِ اجرای قبلی، پس از اینکه AuthSession.username در دسترس است
             CrashReporter.sendPendingReportIfAny(this@AtkCargoApplication, Secrets.getBaseUrl(), applicationScope)

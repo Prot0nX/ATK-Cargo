@@ -108,6 +108,10 @@ object RetrofitClient {
 
     // Headers interceptor
     private val headersInterceptor = Interceptor { chain ->
+        // منتظر پر شدن AuthSession از DataStore می‌ماند تا اولین درخواست‌های cold start بدون هدر احراز هویت نروند؛
+        // این thread همیشه thread دیسپچر OkHttp است نه Main، پس مسدود شدن کوتاه اینجا امن است (DEEP_CODE_AUDIT.md #۱۵)
+        AuthSession.awaitReady()
+
         val original = chain.request()
         val builder = original.newBuilder()
             .addHeader("Accept", "application/json")

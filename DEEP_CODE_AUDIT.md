@@ -920,6 +920,9 @@ Medium
 
 #### [MEDIUM] race در مقداردهی `AuthSession` هنگام cold start
 
+> ✅ **رفع شد (فاز ۲، مورد ۱۵):** یک `CompletableDeferred` به `AuthSession` اضافه شد؛ `headersInterceptor` قبل از ساخت هدرها `AuthSession.awaitReady()` را صدا می‌زند (مسدودسازی کوتاه روی thread دیسپچر OkHttp، نه Main — هم‌راستا با الگوی موجود `runBlocking` در `TokenAuthenticator`). `AtkCargoApplication.onCreate` پس از پر کردن `AuthSession` از DataStore، `markReady()` را در یک بلوک `finally` صدا می‌زند تا حتی با خطای غیرمنتظره هم headersInterceptor برای همیشه بلاک نماند.
+
+
 **File:**
 `app/src/main/java/com/atk/atk_cargo/api/AtkCargoApplication.kt`
 
@@ -3197,7 +3200,7 @@ Medium
 | ۱۲ | `targetSdk = 36` + تست روی Android 15/16 | Medium | ⏭️ فعلاً رد شد (نیازمند دستگاه واقعی) |
 | ۱۳ | یکسان‌سازی رمزگذاری خروجی در `CargoController` (حذف `htmlspecialchars` دوگانه) + migration داده | Medium | ✅ اعمال شد (اسکریپت migration برای اجرای دستی) |
 | ۱۴ | تبدیل `AnimationManager` به snapshot state + خواندن تنظیم سیستم در `Application.onCreate` | Low | ✅ اعمال شد |
-| ۱۵ | رفع race در `AuthSession` هنگام cold start | Low | |
+| ۱۵ | رفع race در `AuthSession` هنگام cold start | Low | ✅ اعمال شد |
 | ۱۶ | ایمن‌سازی `System.loadLibrary` + افزودن `armeabi-v7a` یا پیام خطای صریح | Low | |
 | ۱۷ | ابطال نشست فقط برای تغییرات امنیتی در `UserService::updateUser` | Low | |
 | ۱۸ | یکسان کردن `sql_mode` به `STRICT_TRANS_TABLES` در `Database::getMysqliConnection` | Low | |
