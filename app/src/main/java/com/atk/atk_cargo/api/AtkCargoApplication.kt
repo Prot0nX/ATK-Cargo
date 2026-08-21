@@ -43,8 +43,15 @@ class AtkCargoApplication : Application() {
         // AuthSession درون‌حافظه‌ای است و با کشته‌شدن پروسه خالی می‌شود؛ اینجا از DataStore پر می‌شود تا هدرهای احراز هویت از اولین درخواست درست ارسال شوند
         val userPreferencesManager = koinApp.koin.get<UserPreferencesManager>()
 
-        // باید قبل از اولین دسترسی lazy به RetrofitClient.apiService فراخوانی شود تا کش HTTP دیسک فعال شود؛ debugLogging از اینجا تزریق می‌شود چون core:network به BuildConfig ماژول app دسترسی ندارد (DEEP_CODE_AUDIT.md #Phase4.2)
-        RetrofitClient.init(this, userPreferencesManager, debugLogging = BuildConfig.DEBUG)
+        // Secrets.isAvailable روی ABI پشتیبانی‌نشده false است؛ لمس RetrofitClient (حتی فقط init())
+        // کل initializer شیء را اجرا می‌کند و BASE_URL = Secrets.getBaseUrl() آنجا بی‌قید‌وشرط
+        // فراخوانی می‌شد — یعنی یک UnsatisfiedLinkError غیرقابل‌بازیابی. حالا StartupViewModel
+        // این پرچم را می‌بیند و صفحه‌ی خطای صریح نشان می‌دهد (DEEP_CODE_AUDIT.md #۱۶)
+        if (Secrets.isAvailable) {
+            // باید قبل از اولین دسترسی lazy به RetrofitClient.apiService فراخوانی شود تا کش HTTP دیسک فعال شود؛ debugLogging از اینجا تزریق می‌شود چون core:network به BuildConfig ماژول app دسترسی ندارد (DEEP_CODE_AUDIT.md #Phase4.2)
+            RetrofitClient.init(this, userPreferencesManager, debugLogging = BuildConfig.DEBUG)
+        }
+
         applicationScope.launch {
             try {
                 AuthSession.username = userPreferencesManager.username.first()
@@ -55,8 +62,10 @@ class AtkCargoApplication : Application() {
                 AuthSession.markReady()
             }
 
-            // ارسال best-effort گزارش کرشِ اجرای قبلی، پس از اینکه AuthSession.username در دسترس است
-            CrashReporter.sendPendingReportIfAny(this@AtkCargoApplication, Secrets.getBaseUrl(), applicationScope)
+            if (Secrets.isAvailable) {
+                // ارسال best-effort گزارش کرشِ اجرای قبلی، پس از اینکه AuthSession.username در دسترس است
+                CrashReporter.sendPendingReportIfAny(this@AtkCargoApplication, Secrets.getBaseUrl(), applicationScope)
+            }
         }
     }
 }

@@ -48,6 +48,8 @@ sealed interface StartupState {
     data object Syncing : StartupState
     data object VersionExpired : StartupState
     data class SecurityBlocked(val isLoading: Boolean, val errorType: SecurityErrorType) : StartupState
+    // ABI پشتیبانی‌نشده (libsecrets.so بارگذاری نشد)؛ بدون هیچ فراخوانی شبکه‌ای نمایش داده می‌شود (DEEP_CODE_AUDIT.md #۱۶)
+    data object NativeLibraryUnavailable : StartupState
     data object Ready : StartupState
 }
 
@@ -78,11 +80,14 @@ class StartupViewModel(
     private val _isServerSyncing = MutableStateFlow(false)
     private val _isVersionAllowed = MutableStateFlow(true)
     private val _securityCheck = MutableStateFlow(SecurityCheckState())
+    // یک‌بار در سازنده خوانده می‌شود؛ Secrets.isAvailable هرگز پرتاب نمی‌کند (DEEP_CODE_AUDIT.md #۱۶)
+    private val _isNativeLibraryAvailable = MutableStateFlow(Secrets.isAvailable)
 
     val startupState: StateFlow<StartupState> = combine(
-        _isSplashVisible, _isServerSyncing, _isVersionAllowed, _securityCheck
-    ) { splashVisible, serverSyncing, versionAllowed, security ->
+        _isSplashVisible, _isServerSyncing, _isVersionAllowed, _securityCheck, _isNativeLibraryAvailable
+    ) { splashVisible, serverSyncing, versionAllowed, security, nativeLibraryAvailable ->
         when {
+            !nativeLibraryAvailable -> StartupState.NativeLibraryUnavailable
             splashVisible -> StartupState.Splash
             serverSyncing -> StartupState.Syncing
             !versionAllowed -> StartupState.VersionExpired
@@ -113,6 +118,10 @@ class StartupViewModel(
     fun runStartupSequenceOnce() {
         if (startupSequenceStarted) return
         startupSequenceStarted = true
+
+        // بدون کتابخانه‌ی نیتیو secrets، BASE_URL/API_KEY در دسترس نیستند؛ هیچ فراخوانی شبکه‌ای
+        // انجام نمی‌شود تا از UnsatisfiedLinkError در UpdateManager/SecurityVerifier/RetrofitClient جلوگیری شود
+        if (!_isNativeLibraryAvailable.value) return
 
         viewModelScope.launch {
             coroutineScope {

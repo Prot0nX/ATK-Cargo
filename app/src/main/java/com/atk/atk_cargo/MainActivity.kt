@@ -136,6 +136,13 @@ class MainActivity : ComponentActivity() {
                                     onRetry = { startupViewModel.retrySecurityCheck() }
                                 )
                             }
+                            is StartupState.NativeLibraryUnavailable -> {
+                                // ناسازگاری ABI (نه یک خطای گذرا)؛ عمداً onRetry ندارد (DEEP_CODE_AUDIT.md #۱۶)
+                                StartupErrorScreen(
+                                    message = "این نسخه با دستگاه شما سازگار نیست.",
+                                    onExit = { finishAndRemoveTask() }
+                                )
+                            }
                             is StartupState.Ready -> {
                                 HandleMainContent()
                             }
@@ -256,7 +263,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun StartupErrorScreen(onRetry: () -> Unit, onExit: () -> Unit) {
+private fun StartupErrorScreen(
+    onExit: () -> Unit,
+    onRetry: (() -> Unit)? = null,
+    message: String = "متأسفانه در راه‌اندازی برنامه خطایی رخ داد"
+) {
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -269,15 +280,18 @@ private fun StartupErrorScreen(onRetry: () -> Unit, onExit: () -> Unit) {
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "متأسفانه در راه‌اندازی برنامه خطایی رخ داد",
+                text = message,
                 style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(24.dp))
-            Button(onClick = onRetry) {
-                Text("تلاش مجدد")
+            // onRetry فقط برای خطاهای واقعاً قابل‌تکرار نمایش داده می‌شود؛ ناسازگاری ABI با retry حل نمی‌شود
+            if (onRetry != null) {
+                Button(onClick = onRetry) {
+                    Text("تلاش مجدد")
+                }
+                Spacer(Modifier.height(12.dp))
             }
-            Spacer(Modifier.height(12.dp))
             OutlinedButton(onClick = onExit) {
                 Text("خروج از برنامه")
             }

@@ -969,6 +969,9 @@ Low
 
 #### [MEDIUM] `System.loadLibrary("secrets")` در `init` — نقطه‌ی شکست تک‌نقطه‌ای
 
+> ✅ **رفع شد (فاز ۲، مورد ۱۶، بدون افزودن `armeabi-v7a`):** `Secrets.isAvailable` اضافه شد (بارگذاری در `try/catch`، هرگز پرتاب نمی‌کند). `AtkCargoApplication.onCreate` قبل از لمس `RetrofitClient` (که خودش `Secrets.getBaseUrl()` را بی‌قید‌وشرط در initializer صدا می‌زد) این پرچم را چک می‌کند. `StartupViewModel` یک state جدید `NativeLibraryUnavailable` دارد که بدون هیچ فراخوانی شبکه‌ای (UpdateManager/SecurityVerifier/RetrofitClient) مستقیماً یک صفحه‌ی خطای صریح (بدون دکمه‌ی «تلاش مجدد»، چون ناسازگاری ABI با retry حل نمی‌شود) نشان می‌دهد. تصمیم افزودن `armeabi-v7a` به release به بعد موکول شد (نیازمند تصمیم محصولی).
+
+
 **File:**
 `core/network/src/main/java/com/atk/atk_cargo/api/Secrets.kt`
 
@@ -3201,7 +3204,7 @@ Medium
 | ۱۳ | یکسان‌سازی رمزگذاری خروجی در `CargoController` (حذف `htmlspecialchars` دوگانه) + migration داده | Medium | ✅ اعمال شد (اسکریپت migration برای اجرای دستی) |
 | ۱۴ | تبدیل `AnimationManager` به snapshot state + خواندن تنظیم سیستم در `Application.onCreate` | Low | ✅ اعمال شد |
 | ۱۵ | رفع race در `AuthSession` هنگام cold start | Low | ✅ اعمال شد |
-| ۱۶ | ایمن‌سازی `System.loadLibrary` + افزودن `armeabi-v7a` یا پیام خطای صریح | Low | |
+| ۱۶ | ایمن‌سازی `System.loadLibrary` + افزودن `armeabi-v7a` یا پیام خطای صریح | Low | ✅ اعمال شد (پیام خطا، بدون `armeabi-v7a`) |
 | ۱۷ | ابطال نشست فقط برای تغییرات امنیتی در `UserService::updateUser` | Low | |
 | ۱۸ | یکسان کردن `sql_mode` به `STRICT_TRANS_TABLES` در `Database::getMysqliConnection` | Low | |
 | ۱۹ | حذف افشای `userType` و پیام متمایز در `checkSession` | Low | |
