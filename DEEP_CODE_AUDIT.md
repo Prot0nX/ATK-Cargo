@@ -365,6 +365,8 @@ Low
 
 #### [HIGH] Foreground Service با poll دائمی، ناسازگار با سقف `dataSync` در Android 14+
 
+> ✅ **رفع شد (فاز ۲، مورد ۹):** `LoadingNotificationService` حذف و با `LoadingNotificationWorker` مبتنی بر `WorkManager` جایگزین شد؛ همان الگوی `ChatNotificationWorker`. فاصله‌ی polling به حداقل مجاز `PeriodicWorkRequest` (۱۵ دقیقه) افزایش یافت. رفرش فوری (بی‌صداکردن/فعال‌سازی مجدد کشتی) با `OneTimeWorkRequest` انجام می‌شود.
+
 **File:**
 `app/src/main/java/com/atk/atk_cargo/api/LoadingNotificationService.kt`
 
@@ -3172,20 +3174,22 @@ Medium
 
 ### Phase 2 — High Priority (۲–۳ هفته)
 
-| # | اقدام | تلاش |
-|---|-------|------|
-| ۹ | جایگزینی `LoadingNotificationService` با `PeriodicWorkRequest` | Medium |
-| ۱۰ | `remember`/`derivedStateOf` روی خطوط لوله‌ی مجموعه در `ActiveQuotasContent`، `CargoCounterScreen`، `ActiveQuotasGroupedComponents` | Low |
-| ۱۱ | صفحه‌بندی cursor-based روی endpointهای تحلیلی و گزارش | Medium |
-| ۱۲ | `targetSdk = 36` + تست روی Android 15/16 | Medium |
-| ۱۳ | یکسان‌سازی رمزگذاری خروجی در `CargoController` (حذف `htmlspecialchars` دوگانه) + migration داده | Medium |
-| ۱۴ | تبدیل `AnimationManager` به snapshot state + خواندن تنظیم سیستم در `Application.onCreate` | Low |
-| ۱۵ | رفع race در `AuthSession` هنگام cold start | Low |
-| ۱۶ | ایمن‌سازی `System.loadLibrary` + افزودن `armeabi-v7a` یا پیام خطای صریح | Low |
-| ۱۷ | ابطال نشست فقط برای تغییرات امنیتی در `UserService::updateUser` | Low |
-| ۱۸ | یکسان کردن `sql_mode` به `STRICT_TRANS_TABLES` در `Database::getMysqliConnection` | Low |
-| ۱۹ | حذف افشای `userType` و پیام متمایز در `checkSession` | Low |
-| ۲۰ | تست‌های Phase 1 بخش Testing: `UpdateManagerTest`, `CryptoManagerTest`, `AuthControllerTest` | High |
+> **وضعیت:** مورد به مورد و با تأیید کاربر پیش می‌رود.
+
+| # | اقدام | تلاش | وضعیت |
+|---|-------|------|:-----:|
+| ۹ | جایگزینی `LoadingNotificationService` با `PeriodicWorkRequest` | Medium | ✅ اعمال شد |
+| ۱۰ | `remember`/`derivedStateOf` روی خطوط لوله‌ی مجموعه در `ActiveQuotasContent`، `CargoCounterScreen`، `ActiveQuotasGroupedComponents` | Low | |
+| ۱۱ | صفحه‌بندی cursor-based روی endpointهای تحلیلی و گزارش | Medium | |
+| ۱۲ | `targetSdk = 36` + تست روی Android 15/16 | Medium | |
+| ۱۳ | یکسان‌سازی رمزگذاری خروجی در `CargoController` (حذف `htmlspecialchars` دوگانه) + migration داده | Medium | |
+| ۱۴ | تبدیل `AnimationManager` به snapshot state + خواندن تنظیم سیستم در `Application.onCreate` | Low | |
+| ۱۵ | رفع race در `AuthSession` هنگام cold start | Low | |
+| ۱۶ | ایمن‌سازی `System.loadLibrary` + افزودن `armeabi-v7a` یا پیام خطای صریح | Low | |
+| ۱۷ | ابطال نشست فقط برای تغییرات امنیتی در `UserService::updateUser` | Low | |
+| ۱۸ | یکسان کردن `sql_mode` به `STRICT_TRANS_TABLES` در `Database::getMysqliConnection` | Low | |
+| ۱۹ | حذف افشای `userType` و پیام متمایز در `checkSession` | Low | |
+| ۲۰ | تست‌های Phase 1 بخش Testing: `UpdateManagerTest`, `CryptoManagerTest`, `AuthControllerTest` | High | |
 
 ### Phase 3 — Medium Priority (۱–۲ ماه)
 

@@ -11,7 +11,6 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.atk.atk_cargo.api.AppNotificationManager
-import com.atk.atk_cargo.api.LoadingNotificationService
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.Secrets
 import com.atk.atk_cargo.api.SessionCheckRequest
@@ -23,6 +22,7 @@ import com.atk.atk_cargo.feature.chat.data.ChatRepository
 import com.atk.atk_cargo.security.SecurityErrorType
 import com.atk.atk_cargo.security.SecurityVerifier
 import com.atk.atk_cargo.workers.ChatNotificationWorker
+import com.atk.atk_cargo.workers.LoadingNotificationWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
@@ -296,20 +296,30 @@ class StartupViewModel(
             }
 
             val userType = userPreferencesManager.userType.first()
-            if (userType == "admin") {
-                LoadingNotificationService.startLoadingNotification(appContext)
-            } else {
-                val intent = Intent(appContext, LoadingNotificationService::class.java)
-                intent.action = "STOP_SERVICE"
-                appContext.startService(intent)
+            if (userType != "admin") {
+                stopLoadingNotificationService()
+                return@launch
             }
+
+            // حداقل بازه‌ی مجاز WorkManager برای PeriodicWorkRequest پانزده دقیقه است (قبلاً پنج دقیقه با FGS دائمی)
+            val constraints = androidx.work.Constraints.Builder()
+                .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                .build()
+
+            val workRequest = PeriodicWorkRequestBuilder<LoadingNotificationWorker>(15, TimeUnit.MINUTES)
+                .setConstraints(constraints)
+                .build()
+
+            WorkManager.getInstance(appContext).enqueueUniquePeriodicWork(
+                LoadingNotificationWorker.UNIQUE_WORK_NAME,
+                ExistingPeriodicWorkPolicy.KEEP,
+                workRequest
+            )
         }
     }
 
     override fun stopLoadingNotificationService() {
-        val loadingIntent = Intent(appContext, LoadingNotificationService::class.java)
-        loadingIntent.action = LoadingNotificationService.ACTION_STOP_SERVICE
-        appContext.startService(loadingIntent)
+        WorkManager.getInstance(appContext).cancelUniqueWork(LoadingNotificationWorker.UNIQUE_WORK_NAME)
     }
 
     override fun stopChatNotificationService() {

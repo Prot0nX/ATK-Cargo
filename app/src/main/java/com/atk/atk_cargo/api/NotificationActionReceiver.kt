@@ -5,6 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.core.content.edit
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
+import com.atk.atk_cargo.workers.LoadingNotificationWorker
 
 // BroadcastReceiver برای مدیریت اکشن‌های نوتیفیکیشن‌های بارگیری لحظه‌ای، از جمله بی‌صدا کردن کشتی‌های خاص
 class NotificationActionReceiver : BroadcastReceiver() {
@@ -40,27 +44,15 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 if (shipName != null) {
                     val notificationManager = AppNotificationManager(context)
                     notificationManager.unmuteShip(shipName)
-                    
-                    // بروزرسانی نوتیفیکیشن‌ها بعد از فعال کردن مجدد
-                    val serviceIntent = Intent(context, LoadingNotificationService::class.java).apply {
-                        action = LoadingNotificationService.ACTION_REFRESH
-                    }
-
-                    context.startForegroundService(serviceIntent)
+                    enqueueImmediateLoadingRefresh(context)
                 }
             }
-            
+
             // پاک کردن لیست کشتی‌های غیرفعال شده
             ACTION_CLEAR_MUTED_SHIPS -> {
                 val notificationManager = AppNotificationManager(context)
                 notificationManager.clearMutedShips()
-                
-                // بروزرسانی نوتیفیکیشن‌ها بعد از پاک کردن لیست
-                val serviceIntent = Intent(context, LoadingNotificationService::class.java).apply {
-                    action = LoadingNotificationService.ACTION_REFRESH
-                }
-
-                context.startForegroundService(serviceIntent)
+                enqueueImmediateLoadingRefresh(context)
             }
             
             // غیرفعال کردن نوتیفیکیشن‌ها برای شیفت فعلی
@@ -87,12 +79,16 @@ class NotificationActionReceiver : BroadcastReceiver() {
             
             // بروزرسانی نوتیفیکیشن‌ها
             ACTION_REFRESH_NOTIFICATIONS -> {
-                val serviceIntent = Intent(context, LoadingNotificationService::class.java).apply {
-                    action = LoadingNotificationService.ACTION_REFRESH
-                }
-
-                context.startForegroundService(serviceIntent)
+                enqueueImmediateLoadingRefresh(context)
             }
         }
+    }
+
+    // اجرای یک‌بار فوری LoadingNotificationWorker به‌جای منتظر ماندن برای چرخه‌ی دوره‌ای بعدی
+    private fun enqueueImmediateLoadingRefresh(context: Context) {
+        val workRequest = OneTimeWorkRequestBuilder<LoadingNotificationWorker>()
+            .setInputData(workDataOf(LoadingNotificationWorker.KEY_IS_REFRESH to true))
+            .build()
+        WorkManager.getInstance(context).enqueue(workRequest)
     }
 } 

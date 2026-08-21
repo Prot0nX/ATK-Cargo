@@ -1,16 +1,16 @@
 # Graph Report - ATK-Cargo  (2026-08-21)
 
 ## Corpus Check
-- 338 files · ~385,701 words
+- 338 files · ~385,192 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2805 nodes · 5753 edges · 219 communities (171 shown, 48 thin omitted)
+- 2805 nodes · 5753 edges · 219 communities (172 shown, 47 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 158 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e87f1051`
+- Built from commit: `fad71860`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -67,7 +67,7 @@
 - SelectInfoScreen.kt
 - LicenseController
 - LoginAttemptLimiterTest
-- ReportModels.kt
+- WarehouseDetailsScreen.kt
 - dialogs/QuotaCardComponents.kt
 - ChatScreen.kt
 - UpdateDialog.kt
@@ -119,7 +119,7 @@
 - High Issues
 - ColorPicker.kt
 - ConfirmationDialog.kt
-- QuotaManagementDialog
+- ReportModels.kt
 - HardwarePerformanceEvaluator
 - Android Audit
 - RegisterCargoScreen.kt
@@ -224,7 +224,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (219 total, 48 thin omitted)
+## Communities (219 total, 47 thin omitted)
 
 ### Community 0 - "StartupViewModel"
 Cohesion: 0.13
@@ -267,8 +267,8 @@ Cohesion: 0.14
 Nodes (21): createTypography(), CalculationResult, QuotaPercentageData, AnimatedNumber(), DialogHeader(), Color, ImageVector, Modifier (+13 more)
 
 ### Community 12 - "ReportsViewModel"
-Cohesion: 0.06
-Nodes (14): ComprehensiveAnalytics, GroupSortingMode, ALPHABETICAL, REMAINING_TONNAGE_ASC, REMAINING_TONNAGE_DESC, QuotaSortingMode, REMAINING_TONNAGE_ASC, REMAINING_TONNAGE_DESC (+6 more)
+Cohesion: 0.07
+Nodes (10): ComprehensiveAnalytics, QuotaSortingMode, REMAINING_TONNAGE_ASC, REMAINING_TONNAGE_DESC, AndroidViewModel, Color, Job, StateFlow (+2 more)
 
 ### Community 14 - "ApiServiceV2"
 Cohesion: 0.08
@@ -339,8 +339,8 @@ Cohesion: 0.11
 Nodes (14): ApiQuotaDetails, calculatePercentage(), calculateProgress(), format(), formatWeightWithDetail(), Context, QuotaWarningThresholds, ProgressBar() (+6 more)
 
 ### Community 35 - "MessageBubble.kt"
-Cohesion: 0.26
-Nodes (14): extractShipInfoAndText(), getAdaptiveBubbleColor(), com, replaceUsernamesWithFullNames(), ShipInfoModel, ChatInfoRow(), EditMessageDialog(), androidx (+6 more)
+Cohesion: 0.24
+Nodes (14): extractShipInfoAndText(), com, replaceUsernamesWithFullNames(), rotateIcon(), ShipInfoModel, ChatInfoRow(), EditMessageDialog(), androidx (+6 more)
 
 ### Community 36 - "UsersManager"
 Cohesion: 0.07
@@ -398,13 +398,13 @@ Nodes (15): Architecture Overview, Deep Code Audit Report, Executive Summary, Ov
 Cohesion: 0.22
 Nodes (16): RealTimeLoadingData, refreshData(), AnimatedHeader(), GroupedShipList(), Color, Modifier, NavController, Result (+8 more)
 
-### Community 52 - "ReportModels.kt"
-Cohesion: 0.17
-Nodes (16): AnalyticsData, DateInfo, ExistingQuota, ExitDateInfo, FilteredSummary, QuotaCompletionAnalysis, QuotaStatusDetails, toTon() (+8 more)
+### Community 52 - "WarehouseDetailsScreen.kt"
+Cohesion: 0.22
+Nodes (15): FilteredSummary, Warehouse, persianDateFormat(), DateTimePicker(), Modifier, PersianDateItem(), TimePickerDialog(), Modifier (+7 more)
 
 ### Community 53 - "dialogs/QuotaCardComponents.kt"
-Cohesion: 0.40
-Nodes (11): QuotaItem, AnalyticsStatChipMini(), CompactStatChip(), InfoChip(), IntegratedQuotaCard(), Color, ImageVector, Modifier (+3 more)
+Cohesion: 0.29
+Nodes (13): QuotaItem, AnalyticsStatChipMini(), CompactStatChip(), InfoChip(), IntegratedQuotaCard(), Color, ImageVector, Modifier (+5 more)
 
 ### Community 54 - "ChatScreen.kt"
 Cohesion: 0.27
@@ -459,8 +459,8 @@ Cohesion: 0.27
 Nodes (3): AuthViewModel, StateFlow, ViewModel
 
 ### Community 69 - "ChatToolbar.kt"
-Cohesion: 0.38
-Nodes (9): AdvancedColorPickerDialog(), ChatSettingsDialogEnhanced(), ChatSettingsPreviewRefined(), Color, ImageVector, Modifier, LazyRowColorsRefined(), SettingSectionRefined() (+1 more)
+Cohesion: 0.35
+Nodes (10): getAdaptiveBubbleColor(), AdvancedColorPickerDialog(), ChatSettingsDialogEnhanced(), ChatSettingsPreviewRefined(), Color, ImageVector, Modifier, LazyRowColorsRefined() (+2 more)
 
 ### Community 70 - "ChatPreferencesStore"
 Cohesion: 0.31
@@ -479,8 +479,8 @@ Cohesion: 0.38
 Nodes (5): AppError, Server, Timeout, toAppError(), Validation
 
 ### Community 77 - "MessageInputArea"
-Cohesion: 0.52
-Nodes (6): rotateIcon(), Color, com, MessageInputArea(), QuotaSelectionDialog(), ShipSelectionDialog()
+Cohesion: 0.67
+Nodes (5): Color, com, MessageInputArea(), QuotaSelectionDialog(), ShipSelectionDialog()
 
 ### Community 78 - "ChatRepository"
 Cohesion: 0.10
@@ -562,6 +562,10 @@ Nodes (6): [HIGH] build release هیچ signingConfig ندارد, [HIGH] Composab
 Cohesion: 0.83
 Nodes (3): ColorWheel(), Color, Modifier
 
+### Community 104 - "ReportModels.kt"
+Cohesion: 0.15
+Nodes (11): AnalyticsData, DateInfo, ExistingQuota, ExitDateInfo, GroupSortingMode, ALPHABETICAL, REMAINING_TONNAGE_ASC, REMAINING_TONNAGE_DESC (+3 more)
+
 ### Community 109 - "Android Audit"
 Cohesion: 0.40
 Nodes (5): Android Audit, [LOW] پرچم منسوخ در `gradle.properties`, [MEDIUM] `targetSdk = 34` در حالی که `compileSdk = 36`, مشکلات, نقاط قوت
@@ -603,8 +607,8 @@ Cohesion: 0.40
 Nodes (5): Phase 1 — Immediate (هفته‌ی ۱), Phase 2 — High Priority (هفته‌های ۲–۴), Phase 3 — Medium Priority (ماه‌های ۲–۳), Phase 4 — Optimization (ماه‌های ۴+), Prioritized Action Plan
 
 ### Community 128 - "VoucherDetailsDialogSection.kt"
-Cohesion: 0.17
-Nodes (20): VoucherDetail, persianDateFormat(), DateTimePicker(), Modifier, PersianDateItem(), TimePickerDialog(), EmptyVoucherList(), Modifier (+12 more)
+Cohesion: 0.26
+Nodes (14): VoucherDetail, EmptyVoucherList(), Modifier, SearchTextField(), SortChip(), VoucherDetailsDialog(), VoucherExpandedDetails(), VoucherItem() (+6 more)
 
 ### Community 132 - "حذف/محدودسازی phpMyAdmin روی سرور production (Phase 1, آیتم #۲)"
 Cohesion: 0.40
@@ -761,12 +765,12 @@ Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify refer
 ## Knowledge Gaps
 - **275 isolated node(s):** `CONFIG`, `Utils`, `name`, `description`, `type` (+270 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **48 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **47 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `ReportsViewModel` connect `ReportsViewModel` to `QuotaDetailsScreen.kt`, `MainScreen.kt`, `ShipSortingMode`, `ColorSelector`, `LoadingState`, `QuotaManagementDialog`, `QuotaWarningDialog.kt`, `ComprehensiveAnalyticsDialog.kt`, `ShipDetailsScreen.kt`, `AppModule.kt`, `dialogs/QuotaCardComponents.kt`, `ManageReportsScreen.kt`, `QuotaManagementContent.kt`, `ShipsListScreen.kt`, `ReportModels.kt`, `Quota`, `RealTimeLoadingBottomSheet.kt`, `formatNumber`?**
+- **Why does `ReportsViewModel` connect `ReportsViewModel` to `QuotaDetailsScreen.kt`, `MainScreen.kt`, `ShipSortingMode`, `ColorSelector`, `LoadingState`, `ReportModels.kt`, `QuotaWarningDialog.kt`, `ComprehensiveAnalyticsDialog.kt`, `ShipDetailsScreen.kt`, `AppModule.kt`, `dialogs/QuotaCardComponents.kt`, `ManageReportsScreen.kt`, `QuotaManagementContent.kt`, `ShipsListScreen.kt`, `WarehouseDetailsScreen.kt`, `Quota`, `RealTimeLoadingBottomSheet.kt`, `formatNumber`?**
   _High betweenness centrality (0.043) - this node is a cross-community bridge._
 - **Why does `UserPreferencesManager` connect `UserPreferencesManager` to `StartupViewModel`, `CoroutineScope`, `MainScreen.kt`, `ChatPreferencesStore`, `UserPreferencesStore`, `TokenStore`, `ChatNotificationWorker.kt`, `MainActivity.kt`, `AppModule.kt`, `ManageReportsScreen.kt`, `ProfileMenu.kt`, `LoadingNotificationService`?**
   _High betweenness centrality (0.033) - this node is a cross-community bridge._

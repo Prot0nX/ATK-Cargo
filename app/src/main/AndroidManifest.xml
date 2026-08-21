@@ -16,8 +16,6 @@
     <!-- مجوزهای مربوط به سیستم و بوت -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     
     <!-- مجوزهای مربوط به شبکه -->
@@ -72,15 +70,9 @@
         </activity>
         
         <!-- سایر اکتیویتی‌ها حذف شدند (Single Activity Architecture) -->
-        
-        <!-- سرویس نوتیفیکیشن بارگیری لحظه‌ای -->
-        <service
-            android:name=".api.LoadingNotificationService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
-        
-            
+
+        <!-- سرویس نوتیفیکیشن بارگیری لحظه‌ای قبلاً Foreground Service دائمی بود، اکنون با LoadingNotificationWorker (WorkManager) جایگزین شده -->
+
         <!-- دریافت کننده رویداد بوت دستگاه -->
         <receiver
             android:name=".api.BootReceiver"
