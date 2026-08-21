@@ -1770,6 +1770,9 @@ Medium
 
 #### [MEDIUM] رمزگذاری خروجی ناسازگار بین دو مسیر نوشتن
 
+> ✅ **رفع شد (فاز ۲، مورد ۱۳):** `htmlspecialchars` از `validateStringField` و از `searchByScaleReceipt`/`searchByTracking` حذف شد؛ هر دو مسیر نوشتن حالا فقط `trim` می‌کنند، هم‌راستا با `sanitizeString`. برای داده‌ی موجودی که قبلاً از مسیر `updateCargoInfo` دوبار escape شده، اسکریپت `PHP/scripts/fix_double_escaped_cargo_fields.php` اضافه شد (پیش‌فرض dry-run، نیازمند `--apply` صریح برای اعمال واقعی) — چون دسترسی به دیتابیس تولید برای تست/اجرای مستقیم وجود نداشت، این اسکریپت برای بررسی و اجرای دستی شماست.
+
+
 **File:**
 `PHP/src/Controllers/CargoController.php`
 
@@ -3189,7 +3192,7 @@ Medium
 | ۱۰ | `remember`/`derivedStateOf` روی خطوط لوله‌ی مجموعه در `ActiveQuotasContent`، `CargoCounterScreen`، `ActiveQuotasGroupedComponents` | Low | ✅ اعمال شد |
 | ۱۱ | صفحه‌بندی cursor-based روی endpointهای تحلیلی و گزارش | Medium | ⚠️ دامنه کاهش یافت — فقط LIMIT محافظتی |
 | ۱۲ | `targetSdk = 36` + تست روی Android 15/16 | Medium | ⏭️ فعلاً رد شد (نیازمند دستگاه واقعی) |
-| ۱۳ | یکسان‌سازی رمزگذاری خروجی در `CargoController` (حذف `htmlspecialchars` دوگانه) + migration داده | Medium | |
+| ۱۳ | یکسان‌سازی رمزگذاری خروجی در `CargoController` (حذف `htmlspecialchars` دوگانه) + migration داده | Medium | ✅ اعمال شد (اسکریپت migration برای اجرای دستی) |
 | ۱۴ | تبدیل `AnimationManager` به snapshot state + خواندن تنظیم سیستم در `Application.onCreate` | Low | |
 | ۱۵ | رفع race در `AuthSession` هنگام cold start | Low | |
 | ۱۶ | ایمن‌سازی `System.loadLibrary` + افزودن `armeabi-v7a` یا پیام خطای صریح | Low | |

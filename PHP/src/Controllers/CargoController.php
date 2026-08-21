@@ -328,27 +328,28 @@ class CargoController {
 
             $cargoInfo = $this->cargoRepo->searchByScaleReceipt($receipt);
             if ($cargoInfo) {
+                // htmlspecialchars حذف شد؛ خروجی JSON برای کلاینت اندروید است، نه HTML مرورگر (DEEP_CODE_AUDIT.md #۱۳)
                 $formattedCargoInfo = [
                     'id' => (int)$cargoInfo['id'],
-                    'trackingNumber' => htmlspecialchars((string)$cargoInfo['trackingNumber']),
-                    'numberOfPeople' => htmlspecialchars((string)($cargoInfo['numberOfPeople'] ?? '')),
-                    'username' => htmlspecialchars((string)($cargoInfo['username'] ?? '')),
-                    'userType' => htmlspecialchars((string)($cargoInfo['userType'] ?? '')),
-                    'entryTime' => htmlspecialchars((string)$cargoInfo['entryTime']),
-                    'netWeight' => htmlspecialchars((string)$cargoInfo['netWeight']),
-                    'scaleReceiptNumber' => htmlspecialchars((string)$cargoInfo['scaleReceiptNumber']),
-                    'shortageWeight' => htmlspecialchars((string)$cargoInfo['shortageWeight']),
-                    'excessWeight' => htmlspecialchars((string)$cargoInfo['excessWeight']),
-                    'exitTime' => htmlspecialchars((string)($cargoInfo['exitTime'] ?? '')),
-                    'exitDate' => htmlspecialchars((string)($cargoInfo['exitDate'] ?? '')),
-                    'status' => htmlspecialchars((string)$cargoInfo['status']),
-                    'shipName' => htmlspecialchars((string)$cargoInfo['shipName']),
-                    'loadingWarehouse' => htmlspecialchars((string)$cargoInfo['loadingWarehouse']),
-                    'cargoType' => htmlspecialchars((string)$cargoInfo['cargoType']),
-                    'shippingCompany' => htmlspecialchars((string)$cargoInfo['shippingCompany']),
-                    'loadingQuotaNumber' => htmlspecialchars((string)$cargoInfo['loadingQuotaNumber']),
-                    'confirm' => htmlspecialchars((string)($cargoInfo['confirm'] ?? '')),
-                    'confirmation' => htmlspecialchars((string)($cargoInfo['confirmation'] ?? 'no'))
+                    'trackingNumber' => (string)$cargoInfo['trackingNumber'],
+                    'numberOfPeople' => (string)($cargoInfo['numberOfPeople'] ?? ''),
+                    'username' => (string)($cargoInfo['username'] ?? ''),
+                    'userType' => (string)($cargoInfo['userType'] ?? ''),
+                    'entryTime' => (string)$cargoInfo['entryTime'],
+                    'netWeight' => (string)$cargoInfo['netWeight'],
+                    'scaleReceiptNumber' => (string)$cargoInfo['scaleReceiptNumber'],
+                    'shortageWeight' => (string)$cargoInfo['shortageWeight'],
+                    'excessWeight' => (string)$cargoInfo['excessWeight'],
+                    'exitTime' => (string)($cargoInfo['exitTime'] ?? ''),
+                    'exitDate' => (string)($cargoInfo['exitDate'] ?? ''),
+                    'status' => (string)$cargoInfo['status'],
+                    'shipName' => (string)$cargoInfo['shipName'],
+                    'loadingWarehouse' => (string)$cargoInfo['loadingWarehouse'],
+                    'cargoType' => (string)$cargoInfo['cargoType'],
+                    'shippingCompany' => (string)$cargoInfo['shippingCompany'],
+                    'loadingQuotaNumber' => (string)$cargoInfo['loadingQuotaNumber'],
+                    'confirm' => (string)($cargoInfo['confirm'] ?? ''),
+                    'confirmation' => (string)($cargoInfo['confirmation'] ?? 'no')
                 ];
                 Response::json(['cargoInfo' => $formattedCargoInfo]);
             } else {
@@ -383,29 +384,30 @@ class CargoController {
 
             $rows = $this->cargoRepo->searchByTracking($tracking);
             $cargoInfoList = [];
+            // htmlspecialchars حذف شد؛ خروجی JSON برای کلاینت اندروید است، نه HTML مرورگر (DEEP_CODE_AUDIT.md #۱۳)
             foreach ($rows as $row) {
                 $cargoInfoList[] = [
                     'cargoInfo' => [
                         'id' => (int)$row['id'],
-                        'trackingNumber' => htmlspecialchars((string)$row['trackingNumber']),
-                        'numberOfPeople' => htmlspecialchars((string)($row['numberOfPeople'] ?? '')),
-                        'username' => htmlspecialchars((string)($row['username'] ?? '')),
-                        'userType' => htmlspecialchars((string)($row['userType'] ?? '')),
-                        'entryTime' => htmlspecialchars((string)$row['entryTime']),
-                        'netWeight' => htmlspecialchars((string)$row['netWeight']),
-                        'scaleReceiptNumber' => htmlspecialchars((string)$row['scaleReceiptNumber']),
-                        'shortageWeight' => htmlspecialchars((string)$row['shortageWeight']),
-                        'excessWeight' => htmlspecialchars((string)$row['excessWeight']),
-                        'exitTime' => htmlspecialchars((string)($row['exitTime'] ?? '')),
-                        'exitDate' => htmlspecialchars((string)($row['exitDate'] ?? '')),
-                        'status' => htmlspecialchars((string)$row['status']),
-                        'shipName' => htmlspecialchars((string)$row['shipName']),
-                        'loadingWarehouse' => htmlspecialchars((string)$row['loadingWarehouse']),
-                        'cargoType' => htmlspecialchars((string)$row['cargoType']),
-                        'shippingCompany' => htmlspecialchars((string)$row['shippingCompany']),
-                        'loadingQuotaNumber' => htmlspecialchars((string)$row['loadingQuotaNumber']),
-                        'confirm' => htmlspecialchars((string)($row['confirm'] ?? '')),
-                        'confirmation' => htmlspecialchars((string)($row['confirmation'] ?? 'no'))
+                        'trackingNumber' => (string)$row['trackingNumber'],
+                        'numberOfPeople' => (string)($row['numberOfPeople'] ?? ''),
+                        'username' => (string)($row['username'] ?? ''),
+                        'userType' => (string)($row['userType'] ?? ''),
+                        'entryTime' => (string)$row['entryTime'],
+                        'netWeight' => (string)$row['netWeight'],
+                        'scaleReceiptNumber' => (string)$row['scaleReceiptNumber'],
+                        'shortageWeight' => (string)$row['shortageWeight'],
+                        'excessWeight' => (string)$row['excessWeight'],
+                        'exitTime' => (string)($row['exitTime'] ?? ''),
+                        'exitDate' => (string)($row['exitDate'] ?? ''),
+                        'status' => (string)$row['status'],
+                        'shipName' => (string)$row['shipName'],
+                        'loadingWarehouse' => (string)$row['loadingWarehouse'],
+                        'cargoType' => (string)$row['cargoType'],
+                        'shippingCompany' => (string)$row['shippingCompany'],
+                        'loadingQuotaNumber' => (string)$row['loadingQuotaNumber'],
+                        'confirm' => (string)($row['confirm'] ?? ''),
+                        'confirmation' => (string)($row['confirmation'] ?? 'no')
                     ]
                 ];
             }
@@ -658,9 +660,10 @@ class CargoController {
     }
 
     // $maxLength پیش‌فرض ۱۰۰ هم‌راستا با varchar(100) در schema.sql، برای جلوگیری از truncate بی‌صدا (Phase4.10)
+    // htmlspecialchars حذف شد تا با sanitizeString هم‌راستا باشد؛ مصرف‌کننده JSON/اندروید است نه مرورگر (DEEP_CODE_AUDIT.md #۱۳)
     private function validateStringField($value, string $fieldName, bool $required = true, ?int $maxLength = 100): string {
         $strValue = ($value === null) ? '' : (string)$value;
-        $sanitized = htmlspecialchars(trim($strValue), ENT_QUOTES, 'UTF-8');
+        $sanitized = trim($strValue);
         if ($required && empty($sanitized)) {
             throw new InvalidArgumentException("فیلد {$fieldName} الزامی است.");
         }
