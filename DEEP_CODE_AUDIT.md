@@ -2779,9 +2779,9 @@ High
 
 ### تست‌های پیشنهادی (به ترتیب اولویت)
 
-۱. **`UpdateManagerTest`** — تأیید کن `isTrustedDownloadUrl` دامنه‌های غیرمجاز، `http://`، و subdomain‌های جعلی را رد می‌کند؛ و اینکه با هش نامطابق فایل حذف می‌شود.
-۲. **`CryptoManagerTest`** (androidTest، چون به Keystore واقعی نیاز دارد) — چرخه‌ی رمز/رمزگشایی، رفتار در برابر ورودی خراب.
-۳. **`AuthControllerTest`** (PHP) — شکست ورود، قفل شدن، ورود همزمان از دستگاه دوم، پاسخ `checkSession` برای کاربر ناموجود.
+۱. **`UpdateManagerTest`** — تأیید کن `isTrustedDownloadUrl` دامنه‌های غیرمجاز، `http://`، و subdomain‌های جعلی را رد می‌کند؛ و اینکه با هش نامطابق فایل حذف می‌شود. ✅ اعمال شد و سبز (مورد ۲۰)
+۲. **`CryptoManagerTest`** (androidTest، چون به Keystore واقعی نیاز دارد) — چرخه‌ی رمز/رمزگشایی، رفتار در برابر ورودی خراب. ✅ نوشته و compile-verified (مورد ۲۰) — اجرای واقعی روی دستگاه، در این محیط ممکن نبود
+۳. **`AuthControllerTest`** (PHP) — شکست ورود، قفل شدن، ورود همزمان از دستگاه دوم. ✅ اعمال شد و سبز (مورد ۲۰)
 ۴. **`SecurityVerifierTest`** — منطق دوره‌ی مهلت آفلاین، تمایز خطای شبکه از رد صریح سرور.
 ۵. **`ChatRepositoryTest`** — همگام‌سازی حذف، رفتار روی پاسخ خالی.
 ۶. **تست ادغام JOIN** (PHP) — یک fixture با دو ردیف `InitialInfo` که در چهار ستون مشترک و در `shipName` متفاوت‌اند، و تأیید کن مجموع تناژ دوبرابر نمی‌شود. این تست یافته‌ی `[HIGH]` بخش Database را قفل می‌کند.
@@ -3217,7 +3217,13 @@ Medium
 | ۱۷ | ابطال نشست فقط برای تغییرات امنیتی در `UserService::updateUser` | Low | ✅ اعمال شد |
 | ۱۸ | یکسان کردن `sql_mode` به `STRICT_TRANS_TABLES` در `Database::getMysqliConnection` | Low | ✅ اعمال شد |
 | ۱۹ | حذف افشای `userType` و پیام متمایز در `checkSession` | Low | ✅ اعمال شد |
-| ۲۰ | تست‌های Phase 1 بخش Testing: `UpdateManagerTest`, `CryptoManagerTest`, `AuthControllerTest` | High | |
+| ۲۰ | تست‌های Phase 1 بخش Testing: `UpdateManagerTest`, `CryptoManagerTest`, `AuthControllerTest` | High | ✅ اعمال شد (`CryptoManagerTest` فقط compile-verified) |
+
+**یادداشت‌های اجرای مورد ۲۰:**
+
+- **`UpdateManagerTest`** (`feature/update/src/test/.../UpdateManagerTest.kt`, JVM unit test) — ۱۸ تست روی `isTrustedDownloadUrl` (تطبیق دقیق دامنه، subdomain، ترفندهای suffix/prefix، رد `http://`، ورودی نامعتبر)، `verifyFileSha256` (تطبیق/عدم‌تطبیق هش، بی‌حساسیت به بزرگ/کوچک، trim فاصله، فایل مفقود) و `compareVersions` (برابر/جدیدتر/قدیمی‌تر/کوتاه‌تر/کاراکتر غیرعددی). چون `isTrustedDownloadUrl` داخلاً به `Constants.BASE_URL` (که از طریق JNI به کتابخانه‌ی نیتیو `Secrets` می‌رسد و در JVM ساده در دسترس نیست) وابسته بود، پارامتر `trustedBaseUrl` با مقدار پیش‌فرض همان `Constants.BASE_URL` اضافه شد (بدون تغییر رفتار در production). تأیید شد: هر ۱۸ تست سبز (`gradlew :feature:update:testDebugUnitTest`).
+- **`CryptoManagerTest`** (`app/src/androidTest/.../CryptoManagerTest.kt`, instrumented test) — ۹ تست روی چرخه‌ی رمز/رمزگشایی، تصادفی‌بودن IV، رشته‌ی خالی، ورودی خراب/دستکاری‌شده (تگ GCM)، اشتراک کلید بین نمونه‌ها، فرمت Base64. چون به AndroidKeyStore واقعی نیاز دارد، به‌صورت `androidTest` نوشته شد نه unit test. **محدودیت مهم:** فقط با `gradlew :app:compileDebugAndroidTestKotlin` کامپایل‌شده تأیید شد؛ در این محیط دستگاه/امولاتور اندروید در دسترس نیست، پس این ۹ تست هرگز واقعاً اجرا نشده‌اند — اجرای آن‌ها روی دستگاه واقعی برعهده‌ی کاربر است.
+- **`AuthControllerTest`** (`PHP/tests/Unit/Controllers/AuthControllerTest.php`) — ۶ تست روی رد متد غیر-POST، ورودی ناقص، قفل‌شدن پس از تلاش‌های ناموفق، رد اعتبارنامه‌ی نادرست، تعارض ورود همزمان از دستگاه دوم (۴۰۹)، و ورود موفق با توکن‌ها. برای این تست، `AuthController` یک constructor با پارامترهای اختیاری تزریق‌پذیر گرفت (هم‌راستا با الگوی موجود در `SessionService`/`CargoController`؛ فراخوانی‌های production بدون آرگومان همچنان کار می‌کنند). چون `Response::json()`/`Response::error()` با `exit` پاسخ می‌دهند (که غیرقابل catch است و حتی زیر `@runInSeparateProcess` نتیجه‌ی تست را از بین می‌برد)، یک seam تستی کوچک اضافه شد: `PHP/src/Core/Response.php` اکنون زیر ثابت `TESTING_MODE` (فقط از `tests/bootstrap.php` تعریف می‌شود) به‌جای `exit`، یک `ResponseSentException` قابل‌catch پرتاب می‌کند؛ رفتار production بدون تغییر می‌ماند. `LoginAttemptLimiter`/`PermissionService` (هر دو `final`، غیرقابل mock) به‌صورت نمونه‌ی واقعی استفاده شدند — هیچ‌کدام به DB واقعی نیاز ندارند. تأیید شد: `php -l`، PHPStan level 5 بدون خطا، و کل مجموعه‌ی PHPUnit (۹۹ تست، شامل ۶ تست جدید) سبز.
 
 ### Phase 3 — Medium Priority (۱–۲ ماه)
 

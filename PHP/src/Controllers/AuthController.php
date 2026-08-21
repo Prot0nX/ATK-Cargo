@@ -23,11 +23,17 @@ class AuthController {
     private Request $request;
     private Logger $logger;
 
-    public function __construct() {
-        $this->userService = new UserService();
-        $this->sessionService = new SessionService();
-        $this->permissionService = new PermissionService();
-        $this->loginAttemptLimiter = new LoginAttemptLimiter();
+    // پارامترهای اختیاری برای تزریق mock در تست واحد؛ فراخوان‌های production بدون آرگومان کار می‌کنند (هم‌راستا با الگوی SessionService/CargoController، DEEP_CODE_AUDIT.md #۲۰)
+    public function __construct(
+        ?UserService $userService = null,
+        ?SessionService $sessionService = null,
+        ?PermissionService $permissionService = null,
+        ?LoginAttemptLimiter $loginAttemptLimiter = null
+    ) {
+        $this->userService = $userService ?? new UserService();
+        $this->sessionService = $sessionService ?? new SessionService();
+        $this->permissionService = $permissionService ?? new PermissionService();
+        $this->loginAttemptLimiter = $loginAttemptLimiter ?? new LoginAttemptLimiter();
         $this->request = new Request();
         $this->logger = Logger::getInstance();
     }

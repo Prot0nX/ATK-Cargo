@@ -9,3 +9,8 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 if (!defined('APP_ROOT')) {
     define('APP_ROOT', sys_get_temp_dir() . '/atk_cargo_phpunit');
 }
+
+// زیر تست، Response::json به‌جای exit یک ResponseSentException قابل‌catch پرتاب می‌کند
+if (!defined('TESTING_MODE')) {
+    define('TESTING_MODE', true);
+}

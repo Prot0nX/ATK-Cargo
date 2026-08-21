@@ -5,6 +5,8 @@ declare(strict_types=1);
 
 namespace App\Core;
 
+use App\Exceptions\ResponseSentException;
+
 class Response {
     // ارسال هدرهای امنیتی استاندارد سیستم
     public static function sendSecurityHeaders(): void {
@@ -36,6 +38,11 @@ class Response {
 
     // ارسال پاسخ JSON و خروج از برنامه
     public static function json($data, int $httpCode = 200): void {
+        // زیر PHPUnit، exit جایگزین یک exception قابل‌catch می‌شود تا کنترلرها بدون kill شدن پروسه قابل تست باشند
+        if (defined('TESTING_MODE') && TESTING_MODE) {
+            throw new ResponseSentException($data, $httpCode);
+        }
+
         self::sendSecurityHeaders();
         http_response_code($httpCode);
 

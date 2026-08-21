@@ -240,7 +240,8 @@ class UpdateManager(
         }
     }
 
-    private fun compareVersions(version1: String, version2: String): Int {
+    // internal (نه private) تا UpdateManagerTest بدون reflection مستقیم صدا بزند (DEEP_CODE_AUDIT.md #۲۰)
+    internal fun compareVersions(version1: String, version2: String): Int {
         // پاک‌سازی و نرمال‌سازی ورودی‌ها
         val v1Clean = version1.trim().replace(Regex("[^0-9.]"), "")
         val v2Clean = version2.trim().replace(Regex("[^0-9.]"), "")
@@ -283,10 +284,12 @@ class UpdateManager(
         }
     }
 
-    // بررسی می‌کند که download_url متعلق به همان دامنه معتبر سرور باشد تا از هدایت دانلود به میزبان جعلی جلوگیری شود
-    private fun isTrustedDownloadUrl(url: String): Boolean = runCatching {
+    // بررسی می‌کند که download_url متعلق به همان دامنه معتبر سرور باشد تا از هدایت دانلود به میزبان جعلی جلوگیری شود.
+    // trustedBaseUrl پارامتر شد (پیش‌فرض همان Constants.BASE_URL قبلی) تا UpdateManagerTest بدون نیاز به
+    // کتابخانه‌ی نیتیو Secrets (که در JVM ساده در دسترس نیست) این تابع را مستقیم تست کند (DEEP_CODE_AUDIT.md #۲۰)
+    internal fun isTrustedDownloadUrl(url: String, trustedBaseUrl: String = Constants.BASE_URL): Boolean = runCatching {
         val requestHost = java.net.URI(url).takeIf { it.scheme == "https" }?.host ?: return false
-        val trustedHost = java.net.URI(Constants.BASE_URL).host ?: return false
+        val trustedHost = java.net.URI(trustedBaseUrl).host ?: return false
         requestHost == trustedHost || requestHost.endsWith(".$trustedHost")
     }.getOrDefault(false)
 
@@ -385,7 +388,8 @@ class UpdateManager(
         }
     }
 
-    private fun verifyFileSha256(file: File, expectedHash: String): Boolean {
+    // internal (نه private) تا UpdateManagerTest بدون reflection مستقیم صدا بزند (DEEP_CODE_AUDIT.md #۲۰)
+    internal fun verifyFileSha256(file: File, expectedHash: String): Boolean {
         return try {
             val digest = java.security.MessageDigest.getInstance("SHA-256")
             file.inputStream().use { input ->
