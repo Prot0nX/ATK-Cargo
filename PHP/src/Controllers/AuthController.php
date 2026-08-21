@@ -199,35 +199,24 @@ class AuthController {
         $deviceId = $deviceId ? InputValidator::sanitize((string)$deviceId) : null;
         $sessionToken = $sessionToken ? InputValidator::sanitize((string)$sessionToken) : null;
 
-        // دریافت اطلاعات کاربر برای استخراج userType
-        $userRepo = new \App\Repositories\UserRepository();
-        $user = $userRepo->getByUsername($username);
-
-        if (!$user) {
-            Response::json([
-                'success' => false,
-                'message' => 'کاربر در سیستم وجود ندارد',
-                'userType' => null
-            ], 200); // 200 برای پایداری اندروید
-        }
-
         // اعتبارسنجی نشست با توکن معتبر، نه صرفاً username و deviceId (C-5)
-        $isActive = ($deviceId && $sessionToken)
-            ? $this->sessionService->isValidToken($username, $deviceId, $sessionToken)
-            : false;
+        $userType = ($deviceId && $sessionToken)
+            ? $this->sessionService->validateAndGetUserType($username, $deviceId, $sessionToken)
+            : null;
 
-        if ($isActive) {
+        if ($userType !== null) {
             Response::json([
                 'success' => true,
                 'message' => 'جلسه کاربر معتبر است',
-                'userType' => $user['userType']
+                'userType' => $userType
             ]);
         } else {
+            // پاسخ برای «کاربر وجود ندارد» و «نشست نامعتبر» عمداً یکسان است تا شمارش نام کاربری بدون احراز هویت ممکن نباشد (DEEP_CODE_AUDIT.md #۱۹)
             Response::json([
                 'success' => false,
                 'message' => 'جلسه کاربر فعال نیست. لطفاً وارد شوید.',
-                'userType' => $user['userType']
-            ]);
+                'userType' => null
+            ], 200); // 200 برای پایداری اندروید
         }
     }
 

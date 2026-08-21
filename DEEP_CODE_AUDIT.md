@@ -449,6 +449,9 @@ Low
 
 #### [MEDIUM] شمارش نام کاربری و افشای `userType` بدون احراز هویت
 
+> ✅ **رفع شد (فاز ۲، مورد ۱۹):** `AuthController::checkSession` بازنویسی شد تا مستقیماً از `SessionService::validateAndGetUserType` استفاده کند (به‌جای `UserRepository::getByUsername` + `isValidToken` جدا). پاسخ برای «کاربر وجود ندارد» و «نشست نامعتبر» اکنون کاملاً یکسان است (همان پیام، همان کد ۲۰۰، `userType: null`)؛ `userType` فقط وقتی نشست واقعاً معتبر باشد برمی‌گردد. هر دو مصرف‌کننده‌ی کلاینت (`StartupViewModel`, `SessionValidator`) فقط `success` را می‌خوانند، پس بدون تغییر سازگارند.
+
+
 **File:**
 `PHP/src/Controllers/AuthController.php`
 
@@ -3213,7 +3216,7 @@ Medium
 | ۱۶ | ایمن‌سازی `System.loadLibrary` + افزودن `armeabi-v7a` یا پیام خطای صریح | Low | ✅ اعمال شد (پیام خطا، بدون `armeabi-v7a`) |
 | ۱۷ | ابطال نشست فقط برای تغییرات امنیتی در `UserService::updateUser` | Low | ✅ اعمال شد |
 | ۱۸ | یکسان کردن `sql_mode` به `STRICT_TRANS_TABLES` در `Database::getMysqliConnection` | Low | ✅ اعمال شد |
-| ۱۹ | حذف افشای `userType` و پیام متمایز در `checkSession` | Low | |
+| ۱۹ | حذف افشای `userType` و پیام متمایز در `checkSession` | Low | ✅ اعمال شد |
 | ۲۰ | تست‌های Phase 1 بخش Testing: `UpdateManagerTest`, `CryptoManagerTest`, `AuthControllerTest` | High | |
 
 ### Phase 3 — Medium Priority (۱–۲ ماه)
