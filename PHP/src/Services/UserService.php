@@ -186,9 +186,12 @@ class UserService {
 
         $this->userRepository->update($id, $updates);
 
-        // پس از ویرایش موفق، جلسات قبلی کاربر را غیرفعال می‌کنیم
-        $sessionRepo = new \App\Repositories\SessionRepository();
-        $sessionRepo->deactivateAllSessions($user['username']);
+        // فقط تغییرات امنیتی (رمز/نوع کاربری/نام کاربری) نشست‌ها را باطل می‌کنند؛ ویرایش صرفاً fullName کاربر را بی‌دلیل بیرون نمی‌اندازد (DEEP_CODE_AUDIT.md #۱۷)
+        $securitySensitiveFields = array_intersect(array_keys($updates), ['password', 'userType', 'username']);
+        if (!empty($securitySensitiveFields)) {
+            $sessionRepo = new \App\Repositories\SessionRepository();
+            $sessionRepo->deactivateAllSessions($user['username']);
+        }
 
         if ($actorUsername !== null) {
             // فقط نام فیلدهای تغییریافته ثبت می‌شود، نه مقدار رمز عبور

@@ -2382,6 +2382,9 @@ Low
 
 #### [MEDIUM] ویرایش پروفایل خود کاربر، او را از سیستم خارج می‌کند
 
+> ✅ **رفع شد (فاز ۲، مورد ۱۷):** `UserService::updateUser` اکنون فقط وقتی یکی از فیلدهای امنیتی (`password`، `userType`، `username`) واقعاً تغییر کرده باشد `deactivateAllSessions` را صدا می‌زند؛ ویرایش صرفاً `fullName` دیگر کاربر را بی‌دلیل بیرون نمی‌اندازد.
+
+
 **File:**
 `PHP/src/Services/UserService.php`
 
@@ -3205,7 +3208,7 @@ Medium
 | ۱۴ | تبدیل `AnimationManager` به snapshot state + خواندن تنظیم سیستم در `Application.onCreate` | Low | ✅ اعمال شد |
 | ۱۵ | رفع race در `AuthSession` هنگام cold start | Low | ✅ اعمال شد |
 | ۱۶ | ایمن‌سازی `System.loadLibrary` + افزودن `armeabi-v7a` یا پیام خطای صریح | Low | ✅ اعمال شد (پیام خطا، بدون `armeabi-v7a`) |
-| ۱۷ | ابطال نشست فقط برای تغییرات امنیتی در `UserService::updateUser` | Low | |
+| ۱۷ | ابطال نشست فقط برای تغییرات امنیتی در `UserService::updateUser` | Low | ✅ اعمال شد |
 | ۱۸ | یکسان کردن `sql_mode` به `STRICT_TRANS_TABLES` در `Database::getMysqliConnection` | Low | |
 | ۱۹ | حذف افشای `userType` و پیام متمایز در `checkSession` | Low | |
 | ۲۰ | تست‌های Phase 1 بخش Testing: `UpdateManagerTest`, `CryptoManagerTest`, `AuthControllerTest` | High | |
