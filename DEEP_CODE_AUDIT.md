@@ -1177,6 +1177,8 @@ Low
 
 #### [HIGH] محاسبات سنگین مجموعه‌ها بدون `remember` داخل composition
 
+> ✅ **رفع شد (فاز ۲، مورد ۱۰):** خطوط لوله‌ی filter/sortedWith در `ActiveQuotasContent.kt` (هر دو Composable)، `CargoCounterScreen.kt` و `ActiveQuotasGroupedComponents.kt` (`ShipCard`, `WarehouseSection`) در `remember` قرار گرفتند. در `WarehouseSection` یک نکته‌ی ظریف هم رفع شد: قرار دادن `remember` قبل و بعد یک `return` شرطی می‌توانست slot table کامپوز را به‌هم بریزد — هر دو `remember` به یکی ادغام شدند تا قبل از `return` اجرا شوند.
+
 **File:**
 `feature/cargo-workflow/src/main/java/com/atk/atk_cargo/feature/cargo_entry/presentation/ActiveQuotasContent.kt`
 
@@ -3179,7 +3181,7 @@ Medium
 | # | اقدام | تلاش | وضعیت |
 |---|-------|------|:-----:|
 | ۹ | جایگزینی `LoadingNotificationService` با `PeriodicWorkRequest` | Medium | ✅ اعمال شد |
-| ۱۰ | `remember`/`derivedStateOf` روی خطوط لوله‌ی مجموعه در `ActiveQuotasContent`، `CargoCounterScreen`، `ActiveQuotasGroupedComponents` | Low | |
+| ۱۰ | `remember`/`derivedStateOf` روی خطوط لوله‌ی مجموعه در `ActiveQuotasContent`، `CargoCounterScreen`، `ActiveQuotasGroupedComponents` | Low | ✅ اعمال شد |
 | ۱۱ | صفحه‌بندی cursor-based روی endpointهای تحلیلی و گزارش | Medium | |
 | ۱۲ | `targetSdk = 36` + تست روی Android 15/16 | Medium | |
 | ۱۳ | یکسان‌سازی رمزگذاری خروجی در `CargoController` (حذف `htmlspecialchars` دوگانه) + migration داده | Medium | |

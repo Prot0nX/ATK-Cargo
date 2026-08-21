@@ -74,8 +74,23 @@ internal fun ShipCard(
         (completedVouchers.toFloat() / totalVouchers) * 100f
     } else 0f
 
-    // گروه‌بندی بر اساس انبار
-    val warehouseGroups = ships.groupBy { it.loadingWarehouse }
+    // گروه‌بندی در remember تا در هر recomposition دوباره اجرا نشود
+    val warehouseGroups = remember(ships) { ships.groupBy { it.loadingWarehouse } }
+
+    // فیلتر (فقط انبارهای دارای حواله) + مرتب‌سازی نزولی بر اساس حواله‌های باقیمانده، هر دو در remember
+    val sortedWarehouseEntries = remember(warehouseGroups) {
+        warehouseGroups.entries
+            .filter { (_, ships) -> ships.any { it.entryVouchers + it.exitVouchers > 0 } }
+            .sortedWith(
+                compareByDescending<Map.Entry<String, List<ActiveShipInfo>>> { (_, ships) ->
+                    val total = ships.sumOf { it.entryVouchers + it.exitVouchers }
+                    val completed = ships.sumOf { it.exitVouchers }
+                    total - completed  // حواله‌های باقیمانده
+                }.thenByDescending { (_, ships) ->
+                    ships.sumOf { it.entryVouchers + it.exitVouchers }  // کل حواله‌ها
+                }
+            )
+    }
 
     // حفظ وضعیت باز/بسته بودن هر انبار
     var expandedWarehouse by remember { mutableStateOf<String?>(null) }
@@ -138,18 +153,7 @@ internal fun ShipCard(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // نمایش انبارها به ترتیب نزولی حواله‌های باقیمانده
-                    warehouseGroups.entries
-                        .filter { (_, ships) -> ships.any { it.entryVouchers + it.exitVouchers > 0 } }
-                        .sortedWith(
-                            compareByDescending<Map.Entry<String, List<ActiveShipInfo>>> { (_, ships) ->
-                                val total = ships.sumOf { it.entryVouchers + it.exitVouchers }
-                                val completed = ships.sumOf { it.exitVouchers }
-                                total - completed  // حواله‌های باقیمانده
-                            }.thenByDescending { (_, ships) ->
-                                ships.sumOf { it.entryVouchers + it.exitVouchers }  // کل حواله‌ها
-                            }
-                        )
-                        .forEach { (warehouseName, warehouseShips) ->
+                    sortedWarehouseEntries.forEach { (warehouseName, warehouseShips) ->
                             // فیلتر کردن بر اساس متن جستجو
                             val filteredShips = if (searchQuery.isEmpty()) {
                                 warehouseShips.filter { it.entryVouchers + it.exitVouchers > 0 }
@@ -371,8 +375,20 @@ private fun WarehouseSection(
     onExpandChange: (Boolean) -> Unit,
     searchQuery: String
 ) {
-    // حذف کشتی‌هایی که حواله ندارند
-    val shipsWithVouchers = ships.filter { it.entryVouchers + it.exitVouchers > 0 }
+    // حذف + مرتب‌سازی (نزولی بر اساس حواله‌های باقیمانده، سپس کل حواله‌ها) در یک remember تا با early return بعدی به‌هم نریزد
+    val sortedShipsWithVouchers = remember(ships) {
+        ships.filter { it.entryVouchers + it.exitVouchers > 0 }
+            .sortedWith(
+                compareByDescending<ActiveShipInfo> { ship ->
+                    val total = ship.entryVouchers + ship.exitVouchers
+                    val remaining = total - ship.exitVouchers
+                    remaining  // حواله‌های باقیمانده
+                }.thenByDescending { ship ->
+                    ship.entryVouchers + ship.exitVouchers  // کل حواله‌ها
+                }
+            )
+    }
+    val shipsWithVouchers = sortedShipsWithVouchers
 
     // اگر هیچ کشتی‌ای حواله نداشته باشد، چیزی نمایش نمی‌دهیم
     if (shipsWithVouchers.isEmpty()) return

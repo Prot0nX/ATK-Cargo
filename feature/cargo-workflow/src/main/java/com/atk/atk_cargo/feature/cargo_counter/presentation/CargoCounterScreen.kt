@@ -267,8 +267,11 @@ fun CargoCounterScreen(
     var activeShips by remember { mutableStateOf<List<ActiveShipInfo>>(emptyList()) }
     
     val selectedShipNames by viewModel.selectedShipNames.collectAsStateWithLifecycle(initialValue = emptySet())
-    val filteredShips = activeShips.filter { selectedShipNames.contains(it.shipName) }
-    val groupedShips = filteredShips.groupBy { it.shipName }
+    // در remember نگه داشته می‌شود تا در هر recomposition (نه فقط با تغییر واقعی ورودی‌ها) دوباره فیلتر/گروه‌بندی نشود
+    val groupedShips = remember(activeShips, selectedShipNames) {
+        activeShips.filter { selectedShipNames.contains(it.shipName) }
+            .groupBy { it.shipName }
+    }
 
     val expandedShipName by viewModel.expandedShipName.collectAsStateWithLifecycle(initialValue = null)
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle(initialValue = ShipFilterTab.LOADING)

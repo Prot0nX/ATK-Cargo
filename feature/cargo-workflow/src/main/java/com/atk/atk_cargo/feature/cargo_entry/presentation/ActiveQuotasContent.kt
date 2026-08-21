@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,33 +54,44 @@ internal fun GroupedShipsContent(
     expandedShipName: String?,
     onExpandShip: (String) -> Unit
 ) {
-    // فیلتر کردن کشتی‌ها با توجه به جستجو و وضعیت فیلتر
-    val filteredShips = groupedShips.entries.filter { (shipName, ships) ->
-        // فیلتر کردن کشتی‌هایی که حداقل یک ورود یا خروج دارند
-        val hasActivity = ships.any { it.entryVouchers + it.exitVouchers > 0 }
+    // فیلتر+مرتب‌سازی در remember نگه داشته می‌شود تا در هر recomposition (مثلاً تایپ در جستجو) دوباره اجرا نشود
+    val filteredShips = remember(groupedShips, searchQuery, filterState) {
+        groupedShips.entries.filter { (shipName, ships) ->
+            // فیلتر کردن کشتی‌هایی که حداقل یک ورود یا خروج دارند
+            val hasActivity = ships.any { it.entryVouchers + it.exitVouchers > 0 }
 
-        // فیلتر بر اساس متن جستجو
-        val matchesSearch = searchQuery.isEmpty() ||
-                shipName.contains(searchQuery, ignoreCase = true) ||
-                ships.any {
-                    it.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
-                            it.loadingQuotaNumber.contains(searchQuery, ignoreCase = true)
+            // فیلتر بر اساس متن جستجو
+            val matchesSearch = searchQuery.isEmpty() ||
+                    shipName.contains(searchQuery, ignoreCase = true) ||
+                    ships.any {
+                        it.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
+                                it.loadingQuotaNumber.contains(searchQuery, ignoreCase = true)
+                    }
+
+            // فیلتر بر اساس وضعیت تکمیل
+            val matchesFilter = when (filterState) {
+                FilterState.ALL -> true
+                FilterState.PENDING -> ships.any { ship ->
+                    val totalVouchers = ship.entryVouchers + ship.exitVouchers
+                    totalVouchers > 0 && ship.exitVouchers < totalVouchers
                 }
-
-        // فیلتر بر اساس وضعیت تکمیل
-        val matchesFilter = when (filterState) {
-            FilterState.ALL -> true
-            FilterState.PENDING -> ships.any { ship ->
-                val totalVouchers = ship.entryVouchers + ship.exitVouchers
-                totalVouchers > 0 && ship.exitVouchers < totalVouchers
+                FilterState.COMPLETED -> ships.all { ship ->
+                    val totalVouchers = ship.entryVouchers + ship.exitVouchers
+                    totalVouchers == 0 || ship.exitVouchers == totalVouchers
+                }
             }
-            FilterState.COMPLETED -> ships.all { ship ->
-                val totalVouchers = ship.entryVouchers + ship.exitVouchers
-                totalVouchers == 0 || ship.exitVouchers == totalVouchers
-            }
-        }
 
-        hasActivity && matchesSearch && matchesFilter
+            hasActivity && matchesSearch && matchesFilter
+        }.sortedWith(
+            // مرتب‌سازی کشتی‌ها بر اساس تعداد حواله‌های باقیمانده (نزولی)
+            compareByDescending<Map.Entry<String, List<ActiveShipInfo>>> { (_, ships) ->
+                val total = ships.sumOf { it.entryVouchers + it.exitVouchers }
+                val completed = ships.sumOf { it.exitVouchers }
+                total - completed  // حواله‌های باقیمانده
+            }.thenByDescending { (_, ships) ->
+                ships.sumOf { it.entryVouchers + it.exitVouchers }  // کل حواله‌ها
+            }
+        )
     }
 
     if (filteredShips.isEmpty()) {
@@ -95,17 +107,8 @@ internal fun GroupedShipsContent(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
-            // مرتب‌سازی کشتی‌ها بر اساس تعداد حواله‌های باقیمانده (نزولی)
             items(
-                items = filteredShips.sortedWith(
-                    compareByDescending<Map.Entry<String, List<ActiveShipInfo>>> { (_, ships) ->
-                        val total = ships.sumOf { it.entryVouchers + it.exitVouchers }
-                        val completed = ships.sumOf { it.exitVouchers }
-                        total - completed  // حواله‌های باقیمانده
-                    }.thenByDescending { (_, ships) ->
-                        ships.sumOf { it.entryVouchers + it.exitVouchers }  // کل حواله‌ها
-                    }
-                ).toList(),
+                items = filteredShips,
                 key = { it.key }
             ) { (shipName, ships) ->
                 ShipCard(
@@ -171,31 +174,41 @@ internal fun FlatQuotasContent(
     searchQuery: String,
     filterState: FilterState
 ) {
-    // فیلتر کردن کوتاژها بر اساس جستجو و وضعیت
-    val filteredQuotas = activeShips.filter { ship ->
-        // فقط کوتاژهایی که حواله دارند نمایش داده شوند
-        val hasVouchers = ship.entryVouchers + ship.exitVouchers > 0
+    // فیلتر+مرتب‌سازی در remember نگه داشته می‌شود تا در هر recomposition دوباره اجرا نشود
+    val filteredQuotas = remember(activeShips, searchQuery, filterState) {
+        activeShips.filter { ship ->
+            // فقط کوتاژهایی که حواله دارند نمایش داده شوند
+            val hasVouchers = ship.entryVouchers + ship.exitVouchers > 0
 
-        // فیلتر بر اساس متن جستجو
-        val matchesSearch = searchQuery.isEmpty() ||
-                ship.shipName.contains(searchQuery, ignoreCase = true) ||
-                ship.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
-                ship.loadingQuotaNumber.contains(searchQuery, ignoreCase = true)
+            // فیلتر بر اساس متن جستجو
+            val matchesSearch = searchQuery.isEmpty() ||
+                    ship.shipName.contains(searchQuery, ignoreCase = true) ||
+                    ship.loadingWarehouse.contains(searchQuery, ignoreCase = true) ||
+                    ship.loadingQuotaNumber.contains(searchQuery, ignoreCase = true)
 
-        // فیلتر بر اساس وضعیت تکمیل
-        val matchesFilter = when (filterState) {
-            FilterState.ALL -> true
-            FilterState.PENDING -> {
-                val totalVouchers = ship.entryVouchers + ship.exitVouchers
-                totalVouchers > 0 && ship.exitVouchers < totalVouchers
+            // فیلتر بر اساس وضعیت تکمیل
+            val matchesFilter = when (filterState) {
+                FilterState.ALL -> true
+                FilterState.PENDING -> {
+                    val totalVouchers = ship.entryVouchers + ship.exitVouchers
+                    totalVouchers > 0 && ship.exitVouchers < totalVouchers
+                }
+                FilterState.COMPLETED -> {
+                    val totalVouchers = ship.entryVouchers + ship.exitVouchers
+                    totalVouchers > 0 && ship.exitVouchers == totalVouchers
+                }
             }
-            FilterState.COMPLETED -> {
-                val totalVouchers = ship.entryVouchers + ship.exitVouchers
-                totalVouchers > 0 && ship.exitVouchers == totalVouchers
-            }
-        }
 
-        hasVouchers && matchesSearch && matchesFilter
+            hasVouchers && matchesSearch && matchesFilter
+        }.sortedWith(
+            // مرتب‌سازی بر اساس حواله‌های باقیمانده (نزولی)، سپس کشتی و انبار
+            compareByDescending<ActiveShipInfo> { ship ->
+                val total = ship.entryVouchers + ship.exitVouchers
+                val remaining = total - ship.exitVouchers
+                remaining  // حواله‌های باقیمانده
+            }.thenBy { it.shipName }
+                .thenBy { it.loadingWarehouse }
+        )
     }
 
     if (filteredQuotas.isEmpty()) {
@@ -210,16 +223,8 @@ internal fun FlatQuotasContent(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
-            // مرتب‌سازی بر اساس حواله‌های باقیمانده (نزولی)، سپس کشتی و انبار
             items(
-                items = filteredQuotas.sortedWith(
-                    compareByDescending<ActiveShipInfo> { ship ->
-                        val total = ship.entryVouchers + ship.exitVouchers
-                        val remaining = total - ship.exitVouchers
-                        remaining  // حواله‌های باقیمانده
-                    }.thenBy { it.shipName }
-                        .thenBy { it.loadingWarehouse }
-                ),
+                items = filteredQuotas,
                 key = { "${it.loadingQuotaNumber}|${it.shipName}|${it.loadingWarehouse}|${it.shippingCompany}|${it.cargoType}" }
             ) { quota ->
                 FlatQuotaCard(
