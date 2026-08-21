@@ -8,13 +8,7 @@ namespace App\Tests\Unit\Services;
 use App\Services\PermissionService;
 use PHPUnit\Framework\TestCase;
 
-/**
- * PermissionService::PERMISSIONS_FILE یک private const مبتنی بر __DIR__ است
- * (نه پارامتر قابل تزریق)، پس این تست‌ها مستقیماً روی config/permissions.json
- * واقعی اجرا می‌شوند — یک تست integration-محور برای منطق fallback نقش→کاربر،
- * نه mock کامل. APCu در محیط تست فعال نیست، پس MicroCache::remember هر بار
- * واقعاً فایل را می‌خواند (نتیجه بین تست‌ها cache نمی‌شود).
- */
+// تست‌های integration-محور روی فایل واقعی config/permissions.json برای منطق fallback نقش به کاربر
 final class PermissionServiceTest extends TestCase {
     private PermissionService $service;
     /** @var array<string, mixed> */
@@ -69,9 +63,7 @@ final class PermissionServiceTest extends TestCase {
     }
 
     public function testPerUserOverrideTakesPrecedenceOverRolePermissions(): void {
-        // config فعلی users را خالی نگه می‌دارد؛ این تست مستقیماً منطق
-        // اولویت‌بندی getUserPermissions را با override موقت داده بررسی
-        // می‌کند تا وابسته به محتوای فعلی فایل نباشد.
+        // اولویت‌بندی override کاربر روی مجوزهای نقش با داده‌ی موقت بررسی می‌شود.
         $reflection = new \ReflectionClass(PermissionService::class);
         $file = $reflection->getConstant('PERMISSIONS_FILE');
         $original = file_get_contents($file);
@@ -81,8 +73,7 @@ final class PermissionServiceTest extends TestCase {
             $withUserOverride['users']['custom_user'] = ['manage_users' => true];
             file_put_contents($file, json_encode($withUserOverride));
 
-            // MicroCache::remember فقط وقتی apcu فعال باشد کش می‌کند؛ این
-            // محیط apcu ندارد، پس نیازی به forget کردن کش نیست.
+            // apcu در این محیط فعال نیست، پس نیازی به forget کردن کش نیست.
             $service = new PermissionService();
             $this->assertTrue($service->hasPermission('custom_user', 'operator', 'manage_users'));
 

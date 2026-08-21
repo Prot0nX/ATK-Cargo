@@ -7,11 +7,7 @@ namespace App\Exceptions;
 
 use Exception;
 
-/**
- * زمانی پرتاب می‌شود که دو درخواست هم‌زمان روی همان حواله تداخل کرده باشند
- * (مثلاً هر دو تلاش کرده‌اند رکورد «ورود» را به «خروج» ببرند، یا هر دو یک
- * حوالهٔ تازه با کلید یکسان درج کرده‌اند). کد HTTP پیش‌فرض 409 است.
- */
+// زمانی پرتاب می‌شود که دو درخواست هم‌زمان روی همان حواله تداخل کرده باشند؛ کد پیش‌فرض 409
 class ConflictException extends ApiException {
     public function __construct(string $message, ?Exception $previous = null) {
         parent::__construct($message, 409, null, $previous);

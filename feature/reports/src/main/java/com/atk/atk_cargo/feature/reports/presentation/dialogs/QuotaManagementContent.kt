@@ -54,11 +54,7 @@ import androidx.compose.ui.window.Dialog
 import com.atk.atk_cargo.data.model.QuotaItem
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 
-// محتوای بدنه‌ی دیالوگ «مدیریت کوتاژها» (تب‌ها/فیلتر/مرتب‌سازی/لیست کشتی‌ها) —
-// از QuotaManagementDialog.kt به این فایل منتقل شد (DEEP_CODE_AUDIT.md
-// #Phase3.7، شکستن God Composable). پوسته‌ی دیالوگ (Dialog+Header) و رنگ‌های
-// Quota* هم‌چنان در QuotaManagementDialog.kt هستند؛ هم‌پکیج است، نیازی به
-// import اضافه نیست.
+// بدنه‌ی دیالوگ مدیریت کوتاژها (تب/فیلتر/مرتب‌سازی/لیست)، منتقل‌شده از QuotaManagementDialog.kt (شکستن God Composable)
 
 enum class SortType {
     NAME_ASC, NAME_DESC,

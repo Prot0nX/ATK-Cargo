@@ -32,9 +32,7 @@ class AuthController {
         $this->logger = Logger::getInstance();
     }
 
-    /**
-     * ورود کاربر و احراز هویت (check_Auth.php)
-     */
+    // ورود کاربر و احراز هویت (check_Auth.php)
     public function login(): void {
         if (!$this->request->isPost()) {
             Response::error('روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید.', 405);
@@ -62,9 +60,7 @@ class AuthController {
 
         $ipAddress = $this->request->getClientIp();
 
-        // قفل تلاش‌های ناموفق (username+IP) — پیش از این فقط rate-limit عمومی
-        // پروکسی (۶۰ درخواست/دقیقه به‌ازای IP) وجود داشت که با چرخش IP دور زده
-        // می‌شد و عملاً حمله‌ی brute-force را محدود نمی‌کرد (S-06).
+        // قفل تلاش‌های ناموفق برای هر کاربر و IP جهت جلوگیری از brute-force (S-06)
         if ($this->loginAttemptLimiter->isLocked($username, $ipAddress)) {
             Response::json([
                 'success' => false,
@@ -109,8 +105,7 @@ class AuthController {
             ], 200);
         }
 
-        // مدیریت جلسه ($ipAddress پیش‌تر برای گیت rate-limit محاسبه شده)
-        // فراخوانی سرویس برای ایجاد یا به‌روزرسانی جلسه موبایل
+        // ایجاد یا به‌روزرسانی جلسه‌ی موبایل کاربر
         $sessionResult = $this->sessionService->createMobileSession(
             $username,
             $deviceId,
@@ -122,9 +117,7 @@ class AuthController {
         );
 
         if (!$sessionResult['success']) {
-            // خطا به دلیل ورود همزمان از دستگاه دیگر
-            // کد 409 برگردانده می‌شود تا کلاینت اندروید بتواند از مسیر اختصاصی
-            // LoginResult.ConflictSession استفاده کند (مطابق قرارداد قبلی API)
+            // خطای ورود همزمان از دستگاه دیگر؛ کد 409 برای مسیر ConflictSession در اندروید
             Response::json([
                 'success' => false,
                 'message' => $sessionResult['message'],
@@ -132,9 +125,7 @@ class AuthController {
             ], 409);
         }
 
-        // ورود موفق. session_token همچنان برای سازگاری با نصب‌های فعلی اپ
-        // فرستاده می‌شود (همان access token کوتاه‌مدت جدید است)؛ فیلدهای جدید
-        // (I-05) برای نسخه‌ای از اپ که هنوز منتشر نشده اضافه شده‌اند.
+        // ورود موفق؛ session_token برای سازگاری با نسخه‌های قدیمی اپ حفظ شده است
         Response::json([
             'success' => true,
             'message' => 'ورود موفقیت‌آمیز بود',
@@ -147,10 +138,7 @@ class AuthController {
         ]);
     }
 
-    /**
-     * تمدید access token با استفاده از refresh token — فقط روی Router v2
-     * (`/api/v2/auth/refresh`) در دسترس است، نه protected_proxy.php (I-05).
-     */
+    // تمدید access token با استفاده از refresh token (فقط Router v2)
     public function refresh(): void {
         if (!$this->request->isPost()) {
             Response::error('روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید.', 405);
@@ -169,12 +157,7 @@ class AuthController {
         $refreshToken = (string)$refreshToken; // مقایسه‌ی دقیق با hash_equals؛ نباید توسط sanitize تغییر کند
         $ipAddress = $this->request->getClientIp();
 
-        // Router v2 برخلاف protected_proxy.php (v1) هیچ rate-limit عمومی‌ای
-        // ندارد؛ چون این endpoint بدون گیت auth است (نمی‌تواند بدون auth باشد
-        // چون دقیقاً برای توکن منقضی صدا زده می‌شود)، طبق تصمیم طراحی همان
-        // الگوی قفل ۵ تلاش/۱۵ دقیقه‌ی LoginAttemptLimiter (username+IP) اینجا
-        // هم استفاده می‌شود — نه برای برute-force عملی (حدس یک توکن ۲۵۶ بیتی
-        // غیرممکن است)، بلکه به‌عنوان لایه‌ی دوم در برابر اسپم/سوءاستفاده.
+        // اعمال همان قفل تلاش ناموفق به‌عنوان لایه‌ی دوم در برابر اسپم/سوءاستفاده
         if ($this->loginAttemptLimiter->isLocked($username, $ipAddress)) {
             Response::error('تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر تلاش کنید.', 429);
         }
@@ -198,9 +181,7 @@ class AuthController {
         ]);
     }
 
-    /**
-     * بررسی وضعیت نشست کاربر (check_session.php)
-     */
+    // بررسی وضعیت نشست کاربر (check_session.php)
     public function checkSession(): void {
         if (!$this->request->isPost()) {
             Response::error('روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید.', 405);
@@ -230,9 +211,7 @@ class AuthController {
             ], 200); // 200 برای پایداری اندروید
         }
 
-        // اعتبارسنجی با توکن نشست (نه فقط username+deviceId که هیچ‌کدام سرّی
-        // نیستند) — همان گیت isValidToken که AuthenticatesRequests برای سایر
-        // APIهای تجاری استفاده می‌کند؛ بدون توکن معتبر، نشست نامعتبر است (C-5)
+        // اعتبارسنجی نشست با توکن معتبر، نه صرفاً username و deviceId (C-5)
         $isActive = ($deviceId && $sessionToken)
             ? $this->sessionService->isValidToken($username, $deviceId, $sessionToken)
             : false;
@@ -252,9 +231,7 @@ class AuthController {
         }
     }
 
-    /**
-     * خروج کاربر از سیستم (check_logout.php)
-     */
+    // خروج کاربر از سیستم (check_logout.php)
     public function logout(): void {
         if (!$this->request->isPost()) {
             Response::error('روش درخواست مجاز نیست. لطفاً از روش POST استفاده کنید.', 405);
@@ -270,13 +247,7 @@ class AuthController {
         $username = InputValidator::sanitize((string)$username);
         $deviceId = $deviceId ? InputValidator::sanitize((string)$deviceId) : null;
 
-        // بدون این بررسی، هر کلاینت ناشناس فقط با دانستن username (و
-        // اختیاری deviceId) می‌توانست نشست هر کاربر دیگری را غیرفعال کند —
-        // یک DoS بدون نیاز به احراز هویت (DEEP_CODE_AUDIT.md #Phase1.8).
-        // توکن از هدر X-Session-Token خوانده می‌شود، نه از بدنه — هم‌راستا
-        // با بقیه‌ی endpointهای احرازشده (AuthenticatesRequests). پاسخ
-        // موفق عمومی برگردانده می‌شود (نه 401) تا تفاوت پاسخ ابزار شمارش
-        // کاربران/دستگاه‌ها نشود — دقیقاً طبق Recommended Fix گزارش.
+        // بررسی توکن نشست از هدر برای جلوگیری از غیرفعال‌سازی نشست بدون احراز هویت
         $sessionToken = (string)($this->request->getHeader('X-Session-Token') ?? '');
         if (!$deviceId || !$this->sessionService->isValidToken($username, $deviceId, $sessionToken)) {
             Response::json(['success' => true, 'message' => 'خروج انجام شد.']);
@@ -290,9 +261,7 @@ class AuthController {
         ], $result['http_code'] ?? 200);
     }
 
-    /**
-     * خواندن سطوح دسترسی کاربر از فایل permissions.json
-     */
+    // خواندن سطوح دسترسی کاربر از فایل permissions.json
     private function getUserPermissions(string $username, string $userType): array {
         return $this->permissionService->getUserPermissions($username, $userType);
     }

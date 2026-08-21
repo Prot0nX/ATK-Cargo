@@ -4,10 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-/**
- * سیستم رنگ‌های معنایی (Semantic Colors) برای دامنه عملیاتی ATK-Cargo.
- * تمامی رنگ‌های وضعیت صنعتی (ورودی، خروجی، در حال بارگیری، تکمیل، هشدارها و ...) از این سیستم پیروی می‌کنند.
- */
+// سیستم رنگ‌های معنایی برای وضعیت‌های عملیاتی ATK-Cargo (ورودی، خروجی، بارگیری، تکمیل، هشدارها و غیره)
 @Immutable
 data class SemanticColors(
     // وضعیت‌های بارگیری و عملیات کشتیرانی

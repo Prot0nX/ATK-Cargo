@@ -2,10 +2,7 @@ package com.atk.atk_cargo.api
 
 import com.google.gson.annotations.SerializedName
 
-/**
- * مدل داده برای پیام‌های چت
- * این کلاس ساختار داده‌ای برای نمایش و مدیریت پیام‌های چت را تعریف می‌کند
- */
+// مدل داده برای نمایش و مدیریت پیام‌های چت
 data class ChatMessage(
     @SerializedName("id")
     val id: Int,
@@ -38,9 +35,7 @@ data class ChatMessage(
     val updatedAt: String? = null
 )
 
-/**
- * پاسخ API برای دریافت پیام‌ها
- */
+// پاسخ API برای دریافت پیام‌ها
 data class ChatMessagesResponse(
     @SerializedName("success")
     val success: Boolean,
@@ -52,9 +47,7 @@ data class ChatMessagesResponse(
     val count: Int = 0
 )
 
-/**
- * پاسخ API برای ارسال پیام
- */
+// پاسخ API برای ارسال پیام
 data class SendMessageResponse(
     @SerializedName("success")
     val success: Boolean,
@@ -69,9 +62,7 @@ data class SendMessageResponse(
     val messageData: ChatMessage? = null
 )
 
-/**
- * درخواست ارسال پیام
- */
+// درخواست ارسال پیام
 data class SendMessageRequest(
     @SerializedName("action")
     val action: String = "sendMessage",
@@ -83,9 +74,7 @@ data class SendMessageRequest(
     val message: String
 )
 
-/**
- * پاسخ API برای تعداد پیام‌های خوانده نشده
- */
+// پاسخ API برای تعداد پیام‌های خوانده‌نشده
 data class UnreadCountResponse(
     @SerializedName("success")
     val success: Boolean,

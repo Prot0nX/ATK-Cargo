@@ -3,13 +3,7 @@ package com.atk.atk_cargo.domain.model
 import java.text.DecimalFormat
 import kotlin.math.roundToInt
 
-/**
- * وزن تایپ‌شده (کیلوگرم) — جایگزین محاسبات مستقیم روی String خام
- * (DEEP_CODE_AUDIT.md #Primitive Obsession). DTOها همچنان String می‌مانند
- * (سازگاری با سرور)؛ این نوع فقط در نقاط محاسبه (CargoViewModel) استفاده
- * می‌شود تا «رشته‌ی نامعتبر» به‌جای تبدیل بی‌صدا به ۰، صریحاً null شود و
- * قابل لاگ باشد.
- */
+// وزن تایپ‌شده (کیلوگرم) به‌جای محاسبه‌ی مستقیم روی String خام، تا رشته‌ی نامعتبر به‌جای ۰ صریحاً null شود
 @JvmInline
 value class Kilograms(val value: Double) {
     operator fun plus(other: Kilograms): Kilograms = Kilograms(value + other.value)

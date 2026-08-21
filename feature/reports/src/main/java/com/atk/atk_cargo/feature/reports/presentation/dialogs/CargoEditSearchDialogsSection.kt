@@ -91,11 +91,7 @@ import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlinx.coroutines.launch
 
-// این فایل دیالوگ‌های «نتیجه‌ی جستجو» و «تأیید ویرایش حواله» را از SearchDialogs.kt جدا نگه
-// می‌دارد (A1-6، بازسازی ساختاری). SearchResultDialog و CargoEditConfirmDialog کاملاً به هم
-// وابسته‌اند (اولی دومی را صدا می‌زند و کامپوننت‌های نمایش/ویرایش اطلاعات حواله را هم مشترک
-// دارند)، پس با هم به این فایل منتقل شدند. به SearchType (تعریف‌شده در SearchDialogs.kt، همان
-// پکیج) نیاز دارد که چون هم‌پکیج است بدون import در دسترس است.
+// دیالوگ‌های نتیجه‌ی جستجو و تأیید ویرایش حواله، جدا از SearchDialogs.kt (A1-6) اما به هم وابسته و هم‌پکیج
 
 @Composable
 fun SearchResultDialog(

@@ -2,12 +2,7 @@ package com.atk.atk_cargo.domain.model
 
 import com.atk.atk_cargo.data.model.InitialInfo
 
-/**
- * مدل دامنه/UI اطلاعات کوتاژ فعال — از InitialInfo (DTO شبکه، data/model/CargoModels.kt)
- * جدا شده (DEEP_CODE_AUDIT.md #Phase3.6). InitialInfo همچنان هم برای پاسخ سرور
- * (CargoInfoResponse) و هم برای انتقال JSON بین صفحات (Gson روی nav-arg) استفاده
- * می‌شود؛ QuotaInfo فقط در CargoUiState و کد UI/اعتبارسنجی مصرف می‌شود.
- */
+// مدل دامنه/UI اطلاعات کوتاژ فعال، جدا از DTO شبکه‌ی InitialInfo و مخصوص CargoUiState و اعتبارسنجی
 data class QuotaInfo(
     val shipName: String,
     val loadingWarehouse: String,

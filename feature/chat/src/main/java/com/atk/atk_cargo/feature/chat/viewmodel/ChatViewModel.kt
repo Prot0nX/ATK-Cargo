@@ -159,13 +159,8 @@ class ChatViewModel(
             val currentMessages = messages.value
             if (currentMessages.isEmpty()) return@launch
 
-            val oldestDetails = currentMessages.lastOrNull() // چون ترتیب DESC است، یا ASC? 
-            // در DAO: ORDER BY id DESC (جدیدترین اول)
-            // پس قدیمی‌ترین پیام در انتهای لیست است 
-            // اما در UI ما معمولا ReverseLayout داریم یا لیست را معکوس نمایش می‌دهیم.
-            // بیایید فرض کنیم لیست DAO نزولی است (ID: 100, 99, 98...)
-            // پس قدیمی‌ترین ID، آخرین آیتم لیست است.
-            
+            // ترتیب DAO نزولی است (جدیدترین اول)، پس قدیمی‌ترین پیام آخرین آیتم لیست است
+
             val oldestId = currentMessages.minOfOrNull { it.id } ?: return@launch
 
             try {

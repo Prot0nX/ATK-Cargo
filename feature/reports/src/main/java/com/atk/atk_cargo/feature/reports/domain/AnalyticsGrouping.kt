@@ -3,15 +3,7 @@ package com.atk.atk_cargo.feature.reports.domain
 import com.atk.atk_cargo.data.model.QuotaCompletionData
 import com.atk.atk_cargo.data.model.QuotaGroupingMode
 
-/**
- * C-2/C-3 (گزارش تحلیل جامع عملیات): منطق گروه‌بندی/مرتب‌سازی و ساخت کلید
- * ترکیبی "${shipName}|${cargoType}|${warehouse}" قبلاً در سه جای مستقل
- * QuotaAnalysisSection.kt (اشتراک‌گذاری کل، نمایش لیست، اشتراک‌گذاری یک گروه)
- * تکرار شده بود و دوباره در ReportsViewModel با ترتیب متفاوتی از فیلدهای همان
- * کلید (که چون خروجی‌اش هیچ‌جا مصرف نمی‌شد، این ناسازگاری بی‌اثر مانده بود).
- * فیلدهای گروه اینجا مستقیماً به‌صورت تایپ‌شده نگه داشته می‌شوند، نه یک رشته
- * "|"-جدا که هر مصرف‌کننده مجبور بود split کند.
- */
+// یکپارچه‌سازی منطق تکراری گروه‌بندی/کلیدسازی کوتاژها؛ فیلدها تایپ‌شده نگه داشته می‌شوند نه رشته‌ی split-شدنی
 data class QuotaGroup(
     val mode: QuotaGroupingMode,
     val ship: String? = null,
@@ -42,12 +34,7 @@ data class QuotaGroup(
 
 private const val UNKNOWN_LABEL = "نامشخص"
 
-/**
- * گروه‌بندی و مرتب‌سازی کوتاژهای فعال بر اساس حالت انتخاب‌شده. برای
- * BY_CARGO_OWNER، گروه‌ها ابتدا بر اساس تعداد کوتاژ فعال همان انبار (نه گروه)
- * مرتب می‌شوند تا انبارهای پرکارتر بالاتر بیایند — دقیقاً همان قاعده‌ای که
- * قبلاً در QuotaAnalysisSection.kt پیاده بود.
- */
+// گروه‌بندی و مرتب‌سازی کوتاژهای فعال؛ در حالت BY_CARGO_OWNER انبارهای پرکارتر بالاتر می‌آیند
 fun buildQuotaGroups(
     quotas: List<QuotaCompletionData>,
     mode: QuotaGroupingMode

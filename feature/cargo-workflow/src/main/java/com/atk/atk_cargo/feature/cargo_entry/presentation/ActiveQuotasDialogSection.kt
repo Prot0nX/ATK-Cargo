@@ -59,9 +59,7 @@ import com.atk.atk_cargo.data.model.RealTimeLoadingData
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-// این فایل بخش «دیالوگ کوتاژهای فعال» را از SelectInfoScreen.kt جدا نگه می‌دارد (A1-6، بازسازی ساختاری).
-// وابسته به قطعات internal تعریف‌شده در SelectInfoScreen.kt (پالت رنگ Quotas*، reportsRepository،
-// FilterChip، GroupedShipsContent، FlatQuotasContent) که چون هم‌پکیج هستند نیازی به import ندارند.
+// بخش دیالوگ «کوتاژهای فعال» که از SelectInfoScreen.kt جدا شده و به قطعات internal هم‌پکیج آن وابسته است
 
 @Composable
 internal fun ActiveQuotasDialog(

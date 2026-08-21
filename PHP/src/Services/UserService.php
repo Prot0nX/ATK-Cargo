@@ -15,22 +15,7 @@ class UserService {
         $this->userRepository = new UserRepository();
     }
 
-    /**
-     * بررسی اعتبار کاربر و احراز هویت
-     *
-     * استراتژی هشینگ دومسیره (DEEP_CODE_AUDIT.md #Phase3.11؛ حالت سوم/
-     * legacy در Phase1 #4 حذف شد — همه‌ی کاربران production با
-     * scripts/migrate_legacy_passwords_to_bcrypt.php به bcrypt مهاجرت
-     * کردند، تأیید ۲۰۲۶-۰۸-۲۰: ۰ از ۳۸ کاربر غیر-bcrypt باقی مانده):
-     * کلاینت از این مرحله به بعد رمز خام (نه SHA-256 آن) می‌فرستد، اما تا
-     * وقتی همه‌ی دستگاه‌های یک کاربر به نسخه‌ی جدید آپدیت نشده‌اند، دستگاه‌های
-     * قدیمی همچنان SHA-256(رمز) می‌فرستند — پس هر دو باید امتحان شوند:
-     * ۱. bcrypt(رمز خام) — طرح جدید.
-     * ۲. bcrypt(SHA-256(رمز)) — طرح قبلی (کلاینت هنوز آپدیت نشده)؛ در موفقیت،
-     *    هش دیتابیس بی‌صدا به حالت ۱ ارتقا می‌یابد (Silent Migration) — از آن
-     *    پس فقط دستگاه‌های آپدیت‌شده‌ی همان کاربر می‌توانند وارد شوند تا
-     *    دوباره یک لاگین موفق با کلاینت جدید آن را عبور دهد.
-     */
+    // بررسی اعتبار کاربر با استراتژی هشینگ دومسیره: هم bcrypt(رمز خام) و هم bcrypt(SHA-256(رمز)) برای دستگاه‌های قدیمی امتحان می‌شود و هش با موفقیت بی‌صدا ارتقا می‌یابد
     public function verifyCredentials(string $username, string $password): ?array {
         $user = $this->userRepository->getByUsername($username);
         if (!$user) {
@@ -60,10 +45,7 @@ class UserService {
         return $this->userRepository->getAll();
     }
 
-    /**
-     * پروفایل خودِ کاربر احرازشده — بدون افشای کل فهرست کاربران/نقش‌ها به
-     * کاربرانی که مجوز manage_users ندارند (Phase 1.3 / DEEP_CODE_AUDIT.md).
-     */
+    // پروفایل خودِ کاربر احرازشده، بدون افشای کل فهرست کاربران به کاربرانی که مجوز manage_users ندارند
     public function getSelfProfile(string $username): ?array {
         $user = $this->userRepository->getByUsername($username);
         if (!$user) {
@@ -73,20 +55,12 @@ class UserService {
         return $user;
     }
 
-    /**
-     * فهرست کاربران admin — فقط id/username/fullName/userType، برای پرکردن
-     * مقصدهای «چت با مدیر» که باید برای هر کاربر احرازشده در دسترس باشد.
-     */
+    // فهرست کاربران admin، برای پرکردن مقصدهای «چت با مدیر» در دسترس هر کاربر احرازشده
     public function getAdminUsers(): array {
         return $this->userRepository->getByUserType('admin');
     }
 
-    /**
-     * دریافت تمامی کاربران به همراه وضعیت آنلاین و آخرین فعالیت.
-     *
-     * منطق آنلاین بودن: اگر `last_activity` در ۵ دقیقه گذشته ثبت شده باشد،
-     * کاربر آنلاین در نظر گرفته می‌شود (هماهنگ با OnlineUsersController).
-     */
+    // دریافت تمامی کاربران به همراه وضعیت آنلاین (فعالیت در ۵ دقیقه اخیر) و آخرین فعالیت
     public function getAllUsersWithStatus(): array {
         $users = $this->userRepository->getAll();
         $sessionRepo = new \App\Repositories\SessionRepository();
@@ -151,8 +125,7 @@ class UserService {
             throw new ApiException('این نام کاربری قبلاً ثبت شده است', 400);
         }
 
-        // ===== ذخیره پسورد با bcrypt برای کاربران جدید =====
-        // پسورد ورودی در زمان ایجاد از پنل ادمین به‌عنوان متن خام دریافت می‌شود
+        // ذخیره پسورد با bcrypt؛ ورودی از پنل ادمین به‌صورت متن خام دریافت می‌شود
         $hashedPassword = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
 
         $userId = $this->userRepository->create([

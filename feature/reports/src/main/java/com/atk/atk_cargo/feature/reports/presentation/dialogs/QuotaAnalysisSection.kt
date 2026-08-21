@@ -87,17 +87,9 @@ import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlin.math.roundToInt
 
-// این فایل بخش «تحلیل کوتاژها» (QuotaAnalysis) و تمام کامپوننت‌های وابسته‌اش را از
-// ComprehensiveAnalyticsDialog.kt جدا نگه می‌دارد (A1-6، بازسازی ساختاری). وابسته به پالت
-// رنگ internal و EmptyStateCard تعریف‌شده در ComprehensiveAnalyticsDialog.kt که چون
-// هم‌پکیج هستند نیازی به import ندارند.
+// بخش «تحلیل کوتاژها»، جدا از ComprehensiveAnalyticsDialog.kt (A1-6) اما هم‌پکیج و بدون import اضافه
 
-/**
- * A-5: هر دو نقطه اشتراک‌گذاری (دکمه نوار ابزار و long-press روی کارت گروه)
- * قبلاً مستقیم و بدون try/catch به context.startActivity می‌رفتند؛ برخلاف
- * الگوی اشتراک‌گذاری PDF در ReportsViewModel.kt که ActivityNotFoundException
- * را می‌گیرد. این تابع مشترک آن رفتار را برای هر دو نقطه یکسان می‌کند.
- */
+// تابع مشترک برای گرفتن خطای ActivityNotFoundException در هر دو نقطه اشتراک‌گذاری، هم‌راستا با الگوی PDF در ReportsViewModel.kt
 private fun shareAnalyticsText(context: Context, text: String) {
     val sendIntent = Intent().apply {
         action = Intent.ACTION_SEND
@@ -191,15 +183,11 @@ fun QuotaAnalysis(
 
     var expandedGroup by remember { mutableStateOf<String?>(null) }
     var selectedOwnerQuotas by remember { mutableStateOf<Pair<String, List<QuotaCompletionData>>?>(null) }
-    // A-5: اشتراک‌گذاری کل مثل اشتراک‌گذاری تک‌گروه حالا به تأیید کاربر نیاز
-    // دارد؛ قبلاً این دکمه بی‌درنگ و بدون تأیید chooser سیستم را باز می‌کرد.
+    // اشتراک‌گذاری کل مثل اشتراک‌گذاری تک‌گروه حالا نیاز به تأیید کاربر دارد، نه بازشدن بی‌درنگ chooser
     var pendingAllShareText by remember { mutableStateOf<String?>(null) }
     val groupingMode by viewModel.groupingMode.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-    // C-1/C-2 (گزارش تحلیل جامع عملیات): فیلتر «فعال در این روز کاری» و
-    // گروه‌بندی/مرتب‌سازی قبلاً اینجا هم دوباره (و با کلید متفاوت از نسخه
-    // مرده‌ی ViewModel) انجام می‌شد؛ حالا هر دو یک‌بار در
-    // ReportsViewModel.analyticsGroups محاسبه شده‌اند.
+    // فیلتر و گروه‌بندی/مرتب‌سازی دیگر اینجا تکرار نمی‌شود؛ همه در ReportsViewModel.analyticsGroups محاسبه شده است
     val groups by viewModel.analyticsGroups.collectAsStateWithLifecycle()
 
     Column(
@@ -224,9 +212,7 @@ fun QuotaAnalysis(
 
             IconButton(
                 onClick = {
-                    // C-2: قبلاً همین گروه‌بندی/مرتب‌سازی و منطق ساخت عنوان دوباره
-                    // اینجا تکرار می‌شد؛ حالا از groups (که برای نمایش لیست هم
-                    // استفاده می‌شود) و QuotaGroup.shareTitle مشترک است.
+                    // گروه‌بندی/مرتب‌سازی و عنوان دیگر اینجا تکرار نمی‌شود؛ از groups و QuotaGroup.shareTitle مشترک استفاده می‌شود
                     val shareText = buildString {
                         val modeStr = when (groupingMode) {
                             QuotaGroupingMode.BY_CARGO_OWNER -> "صاحب کالا"
@@ -431,9 +417,7 @@ private fun AnalyticsQuotaGroupExpansionPanel(
     val totalWeight = group.totalWeight
     val totalVouchers = group.totalVouchers
 
-    // A-5: قبلاً یک long-press (که می‌تواند ناخواسته پیش بیاید) بی‌درنگ chooser
-    // اشتراک‌گذاری داده تجاری را باز می‌کرد؛ حالا فقط متن را آماده و منتظر
-    // تأیید کاربر می‌ماند.
+    // به‌جای بازکردن بی‌درنگ chooser اشتراک‌گذاری با long-press ناخواسته، فقط متن آماده و منتظر تأیید کاربر می‌ماند
     var pendingShareText by remember { mutableStateOf<String?>(null) }
 
     val groupIcon = when (group.mode) {
@@ -464,8 +448,7 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                     .combinedClickable(
                         onClick = { onExpandChange(!isExpanded) },
                         onLongClick = {
-                            // C-2/C-3: عنوان از group.shareTitle می‌آید؛ دیگر split("|")
-                            // یا بازسازی جداگانه groupTitle لازم نیست.
+                            // عنوان از group.shareTitle می‌آید؛ دیگر نیازی به split("|") یا بازسازی groupTitle نیست
                             val shareText = buildString {
                                 appendLine("🔹 اطلاعات ${group.shareTitle}")
                                 appendLine("   تعداد کوتاژ: ${quotas.size} | تعداد حواله: $totalVouchers | تناژ کل: ${formatNumber(totalWeight.roundToInt())} تن")
@@ -505,8 +488,7 @@ private fun AnalyticsQuotaGroupExpansionPanel(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // C-3: دیگر split("|") روی یک کلید رشته‌ای نیست؛ فیلدهای تایپ‌شده
-                        // group.ship/cargoType/warehouse/carrier مستقیم خوانده می‌شوند.
+                        // دیگر split("|") روی کلید رشته‌ای نیست؛ فیلدهای تایپ‌شده group.ship/cargoType/warehouse/carrier مستقیم خوانده می‌شوند
                         when (group.mode) {
                             QuotaGroupingMode.BY_CARGO_OWNER -> {
                                 Text(
@@ -1039,11 +1021,7 @@ private fun OwnerQuotasDialog(
                     ) {
                         items(
                             items = quotas,
-                            // B-5: loadingQuotaNumber + shipName به‌تنهایی یکتا نیست — همه
-                            // آیتم‌های این دیالوگ از یک گروه (shipName/cargoType/warehouse
-                            // یکسان) هستند، پس دو ردیف با کوتاژ یکسان و shippingCompany
-                            // متفاوت (مجاز طبق GROUP BY سرور) به کلید تکراری و کرش
-                            // LazyColumn منجر می‌شد.
+                            // loadingQuotaNumber + shipName به‌تنهایی یکتا نیست؛ کلید ترکیبی لازم است تا از کرش LazyColumn با کلید تکراری جلوگیری شود
                             key = { quota ->
                                 "${quota.loadingQuotaNumber}_${quota.shipName}_${quota.shippingCompany}_" +
                                     "${quota.warehouse}_${quota.cargoType}"

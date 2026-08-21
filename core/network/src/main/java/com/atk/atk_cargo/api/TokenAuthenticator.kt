@@ -10,15 +10,7 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.Route
 
-/**
- * تمدید خودکار access token با refresh token (I-05) — طبق طراحی
- * PHP/docs/refresh_token_design.md، بخش ۴.۲. منطق واقعی HTTP در
- * TokenRefresher مشترک است (همان‌جا هم توسط SessionValidator در startup استفاده می‌شود).
- *
- * فقط وقتی وارد عمل می‌شود که پاسخ ۴۰۱ صریحاً code="access_token_expired"
- * داشته باشد (نه هر ۴۰۱ دلخواه — که ممکن است «کل نشست نامعتبر است» باشد و
- * تلاش برای refresh حتماً دوباره شکست می‌خورد).
- */
+// تمدید خودکار access token با refresh token روی پاسخ ۴۰۱ با code="access_token_expired"؛ منطق واقعی HTTP در TokenRefresher مشترک است
 class TokenAuthenticator(
     private val baseUrl: String,
     private val tokenStore: TokenStore
@@ -27,9 +19,7 @@ class TokenAuthenticator(
     private val mutex = Mutex()
 
     override fun authenticate(route: Route?, response: Response): Request? {
-        // اگر همان درخواست قبلاً یک‌بار retry شده (یعنی access token جدید هم
-        // ۴۰۱ گرفته)، دیگر تلاش نکن — یا refresh endpoint خودش مشکل دارد یا
-        // نشست واقعاً باطل شده (جلوگیری از حلقه‌ی بی‌نهایت).
+        // اگر همان درخواست قبلاً یک‌بار retry شده، دیگر تلاش نکن تا حلقه‌ی بی‌نهایت پیش نیاید
         if (responseCount(response) >= 2) {
             return null
         }
@@ -42,10 +32,7 @@ class TokenAuthenticator(
 
         val newAccessToken = runBlocking {
             mutex.withLock {
-                // اگر یک درخواست موازی دیگر در فاصله‌ی صف‌ماندن روی این قفل
-                // قبلاً همین رفرش را انجام داده باشد (AuthSession.sessionToken
-                // دیگر با توکنی که این درخواست با آن شکست خورد یکی نیست)،
-                // نیازی به رفرش دوباره (و rotate دوباره‌ی refresh token) نیست.
+                // اگر یک درخواست موازی دیگر قبلاً همین رفرش را انجام داده، نیازی به رفرش دوباره نیست
                 val current = AuthSession.sessionToken
                 if (current.isNotEmpty() && current != failedToken) {
                     current

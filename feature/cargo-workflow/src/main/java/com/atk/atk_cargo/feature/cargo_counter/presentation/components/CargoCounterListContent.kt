@@ -60,10 +60,7 @@ import com.atk.atk_cargo.data.model.ActiveShipInfo
 import com.atk.atk_cargo.feature.cargo_counter.presentation.ShipFilterTab
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 
-// سلکتور تب و سلسله‌مراتب لیست کشتی/انبار/کوتاژ صفحه‌ی شمارشگر بار — از
-// CargoCounterComponents.kt به این فایل منتقل شد (DEEP_CODE_AUDIT.md
-// #Phase3.7، شکستن God Composable). StatusSnackbar و AnimatedHeader در
-// CargoCounterComponents.kt ماندند؛ هم‌پکیج‌اند، نیازی به import اضافه نیست.
+// سلکتور تب و لیست کشتی/انبار/کوتاژ از CargoCounterComponents.kt به این فایل منتقل شد (هم‌پکیج، بدون نیاز به import)
 
 private val CargoCounterTabAccent: Color
     @Composable get() = MaterialTheme.colorScheme.primary

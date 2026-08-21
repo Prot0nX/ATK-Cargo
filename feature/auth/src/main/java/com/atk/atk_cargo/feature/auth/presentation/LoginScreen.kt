@@ -281,9 +281,7 @@ private fun ExpandedLoginLayout(
     }
 }
 
-/**
- * کارت برندینگ سبک با آیکون لوگو، نام سامانه و توضیح کوتاه (مطابق طراحی جدید).
- */
+// کارت برندینگ سبک با آیکون لوگو، نام سامانه و توضیح کوتاه
 @Composable
 private fun LoginBrandingCard() {
     Card(

@@ -6,9 +6,7 @@ declare(strict_types=1);
 namespace App\Core;
 
 class Response {
-    /**
-     * ارسال هدرهای امنیتی استاندارد سیستم
-     */
+    // ارسال هدرهای امنیتی استاندارد سیستم
     public static function sendSecurityHeaders(): void {
         if (headers_sent()) {
             return;
@@ -20,13 +18,7 @@ class Response {
         header('Content-Security-Policy: default-src \'self\'');
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
 
-        // برخی endpointها (مثل AppApiController::sendCacheableJsonResponse،
-        // AnalyticsController::sendCacheableAnalyticsResponse) عمداً قبل از
-        // فراخوانی json()/success() یک Cache-Control با max-age مجاز
-        // (ETag/private) تنظیم می‌کنند تا OkHttp/CDN بتواند پاسخ را کش کند؛
-        // اگر اینجا همیشه no-store ست شود، آن هدر بی‌سروصدا بازنویسی و کل
-        // مکانیزم کش/ETag آن endpointها خنثی می‌شد. پس فقط وقتی هیچ
-        // Cache-Control از قبل صف نشده، مقدار پیش‌فرض no-store اعمال می‌شود.
+        // اگر endpoint از قبل Cache-Control خودش را ست کرده، اینجا بازنویسی نمی‌شود
         if (!self::hasHeader('Cache-Control')) {
             header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
             header('Pragma: no-cache');
@@ -42,25 +34,17 @@ class Response {
         return false;
     }
 
-    /**
-     * ارسال پاسخ JSON و خروج از برنامه
-     */
+    // ارسال پاسخ JSON و خروج از برنامه
     public static function json($data, int $httpCode = 200): void {
         self::sendSecurityHeaders();
         http_response_code($httpCode);
 
-        // فشرده‌سازی PHP-level حذف شد (P-06/P-08): .htaccess از قبل
-        // mod_deflate را برای application/json فعال کرده، پس فشرده‌سازی
-        // دوباره‌ی اینجا فقط هزینه‌ی CPU اضافه بود — علاوه بر این، چون بعد از
-        // http_response_code()/header() فراخوانی می‌شد، در برخی پیکربندی‌های
-        // SAPI اصلاً gzip واقعی اعمال نمی‌شد و فقط هزینه‌ی بافر می‌ماند.
+        // فشرده‌سازی PHP-level حذف شد؛ mod_deflate در .htaccess همین کار را انجام می‌دهد
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         exit;
     }
 
-    /**
-     * ارسال پاسخ خطای استاندارد
-     */
+    // ارسال پاسخ خطای استاندارد
     public static function error(string $message, int $httpCode = 400, ?array $details = null): void {
         $response = [
             'success' => false,
@@ -74,9 +58,7 @@ class Response {
         self::json($response, $httpCode);
     }
 
-    /**
-     * ارسال پاسخ موفقیت استاندارد
-     */
+    // ارسال پاسخ موفقیت استاندارد
     public static function success(string $message = '', ?array $data = null, int $httpCode = 200): void {
         $response = [
             'success' => true

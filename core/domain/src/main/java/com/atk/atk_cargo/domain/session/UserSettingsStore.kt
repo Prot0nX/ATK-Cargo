@@ -2,12 +2,7 @@ package com.atk.atk_cargo.domain.session
 
 import kotlinx.coroutines.flow.Flow
 
-/**
- * انتزاع نازک روی UserPreferencesManager برای تنظیمات تم/اعلان — همان الگوی
- * UserPreferencesStore (Phase4 #29). home (تنها مصرف‌کننده‌ی themeColor/
- * hardwareScore/notification flags) نمی‌تواند به UserPreferencesManager
- * concrete وابسته شود.
- */
+// انتزاع نازک روی UserPreferencesManager برای تنظیمات تم/اعلان تا home به کلاس concrete وابسته نشود
 interface UserSettingsStore {
     val themeColor: Flow<Long>
     val hardwareScore: Flow<Int>

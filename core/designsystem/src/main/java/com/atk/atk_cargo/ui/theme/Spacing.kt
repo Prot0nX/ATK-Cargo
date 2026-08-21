@@ -5,10 +5,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * توکن‌های استاندارد فاصله‌گذاری (Spacing Tokens) مطابق با مقیاس Material Design 3.
- * تمامی فاصله‌ها، پدینگ‌ها و مارجین‌های برنامه‌ باید از این مقادیر استفاده کنند.
- */
+// توکن‌های استاندارد فاصله‌گذاری مطابق مقیاس Material Design 3؛ مبنای تمام فاصله‌ها، پدینگ‌ها و مارجین‌های برنامه
 @Immutable
 data class Spacing(
     val none: Dp = 0.dp,

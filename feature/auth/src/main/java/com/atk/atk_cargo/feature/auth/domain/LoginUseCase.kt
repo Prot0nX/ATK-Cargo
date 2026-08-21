@@ -5,19 +5,11 @@ import com.atk.atk_cargo.feature.auth.data.LoginResult
 
 // ===== TYPES =====
 
-/**
- * Use Case ورود کاربر.
- * نقطه تماس یکتا بین ViewModel و لایه داده برای عملیات Login.
- * تمام منطق ارسال درخواست، هشینگ و ذخیره‌سازی داخل AuthRepository است.
- */
+// Use Case ورود کاربر؛ نقطه تماس یکتا بین ViewModel و AuthRepository
 class LoginUseCase(
     private val authRepository: AuthRepository
 ) {
-    /**
-     * @param username نام کاربری (تریم‌شده)
-     * @param password رمز عبور خام
-     * @param appVersion نسخه جاری برنامه
-     */
+    // پارامترها: نام کاربری تریم‌شده، رمز خام، نسخه جاری برنامه
     suspend operator fun invoke(
         username: String,
         password: String,

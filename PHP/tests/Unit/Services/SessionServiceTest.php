@@ -11,13 +11,7 @@ use App\Repositories\UserRepository;
 use App\Services\SessionService;
 use PHPUnit\Framework\TestCase;
 
-/**
- * تست‌های واحد تصمیم‌های SessionService (I-05: چرخه‌ی refresh token، تشخیص
- * سرقت/reuse توکن، محدودیت ورود همزمان تک‌دستگاهی). SessionRepository و
- * UserRepository (که هر دو در سازنده‌شان مستقیم به دیتابیس وصل می‌شوند) با
- * PHPUnit mock جایگزین شده‌اند (Phase 3.3 refactor: تزریق اختیاری در سازنده‌ی
- * SessionService) تا این منطق بدون دیتابیس واقعی تست شود.
- */
+// تست‌های واحد تصمیم‌های SessionService (I-05: رفرش توکن، تشخیص reuse، محدودیت تک‌دستگاهی) با repositoryهای mock شده
 final class SessionServiceTest extends TestCase {
     private SessionRepository $sessionRepository;
     private UserRepository $userRepository;
@@ -56,9 +50,7 @@ final class SessionServiceTest extends TestCase {
             'refresh_token_expires_at' => date('Y-m-d H:i:s', time() + 3600),
         ]);
 
-        // I-05: توکنی که با آخرین رفرش توکن صادرشده مطابقت ندارد، به‌عنوان
-        // نشانه‌ی سرقت/reuse در نظر گرفته می‌شود — همه‌ی نشست‌های کاربر باید
-        // باطل شوند، نه فقط این یکی.
+        // I-05: توکن نامنطبق نشانه‌ی reuse است و باید همه‌ی نشست‌های کاربر را باطل کند.
         $this->sessionRepository->expects($this->once())
             ->method('deactivateAllSessions')
             ->with('user1');

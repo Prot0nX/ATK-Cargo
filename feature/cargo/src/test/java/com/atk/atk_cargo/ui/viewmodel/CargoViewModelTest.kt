@@ -21,18 +21,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/**
- * پوشش عمداً محدود به منطقی است که واقعاً بدون دستگاه/امولاتور قابل تست
- * است (DEEP_CODE_REVIEW.md Phase3 #20). چند متد دیگر (submitCargoInfo،
- * confirmCargo، toggleQuotaStatus، و نیمه‌ی «تناژ قابل‌بارگیری» در
- * loadCargoInfoList) مستقیماً `com.atk.atk_cargo.api.RetrofitClient.apiServiceV2`
- * (نه repository تزریق‌شده) را صدا می‌زنند؛ خواندن آن property به
- * `Secrets.getBaseUrl()` (native/JNI) و `System.loadLibrary("secrets")`
- * می‌رسد که در JVM unit test با UnsatisfiedLinkError شکست می‌خورد — یک
- * محدودیت واقعی معماری، نه محدودیت این فایل تست. رفعشان نیازمند همان
- * بازسازی «تزریق apiServiceV2/repository» است که برای فایل‌های دیگر در
- * Phase 2.11 / Phase 3 #18 انجام شد؛ خارج از دامنه‌ی این تغییر ماند.
- */
+// پوشش محدود به منطقی که بدون دستگاه/امولاتور قابل تست است؛ متدهایی که مستقیم apiServiceV2 (نه repository تزریق‌شده) را صدا می‌زنند در JVM با UnsatisfiedLinkError شکست می‌خورند و خارج از دامنه ماندند
 @OptIn(ExperimentalCoroutinesApi::class)
 class CargoViewModelTest {
 
@@ -46,9 +35,7 @@ class CargoViewModelTest {
         Dispatchers.setMain(dispatcher)
         repository = mockk(relaxed = true)
         userPreferencesManager = mockk(relaxed = true)
-        // ioDispatcher = همان StandardTestDispatcher، وگرنه withContext(Dispatchers.IO)
-        // داخل CargoViewModel به یک ترد پس‌زمینه‌ی واقعی می‌رفت که advanceUntilIdle()
-        // نمی‌تواند با آن هماهنگ شود (race شرطی؛ Phase3 #20).
+        // ioDispatcher = همان StandardTestDispatcher، وگرنه withContext(Dispatchers.IO) به ترد پس‌زمینه‌ی واقعی می‌رفت که advanceUntilIdle() با آن هماهنگ نمی‌شود
         viewModel = CargoViewModel(repository, userPreferencesManager, ioDispatcher = dispatcher)
     }
 
@@ -181,9 +168,7 @@ class CargoViewModelTest {
         assertEquals(CargoDialog.None, viewModel.uiState.value.dialog)
     }
 
-    // فیلترسازی جستجو دیگر بخشی از CargoViewModel نیست (DEEP_CODE_REVIEW.md
-    // Phase4 #31) — به یک derived value محلی در CargoDetailsScreen.kt منتقل
-    // شد، پس دیگر اینجا قابل‌تست نیست.
+    // فیلترسازی جستجو دیگر بخشی از CargoViewModel نیست؛ به یک derived value محلی در CargoDetailsScreen.kt منتقل شد و اینجا قابل‌تست نیست
 
     // ===== updateCargoConfirmation (seeded via a real load) =====
 

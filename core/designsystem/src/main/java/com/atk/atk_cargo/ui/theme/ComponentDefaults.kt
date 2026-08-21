@@ -4,9 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * مقادیر پیش‌فرض استاندارد برای کامپوننت‌های رابط کاربر (Component Defaults).
- */
+// مقادیر پیش‌فرض استاندارد برای کامپوننت‌های رابط کاربر
 @Immutable
 object AppComponentDefaults {
     val ButtonHeight: Dp = 48.dp

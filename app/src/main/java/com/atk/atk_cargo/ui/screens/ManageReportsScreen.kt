@@ -162,12 +162,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
     val currentShipName = reportsUiState.selectedShip
     val loadingError = reportsUiState.loadingError
 
-    // A-1 (گزارش تحلیل جامع عملیات): مجوز view_reports قبلاً سمت کلاینت هیچ‌جا
-    // بررسی نمی‌شد، پس دکمه «آمار جامع» به همه کاربران — حتی آن‌هایی که سرور
-    // اکنون با ۴۰۳ ردشان می‌کند — نشان داده می‌شد. userPreferencesManager.permissions
-    // همان Flow ذخیره‌شده‌ی DataStore است که PermissionPoller (در MainScreen)
-    // هر بار تغییر مجوزها را در آن هم ذخیره می‌کند، پس این مقدار حداکثر تا
-    // فاصله‌ی همان polling (۳ دقیقه) به‌روز است.
+    // A-1: مجوز view_reports اکنون سمت کلاینت هم چک می‌شود؛ userPermissions از همان Flow ذخیره‌شده‌ی DataStore می‌آید که PermissionPoller به‌روز می‌کند (حداکثر با تأخیر یک دور polling، ۳ دقیقه)
     val userPermissions by userPreferencesManager.permissions.collectAsStateWithLifecycle(initialValue = emptyMap())
     val canViewReports = userPermissions["view_reports"] == true
 
@@ -189,9 +184,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
                         ShipsList(
                             viewModel = viewModel,
                             onShipSelected = { shipName ->
-                                // نام کشتی از سرور می‌آید و کلاینت روی محتوایش کنترلی
-                                // ندارد؛ بدون encode، نامی حاوی '/'، '?' یا '#' مسیر
-                                // ناوبری را می‌شکند.
+                                // نام کشتی از سرور می‌آید؛ بدون encode، نامی حاوی '/'، '?' یا '#' مسیر ناوبری را می‌شکند
                                 navController.navigate("shipDetails/${Uri.encode(shipName)}") {
                                     launchSingleTop = true
                                 }
@@ -271,9 +264,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
         )
     }
 
-    // دفاع دوم (defense-in-depth): حتی اگر مسیر دیگری بعداً showAnalyticsDialog
-    // را true کند، بدون مجوز کاربر دیالوگ باز نمی‌شود — نه فقط چون دکمه پایین
-    // نمایش داده نمی‌شود.
+    // دفاع دوم (defense-in-depth): بدون مجوز کاربر دیالوگ باز نمی‌شود، حتی اگر مسیر دیگری showAnalyticsDialog را true کند
     ComprehensiveAnalyticsDialog(
         isVisible = showAnalyticsDialog && canViewReports,
         onDismiss = { showAnalyticsDialog = false },

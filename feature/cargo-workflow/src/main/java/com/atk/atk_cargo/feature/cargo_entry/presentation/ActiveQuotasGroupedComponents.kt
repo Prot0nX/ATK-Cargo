@@ -56,12 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.atk.atk_cargo.data.model.ActiveShipInfo
 
-// بخش «نمای گروه‌بندی‌شده بر اساس کشتی» دیالوگ کوتاژهای فعال — از
-// ActiveQuotasContent.kt استخراج شد (DEEP_CODE_REVIEW.md Phase4 #30، تفکیک
-// فایل ۱٬۴۲۰ خطی). ShipCard/FlatQuotaCard از فایل اصلی (که GroupedShipsContent/
-// FlatQuotasContent را دارد) صدا زده می‌شوند، پس internal‌اند؛ بقیه (ShipHeader،
-// WarehouseSection، QuotaItem، extractLastDigits) فقط داخل همین فایل به هم
-// وابسته‌اند و private ماندند — بدون هیچ تغییر منطقی، صرفاً جابه‌جایی.
+// نمای گروه‌بندی‌شده بر اساس کشتی در دیالوگ کوتاژهای فعال؛ برای کاهش حجم فایل از ActiveQuotasContent.kt استخراج شده است
 
 @Composable
 internal fun ShipCard(

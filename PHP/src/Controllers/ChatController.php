@@ -38,11 +38,7 @@ class ChatController {
 
         try {
             $this->requireAuthenticatedSession();
-            // هویت همیشه از نشست احرازشده گرفته می‌شود، هرگز از پارامتر
-            // ورودی username — قبلاً کل کنترل دسترسی چت (خواندن/ارسال/ویرایش/
-            // حذف پیام‌های ادمین‌ها) روی همین پارامتر بنا شده بود که هیچ رازی
-            // نیست و از users_api.php قابل استخراج بود؛ یعنی دانستن نام
-            // کاربری یک ادمین برای جعل هویت کامل او در چت کافی بود (S-03).
+            // هویت همیشه از نشست احرازشده گرفته می‌شود، نه از پارامتر username که رازی نیست و قابل جعل بود (S-03)
             $username = (string)$this->authenticatedUsername;
 
             if ($this->request->isGet()) {
@@ -51,10 +47,7 @@ class ChatController {
                 if ($action === 'getMessages') {
                     $lastMessageId = (int)$this->request->get('lastMessageId', 0);
                     $olderThanId = (int)$this->request->get('olderThanId', 0);
-                    // MESSAGE_FETCH_LIMIT فقط پیش‌فرض بود نه سقف — یک کاربر
-                    // می‌توانست limit دلخواه بزرگی بفرستد و subquery همبسته‌ی
-                    // read_by_names را روی بازه‌ی بزرگ مشغول نگه دارد
-                    // (DEEP_CODE_AUDIT.md #Phase1.10).
+                    // کلمپ limit به MESSAGE_FETCH_LIMIT تا subquery همبسته‌ی read_by_names روی بازه‌ی بزرگ مشغول نماند (Phase1.10)
                     $limit = max(1, min((int)$this->request->get('limit', self::MESSAGE_FETCH_LIMIT), self::MESSAGE_FETCH_LIMIT));
 
                     Response::json([
@@ -70,17 +63,7 @@ class ChatController {
                     throw new ApiException('عملیات نامعتبر است', 400);
                 }
             } elseif ($this->request->isWrite()) {
-                // isWrite() نه فقط REQUEST_METHOD==='POST': این شاخه هم
-                // sendMessage/markAsRead (POST) هم editMessage (PATCH) هم
-                // deleteMessage (DELETE) را پوشش می‌دهد — تفکیک واقعی با
-                // action انجام می‌شود (DEEP_CODE_REVIEW.md Phase4 #33).
-                // قبلاً اینجا php://input جداگانه و مستقیم decode می‌شد (برخلاف
-                // شاخه‌ی GET بالا که از Request::get() استفاده می‌کند)؛
-                // Request::get() از قبل JSON body/POST/GET را به همین ترتیب
-                // اولویت می‌خواند، پس این ناهماهنگی حذف شد — رفتار برای کلاینت
-                // v1 (که همیشه JSON body می‌فرستد) دقیقاً یکسان می‌ماند، و
-                // مسیرهای v2 (که ممکن است از query/route param هم استفاده
-                // کنند) هم پشتیبانی می‌شوند.
+                // isWrite() هر سه فعل POST/PATCH/DELETE را پوشش می‌دهد و از همان Request::get() استفاده می‌کند، هم‌راستا با شاخه‌ی GET (Phase4 #33)
                 $action = (string)$this->request->get('action', '');
 
                 switch ($action) {
@@ -105,9 +88,7 @@ class ChatController {
             echo json_encode(['success' => false, 'message' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
             exit;
         } catch (\Throwable $e) {
-            // فقط ApiException (پیام‌های فارسی عمدی) به کلاینت می‌رود؛ بقیه
-            // (مثل خطای خام mysqli در prepareAndExecute) فقط لاگ می‌شود تا
-            // ساختار جدول/کوئری افشا نشود (DEEP_CODE_AUDIT.md #Phase2.4).
+            // فقط ApiException به کلاینت می‌رود؛ بقیه‌ی خطاها فقط لاگ می‌شوند تا ساختار جدول/کوئری افشا نشود (Phase2.4)
             $this->logger->error('ChatController: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'خطای داخلی سرور رخ داده است.'], JSON_UNESCAPED_UNICODE);
@@ -274,8 +255,7 @@ class ChatController {
     private function getUnreadCount(string $username): int {
         if (!$this->isAdmin($username)) return 0;
 
-        // badge تعداد نخوانده معمولاً هر چند ثانیه poll می‌شود؛ کش کوتاه بار دیتابیس
-        // را کم می‌کند بدون اینکه تأخیر محسوسی در نمایش badge ایجاد شود.
+        // کش کوتاه برای کاهش بار دیتابیس در poll مکرر badge تعداد نخوانده
         return MicroCache::remember('chat_unread_' . $username, 4, function () use ($username) {
             $query = "
                 SELECT COUNT(*) as count

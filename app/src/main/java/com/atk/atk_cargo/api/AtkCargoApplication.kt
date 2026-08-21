@@ -19,9 +19,7 @@ class AtkCargoApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // باید همین ابتدا نصب شود — قبل از هر initialization دیگری که خودش
-        // می‌تواند کرش کند (Koin، RetrofitClient) — تا آن کرش‌ها هم گزارش شوند
-        // (DEEP_CODE_AUDIT.md #Phase2.13).
+        // باید همین ابتدا نصب شود، قبل از هر initialization دیگری که ممکن است کرش کند (Koin، RetrofitClient) تا آن کرش‌ها هم گزارش شوند (DEEP_CODE_AUDIT.md #Phase2.13)
         CrashReporter.install(this)
 
         // Initialize Koin DI
@@ -34,30 +32,19 @@ class AtkCargoApplication : Application() {
             modules(appModule)
         }
 
-        // WorkManager توسط androidx.startup.InitializationProvider به‌صورت خودکار
-        // و پیش از این نقطه مقداردهی می‌شود؛ فراخوانی دستی WorkManager.initialize()
-        // اینجا همیشه IllegalStateException می‌داد (بی‌صدا catch می‌شد) و Configuration
-        // سفارشی هرگز اعمال نمی‌شد
+        // WorkManager از قبل توسط InitializationProvider مقداردهی می‌شود؛ فراخوانی دستی initialize() اینجا همیشه IllegalStateException می‌داد
 
-        // AuthSession یک نگه‌دارنده‌ی درون‌حافظه است و با هر بار کشته‌شدن پروسه خالی
-        // می‌شود؛ اینجا از مقادیر ذخیره‌شده در DataStore (کاربری که قبلاً لاگین کرده)
-        // پر می‌شود تا هدرهای احراز هویت از همان اولین درخواست بعد از باز شدن اپ درست
-        // ارسال شوند.
+        // AuthSession درون‌حافظه‌ای است و با کشته‌شدن پروسه خالی می‌شود؛ اینجا از DataStore پر می‌شود تا هدرهای احراز هویت از اولین درخواست درست ارسال شوند
         val userPreferencesManager = koinApp.koin.get<UserPreferencesManager>()
 
-        // باید قبل از اولین دسترسی به RetrofitClient.apiService (که Koin به‌صورت
-        // lazy در اولین get() می‌سازد) فراخوانی شود تا کش HTTP دیسک فعال شود.
-        // core:network وابسته به BuildConfig ماژول app نیست (هر ماژول
-        // BuildConfig خودش را دارد)، پس debugLogging از همین‌جا تزریق می‌شود
-        // (DEEP_CODE_AUDIT.md #Phase4.2).
+        // باید قبل از اولین دسترسی lazy به RetrofitClient.apiService فراخوانی شود تا کش HTTP دیسک فعال شود؛ debugLogging از اینجا تزریق می‌شود چون core:network به BuildConfig ماژول app دسترسی ندارد (DEEP_CODE_AUDIT.md #Phase4.2)
         RetrofitClient.init(this, userPreferencesManager, debugLogging = BuildConfig.DEBUG)
         applicationScope.launch {
             AuthSession.username = userPreferencesManager.username.first()
             AuthSession.deviceId = userPreferencesManager.deviceId.first()
             AuthSession.sessionToken = userPreferencesManager.sessionToken.first()
 
-            // ارسال گزارش کرشِ اجرای قبلی (در صورت وجود) — best-effort، بعد
-            // از این‌که AuthSession.username برای مرجع در دسترس است.
+            // ارسال best-effort گزارش کرشِ اجرای قبلی، پس از اینکه AuthSession.username در دسترس است
             CrashReporter.sendPendingReportIfAny(this@AtkCargoApplication, Secrets.getBaseUrl(), applicationScope)
         }
     }

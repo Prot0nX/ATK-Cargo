@@ -170,8 +170,7 @@ private fun ShipCardContent(
                 }
             }
 
-            // مانده — مقدار منفی یعنی بارگیری بیش از تناژ کل (اضافه‌بارگیری یا
-            // ناسازگاری داده) و باید به‌صورت هشدار مشخص باشد، نه مثل حالت عادی
+            // مانده منفی یعنی اضافه‌بارگیری یا ناسازگاری داده و باید به‌صورت هشدار نمایش داده شود
             StatBox(
                 value = "↓ ${formatNumber(ship.remainingTonnage.roundToInt())}",
                 isWarning = ship.remainingTonnage < 0f,

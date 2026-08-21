@@ -1,34 +1,8 @@
 <?php
 // PHP/src/routes/api_v2.php
 //
-// جدول route صریح API نسخه‌ی ۲ — تنها منبع حقیقت برای این‌که «چه مسیری با
-// چه متد HTTP‌ای، با چه نیاز احراز هویت/مجوزی» وجود دارد. برخلاف
-// protected_proxy.php (v1) که هر فایل .php در پوشه به‌طور پیش‌فرض یک
-// endpoint است مگر صراحتاً مستثنا شود (opt-out)، اینجا برعکس است: فقط
-// دقیقاً همین ردیف‌ها قابل دسترسی‌اند (opt-in).
-//
-// این فایل منطق تجاری ندارد — فقط پارامترهای route/query/body را استخراج و
-// اعتبارسنجی سطحی می‌کند، سپس متدهای عمومی و از قبل تایپ‌شده‌ی کنترلرهای v1
-// را صدا می‌زند (مثلاً AppApiController::updateQuotaPercentage) تا منطق
-// تجاری/کوئری‌های دیتابیس دوباره‌نویسی نشوند.
-//
-// همه‌ی گروه‌های مصرف‌شده توسط کلاینت اندروید مهاجرت داده شده‌اند: Ships/Quotas
-// (app_api.php)، Auth، Cargo، Utility، Users، Chat، Analytics/Real-Time.
-// دو الگوی متفاوت استفاده شده:
-//   ۱. Direct passthrough — برای متدهایی که از قبل کاملاً مستقل هستند
-//      (پارامتر خودشان را از Request می‌خوانند و خودشان Response::json صدا
-//      می‌زنند)، مثل CargoController::saveOrUpdate یا AuthController::login.
-//      اینجا router سطح auth/permission را دقیقاً هم‌راستا با چیزی که متد
-//      داخلاً چک می‌کند اعلام می‌کند — یعنی یک بررسی دوگانه‌ی واقعی (نه فقط
-//      تزئینی)، چون هرکدام مستقل از دیگری اجرا می‌شوند.
-//   ۲. Shim برای کنترلرهای چندعملی — UserController::handle،
-//      ChatController::handleChatRequest و
-//      AnalyticsController::handleRealTimeLoadingData هرکدام یک ورودی واحد
-//      با switch داخلی روی action هستند و منطق مجوز نامتقارن‌شان (مثل تمایز
-//      خودِ‌کاربر/ادمین در updateUser) داخل خودشان زندگی می‌کند. برای این‌ها
-//      router فقط پارامترهای مسیر را در $_GET قرار می‌دهد و متد اصلی را صدا
-//      می‌زند؛ auth/permission در سطح router برای این دسته یا خالی (auth
-//      داخلی خودش را دارد) یا فقط برای بخشی که واقعاً یکنواخت است تنظیم شده.
+// جدول route صریح API نسخه‌ی ۲ (opt-in)؛ فقط منطق استخراج/اعتبارسنجی پارامتر دارد و متدهای موجود کنترلرهای v1 را صدا می‌زند.
+// دو الگو: Direct passthrough (متدهای مستقل با بررسی دوگانه‌ی auth/permission) و Shim (کنترلرهای چندعملی که مجوز را خودشان داخلی چک می‌کنند).
 
 declare(strict_types=1);
 
@@ -45,11 +19,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Exceptions\ApiException;
 
-/**
- * یک نمونه‌ی مشترک AppApiController برای تمام routeهای این فایل — چون هر
- * route handler جدا فراخوانی می‌شود (نه یک متد dispatcher مثل v1)، ساخت
- * جداگانه به‌ازای هر route لازم نیست.
- */
+// یک نمونه‌ی مشترک AppApiController برای تمام routeهای این فایل، به‌جای ساخت جداگانه به‌ازای هر route
 $appApi = static function (): AppApiController {
     static $instance = null;
     if ($instance === null) {
@@ -58,20 +28,14 @@ $appApi = static function (): AppApiController {
     return $instance;
 };
 
-/**
- * تبدیل استثناهای رایج کنترلرها (Exception ساده یا ApiException با کد
- * وضعیت مشخص) به پاسخ JSON یکدست — مطابق همان catch-block که در
- * AppApiController::handle وجود دارد، تا رفتار خطا با v1 هم‌راستا بماند.
- */
+// تبدیل استثناهای رایج کنترلرها به پاسخ JSON یکدست، مطابق catch-block v1
 $safeCall = static function (callable $fn) {
     try {
         return $fn();
     } catch (ApiException $e) {
         Response::json(['error' => $e->getMessage()] + ($e->getDetails() ?? []), $e->getStatusCode());
     } catch (\Throwable $e) {
-        // فقط ApiException (پیام‌های عمدی) به کلاینت می‌رود؛ بقیه فقط لاگ
-        // می‌شوند تا ساختار جدول/کوئری افشا نشود (DEEP_CODE_AUDIT.md
-        // #Phase2.4).
+        // فقط ApiException به کلاینت می‌رود؛ بقیه فقط لاگ می‌شوند تا ساختار DB افشا نشود
         error_log('api_v2 safeCall: ' . $e->getMessage());
         Response::json(['error' => 'خطای داخلی سرور رخ داده است.'], 500);
     }
@@ -122,10 +86,7 @@ return [
         },
     ],
     [
-        // permission عمداً null است — این route (=getQuotasList در
-        // AppApiController) هنگام ثبت حواله توسط QuotaValidationUseCase.kt
-        // هم صدا زده می‌شود، نه فقط فیچر گزارش‌ها. رجوع کنید به کامنت
-        // READ_ACTIONS_REQUIRING_REPORTS در AppApiController.php.
+        // permission عمداً null است چون این route هنگام ثبت حواله هم توسط کلاینت صدا زده می‌شود، نه فقط فیچر گزارش‌ها
         'method' => 'GET',
         'path' => 'ships/{shipName}/quotas',
         'auth' => true,
@@ -172,8 +133,7 @@ return [
                 if ($shipName === '' || $warehouseName === '' || $selectedQuota === '' || $startDateTime === '' || $endDateTime === '') {
                     throw new \Exception('پارامترهای ورودی ناقص هستند');
                 }
-                // getFilteredSummary یک رشته‌ی JSON از پیش‌ساخته برمی‌گرداند
-                // (نه آرایه)، پس مستقیم echo می‌شود نه Response::json.
+                // getFilteredSummary یک رشته‌ی JSON آماده برمی‌گرداند، پس مستقیم echo می‌شود
                 $summary = $appApi()->getFilteredSummary($shipName, $warehouseName, $selectedQuota, $startDateTime, $endDateTime);
                 header('Content-Type: application/json; charset=UTF-8');
                 echo $summary;
@@ -401,21 +361,13 @@ return [
         },
     ],
 
-    // ===== AUTH — متدهای AuthController مستقل و کامل‌اند (پارامترهای خود
-    // را از Request می‌خوانند، خودشان Response::json صدا می‌زنند)؛ auth=false
-    // چون این‌ها خودِ ورودی به سیستم هستند (نمی‌توان نشستی که هنوز ایجاد
-    // نشده را الزامی کرد). =====
+    // ===== AUTH — متدهای مستقل AuthController؛ auth=false چون این‌ها خودِ ورودی به سیستم‌اند =====
     [
         'method' => 'POST', 'path' => 'auth/login', 'auth' => false, 'permission' => null,
         'handler' => function () { (new AuthController())->login(); },
     ],
     [
-        // I-05: عمداً فقط روی v2 (نه v1) — این endpoint کاملاً جدید است، هیچ
-        // نصب فعلی اپ آن را صدا نمی‌زند، پس نیازی به اضافه‌شدن به whitelist
-        // پروکسی v1 نیست. auth=>false چون دقیقاً زمانی صدا زده می‌شود که
-        // access token منقضی شده — نمی‌توان همان توکن منقضی را برای عبور از
-        // گیت auth الزامی کرد؛ اعتبارسنجی واقعی (تطبیق دقیق refresh token)
-        // داخل AuthController::refresh/SessionService::refreshTokens انجام می‌شود.
+        // عمداً فقط روی v2؛ auth=>false چون دقیقاً زمانی صدا زده می‌شود که access token منقضی شده، اعتبارسنجی واقعی داخل AuthController::refresh است
         'method' => 'POST', 'path' => 'auth/refresh', 'auth' => false, 'permission' => null,
         'handler' => function () { (new AuthController())->refresh(); },
     ],
@@ -428,16 +380,13 @@ return [
         'handler' => function () { (new AuthController())->logout(); },
     ],
 
-    // ===== CARGO — الگوی Direct passthrough؛ auth/permission هر route دقیقاً
-    // مطابق چیزی است که خودِ متد هم داخلاً چک می‌کند (بررسی دوگانه‌ی واقعی). =====
+    // ===== CARGO — الگوی Direct passthrough؛ auth/permission هر route دقیقاً مطابق چک داخلی خودِ متد است =====
     [
         'method' => 'POST', 'path' => 'cargo', 'auth' => true, 'permission' => null,
         'handler' => function () { (new CargoController())->saveOrUpdate(); },
     ],
     [
-        // PATCH — قبلاً POST بود چون CargoController::updateCargoInfo داخلاً
-        // فقط POST را می‌شناخت؛ با هماهنگی کلاینت اندروید (ApiServiceV2.kt)
-        // به فعل معنایی درست تغییر کرد (DEEP_CODE_REVIEW.md Phase4 #33).
+        // PATCH — قبلاً POST بود، با هماهنگی کلاینت اندروید به فعل معنایی درست تغییر کرد
         'method' => 'PATCH', 'path' => 'cargo/update', 'auth' => true, 'permission' => 'edit_cargo',
         'handler' => function () { (new CargoController())->updateCargoInfo(); },
     ],
@@ -446,7 +395,7 @@ return [
         'handler' => function () { (new CargoController())->confirmCargo(); },
     ],
     [
-        // DELETE — همان دلیل بالا (Phase4 #33).
+        // DELETE — همان دلیل بالا
         'method' => 'DELETE', 'path' => 'cargo/delete', 'auth' => true, 'permission' => 'delete_cargo',
         'handler' => function () { (new CargoController())->deleteCargoInfo(); },
     ],
@@ -471,10 +420,7 @@ return [
         'handler' => function () { (new CargoController())->checkScaleReceipt(); },
     ],
     [
-        // نام مسیر «ships/active» عمداً از app_api.php's «ships» (بالاتر) جدا
-        // نگه داشته شده چون این یکی CargoController::getActiveShips است — یک
-        // مسیر داده‌ی سبک‌تر و متفاوت از AppApiController::getShipsList که
-        // در جریان ثبت حواله (نه گزارش‌گیری) مصرف می‌شود.
+        // «ships/active» عمداً از «ships» بالاتر جداست، مسیر سبک‌تر برای جریان ثبت حواله نه گزارش‌گیری
         'method' => 'GET', 'path' => 'ships/active', 'auth' => true, 'permission' => null,
         'handler' => function () { (new CargoController())->getActiveShips(); },
     ],
@@ -489,27 +435,18 @@ return [
         'handler' => function () { (new UtilityController())->checkExistence(); },
     ],
     [
-        // syncPermissions در v1 اعتبار نشست را فقط با username+deviceId چک
-        // می‌کند (بدون توکن — S-20)؛ گیت auth=>true در سطح router اینجا با
-        // ApiAuthGate (که توکن را هم بررسی می‌کند) این شکاف را برای مسیر v2
-        // می‌بندد، مستقل از منطق داخلی قدیمی‌تر متد.
+        // auth=>true با ApiAuthGate (که توکن را هم بررسی می‌کند) شکاف اعتبارسنجی v1 را برای مسیر v2 می‌بندد
         'method' => 'POST', 'path' => 'utility/sync-permissions', 'auth' => true, 'permission' => null,
         'handler' => function () { (new UtilityController())->syncPermissions(); },
     ],
 
-    // ===== USERS — الگوی Shim؛ ADMIN_ONLY_ACTIONS اینجا دقیقاً مطابق همان
-    // ثابت در UserController است (اگر یکی تغییر کرد، دیگری هم باید عمداً
-    // بازبینی شود). updateUser عمداً permission=>null دارد چون تمایز
-    // خودِکاربر/ادمین داخل خودِ UserController::handle انجام می‌شود. =====
+    // ===== USERS — الگوی Shim؛ ADMIN_ONLY_ACTIONS باید با UserController هماهنگ بماند. updateUser عمداً permission=>null دارد چون تمایز خودِکاربر/ادمین داخلی است =====
     [
         'method' => 'GET', 'path' => 'users', 'auth' => true, 'permission' => null,
         'handler' => function () { $_GET['action'] = 'getAllUsers'; (new UserController())->handle(); },
     ],
     [
-        // Phase1.4 (DEEP_CODE_AUDIT.md): بعد از این‌که getAllUsers پشت
-        // manage_users قفل شد، دو action محدودتر اضافه شدند که هر کاربر
-        // احرازشده (نه فقط ادمین) می‌تواند صدا بزند — permission=>null دقیقاً
-        // مطابق نبودن این دو در ADMIN_ONLY_ACTIONS داخل UserController.
+        // بعد از قفل شدن getAllUsers پشت manage_users، این دو action محدودتر برای هر کاربر احرازشده باز ماندند
         'method' => 'GET', 'path' => 'users/self', 'auth' => true, 'permission' => null,
         'handler' => function () { $_GET['action'] = 'getSelfProfile'; (new UserController())->handle(); },
     ],
@@ -530,11 +467,7 @@ return [
         'handler' => function () { $_GET['action'] = 'createUser'; (new UserController())->handle(); },
     ],
     [
-        // PATCH — قبلاً POST بود؛ UserController::handle حالا با
-        // Request::isWrite() به‌جای isPost() این شاخه را برای هر فعل
-        // نوشتنی (POST/PATCH/DELETE) باز می‌کند تا createUser (POST) و
-        // updateUser (PATCH) و deleteUser (DELETE) هرکدام فعل معنایی
-        // خودشان را داشته باشند (DEEP_CODE_REVIEW.md Phase4 #33).
+        // PATCH — با Request::isWrite() هر فعل نوشتنی معنای معادل خودش را می‌گیرد
         'method' => 'PATCH', 'path' => 'users/{id}/update', 'auth' => true, 'permission' => null,
         'handler' => function (array $params) {
             $_GET['action'] = 'updateUser';
@@ -543,7 +476,7 @@ return [
         },
     ],
     [
-        // DELETE — همان دلیل بالا (Phase4 #33).
+        // DELETE — همان دلیل بالا
         'method' => 'DELETE', 'path' => 'users/{id}/delete', 'auth' => true, 'permission' => 'manage_users',
         'handler' => function (array $params) {
             $_GET['action'] = 'deleteUser';
@@ -556,10 +489,7 @@ return [
         'handler' => function () { $_GET['action'] = 'forceLogout'; (new UserController())->handle(); },
     ],
 
-    // ===== CHAT — الگوی Shim؛ کنترل دسترسی واقعی (isAdmin بر اساس
-    // userType) داخل خودِ ChatController انجام می‌شود، نه با permission
-    // استاندارد permissions.json؛ پس اینجا permission=>null است و auth=>true
-    // فقط معتبربودن نشست را تضمین می‌کند (همان‌قدر که router می‌تواند). =====
+    // ===== CHAT — الگوی Shim؛ کنترل دسترسی واقعی داخل ChatController است، اینجا permission=>null و auth=>true فقط معتبربودن نشست را تضمین می‌کند =====
     [
         'method' => 'GET', 'path' => 'chat/messages', 'auth' => true, 'permission' => null,
         'handler' => function () { $_GET['action'] = 'getMessages'; (new ChatController())->handleChatRequest(); },
@@ -573,11 +503,7 @@ return [
         'handler' => function () { $_GET['action'] = 'sendMessage'; (new ChatController())->handleChatRequest(); },
     ],
     [
-        // PATCH — قبلاً POST بود؛ ChatController::handleChatRequest حالا با
-        // Request::isWrite() به‌جای چک خام REQUEST_METHOD==='POST' این
-        // شاخه را برای هر فعل نوشتنی باز می‌کند تا sendMessage/markAsRead
-        // (POST) و editMessage (PATCH) و deleteMessage (DELETE) هرکدام
-        // فعل معنایی خودشان را داشته باشند (DEEP_CODE_REVIEW.md Phase4 #33).
+        // PATCH — با Request::isWrite() هر فعل نوشتنی معنای معادل خودش را می‌گیرد
         'method' => 'PATCH', 'path' => 'chat/messages/{id}/edit', 'auth' => true, 'permission' => null,
         'handler' => function (array $params) {
             $_GET['action'] = 'editMessage';
@@ -586,7 +512,7 @@ return [
         },
     ],
     [
-        // DELETE — همان دلیل بالا (Phase4 #33).
+        // DELETE — همان دلیل بالا
         'method' => 'DELETE', 'path' => 'chat/messages/{id}/delete', 'auth' => true, 'permission' => null,
         'handler' => function (array $params) {
             $_GET['action'] = 'deleteMessage';
@@ -603,11 +529,7 @@ return [
         },
     ],
 
-    // ===== ANALYTICS / REAL-TIME (پشت realTimeLoadingData.php در v1) —
-    // الگوی Shim؛ permission در سطح router اینجا واقعاً دقیق است چون
-    // AnalyticsController::handleRealTimeLoadingData برای هر ۴ اکشن دقیقاً
-    // همین یک permission ('view_reports') را چک می‌کند، نه ترکیب نامتقارن
-    // مثل UserController. =====
+    // ===== ANALYTICS / REAL-TIME — الگوی Shim؛ هر ۴ اکشن دقیقاً همین یک permission ('view_reports') را چک می‌کنند =====
     [
         'method' => 'GET', 'path' => 'analytics/kotazh', 'auth' => true, 'permission' => 'view_reports',
         'handler' => function () { $_GET['action'] = 'getKotazhInfo'; (new AnalyticsController())->handleRealTimeLoadingData(); },
@@ -625,9 +547,7 @@ return [
         'handler' => function () { $_GET['action'] = 'logAnalyticsExport'; (new AnalyticsController())->handleRealTimeLoadingData(); },
     ],
 
-    // ===== DIAGNOSTICS (Phase 2.13) — عمداً فقط روی v2، بدون auth: health
-    // باید برای ابزار مانیتورینگ خارجی در دسترس باشد، و گزارش کرش باید حتی
-    // بدون نشست معتبر (یا قبل از لاگین) هم برسد. =====
+    // ===== DIAGNOSTICS — عمداً بدون auth: health باید برای مانیتورینگ خارجی و گزارش کرش حتی بدون نشست معتبر در دسترس باشد =====
     [
         'method' => 'GET', 'path' => 'health', 'auth' => false, 'permission' => null,
         'handler' => function () { (new DiagnosticsController())->health(); },
@@ -637,18 +557,7 @@ return [
         'handler' => function () { (new DiagnosticsController())->reportCrash(); },
     ],
 
-    // ===== این ۶ مسیر جایگزین ۶ shim مستقل ریشه‌ی PHP/ شدند (check_signature.php،
-    // check_update.php، validate_license.php، get_license_info.php،
-    // quota_remaining_api.php، update_fcm_token.php — DEEP_CODE_REVIEW.md
-    // Phase2.13/#۱۳) که کاملاً خارج از Router/ApiAuthGate بودند. خودِ shimها
-    // در Phase2.13(ادامه) حذف شدند؛ این‌ها اکنون تنها راه دسترسی به این متدها
-    // هستند. auth/permission در سطح router دقیقاً هم‌راستا با چیزی است که
-    // خودِ متد داخلاً چک می‌کند (الگوی «Direct passthrough» بالای فایل).
-    //
-    // هشدار: URLهای قدیمی (`/check_signature.php` و ...) در نسخه‌ی فعلی
-    // secrets.cpp کلاینت (n3/n4/n5) و UpdateManager.kt hardcode هستند و اکنون
-    // ۴۰۴ می‌دهند. قبل از انتشار نسخه‌ی نهایی برای کاربران، کلاینت باید به
-    // این مسیرهای جدید (`utility/check-signature` و ...) آپدیت شود. =====
+    // ===== این ۶ مسیر جایگزین shimهای مستقل حذف‌شده‌ی ریشه‌ی PHP/ شدند و اکنون تنها راه دسترسی‌اند؛ هشدار: URLهای قدیمی هنوز در کلاینت hardcode هستند و اکنون ۴۰۴ می‌دهند =====
     [
         'method' => 'POST', 'path' => 'utility/check-signature', 'auth' => false, 'permission' => null,
         'handler' => function () { (new UtilityController())->checkSignature(); },
@@ -666,14 +575,12 @@ return [
         'handler' => function () { (new LicenseController())->getLicenseInfo(); },
     ],
     [
-        // handleQuotaRemaining داخلاً requireAuthenticatedSession() +
-        // requirePermission('active_quotas') را صدا می‌زند.
+        // handleQuotaRemaining داخلاً requireAuthenticatedSession() و requirePermission('active_quotas') را صدا می‌زند
         'method' => 'GET', 'path' => 'analytics/quota-remaining', 'auth' => true, 'permission' => 'active_quotas',
         'handler' => function () { (new AnalyticsController())->handleQuotaRemaining(); },
     ],
     [
-        // updateFcmToken داخلاً requireAuthenticatedSession() را صدا می‌زند و
-        // فقط برای کاربر همان نشست عمل می‌کند (permission جدا لازم ندارد).
+        // updateFcmToken داخلاً requireAuthenticatedSession() را صدا می‌زند و فقط برای کاربر همان نشست عمل می‌کند
         'method' => 'POST', 'path' => 'users/fcm-token', 'auth' => true, 'permission' => null,
         'handler' => function () { (new UserController())->updateFcmToken(); },
     ],

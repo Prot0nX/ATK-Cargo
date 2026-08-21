@@ -11,16 +11,9 @@ use App\Exceptions\ApiException;
 use App\Validators\InputValidator;
 use App\Enums\CargoStatus;
 
-/**
- * منطق تجاری «کشتی/انبار» که قبلاً داخل AppApiController بود (C-05) —
- * استخراج شده تا آن کنترلر فقط مسئول dispatch/پارس درخواست باشد، نه منطق
- * تجاری+کوئری. بدنه‌ی هر متد عیناً از AppApiController منتقل شده، بدون
- * تغییر رفتار؛ AppApiController اکنون فقط delegate می‌کند.
- */
+// منطق تجاری «کشتی/انبار» که از AppApiController استخراج شده تا آن کنترلر فقط dispatch/پارس درخواست باشد
 final class ShipService {
-    // بدون ->value: property-fetch در class const در PHP 8.1 (نسخه‌ی تولید)
-    // مجاز نیست («Constant expression contains invalid operations»)؛ از
-    // PHP 8.2 پشتیبانی می‌شود. ->value در محل مصرف (self::EXITED->value) اعمال می‌شود.
+    // بدون ->value: property-fetch در class const در PHP 8.1 مجاز نیست؛ ->value در محل مصرف اعمال می‌شود
     private const EXITED = CargoStatus::EXITED;
 
     private DatabaseManager $db;
@@ -30,16 +23,9 @@ final class ShipService {
     }
 
     public function getShipsList(): array {
-        // نتیجه‌ی کوئری (بدون timestamp) به مدت کوتاهی کش می‌شود تا این کوئری سنگین
-        // که هم توسط action=getShipsList و هم action=getRealTimeData صدا زده می‌شود
-        // روی هر poll دوباره روی دیتابیس اجرا نشود؛ timestamp همیشه لحظه‌ای محاسبه می‌شود.
-        // TTL از ۸ به ۲۰ ثانیه افزایش یافت: با ایندکس‌های جدید روی CargoInfo این
-        // کوئری دیگر سنگین نیست، و نوشتن‌هایی که خروجی این کوئری را عوض می‌کنند
-        // (editQuota/toggleQuotaStatus/deleteQuota) صریحاً کش را invalidate می‌کنند.
+        // نتیجه‌ی این کوئری سنگین کوتاه‌مدت کش می‌شود تا روی هر poll دوباره اجرا نشود؛ نوشتن‌های مرتبط کش را صریحاً invalidate می‌کنند
         $shipsData = MicroCache::remember(MicroCache::SHIPS_LIST_KEY, 20, function () {
-            // shippingCompanyCount، cargoTypeCount, percentageLoaded و بلاک statistics
-            // قبلاً هم در پاسخ محاسبه می‌شدند هم به کلاینت ارسال، اما مدل Ship/ShipsData
-            // اندروید هیچ‌کدام را map نمی‌کرد (هدر و پردازش Gson بی‌فایده). حذف شدند.
+            // فیلدهای اضافی مثل shippingCompanyCount/cargoTypeCount که کلاینت اندروید map نمی‌کرد حذف شدند
             $query = "SELECT
                 i.shipName, i.cargoType, COUNT(DISTINCT i.loadingWarehouse) as warehouseCount,
                 COUNT(DISTINCT CONCAT(i.loadingQuotaNumber, '-', i.loadingWarehouse, '-', i.shippingCompany, '-', i.cargoType)) as quotaCount,
@@ -128,10 +114,7 @@ final class ShipService {
         $stmt->execute();
         $result = $stmt->get_result();
 
-        // totalVoucherCount مستقل از هر انبار است (فقط به shipName وابسته)؛
-        // قبلاً به‌صورت زیرکوئری همبسته داخل SELECT اصلی بود و به ازای هر
-        // ردیف گروه (هر انبار) دوباره اجرا می‌شد، با اینکه نتیجه‌اش همیشه
-        // یکسان است. یک بار جدا محاسبه می‌شود.
+        // totalVoucherCount فقط به shipName وابسته است؛ به‌جای زیرکوئری تکراری برای هر انبار، یک بار جدا محاسبه می‌شود
         $voucherStmt = $this->db->prepare(
             "SELECT COUNT(DISTINCT trackingNumber) as totalVoucherCount FROM CargoInfo WHERE shipName = ? AND status = '" . self::EXITED->value . "'"
         );
@@ -161,10 +144,7 @@ final class ShipService {
             $totalQuotaCount += intval($row['quotaCount']);
             $totalTonnage += $warehouseTotalTonnage;
             $totalRemainingTonnage += $warehouseRemainingTonnage;
-            // MAX(i.isActive) فقط داخل هر گروه (هر انبار) اعمال می‌شود، نه بین
-            // انبارها؛ برای اینکه یک انبار کاملاً غیرفعال، کشتی‌ای با انبارهای
-            // دیگر فعال را به‌اشتباه isActive=false نشان ندهد، نتیجه با OR
-            // منطقی بین انبارها ترکیب می‌شود، نه بازنویسی ساده.
+            // نتیجه با OR منطقی بین انبارها ترکیب می‌شود تا یک انبار غیرفعال، کشتی با انبارهای فعال دیگر را اشتباهاً غیرفعال نشان ندهد
             $isActive = $isActive || (bool)$row['isActive'];
         }
 

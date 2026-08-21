@@ -19,13 +19,7 @@ sealed interface InitialInfoEvent {
     data class OperationFailed(val message: String) : InitialInfoEvent
 }
 
-/**
- * دو تماس شبکه‌ی InitialInfoScreen (checkExistence، saveInitialInfo) قبلاً
- * داخل rememberCoroutineScope() اجرا می‌شدند — با خروج کاربر از صفحه (یا
- * recomposition ساختاری) کنسل می‌شدند، حتی برای saveInitialInfo که یک
- * عملیات نوشتن است (DEEP_CODE_REVIEW.md Top20 #5). viewModelScope در برابر
- * ناوبری/چرخش صفحه مقاوم است.
- */
+// این ViewModel از viewModelScope استفاده می‌کند تا فراخوانی‌های شبکه با خروج کاربر یا چرخش صفحه کنسل نشوند
 class InitialInfoViewModel(
     private val apiServiceV2: ApiServiceV2
 ) : ViewModel() {

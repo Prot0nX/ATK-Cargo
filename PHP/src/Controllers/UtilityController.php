@@ -29,13 +29,7 @@ class UtilityController {
         $this->request = new Request();
     }
 
-    /**
-     * بررسی امضای اپلیکیشن (POST utility/check-signature)
-     *
-     * پاسخ‌های خطا در Phase3 #21 به Response::error() یکسان شدند؛ تأیید شد
-     * SecurityVerifier.kt::authenticateSignatureWithServer روی هر پاسخ
-     * غیر-۲۰۰ فقط false برمی‌گرداند و اصلاً بدنه‌ی خطا را نمی‌خواند.
-     */
+    // بررسی امضای اپلیکیشن (POST utility/check-signature)
     public function checkSignature(): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('X-Content-Type-Options: nosniff');
@@ -92,9 +86,7 @@ class UtilityController {
         }
     }
 
-    /**
-     * بررسی رمز عبور (check_password.php)
-     */
+    // بررسی رمز عبور (check_password.php)
     public function checkPassword(): void {
         header('Content-Type: application/json; charset=utf-8');
         header('X-Content-Type-Options: nosniff');
@@ -107,10 +99,7 @@ class UtilityController {
             exit;
         }
 
-        // بدون هویت نشست، این endpoint یک oracle حدس‌زنی رمز باز است. علاوه
-        // بر این، شمارنده‌ی تلاش ناموفق باید روی هویت واقعی کلید بخورد نه
-        // $_SESSION — کلاینت اندروید کوکی نگه نمی‌دارد، پس شمارنده‌ی قبلی
-        // هرگز عملاً به ۵ نمی‌رسید.
+        // احراز هویت نشست الزامی است تا شمارنده‌ی تلاش ناموفق روی هویت واقعی کلید بخورد، نه $_SESSION
         $this->requireAuthenticatedSession();
 
         $receivedPassword = isset($_POST['password']) ? trim((string)$_POST['password']) : '';
@@ -129,14 +118,11 @@ class UtilityController {
         exit;
     }
 
-    /**
-     * بررسی وجود اطلاعات (checkExistence.php)
-     */
+    // بررسی وجود اطلاعات (checkExistence.php)
     public function checkExistence(): void {
         header('Content-Type: application/json; charset=UTF-8');
 
-        // بدون احراز هویت، این endpoint یک oracle برای شمارش/کشف
-        // loadingQuotaNumberهای ثبت‌شده بود (S-11).
+        // احراز هویت الزامی است تا امکان کشف loadingQuotaNumberهای ثبت‌شده وجود نداشته باشد (S-11)
         $this->requireAuthenticatedSession();
 
         try {
@@ -184,27 +170,15 @@ class UtilityController {
         }
     }
 
-    /**
-     * بررسی نسخه جدید اپلیکیشن (GET utility/check-update)
-     *
-     * پاسخ‌های خطای ۴۰۳/۵۰۰/۴۰۰ زیر در Phase3 #21 به Response::error()
-     * یکسان شدند؛ تأیید شد UpdateManager.kt فقط شاخه‌ی جداگانه‌ی ۴۲۶
-     * (enforceMinAppVersion، دست‌نخورده) را ساختاریافته می‌خواند — این سه
-     * حالت فقط با کد وضعیت شناسایی می‌شوند، بدنه‌شان خوانده نمی‌شود.
-     */
+    // بررسی نسخه جدید اپلیکیشن (GET utility/check-update)
     public function checkUpdate(): void {
         header('Content-Type: application/json');
         header('X-Content-Type-Options: nosniff');
         header('Cache-Control: no-store, no-cache, must-revalidate');
 
-        // کلید در هدر (نه query string که در لاگ دسترسی وب‌سرور/پروکسی ثبت می‌شود)
-        // و مقایسه‌ی ثابت‌زمان با hash_equals به‌جای === (S-3). پشتیبانی از
-        // پارامتر GET قدیمی api_key هم نگه داشته شده تا نسخه‌های نصب‌شده‌ی
-        // قدیمی‌تر کلاینت که هنوز هدر نمی‌فرستند، فوراً از کار نیفتند
+        // خواندن کلید از هدر (نه query string) با مقایسه‌ی ثابت‌زمان hash_equals؛ پشتیبانی از پارامتر قدیمی api_key برای سازگاری (S-3)
         $apiKey = (string)($this->request->getHeader('X-Api-Key') ?? $this->request->get('api_key', ''));
-        // UPDATE_CHECK_API_KEY === '' یعنی روی سرور پیکربندی نشده (S-13)؛
-        // hash_equals('', '') خودش true برمی‌گرداند، پس این حالت باید صریحاً
-        // قبل از مقایسه رد شود، وگرنه یک درخواست بدون هدر کلید هم عبور می‌کرد.
+        // رد صریح حالت پیکربندی‌نشده چون hash_equals('', '') خودش true برمی‌گرداند (S-13)
         if (UPDATE_CHECK_API_KEY === '' || !hash_equals(UPDATE_CHECK_API_KEY, $apiKey)) {
             Response::error('دسترسی غیرمجاز', 403);
         }
@@ -222,16 +196,11 @@ class UtilityController {
 
         $hasUpdate = version_compare((string)$currentVersion, (string)$config['latest_version'], '<');
         $sha256 = $hasUpdate ? ($config['sha256'] ?? '') : '';
-        // fail-closed: بدون هش قابل‌محاسبه (hash_file شکست خورده یا فایل
-        // گم است)، تأیید یکپارچگی سمت کلاینت ممکن نیست — پس download_url
-        // اصلاً برگردانده نمی‌شود تا کلاینت بی‌صدا یک APK تأییدنشده نصب
-        // نکند (DEEP_CODE_AUDIT.md #Phase1.5).
+        // fail-closed: بدون هش معتبر، download_url برگردانده نمی‌شود تا کلاینت APK تأییدنشده نصب نکند (Phase1.5)
         $downloadUrl = ($hasUpdate && $sha256 !== '') ? $config['download_url'] : '';
 
         $response = [
-            // 'hasUpdate'/'has_update' — کلاینت فعلی خودش hasUpdate را از مقایسه‌ی
-            // latestVersion/currentVersion محاسبه می‌کند (تصمیم سرور را نادیده می‌گرفت)؛
-            // has_update اضافه شد تا کلاینت بتواند به تصمیم سرور (منبع حقیقت) اعتماد کند
+            // has_update اضافه شد تا کلاینت به تصمیم سرور اعتماد کند، نه محاسبه‌ی خودش
             'hasUpdate' => $hasUpdate,
             'has_update' => $hasUpdate,
             'latestVersion' => $config['latest_version'],
@@ -240,10 +209,7 @@ class UtilityController {
             'minRequiredVersion' => $config['min_required_version'],
             'minAllowedVersion' => $config['min_allowed_version'] ?? $config['min_required_version'],
             'sha256' => $sha256,
-            // فیلدهای مسطح snake_case زیر در سطح ریشه — کلاینت اندروید همه‌ی فیلدهای
-            // آپدیت را از ریشه‌ی پاسخ می‌خواند، نه از 'updateInfo' تودرتو (S-1)؛ قبلاً
-            // این فیلدها فقط زیر updateInfo بودند و کلاینت همیشه مقدار پیش‌فرض
-            // خودش (پیام خالی، اولویت normal، forceUpdate=false و...) را می‌گرفت
+            // فیلدهای مسطح snake_case در ریشه‌ی پاسخ چون کلاینت از updateInfo تودرتو نمی‌خواند (S-1)
             'update_priority' => $hasUpdate ? ($config['update_priority'] ?? 'normal') : null,
             'update_message' => $hasUpdate ? ($config['update_message'] ?? '') : null,
             'force_update' => $hasUpdate ? ($config['force_update'] ?? false) : null,
@@ -254,8 +220,7 @@ class UtilityController {
                 'min_app_version' => $config['version_constraints']['min_app_version'] ?? '1.0',
                 'excluded_versions' => $config['version_constraints']['excluded_versions'] ?? [],
             ] : null,
-            // ساختار قدیمی تودرتو برای سازگاری با نسخه‌های نصب‌شده‌ی قدیمی‌تر کلاینت
-            // که ممکن است هنوز از این ساختار بخوانند — حذف نشد، فقط دیگر تنها منبع نیست
+            // ساختار قدیمی تودرتو برای سازگاری با نسخه‌های قدیمی‌تر کلاینت حفظ شده
             'updateInfo' => $hasUpdate ? [
                 'priority' => $config['update_priority'] ?? 'normal',
                 'message' => $config['update_message'] ?? '',
@@ -270,9 +235,7 @@ class UtilityController {
         exit;
     }
 
-    /**
-     * همگام‌سازی دسترسی‌ها (sync_permissions.php)
-     */
+    // همگام‌سازی دسترسی‌ها (sync_permissions.php)
     public function syncPermissions(): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('X-Content-Type-Options: nosniff');
@@ -283,21 +246,12 @@ class UtilityController {
             $this->sendSyncResponse(false, 'Only POST method is allowed.', [], 405);
         }
 
-        // قبلاً هویت را از SessionManager::isSessionActive($username, $deviceId)
-        // می‌گرفت که فقط بررسی می‌کرد آیا نشستی برای این username/deviceId فعال
-        // است، بدون بررسی X-Session-Token — و هیچ‌کدام از username/deviceId هم
-        // سرّی نیستند (S-20). requireAuthenticatedSession همان گیت مبتنی‌بر
-        // توکن است که بقیه‌ی endpointهای این کنترلر استفاده می‌کنند؛ userType
-        // هم از همان نتیجه در دسترس است، پس کوئری جداگانه‌ی SELECT userType
-        // هم دیگر لازم نیست.
+        // احراز هویت مبتنی‌بر توکن (نه صرفاً username/deviceId که سرّی نیستند) هم‌راستا با سایر endpointها (S-20)
         $this->requireAuthenticatedSession();
 
         try {
             $userType = (string)$this->authenticatedUserType;
-            // منطق خواندن/کش permissions.json دیگر اینجا تکرار نمی‌شود — همان
-            // PermissionService::getUserPermissions مورد استفاده‌ی
-            // AuthController/AppApiController، با همان کش (MicroCache،
-            // DEEP_CODE_AUDIT.md #Phase2.7).
+            // استفاده از همان PermissionService::getUserPermissions مشترک با AuthController/AppApiController (Phase2.7)
             $userPermissions = (new PermissionService())->getUserPermissions(
                 (string)$this->authenticatedUsername,
                 $userType

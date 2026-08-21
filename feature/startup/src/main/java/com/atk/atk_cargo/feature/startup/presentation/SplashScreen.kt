@@ -203,10 +203,7 @@ private fun SplashScreenContent(
     }
 }
 
-/**
- * نمایش حرف‌به‌حرف نام برند با افکت slideUp + fadeIn برای هر کاراکتر،
- * و سپس یک shimmer sweep روی کل متن پس از ظاهر شدن همه حروف.
- */
+// نمایش حرف‌به‌حرف نام برند با fadeIn/slideUp و سپس یک shimmer روی کل متن
 @Composable
 private fun AnimatedBrandTitle(brandName: String) {
     val characters = remember(brandName) { brandName.toList() }

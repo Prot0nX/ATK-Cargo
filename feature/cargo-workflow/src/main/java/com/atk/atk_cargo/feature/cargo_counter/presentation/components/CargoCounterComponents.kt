@@ -53,9 +53,7 @@ import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
 
-// TabBar/GroupedShipList/ShipGroup و سلسله‌مراتب کارت انبار/کوتاژ به
-// CargoCounterListContent.kt منتقل شدند (DEEP_CODE_AUDIT.md #Phase3.7،
-// شکستن God Composable). هم‌پکیج‌اند، نیازی به import اضافه نیست.
+// کامپوننت‌های TabBar/GroupedShipList/ShipGroup به CargoCounterListContent.kt منتقل شدند (هم‌پکیج، بدون نیاز به import)
 @Composable
 private fun snackbarAccent(type: MessageType, isDark: Boolean): Color = when (type) {
     MessageType.SUCCESS -> if (isDark) Color(0xFF2DD4BF) else Color(0xFF0D9488)

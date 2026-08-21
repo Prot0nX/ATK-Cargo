@@ -4,9 +4,7 @@
 
 declare(strict_types=1);
 
-/**
- * بارگذاری متغیرهای محیطی از فایل .env
- */
+// بارگذاری متغیرهای محیطی از فایل .env
 
 if (!function_exists('loadEnvFile')) {
     function loadEnvFile(string $filePath): void {

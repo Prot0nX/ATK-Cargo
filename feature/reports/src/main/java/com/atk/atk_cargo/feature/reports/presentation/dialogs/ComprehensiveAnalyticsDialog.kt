@@ -113,11 +113,7 @@ fun ComprehensiveAnalyticsDialog(
 
                     Box(modifier = Modifier.fillMaxSize().weight(1f)) {
                         when (loadingState) {
-                            // C-2: Idle فقط حالت اولیه‌ی قبل از اولین بارگذاری است؛ خودِ
-                            // بارگذاری توسط LaunchedEffect(isVisible) بالا انجام می‌شود.
-                            // این شاخه قبلاً هم یک LaunchedEffect(Unit) داشت که در اولین
-                            // نمایش، همزمان با آن یکی اجرا می‌شد و دو درخواست شبکه‌ی
-                            // همسان به سنگین‌ترین کوئری سرور می‌زد (B-2).
+                            // Idle فقط حالت اولیه است؛ بارگذاری واقعی با LaunchedEffect بالا انجام می‌شود تا درخواست تکراری به سرور نرود
                             ReportsViewModel.LoadingState.Idle,
                             is ReportsViewModel.LoadingState.Loading -> {
                                 Box(
@@ -145,9 +141,7 @@ fun ComprehensiveAnalyticsDialog(
                                 )
                             }
                             ReportsViewModel.LoadingState.Success -> {
-                                // C-1: QuotaAnalysis دیگر لیست را از اینجا نمی‌گیرد؛ خودش
-                                // مستقیماً از ReportsViewModel.analyticsGroups (که از همان
-                                // comprehensiveAnalytics مشتق شده) می‌خواند.
+                                // QuotaAnalysis لیست را مستقیماً از ReportsViewModel.analyticsGroups می‌خواند
                                 analyticsData?.quotaCompletionAnalysis?.let {
                                     QuotaAnalysis(viewModel = viewModel)
                                 } ?: EmptyStateCard("داده‌ای برای کوتاژها یافت نشد")
@@ -170,9 +164,7 @@ private fun AnalyticsDateNavigation(
 
     val dayName = dateInfo?.dayName ?: ""
 
-    // B-1/B-8: پنجره واقعی «روز کاری» است (دیروز ۰۷:۰۰ تا امروز ۰۷:۰۰)، نه لحظه
-    // حاضر؛ به‌جای نمایش فقط تاریخ پایان، بازه کامل نشان داده می‌شود تا کاربر
-    // متوجه شود چه بخشی از امروز هنوز در این گزارش نیست.
+    // پنجره واقعی «روز کاری» است، نه لحظه‌ی حاضر؛ بازه کامل نمایش داده می‌شود تا مشخص شود چه بخشی از امروز در گزارش نیست
     val windowStart = dateInfo?.windowStartDate
     val windowEnd = dateInfo?.windowEndDate
     val windowLabel = if (windowStart != null && windowEnd != null) {
@@ -349,9 +341,7 @@ private fun ErrorStateCard(
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 textAlign = TextAlign.Center
             )
-            // B-9: تنها راه قبلی برای تلاش مجدد، بستن و باز کردن دوباره دیالوگ
-            // یا تغییر تاریخ بود؛ در محیط بندری با شبکه ناپایدار این یک شکاف
-            // UX واقعی است.
+            // دکمه تلاش مجدد چون قبلاً فقط با بستن/بازکردن دیالوگ ممکن بود، در شبکه ناپایدار مشکل تجربه کاربری داشت
             if (onRetry != null) {
                 Button(
                     onClick = onRetry,

@@ -98,10 +98,7 @@ fun ShipDetails(
     val ship = reportsUiState.selectedShip
     val selectedShipQuotas = reportsUiState.selectedShipQuotas
     var showWarningDialog by rememberSaveable { mutableStateOf(false) }
-    // شماره کوتاژهای هشداری که کاربر قبلاً دیده و دیالوگ را برایشان بسته است؛
-    // به‌صورت رشته‌ی جداشده با کاما ذخیره می‌شود چون Set<String> مستقیماً در
-    // Bundle قابل ذخیره نیست. با هر تغییر داده (رفع هشدار، ویرایش، ...) این
-    // لیست، دیالوگ فقط برای هشدارهای واقعاً جدید دوباره باز می‌شود.
+    // شماره کوتاژهای هشداری که کاربر قبلاً بسته؛ چون Set در Bundle ذخیره نمی‌شود، به‌صورت CSV نگه داشته می‌شود
     var dismissedWarningQuotaNumbersCsv by rememberSaveable { mutableStateOf("") }
     val uiState = reportsUiState.status
     val isLoadingShipDetails = reportsUiState.isLoadingShipDetails
@@ -657,10 +654,7 @@ private fun calculateWarningStatus(quota: Quota): WarningStatus? {
     val percentageAmount = totalTonnage * (percentage / 100)
     val warningThreshold = QuotaWarningThresholds.PERCENTAGE_CAP_PROXIMITY_KG
 
-    // قدرمطلق نباید استفاده شود: کوتاژی که چند برابر warningThreshold از سقف
-    // درصد پایین‌تر رفته (بدترین حالت ممکن، محدودیت درصد را قاطعانه نقض کرده)
-    // نباید به‌خاطر فاصله‌ی زیاد از قلم بیفتد. فقط سمتی که مانده به سقف نزدیک
-    // شده یا از آن گذشته است باید هشدار بدهد.
+    // قدرمطلق استفاده نمی‌شود؛ فقط وقتی مانده به سقف درصد نزدیک شده یا از آن گذشته هشدار داده می‌شود
     if (remainingTonnage - percentageAmount <= warningThreshold) {
         return WarningStatus(
             show = true,

@@ -8,16 +8,12 @@ namespace App\Validators;
 use App\Exceptions\ApiException;
 
 class InputValidator {
-    /**
-     * پاک‌سازی رشته ورودی
-     */
+    // پاک‌سازی رشته ورودی
     public static function sanitize(string $value): string {
         return htmlspecialchars(strip_tags(trim($value)), ENT_QUOTES, 'UTF-8');
     }
 
-    /**
-     * بررسی وجود فیلدهای الزامی در آرایه داده‌ها
-     */
+    // بررسی وجود فیلدهای الزامی در آرایه داده‌ها
     public static function validateRequired(array $data, array $requiredFields): void {
         $missing = [];
         foreach ($requiredFields as $field) {
@@ -31,9 +27,7 @@ class InputValidator {
         }
     }
 
-    /**
-     * اعتبارسنجی اعداد اعشاری مثبت
-     */
+    // اعتبارسنجی اعداد اعشاری مثبت
     public static function validateFloat($value, string $fieldName): float {
         $filtered = filter_var($value, FILTER_VALIDATE_FLOAT);
         if ($filtered === false || $filtered <= 0) {
@@ -42,18 +36,14 @@ class InputValidator {
         return (float)$filtered;
     }
 
-    /**
-     * اعتبارسنجی مقدار فقط شامل عدد
-     */
+    // اعتبارسنجی مقدار فقط شامل عدد
     public static function validateDigits(string $value, string $fieldName): void {
         if (!ctype_digit($value)) {
             throw new ApiException("فیلد {$fieldName} باید فقط شامل اعداد باشد.", 400);
         }
     }
 
-    /**
-     * اعتبارسنجی نام کاربری
-     */
+    // اعتبارسنجی نام کاربری
     public static function validateUsername(string $username): string {
         $cleaned = self::sanitize($username);
         if (strlen($cleaned) < 3) {
@@ -62,9 +52,7 @@ class InputValidator {
         return $cleaned;
     }
 
-    /**
-     * اعتبارسنجی نام کامل
-     */
+    // اعتبارسنجی نام کامل
     public static function validateFullName(string $fullName): string {
         $cleaned = self::sanitize($fullName);
         if (strlen($cleaned) < 3) {
@@ -73,12 +61,7 @@ class InputValidator {
         return $cleaned;
     }
 
-    /**
-     * اعتبارسنجی رمز عبور. کلاینت رمز را قبل از ارسال SHA-256 می‌کند (۶۴
-     * کاراکتر هگز)، پس این بررسی به‌تنهایی جایگزین hashing سمت سرور روی
-     * رمز خام نیست (نگاه کنید Phase 3.11) — اما سدّی است در برابر یک
-     * کلاینت دستکاری‌شده که مستقیماً رمز کوتاه/فقط-رقمی می‌فرستد.
-     */
+    // اعتبارسنجی طول رمز عبور در برابر کلاینت دستکاری‌شده‌ای که رمز کوتاه می‌فرستد
     public static function validatePassword(string $password): string {
         if (mb_strlen($password) < 8) {
             throw new ApiException("رمز عبور باید حداقل ۸ کاراکتر باشد.", 400);
@@ -86,14 +69,7 @@ class InputValidator {
         return $password;
     }
 
-    /**
-     * برای مقادیری که در یک شرط تساوی (WHERE = ?) با prepared statement مقایسه
-     * می‌شوند (مثل نام کشتی) نباید htmlspecialchars اعمال شود، وگرنه نامی مثل
-     * "M&V" به "M&amp;V" تبدیل و مقایسه با دیتابیس شکسته می‌شود. SQL Injection
-     * توسط prepared statement مهار می‌شود، نه توسط escape کردن ورودی. (قبلاً
-     * private داخل AppApiController بود؛ ShipService/QuotaController هم به
-     * همین منطق نیاز داشتند.)
-     */
+    // برای مقادیری که با prepared statement مقایسه می‌شوند، نباید htmlspecialchars اعمال شود وگرنه مقایسه می‌شکند
     public static function validateIdentifier(string $input, int $maxLength = 150): string {
         $value = trim($input);
         if ($value === '' || mb_strlen($value) > $maxLength) {

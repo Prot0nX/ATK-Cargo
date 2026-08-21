@@ -24,11 +24,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * برای پاسخ‌های ناموفق HTTP که کد وضعیت‌شان معنادار است (مثلاً ۴۰۴ برای
- * «یافت نشد»)؛ فراخوان‌کننده به‌جای تطبیق رشته‌ی فارسی پیام خطا می‌تواند
- * مستقیماً statusCode را چک کند.
- */
+// برای پاسخ‌های ناموفق HTTP که کد وضعیت‌شان معنادار است؛ فراخوان‌کننده می‌تواند مستقیماً statusCode را چک کند
 class HttpStatusException(val statusCode: Int, message: String) : Exception(message)
 
 class ReportsRepository(
@@ -70,10 +66,7 @@ class ReportsRepository(
         }
     }
 
-    // forceRefresh=true وقتی لازم است که این متد بلافاصله بعد از یک نوشتن
-    // موفق (toggleQuotaStatus/editQuota/deleteQuota/...) صدا زده می‌شود؛
-    // بدون آن، کش دیسک OkHttp تا max-age سرور (۶ ثانیه) پاسخ قدیمی را بدون
-    // حتی یک درخواست شبکه برمی‌گرداند و UI تغییر را نشان نمی‌دهد.
+    // forceRefresh برای دور زدن کش دیسک OkHttp بعد از یک نوشتن موفق استفاده می‌شود تا UI پاسخ قدیمی نبیند
     suspend fun getShipDetails(shipName: String, forceRefresh: Boolean = false): Ship = withContext(Dispatchers.IO) {
         val response = apiServiceV2.getShipDetails(
             route = ApiV2Routes.shipDetails(shipName),
@@ -169,8 +162,7 @@ class ReportsRepository(
         }
     }
 
-    // منتقل‌شده از QuotaManagementDialog.kt که مستقیماً RetrofitClient.apiServiceV2
-    // را از داخل LaunchedEffect صدا می‌زد (DEEP_CODE_REVIEW.md Top20 #5).
+    // منتقل‌شده از QuotaManagementDialog.kt که مستقیماً apiServiceV2 را از LaunchedEffect صدا می‌زد
     suspend fun getGroupedQuotas(shipName: String): Map<String, Map<String, List<QuotaItem>>> =
         withContext(Dispatchers.IO) {
             val response = apiServiceV2.getGroupedQuotas(shipName = shipName)
@@ -443,10 +435,7 @@ class ReportsRepository(
         }
     }
 
-    // بدون try/catch عمومی (مطابق الگوی getShipDetails)؛ در غیر این صورت
-    // HttpStatusException زیر دوباره در یک Exception ساده بسته‌بندی می‌شد و
-    // کلاینت نمی‌توانست بین ۴۰۱ (نشست نامعتبر)، ۴۲۹ (rate limit) و خطای شبکه
-    // تشخیص دهد.
+    // بدون try/catch عمومی تا کلاینت بتواند بین ۴۰۱، ۴۲۹ (rate limit) و خطای شبکه تشخیص دهد
     suspend fun getRealTimeLoadingData(shiftOffset: Int = 0): RealTimeDataResponse = withContext(Dispatchers.IO) {
         val response = apiServiceV2.getRealTimeLoadingData(shiftOffset = shiftOffset)
         if (response.isSuccessful) {
@@ -555,11 +544,7 @@ class ReportsRepository(
         }
     }
 
-    // A-3 (گزارش تحلیل جامع عملیات): بدون try/catch عمومی و با HttpStatusException
-    // (مطابق الگوی getRealTimeLoadingData)؛ در غیر این صورت کلاینت نمی‌توانست
-    // ۴۰۱ (نشست نامعتبر) و ۴۰۳ (نبود مجوز view_reports) را از خطای شبکه
-    // تشخیص دهد، و بدنه خام JSON خطای سرور مستقیم در ErrorStateCard به کاربر
-    // نمایش داده می‌شد.
+    // بدون try/catch عمومی تا کلاینت بتواند ۴۰۱ و ۴۰۳ (نبود مجوز) را از خطای شبکه تشخیص دهد
     suspend fun getComprehensiveAnalysis(offset: Int = 0): ComprehensiveAnalysisResponse =
         withContext(Dispatchers.IO) {
             val response = apiServiceV2.getComprehensiveAnalysis(offset = offset)
@@ -573,9 +558,7 @@ class ReportsRepository(
             }
         }
 
-    // A-5: عمداً بدون throw — این فقط یک لاگ ممیزی سمت سرور است؛ اگر شکست
-    // بخورد (شبکه قطع، سرور down) نباید جلوی اشتراک‌گذاری واقعی کاربر
-    // (که با Intent.ACTION_SEND و کاملاً سمت کلاینت انجام می‌شود) را بگیرد.
+    // عمداً بدون throw؛ این فقط یک لاگ ممیزی سمت سرور است و نباید جلوی اشتراک‌گذاری کاربر را بگیرد
     suspend fun logAnalyticsExport(scope: String, groupCount: Int) {
         withContext(Dispatchers.IO) {
             try {

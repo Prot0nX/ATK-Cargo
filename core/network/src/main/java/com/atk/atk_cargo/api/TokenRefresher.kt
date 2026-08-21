@@ -8,17 +8,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
-/**
- * منطق مشترک POST /api/v2/auth/refresh (I-05) — بین دو مصرف‌کننده به اشتراک
- * گذاشته شده تا پیاده‌سازی HTTP یک‌بار نوشته شود:
- *   ۱. TokenAuthenticator: silent refresh واکنشی روی ۴۰۱ با
- *      code=access_token_expired.
- *   ۲. SessionValidator (startup): checkSession همیشه HTTP ۲۰۰ برمی‌گرداند
- *      (حتی روی شکست، برای سازگاری با کلاینت قدیمی)، پس هیچ‌وقت ۴۰۱ نمی‌شود
- *      و Authenticator اصلاً برایش صدا زده نمی‌شود؛ بدون این فراخوانی صریح،
- *      کاربری که اپ را بعد از >۳۰ دقیقه دوباره باز می‌کند همیشه به صفحه‌ی
- *      ورود می‌رفت، حتی با یک refresh token کاملاً معتبر.
- */
+// منطق مشترک POST /api/v2/auth/refresh بین TokenAuthenticator (رفرش واکنشی روی ۴۰۱) و SessionValidator (بررسی صریح در startup، چون checkSession هرگز ۴۰۱ نمی‌شود)
 object TokenRefresher {
     private val httpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -27,19 +17,9 @@ object TokenRefresher {
             .build()
     }
 
-    /**
-     * @return access token جدید در صورت موفقیت، یا null (و در صورت رد قطعی
-     *         شدن refresh token توسط سرور، پاک‌شدن کامل نشست محلی).
-     */
+    /** @return access token جدید در صورت موفقیت، یا null (و پاک‌شدن نشست محلی اگر سرور refresh token را قطعاً رد کرده باشد) */
     suspend fun refresh(baseUrl: String, tokenStore: TokenStore): String? {
-        // AuthSession یک singleton درون‌حافظه‌ای است که در AtkCargoApplication
-        // با یک coroutine جدا (fire-and-forget) از DataStore پر می‌شود. در
-        // cold start (دقیقاً همان لحظه‌ای که این تابع بعد از >۳۰ دقیقه
-        // بی‌فعالیتی از StartupViewModel صدا زده می‌شود)، ممکن است این
-        // coroutine هنوز کامل نشده باشد و AuthSession.username/deviceId هنوز
-        // "" باشند — حتی با یک refreshToken کاملاً معتبر در DataStore. با
-        // خواندن مستقیم از tokenStore (همان منبع پایدار که refreshToken هم
-        // از آن خوانده می‌شود)، این race حذف می‌شود.
+        // AuthSession در cold start ممکن است هنوز از DataStore پر نشده باشد؛ برای حذف این race مستقیماً از tokenStore خوانده می‌شود
         val username = tokenStore.getUsername()
         val deviceId = tokenStore.getDeviceId()
         val refreshToken = tokenStore.getRefreshToken()
@@ -55,10 +35,7 @@ object TokenRefresher {
                 .add("refreshToken", refreshToken)
                 .build()
 
-            // مسیر تمیز /api/v2/auth/refresh روی این هاست کار نمی‌کند
-            // (mod_rewrite از طریق .htaccess فعال نیست — نگاه کنید به
-            // کامنت‌های api/v2/index.php)؛ همان الگوی query-string که آن فایل
-            // به‌عنوان راه‌حل اثبات‌شده استفاده می‌کند.
+            // مسیر تمیز /api/v2/auth/refresh روی این هاست کار نمی‌کند (mod_rewrite فعال نیست)، پس از الگوی query-string استفاده می‌شود
             val url = baseUrl.trimEnd('/') + "/api/v2/index.php?route=auth/refresh"
             val request = Request.Builder().url(url).post(formBody).build()
 
@@ -66,9 +43,7 @@ object TokenRefresher {
                 val bodyStr = httpResponse.body?.string()
                 if (!httpResponse.isSuccessful || bodyStr.isNullOrEmpty()) {
                     if (httpResponse.code == 401) {
-                        // refresh token هم رد شد (منقضی یا نشانه‌ی سرقت که سمت
-                        // سرور تمام نشست‌ها را باطل کرده) — نشست محلی هم باید
-                        // کاملاً پاک شود تا کاربر واقعاً به صفحه‌ی ورود برود.
+                        // refresh token هم رد شد (منقضی یا سرقت‌شده)، پس نشست محلی هم کاملاً پاک می‌شود تا کاربر واقعاً به صفحه‌ی ورود برود
                         tokenStore.clearCredentials()
                     }
                     return null

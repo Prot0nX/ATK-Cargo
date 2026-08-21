@@ -9,10 +9,7 @@ use App\Exceptions\ApiException;
 use App\Validators\InputValidator;
 use PHPUnit\Framework\TestCase;
 
-/**
- * تست‌های واحد InputValidator — از جمله validatePassword که سدّ سمت سرور
- * برای حداقل طول رمز عبور است (Phase 1.2: قبلاً رمز ۴ رقمی عددی مجاز بود).
- */
+// تست‌های واحد InputValidator، از جمله validatePassword برای حداقل طول رمز عبور
 final class InputValidatorTest extends TestCase {
 
     // ===== sanitize =====
@@ -131,8 +128,7 @@ final class InputValidatorTest extends TestCase {
     // ===== validateIdentifier =====
 
     public function testValidateIdentifierPreservesAmpersandWithoutEscaping(): void {
-        // برخلاف sanitize، اینجا نباید htmlspecialchars اعمال شود چون مقدار
-        // مستقیم در prepared statement مقایسه می‌شود (نگاه کنید به کامنت متد).
+        // برخلاف sanitize، اینجا htmlspecialchars اعمال نمی‌شود چون مقدار مستقیم در prepared statement مقایسه می‌شود.
         $this->assertSame('M&V', InputValidator::validateIdentifier('M&V'));
     }
 

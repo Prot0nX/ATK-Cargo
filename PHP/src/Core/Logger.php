@@ -25,9 +25,7 @@ class Logger {
         return self::$instance;
     }
 
-    /**
-     * ثبت لاگ با فرمت و سطح مشخص
-     */
+    // ثبت لاگ با فرمت و سطح مشخص
     public function log(string $message, string $level = 'INFO', string $category = 'app'): void {
         $timestamp = date('Y-m-d H:i:s');
         $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
@@ -36,8 +34,7 @@ class Logger {
         $logMessage = sprintf("[%s] [%s] [%s] [IP: %s] %s%s", $timestamp, $level, strtoupper($category), $ip, $sanitizedMessage, PHP_EOL);
         $logFile = sprintf("%s/%s.log", $this->logDir, $category);
 
-        // پیام‌ها در حافظه بافر می‌شوند و فقط یک‌بار در انتهای اسکریپت (هر فایل لاگ
-        // جداگانه) نوشته می‌شوند تا قفل فایل روی مسیر اصلی پردازش درخواست تکرار نشود.
+        // پیام‌ها بافر شده و فقط یک‌بار در پایان اسکریپت روی فایل نوشته می‌شوند
         $this->buffer[$logFile] = ($this->buffer[$logFile] ?? '') . $logMessage;
 
         if (!$this->shutdownRegistered) {
@@ -69,9 +66,7 @@ class Logger {
         $this->log($message, 'DATABASE', $category);
     }
 
-    /**
-     * حذف اطلاعات حساس مانند پسورد از متن لاگ‌ها
-     */
+    // حذف اطلاعات حساس مانند پسورد از متن لاگ‌ها
     private function sanitizeMessage(string $message): string {
         // الگوهای تشخیص اطلاعات حساس و جایگزینی آنها
         $patterns = [

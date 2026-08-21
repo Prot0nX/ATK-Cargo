@@ -317,10 +317,7 @@ private fun SummaryStatsButton(onClick: () -> Unit, warningsCount: Int = 0) {
         label = "button_scale"
     )
 
-    // قبلاً بدون قید warningsCount اجرا می‌شد — یعنی حتی وقتی Badge اصلاً
-    // نمایش داده نمی‌شد (warningsCount == 0) هم یک frame callback دائمی
-    // فعال بود (DEEP_CODE_REVIEW.md Phase4 #34). همچنین تنظیم سیستمی
-    // «حذف انیمیشن‌ها» را هم احترام می‌گذارد.
+    // انیمیشن پالس فقط وقتی هشدار وجود دارد و انیمیشن‌ها فعال‌اند اجرا می‌شود
     val badgeScale: Float = if (warningsCount > 0 && AnimationManager.areAnimationsEnabled()) {
         val infiniteTransition = rememberInfiniteTransition(label = "badge_pulse")
         val scale by infiniteTransition.animateFloat(
@@ -456,9 +453,7 @@ private fun SystemAwarenessBanner() {
     val networkText = if (isOnline) "آنلاین" else "آفلاین"
     val syncText = if (isOnline) "همگام" else "در انتظار شبکه"
 
-    // این پالس تزئینی («زنده بودن» وضعیت آنلاین/آفلاین) عمداً مشروط به هیچ
-    // state ای نشد (برخلاف badgeScale بالا) چون همیشه معنادار است؛ فقط
-    // تنظیم سیستمی «حذف انیمیشن‌ها» را احترام می‌گذارد (Phase4 #34).
+    // پالس تزئینی وضعیت آنلاین/آفلاین، فقط تابع تنظیم سیستمی «حذف انیمیشن‌ها»
     val pulseAlpha: Float
     val pulseScale: Float
     if (AnimationManager.areAnimationsEnabled()) {
@@ -482,8 +477,7 @@ private fun SystemAwarenessBanner() {
             label = "status_pulse_scale"
         ).value
     } else {
-        // حلقه‌ی پالس مخفی می‌شود؛ نقطه‌ی توپر ثابت زیرش (بدون alpha/scale)
-        // همچنان وضعیت را نشان می‌دهد.
+        // حلقه پالس مخفی می‌شود و فقط نقطه توپر ثابت وضعیت را نشان می‌دهد
         pulseAlpha = 0f
         pulseScale = 1f
     }

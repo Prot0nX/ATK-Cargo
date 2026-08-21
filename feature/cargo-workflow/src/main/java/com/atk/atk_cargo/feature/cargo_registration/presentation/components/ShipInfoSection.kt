@@ -645,9 +645,7 @@ fun CargoInfoRow(
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) 
     else 
         MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-    // متغیرهای محلی لازم‌اند: exitDate/exitTime از ماژول دیگری (core:domain)
-    // می‌آیند، پس Kotlin نمی‌تواند بعد از != null آن‌ها را smart-cast کند
-    // (DEEP_CODE_AUDIT.md #Phase5.7 — همان محدودیت smart-cast بین‌ماژولی).
+    // متغیر محلی لازم است چون exitDate/exitTime از ماژول دیگر smart-cast نمی‌شوند
     val exitDate = info.exitDate
     val exitTime = info.exitTime
     val displayDate = if (isExited && exitDate != null) exitDate else ""

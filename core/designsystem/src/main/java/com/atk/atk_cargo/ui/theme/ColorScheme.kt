@@ -5,9 +5,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
-/**
- * تابع کمکی جهت ترکیب رنگ شفاف روی پس‌زمینه.
- */
+// تابع کمکی برای ترکیب رنگ شفاف روی پس‌زمینه
 private fun Color.compositeOver(background: Color): Color {
     val a = this.alpha
     return Color(
@@ -18,9 +16,7 @@ private fun Color.compositeOver(background: Color): Color {
     )
 }
 
-/**
- * ساخت ColorScheme پویا برای حالت تاریک (Dark Theme) با رعایت استاندارد MD3.
- */
+// ساخت ColorScheme پویا برای حالت تاریک، مطابق استاندارد MD3
 fun buildAppDarkColorScheme(primary: Color): ColorScheme = darkColorScheme(
     primary = primary,
     onPrimary = Color.White,
@@ -52,9 +48,7 @@ fun buildAppDarkColorScheme(primary: Color): ColorScheme = darkColorScheme(
     scrim = Color.Black.copy(alpha = 0.6f)
 )
 
-/**
- * ساخت ColorScheme پویا برای حالت روشن (Light Theme) با رعایت استاندارد MD3.
- */
+// ساخت ColorScheme پویا برای حالت روشن، مطابق استاندارد MD3
 fun buildAppLightColorScheme(primary: Color): ColorScheme = lightColorScheme(
     primary = primary,
     onPrimary = Color.White,

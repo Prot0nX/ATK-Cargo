@@ -5,20 +5,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-/**
- * منطق محاسباتی خالص (بدون دیتابیس/IO) مربوط به تناژ و وضعیت کوتاژ — قبلاً
- * این دو متد به‌صورت private داخل AppApiController بودند و به‌خاطر وابستگی
- * ضمنی به کل کلاس (که خودش به دیتابیس متصل می‌شود) هیچ تست واحدی نمی‌شد
- * برایشان نوشت؛ اینجا به‌عنوان یک کلاس مستقل و بدون‌حالت (stateless) استخراج
- * شده‌اند تا مستقیماً و بدون نیاز به دیتابیس تست شوند (I-02). AppApiController
- * اکنون فقط به این کلاس delegate می‌کند، رفتار بیرونی‌اش عوض نشده است.
- */
+// منطق محاسباتی خالص (بدون دیتابیس) مربوط به تناژ و وضعیت کوتاژ، استخراج‌شده از AppApiController برای قابلیت تست مستقل
 final class QuotaCalculator {
-    /**
-     * تناژ قابل‌بارگیری واقعی یک کوتاژ. اگر محدودیت درصدی فعال باشد، بخشی
-     * از ظرفیت باقی‌مانده (percentage% از کل تناژ) کنار گذاشته می‌شود و
-     * قابل‌بارگیری نیست.
-     */
+    // تناژ قابل‌بارگیری واقعی کوتاژ؛ اگر محدودیت درصدی فعال باشد، سهم آن از کل تناژ کسر می‌شود
     public function calculateLoadableTonnage(
         float $remainingTonnage,
         float $totalTonnage,
@@ -32,9 +21,7 @@ final class QuotaCalculator {
         return $remainingTonnage;
     }
 
-    /**
-     * پیام وضعیت قابل‌نمایش به کاربر بر اساس فعال‌بودن کوتاژ و درصد بارگیری‌شده.
-     */
+    // پیام وضعیت قابل‌نمایش به کاربر بر اساس فعال‌بودن کوتاژ و درصد بارگیری‌شده
     public function generateStatusMessage(bool $isActive, float $percentageLoaded, string $quotaNumber, string $cargoType): string {
         if (!$isActive) {
             return "کوتاژ $quotaNumber با نوع کالای $cargoType غیرفعال است";

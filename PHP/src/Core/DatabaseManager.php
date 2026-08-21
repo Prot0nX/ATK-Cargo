@@ -20,8 +20,7 @@ class DatabaseManager {
     public function prepare(string $query): mysqli_stmt {
         $stmt = $this->conn->prepare($query);
         if (!$stmt) {
-            // جزئیات خطای mysqli (که می‌تواند نام جدول/ستون را فاش کند) فقط در لاگ
-            // سرور ثبت می‌شود؛ پیام بازگردانده‌شده به کلاینت عمومی و بی‌خطر است.
+            // جزئیات خطای mysqli فقط در لاگ سرور ثبت می‌شود، پاسخ کلاینت عمومی است
             error_log('DatabaseManager::prepare failed: ' . $this->conn->error);
             throw new Exception('خطا در پردازش درخواست. لطفاً بعداً تلاش کنید.');
         }

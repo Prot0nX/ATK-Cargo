@@ -5,11 +5,7 @@ import android.content.Context
 import android.hardware.display.DisplayManager
 import android.view.Display
 
-/**
- * تخمین ارزان و همزمان (بدون I/O، بدون بنچمارک) از توان دستگاه.
- * فقط برای تصمیم دوتایی «انیمیشن ساده یا کامل» در AnimationManager استفاده می‌شود،
- * پس دقت بالا لازم نیست — سه سیگنال ارزان سیستم‌عامل کافی است.
- */
+// تخمین سریع توان دستگاه برای تصمیم ساده/کامل بودن انیمیشن
 class HardwarePerformanceEvaluator(private val context: Context) {
 
     fun evaluatePerformance(): Int {

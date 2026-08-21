@@ -27,9 +27,7 @@ class Database {
         return self::$instance;
     }
 
-    /**
-     * دریافت کانکشن PDO بهینه‌شده
-     */
+    // دریافت کانکشن PDO بهینه‌شده
     public function getPdoConnection(): PDO {
         if ($this->pdo === null) {
             try {
@@ -53,9 +51,7 @@ class Database {
         return $this->pdo;
     }
 
-    /**
-     * دریافت کانکشن mysqli بهینه‌شده جهت حفظ سازگاری با توابع قدیمی
-     */
+    // دریافت کانکشن mysqli بهینه‌شده جهت حفظ سازگاری با توابع قدیمی
     public function getMysqliConnection(): mysqli {
         if ($this->mysqli === null) {
             $host = $this->config->get('db_host');
@@ -80,9 +76,7 @@ class Database {
         return $this->mysqli;
     }
 
-    /**
-     * بستن اتصالات
-     */
+    // بستن اتصالات
     public function closeConnections(): void {
         if ($this->mysqli !== null) {
             $this->mysqli->close();

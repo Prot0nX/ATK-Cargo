@@ -13,9 +13,7 @@ import kotlinx.coroutines.launch
 
 // ===== TYPES / ENUMS =====
 
-/**
- * وضعیت جاری UI صفحه ورود — مُهر و موم شده (Sealed) برای ایمنی کامل
- */
+// وضعیت جاری UI صفحه ورود
 sealed class LoginUiState {
     data object Idle : LoginUiState()
     data object Loading : LoginUiState()
@@ -23,10 +21,7 @@ sealed class LoginUiState {
     data class Error(val message: String) : LoginUiState()
 }
 
-/**
- * وضعیت فرم ورود — State Hoisting کامل در ViewModel
- * با این رویکرد، چرخش صفحه دیگر ورودی‌های کاربر را پاک نمی‌کند.
- */
+// وضعیت فرم ورود با State Hoisting تا چرخش صفحه ورودی‌ها را پاک نکند
 data class LoginFormState(
     val username: String = "",
     val password: String = "",
@@ -35,14 +30,7 @@ data class LoginFormState(
 
 // ===== CORE LOGIC =====
 
-/**
- * ViewModel صفحه ورود.
- *
- * مسئولیت‌ها:
- * - نگهداری حالت فرم (State Hoisting) — جلوگیری از پاک شدن ورودی‌ها در چرخش صفحه
- * - مدیریت چرخه ورود از طریق LoginUseCase
- * - هیچ دسترسی مستقیمی به ApiService یا UserPreferencesManager ندارد
- */
+// ViewModel صفحه ورود: نگهداری حالت فرم و مدیریت چرخه ورود از طریق LoginUseCase
 class AuthViewModel(
     private val loginUseCase: LoginUseCase,
     private val context: Context
@@ -68,9 +56,7 @@ class AuthViewModel(
 
     // ===== CORE LOGIC =====
 
-    /**
-     * به‌روزرسانی نام کاربری در حالت فرم + ریست خطا
-     */
+    // به‌روزرسانی نام کاربری در حالت فرم و ریست خطا
     fun onUsernameChanged(value: String) {
         _formState.update { it.copy(username = value) }
         if (_loginState.value is LoginUiState.Error) {
@@ -78,9 +64,7 @@ class AuthViewModel(
         }
     }
 
-    /**
-     * به‌روزرسانی رمز عبور (فقط اعداد) در حالت فرم + ریست خطا
-     */
+    // به‌روزرسانی رمز عبور (فقط اعداد) در حالت فرم و ریست خطا
     fun onPasswordChanged(value: String) {
         _formState.update { it.copy(password = value.filter { c -> c.isDigit() }) }
         if (_loginState.value is LoginUiState.Error) {
@@ -88,17 +72,12 @@ class AuthViewModel(
         }
     }
 
-    /**
-     * تغییر وضعیت نمایش/پنهان کردن رمز عبور
-     */
+    // تغییر وضعیت نمایش/پنهان کردن رمز عبور
     fun togglePasswordVisibility() {
         _formState.update { it.copy(isPasswordVisible = !it.isPasswordVisible) }
     }
 
-    /**
-     * شروع فرآیند ورود
-     * هشینگ و درخواست شبکه داخل AuthRepository/IO Thread انجام می‌شوند
-     */
+    // شروع فرآیند ورود؛ هشینگ و درخواست شبکه داخل AuthRepository انجام می‌شود
     fun login() {
         val form = _formState.value
         viewModelScope.launch {
@@ -116,10 +95,7 @@ class AuthViewModel(
         }
     }
 
-    /**
-     * بازنشانی کامل وضعیت ورود و فرم — فراخوانی هنگام خروج کاربر
-     * تا داده‌های حساب قبلی در فیلدها باقی نمانند.
-     */
+    // بازنشانی کامل وضعیت ورود و فرم هنگام خروج کاربر
     fun resetState() {
         _loginState.value = LoginUiState.Idle
         _formState.value = LoginFormState()

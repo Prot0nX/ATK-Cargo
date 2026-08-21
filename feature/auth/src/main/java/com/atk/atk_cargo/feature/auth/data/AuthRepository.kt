@@ -4,43 +4,26 @@ import kotlinx.coroutines.flow.Flow
 
 // ===== TYPES / INTERFACES =====
 
-/**
- * قرارداد لایه داده احراز هویت.
- * ViewModel فقط با این اینترفیس کار می‌کند — پیاده‌سازی جزئیات (API، DataStore) از آن پنهان است.
- */
+// قرارداد لایه داده احراز هویت که پیاده‌سازی را از ViewModel پنهان می‌کند
 interface AuthRepository {
 
-    /**
-     * ورود کاربر با نام کاربری و رمز عبور.
-     * پسورد به‌صورت SHA-256 هش می‌شود و همراه مشخصات دستگاه به سرور ارسال می‌شود.
-     *
-     * @param username نام کاربری
-     * @param password رمز عبور (متن خام — هشینگ داخل Repository انجام می‌شود)
-     * @param appVersion نسخه برنامه
-     * @return نتیجه ورود
-     */
+    // ورود کاربر با هش‌کردن رمز عبور و ارسال آن همراه مشخصات دستگاه به سرور
     suspend fun login(
         username: String,
         password: String,
         appVersion: String
     ): LoginResult
 
-    /**
-     * Flow نام کاربری جاری (برای state آگاهی)
-     */
+    // Flow نام کاربری جاری
     val currentUsername: Flow<String>
 
-    /**
-     * پاکسازی اطلاعات نشست کاربر
-     */
+    // پاکسازی اطلاعات نشست کاربر
     suspend fun clearSession()
 }
 
 // ===== TYPES =====
 
-/**
- * نتیجه عملیات ورود — مُهر و موم شده برای ایمنی کامل
- */
+// نتیجه عملیات ورود
 sealed class LoginResult {
     data object Success : LoginResult()
     data class Error(val message: String) : LoginResult()

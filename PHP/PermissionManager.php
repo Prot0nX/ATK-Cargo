@@ -1,19 +1,14 @@
 <?php
-/**
- * ATK-Cargo Professional Permission Manager (V2)
- * مدیریت متمرکز نقش‌ها و دسترسی‌های اختصاصی کاربران
- */
+// پنل مدیریت متمرکز نقش‌ها و دسترسی‌های اختصاصی کاربران (V2)
 
-// نمایش خطا روی production مسیر فایل‌ها/جزئیات داخلی را در صفحه‌ی خطا افشا
-// می‌کرد (S-17)؛ خطاها همچنان لاگ می‌شوند، فقط به کاربر نمایش داده نمی‌شوند.
+// نمایش خطا در production غیرفعال است تا جزئیات داخلی افشا نشود؛ خطاها همچنان لاگ می‌شوند (S-17)
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
 date_default_timezone_set('Asia/Tehran');
 
-// کوکی نشست باید قبل از session_start() تنظیم شود (S-XX / DEEP_CODE_AUDIT.md
-// #Phase1.6) — قبلاً هیچ httponly/secure/samesite‌ای اعمال نمی‌شد.
+// کوکی نشست باید قبل از session_start() تنظیم شود؛ قبلاً httponly/secure/samesite اعمال نمی‌شد (DEEP_CODE_AUDIT.md #Phase1.6)
 session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',
@@ -30,9 +25,7 @@ if (empty($_SESSION['csrf_token'])) {
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/vendor/autoload.php';
 
-// LoginAttemptLimiter (fallback فایلی بدون APCu) به APP_ROOT نیاز دارد که
-// معمولاً src/bootstrap.php تعریف می‌کند — این اسکریپت bootstrap.php را
-// require نمی‌کند، پس اینجا مستقل تعریف می‌شود.
+// LoginAttemptLimiter به APP_ROOT نیاز دارد؛ چون bootstrap.php اینجا require نمی‌شود، مستقل تعریف می‌گردد
 if (!defined('APP_ROOT')) {
     define('APP_ROOT', __DIR__);
 }
@@ -42,13 +35,7 @@ use App\Services\LoginAttemptLimiter;
 use App\Services\PermissionService;
 use App\Repositories\PermissionRepository;
 
-// DEEP_CODE_AUDIT.md #Phase4.7 — منبع مجوزها از config/permissions.json به
-// دو جدول دیتابیس (role_permissions/user_permissions) منتقل شد. اگر
-// migrations/2026_08_19_permissions_to_database.sql هنوز روی این سرور اجرا
-// نشده باشد، این پنل با یک پیام صریح خطا می‌دهد (نه نوشتن بی‌صدا در JSON —
-// چون دیگر آن فایل منبع حقیقت نیست)، در حالی که مسیر *بررسی* مجوز
-// (PermissionService::getUserPermissions) در همین حالت هنوز به‌صورت شفاف
-// به فایل قدیمی fallback می‌کند تا لاگین/API از کار نیفتد.
+// منبع مجوزها از config/permissions.json به جداول دیتابیس منتقل شده؛ اگر migration هنوز اجرا نشده این پنل خطای صریح می‌دهد ولی بررسی مجوز همچنان به فایل قدیمی fallback می‌کند (DEEP_CODE_AUDIT.md #Phase4.7)
 $permissionRepository = new PermissionRepository();
 $dbMigrated = true;
 try {
@@ -70,9 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// هندل کردن لاگین — از همان LoginAttemptLimiter مورد استفاده در API (قفل
-// مستقل از IP روی 'permmgr' + تأخیر تصاعدی) برای جلوگیری از brute-force
-// روی رمز ادمین استفاده می‌شود (قبلاً هیچ قفلی نداشت).
+// هندل لاگین با همان LoginAttemptLimiter مورد استفاده در API برای جلوگیری از brute-force روی رمز ادمین
 $loginAttemptLimiter = new LoginAttemptLimiter();
 $clientIp = (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
 
@@ -116,8 +101,7 @@ if ($is_authenticated && (time() - $_SESSION['last_activity'] > 1800)) {
 }
 if ($is_authenticated) $_SESSION['last_activity'] = time();
 
-// $all_data همان شکل قبلی (roles/users) را حفظ می‌کند تا بقیه‌ی این فایل
-// (تمپلیت HTML/JS پایین) بدون تغییر کار کند؛ فقط منبع داده عوض شده است.
+// $all_data همان ساختار قبلی (roles/users) را حفظ می‌کند تا تمپلیت پایین بدون تغییر کار کند
 $all_data = ['roles' => ['admin' => [], 'operator' => [], 'verifier' => []], 'users' => []];
 if ($dbMigrated) {
     $all_data = [
@@ -162,8 +146,7 @@ if ($is_authenticated && isset($_POST['save_permissions'])) {
                 }
             }
 
-            // بدون این، تغییرات تا انقضای TTL کش (۳۰ ثانیه) به بررسی‌های
-            // مجوز در حال اجرا اعمال نمی‌شدند (DEEP_CODE_AUDIT.md #Phase2.7).
+            // بدون این خط تغییرات تا انقضای TTL کش (۳۰ ثانیه) در بررسی مجوز اعمال نمی‌شد (DEEP_CODE_AUDIT.md #Phase2.7)
             MicroCache::forget(PermissionService::CACHE_KEY);
             $success_msg = "تنظیمات " . ($type === 'role' ? "نقش" : "کاربر") . " با موفقیت به‌روزرسانی شد.";
         } catch (\Throwable $e) {
@@ -177,12 +160,7 @@ if ($is_authenticated && isset($_POST['save_permissions'])) {
 $users_list = [];
 if ($is_authenticated) {
     try {
-        // قبلاً از getDbConnection() (تابع سراسری جداگانه در config.php)
-        // استفاده می‌کرد که یک کانکشن mysqli کاملاً مستقل از Database::getInstance()
-        // باز می‌کرد — یعنی در یک پروسه که همین درخواست هم از طریق کد جدید
-        // (App\Core\Database) به دیتابیس وصل شده، دو سوکت جدا به همان DB باز
-        // می‌شد، و این کانکشن قدیمی هیچ‌کدام از SET SESSION sql_mode/time_zone
-        // که Database::getMysqliConnection() تنظیم می‌کند را نداشت (C-03).
+        // قبلاً از یک اتصال mysqli مستقل استفاده می‌شد که تنظیمات SET SESSION را نداشت و باعث دو سوکت جدا به دیتابیس می‌شد (C-03)
         $conn = \App\Core\Database::getInstance()->getMysqliConnection();
         $res = $conn->query("SELECT username, fullName, userType FROM Users ORDER BY username ASC");
         while ($row = $res->fetch_assoc()) {

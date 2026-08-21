@@ -7,9 +7,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.dp
 
-/**
- * توکن‌های اشکال و انحناهای گوشه‌ها (Shapes Tokens) مطابق با Material Design 3.
- */
+// توکن‌های اشکال و انحنای گوشه‌ها مطابق با Material Design 3
 @Immutable
 data class AppShapes(
     val none: CornerBasedShape = RoundedCornerShape(0.dp),

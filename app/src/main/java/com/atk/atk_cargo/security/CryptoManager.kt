@@ -61,8 +61,7 @@ class CryptoManager {
             
             Base64.encodeToString(combined, Base64.DEFAULT)
         } catch (e: Exception) {
-            // در صورت خطا، رشته‌ی خام هرگز نباید برگردانده شود (نشت محرمانگی)؛
-            // رشته‌ی خالی باعث می‌شود مقدار ذخیره‌شده نامعتبر باشد و کاربر مجدداً وارد شود.
+            // در خطا رشته‌ی خام برگردانده نمی‌شود تا نشت محرمانگی رخ ندهد؛ خروجی خالی کاربر را به ورود مجدد وامی‌دارد.
             Log.e("CryptoManager", "خطا در رمزنگاری: ${e.message}")
             ""
         }
@@ -82,8 +81,7 @@ class CryptoManager {
             val decryptedBytes = cipher.doFinal(encryptedBytes)
             String(decryptedBytes, Charsets.UTF_8)
         } catch (e: Exception) {
-            // در صورت خطا، متن رمزشده (ciphertext) هرگز نباید به‌عنوان مقدار رمزگشایی‌شده
-            // برگردانده شود؛ این مقدار قابل استفاده نیست و می‌تواند به سرور ارسال شود.
+            // در خطا متن رمزشده (ciphertext) هرگز به‌عنوان مقدار رمزگشایی‌شده برگردانده نمی‌شود چون قابل استفاده نیست.
             Log.e("CryptoManager", "خطا در رمزگشایی: ${e.message}")
             ""
         }

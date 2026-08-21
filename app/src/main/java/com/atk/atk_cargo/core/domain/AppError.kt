@@ -5,20 +5,7 @@ import retrofit2.HttpException
 import java.io.IOException
 import java.net.SocketTimeoutException
 
-/**
- * نگاشت خطای متمرکز (DEEP_CODE_REVIEW.md Phase3 #22).
- *
- * دامنه‌ی این نسخه عمداً محدود است: خودِ نوع [AppError] و نگاشت آن هنوز به
- * کدهای فراخوانی‌کننده (ViewModel/Screen) سیم‌کشی نشده‌اند — پیام‌های فعلی
- * هرکدام context-specific هستند (مثلاً «خطا در بررسی شماره قبض باسکول»)
- * و با یک پیام عمومی یکسان جایگزین کردن‌شان یک رگرسیون UX است، نه بهبود.
- * آنچه در همین فاز واقعاً رفع شد باگ مستقل و واقعی گزارش بود: در ۹ فایلی
- * که مستقیماً شبکه را صدا می‌زنند، `catch (e: Exception)` بدون جداسازی
- * `CancellationException` نوشته شده بود؛ چون `CancellationException` در
- * Kotlin زیرمجموعه‌ی `Exception` است، لغو یک coroutine (مثلاً با خروج
- * کاربر از صفحه) به‌اشتباه به‌عنوان «خطای سرور» به کاربر نمایش داده می‌شد.
- * این فایل برای استفاده‌ی تدریجی/آینده نگه داشته شده، نه یک بازنویسی کامل.
- */
+// نگاشت خطای متمرکز (DEEP_CODE_REVIEW.md Phase3 #22)؛ هنوز به ViewModel/Screen سیم‌کشی نشده (پیام‌های context-specific فعلی حفظ می‌شوند)، اما catch(Exception) در ۹ فایل شبکه اصلاح شد تا CancellationException به‌اشتباه «خطای سرور» نمایش داده نشود — این فایل برای استفاده‌ی تدریجی/آینده نگه داشته شده است
 sealed interface AppError {
     data object Network : AppError
     data object Timeout : AppError

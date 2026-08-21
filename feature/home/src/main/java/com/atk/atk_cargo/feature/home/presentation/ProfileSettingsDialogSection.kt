@@ -54,9 +54,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
-// این فایل دیالوگ «تغییر رمز عبور» (ProfileSettingsDialog) را از HomeScreen.kt جدا نگه
-// می‌دارد (A1-6، بازسازی ساختاری). کاملاً خودکفا است — هیچ وابستگی internal به HomeScreen.kt
-// ندارد.
+// دیالوگ تغییر رمز عبور، جدا از HomeScreen و کاملاً خودکفا
 
 @Composable
 fun ProfileSettingsDialog(

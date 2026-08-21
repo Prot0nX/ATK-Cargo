@@ -15,9 +15,7 @@ class UserRepository {
         $this->db = Database::getInstance()->getPdoConnection();
     }
 
-    /**
-     * دریافت کاربر بر اساس نام کاربری
-     */
+    // دریافت کاربر بر اساس نام کاربری
     public function getByUsername(string $username): ?array {
         $stmt = $this->db->prepare("SELECT * FROM Users WHERE username = :username LIMIT 1");
         $stmt->execute([':username' => $username]);
@@ -25,9 +23,7 @@ class UserRepository {
         return $user ?: null;
     }
 
-    /**
-     * دریافت اطلاعات یک کاربر بر اساس شناسه
-     */
+    // دریافت اطلاعات یک کاربر بر اساس شناسه
     public function getById(int $id): ?array {
         $stmt = $this->db->prepare("SELECT * FROM Users WHERE id = :id LIMIT 1");
         $stmt->execute([':id' => $id]);
@@ -35,30 +31,21 @@ class UserRepository {
         return $user ?: null;
     }
 
-    /**
-     * دریافت لیست تمامی کاربران
-     */
+    // دریافت لیست تمامی کاربران
     public function getAll(): array {
-        // سقف سخت‌گیرانه به‌جای صفحه‌بندی کامل (DEEP_CODE_AUDIT.md #Phase3.10)؛
-        // این جدول با کاربران سازمانی رشد می‌کند نه رویدادها، پس عملاً هرگز
-        // به این سقف نمی‌رسد — فقط یک محافظ در برابر رشد غیرمنتظره است.
+        // سقف سخت‌گیرانه به‌جای صفحه‌بندی کامل، فقط محافظ در برابر رشد غیرمنتظره
         $stmt = $this->db->query("SELECT id, username, fullName, userType, created_at, updated_at FROM Users ORDER BY created_at DESC LIMIT 5000");
         return $stmt->fetchAll();
     }
 
-    /**
-     * دریافت لیست کاربران بر اساس نوع (مثلاً 'admin') — برای فهرست مقصدهای
-     * چت که باید برای هر کاربر احرازشده در دسترس باشد، بدون افشای کل جدول.
-     */
+    // دریافت لیست کاربران بر اساس نوع، برای فهرست مقصدهای چت بدون افشای کل جدول
     public function getByUserType(string $userType): array {
         $stmt = $this->db->prepare("SELECT id, username, fullName, userType FROM Users WHERE userType = :userType ORDER BY fullName ASC");
         $stmt->execute([':userType' => $userType]);
         return $stmt->fetchAll();
     }
 
-    /**
-     * ایجاد کاربر جدید
-     */
+    // ایجاد کاربر جدید
     public function create(array $data): int {
         $stmt = $this->db->prepare("
             INSERT INTO Users (username, fullName, password, userType, created_at, updated_at) 
@@ -75,9 +62,7 @@ class UserRepository {
         return (int)$this->db->lastInsertId();
     }
 
-    /**
-     * به‌روزرسانی پسورد کاربر — برای Silent Migration از SHA-256 به bcrypt
-     */
+    // به‌روزرسانی پسورد کاربر، برای Silent Migration از SHA-256 به bcrypt
     public function updatePassword(int $id, string $hashedPassword): bool {
         $stmt = $this->db->prepare(
             "UPDATE Users SET password = :password, updated_at = CURRENT_TIMESTAMP WHERE id = :id"
@@ -88,15 +73,10 @@ class UserRepository {
         ]);
     }
 
-    /** ستون‌های مجاز برای update() — کلید آرایه مستقیم در SQL درج می‌شود (S-18)؛
-     * تمام فراخوان‌های فعلی کلید ثابت می‌دهند پس اکسپلویت‌پذیر نیست، اما بدون
-     * این allow-list هر توسعه‌ی آینده که کلید را از ورودی کاربر بگیرد می‌تواند
-     * نام ستون دلخواه تزریق کند. */
+    // ستون‌های مجاز برای update()؛ allow-list جلوی تزریق نام ستون دلخواه در آینده را می‌گیرد
     private const UPDATABLE_COLUMNS = ['username', 'fullName', 'password', 'userType'];
 
-    /**
-     * به‌روزرسانی اطلاعات کاربر
-     */
+    // به‌روزرسانی اطلاعات کاربر
     public function update(int $id, array $updates): bool {
         if (empty($updates)) {
             return false;
@@ -118,17 +98,13 @@ class UserRepository {
         return $stmt->execute($params);
     }
 
-    /**
-     * حذف کاربر بر اساس شناسه
-     */
+    // حذف کاربر بر اساس شناسه
     public function delete(int $id): bool {
         $stmt = $this->db->prepare("DELETE FROM Users WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }
 
-    /**
-     * دریافت تعداد مدیران سیستم
-     */
+    // دریافت تعداد مدیران سیستم
     public function getAdminCount(): int {
         $stmt = $this->db->query("SELECT COUNT(*) as count FROM Users WHERE userType = 'admin'");
         $result = $stmt->fetch();

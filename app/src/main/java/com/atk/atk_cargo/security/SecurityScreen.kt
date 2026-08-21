@@ -401,8 +401,7 @@ fun SecurityBlockScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // دکمه‌ی تلاش مجدد — فقط برای خطاهایی که ممکن است موقتی باشند
-                    // (قطعی شبکه)، نه برای خطاهای تأییدشده مثل TAMPERED یا LICENSE_INACTIVE
+                    // دکمه‌ی تلاش مجدد فقط برای خطاهای موقتی (قطعی شبکه)، نه خطاهای تأییدشده مثل TAMPERED یا LICENSE_INACTIVE
                     if (onRetry != null &&
                         (errorType == SecurityErrorType.NETWORK_ERROR || errorType == SecurityErrorType.UNKNOWN_ERROR)
                     ) {

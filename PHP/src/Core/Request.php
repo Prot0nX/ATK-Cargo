@@ -20,8 +20,7 @@ class Request {
         $this->postParams = $_POST;
     }
 
-    // خواندن php://input و پارس هدرها فقط در صورت نیاز واقعی انجام می‌شود
-    // (getHeader در کل پروژه استفاده نمی‌شود؛ jsonParams فقط وقتی لازم است پارس می‌شود)
+    // خواندن php://input و پارس آن فقط در صورت نیاز واقعی انجام می‌شود
     private function getJsonParams(): array {
         if ($this->jsonParams === null) {
             $this->jsonParams = [];
@@ -40,17 +39,7 @@ class Request {
         return $this->jsonParams;
     }
 
-    /**
-     * استخراج و نرمال‌سازی هدرهای HTTP.
-     *
-     * مطابق RFC 7230 §3.2، نام هدرها case-insensitive هستند؛ بنابراین
-     * تمام کلیدها به lowercase تبدیل می‌شوند تا جستجو مستقل از نحوه‌ی
-     * نرمال‌سازی وب‌سرور (Apache، Nginx، IIS، PHP-FPM) باشد.
-     *
-     * مشکل قبلی: ucwords(strtolower(...)) مقدار HTTP_X_CSRF_TOKEN را به
-     * "X-Csrf-Token" تبدیل می‌کرد اما getHeader دنبال "X-CSRF-Token"
-     * می‌گشت — نتیجه null و شکست اعتبارسنجی CSRF.
-     */
+    // استخراج و نرمال‌سازی هدرهای HTTP به lowercase طبق RFC 7230 §3.2
     private function getHeadersParsed(): array {
         if ($this->headers === null) {
             $raw = [];
@@ -64,7 +53,7 @@ class Request {
                     }
                 }
             }
-            // نرمال‌سازی به lowercase — RFC 7230 §3.2
+            // نرمال‌سازی کلیدها به lowercase
             $this->headers = [];
             foreach ($raw as $key => $value) {
                 $this->headers[strtolower($key)] = $value;
@@ -85,29 +74,18 @@ class Request {
         return $this->getMethod() === 'GET';
     }
 
-    /**
-     * آیا این یک درخواست نوشتنی (غیر GET) است؟ برای شیم‌های چندعملیاتی مثل
-     * UserController::handle و ChatController::handleChatRequest لازم است:
-     * چند action با فعل‌های HTTP متفاوت (مثلاً sendMessage=POST،
-     * editMessage=PATCH، deleteMessage=DELETE) از یک شاخه‌ی مشترک عبور
-     * می‌کنند، پس آن شاخه نمی‌تواند فقط isPost() را چک کند
-     * (DEEP_CODE_REVIEW.md Phase4 #33).
-     */
+    // آیا این یک درخواست نوشتنی (غیر GET) است؛ برای شیم‌های چندعملیاتی با چند فعل HTTP
     public function isWrite(): bool {
         return in_array($this->getMethod(), ['POST', 'PUT', 'PATCH', 'DELETE'], true);
     }
 
-    /**
-     * دریافت هدر خاص — جستجو همواره case-insensitive.
-     */
+    // دریافت هدر خاص با جستجوی case-insensitive
     public function getHeader(string $name): ?string {
         $headers = $this->getHeadersParsed();
         return $headers[strtolower($name)] ?? null;
     }
 
-    /**
-     * دریافت مقدار یک پارامتر از تمام منابع ورودی (JSON, POST, GET) به ترتیب اولویت
-     */
+    // دریافت مقدار یک پارامتر از تمام منابع ورودی به ترتیب اولویت JSON، POST، GET
     public function get(string $key, $default = null) {
         $jsonParams = $this->getJsonParams();
         if (isset($jsonParams[$key])) {
@@ -119,28 +97,17 @@ class Request {
         return $this->queryParams[$key] ?? $default;
     }
 
-    /**
-     * دریافت تمام پارامترهای ورودی
-     */
+    // دریافت تمام پارامترهای ورودی
     public function all(): array {
         return array_merge($this->queryParams, $this->postParams, $this->getJsonParams());
     }
 
-    /**
-     * دریافت آی‌پی کلاینت. عمداً فقط REMOTE_ADDR (نه هدرهای HTTP_CLIENT_IP/
-     * HTTP_X_FORWARDED_FOR که کاملاً توسط کلاینت قابل جعل‌اند) — سرور پشت
-     * CDN/LB نیست، پس REMOTE_ADDR همان IP واقعی درخواست‌کننده است. این IP در
-     * user_sessions و لاگ‌های امنیتی/audit ذخیره می‌شود؛ اعتماد به هدر جعل‌پذیر
-     * باعث می‌شد مهاجم بتواند این ثبت‌ها را با یک هدر دلخواه آلوده کند (S-10).
-     * protected_proxy.php از ابتدا همین رفتار درست را داشت.
-     */
+    // دریافت آی‌پی کلاینت؛ عمداً فقط REMOTE_ADDR چون هدرهای HTTP_X_FORWARDED_FOR قابل جعل‌اند
     public function getClientIp(): string {
         return $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
     }
 
-    /**
-     * پاک‌سازی و فیلتر کردن مقادیر رشته‌ای
-     */
+    // پاک‌سازی و فیلتر کردن مقادیر رشته‌ای
     public function sanitize(string $value): string {
         return htmlspecialchars(strip_tags(trim($value)), ENT_QUOTES, 'UTF-8');
     }

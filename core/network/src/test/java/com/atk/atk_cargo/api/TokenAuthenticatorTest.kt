@@ -15,13 +15,7 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
-/**
- * تست بدون دستگاه/امولاتور برای TokenAuthenticator.authenticate — خودِ
- * OkHttp Response/Request به‌صورت دستی ساخته می‌شوند (بدون نیاز به شبکه‌ی
- * واقعی)، پس این کلاس دقیقاً همان چیزی است که OkHttp موقع دریافت ۴۰۱
- * فراخوانی می‌کند. TokenRefresher (شیء مشترک) با mockkObject جایگزین
- * می‌شود تا HTTP واقعی این تست را درگیر نکند (پوشش آن در TokenRefresherTest).
- */
+// تست بدون دستگاه برای TokenAuthenticator.authenticate با Response/Request دستی‌ساز؛ TokenRefresher با mockkObject جایگزین می‌شود تا HTTP واقعی درگیر نشود
 class TokenAuthenticatorTest {
     private val request = Request.Builder().url("https://atk-nk.ir/Cargo/x").build()
 
@@ -118,11 +112,7 @@ class TokenAuthenticatorTest {
 
     @Test
     fun `درخواست موازی قبلاً همین توکن را رفرش کرده - دوباره رفرش نمی‌کند`() {
-        // شبیه‌سازی race: یک درخواست دیگر قبل از این یکی رفرش را انجام داده و
-        // AuthSession.sessionToken را به‌روز کرده — این باید مستقیماً همان
-        // مقدار تازه را برگرداند، بدون فراخوانی دوباره‌ی TokenRefresher (که
-        // باعث rotate دوباره‌ی refresh token و باطل‌شدن نسخه‌ای می‌شد که آن
-        // درخواست موازی هنوز دارد استفاده می‌کند).
+        // شبیه‌سازی race: درخواست موازی دیگری قبلاً رفرش را انجام داده؛ باید همان توکن تازه برگردد بدون فراخوانی دوباره‌ی TokenRefresher
         AuthSession.sessionToken = "already-refreshed-by-another-request"
         val tokenStore = mockk<TokenStore>()
         val authenticator = TokenAuthenticator("https://atk-nk.ir/", tokenStore)

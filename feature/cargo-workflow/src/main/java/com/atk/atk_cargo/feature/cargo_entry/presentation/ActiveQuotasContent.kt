@@ -34,19 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.atk.atk_cargo.data.model.ActiveShipInfo
 
-// محتوای دیالوگ «کوتاژهای فعال» (لیست/کارت/آیتم) — از SelectInfoScreen.kt به
-// این فایل منتقل شد (DEEP_CODE_AUDIT.md #Phase3.7، شکستن God Composable).
-// پوسته‌ی دیالوگ (Header/FilterBar/AnimatedContent) در ActiveQuotasDialogSection.kt
-// است؛ رنگ‌های Quotas* در SelectInfoScreen.kt مانده‌اند چون توسط هر دو فایل
-// مصرف می‌شوند. هم‌پکیج است، پس نیازی به import اضافه در فایل‌های دیگر نیست.
-//
-// این فایل خودش به ۱٬۴۲۰ خط رسیده بود (DEEP_CODE_REVIEW.md Phase4 #30)؛
-// نمای «گروه‌بندی‌شده بر اساس کشتی» (ShipCard/ShipHeader/WarehouseSection/
-// QuotaItem) به ActiveQuotasGroupedComponents.kt و کارت نمای «مسطح» به
-// ActiveQuotasFlatComponents.kt منتقل شدند. اینجا فقط پوسته‌ی هر دو نما
-// (GroupedShipsContent/FlatQuotasContent)، حالت خالی مشترک
-// (EmptySearchResult) و FilterChip (که فایل‌های دیگر هم مصرفش می‌کنند)
-// باقی ماندند — بدون هیچ تغییر منطقی، صرفاً جابه‌جایی برای کاهش حجم فایل.
+// محتوای دیالوگ «کوتاژهای فعال»؛ نمای گروه‌بندی‌شده و نمای مسطح برای کاهش حجم فایل به فایل‌های جداگانه منتقل شده‌اند و اینجا فقط پوسته‌ی مشترک دو نما باقی مانده است
 
 enum class FilterState {
     ALL, PENDING, COMPLETED

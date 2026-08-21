@@ -52,10 +52,7 @@ class LoadingNotificationService : Service(), KoinComponent {
         const val ACTION_REFRESH = "com.atk.atk_cargo.REFRESH_NOTIFICATIONS"
         const val ACTION_STOP_SERVICE = "com.atk.atk_cargo.STOP_SERVICE"
         
-        /**
-         * راه‌اندازی سرویس نوتیفیکیشن بارگیری لحظه‌ای
-         * فقط برای کاربران با سطح دسترسی admin سرویس را راه‌اندازی می‌کند
-         */
+        // راه‌اندازی سرویس نوتیفیکیشن بارگیری لحظه‌ای، فقط برای کاربران admin
         fun startLoadingNotification(context: Context) {
             // سرویس برای همه کاربران شروع می‌شود
             // اما در onStartCommand بررسی می‌شود که فقط برای کاربران admin ادامه پیدا کند
@@ -110,9 +107,7 @@ class LoadingNotificationService : Service(), KoinComponent {
         return START_STICKY
     }
 
-    /**
-     * راه‌اندازی سرویس به عنوان فورگراند در اندروید 8.0 و بالاتر
-     */
+    // راه‌اندازی سرویس به عنوان فورگراند در اندروید 8.0 و بالاتر
     private fun startForegroundService() {
         val notification = NotificationCompat.Builder(this, AppNotificationManager.CHANNEL_SERVICE)
             .setContentTitle("سرویس عملیات بارگیری")
@@ -140,9 +135,7 @@ class LoadingNotificationService : Service(), KoinComponent {
         notificationManager.clearAll()
     }
     
-    /**
-     * شروع دریافت دوره‌ای اطلاعات بارگیری
-     */
+    // شروع دریافت دوره‌ای اطلاعات بارگیری
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     private fun startPeriodicFetching() {
         coroutineScope.launch {
@@ -162,10 +155,8 @@ class LoadingNotificationService : Service(), KoinComponent {
         }
     }
     
-    /**
-     * دریافت اطلاعات بارگیری از سرور و نمایش نوتیفیکیشن
-     * @param isRefresh آیا این درخواست برای بروزرسانی دستی است
-     */
+    // دریافت اطلاعات بارگیری از سرور و نمایش نوتیفیکیشن
+    // @param isRefresh آیا این درخواست برای بروزرسانی دستی است
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     private suspend fun fetchAndNotify(isRefresh: Boolean = false) {
         // بررسی سطح دسترسی کاربر
@@ -185,10 +176,7 @@ class LoadingNotificationService : Service(), KoinComponent {
             return
         }
         
-        // دریافت اطلاعات بارگیری. از همان ReportsRepository که دیالوگ «بارگیری
-        // لحظه‌ای» استفاده می‌کند عبور می‌کند (C-6) تا هر دو مسیر روی یک لایه‌ی
-        // مشترک باشند و کش HTTP (ETag/Cache-Control کوتاه‌مدت سمت سرور، P-2)
-        // بین این polling پنج‌دقیقه‌ای و polling سی‌ثانیه‌ای دیالوگ به اشتراک برود.
+        // دریافت اطلاعات بارگیری از همان ReportsRepository دیالوگ «بارگیری لحظه‌ای» (C-6) تا کش HTTP بین این polling و polling دیالوگ مشترک باشد
         val loadingData = reportsRepository.getRealTimeLoadingData()
 
         // دریافت داده‌های قبلی ذخیره‌شده در کش برای مقایسه تغییرات
@@ -215,9 +203,7 @@ class LoadingNotificationService : Service(), KoinComponent {
         }
     }
     
-    /**
-     * ذخیره اطلاعات شیفت فعلی
-     */
+    // ذخیره اطلاعات شیفت فعلی
     private fun saveCurrentShiftInfo(shiftInfo: ShiftInfo) {
         // ایجاد یک شناسه یکتا برای هر شیفت
         val shiftId = "${shiftInfo.type}_${shiftInfo.startDate}"
@@ -239,9 +225,7 @@ class LoadingNotificationService : Service(), KoinComponent {
         }
     }
     
-    /**
-     * بررسی غیرفعال بودن نوتیفیکیشن‌ها برای شیفت فعلی
-     */
+    // بررسی غیرفعال بودن نوتیفیکیشن‌ها برای شیفت فعلی
     private fun isCurrentShiftDisabled(): Boolean {
         val prefs = getSharedPreferences("ShiftNotificationsPrefs", MODE_PRIVATE)
         val currentShiftId = prefs.getString("current_shift_id", "") ?: ""
@@ -255,9 +239,7 @@ class LoadingNotificationService : Service(), KoinComponent {
         return isDisabled
     }
 
-    /**
-     * دریافت داده‌های بارگیری ذخیره‌شده از کش جهت بررسی تغییرات
-     */
+    // دریافت داده‌های بارگیری ذخیره‌شده از کش جهت بررسی تغییرات
     private fun getCachedLoadingData(): List<RealTimeLoadingData>? {
         return try {
             val jsonData = getSharedPreferences("LoadingDataCache", MODE_PRIVATE)
@@ -269,9 +251,7 @@ class LoadingNotificationService : Service(), KoinComponent {
         }
     }
 
-    /**
-     * ذخیره داده‌های بارگیری در کش
-     */
+    // ذخیره داده‌های بارگیری در کش
     private fun cacheLoadingData(data: List<RealTimeLoadingData>) {
         try {
             val gson = Gson()

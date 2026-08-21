@@ -8,13 +8,7 @@ namespace App\Services;
 use App\Core\Database;
 use mysqli;
 
-/**
- * دروازه‌ی مشترک بررسی رمزهای عملیاتی (مثل رمز حذف حواله). شمارنده‌ی
- * تلاش‌های ناموفق روی APCu نگه‌داری می‌شود (با fallback فایلی، دقیقاً مطابق
- * الگوی ProtectedProxy::checkRateLimit) و کلید آن هویت نشستِ معتبرشده است،
- * نه $_SESSION — چون کلاینت اندروید کوکی نگه نمی‌دارد و شمارنده‌ی مبتنی بر
- * session هر درخواست را یک نشست تازه می‌بیند و هرگز واقعاً قفل نمی‌کند.
- */
+// دروازه‌ی مشترک بررسی رمزهای عملیاتی؛ شمارنده‌ی تلاش‌ها روی APCu با کلید هویت نشست نگه‌داری می‌شود، نه $_SESSION
 final class PasswordGateService {
     private const MAX_ATTEMPTS = 5;
     private const LOCKOUT_WINDOW_SECONDS = 900; // 15 دقیقه

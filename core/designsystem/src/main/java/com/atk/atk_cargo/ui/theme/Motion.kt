@@ -7,9 +7,7 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 
-/**
- * توکن‌های حرکت و انیمیشن (Motion Tokens) بر اساس Material Design 3 Motion System.
- */
+// توکن‌های حرکت و انیمیشن بر اساس Material Design 3 Motion System
 @Immutable
 data class Motion(
     val durationShort1: Int = 50,

@@ -117,10 +117,7 @@ internal val RealTimeMutedText: Color
 internal val RealTimeTitleColor: Color
     @Composable get() = MaterialTheme.colorScheme.onSurface
 
-// C-1/C-2: این کامپوزبل نه ReportsViewModel می‌گیرد و نه منطق polling/تایمر
-// خودش دارد — فقط RealTimeUiState (که کل چرخه‌ی داده/شمارنده/refresh/خطا را
-// در ViewModel نگه می‌دارد) را رندر می‌کند و از طریق lambdaها عمل می‌کند؛
-// برای تست‌پذیری/پیش‌نمایش بهتر و تا با چرخش صفحه ریست نشود.
+// این کامپوزبل ReportsViewModel یا منطق polling نمی‌گیرد؛ فقط RealTimeUiState را رندر و با lambda عمل می‌کند تا با چرخش صفحه ریست نشود
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RealTimeLoadingBottomSheet(
@@ -129,18 +126,14 @@ fun RealTimeLoadingBottomSheet(
     uiState: RealTimeUiState,
     shiftOffset: Int,
     shipColorMap: Map<String, Color>,
-    // caller این را داخل repeatOnLifecycle(RESUMED) اجرا می‌کند؛ suspend می‌ماند
-    // تا لغو شود (پس‌زمینه رفتن اپ یا بسته‌شدن دیالوگ).
+    // caller این را داخل repeatOnLifecycle(RESUMED) اجرا می‌کند و تا لغو (پس‌زمینه رفتن اپ یا بسته‌شدن دیالوگ) suspend می‌ماند
     onStartPolling: suspend () -> Unit,
     onShiftOffsetChange: (Int) -> Unit,
-    // پیام خطای واقعی بعد از پایان درخواست را برمی‌گرداند (null یعنی موفق) تا
-    // دکمه‌ی refresh دستی بر اساس نتیجه‌ی واقعی Toast نشان دهد.
+    // پیام خطای واقعی پس از پایان درخواست را برمی‌گرداند (null یعنی موفق) تا دکمه refresh Toast مناسب نشان دهد
     onManualRefresh: suspend () -> String?,
     onShare: (List<RealTimeLoadingData>, ShiftInfo) -> String
 ) {
-    // وقتی بسته است نباید loadingData را پردازش کند؛ در غیر این صورت هر
-    // آپدیت داده‌ی Real-Time این کامپوزبل را حتی وقتی روی صفحه نمایش داده
-    // نمی‌شود بازترسیم می‌کند.
+    // وقتی بسته است نباید loadingData را پردازش کند تا آپدیت‌های Real-Time باعث بازترسیم بی‌مورد نشوند
     if (!isOpen) return
 
     var expandedShip by remember { mutableStateOf<String?>(null) }
@@ -163,9 +156,7 @@ fun RealTimeLoadingBottomSheet(
         }
     }
 
-    // آمار سربرگ (StatisticItem) عمداً از filteredLoadingData محاسبه می‌شود، نه
-    // uiState.data خام؛ در غیر این صورت با جستجو تعداد کارت‌ها کم می‌شود اما وزن
-    // کل/تعداد ورودی-خروجی ثابت می‌ماند و با آنچه کاربر می‌بیند ناسازگار است.
+    // آمار سربرگ عمداً از filteredLoadingData محاسبه می‌شود نه داده خام، تا با آنچه کاربر پس از جستجو می‌بیند هماهنگ باشد
     val totalEntryVouchers = remember(filteredLoadingData, isCurrentShift) {
         if (isCurrentShift) filteredLoadingData.sumOf { it.entryVouchers } else 0
     }
@@ -198,9 +189,7 @@ fun RealTimeLoadingBottomSheet(
                         onRefreshClick = {
                             if (!uiState.isRefreshing) {
                                 scope.launch {
-                                    // Toast بر اساس مقدار واقعی برگشتی از onManualRefresh (بعد از
-                                    // پایان درخواست) نمایش داده می‌شود، نه بی‌قید و شرط. isRefreshing
-                                    // و شمارنده خودشان از uiState (که ViewModel به‌روز می‌کند) می‌آیند.
+                                    // Toast فقط بر اساس مقدار واقعی برگشتی از onManualRefresh نمایش داده می‌شود؛ isRefreshing و شمارنده از uiState می‌آیند
                                     val error = onManualRefresh()
                                     if (error != null) {
                                         Toast.makeText(context, error, Toast.LENGTH_LONG).show()
@@ -295,11 +284,7 @@ fun RealTimeLoadingBottomSheet(
                                 )
                         }
 
-                        // AnimatedContent قبلاً روی کل لیست بود؛ هر آپدیت داده (هر polling
-                        // ۳۰ ثانیه‌ای) یک LazyColumn تازه می‌ساخت و موقعیت اسکرول کاربر را
-                        // به ابتدای لیست ریست می‌کرد. با یک LazyColumn پایدار + key موجود
-                        // روی هر آیتم + Modifier.animateItem()، هم اسکرول حفظ می‌شود و هم
-                        // جابه‌جایی/تغییر ردیف‌ها انیمیت می‌شود.
+                        // LazyColumn پایدار با key و Modifier.animateItem() جایگزین AnimatedContent شد تا موقعیت اسکرول با هر polling ریست نشود
                         val listState = rememberLazyListState()
                         LazyColumn(
                             state = listState,
@@ -757,9 +742,7 @@ private fun DialogHeader(
                         .size(26.dp)
                         .background(RealTimeAccentBg, CircleShape)
                 ) {
-                    // P-6: animateFloatAsState یک مقدار هدف ثابت دارد و برای spec
-                    // بی‌نهایت (infiniteRepeatable) طراحی نشده؛ Animatable با یک
-                    // حلقه‌ی چرخش صریح، الگوی درست برای «تا وقتی X است بچرخ» است.
+                    // animateFloatAsState برای چرخش بی‌نهایت مناسب نیست؛ Animatable با حلقه‌ی چرخش صریح الگوی درستی است
                     val rotation = remember { Animatable(0f) }
                     LaunchedEffect(isRefreshing) {
                         if (isRefreshing) {

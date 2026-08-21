@@ -71,10 +71,7 @@ import com.atk.atk_cargo.domain.model.Cargo
 import com.atk.atk_cargo.domain.model.CargoConfirmStatus
 import com.atk.atk_cargo.domain.model.CargoStatus
 
-// این فایل دیالوگ «جزئیات حواله» (CargoDetailsDialog) و کامپوننت‌های اختصاصی‌اش را از
-// CargoDetailsComponents.kt جدا نگه می‌دارد (A1-6، بازسازی ساختاری). وابسته به پالت رنگ
-// internal تعریف‌شده در CargoDetailsComponents.kt (Cargo*) که چون هم‌پکیج است نیازی به
-// import ندارد.
+// دیالوگ «جزئیات حواله» و کامپوننت‌های آن جدا از CargoDetailsComponents.kt؛ رنگ‌های internal همان فایل بدون import قابل استفاده‌اند
 
 @Composable
 fun CargoDetailsDialog(

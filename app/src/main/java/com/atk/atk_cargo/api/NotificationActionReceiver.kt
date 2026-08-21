@@ -6,10 +6,7 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.core.content.edit
 
-/**
- * BroadcastReceiver برای مدیریت اکشن‌های نوتیفیکیشن‌های بارگیری لحظه‌ای
- * این کلاس دستورات مربوط به بی‌صدا کردن نوتیفیکیشن‌های مربوط به کشتی‌های خاص را مدیریت می‌کند
- */
+// BroadcastReceiver برای مدیریت اکشن‌های نوتیفیکیشن‌های بارگیری لحظه‌ای، از جمله بی‌صدا کردن کشتی‌های خاص
 class NotificationActionReceiver : BroadcastReceiver() {
     
     companion object {

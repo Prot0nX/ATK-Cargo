@@ -1,10 +1,5 @@
 <?php
-// این فایل با include ساده (نه include_once) هم از MinVersionGate::enforce
-// (سطح Router v2) و هم از AuthenticatesRequests::enforceMinAppVersion (سطح
-// کنترلرهای قدیمی) صدا زده می‌شود؛ برای مسیرهایی که هر دو گیت در یک درخواست
-// اجرا می‌شوند (اکثر route های v2 که مستقیم یک متد کنترلر قدیمی را صدا
-// می‌زنند)، این فایل دوبار include می‌شد و بدون این گارد PHP Fatal error:
-// Cannot redeclare می‌داد (کشف‌شده حین تست واقعی مرحله ۳.۱ — DEEP_CODE_AUDIT.md).
+// این فایل بدون include_once از دو مسیر گیت نسخه صدا زده می‌شود؛ بدون این گارد include دوباره باعث خطای Cannot redeclare می‌شد
 if (!function_exists('getFileSize')) {
     function getFileSize($filePath): string {
         if (!file_exists($filePath)) {

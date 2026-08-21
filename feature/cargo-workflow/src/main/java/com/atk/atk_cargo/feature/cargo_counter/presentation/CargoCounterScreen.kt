@@ -111,11 +111,7 @@ class CargoCounterViewModel(
         _selectedTab.update { tab }
     }
 
-    // هر دو تماس شبکه‌ی زیر قبلاً با rememberCoroutineScope() از داخل
-    // Composable اجرا می‌شدند — با خروج کاربر از صفحه کنسل می‌شدند
-    // (DEEP_CODE_REVIEW.md Top20 #5). viewModelScope در برابر ناوبری مقاوم
-    // است؛ منطق سطربه‌سطر عیناً حفظ شده، UI (SnackbarHostState) دست‌نخورده
-    // در Composable می‌ماند و ViewModel فقط نتیجه را با callback برمی‌گرداند.
+    // این دو متد قبلاً در Composable بودند؛ اکنون در viewModelScope اجرا می‌شوند تا با خروج از صفحه کنسل نشوند
     fun loadActiveShips(
         onSuccess: (List<ActiveShipInfo>) -> Unit,
         onError: (String) -> Unit

@@ -12,13 +12,7 @@ import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
-/**
- * تست بدون دستگاه/امولاتور برای منطق واقعی POST /auth/refresh
- * (DEEP_CODE_AUDIT.md #Phase5.7 — «رفتار runtime شبکه تست نشده»). MockWebServer
- * یک سرور HTTP واقعی روی JVM است، پس این تست‌ها مسیر HTTP واقعی (نه فقط
- * منطق پارس) را پوشش می‌دهند؛ فقط چیزی که واقعاً به دستگاه نیاز دارد
- * (Certificate Pinning روی TLS واقعی) خارج از این تست‌ها می‌ماند.
- */
+// تست بدون دستگاه برای منطق واقعی POST /auth/refresh با MockWebServer (سرور HTTP واقعی روی JVM)؛ فقط Certificate Pinning روی TLS واقعی خارج از این تست‌ها می‌ماند
 class TokenRefresherTest {
     private lateinit var server: MockWebServer
 
@@ -61,9 +55,7 @@ class TokenRefresherTest {
 
         val recorded = server.takeRequest()
         assertEquals("POST", recorded.method)
-        // مسیر تمیز /api/v2/auth/refresh روی این هاست کار نمی‌کند؛ کد عمداً از
-        // فرمت query-string استفاده می‌کند (کامنت TokenRefresher.kt) — این تست
-        // همان قرارداد را تثبیت می‌کند تا رگرسیون بی‌صدا نشود.
+        // کد عمداً از فرمت query-string استفاده می‌کند (چون مسیر تمیز کار نمی‌کند)؛ این تست همان قرارداد را تثبیت می‌کند تا رگرسیون بی‌صدا نشود
         assertEquals(true, recorded.path?.contains("route=auth/refresh"))
         val body = recorded.body.readUtf8()
         assertEquals(true, body.contains("username=ali"))

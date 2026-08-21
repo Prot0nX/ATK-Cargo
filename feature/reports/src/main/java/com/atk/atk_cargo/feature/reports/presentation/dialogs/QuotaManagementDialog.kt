@@ -278,7 +278,4 @@ fun QuotaManagementHeaderCard(
     }
 }
 
-// محتوای بدنه (تب/فیلتر/مرتب‌سازی/لیست) در QuotaManagementContent.kt و
-// کارت‌های تکی کوتاژ/کشتی در QuotaCardComponents.kt هستند
-// (DEEP_CODE_AUDIT.md #Phase3.7، شکستن God Composable). هم‌پکیج‌اند، نیازی
-// به import اضافه نیست.
+// بدنه دیالوگ در QuotaManagementContent.kt و کارت‌های تکی کوتاژ/کشتی در QuotaCardComponents.kt هستند (شکستن God Composable)

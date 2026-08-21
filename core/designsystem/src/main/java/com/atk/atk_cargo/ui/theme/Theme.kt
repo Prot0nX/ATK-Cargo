@@ -8,8 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-// توکن‌های ثابت طراحی — بدون پارامتر و مستقل از تم/دستگاه هستند، پس نیازی
-// به ساخت دوباره در هر recomposition ندارند
+// توکن‌های ثابت طراحی، مستقل از تم و دستگاه‌اند، پس نیازی به ساخت دوباره در هر recomposition ندارند
 private val AppSpacing = Spacing()
 private val AppDimensions = Dimensions()
 private val AppShapesTokens = AppShapes()
@@ -17,9 +16,7 @@ private val AppElevation = Elevation()
 private val AppMotion = Motion()
 private val AppComponentStyles = ComponentStyles()
 
-/**
- * تابع رنگ‌بندی درصد تکمیل (جهت سازگاری با بخش‌های موجود).
- */
+// تابع رنگ‌بندی بر اساس درصد تکمیل (برای سازگاری با بخش‌های موجود)
 fun getCompletionColor(percentage: Float, isDarkTheme: Boolean): Color {
     return when {
         percentage >= 95f -> if (isDarkTheme) Green300 else Green700
@@ -35,9 +32,7 @@ fun getCompletionColor(percentage: Float, isDarkTheme: Boolean): Color {
     }
 }
 
-/**
- * تم اصلی سازمانی ATK-Cargo بر پایه Material Design 3 و سیستم توکن‌های طراحی.
- */
+// تم اصلی سازمانی ATK-Cargo بر پایه Material Design 3 و سیستم توکن‌های طراحی
 @Composable
 fun ATKCargoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

@@ -65,13 +65,9 @@ data class Ship(
     val quotaCount: Int,
     val totalTonnage: Float,
     val remainingTonnage: Float,
-    // هر دو getShipsList و getShipDetails این فیلد را از قبل محاسبه‌شده ارسال
-    // می‌کنند؛ کلاینت دیگر نباید totalTonnage - remainingTonnage را دوباره
-    // حساب کند (منطق تکراری بین سرور و کلاینت)
+    // این فیلد از قبل محاسبه‌شده از سرور می‌آید؛ کلاینت نباید totalTonnage - remainingTonnage را دوباره حساب کند
     val loadedTonnage: Float = 0f,
-    // getShipsList (استفاده‌شده در لیست کشتی‌ها) این دو فیلد را ارسال نمی‌کند؛
-    // بدون مقدار پیش‌فرض، Gson با reflection قید non-null کاتلین را دور می‌زد و
-    // warehouses را null می‌گذاشت (کرش پنهان در هر کد آینده‌ای که آن را بخواند)
+    // getShipsList این دو فیلد را ارسال نمی‌کند؛ بدون مقدار پیش‌فرض، Gson قید non-null کاتلین را دور می‌زد و warehouses را null می‌گذاشت (کرش پنهان)
     val totalVoucherCount: Int = 0,
     val isActive: Boolean,
     val warehouses: List<Warehouse> = emptyList()
@@ -120,9 +116,7 @@ data class Warehouse(
     val totalTonnage: Float,
     val loadedTonnage: Float,
     val remainingTonnage: Float,
-    // getShipDetails (استفاده‌شده در این صفحه) این دو فیلد را ارسال نمی‌کند؛
-    // بدون مقدار پیش‌فرض، Gson با reflection قید non-null کاتلین را دور می‌زد
-    // و این فیلدها را null می‌گذاشت (کرش پنهان در هر کد آینده‌ای که بخواندشان)
+    // getShipDetails این دو فیلد را ارسال نمی‌کند؛ بدون مقدار پیش‌فرض، Gson قید non-null کاتلین را دور می‌زد و این فیلدها را null می‌گذاشت (کرش پنهان)
     val quotas: List<Quota> = emptyList(),
     val availableExitDates: List<String> = emptyList()
 )
@@ -204,9 +198,7 @@ data class ExistingQuota(
 data class DateInfo(
     val jalaliDate: String,
     val dayName: String,
-    // مرزهای دقیق «روز کاری» (دیروز ۰۷:۰۰ تا امروز ۰۷:۰۰)؛ nullable چون سرورهای
-    // قدیمی‌تر ممکن است این فیلدها را نفرستند. jalaliDate/dayName تاریخ پایان
-    // همین پنجره را نشان می‌دهند و بدون تغییر باقی مانده‌اند.
+    // مرزهای دقیق «روز کاری» (دیروز ۰۷:۰۰ تا امروز ۰۷:۰۰)؛ nullable چون سرورهای قدیمی‌تر ممکن است این فیلدها را نفرستند
     val windowStartDate: String? = null,
     val windowStartTime: String? = null,
     val windowEndDate: String? = null,

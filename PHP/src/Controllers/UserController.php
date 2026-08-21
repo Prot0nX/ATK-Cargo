@@ -26,14 +26,7 @@ class UserController {
         $this->loginAttemptLimiter = new LoginAttemptLimiter();
     }
 
-    // actionهایی که فقط مدیر (دسترسی manage_users) مجاز به اجرای آن‌هاست.
-    // getAllUsers قبلاً اینجا نبود و فهرست کامل username/fullName/userType
-    // همه‌ی کاربران را به هر کاربر احرازشده می‌داد (Excessive Data Exposure —
-    // DEEP_CODE_AUDIT.md #Phase1.3). صفحه‌ی «تنظیمات پروفایل» و «چت با مدیر»
-    // که قبلاً از getAllUsers استفاده می‌کردند اکنون به‌ترتیب از
-    // getSelfProfile و getAdminUsers استفاده می‌کنند که فقط دامنه‌ی
-    // موردنیاز خودشان را برمی‌گردانند و به هر کاربر احرازشده اجازه داده
-    // می‌شوند (بدون نیاز به manage_users).
+    // actionهای مخصوص مدیر؛ getAllUsers قفل شد تا افشای اطلاعات همه‌ی کاربران رخ ندهد (Phase1.3)
     private const ADMIN_ONLY_ACTIONS = [
         'getAllUsers',
         'getAllUsersWithStatus',
@@ -43,13 +36,7 @@ class UserController {
         'forceLogout',
     ];
 
-    /**
-     * مدیریت و مسیریابی درخواست‌های کاربران
-     *
-     * تمام actionهای این کنترلر (خواندن/ساخت/ویرایش/حذف کاربران، خروج
-     * اجباری) داده‌ی حساس هستند؛ بدون این گیت هر کلاینت ناشناس می‌توانست
-     * کاربر admin بسازد یا رمز/نوع کاربری هر کاربر موجود را تغییر دهد (S-01).
-     */
+    // مدیریت و مسیریابی درخواست‌های کاربران؛ نیازمند احراز هویت چون همه‌ی actionها داده‌ی حساس‌اند (S-01)
     public function handle(): void {
         try {
             $this->requireAuthenticatedSession();
@@ -67,10 +54,7 @@ class UserController {
             if ($this->request->isGet()) {
                 $this->handleGet($action);
             } elseif ($this->request->isWrite()) {
-                // isWrite() نه فقط isPost(): این شاخه‌ی مشترک هم createUser
-                // (POST) هم updateUser (PATCH) هم deleteUser (DELETE) را
-                // پوشش می‌دهد — تفکیک واقعی با action انجام می‌شود، نه فعل
-                // HTTP (DEEP_CODE_REVIEW.md Phase4 #33).
+                // isWrite() هر سه فعل POST/PATCH/DELETE را پوشش می‌دهد؛ تفکیک واقعی با action انجام می‌شود (Phase4 #33)
                 $this->handlePost($action);
             } else {
                 throw new ApiException('روش درخواست نامعتبر است', 405);
@@ -172,11 +156,7 @@ class UserController {
                 InputValidator::validateRequired($params, ['id']);
                 $id = (int)$params['id'];
 
-                // کاربر بدون دسترسی manage_users (مثلاً از دیالوگ «تغییر رمز
-                // عبور» در تنظیمات پروفایل خودش) فقط مجاز به ویرایش رکورد
-                // خودش است و فقط فیلدهای غیرحساس (fullName/password)؛ بدون
-                // این بررسی، هر کاربر احرازشده می‌توانست با فرستادن id دلخواه
-                // رمز/نوع کاربری هر کاربر دیگری (از جمله ادمین) را عوض کند.
+                // کاربر بدون manage_users فقط مجاز به ویرایش رکورد خودش با فیلدهای غیرحساس است، وگرنه IDOR ممکن بود
                 $isAdmin = (new \App\Services\PermissionService())
                     ->hasPermission($this->authenticatedUsername ?? '', $this->authenticatedUserType ?? '', 'manage_users');
 
@@ -189,11 +169,7 @@ class UserController {
                         throw new ApiException('شما مجاز به تغییر نام کاربری یا نوع کاربری خودتان نیستید.', 403);
                     }
 
-                    // بدون این، یک session token دزدیده‌شده (که فقط تا انقضای
-                    // نشست کار می‌کرد) می‌توانست رمز را عوض کند و به تصاحب
-                    // دائمی حساب ارتقا پیدا کند (DEEP_CODE_AUDIT.md #Phase2.8).
-                    // فقط برای خودِ کاربر اعمال می‌شود؛ ادمین هنگام تغییر رمز
-                    // کاربر دیگر از این مسیر عبور نمی‌کند.
+                    // تأیید رمز فعلی برای تغییر رمز خود کاربر، تا session token دزدیده‌شده به تصاحب دائمی حساب ارتقا نیابد (Phase2.8)
                     if (isset($params['password'])) {
                         $username = (string)$this->authenticatedUsername;
                         $ip = (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
@@ -258,18 +234,7 @@ class UserController {
         }
     }
 
-    /**
-     * به‌روزرسانی توکن FCM (POST users/fcm-token)
-     *
-     * قبلاً بدون احراز هویت بود و user_id مستقیم از ورودی خوانده می‌شد؛ هر
-     * کلاینت ناشناس می‌توانست توکن push هر کاربر دلخواه را با توکن خودش
-     * جایگزین کند (S-08). حالا user_id از نشست احرازشده گرفته می‌شود، نه از
-     * ورودی — پارامتر user_id ورودی نادیده گرفته می‌شود.
-     *
-     * پاسخ‌های خطا در Phase3 #21 به Response::error() یکسان شدند؛ تأیید شد
-     * کلاینت فعلی اصلاً FCM ندارد (grep سراسری «fcm» در کل سورس Kotlin صفر
-     * نتیجه داد)، پس این endpoint در حال حاضر بدون مصرف‌کننده است.
-     */
+    // به‌روزرسانی توکن FCM؛ user_id از نشست احرازشده گرفته می‌شود، نه از ورودی، تا جعل توکن ممکن نباشد (S-08)
     public function updateFcmToken(): void {
         $this->requireAuthenticatedSession();
 

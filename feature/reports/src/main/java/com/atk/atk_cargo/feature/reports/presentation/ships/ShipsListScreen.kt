@@ -80,8 +80,7 @@ fun ShipsList(viewModel: ReportsViewModel, onShipSelected: (String) -> Unit) {
     val activeListState = rememberLazyListState()
     val inactiveListState = rememberLazyListState()
     val currentShipSortingMode by viewModel.shipSortingMode.collectAsStateWithLifecycle()
-    // سه ورودی remember(...) از قبل به‌عنوان کلید داده شده‌اند، پس derivedStateOf
-    // اضافه چیزی نگه نمی‌دارد (فقط یک لایه‌ی observer بی‌فایده است)
+    // چون ورودی‌ها همین‌جا به remember داده شده‌اند، derivedStateOf اضافی بی‌فایده است
     val filteredActiveShips = remember(shipsData.activeShips, searchTerm, currentShipSortingMode) {
         val filtered = shipsData.activeShips.filter { it.matchesSearch(searchTerm) }
         sortShips(filtered, currentShipSortingMode)
@@ -272,9 +271,7 @@ fun ShipsTabContent(
         ) {
             items(
                 items = ships,
-                // یک کشتی می‌تواند با چند نوع محموله (cargoType) چند ردیف با نام یکسان
-                // در پاسخ سرور داشته باشد (GROUP BY shipName, cargoType)؛ کلید باید
-                // ترکیبی باشد وگرنه LazyColumn با کلید تکراری کرش می‌کند.
+                // کلید باید ترکیبی از نام و نوع محموله باشد وگرنه LazyColumn با کلید تکراری کرش می‌کند
                 key = { ship -> "${ship.name}|${ship.cargoType.orEmpty()}" },
                 contentType = { "ship" }
             ) { ship ->

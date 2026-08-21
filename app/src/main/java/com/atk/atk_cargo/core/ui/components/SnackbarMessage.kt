@@ -94,8 +94,7 @@ fun StatusSnackbar(
                     .fillMaxWidth()
                     .wrapContentHeight()
                     .graphicsLayer {
-                        // GraphicsLayerScope خودش Density است، پس تبدیل Dp→px
-                        // بدون نیاز به LocalDensity ممکن است.
+                        // GraphicsLayerScope خودش Density است، پس تبدیل Dp→px بدون LocalDensity ممکن است
                         translationY = translateY.toPx()
                         this.alpha = alpha
                     },

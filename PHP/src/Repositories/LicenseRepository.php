@@ -8,22 +8,9 @@ namespace App\Repositories;
 use App\Core\Database;
 use PDO;
 
-/**
- * تنها منبع حقیقت کوئری‌های جدول `licenses`.
- *
- * پیش از این، کوئری‌ها بین دو جای کاملاً مستقل تکرار شده بودند:
- * LicenseController (مسیر اپ اندروید، mysqli خام) و Lic/manage_licenses.php
- * (پنل ادمین، mysqli خام). با افزوده‌شدن مفهوم «انقضا» این تکرار خطرناک
- * می‌شد — تعریف «لایسنس معتبر» باید دقیقاً یکی باشد، وگرنه پنل می‌تواند
- * لایسنسی را «فعال» نشان دهد که اپ آن را رد می‌کند.
- *
- * درایور PDO است (نه mysqli) مطابق UserRepository/SessionRepository.
- */
+// تنها منبع حقیقت کوئری‌های جدول licenses؛ برای جلوگیری از تعریف‌های ناهماهنگ «لایسنس معتبر» بین پنل و اپ
 class LicenseRepository {
-    /**
-     * وضعیت مؤثر لایسنس — تعریف واحدی که هم پنل ادمین و هم
-     * LicenseController::validateLicense از آن استفاده می‌کنند.
-     */
+    // وضعیت مؤثر لایسنس؛ تعریف واحدی که هم پنل ادمین و هم LicenseController از آن استفاده می‌کنند
     private const STATUS_EXPR = "
         CASE
             WHEN is_active = 0 THEN 'inactive'
@@ -31,11 +18,7 @@ class LicenseRepository {
             ELSE 'active'
         END AS effective_status";
 
-    /**
-     * سقف سخت‌گیرانه به‌جای صفحه‌بندی کامل — همان الگوی
-     * UserRepository::getAll(). این جدول با تعداد مشتریان تجاری رشد می‌کند،
-     * نه با رویداد، پس عملاً هرگز به این سقف نمی‌رسد.
-     */
+    // سقف سخت‌گیرانه به‌جای صفحه‌بندی کامل، مشابه UserRepository::getAll()
     private const MAX_ROWS = 5000;
 
     private PDO $db;
@@ -62,13 +45,8 @@ class LicenseRepository {
         return $row ?: null;
     }
 
+    // لیست لایسنس‌ها با جستجو و فیلتر وضعیت، هر دو سمت سرور
     /**
-     * لیست لایسنس‌ها با جستجو و فیلتر وضعیت — هر دو سمت سرور.
-     *
-     * نسخه‌ی قبلی پنل کل جدول را بی‌قید برمی‌گرداند و جستجو را در جاوااسکریپت
-     * روی آرایه‌ی کامل انجام می‌داد؛ یعنی همه‌ی کلیدهای لایسنس بی‌دلیل روی
-     * سیم می‌رفتند حتی وقتی کاربر دنبال یک شرکت خاص بود.
-     *
      * @param string|null $status یکی از active|expired|inactive یا null برای همه
      */
     public function listAll(?string $search = null, ?string $status = null): array {
@@ -77,10 +55,7 @@ class LicenseRepository {
         $where = [];
 
         if ($search !== null && $search !== '') {
-            // سه placeholder مجزا (نه یک :search تکرارشده): اتصال PDO این
-            // پروژه با EMULATE_PREPARES=false کار می‌کند، یعنی prepare واقعی
-            // سمت MySQL — و آن‌جا استفاده‌ی چندباره از یک نام placeholder
-            // خطای HY093 (Invalid parameter number) می‌دهد.
+            // سه placeholder مجزا لازم است چون EMULATE_PREPARES=false تکرار یک نام را با خطا رد می‌کند
             $where[] = '(company_name LIKE :search_company'
                 . ' OR license_key LIKE :search_key'
                 . ' OR contact_name LIKE :search_contact)';
@@ -109,9 +84,8 @@ class LicenseRepository {
         return $stmt->fetchAll();
     }
 
+    // شمارش تفکیکی وضعیت‌ها به همراه فعالیت دو ماه اخیر، در یک رفت‌وبرگشت
     /**
-     * شمارش تفکیکی وضعیت‌ها + فعالیت دو ماه اخیر، در یک رفت‌وبرگشت.
-     *
      * @return array{total:int,active:int,expired:int,inactive:int,this_month:int,last_month:int}
      */
     public function stats(): array {
@@ -126,7 +100,7 @@ class LicenseRepository {
             FROM licenses";
         $row = $this->db->query($sql)->fetch() ?: [];
 
-        // SUM() روی جدول خالی NULL برمی‌گرداند، نه صفر.
+        // SUM() روی جدول خالی NULL برمی‌گرداند نه صفر
         return [
             'total'      => (int)($row['total'] ?? 0),
             'active'     => (int)($row['active'] ?? 0),
@@ -143,11 +117,7 @@ class LicenseRepository {
         return $stmt->fetchColumn() !== false;
     }
 
-    /**
-     * یکتایی نام شرکت در لایه‌ی اپلیکیشن اعمال می‌شود (جدول ایندکس یکتا
-     * ندارد — توضیح در migrations/2026_08_20_extend_licenses_table.sql).
-     * $exceptId برای حالت ویرایش است تا رکورد خودش تکراری شمرده نشود.
-     */
+    // یکتایی نام شرکت در لایه‌ی اپلیکیشن اعمال می‌شود؛ exceptId برای حالت ویرایش رکورد خودش
     public function companyNameExists(string $companyName, ?int $exceptId = null): bool {
         $sql = "SELECT 1 FROM licenses WHERE company_name = :name";
         $params = [':name' => $companyName];
@@ -227,12 +197,7 @@ class LicenseRepository {
         $stmt->execute([':key' => $licenseKey]);
     }
 
-    /**
-     * خنثی‌سازی wildcardهای LIKE در ورودی کاربر، تا جستجوی «٪۱۰۰» یا
-     * «a_b» به‌عنوان الگو تفسیر نشود. چون PDO با EMULATE_PREPARES=false
-     * مقدار را به‌صورت پارامتر می‌فرستد، backslash در MySQL همچنان کاراکتر
-     * فرار پیش‌فرض LIKE است و ESCAPE صریح لازم نیست.
-     */
+    // خنثی‌سازی wildcardهای LIKE در ورودی کاربر تا به‌عنوان الگو تفسیر نشود
     private function escapeLike(string $value): string {
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }

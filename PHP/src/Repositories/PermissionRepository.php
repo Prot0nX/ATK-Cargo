@@ -7,14 +7,7 @@ namespace App\Repositories;
 
 use App\Core\DatabaseManager;
 
-/**
- * دسترسی به جداول role_permissions/user_permissions (DEEP_CODE_AUDIT.md
- * #Phase4.7 — جایگزین config/permissions.json). هر متد prepare() را از
- * DatabaseManager می‌گیرد که خودش در صورت نبود جدول (migration اجرا نشده)
- * یک Exception عادی می‌اندازد؛ فراخوان (PermissionService) این استثنا را
- * می‌گیرد و به فایل JSON قدیمی برمی‌گردد — این کلاس خودش هیچ fallback ای
- * ندارد، عمداً "فقط DB" است.
- */
+// دسترسی به جداول role_permissions/user_permissions؛ عمداً بدون fallback، فقط DB
 final class PermissionRepository {
     private DatabaseManager $db;
 
@@ -94,7 +87,7 @@ final class PermissionRepository {
         }
     }
 
-    /** حذف تنظیمات اختصاصی کاربر — بازگشت به وراثت از نقش */
+    // حذف تنظیمات اختصاصی کاربر، بازگشت به وراثت از نقش
     public function deleteUserPermissions(string $username): void {
         $stmt = $this->db->prepare("DELETE FROM user_permissions WHERE username = ?");
         $stmt->bind_param("s", $username);

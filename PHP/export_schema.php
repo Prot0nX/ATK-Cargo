@@ -1,10 +1,5 @@
 <?php
-/**
- * PHP/export_schema.php
- *
- * اسکریپت استخراج ساختار کامل پایگاه داده (Tables, Indexes, Keys, Constraints, Views)
- * از دیتابیس سرور atk_cargo و ذخیره در فایل schema.sql.
- */
+// استخراج ساختار کامل دیتابیس (جداول، ایندکس‌ها، کلیدها، ویوها) و ذخیره در schema.sql
 
 declare(strict_types=1);
 
@@ -38,9 +33,7 @@ class DatabaseSchemaExporter
         }
     }
 
-    /**
-     * اجرای فرایند استخراج ساختار و ذخیره در فایل
-     */
+    // اجرای فرایند استخراج ساختار و ذخیره در فایل
     public function export(): bool
     {
         // بررسی وجود دیتابیس
@@ -144,9 +137,7 @@ class DatabaseSchemaExporter
         return true;
     }
 
-    /**
-     * دریافت اسامی تمام جداول (بدون Views)
-     */
+    // دریافت اسامی تمام جداول (بدون ویوها)
     private function getTables(): array
     {
         $stmt = $this->pdo->query("SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'");
@@ -157,9 +148,7 @@ class DatabaseSchemaExporter
         return $tables;
     }
 
-    /**
-     * دریافت اسامی تمام Views
-     */
+    // دریافت اسامی تمام ویوها
     private function getViews(): array
     {
         $stmt = $this->pdo->query("SHOW FULL TABLES WHERE Table_type = 'VIEW'");
@@ -170,9 +159,7 @@ class DatabaseSchemaExporter
         return $views;
     }
 
-    /**
-     * دریافت دستور CREATE TABLE
-     */
+    // دریافت دستور CREATE TABLE
     private function getCreateTableStatement(string $table): string
     {
         $stmt = $this->pdo->query("SHOW CREATE TABLE `{$table}`");
@@ -180,9 +167,7 @@ class DatabaseSchemaExporter
         return $row['Create Table'] ?? '';
     }
 
-    /**
-     * دریافت دستور CREATE VIEW
-     */
+    // دریافت دستور CREATE VIEW
     private function getCreateViewStatement(string $view): string
     {
         $stmt = $this->pdo->query("SHOW CREATE VIEW `{$view}`");
@@ -190,9 +175,7 @@ class DatabaseSchemaExporter
         return $row['Create View'] ?? '';
     }
 
-    /**
-     * دریافت لیست تریگرها
-     */
+    // دریافت لیست تریگرها
     private function getTriggers(): array
     {
         $stmt = $this->pdo->query("SHOW TRIGGERS");
@@ -200,12 +183,7 @@ class DatabaseSchemaExporter
     }
 }
 
-// ------------------------------------------------------------------
-// نقطه ورود — فقط CLI. قبلاً شرط با isset($_SERVER['HTTP_HOST']) هم صدق
-// می‌کرد و هر GET ناشناس روی وب کل ساختار دیتابیس (جداول/ایندکس‌ها/تریگرها)
-// را استخراج و در schema.sql می‌نوشت و مسیر مطلق فایل‌سیستم را در پاسخ
-// افشا می‌کرد (S-09). این اسکریپت یک ابزار توسعه است و نباید از وب اجرا شود.
-// ------------------------------------------------------------------
+// نقطه ورود فقط از CLI؛ اجرا از وب به دلیل افشای ساختار دیتابیس و مسیر فایل ممنوع است (S-09)
 if (php_sapi_name() === 'cli') {
     $options = getopt('', ['db:', 'output:']);
     $dbName = $options['db'] ?? 'atk_cargo';

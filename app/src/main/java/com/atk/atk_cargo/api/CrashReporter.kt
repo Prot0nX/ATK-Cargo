@@ -26,18 +26,7 @@ private data class PendingCrashReport(
     val username: String = ""
 )
 
-/**
- * گزارش کرش خودمیزبان و سبک — بدون سرویس شخص ثالث (Crashlytics/Sentry)،
- * چون `mapping.txt` هر release از قبل آرشیو می‌شود و برای deobfuscate کافی
- * است (DEEP_CODE_AUDIT.md #Phase2.13).
- *
- * الگو: [install] یک uncaught-exception-handler سراسری نصب می‌کند که فقط
- * یک فایل ساده (نه DataStore) روی همان thread کرش‌کننده می‌نویسد — یک
- * suspend/coroutine write ممکن است هرگز کامل نشود چون process بلافاصله
- * بعد از کرش kill می‌شود. در اجرای بعدی، [sendPendingReportIfAny] فایل را
- * (در صورت وجود) به سرور می‌فرستد و صرف‌نظر از نتیجه پاک می‌کند
- * (best-effort، بدون retry loop).
- */
+// گزارش کرش خودمیزبان بدون سرویس ثالث: [install] هندلر uncaught-exception سراسری نصب می‌کند که فایل ساده (نه DataStore، چون coroutine ممکن است قبل از kill شدن process کامل نشود) می‌نویسد و [sendPendingReportIfAny] در اجرای بعدی آن را best-effort به سرور می‌فرستد و پاک می‌کند
 object CrashReporter {
     private const val TAG = "CrashReporter"
     private const val CRASH_FILE_NAME = "pending_crash_report.json"
@@ -53,9 +42,7 @@ object CrashReporter {
             } catch (_: Throwable) {
                 // هیچ استثنایی نباید از خودِ handler خارج شود
             }
-            // زنجیره به handler قبلی (سیستم/Android) — این کلاس فقط ثبت
-            // می‌کند، هرگز کرش را نمی‌بلعد؛ رفتار طبیعی کرش (دیالوگ سیستم،
-            // بستن اپ) باید دست‌نخورده بماند.
+            // زنجیره به handler قبلی سیستم — این کلاس فقط ثبت می‌کند و رفتار طبیعی کرش را دست‌نخورده می‌گذارد
             previousHandler?.uncaughtException(thread, throwable)
         }
     }
@@ -91,8 +78,7 @@ object CrashReporter {
             } catch (e: Exception) {
                 Log.w(TAG, "ارسال گزارش کرش معلق شکست خورد", e)
             } finally {
-                // best-effort — چه موفق چه ناموفق، دوباره retry نمی‌کنیم تا
-                // یک کرش تکرارشونده باعث ارسال بی‌نهایت نشود.
+                // best-effort — بدون retry، تا کرش تکرارشونده باعث ارسال بی‌نهایت نشود
                 file.delete()
             }
         }

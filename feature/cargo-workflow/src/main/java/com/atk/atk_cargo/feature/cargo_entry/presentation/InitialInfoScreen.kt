@@ -682,7 +682,4 @@ fun InitialInfoScreen(navController: NavController, viewModel: InitialInfoViewMo
     }
 }
 
-// دیالوگ‌های تأیید/تکراری/عدم‌تطابق/پیام در InitialInfoDialogs.kt و
-// SummaryCard/CustomInput در InitialInfoFormComponents.kt هستند
-// (DEEP_CODE_AUDIT.md #Phase3.7، شکستن God Composable). هم‌پکیج‌اند، نیازی
-// به import اضافه نیست.
+// دیالوگ‌ها در InitialInfoDialogs.kt و SummaryCard/CustomInput در InitialInfoFormComponents.kt هستند

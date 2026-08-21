@@ -78,8 +78,7 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import kotlin.time.Duration.Companion.milliseconds
 
-// دسترسی به شبکه از طریق Repository، نه مستقیم از RetrofitClient در کد UI
-// internal (نه private) چون توسط ActiveQuotasDialogSection.kt هم استفاده می‌شود
+// دسترسی به شبکه از طریق Repository؛ internal است چون ActiveQuotasDialogSection.kt هم آن را استفاده می‌کند
 internal val reportsRepository by lazy { ReportsRepository() }
 
 internal val QuotasAccent: Color
@@ -762,11 +761,7 @@ private fun StatChip(
     }
 }
 
-// محتوای لیست/کارت/آیتم دیالوگ کوتاژهای فعال (GroupedShipsContent، ShipCard،
-// ShipHeader، FlatQuotasContent، FlatQuotaCard، WarehouseSection، QuotaItem،
-// FilterChip، enum FilterState/ViewMode) به ActiveQuotasContent.kt منتقل شد
-// (DEEP_CODE_AUDIT.md #Phase3.7، شکستن God Composable). پوسته‌ی دیالوگ در
-// ActiveQuotasDialogSection.kt است.
+// محتوای دیالوگ کوتاژهای فعال به ActiveQuotasContent.kt منتقل شده و پوسته‌ی دیالوگ در ActiveQuotasDialogSection.kt است
 private fun navigateToRegisterCargoActivity(
     navController: NavController,
     selectedQuota: MatchingQuota,

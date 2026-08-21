@@ -13,17 +13,13 @@ class SessionService {
     private SessionRepository $sessionRepository;
     private UserRepository $userRepository;
 
-    // Phase 3.3: پارامترهای اختیاری برای تزریق mock در تست واحد (بدون تماس
-    // واقعی با دیتابیس)؛ همه‌ی فراخوان‌های production با new SessionService()
-    // بدون آرگومان بدون تغییر کار می‌کنند.
+    // پارامترهای اختیاری برای تزریق mock در تست واحد؛ فراخوان‌های production بدون آرگومان کار می‌کنند
     public function __construct(?SessionRepository $sessionRepository = null, ?UserRepository $userRepository = null) {
         $this->sessionRepository = $sessionRepository ?? new SessionRepository();
         $this->userRepository = $userRepository ?? new UserRepository();
     }
 
-    /**
-     * ایجاد جلسه جدید برای نسخه اندروید (Mobile App) با محدودیت ورود همزمان تک دستگاهی
-     */
+    // ایجاد جلسه جدید برای نسخه اندروید با محدودیت ورود همزمان تک دستگاهی
     public function createMobileSession(
         string $username, 
         string $deviceId, 
@@ -38,10 +34,7 @@ class SessionService {
 
         if ($existingSession) {
             if ($existingSession['device_id'] === $deviceId) {
-                // همان دستگاه - طبق تصمیم I-05، هر login موفق (حتی از همان
-                // دستگاه) هر دو توکن را کاملاً تازه صادر می‌کند، نه reuse
-                // توکن قبلی (رفتار قبلی) — login با رمز واقعی، قوی‌ترین نوع
-                // احراز هویت است، پس نباید ضعیف‌تر از یک refresh معمولی رفتار کند.
+                // همان دستگاه - هر login موفق هر دو توکن را کاملاً تازه صادر می‌کند، نه reuse توکن قبلی
                 $tokens = $this->generateTokenPair();
                 $this->sessionRepository->rotateTokens(
                     (int)$existingSession['id'],
@@ -106,10 +99,7 @@ class SessionService {
         ];
     }
 
-    /**
-     * تولید یک جفت توکن تازه (access + refresh) — برای login موفق (جدید یا
-     * همان دستگاه) و POST /auth/refresh مشترک است (I-05).
-     */
+    // تولید یک جفت توکن تازه (access + refresh)، مشترک بین login موفق و POST /auth/refresh
     private function generateTokenPair(): array {
         $now = time();
         return [
@@ -120,14 +110,7 @@ class SessionService {
         ];
     }
 
-    /**
-     * تمدید access token با استفاده از refresh token (POST /auth/refresh،
-     * I-05). هر دو توکن rotate می‌شوند (sliding refresh expiry). اگر توکن
-     * داده‌شده دقیقاً با آخرین refresh token صادرشده برای این کاربر/دستگاه
-     * مطابقت نداشته باشد (نه لزوماً نامعتبر بودن ساده، بلکه احتمال استفاده‌ی
-     * دوباره از یک توکن قبلاً rotate‌شده — نشانه‌ی سرقت)، طبق تصمیم محصولی،
-     * تمام نشست‌های فعال این کاربر (نه فقط همین دستگاه) باطل می‌شوند.
-     */
+    // تمدید access token با refresh token؛ هر دو توکن rotate می‌شوند و در صورت مغایرت (نشانه‌ی سرقت) تمام نشست‌های کاربر باطل می‌شوند
     public function refreshTokens(string $username, string $deviceId, string $refreshToken): array {
         if ($username === '' || $deviceId === '' || $refreshToken === '') {
             return ['success' => false, 'message' => 'پارامترهای ورودی نامعتبر است', 'http_code' => 400];
@@ -138,8 +121,7 @@ class SessionService {
             return ['success' => false, 'message' => 'نشست یافت نشد. لطفاً دوباره وارد شوید.', 'http_code' => 401];
         }
 
-        // session['refresh_token'] از دیتابیس هش‌شده برمی‌گردد (Phase 2.1)،
-        // پس طرف مقابل مقایسه هم باید هش شود.
+        // session['refresh_token'] از دیتابیس هش‌شده برمی‌گردد، پس طرف مقابل مقایسه هم باید هش شود
         $storedRefreshTokenHash = (string)($session['refresh_token'] ?? '');
         if ($storedRefreshTokenHash === '' || !hash_equals($storedRefreshTokenHash, SessionRepository::hashToken($refreshToken))) {
             $this->sessionRepository->deactivateAllSessions($username);
@@ -177,9 +159,7 @@ class SessionService {
         ];
     }
 
-    /**
-     * ایجاد جلسه جدید برای پنل تحت وب (User Panel) با امکان خروج خودکار سایر دستگاه‌ها
-     */
+    // ایجاد جلسه جدید برای پنل تحت وب با امکان خروج خودکار سایر دستگاه‌ها
     public function createWebSession(
         string $username, 
         string $deviceId, 
@@ -192,10 +172,7 @@ class SessionService {
         $existingSession = $this->sessionRepository->getActiveSessionByDevice($username, $deviceId);
         
         if ($existingSession) {
-            // session_token/refresh_token از دیتابیس هش‌شده برمی‌گردند
-            // (Phase 2.1) و قابل بازگرداندن به کلاینت یا reuse نیستند؛ مثل
-            // createMobileSession (تصمیم I-05)، به‌جای reuse یک جفت توکن
-            // کاملاً تازه صادر و rotate می‌شود.
+            // session_token/refresh_token هش‌شده برمی‌گردند و قابل reuse نیستند؛ مثل createMobileSession یک جفت توکن تازه صادر می‌شود
             $tokens = $this->generateTokenPair();
             $this->sessionRepository->rotateTokens(
                 (int)$existingSession['id'],
@@ -246,11 +223,7 @@ class SessionService {
         ];
     }
 
-    /**
-     * بررسی دقیق اعتبار یک نشست (نام کاربری + دستگاه + توکن) برای گیت احراز
-     * هویت درخواست‌های API. برخلاف isSessionActive، اینجا مطابقت توکن هم بررسی
-     * می‌شود تا صرف دانستن نام کاربری/شناسه دستگاه برای عبور از گیت کافی نباشد.
-     */
+    // بررسی دقیق اعتبار یک نشست (username + دستگاه + توکن)؛ برخلاف isSessionActive مطابقت توکن هم بررسی می‌شود
     public function isValidToken(string $username, string $deviceId, string $token): bool {
         if ($username === '' || $deviceId === '' || $token === '') {
             return false;
@@ -263,11 +236,7 @@ class SessionService {
         return $valid;
     }
 
-    /**
-     * فقط روی مسیر شکست validateAndGetUserType صدا زده می‌شود، برای تمایز
-     * «access token منقضی» از «نشست کاملاً نامعتبر» (I-05) — نگاه کنید به
-     * SessionRepository::isAccessTokenExpiredButSessionActive.
-     */
+    // فقط روی مسیر شکست validateAndGetUserType صدا زده می‌شود، برای تمایز «توکن منقضی» از «نشست کاملاً نامعتبر»
     public function isAccessTokenExpiredButSessionActive(string $username, string $deviceId, string $token): bool {
         if ($username === '' || $deviceId === '' || $token === '') {
             return false;
@@ -275,13 +244,8 @@ class SessionService {
         return $this->sessionRepository->isAccessTokenExpiredButSessionActive($username, $deviceId, $token);
     }
 
+    // نسخه‌ی بهینه‌شده‌ی isValidToken: اعتبار نشست و userType را با یک کوئری واحد برمی‌گرداند و last_activity را throttled به‌روزرسانی می‌کند
     /**
-     * نسخه‌ی بهینه‌شده‌ی isValidToken برای گیت AuthenticatesRequests (P-01):
-     * اعتبار نشست و userType را با یک کوئری واحد برمی‌گرداند (به‌جای
-     * isValidToken + یک SELECT جداگانه‌ی UserRepository)، و last_activity را
-     * throttled به‌روزرسانی می‌کند (نه در هر تک درخواست) چون این متد در «هر»
-     * درخواست API احرازشده صدا زده می‌شود.
-     *
      * @return string|null userType در صورت معتبر بودن نشست، در غیر این صورت null
      */
     public function validateAndGetUserType(string $username, string $deviceId, string $token): ?string {
@@ -296,9 +260,7 @@ class SessionService {
         return $userType;
     }
 
-    /**
-     * بررسی معتبر بودن جلسه کاربر
-     */
+    // بررسی معتبر بودن جلسه کاربر
     public function isSessionActive(string $username, ?string $deviceId = null): bool {
         $session = null;
         if ($deviceId) {
@@ -316,9 +278,7 @@ class SessionService {
         return false;
     }
 
-    /**
-     * خروج کاربر (غیرفعال کردن تمام جلسات فعال)
-     */
+    // خروج کاربر (غیرفعال کردن تمام جلسات فعال)
     public function deactivateSession(string $username, ?string $deviceId = null): array {
         $user = $this->userRepository->getByUsername($username);
         if (!$user) {
@@ -349,9 +309,7 @@ class SessionService {
         ];
     }
 
-    /**
-     * خروج اجباری از دستگاه خاص
-     */
+    // خروج اجباری از دستگاه خاص
     public function forceLogoutFromDevice(string $username, string $deviceId): array {
         $activeSession = $this->sessionRepository->getActiveSessionByDevice($username, $deviceId);
         
@@ -371,30 +329,22 @@ class SessionService {
         ];
     }
 
-    /**
-     * دریافت لیست کاربران آنلاین
-     */
+    // دریافت لیست کاربران آنلاین
     public function getOnlineUsers(): array {
         return $this->sessionRepository->getOnlineUsers();
     }
 
-    /**
-     * دریافت آمار جلسات
-     */
+    // دریافت آمار جلسات
     public function getSessionStats(): array {
         return $this->sessionRepository->getSessionStats();
     }
 
-    /**
-     * غیرفعال کردن نشست‌های منقضی (بی‌فعالیت طولانی)
-     */
+    // غیرفعال کردن نشست‌های منقضی (بی‌فعالیت طولانی)
     public function cleanupExpiredSessions(): int {
         return $this->sessionRepository->cleanupExpiredSessions();
     }
 
-    /**
-     * ثبت لاگ فعالیت نشست‌ها
-     */
+    // ثبت لاگ فعالیت نشست‌ها
     public function logActivity(string $username, string $action, ?string $deviceId = null, ?string $ipAddress = null, ?string $userType = null): void {
         try {
             $logDir = APP_ROOT . '/logs';

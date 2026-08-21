@@ -4,14 +4,7 @@ import com.atk.atk_cargo.data.model.CargoInfoResponse
 import com.atk.atk_cargo.data.model.Quota
 import com.atk.atk_cargo.data.model.QuotaStatusResponse
 
-/**
- * انتزاع نازک روی ReportsRepository — همان الگوی UserPreferencesStore
- * (DEEP_CODE_AUDIT.md #Phase5.10/5.12). feature:cargo (QuotaValidationUseCase،
- * و از Phase4 #29 CargoViewModel) فقط به این متدها نیاز دارد، نه کل
- * ReportsRepository (که هنوز در feature:reports است و این اینترفیس را
- * پیاده‌سازی می‌کند) — بدون این مرز، feature:cargo مجبور می‌شد مستقیماً به
- * یک ماژول feature دیگر وابسته شود.
- */
+// انتزاع نازک روی ReportsRepository تا feature:cargo مجبور به وابستگی مستقیم به یک ماژول feature دیگر نشود
 interface QuotaRepository {
     suspend fun checkQuotaStatus(
         quotaNumber: String,

@@ -5,14 +5,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-/**
- * محدودکننده‌ی تلاش‌های ناموفق ورود. دو شمارنده‌ی مستقل دارد:
- * - به‌ازای username (مستقل از IP) → سدّ اصلی brute-force روی یک حساب.
- * - به‌ازای IP (مستقل از username) → سدّ credential-stuffing گسترده.
- * نسخه‌ی قبلی فقط کلید ترکیبی username+IP داشت که با چرخش IP کاملاً دور
- * زده می‌شد (S-06 / DEEP_CODE_AUDIT.md #1.1). الگوی ذخیره‌سازی (APCu با
- * fallback فایلی) مطابق PasswordGateService است.
- */
+// محدودکننده‌ی تلاش‌های ناموفق ورود، با دو شمارنده‌ی مستقل برای username و IP
 final class LoginAttemptLimiter {
     private const MAX_USER_ATTEMPTS = 5;
     private const MAX_IP_ATTEMPTS = 50;
@@ -26,13 +19,7 @@ final class LoginAttemptLimiter {
     /** @var callable(string, string, string): void */
     private $alerter;
 
-    // Phase 3.3: sleep() تصاعدی داخل registerFailedAttempt تست واحد این کلاس
-    // را غیرممکن می‌کرد (تا ۸ ثانیه واقعی به‌ازای هر تست). با تزریق یک تابع
-    // sleep قابل جایگزینی (پیش‌فرض همان sleep() واقعی برای کد production)،
-    // تست می‌تواند این تابع را با یک no-op جایگزین کند و فقط منطق شمارش/قفل
-    // را بسنجد، نه گذر زمان واقعی را. همان الگو برای alerter (Phase 5.2،
-    // DEEP_CODE_AUDIT.md → «نبود مانیتورینگ و هشدار») تکرار شده تا تست‌ها
-    // درخواست شبکه‌ی واقعی نزنند.
+    // sleeper و alerter قابل تزریق‌اند تا تست واحد بدون تأخیر واقعی یا درخواست شبکه اجرا شود
     public function __construct(?callable $sleeper = null, ?callable $alerter = null) {
         $this->sleeper = $sleeper ?? static function (int $seconds): void {
             sleep($seconds);
@@ -51,8 +38,7 @@ final class LoginAttemptLimiter {
         $userAttempts = $this->increment($this->userKey($username));
         $ipAttempts = $this->increment($this->ipKey($ipAddress));
 
-        // اعلان فقط دقیقاً در لحظه‌ی عبور از سقف (نه در هر تلاش بعدی که قفل
-        // از قبل فعال است) تا اسپم نشود.
+        // اعلان فقط دقیقاً در لحظه‌ی عبور از سقف ارسال می‌شود تا اسپم نشود
         if ($userAttempts === self::MAX_USER_ATTEMPTS) {
             ($this->alerter)(
                 'ACCOUNT_LOCKED',
@@ -74,8 +60,7 @@ final class LoginAttemptLimiter {
     }
 
     public function resetAttempts(string $username, string $ipAddress): void {
-        // فقط شمارنده‌ی username پاک می‌شود؛ شمارنده‌ی IP باقی می‌ماند تا
-        // credential-stuffing از همان IP روی حساب‌های دیگر همچنان محدود بماند.
+        // فقط شمارنده‌ی username پاک می‌شود؛ شمارنده‌ی IP برای محدودسازی همچنان باقی می‌ماند
         $this->clear($this->userKey($username));
     }
 

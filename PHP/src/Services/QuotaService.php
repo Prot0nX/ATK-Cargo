@@ -10,12 +10,7 @@ use App\Core\MicroCache;
 use App\Validators\InputValidator;
 use App\Enums\CargoStatus;
 
-/**
- * منطق تجاری «کوتاژ» که قبلاً داخل AppApiController بود (C-05) — بدنه‌ی هر
- * متد عیناً منتقل شده، بدون تغییر رفتار؛ AppApiController اکنون فقط
- * delegate می‌کند. QuotaCalculator (محاسبات خالص تناژ/وضعیت) از قبل به
- * کلاس مستقل خودش استخراج شده بود؛ اینجا فقط مصرف می‌شود.
- */
+// منطق تجاری «کوتاژ» که قبلاً داخل AppApiController بود؛ اکنون آن کنترلر فقط delegate می‌کند
 final class QuotaService {
     // بدون ->value: PHP 8.1 (تولید) اجازه‌ی property-fetch در class const را نمی‌دهد.
     private const EXITED = CargoStatus::EXITED;
@@ -101,15 +96,7 @@ final class QuotaService {
         $quotaNumber = InputValidator::sanitize($quotaNumber);
         $shipName = InputValidator::sanitize($shipName);
 
-        // ستونی به نام loadingQuotaNumberReversed هرگز در جدول InitialInfo وجود
-        // نداشته (این endpoint از ابتدا با خطای "Unknown column" شکست می‌خورد)؛
-        // REVERSE() همان منطق تطبیق معکوس رقم‌ها را بدون نیاز به ستون واقعی انجام می‌دهد.
-        // InitialInfo حجم کمی دارد (چند صد ردیف)، پس نبود ایندکس روی این شرط مشکلی ایجاد نمی‌کند.
-        //
-        // isActive اینجا مستقیماً محاسبه می‌شود (همان فرمول checkQuotaStatus:
-        // ستون isActive AND هنوز ظرفیت باقی مانده) تا کلاینت لازم نباشد به
-        // ازای هر ردیف نتیجه یک درخواست جداگانه به checkQuotaStatus بزند
-        // (رِیس N+1 قبلی در CargoViewModel.checkQuotaExistenceCargo).
+        // REVERSE() تطبیق معکوس رقم‌ها را بدون ستون واقعی انجام می‌دهد؛ isActive هم مستقیماً اینجا محاسبه می‌شود تا از N+1 روی checkQuotaStatus جلوگیری شود
         $query = "SELECT i.loadingQuotaNumber, i.shipName, i.shippingCompany, i.cargoType, i.loadingWarehouse,
                 i.isActive, i.cargoWeight as totalWeight, COALESCE(SUM(c.netWeight), 0) as loadedWeight
             FROM InitialInfo i
@@ -216,9 +203,7 @@ final class QuotaService {
         return null;
     }
 
-    // LIMIT 2000 در کوئری زیر یک سقف سخت‌گیرانه است، نه صفحه‌بندی واقعی
-    // (DEEP_CODE_AUDIT.md #Phase3.10) — تعداد کوتاژهای یک کشتی معمولاً چند
-    // ده مورد است، این سقف فقط محافظ در برابر رشد غیرمنتظره است.
+    // LIMIT 2000 یک سقف سخت‌گیرانه است، نه صفحه‌بندی واقعی؛ فقط محافظ در برابر رشد غیرمنتظره
     public function getFilteredQuotas(string $shipName, string $startDateTime, string $endDateTime): array {
         $shipName = InputValidator::validateIdentifier($shipName);
         $startDateTime = InputValidator::validateIdentifier($startDateTime);
@@ -231,9 +216,7 @@ final class QuotaService {
             $endDateTime .= ':00';
         }
 
-        // all_vouchers قبلاً یک LEFT JOIN مستقل با همان شرط/GROUP BY/ON exit_data
-        // بود و دقیقاً همان عدد را دوباره محاسبه می‌کرد؛ حذف شد (نگاه کنید به
-        // computeQuotasList برای همین اصلاح).
+        // all_vouchers قبلاً یک LEFT JOIN مستقل و تکراری بود که همان عدد را دوباره محاسبه می‌کرد؛ حذف شد
         $query = "SELECT i.id, i.loadingQuotaNumber as number, i.shipName, i.loadingWarehouse, i.cargoType,
             i.cargoWeight as totalTonnage, i.isActive, i.shippingCompany, i.cargoOwner, i.percentage, i.is_enabled,
             COALESCE(exit_data.loadedTonnage, 0) as loadedTonnage,
@@ -356,12 +339,7 @@ final class QuotaService {
     }
 
     private function computeQuotasList(string $shipName): array {
-        // LIMIT 2000 پایین یک سقف سخت‌گیرانه است، نه صفحه‌بندی واقعی
-        // (DEEP_CODE_AUDIT.md #Phase3.10).
-        // all_vouchers قبلاً یک LEFT JOIN مستقل با همان شرط/GROUP BY/ON
-        // exit_data بود و دقیقاً همان عدد را دوباره محاسبه می‌کرد (COUNT
-        // DISTINCT trackingNumber با status='خروج')؛ حذف شد و exitVoucherCount
-        // برای هر دو فیلد voucherCount/exitVoucherCount استفاده می‌شود.
+        // LIMIT 2000 فقط یک سقف محافظتی است؛ all_vouchers تکراری حذف شد و exitVoucherCount برای هر دو فیلد استفاده می‌شود
         $query = "SELECT i.id, i.loadingQuotaNumber as number, i.shipName, i.loadingWarehouse, i.cargoType, i.cargoWeight as totalTonnage, i.isActive, i.shippingCompany, i.cargoOwner, i.percentage, i.is_enabled,
             COALESCE(exit_data.loadedTonnage, 0) as loadedTonnage, COALESCE(exit_data.exitVoucherCount, 0) as exitVoucherCount
         FROM InitialInfo i
@@ -542,13 +520,8 @@ final class QuotaService {
         }
     }
 
-    // هر سه تابع زیر عمداً فقط با id (کلید یکتای InitialInfo) کار می‌کنند، نه
-    // loadingQuotaNumber که یکتا نیست. اگر بر اساس شماره کوتاژ فیلتر شود، عملیات
-    // روی تمام ردیف‌های هم‌شماره (حتی متعلق به کشتی/انبار/شرکت دیگر) اعمال می‌شود.
-    /**
-     * نام کشتی مرتبط با یک ردیف InitialInfo، فقط برای invalidate کردن کش
-     * per-ship بعد از یک نوشتن که تنها id را دارد (نه shipName).
-     */
+    // هر سه تابع زیر عمداً فقط با id کار می‌کنند، نه loadingQuotaNumber که یکتا نیست
+    // نام کشتی مرتبط با یک ردیف InitialInfo، برای invalidate کردن کش per-ship بعد از نوشتن با فقط id
     private function getShipNameById(int $id): ?string {
         $stmt = $this->db->prepare("SELECT shipName FROM InitialInfo WHERE id = ?");
         $stmt->bind_param("i", $id);
@@ -582,9 +555,7 @@ final class QuotaService {
     }
 
     public function toggleQuotaStatus(int $id, ?string $actorUsername = null): bool {
-        // یک SELECT اضافه (به‌جای getShipNameById ساده) تا جزئیات معنادار
-        // (نه [] خالی) برای audit_log ثبت شود — وضعیت قبل/بعد از toggle و
-        // شماره‌ی کوتاژ، نه فقط id عددی.
+        // یک SELECT اضافه تا جزئیات معنادار (وضعیت قبل/بعد و شماره کوتاژ) برای audit_log ثبت شود
         $beforeStmt = $this->db->prepare("SELECT shipName, loadingQuotaNumber, isActive FROM InitialInfo WHERE id = ?");
         $beforeStmt->bind_param("i", $id);
         $beforeStmt->execute();

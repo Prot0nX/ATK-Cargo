@@ -36,10 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.atk.atk_cargo.data.model.ActiveShipInfo
 
-// بخش «کارت کوتاژ در نمای مسطح (Flat)» دیالوگ کوتاژهای فعال — از
-// ActiveQuotasContent.kt استخراج شد (DEEP_CODE_REVIEW.md Phase4 #30، تفکیک
-// فایل ۱٬۴۲۰ خطی). internal چون از FlatQuotasContent در فایل اصلی صدا زده
-// می‌شود؛ بدون هیچ تغییر منطقی، صرفاً جابه‌جایی.
+// کارت کوتاژ در نمای مسطح دیالوگ کوتاژهای فعال؛ برای کاهش حجم فایل از ActiveQuotasContent.kt استخراج شده است
 
 @Composable
 internal fun FlatQuotaCard(

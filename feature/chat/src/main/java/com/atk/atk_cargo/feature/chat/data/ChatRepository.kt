@@ -32,8 +32,7 @@ class ChatRepository(
                 val username = userPreferencesManager.username.first()
                 if (username.isEmpty()) return@withContext
 
-                // دریافت آخرین پیام‌های سرور (مثلاً 50 تای آخر)
-                // این کار باعث می‌شود اگر پیامی ویرایش یا حذف شده باشد، آپدیت شود
+                // دریافت آخرین پیام‌های سرور تا پیام‌های ویرایش/حذف‌شده هم به‌روز شوند
                 val response = apiServiceV2.getChatMessages(
                     limit = 100,
                     username = username
@@ -141,14 +140,7 @@ class ChatRepository(
             )
 
             if (response.isSuccessful && response.body()?.success == true) {
-                // آپدیت دیتابیس محلی
-                // چون سرور تاریخ آپدیت را برمی‌گرداند یا ما می‌سازیم.
-                // فرض می‌کنیم response شامل updated_at نیست (در PHP اضافه کردم ولی اینجا باید چک کنم)
-                // در PHP متد editMessage مقدار updated_at برمی‌گرداند اما درApiResponse جنریک است.
-                // برای سادگی، فعلاً فرض می‌کنیم موفق بوده و دیتابیس را آپدیت می‌کنیم.
-                // بهتر است یک بار دیگر پیام را بگیریم یا دستی آپدیت کنیم.
-
-                // دستی آپدیت می‌کنیم:
+                // آپدیت دستی دیتابیس محلی چون پاسخ سرور updated_at را برنمی‌گرداند
                 val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.ENGLISH).format(java.util.Date())
                 chatDao.updateMessage(messageId, newMessage, timestamp)
 

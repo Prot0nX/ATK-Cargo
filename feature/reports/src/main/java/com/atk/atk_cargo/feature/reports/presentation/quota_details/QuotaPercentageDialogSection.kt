@@ -65,9 +65,7 @@ import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 
-// این فایل دیالوگ «تنظیم درصد کوتاژ» را از QuotasListScreen.kt جدا نگه می‌دارد (A1-6، بازسازی ساختاری).
-// وابسته به قطعات internal تعریف‌شده در QuotasListScreen.kt (پالت رنگ Quota*, QuotaDialogHeader,
-// calculateValues) که چون هم‌پکیج هستند نیازی به import ندارند.
+// دیالوگ تنظیم درصد کوتاژ، جدا از QuotasListScreen.kt (A1-6) اما هم‌پکیج و بدون import اضافه
 
 @Composable
 fun QuotaPercentageDialog(
@@ -302,9 +300,7 @@ private fun PercentModePill(
     }
 }
 
-// این تابع قبلاً «IconButton» نام داشت (در QuotasListScreen.kt)؛ چون
-// androidx.compose.material3.IconButton هم استفاده می‌شود، برای جلوگیری از تداخل
-// نام هنگام انتقال به این فایل، به PercentStepButton تغییر نام یافت.
+// برای جلوگیری از تداخل نام با androidx.compose.material3.IconButton، این تابع به PercentStepButton تغییر نام یافت
 @Composable
 private fun PercentStepButton(
     onClick: () -> Unit,

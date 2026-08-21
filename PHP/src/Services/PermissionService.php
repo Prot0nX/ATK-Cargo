@@ -8,32 +8,22 @@ namespace App\Services;
 use App\Core\MicroCache;
 use App\Repositories\PermissionRepository;
 
-// منطق تشخیص سطح دسترسی کاربر. منبع اصلی از Phase 4.7 دو جدول دیتابیس
-// (role_permissions/user_permissions) است، نه دیگر config/permissions.json —
-// اینجا به‌صورت مشترک نگه داشته می‌شود تا هم AuthController و هم کنترلرهایی
-// که باید *واقعاً* دسترسی نوشتن را گیت کنند (مثل AppApiController) از یک
-// منبع واحد استفاده کنند.
+// منطق تشخیص سطح دسترسی کاربر؛ منبع اصلی دو جدول دیتابیس است و به‌صورت مشترک بین کنترلرها استفاده می‌شود
 final class PermissionService {
     private const PERMISSIONS_FILE = __DIR__ . '/../../config/permissions.json';
 
-    // کلید MicroCache — PermissionManager.php بعد از هر ذخیره باید همین کلید
-    // را forget کند، وگرنه تغییرات مجوز تا انقضای TTL (یا restart) اعمال
-    // نمی‌شوند (DEEP_CODE_AUDIT.md #Phase2.7).
+    // کلید MicroCache؛ PermissionManager.php باید بعد از هر ذخیره همین کلید را forget کند
     public const CACHE_KEY = 'permissions_file_data';
     private const CACHE_TTL_SECONDS = 30;
 
     private ?PermissionRepository $repository;
 
-    // پارامتر اختیاری فقط برای تست واحد (تزریق mock بدون DB واقعی)؛ کد
-    // production با new PermissionService() بدون آرگومان کار می‌کند.
+    // پارامتر اختیاری فقط برای تست واحد (تزریق mock)؛ production بدون آرگومان صدا زده می‌شود
     public function __construct(?PermissionRepository $repository = null) {
         $this->repository = $repository;
     }
 
-    /**
-     * دریافت مجموعه دسترسی‌های مؤثر یک کاربر: تنظیمات اختصاصی کاربر در صورت
-     * وجود، در غیر این صورت تنظیمات نقش او.
-     */
+    // دریافت مجموعه دسترسی‌های مؤثر یک کاربر: تنظیمات اختصاصی او، وگرنه تنظیمات نقشش
     public function getUserPermissions(string $username, string $userType): array {
         $allData = MicroCache::remember(self::CACHE_KEY, self::CACHE_TTL_SECONDS, function () {
             return $this->loadFromDatabase() ?? $this->loadFromJsonFile();
@@ -51,13 +41,7 @@ final class PermissionService {
         return $permissions[$feature] ?? false;
     }
 
-    /**
-     * جداول role_permissions/user_permissions هنوز ساخته نشده باشند
-     * (migrations/2026_08_19_permissions_to_database.sql اجرا نشده) یا DB در
-     * دسترس نباشد → null، یعنی «به فایل قدیمی برگرد»، نه کرش کل مسیر احراز
-     * هویت/مجوز. این fallback عمداً موقت نیست؛ تا وقتی migration روی سرور
-     * تولید اجرا نشود، رفتار قبلی دقیقاً حفظ می‌شود.
-     */
+    // اگر جداول مجوز نبودند یا DB در دسترس نبود، null برمی‌گرداند تا به فایل قدیمی permissions.json برگردد
     private function loadFromDatabase(): ?array {
         try {
             $repo = $this->repository ?? new PermissionRepository();

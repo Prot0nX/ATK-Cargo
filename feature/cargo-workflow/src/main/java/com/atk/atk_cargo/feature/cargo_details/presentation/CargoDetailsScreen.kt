@@ -123,10 +123,7 @@ fun CargoDetailsScreen(
     val messageType by viewModel.messageType.collectAsStateWithLifecycle()
     var selectedCargoInfo by remember { mutableStateOf<Cargo?>(null) }
     var searchQuery by remember { mutableStateOf("") }
-    // filteredCargoInfoList دیگر بخشی از CargoUiState نیست (DEEP_CODE_REVIEW.md
-    // Phase4 #31) — نگهداری دو لیست هم‌زمان (کامل + فیلترشده) در ViewModel
-    // ریسک ناسازگاری داشت؛ اینجا مستقیماً از cargoInfoList + searchQuery
-    // محلی مشتق می‌شود.
+    // filteredCargoInfoList دیگر در ViewModel نگه‌داری نمی‌شود؛ محلی از cargoInfoList و searchQuery مشتق می‌شود
     val filteredCargoInfoList = remember(cargoInfoList, searchQuery) {
         if (searchQuery.isEmpty()) {
             cargoInfoList
@@ -144,18 +141,7 @@ fun CargoDetailsScreen(
         snackbarMessage = SnackbarMessage(message, type)
     }
     
-    // باگ واقعی بود (نه بهینه‌سازی): remember بدون کلید یعنی این derivedStateOf
-    // فقط در همان اولین composition ساخته می‌شود و closure آن برای همیشه به
-    // همان مقدار اولیه‌ی filteredCargoInfoList (یک List معمولی، نه یک State)
-    // گیر می‌ماند — derivedStateOf فقط زمانی خودش تغییرات را ردیابی می‌کند که
-    // داخل block خودش یک Compose State بخواند (`.value`)، نه یک val معمولی
-    // که از بیرون closure شده. نتیجه: بعد از اولین بار (معمولاً وقتی لیست هنوز
-    // خالی است، قبل از رسیدن پاسخ شبکه)، groupedCargoList دیگر هرگز بروز
-    // نمی‌شد — دقیقاً همان چیزی که باعث می‌شد تب‌های «تائید نشده/تائید شده»
-    // بعد از بارگذاری واقعی لیست همچنان خالی بمانند. filteredCargoInfoList
-    // اکنون به‌عنوان کلید remember داده می‌شود (همان الگویی که sortedUnconfirmed/
-    // sortedConfirmed/confirmedStats در CargoListSection از قبل درست استفاده
-    // می‌کردند)، پس با هر تغییر واقعی لیست دوباره محاسبه می‌شود.
+    // باگ رفع‌شده: remember بدون کلید باعث می‌شد groupedCargoList پس از اولین بار هرگز بروز نشود؛ اکنون با کلید filteredCargoInfoList دوباره محاسبه می‌شود
     val groupedCargoList = remember(filteredCargoInfoList) {
         filteredCargoInfoList.groupBy { it.confirm == CargoConfirmStatus.CONFIRMED.wireValue }
             .toSortedMap(compareBy { it })
@@ -180,10 +166,7 @@ fun CargoDetailsScreen(
 
     LaunchedEffect(Unit) {
         if (quotaNumber.isNotBlank()) {
-            // پارامترهای ورودی همین‌جا decode نمی‌شوند: ReportsNavigation از
-            // قبل decode شده تحویل می‌دهد و polling/refresh/تأیید هم مقدار
-            // خام را می‌فرستند؛ decode دوباره فقط اینجا باعث ناسازگاری بین
-            // بارگذاری اول و بروزرسانی‌های بعدی می‌شد (و روی '%' کرش می‌کرد).
+            // پارامترهای ورودی از قبل decode شده‌اند؛ decode دوباره باعث ناسازگاری و کرش روی '%' می‌شد
             viewModel.loadCargoInfoList(
                 quotaNumber = quotaNumber,
                 shippingCompany = shippingCompany,
@@ -209,10 +192,7 @@ fun CargoDetailsScreen(
             while (true) {
                 delay(30000.milliseconds)
                 if (quotaNumber.isNotBlank()) {
-                    // برخلاف refresh دستی، این بروزرسانی خودکار هر ۳۰ ثانیه
-                    // است و کاربر درخواستش نکرده؛ نمایش اسنک‌بار «موفقیت» در
-                    // هر تیک باعث می‌شد کاربر یاد بگیرد اسنک‌بارها را نادیده
-                    // بگیرد و پیام خطای واقعی هم همان‌جا گم شود.
+                    // این بروزرسانی خودکار هر ۳۰ ثانیه است، برخلاف refresh دستی، پیام موفقیت نمایش داده نمی‌شود
                     refreshData(
                         viewModel = viewModel,
                         quotaNumber = quotaNumber,
@@ -393,11 +373,7 @@ fun CargoDetailsScreen(
             showDialog = true,
             onDismiss = { showQuotaEntryDialog = false },
             onConfirm = { selectedQuota ->
-                // QuotaEntryDialog پیش از صدا زدن onConfirm خودش وجود کوتاژ،
-                // تعلق آن به همین کشتی و فعال بودنش را بررسی کرده؛ تکرار آن
-                // بررسی‌ها اینجا لازم نیست. switchQuota به‌جای ساختن دستی یک
-                // InitialInfo ناقص (با صفرهای موقت)، اطلاعات واقعی و کامل
-                // کوتاژ را از سرور می‌خواند.
+                // QuotaEntryDialog پیش از این اعتبارسنجی کوتاژ را انجام داده؛ switchQuota اطلاعات کامل را از سرور می‌خواند
                 viewModel.switchQuota(selectedQuota)
                 showQuotaEntryDialog = false
             },

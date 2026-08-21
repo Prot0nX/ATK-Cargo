@@ -21,11 +21,7 @@ suspend fun validateServerSession(
             return Result.success(true)
         }
 
-        // I-05: checkSession همیشه HTTP ۲۰۰ برمی‌گرداند (حتی روی شکست، برای
-        // سازگاری با کلاینت قدیمی)، پس هیچ‌وقت واقعاً ۴۰۱ نمی‌شود و
-        // TokenAuthenticator اصلاً برای این درخواست صدا زده نمی‌شود. بدون این
-        // تلاش صریح، کاربری که اپ را بعد از >۳۰ دقیقه (عمر access token) دوباره
-        // باز می‌کند همیشه به صفحه‌ی ورود می‌رفت، حتی با refresh token کاملاً معتبر.
+        // checkSession همیشه HTTP ۲۰۰ برمی‌گرداند پس هرگز ۴۰۱ نمی‌شود و TokenAuthenticator صدا زده نمی‌شود؛ بدون این تلاش صریح، کاربر با اپ سرد بعد از انقضای access token همیشه به صفحه‌ی ورود می‌رفت
         val newAccessToken = TokenRefresher.refresh(Secrets.getBaseUrl(), tokenStore)
         if (newAccessToken != null) {
             return Result.success(true)

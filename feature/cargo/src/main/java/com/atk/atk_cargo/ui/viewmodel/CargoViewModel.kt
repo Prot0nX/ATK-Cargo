@@ -58,14 +58,7 @@ class CargoViewModelFactory(
     }
 }
 
-/**
- * دیالوگ‌های صفحه‌ی ثبت/نظارت حواله، به‌عنوان یک state یکتا به‌جای ۳ پرچم
- * boolean مستقل (DEEP_CODE_REVIEW.md Phase4 #31) — قبلاً `showNetWeightDialog`،
- * `showDuplicateConfirmationDialog` و `showDuplicateDialog` هرکدام جدا بودند
- * و از نظر type-system چیزی مانع نمایش هم‌زمان‌شان نمی‌شد (یک حالت نامعتبر
- * که هرگز عمداً تولید نمی‌شد، اما ممکن بود). با sealed interface، حداکثر
- * یک دیالوگ می‌تواند در هر لحظه فعال باشد.
- */
+// دیالوگ‌های صفحه‌ی ثبت/نظارت حواله به‌عنوان یک state یکتا به‌جای ۳ پرچم boolean مستقل؛ با sealed interface فقط یک دیالوگ هم‌زمان فعال می‌شود
 sealed interface CargoDialog {
     data object None : CargoDialog
     data object NetWeight : CargoDialog
@@ -73,15 +66,7 @@ sealed interface CargoDialog {
     data class Duplicates(val trackingNumbers: List<String>) : CargoDialog
 }
 
-/**
- * حالت یکدست صفحه‌ی ثبت/نظارت حواله (DEEP_CODE_AUDIT.md #Phase3.5) —
- * جایگزین ۱۶ StateFlow مستقلی که قبلاً هر کدام یک subscription جدا در
- * Composableهای مصرف‌کننده داشتند. پیام‌های snackbar (`resultMessage`/
- * `showAnimatedMessage`/`messageType`) عمداً بیرون از این state ماندند چون
- * ماهیت‌شان یک صف رویداد یک‌باره‌مصرف است، نه state پایدار صفحه — با یک
- * data class واحد ترکیب‌شان به معنای رفتار متفاوت (پیام‌ها با هر تغییر state
- * دیگر دوباره emit می‌شوند) بود.
- */
+// حالت یکدست صفحه‌ی ثبت/نظارت حواله به‌جای ۱۶ StateFlow مستقل؛ پیام‌های snackbar چون صف رویداد یک‌باره‌مصرف‌اند عمداً بیرون این state ماندند
 data class CargoUiState(
     val cargoInfoList: List<Cargo> = emptyList(),
     val scaleReceiptNumber: String = "",
@@ -99,10 +84,7 @@ data class CargoUiState(
 class CargoViewModel(
     private val repository: QuotaRepository,
     private val userPreferencesManager: UserPreferencesStore,
-    // پیش‌فرض واقعی Dispatchers.IO است؛ فقط برای تست با یک TestDispatcher
-    // جایگزین می‌شود تا withContext(ioDispatcher) به‌جای یک ترد پس‌زمینه‌ی
-    // واقعی (که نمی‌تواند با runTest/advanceUntilIdle هماهنگ شود)، روی همان
-    // scheduler مجازی تست اجرا شود (DEEP_CODE_REVIEW.md Phase3 #20).
+    // پیش‌فرض واقعی Dispatchers.IO است؛ فقط برای تست با یک TestDispatcher جایگزین می‌شود تا با scheduler مجازی تست هماهنگ شود
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
     private val quotaValidationUseCase = QuotaValidationUseCase(repository)
@@ -138,10 +120,7 @@ class CargoViewModel(
         snackbarQueue.dismissMessage()
     }
 
-    // سرور اکنون isActive را مستقیماً برای هر ردیف نتیجه محاسبه می‌کند
-    // (AppApiController::checkQuotaExistenceCargo)، پس دیگر لازم نیست به
-    // ازای هر کوتاژ منطبق یک درخواست جداگانه‌ی checkQuotaStatus زده شود
-    // (رِیس N+1 قبلی).
+    // سرور اکنون isActive را مستقیماً برای هر ردیف نتیجه محاسبه می‌کند، پس دیگر نیازی به درخواست جداگانه‌ی checkQuotaStatus برای هر کوتاژ نیست
     suspend fun checkQuotaExistenceCargo(quotaNumber: String, shipName: String): QuotaExistenceMultipleResponse {
         return withContext(ioDispatcher) {
             try {
@@ -159,14 +138,7 @@ class CargoViewModel(
         }
     }
 
-    // quota از قبل توسط QuotaEntryDialog اعتبارسنجی شده (وجود دارد، متعلق به
-    // همین کشتی است، و فعال است)؛ اینجا آن بررسی دوباره تکرار نمی‌شود.
-    // برخلاف پیاده‌سازی قبلی که یک InitialInfo ناقص با صفرهای دستی می‌ساخت و
-    // آن را بلافاصله روی state می‌نشاند (تناژ/تعداد سرویس صفر لحظه‌ای روی UI،
-    // و tempTonnageStatus=false که کنترل تناژ موقت را در همان بازه دور
-    // می‌زد)، اینجا مستقیماً از سرور اطلاعات واقعی و کامل کوتاژ خوانده
-    // می‌شود. quota.quotaNumber به‌صورت String به loadCargoInfoList می‌رود، پس
-    // صفرهای ابتدایی (مثل «0123») برخلاف toIntOrNull() قبلی از بین نمی‌روند.
+    // quota از قبل توسط QuotaEntryDialog اعتبارسنجی شده؛ اینجا اطلاعات واقعی و کامل کوتاژ مستقیماً از سرور خوانده می‌شود، نه یک InitialInfo ناقص و موقت
     fun switchQuota(quota: MatchingQuota) {
         viewModelScope.launch {
             loadCargoInfoList(
@@ -227,18 +199,7 @@ class CargoViewModel(
         _uiState.update { it.copy(dialog = CargoDialog.None) }
     }
 
-    // این متد از چند مسیر متفاوت صدا زده می‌شود: هم لمس دستی دکمه‌ی
-    // «بروزرسانی» توسط کاربر، هم به‌صورت داخلی بعد از ثبت/خروج حواله
-    // (handleSuccessResponse)، غیرفعال‌شدن خودکار کوتاژ (toggleQuotaStatus) و
-    // ویرایش حواله (updateCargoInfo) — یعنی صرفاً برای هماهنگ نگه‌داشتن لیست
-    // با سرور، نه چون کاربر درخواست «بروزرسانی» داده. قبلاً پیام «اطلاعات در
-    // ساعت ... به‌روزرسانی شد» همیشه از همینجا (با showMessage، یعنی دیالوگ
-    // MessageDialog) نمایش داده می‌شد، پس بعد از هر ثبت حواله‌ی جدید یک دیالوگ
-    // اضافه‌ی بی‌ربط هم روی دیالوگ موفقیت اصلی صف می‌کشید. حالا این پیام فقط
-    // در صورت پاس‌دادن [onManualRefreshComplete] ساخته می‌شود؛ فقط دکمه‌ی
-    // «بروزرسانی» (RegisterCargoScreen) این پارامتر را پر می‌کند و آن را به‌جای
-    // دیالوگ در قالب Snackbar نشان می‌دهد. بقیه‌ی فراخوان‌ها بدون این پارامتر،
-    // کاملاً بی‌صدا فقط لیست را همگام می‌کنند.
+    // این متد از چند مسیر صدا زده می‌شود تا لیست با سرور همگام بماند؛ پیام «به‌روزرسانی شد» فقط وقتی [onManualRefreshComplete] پاس داده شود ساخته می‌شود، نه در فراخوانی‌های بی‌صدای داخلی
     fun refreshCargoInfo(onManualRefreshComplete: ((message: String) -> Unit)? = null) {
         viewModelScope.launch {
             _uiState.value.initialInfo?.let { info ->
@@ -663,12 +624,7 @@ class CargoViewModel(
         }
     }
 
-    // قبلاً این تابع دو بار (یک بار با repository.getInitialInfo و یک بار با
-    // repository.getCargoInfo) همان endpoint سرور (getInitialInfo.php) را
-    // صدا می‌زد که هر بار خودش ۴ کوئری روی سرور اجرا می‌کند، به‌علاوهٔ دو بار
-    // getLoadableTonnage. آن فراخوانی اول (و ReportsRepository.getInitialInfo
-    // که فقط همین‌جا مصرف می‌شد) کاملاً حذف شد؛ نتیجه یک درخواست getCargoInfo
-    // و یک درخواست getLoadableTonnage به‌جای ۴ درخواست در هر بار refresh.
+    // قبلاً همین endpoint سرور دو بار جدا صدا زده می‌شد؛ آن فراخوانی تکراری حذف شد و حالا فقط یک درخواست getCargoInfo و یک getLoadableTonnage در هر refresh انجام می‌شود
     fun loadCargoInfoList(
         quotaNumber: String,
         shippingCompany: String,
@@ -703,9 +659,7 @@ class CargoViewModel(
                 val wHouse = result.initialInfo.loadingWarehouse
                 val cType = result.initialInfo.cargoType
 
-                // launch ساده (بدون CoroutineScope مستقل) به‌عنوان فرزند همین
-                // coroutine که به viewModelScope وصل است اجرا می‌شود؛ با از
-                // بین رفتن ViewModel به‌درستی لغو می‌شود.
+                // launch ساده به‌عنوان فرزند همین coroutine متصل به viewModelScope اجرا می‌شود؛ با از بین رفتن ViewModel به‌درستی لغو می‌شود
                 launch {
                     try {
                         val response = withContext(ioDispatcher) {
@@ -734,15 +688,10 @@ class CargoViewModel(
                             Log.e("CargoViewModel_Log", "Error in API call for loadable tonnage during initial load")
                         }
                     } catch (e: CancellationException) {
-                        // برخلاف بلوک Throwable زیر، لغو خودِ این coroutine باید عادی
-                        // propagate شود (Phase3 #22) — در غیر این صورت لغو (مثلاً با پاک
-                        // شدن ViewModel) بی‌صدا بلعیده می‌شد.
+                        // لغو خودِ این coroutine باید عادی propagate شود، وگرنه لغو با پاک‌شدن ViewModel بی‌صدا بلعیده می‌شد
                         throw e
                     } catch (e: Throwable) {
-                        // Throwable عمداً: این یک بروزرسانی جانبی/best-effort است؛ نباید
-                        // با لغو parent coroutine (loadCargoInfoList) کل بارگذاری لیست
-                        // حواله‌ها را هم خراب کند. قبلاً فقط Exception گرفته می‌شد، پس
-                        // یک Error واقعی (مثلاً LinkageError) این ضمانت را دور می‌زد.
+                        // Throwable عمداً: این یک بروزرسانی best-effort است و نباید با لغو parent coroutine کل بارگذاری لیست را خراب کند
                         Log.e("CargoViewModel_Log", "Error calculating loadable tonnage", e)
                     }
                 }
@@ -768,13 +717,7 @@ class CargoViewModel(
         }
     }
 
-    /**
-     * قبلاً در CargoDetailsScreen.kt به‌صورت دو تابع مستقل (confirmCargo،
-     * handleCargoConfirmation) بود که با rememberCoroutineScope() فراخوانی
-     * می‌شدند — یک عملیات نوشتن (تأیید حواله) که با خروج کاربر از صفحه در
-     * میانه‌ی راه کنسل می‌شد (DEEP_CODE_REVIEW.md Top20 #5). منطق سطربه‌سطر
-     * عیناً حفظ شده، فقط به viewModelScope منتقل شده است.
-     */
+    // قبلاً در CargoDetailsScreen.kt با rememberCoroutineScope() فراخوانی می‌شد که با خروج کاربر از صفحه در میانه‌ی راه کنسل می‌شد؛ حالا به viewModelScope منتقل شده
     fun confirmCargo(
         info: Cargo,
         username: String,
@@ -801,10 +744,7 @@ class CargoViewModel(
                         val message = response.body()?.get("message")?.asString ?: "عملیات با موفقیت انجام شد"
                         Result.success(message)
                     } else {
-                        // سرور برای خطاهای واقعی (مثل ۴۰۹ تأیید تکراری) پیام
-                        // فارسی گویا در بدنه‌ی خطا می‌فرستد؛ قبلاً این پیام
-                        // دور ریخته می‌شد و کاربر فقط یک عدد کد HTTP بی‌معنی
-                        // می‌دید.
+                        // سرور برای خطاهای واقعی پیام فارسی گویا در بدنه‌ی خطا می‌فرستد؛ قبلاً این پیام دور ریخته می‌شد و کاربر فقط کد HTTP می‌دید
                         val serverMessage = parseCargoConfirmError(response.errorBody()?.string())
                         Result.failure(Exception(serverMessage ?: "خطا در ارتباط با سرور: ${response.code()}"))
                     }
@@ -903,9 +843,7 @@ class CargoViewModel(
             try {
                 val exitedCargos = _uiState.value.cargoInfoList.filter { it.status == CargoStatus.EXITED.wireValue }
                 val netWeights = exitedCargos.mapNotNull { cargo ->
-                    // netWeight null یعنی یا رشته‌ی خام نامعتبر بود (توسط toDomain لاگ
-                    // می‌شود، نه اینجا) یا واقعاً هنوز باسکول نشده — هر دو باید از
-                    // میانگین/جمع کنار گذاشته شوند، نه به ۰ افتند.
+                    // netWeight null یعنی رشته‌ی خام نامعتبر بود یا هنوز باسکول نشده؛ هر دو باید از میانگین/جمع کنار گذاشته شوند، نه به ۰ افتند
                     cargo.netWeight
                 }
                 val totalNet = netWeights.fold(Kilograms.ZERO) { acc, w -> acc + w }
@@ -938,11 +876,7 @@ class CargoViewModel(
         }
     }
 
-    // بررسی رمز و حذف حواله در همان یک درخواست به deleteCargoInfo.php انجام
-    // می‌شود (سرور خودش رمز را بررسی و شمارنده‌ی تلاش را کنترل می‌کند)؛ قبلاً
-    // این دو عملیات با دو فراخوانی HTTP جدا (checkPassword سپس deleteCargo)
-    // انجام می‌شد که چیزی جلوی فراخوانی مستقیم deleteCargo بدون بررسی رمز را
-    // نمی‌گرفت.
+    // بررسی رمز و حذف حواله در همان یک درخواست به deleteCargoInfo.php انجام می‌شود؛ قبلاً با دو فراخوانی جدا بود که جلوی حذف بدون بررسی رمز را نمی‌گرفت
     fun deleteCargo(cargoInfoRequest: CargoInfoRequest) {
         viewModelScope.launch {
             try {

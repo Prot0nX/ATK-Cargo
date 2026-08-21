@@ -12,8 +12,7 @@ use App\Enums\CargoConfirmStatus;
 
 class CargoRepository {
     private mysqli $conn;
-    // بدون ->value: PHP 8.1 (تولید) اجازه‌ی property-fetch در class const را
-    // نمی‌دهد؛ ->value در محل مصرف (self::X->value) اعمال می‌شود.
+    // بدون ->value چون PHP 8.1 اجازه‌ی property-fetch در class const را نمی‌دهد
     private const ENTERED = CargoStatus::ENTERED;
     private const EXITED = CargoStatus::EXITED;
     private const CONFIRMED = CargoConfirmStatus::CONFIRMED;
@@ -40,21 +39,7 @@ class CargoRepository {
         return $result ?: null;
     }
 
-    /**
-     * FOR UPDATE قفل رکورد موجود را تا پایان تراکنش نگه می‌دارد تا دو درخواست
-     * هم‌زمان روی همان حواله (مثلاً دو خروج هم‌زمان از دو دستگاه) به‌صورت
-     * سریالی پردازش شوند، نه هر دو بر اساس یک خوانش قدیمی. باید داخل تراکنش
-     * با autocommit(FALSE) فراخوانی شود (CargoService::saveOrUpdateCargo).
-     *
-     * عمداً از UNIQUE INDEX روی کلید کامل حواله استفاده نشده: سیستم صراحتاً
-     * اجازه می‌دهد کاربر با تأیید صریح (duplicateConfirmation=proceed) یک
-     * حوالهٔ دوم با همان شماره حواله/کوتاژ ثبت کند (رجوع کنید به شاخهٔ
-     * $isNewEntryAttempt در CargoService::saveOrUpdateCargo)؛ یک UNIQUE
-     * سخت‌گیرانه همان قابلیت را هم می‌شکست. تحت InnoDB با ایزولاسیون پیش‌فرض
-     * REPEATABLE READ، همین FOR UPDATE روی محدودهٔ جستجو (حتی وقتی هیچ سطری
-     * برنمی‌گرداند) gap lock می‌گیرد و درج هم‌زمان در همان محدوده را تا پایان
-     * تراکنش می‌بندد؛ برای حجم نوشتنی این سیستم (ثبت دستی حواله) کافی است.
-     */
+    // FOR UPDATE رکورد را قفل می‌کند تا درخواست‌های هم‌زمان روی همان حواله سریالی پردازش شوند؛ باید داخل تراکنش فراخوانی شود
     public function findCargoByKeys(
         string $shipName,
         string $warehouse,
@@ -84,15 +69,9 @@ class CargoRepository {
         ) VALUES (?, ?, ?, ?, ?, ?, '" . self::ENTERED->value . "', ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) return false;
-        // netWeight روی رکورد تازه‌ثبت‌شده (وضعیت «ورود») هنوز مقداری ندارد و
-        // کلاینت رشته‌ی خالی می‌فرستد؛ باید NULL واقعی درج شود، نه '' که در
-        // ستون عددی (INT) با sql_mode=STRICT_TRANS_TABLES با خطا رد می‌شود.
+        // netWeight هنوز مقداری ندارد؛ باید NULL درج شود نه '' که در ستون عددی خطا می‌دهد
         $netWeight = ($params['netWeight'] === '' || $params['netWeight'] === null) ? null : $params['netWeight'];
-        // scaleReceiptNumber هم به همین دلیل NULL می‌شود (نه ''): ستون
-        // nullable است (schema.sql) و UNIQUE INDEX پیشنهادی روی آن
-        // (migrations/2026_08_add_scale_receipt_unique_index.sql) فقط وقتی
-        // معنا دارد که رکوردهای بدون قبض NULL مشترک داشته باشند، نه یک ''
-        // مشترک که خودش تخلف از یکتایی می‌شد.
+        // scaleReceiptNumber هم به همین دلیل NULL می‌شود تا با UNIQUE INDEX پیشنهادی تداخل نکند
         $scaleReceiptNumber = ($params['scaleReceiptNumber'] === '' || $params['scaleReceiptNumber'] === null) ? null : $params['scaleReceiptNumber'];
         $stmt->bind_param("ssssssssssssss",
             $params['trackingNumber'],
@@ -115,14 +94,7 @@ class CargoRepository {
         return $res;
     }
 
-    /**
-     * وضعیت فعال/غیرفعال بودن کوتاژ، محدودیت درصدی و تناژ باقی‌مانده را در
-     * یک کوئری برمی‌گرداند تا CargoService بتواند همان کنترل‌هایی که تا
-     * پیش از این فقط سمت کلاینت (QuotaValidationUseCase) اجرا می‌شدند را
-     * قبل از ثبت/خروج، سمت سرور هم اعمال کند. remainingTonnage و
-     * loadedTonnage با همان منطق computeQuotasList (AppApiController) محاسبه
-     * می‌شوند تا با چیزی که کلاینت در صفحه‌ی کوتاژها می‌بیند یکی باشد.
-     */
+    // وضعیت فعال/غیرفعال کوتاژ، محدودیت درصدی و تناژ باقی‌مانده را در یک کوئری برمی‌گرداند تا سرور هم همان کنترل‌های کلاینت را اعمال کند
     public function findQuotaControlData(string $shipName, string $warehouse, string $cargoType, string $company, string $quota): ?array {
         $query = "SELECT i.isActive, i.percentage, i.is_enabled, i.cargoWeight as totalTonnage,
                 COALESCE(exit_data.loadedTonnage, 0) as loadedTonnage
@@ -179,13 +151,7 @@ class CargoRepository {
         return $res;
     }
 
-    /**
-     * `AND status = 'ورود'` عمداً به شرط WHERE اضافه شده: بدون آن، دو درخواست
-     * خروج هم‌زمان برای همان حواله هر دو موفق برمی‌گشتند (دومی به‌سادگی روی
-     * اولی می‌نوشت) و تناژ موقت دو بار کسر می‌شد. حالا فقط رکوردی که هنوز در
-     * وضعیت «ورود» است رد می‌خورد؛ خروجی متد (بر اساس affected_rows، نه صرفاً
-     * موفقیت اجرای کوئری) به فراخوان اجازه می‌دهد این تداخل را تشخیص دهد.
-     */
+    // شرط status='ورود' عمداً اضافه شده تا دو خروج هم‌زمان روی یک حواله باعث کسر دوباره‌ی تناژ نشوند؛ affected_rows تداخل را نشان می‌دهد
     public function updateCargoExit(int $cargoId, string $netWeight, string $scaleReceipt, string $currentTime, string $currentDate, string $username, string $userType): bool {
         $query = "UPDATE CargoInfo SET
             netWeight = ?, scaleReceiptNumber = ?, exitTime = ?, exitDate = ?,
@@ -253,11 +219,7 @@ class CargoRepository {
     }
 
     public function confirmCargo(int $cargoId, string $username, string $userType, string $loadingQuotaNumber, string $shipName): array {
-        // loadingQuotaNumber/shipName در WHERE (نه فقط id) تا کاربری که روی
-        // یک کوتاژ/کشتی مجاز است نتواند با شماره‌گذاری متوالی id حواله‌های
-        // خارج از دامنه‌ی خودش را تأیید کند (IDOR). status='ورود' هم چون
-        // کلاینت دکمه‌ی تأیید را فقط برای همین وضعیت نشان می‌دهد؛ سرور باید
-        // همان قید را واقعاً اعمال کند، نه فقط UI.
+        // loadingQuotaNumber/shipName هم در WHERE می‌آیند تا از IDOR جلوگیری شود؛ status='ورود' هم سمت سرور اعمال می‌شود نه فقط UI
         $query = "UPDATE CargoInfo
                   SET confirm = '" . self::CONFIRMED->value . "',
                       confirm_username = ?,

@@ -171,10 +171,7 @@ fun RegisterCargoScreen(
     val loadableTrucks18Wheeler = cargoUiState.loadableTrucks18Wheeler
     val loadableTrucks10Wheeler = cargoUiState.loadableTrucks10Wheeler
     val listState = rememberLazyListState()
-    // duplicateTrackingNumbers هم برای دیالوگ (پایین) هم برای هایلایت ردیف‌های
-    // تکراری در لیست اصلی (پایین‌تر) لازم است؛ چون dismissDuplicateDialog()
-    // خودِ dialog را به None برمی‌گرداند، این دو همیشه هم‌زمان پاک می‌شوند —
-    // دقیقاً همان رفتار قبلی (Phase4 #31).
+    // duplicateTrackingNumbers هم برای دیالوگ و هم هایلایت ردیف‌های تکراری در لیست لازم است
     val duplicateTrackingNumbers = (cargoUiState.dialog as? CargoDialog.Duplicates)?.trackingNumbers ?: emptyList()
     val isSubmitting = cargoUiState.isSubmitting
     var showQuotaEntryDialog by remember { mutableStateOf(false) }
@@ -193,28 +190,19 @@ fun RegisterCargoScreen(
         }
     }
 
-    // clearInputFields فقط در مسیر موفقیت ست می‌شود، پس اگر یک ثبت با دیالوگ
-    // (تأیید تکراری، خطای اعتبارسنجی) لغو شود مقادیر کسری/اضافه و قبض باسکول در
-    // فرم می‌مانند و با تایپ شماره حواله‌ی بعدی روی آن حواله اعمال می‌شوند —
-    // یعنی کسری یک حواله می‌تواند به حواله‌ای دیگر بچسبد. این مقادیر مخصوص یک
-    // شماره حواله‌اند، پس با تغییر آن باید صفر شوند.
+    // با تغییر شماره حواله، مقادیر کسری/اضافه که مخصوص حواله‌ی قبلی بودند صفر می‌شوند
     LaunchedEffect(trackingNumber) {
         shortageWeight = ""
         excessWeight = ""
         if (scaleReceiptNumber.isNotEmpty()) {
-            // updateScaleReceiptNumber عمداً استفاده نشد: آن تابع بارکد را
-            // معتبر می‌شمارد و درخواست شبکه‌ی checkScaleReceiptNumber را صدا
-            // می‌زند؛ hideNetWeightDialog فقط state را صفر می‌کند.
+            // عمداً از updateScaleReceiptNumber استفاده نشد چون درخواست شبکه هم می‌زند
             viewModel.hideNetWeightDialog()
         }
     }
 
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    // قبلاً این فیلتر و partition/sort در بدنه‌ی Composable و بدون remember
-    // با هر بازترکیب (هر فریم انیمیشن FAB، هر تغییر isPressed) از نو محاسبه
-    // می‌شدند، و پایین‌تر همین فیلتر جستجو یک‌بار دیگر هم روی currentItems
-    // تکرار می‌شد. اینجا همه در یک remember جمع شده‌اند.
+    // فیلتر و مرتب‌سازی برای جلوگیری از محاسبه‌ی تکراری در هر بازترکیب، در remember جمع شده‌اند
     val (nonExitedCargos, exitedCargos) = remember(cargoInfoList, searchQuery) {
         val filtered = if (searchQuery.isEmpty()) {
             cargoInfoList
@@ -280,16 +268,7 @@ fun RegisterCargoScreen(
             }
         }
     ) { paddingValues ->
-        // قبلاً این یک Column ثابت (بدون اسکرول) بود و فقط لیست حواله‌ها
-        // داخلش یک LazyColumn با ارتفاع سقف‌دار (450dp) داشت؛ اگر مجموع هدر
-        // (وقتی ShipInfoSection/FormSection باز باشند) + آن سقف از ارتفاع
-        // صفحه بیشتر می‌شد، چیزی برای دیدن باقی صفحه اسکرول نمی‌شد. حالا کل
-        // صفحه یک LazyColumn واحد است. چون LazyColumn داخل LazyColumn ممکن
-        // نیست، ردیف‌های حواله دیگر یک LazyColumn جدا نیستند؛ تعداد آن‌ها برای
-        // هر کوتاژ معمولاً چند ده مورد است نه هزاران، پس یک Column معمولی
-        // همراه با key() برای هویت پایدار هر ردیف استفاده شده تا هم اسکرول
-        // کل صفحه یکپارچه شود و هم ظاهر کارت (Surface با border/rounded
-        // corner که کل لیست را دربرمی‌گیرد) دست‌نخورده بماند.
+        // کل صفحه یک LazyColumn واحد است تا با باز بودن هدرها اسکرول صفحه ناقص نشود
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -382,10 +361,7 @@ fun RegisterCargoScreen(
                                     }
                                 }
 
-                                // این دکمه فقط برای ثبت ورود تازه یا کسری/اضافه
-                                // بار است؛ خروج (وزن خالص) فقط از مسیر اسکن
-                                // بارکد → NetWeightDialog انجام می‌شود، پس
-                                // netWeight همیشه خالی است.
+                                // این دکمه فقط برای ثبت ورود یا کسری/اضافه است؛ خروج از مسیر اسکن بارکد انجام می‌شود
                                 viewModel.submitCargoInfo(
                                     trackingNumber,
                                     "",
@@ -476,9 +452,7 @@ fun RegisterCargoScreen(
 
                     var isRefreshing by remember { mutableStateOf(false) }
                     var rotationState by remember { mutableFloatStateOf(0f) }
-                    // پیش‌فرض غیرفعال تا مصرف داده/تعداد درخواست به سرور
-                    // اضافه نشود؛ فقط با لمس طولانی دکمهٔ «بروزرسانی» روشن
-                    // می‌شود، نه به‌صورت پیش‌فرض برای همه.
+    // پیش‌فرض غیرفعال است؛ فقط با لمس طولانی دکمه‌ی بروزرسانی فعال می‌شود
                     var isAutoRefreshEnabled by remember { mutableStateOf(false) }
                     var secondsUntilNextRefresh by remember { mutableIntStateOf(AUTO_REFRESH_INTERVAL_SECONDS) }
                     val rotation = animateFloatAsState(
@@ -487,11 +461,7 @@ fun RegisterCargoScreen(
                         label = "rotation"
                     )
 
-                    // لمس دستی دکمه: پیام نتیجه فقط اینجا (با پاس‌دادن
-                    // onManualRefreshComplete) به شکل Snackbar نمایش داده
-                    // می‌شود، نه دیالوگ MessageDialog — چون refreshCargoInfo از
-                    // مسیرهای دیگری هم صدا زده می‌شود (ثبت/خروج حواله،
-                    // غیرفعال‌شدن خودکار کوتاژ) که نباید این پیام را نشان دهند.
+                    // لمس دستی: نتیجه فقط با Snackbar نشان داده می‌شود، نه دیالوگ پیام
                     fun triggerManualRefresh() {
                         if (!isRefreshing) {
                             isRefreshing = true
@@ -508,10 +478,7 @@ fun RegisterCargoScreen(
                         }
                     }
 
-                    // تیک خودکار هر ۶۰ ثانیه: مستقیماً loadCargoInfoList صدا
-                    // زده می‌شود (نه refreshCargoInfo)؛ این تیک پیام
-                    // «به‌روزرسانی شد» جداگانه نمی‌سازد، بلکه فقط پیام
-                    // «بروزرسانی خودکار» خودش را پایین‌تر نشان می‌دهد.
+                    // تیک خودکار هر ۶۰ ثانیه مستقیماً لیست را بارگذاری می‌کند و پیام جدا می‌سازد
                     fun triggerSilentAutoRefresh() {
                         if (!isRefreshing) {
                             isRefreshing = true
@@ -536,10 +503,7 @@ fun RegisterCargoScreen(
                         }
                     }
 
-                    // با ترک صفحه (navigate away)، این LaunchedEffect لغو
-                    // می‌شود و polling متوقف می‌گردد؛ حالت isAutoRefreshEnabled
-                    // هم چون remember ساده است (نه rememberSaveable) با
-                    // برگشت به صفحه دوباره غیرفعال شروع می‌شود.
+                    // با ترک صفحه polling متوقف می‌شود و با بازگشت دوباره غیرفعال شروع می‌گردد
                     LaunchedEffect(isAutoRefreshEnabled) {
                         if (isAutoRefreshEnabled) {
                             secondsUntilNextRefresh = AUTO_REFRESH_INTERVAL_SECONDS

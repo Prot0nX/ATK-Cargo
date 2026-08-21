@@ -9,11 +9,7 @@ import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.feature.cargo_details.presentation.CargoDetailsScreen
 import kotlinx.serialization.Serializable
 
-// در ReportsNavigation.kt (feature:reports) بود، اما به feature/cargo_details
-// وابسته است — یعنی به reports تعلق ندارد. در Phase4 #23 (۵/۶) به app منتقل
-// شد چون cargo_details و cargo_counter (مصرف‌کننده‌ی navigateToCargoDetails)
-// هنوز هرکدام جدا در app بودند؛ حالا که هر دو با هم در feature:cargo-workflow
-// جمع شده‌اند (Phase4 #29)، این فایل هم به همین‌جا منتقل شد.
+// این فایل از feature:reports به feature:cargo-workflow منتقل شد چون به cargo_details وابسته است، نه reports
 @Serializable
 data class CargoDetailsRoute(
     val quotaNumber: String,
@@ -40,10 +36,7 @@ fun NavGraphBuilder.cargoDetailsScreen(navController: NavController, onSessionIn
             navController = navController,
             onSessionInvalid = onSessionInvalid,
             quotaNumber = route.quotaNumber,
-            // toRoute() از قبل مقادیر را decode می‌کند؛ decode دستی دوباره
-            // اینجا (به‌علاوه‌ی یک لایه‌ی سوم در خود CargoDetailsScreen) روی
-            // مقادیر حاوی '%' کرش می‌کرد و بین بارگذاری اول و بروزرسانی‌های
-            // بعدی (که مقدار خام می‌فرستند) ناسازگاری ایجاد می‌کرد.
+            // toRoute() مقادیر را از قبل decode می‌کند؛ decode دستی دوباره باعث کرش روی '%' و ناسازگاری می‌شد
             shippingCompany = route.shippingCompany ?: "",
             warehouse = route.warehouse ?: "",
             cargoType = route.cargoType ?: "",

@@ -20,8 +20,7 @@ use App\Enums\CargoStatus;
 class AnalyticsController {
     use AuthenticatesRequests;
 
-    // بدون ->value: PHP 8.1 (تولید) اجازه‌ی property-fetch در class const را
-    // نمی‌دهد؛ ->value در محل مصرف (self::X->value) اعمال می‌شود.
+    // بدون ->value چون PHP 8.1 اجازه‌ی property-fetch در class const نمی‌دهد
     private const ENTERED = CargoStatus::ENTERED;
     private const EXITED = CargoStatus::EXITED;
 
@@ -29,14 +28,7 @@ class AnalyticsController {
     private Logger $logger;
     private Request $request;
 
-    // C-4/B-11 (گزارش تحلیل جامع عملیات): این دو مرز عمداً متفاوت‌اند، نه یک
-    // ناهماهنگی تصادفی — WORKDAY_BOUNDARY_TIME مرز پنجره «تحلیل جامع عملیات»
-    // (handleComprehensiveAnalysisRequest) است؛ SHIFT_DAY_START_TIME مرز شروع
-    // شیفت روز در «بارگیری لحظه‌ای» (determineShiftInfo) است. حواله‌های خروج‌شده
-    // بین این دو مرز (۰۷:۰۰ تا ۰۷:۳۰) به روز کاری جدید تعلق می‌گیرند اما هنوز به
-    // شیفت روز نپیوسته‌اند؛ به همین دلیل دو صفحه برای این نیم‌ساعت عدد متفاوت
-    // نشان می‌دهند. هر دو ثابت اینجا در یک نقطه نگه داشته می‌شوند تا این تفاوت
-    // آگاهانه بماند، نه اینکه یکی جا بماند وقتی دیگری تغییر می‌کند.
+    // دو مرز زمانی عمداً متفاوت: WORKDAY_BOUNDARY_TIME برای تحلیل جامع، SHIFT_DAY_START_TIME برای شیفت روز
     private const WORKDAY_BOUNDARY_TIME = '07:00:00';
     private const SHIFT_DAY_START_TIME = '07:30:00';
     private const SHIFT_DAY_END_TIME = '19:00:00';
@@ -47,16 +39,7 @@ class AnalyticsController {
         $this->request = new Request();
     }
 
-    /**
-     * پاسخ‌های خطای کسب‌وکاری این کنترلر (handleRealTimeLoadingData،
-     * handleQuotaRemaining) در Phase3 #21 به Response::error() یکسان‌سازی
-     * شدند — بررسی شد که هیچ مصرف‌کننده‌ی فعلی کلاینت (ReportsRepository)
-     * فیلد «error» این دو متد را ساختاریافته نمی‌خواند (فقط status
-     * code/متن خام). این override اما دست‌نخورده ماند، چون رد کردن گیت
-     * احراز هویت (401/403/426) مسیر جدایی است که جداگانه verify نشد؛
-     * override بودنش (نه صرفاً استفاده از پیش‌فرض trait) به همین دلیل
-     * حفظ شده تا محدوده‌ی تغییر همان چیزی بماند که بررسی شد.
-     */
+    // فرمت سفارشی پاسخ خطای احراز هویت برای سازگاری با کلاینت این کنترلر
     protected function sendAuthErrorResponse(string $message, int $httpCode, ?string $code = null): void {
         header('Content-Type: application/json; charset=UTF-8');
         http_response_code($httpCode);
@@ -68,18 +51,13 @@ class AnalyticsController {
         exit;
     }
 
-    /**
-     * مدیریت درخواست‌های realTimeLoadingData.php
-     */
+    // مدیریت درخواست‌های realTimeLoadingData.php
     public function handleRealTimeLoadingData(): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('Cache-Control: no-store');
         date_default_timezone_set('Asia/Tehran');
 
-        // logAnalyticsExport یک عملیات نوشتنی (ثبت لاگ) است، هم‌راستا با قرارداد
-        // پروژه (WRITE_ACTIONS در AppApiController) که چنین actionهایی فقط با
-        // POST مجازند؛ بقیه actionهای این کنترلر فقط-خواندنی می‌مانند و کلاینت
-        // برایشان همچنان GET می‌فرستد.
+        // logAnalyticsExport یک عملیات نوشتنی است و فقط با POST مجاز است؛ بقیه‌ی actionها GET هستند
         if (!$this->request->isGet() && !$this->request->isPost()) {
             Response::error('فقط متد GET یا POST مجاز است.', 400);
         }
@@ -120,25 +98,18 @@ class AnalyticsController {
         }
     }
 
-    /**
-     * مدیریت درخواست‌های GET analytics/quota-remaining
-     */
+    // مدیریت درخواست‌های GET analytics/quota-remaining
     public function handleQuotaRemaining(): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('Cache-Control: max-age=60, public');
         date_default_timezone_set('Asia/Tehran');
 
-        // فشرده‌سازی PHP-level حذف شد (P-06): .htaccess از قبل mod_deflate را
-        // برای application/json فعال کرده؛ فشرده‌سازی دوباره اینجا فقط CPU
-        // اضافه بدون فایده بود.
+        // فشرده‌سازی PHP-level حذف شد چون mod_deflate در htaccess همین کار را می‌کند (P-06)
         if (!$this->request->isGet()) {
             Response::error('روش درخواست نامعتبر است', 500);
         }
 
-        // این متد قبلاً هیچ گیت احراز هویتی نداشت — با اینکه داده‌ی تجاری
-        // کامل (نام کشتی، کوتاژ، شرکت حمل، صاحب کالا، تناژ) برمی‌گرداند، هر
-        // کلاینت ناشناس با دانستن آدرس سرور می‌توانست این مسیر را صدا بزند.
-        // مطابق الگوی handleRealTimeLoadingData همین کنترلر.
+        // افزودن گیت احراز هویت برای جلوگیری از دسترسی ناشناس به داده‌های تجاری، مطابق handleRealTimeLoadingData
         $this->requireAuthenticatedSession();
         $this->requirePermission('active_quotas');
 
@@ -206,9 +177,7 @@ class AnalyticsController {
     }
 
     private function handleRealTimeDataRequest(): void {
-        // کلاینت فقط ۰ تا ۱۴- را می‌فرستد (ناوبری شیفت در RealTimeShiftNavigation)؛
-        // کلمپ سمت سرور از مقادیر آینده (offset مثبت) و از cache-flooding با
-        // مقادیر بزرگ دلخواه که هرکدام یک کلید جدید در MicroCache می‌سازند جلوگیری می‌کند.
+        // کلمپ سمت سرور روی shiftOffset برای جلوگیری از مقادیر آینده و cache-flooding در MicroCache
         $shiftOffset = max(-14, min(0, (int)$this->request->get('shiftOffset', 0)));
         $targetTimestamp = time() + ($shiftOffset * 12 * 3600);
         $currentTimeString = date('H:i:s', $targetTimestamp);
@@ -222,14 +191,7 @@ class AnalyticsController {
         ]);
     }
 
-    /**
-     * این endpoint هر ۳۰ ثانیه توسط دیالوگ «بارگیری لحظه‌ای» poll می‌شود؛ در
-     * بیشتر تیک‌ها داده تغییری نکرده. با ETag/304 (به‌جای Cache-Control:
-     * no-store که handleRealTimeLoadingData پیش‌تر برای سایر actionها تنظیم
-     * کرده و اینجا override می‌شود)، در حالت بی‌تغییر فقط یک پاسخ خالی ۳۰۴
-     * منتقل می‌شود، نه کل payload. max-age کوتاه هم‌راستا با TTL همان کش ۵
-     * ثانیه‌ای MicroCache در getRealTimeData است.
-     */
+    // پاسخ‌دهی با ETag/304 برای این endpoint پرتکرار تا در حالت بی‌تغییر فقط پاسخ خالی ارسال شود
     private function sendCacheableRealTimeResponse(array $data): void {
         $etag = '"' . md5(json_encode($data, JSON_UNESCAPED_UNICODE)) . '"';
         header('Cache-Control: private, max-age=5');
@@ -270,9 +232,7 @@ class AnalyticsController {
                 'startDate' => $shiftStartDate,
                 'endDate' => $shiftEndDate,
                 'startTime' => self::SHIFT_DAY_END_TIME,
-                // باید دقیقاً برابر با startTime شیفت روز باشد، وگرنه بازه‌ی
-                // WORKDAY_BOUNDARY_TIME تا SHIFT_DAY_START_TIME در هیچ‌کدام از
-                // دو شیفت شمرده نمی‌شود.
+                // باید دقیقاً برابر startTime شیفت روز باشد وگرنه بازه‌ی بین دو مرز شمرده نمی‌شود
                 'endTime' => self::SHIFT_DAY_START_TIME,
                 'type' => 'شب'
             ];
@@ -280,8 +240,7 @@ class AnalyticsController {
     }
 
     private function getRealTimeData(array $shiftInfo): array {
-        // کش کوتاه (۵ ثانیه) به ازای هر شیفت مشخص؛ چون چندین کاربر هم‌زمان همین
-        // شیفت را poll می‌کنند، بار دیتابیس بدون از دست دادن تازگی داده کم می‌شود.
+        // کش کوتاه ۵ ثانیه‌ای به ازای هر شیفت برای کاهش بار دیتابیس در poll همزمان کاربران
         $cacheKey = 'analytics_realtime_' . md5(implode('|', [
             $shiftInfo['type'],
             $shiftInfo['startDate'],
@@ -291,13 +250,7 @@ class AnalyticsController {
         ]));
 
         return MicroCache::remember($cacheKey, 5, function () use ($shiftInfo) {
-            // B-11: شرط‌های WHERE روی ستون‌های c.* در عمل LEFT JOIN را به INNER JOIN
-            // تبدیل می‌کردند (ردیف‌های بدون تطبیق، NULL می‌شدند و همان شرط‌ها حذفشان
-            // می‌کرد)؛ INNER JOIN صریح همان رفتار واقعی را بدون گمراه‌کنندگی نشان می‌دهد.
-            // B-12: فیلتر i.isActive = 1 (هم‌راستا با getActiveQuotasRemaining) اضافه شد
-            // تا کوتاژهای غیرفعال‌شده در «بارگیری لحظه‌ای» ظاهر نشوند.
-            // C-3: دو شاخه‌ی شیفت روز/شب فقط در شرط زمانی WHERE و تعداد پارامترها
-            // تفاوت داشتند؛ SELECT/JOIN/GROUP BY مشترک یک‌بار نوشته می‌شود.
+            // INNER JOIN صریح، فیلتر isActive و اشتراک SELECT/JOIN بین دو شیفت (B-11/B-12/C-3)
             $baseQuery = "SELECT
                 i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType,
                 COUNT(DISTINCT CASE WHEN c.status = '" . self::ENTERED->value . "' THEN c.id END) AS entryVouchers,
@@ -330,11 +283,7 @@ class AnalyticsController {
         });
     }
 
-    // کلاینت فقط ۰ تا ۷- را می‌فرستد (ناوبری تاریخ در AnalyticsDateNavigation)؛
-    // بدون این کلمپ سمت سرور، offset دلخواه (از جمله مقادیر مثبت/آینده یا
-    // بسیار بزرگ که در ضرب $offset * 86400 سرریز عدد صحیح PHP را تریگر
-    // می‌کنند) هم پذیرفته می‌شد. هم‌راستا با کلمپ مشابه shiftOffset در
-    // handleRealTimeDataRequest.
+    // کلمپ سمت سرور روی offset برای جلوگیری از مقادیر بزرگ/آینده، مشابه shiftOffset
     private const MAX_ANALYTICS_DAYS_BACK = 7;
 
     private function handleComprehensiveAnalysisRequest(): void {
@@ -348,20 +297,7 @@ class AnalyticsController {
         $todayJalaliDate = jdate('Y/m/d', $targetTime);
         $yesterdayJalaliDate = jdate('Y/m/d', $targetTime - 86400);
 
-        // P-6/C-8 (گزارش تحلیل جامع عملیات): $targetTime از قبل یک timestamp
-        // معتبر است؛ نیازی به رفت‌وبرگشت شمسی→میلادی→شمسی (split رشته تاریخ،
-        // jalali_to_gregorian، mktime) برای گرفتن نام روز نیست — jdate('l', ...)
-        // مستقیماً روی همان timestamp کار می‌کند. نسخه قبلی هم متغیرهایش را با
-        // پیشوند گمراه‌کننده‌ی g (gregorian) روی مقادیر شمسی نام‌گذاری کرده بود،
-        // هم یک fallback بی‌صدا داشت که در نبود jalali_to_gregorian، نام روز
-        // «الان» را برای تاریخی که ممکن بود روزها قبل باشد برمی‌گرداند.
-
-        // B-1/B-8 (گزارش تحلیل جامع عملیات): پنجره واقعی کوئری «روز کاری»
-        // (دیروز ۰۷:۰۰ تا امروز ۰۷:۰۰) است، نه «۲۴ ساعت گذشته تا این لحظه».
-        // قبلاً فقط jalaliDate/dayName (تاریخ پایان پنجره) برگردانده می‌شد و
-        // کلاینت آن را زیر برچسب گمراه‌کننده‌ی «امروز / گزارشات ۲۴ ساعته»
-        // نمایش می‌داد. اینجا مرزهای دقیق پنجره صریحاً اضافه می‌شود تا کلاینت
-        // بازه واقعی را نشان دهد.
+        // محاسبه‌ی مستقیم نام روز از timestamp (بدون رفت‌وبرگشت شمسی) و افزودن مرزهای دقیق پنجره‌ی «روز کاری» (P-6/C-8/B-1/B-8)
         $workdayBoundaryShort = substr(self::WORKDAY_BOUNDARY_TIME, 0, 5); // "07:00:00" -> "07:00"
         $dateInfo = [
             'jalaliDate' => $todayJalaliDate,
@@ -372,31 +308,14 @@ class AnalyticsController {
             'windowEndTime' => $workdayBoundaryShort
         ];
 
-        // P-2 (گزارش تحلیل جامع عملیات): برخلاف getRealTimeData در همین کلاس، این
-        // کوئری (که به‌مراتب سنگین‌تر است و روی idx_cargo_exit_window تازه اضافه‌شده
-        // هم full scan نمی‌کند ولی همچنان JOIN+GROUP BY سنگینی دارد) نه MicroCache
-        // داشت نه ETag. برای روزهای گذشته (offset < 0) داده دیگر تغییر نمی‌کند، پس
-        // TTL طولانی‌تر (۱ ساعت) امن است؛ برای روز کاری جاری (offset = 0) TTL کوتاه
-        // (۶۰ ثانیه، هم‌راستا با max-age کوتاه در سایر پاسخ‌های این کنترلر).
+        // افزودن کش با TTL متغیر: طولانی برای روزهای گذشته، کوتاه برای روز جاری (P-2)
         $cacheTtl = $offset < 0 ? 3600 : 60;
         $cacheKey = 'analytics_comprehensive_' . md5($yesterdayJalaliDate . '|' . $todayJalaliDate);
 
-        // B-6/B-7 (گزارش تحلیل جامع عملیات):
-        // - i.isActive = 1 هم‌راستا با getActiveQuotasRemaining/getRealTimeData اضافه شد
-        //   تا کوتاژهای غیرفعال‌شده در تحلیل جامع ظاهر نشوند و آمار دو صفحه بخواند.
-        // - COUNT(DISTINCT c.trackingNumber) به‌جای COUNT(*) تا شمارش «تعداد حواله»
-        //   با getActiveQuotasRemaining/getShipQuotasRemaining یکسان باشد و اگر یک
-        //   trackingNumber بیش از یک ردیف داشته باشد، بیش‌برآورد نشود.
+        // فیلتر isActive و شمارش با COUNT(DISTINCT trackingNumber) برای هم‌راستایی آمار با سایر توابع (B-6/B-7)
         $workdayBoundary = self::WORKDAY_BOUNDARY_TIME;
         $completionData = MicroCache::remember($cacheKey, $cacheTtl, function () use ($yesterdayJalaliDate, $todayJalaliDate, $workdayBoundary) {
-            // B-6 (گزارش تحلیل جامع عملیات): کلید JOIN قبلاً فقط سه‌تایی
-            // (loadingQuotaNumber, loadingWarehouse, shippingCompany) بود که در
-            // InitialInfo یکتا نیست؛ اگر دو ردیف InitialInfo همین سه‌تایی را با
-            // cargoType متفاوت داشته باشند، هر ردیف CargoInfo با هر دو تطبیق
-            // می‌خورد و SUM(netWeight) دو برابر می‌شد. افزودن cargoType به شرط
-            // JOIN، هم‌راستا با کلید تطبیق پنج‌تایی که getActiveQuotasRemaining/
-            // getShipQuotasRemaining در همین فایل استفاده می‌کنند
-            // (loadingQuotaNumber|shipName|loadingWarehouse|shippingCompany|cargoType).
+            // افزودن cargoType به شرط JOIN برای جلوگیری از دوبرابر شدن SUM(netWeight) در تطبیق نادرست (B-6)
             $query = "SELECT
                         c.loadingQuotaNumber, i.shipName, c.shippingCompany, i.cargoOwner, c.loadingWarehouse, i.cargoType,
                         SUM(c.netWeight) AS last_24h_weight, COUNT(DISTINCT c.trackingNumber) AS last_24h_vouchers
@@ -440,20 +359,10 @@ class AnalyticsController {
         ], $cacheTtl);
     }
 
-    /**
-     * A-5 (گزارش تحلیل جامع عملیات): اشتراک‌گذاری خلاصه تحلیل جامع (نام کشتی،
-     * صاحب کالا، انبار، تناژ، تعداد حواله) از طریق Intent.ACTION_SEND کاملاً
-     * سمت کلاینت اتفاق می‌افتد؛ سرور هیچ ثبتی نداشت که چه کسی چه داده‌ای را
-     * در چه زمانی خارج کرده. این endpoint خودِ محتوای اشتراک‌گذاری‌شده را
-     * ذخیره نمی‌کند (ممکن است حجیم/تکراری باشد)، فقط چه‌کسی/چه‌دامنه‌ای/چند
-     * گروه را با Logger موجود پروژه ثبت می‌کند تا در صورت نیاز به بررسی نشت
-     * داده، منبع و زمان قابل ردیابی باشد.
-     */
+    // ثبت لاگ اشتراک‌گذاری تحلیل جامع (کاربر/دامنه/تعداد گروه) برای ردیابی احتمالی نشت داده (A-5)
     private function handleLogAnalyticsExport(): void {
         $rawScope = (string)$this->request->get('scope', 'نامشخص');
-        // دفاعی: scope از GET/POST خوانده می‌شود و نظری به مقدار واقعی که
-        // کلاینت رسمی می‌فرستد ندارد؛ جلوگیری از log injection (خط جدید) و
-        // محدود کردن طول برای فایل لاگ.
+        // پاک‌سازی دفاعی scope برای جلوگیری از log injection و محدود کردن طول
         $scope = mb_substr(str_replace(["\r", "\n"], ' ', $rawScope), 0, 200);
         $groupCount = max(0, (int)$this->request->get('groupCount', 0));
 
@@ -470,11 +379,7 @@ class AnalyticsController {
         Response::json(['success' => true]);
     }
 
-    /**
-     * مشابه sendCacheableRealTimeResponse برای handleRealTimeDataRequest؛ چون آن
-     * متد Cache-Control با max-age ثابت (۵) دارد و اینجا max-age بسته به TTL کش
-     * (تاریخچه در برابر روز جاری) متفاوت است، نسخه مجزا با $ttlSeconds پارامتری.
-     */
+    // مشابه sendCacheableRealTimeResponse ولی با max-age پارامتری بسته به TTL کش
     private function sendCacheableAnalyticsResponse(array $data, int $ttlSeconds): void {
         $etag = '"' . md5(json_encode($data, JSON_UNESCAPED_UNICODE)) . '"';
         header("Cache-Control: private, max-age=$ttlSeconds");

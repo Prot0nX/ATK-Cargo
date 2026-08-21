@@ -84,11 +84,7 @@ import com.atk.atk_cargo.feature.reports.presentation.quota_details.components.T
 import com.atk.atk_cargo.ui.theme.CornerL
 import java.util.Locale
 
-// کارت تکی کوتاژ (کامل/مینیمال)، دکمه‌های اقدام، و دیالوگ ویرایش کوتاژ — از
-// QuotasListScreen.kt به این فایل منتقل شد (DEEP_CODE_AUDIT.md #Phase3.7،
-// شکستن God Composable). رنگ‌های Quota* و QuotaPercentageDialog در
-// QuotasListScreen.kt / QuotaPercentageDialogSection.kt هستند؛ هم‌پکیج‌اند،
-// نیازی به import اضافه نیست.
+// کارت تکی کوتاژ، دکمه‌های اقدام و دیالوگ ویرایش، منتقل‌شده از QuotasListScreen.kt (شکستن God Composable)
 
 @Composable
 fun QuotaCard(

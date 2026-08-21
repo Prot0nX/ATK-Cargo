@@ -5,9 +5,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalConfiguration
 
-/**
- * رده‌بندی ابعاد صفحه نمایش برای لایه‌بندی انطباقی (Adaptive Layout / Window Size Classes).
- */
+// رده‌بندی ابعاد صفحه نمایش برای لایه‌بندی انطباقی (Window Size Classes)
 enum class WindowSizeClass {
     COMPACT, // گوشی هوشمند عمودی (< 600dp)
     MEDIUM,  // تبلت کوچک یا حالت افقی گوشی (600dp - 840dp)

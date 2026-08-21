@@ -58,24 +58,15 @@ class ReportsViewModel(
     private val repository: ReportsRepository,
     application: Application
 ) : AndroidViewModel(application) {
-    // C-1: کل چرخه‌ی polling دیالوگ «بارگیری لحظه‌ای» (داده، شمارنده، وضعیت
-    // refresh، خطا) در این یک StateFlow جمع شده تا منطق شبکه/تایمر داخل
-    // Composable نباشد و با چرخش صفحه ریست نشود.
+    // کل چرخه‌ی polling دیالوگ «بارگیری لحظه‌ای» در این StateFlow جمع شده تا با چرخش صفحه ریست نشود
     private val _realTimeUiState = MutableStateFlow(RealTimeUiState())
     val realTimeUiState: StateFlow<RealTimeUiState> = _realTimeUiState.asStateFlow()
 
-    // فاز ۳.۵: وضعیت مشترک صفحه‌ی گزارش کشتی/کوتاژ (لیست کشتی‌ها، کشتی/انبار/
-    // کوتاژ انتخاب‌شده، خلاصه‌ی فیلترشده، بازه‌ی تاریخ، حالت‌های loading/error
-    // مرتبط) در یک UiState واحد جمع شده — دقیقاً هم‌راستا با الگوی CargoUiState
-    // در CargoViewModel. حوزه‌های دیگر (polling لحظه‌ای، تحلیل جامع، حالت‌های
-    // مرتب‌سازی/گروه‌بندی/جستجو، رویدادهای snackbar) عمداً جدا نگه داشته
-    // شده‌اند چون هرکدام یک concern مستقل با چرخه‌ی حیات/الگوی به‌روزرسانی خودشان
-    // هستند، نه بخشی از همین صفحه.
+    // وضعیت مشترک صفحه‌ی گزارش کشتی/کوتاژ در یک UiState واحد؛ سایر حوزه‌ها (polling، تحلیل جامع، مرتب‌سازی/جستجو) جدا نگه داشته شده‌اند
     private val _uiState = MutableStateFlow(ReportsUiState())
     val uiState: StateFlow<ReportsUiState> = _uiState.asStateFlow()
 
-    // فقط داخلی است (هیچ‌وقت به UI expose نشده) پس بیرون از ReportsUiState
-    // نگه داشته شده — هم‌راستا با فیلدهای internal-only در CargoViewModel.
+    // فقط داخلی است و هیچ‌وقت به UI expose نمی‌شود، پس بیرون از ReportsUiState نگه داشته شده
     private val _currentShipName = MutableStateFlow<String?>(null)
     private val _shipColorMap = MutableStateFlow<Map<String, Color>>(emptyMap())
     val shipColorMap: StateFlow<Map<String, Color>> = _shipColorMap.asStateFlow()
@@ -99,9 +90,7 @@ class ReportsViewModel(
     private val _analyticsDateOffset = MutableStateFlow(0)
     val analyticsDateOffset: StateFlow<Int> = _analyticsDateOffset.asStateFlow()
 
-    // B-3 (گزارش تحلیل جامع عملیات): بدون این Job، تعویض سریع تاریخ چند
-    // درخواست هم‌زمان می‌ساخت و آخرین پاسخِ رسیده (نه آخرینِ درخواست‌شده) در
-    // _comprehensiveAnalytics می‌نشست. هم‌راستا با الگوی realTimeFetchJob.
+    // بدون این Job، تعویض سریع تاریخ چند درخواست هم‌زمان می‌ساخت و پاسخ اشتباه در state می‌نشست
     private var analyticsFetchJob: Job? = null
 
     fun setAnalyticsDateOffset(offset: Int) {
@@ -127,17 +116,7 @@ class ReportsViewModel(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
 
-    // C-1 (گزارش تحلیل جامع عملیات): قبلاً داده از اینجا به QuotaAnalysis
-    // Composable می‌رفت و از طریق updateInitialQuotas دوباره به ViewModel
-    // push می‌شد تا فیلتر/گروه‌بندی شود — یعنی بدون رندر شدن UI، خط لوله داده
-    // کار نمی‌کرد و منبع حقیقت دو تکه بود (_comprehensiveAnalytics و یک
-    // _initialQuotas جداگانه). اینجا مستقیماً از همان StateFlow پاسخ سرور
-    // مشتق می‌شود. debounce روی جستجو + flowOn(Default) هم فیلتر/گروه‌بندی
-    // (که قبلاً برای هر ضربه کلید هم در ViewModel هم دوباره در Composable
-    // روی رشته اصلی تکرار می‌شد) را یک‌بار و خارج از رشته اصلی UI انجام
-    // می‌دهد (P-3/P-4). خروجی از قبل فیلتر «فعال بودن در این روز کاری»
-    // (last_24h_vouchers > 0) را هم شامل می‌شود که قبلاً فقط در Composable
-    // انجام می‌شد (B-4).
+    // مستقیماً از StateFlow پاسخ سرور مشتق می‌شود؛ debounce + flowOn(Default) فیلتر/گروه‌بندی را یک‌بار و خارج از رشته UI انجام می‌دهد
     @OptIn(kotlinx.coroutines.FlowPreview::class)
     val analyticsGroups: StateFlow<List<QuotaGroup>> =
         combine(
@@ -246,9 +225,7 @@ class ReportsViewModel(
                 )
             }
 
-            // تخصیص رنگ‌های کاملاً متمایز فقط به کشتی‌ها (تنها مصرف واقعی رنگ در
-            // دیالوگ بارگیری لحظه‌ای؛ نگاشت مشابه به‌ازای هر کوتاژ قبلاً هم محاسبه
-            // می‌شد هم در ViewModel نگه داشته می‌شد اما هیچ‌جا خوانده نمی‌شد — P-5).
+            // تخصیص رنگ‌های متمایز فقط به کشتی‌ها که تنها مصرف واقعی رنگ در دیالوگ بارگیری لحظه‌ای است
             val shipNames = response.data.map { it.shipName }.distinct().toSet()
             val shipColors = colorSelector.assignDistinctColors(shipNames)
                 .mapValues { (_, color) -> adjustColorForTheme(color, isDarkTheme) }
@@ -259,12 +236,7 @@ class ReportsViewModel(
         }
     }
 
-    /**
-     * درخواست قبلی (مثلاً از یک کلیک سریع روی فلش‌های شیفت یا از تیک polling
-     * هم‌زمان با refresh دستی) لغو می‌شود تا پاسخی که دیرتر برسد، نه لزوماً
-     * پاسخ متعلق به آخرین درخواست، state را بازنویسی نکند؛ سپس تا پایان واقعی
-     * صبر می‌کند تا caller بتواند بر اساس نتیجه واکنش نشان دهد.
-     */
+    // درخواست قبلی لغو می‌شود تا پاسخ دیرهنگام state را بازنویسی نکند؛ سپس تا پایان واقعی صبر می‌کند
     private suspend fun fetchRealTimeDataCoordinated(isDarkTheme: Boolean) {
         realTimeFetchJob?.cancel()
         val job = viewModelScope.launch { fetchRealTimeData(isDarkTheme) }
@@ -272,11 +244,7 @@ class ReportsViewModel(
         job.join()
     }
 
-    /**
-     * C-1: کل حلقه‌ی polling دیالوگ «بارگیری لحظه‌ای» اینجاست، نه در Composable.
-     * caller این تابع را داخل repeatOnLifecycle(RESUMED) اجرا می‌کند؛ با لغو آن
-     * کوروتین (پس‌زمینه رفتن اپ یا بسته‌شدن دیالوگ)، این حلقه هم متوقف می‌شود.
-     */
+    // کل حلقه‌ی polling دیالوگ «بارگیری لحظه‌ای» اینجاست، نه در Composable؛ با لغو کوروتین caller متوقف می‌شود
     suspend fun startRealTimePolling(isDarkTheme: Boolean) {
         var nextRefreshAt = System.currentTimeMillis() + REAL_TIME_REFRESH_INTERVAL_MS
         _realTimeUiState.update { it.copy(secondsToNextRefresh = 30) }
@@ -301,10 +269,7 @@ class ReportsViewModel(
         }
     }
 
-    /**
-     * برای دکمه‌ی refresh دستی؛ پیام خطای واقعی بعد از پایان درخواست را
-     * برمی‌گرداند (null یعنی موفق) تا UI بر اساس نتیجه‌ی واقعی Toast نشان دهد.
-     */
+    // برای دکمه‌ی refresh دستی؛ پیام خطای واقعی را برمی‌گرداند (null یعنی موفق) تا UI Toast نشان دهد
     suspend fun refreshRealTimeDataManually(isDarkTheme: Boolean): String? {
         _realTimeUiState.update { it.copy(isRefreshing = true) }
         fetchRealTimeDataCoordinated(isDarkTheme)
@@ -427,11 +392,7 @@ class ReportsViewModel(
         viewModelScope.launch {
             try {
                 supervisorScope {
-                    // forceRefresh=true: این متد همیشه بلافاصله بعد از یک نوشتن
-                    // موفق (toggleQuotaStatus/editQuota/deleteQuota/...) صدا زده
-                    // می‌شود؛ بدون این، کش دیسک OkHttp (max-age=6 سمت سرور) پاسخ
-                    // قدیمی را بدون حتی یک درخواست شبکه برمی‌گرداند و UI هرگز
-                    // وضعیت واقعی را نشان نمی‌دهد.
+                    // forceRefresh=true بعد از هر نوشتن موفق صدا زده می‌شود تا کش دیسک OkHttp پاسخ قدیمی برنگرداند
                     val shipDetailsDeferred = async { repository.getShipDetails(shipName, forceRefresh = true) }
                     val shipQuotasDeferred = async { repository.getShipQuotas(shipName, forceRefresh = true) }
 
@@ -545,8 +506,7 @@ class ReportsViewModel(
         }
     }
 
-    // quotaNumber دیگر برای درخواست سرور استفاده نمی‌شود (سرور فقط با id کار
-    // می‌کند)؛ پارامتر برای سازگاری با فراخوان‌های موجود در UI نگه داشته شده است.
+    // quotaNumber دیگر برای سرور استفاده نمی‌شود؛ فقط برای سازگاری با فراخوان‌های موجود در UI نگه داشته شده
     fun toggleQuotaStatus(id: Int, quotaNumber: String, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             try {
@@ -568,15 +528,7 @@ class ReportsViewModel(
         }
     }
 
-    /**
-     * غیرفعال کردن دسته‌ای کوتاژهای هشداردار (دکمه‌ی گروهی دیالوگ هشدار).
-     * برخلاف toggleQuotaStatus (که به ازای هر فراخوانی یک رفرش کامل انجام
-     * می‌دهد و برای N کوتاژ به N×۴ درخواست HTTP می‌رسد و سقف Rate Limit
-     * پروکسی -۶۰ درخواست در دقیقه- را رد می‌کند)، اینجا همه‌ی toggleها ابتدا
-     * اجرا و فقط یک‌بار در پایان رفرش می‌شوند. هر id قبل از ارسال با آخرین
-     * وضعیت شناخته‌شده‌ی کوتاژها چک می‌شود تا کوتاژی که بین محاسبه‌ی هشدار و
-     * کلیک کاربر از جای دیگری غیرفعال شده، دوباره فعال نشود.
-     */
+    // غیرفعال‌سازی دسته‌ای کوتاژهای هشداردار؛ همه‌ی toggleها اول اجرا و فقط یک‌بار در پایان رفرش می‌شوند تا از سقف Rate Limit رد نشویم
     fun deactivateQuotasInBulk(quotaIds: List<Int>, onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             try {
@@ -782,9 +734,7 @@ class ReportsViewModel(
                     _analyticsLoadingState.value = LoadingState.Error("خطا در دریافت اطلاعات تحلیلی")
                 }
             } catch (e: HttpStatusException) {
-                // A-3: به‌جای نمایش کد/بدنه خام JSON سرور، پیام فارسی واضح بر اساس
-                // کد وضعیت HTTP (که قبلاً به‌خاطر throw Exception ساده تشخیص‌پذیر
-                // نبود) نمایش داده می‌شود.
+                // به‌جای نمایش کد/بدنه خام JSON سرور، پیام فارسی واضح بر اساس کد وضعیت HTTP نمایش داده می‌شود
                 val message = when (e.statusCode) {
                     401 -> "نشست شما منقضی شده است. لطفاً دوباره وارد شوید."
                     403 -> "شما مجوز مشاهده آمار تحلیلی را ندارید."
@@ -798,8 +748,7 @@ class ReportsViewModel(
         }
     }
 
-    // A-5 (گزارش تحلیل جامع عملیات): fire-and-forget — UI منتظر نتیجه این
-    // فراخوانی نمی‌ماند تا اشتراک‌گذاری واقعی (OS share sheet) بدون تأخیر باز شود.
+    // fire-and-forget؛ UI منتظر نتیجه نمی‌ماند تا share sheet بدون تأخیر باز شود
     fun logAnalyticsExport(scope: String, groupCount: Int) {
         viewModelScope.launch {
             repository.logAnalyticsExport(scope, groupCount)

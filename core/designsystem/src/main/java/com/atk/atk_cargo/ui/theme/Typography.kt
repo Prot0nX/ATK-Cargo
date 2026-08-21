@@ -7,16 +7,12 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-/**
- * تایپوگرافی کامل و استاندارد Material Design 3 بر پایه فونت رسمی Vazirmatn.
- */
+// تایپوگرافی کامل و استاندارد Material Design 3 بر پایه فونت رسمی Vazirmatn
 @Composable
 fun createTypography(): Typography {
     val vazirmatn = VazirmatnFontFamily.create()
 
-    // بدون remember، هر recomposition والد (مثلاً تغییر رنگ تم) باعث ساخت
-    // دوباره‌ی ۱۵+ شیء TextStyle می‌شد؛ چون فقط به هویت فونت (که خودش
-    // remember شده) وابسته است، همین کافی است
+    // با remember از ساخت دوباره‌ی بیش از ۱۵ شیء TextStyle در هر recomposition والد جلوگیری می‌شود، چون فقط به هویت فونت (که خودش remember شده) وابسته است
     return remember(vazirmatn) {
     Typography(
         displayLarge = TextStyle(

@@ -73,10 +73,7 @@ import com.atk.atk_cargo.data.model.VoucherDetail
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.domain.persianDateFormat
 
-// این فایل دیالوگ «جزئیات حواله‌ها» (VoucherDetailsDialog) و کامپوننت‌های اختصاصی‌اش را از
-// WarehouseDetailsScreen.kt جدا نگه می‌دارد (A1-6، بازسازی ساختاری). وابسته به پالت رنگ
-// internal تعریف‌شده در WarehouseDetailsScreen.kt (Warehouse*) که چون هم‌پکیج است نیازی به
-// import ندارد.
+// دیالوگ جزئیات حواله‌ها؛ جدا از WarehouseDetailsScreen.kt (A1-6) اما هم‌پکیج و بدون import اضافه
 
 @Composable
 fun VoucherDetailsDialog(

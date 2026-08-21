@@ -28,14 +28,10 @@ object RetrofitClient {
     // Base URL from Secrets
     private val BASE_URL = Secrets.getBaseUrl()
 
-    // باید پیش از اولین دسترسی به apiService فراخوانی شود (در AtkCargoApplication.onCreate)
-    // تا کش HTTP دیسک فعال شود؛ okHttpClient با lazy مقداردهی می‌شود، پس این مقدار
-    // به‌موقع در دسترس okHttpClient قرار می‌گیرد.
+    // باید پیش از اولین دسترسی به apiService (در AtkCargoApplication.onCreate) فراخوانی شود تا کش HTTP دیسک فعال شود
     private var appContext: Context? = null
 
-    // core:network به BuildConfig ماژول app دسترسی ندارد (هر ماژول
-    // BuildConfig خودش را دارد) — این پرچم و tokenStore از بیرون (app) در
-    // init تزریق می‌شوند (DEEP_CODE_AUDIT.md #Phase4.2).
+    // core:network به BuildConfig ماژول app دسترسی ندارد، پس این پرچم و tokenStore از بیرون (app) در init تزریق می‌شوند
     private var debugLogging: Boolean = false
     private var tokenStore: TokenStore? = null
 
@@ -45,8 +41,7 @@ object RetrofitClient {
         this.debugLogging = debugLogging
     }
 
-    // نسخه‌ی برنامه فقط یک‌بار خوانده و کش می‌شود؛ برای گیت min_allowed_version
-    // سمت سرور (S-4) در هر درخواست احرازهویت‌شده فرستاده می‌شود
+    // نسخه‌ی برنامه فقط یک‌بار خوانده و کش می‌شود؛ برای گیت min_allowed_version سمت سرور در هر درخواست فرستاده می‌شود
     private val appVersionName: String? by lazy {
         try {
             appContext?.let { ctx ->
@@ -75,11 +70,7 @@ object RetrofitClient {
                     JsonToken.STRING -> {
                         val raw = reader.nextString()
                         raw.toFloatOrNull() ?: run {
-                            // قبلاً این حالت بی‌صدا 0f برمی‌گرداند — یعنی یک عدد
-                            // واقعی (مثلاً تناژ/درصد) که سرور رشته‌ی غیرقابل‌پارس
-                            // فرستاده، در UI به‌شکل «۰» دیده می‌شد بدون هیچ نشانه‌ای
-                            // که داده نامعتبر بوده (I-08). حداقل در Logcat ثبت می‌شود
-                            // تا در عیب‌یابی میدانی گم نشود.
+                            // مقدار رشته‌ای غیرقابل‌پارس بی‌صدا ۰f می‌شد؛ حالا برای عیب‌یابی در Logcat هم ثبت می‌شود
                             Log.w("RetrofitClient", "FloatTypeAdapter: مقدار رشته‌ای غیرقابل‌تبدیل به float دریافت شد: \"$raw\" — 0f جایگزین شد")
                             0f
                         }
@@ -104,11 +95,7 @@ object RetrofitClient {
         .registerTypeAdapter(Float::class.java, FloatTypeAdapter())
         .create()
 
-    // Logging interceptor for debug builds. lazy عمداً (نه eager): مقدار
-    // debugLogging تا فراخوانی init() هنوز پیش‌فرض false است؛ eager بودن این
-    // property باعث می‌شد سطح لاگ همیشه با مقدار پیش‌فرض ساخته شود، نه مقداری
-    // که init() واقعاً پاس می‌دهد (چون property initializerهای این object در
-    // همان لحظه‌ی class-load اجرا می‌شوند، قبل از بدنه‌ی تابع init()).
+    // interceptor لاگ برای بیلدهای دیباگ؛ عمداً lazy است چون property initializerها قبل از init() اجرا می‌شوند و eager بودن همیشه مقدار پیش‌فرض debugLogging را می‌گرفت
     private val loggingInterceptor: HttpLoggingInterceptor by lazy {
         HttpLoggingInterceptor().apply {
             level = if (debugLogging) {
@@ -126,15 +113,11 @@ object RetrofitClient {
             .addHeader("Accept", "application/json")
             .addHeader("Content-Type", "application/json")
 
-        // هویت نشست فعلی برای احراز هویت endpointهای محافظت‌شده (مثل app_api.php)
-        // در صورت وجود به هر درخواست افزوده می‌شود؛ قبل از ورود کاربر این مقادیر
-        // خالی هستند و هدرها اضافه نمی‌شوند.
+        // هویت نشست فعلی در صورت وجود به هر درخواست افزوده می‌شود؛ قبل از ورود کاربر این مقادیر خالی هستند و هدرها اضافه نمی‌شوند
         AuthSession.username.takeIf { it.isNotEmpty() }?.let { builder.addHeader("X-Username", it) }
         AuthSession.deviceId.takeIf { it.isNotEmpty() }?.let { builder.addHeader("X-Device-Id", it) }
         AuthSession.sessionToken.takeIf { it.isNotEmpty() }?.let { builder.addHeader("X-Session-Token", it) }
-        // قفل نسخه‌ی منقضی (min_allowed_version) قبلاً فقط سمت کلاینت اعمال می‌شد؛
-        // یک کلاینت قدیمی/دستکاری‌شده که دیالوگ VersionExpired را دور بزند همچنان
-        // به همه‌ی APIهای تجاری دسترسی کامل داشت (S-4)
+        // قفل نسخه‌ی منقضی قبلاً فقط سمت کلاینت بود؛ یک کلاینت دستکاری‌شده می‌توانست با دور زدن دیالوگ همچنان به همه‌ی APIها دسترسی داشته باشد
         appVersionName?.let { builder.addHeader("X-App-Version", it) }
 
         val request = builder
@@ -143,14 +126,10 @@ object RetrofitClient {
         chain.proceed(request)
     }
 
-    // چون چند صفحه هم‌زمان به همین هاست poll می‌کنند، pool بزرگ‌تر از پیش‌فرض OkHttp
-    // (۵ اتصال) باعث می‌شود اتصالات idle بین pollها دوباره استفاده شوند نه بسته/باز.
+    // چون چند صفحه هم‌زمان poll می‌کنند، pool بزرگ‌تر از پیش‌فرض OkHttp باعث می‌شود اتصالات idle دوباره استفاده شوند نه بسته/باز
     private val connectionPool = ConnectionPool(10, 5, TimeUnit.MINUTES)
 
-    // I-05: تمدید خودکار access token با refresh token روی ۴۰۱ با
-    // code=access_token_expired. tokenStore!! چون همین invariant از قبل روی
-    // appContext در این فایل وجود دارد (باید قبل از اولین دسترسی به apiService
-    // مقداردهی شود).
+    // تمدید خودکار access token با refresh token روی ۴۰۱ با code=access_token_expired؛ tokenStore باید قبل از اولین دسترسی به apiService مقداردهی شده باشد
     private val tokenAuthenticator: TokenAuthenticator by lazy {
         TokenAuthenticator(
             baseUrl = BASE_URL,
@@ -158,8 +137,7 @@ object RetrofitClient {
         )
     }
 
-    // Configure OkHttpClient — lazy تا appContext قبل از ساخته‌شدن این کلاینت
-    // (توسط RetrofitClient.init در AtkCargoApplication.onCreate) فرصت مقداردهی داشته باشد
+    // ساخت OkHttpClient؛ lazy تا appContext قبل از ساخته‌شدن این کلاینت (در RetrofitClient.init) فرصت مقداردهی داشته باشد
     private val okHttpClient: OkHttpClient by lazy {
         val builder = OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
@@ -171,8 +149,7 @@ object RetrofitClient {
             .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
 
-        // فقط برای GETهایی که سرور صریحاً Cache-Control/ETag می‌فرستد (مثل
-        // getShipsList) اثر دارد؛ endpointهای نوشتن/حذف بدون این هدرها کش نمی‌شوند.
+        // فقط برای GETهایی که سرور صریحاً Cache-Control/ETag می‌فرستد اثر دارد؛ endpointهای نوشتن/حذف بدون این هدرها کش نمی‌شوند
         appContext?.let { ctx ->
             builder.cache(Cache(File(ctx.cacheDir, "http_cache"), HTTP_CACHE_SIZE_BYTES))
         }
@@ -189,8 +166,7 @@ object RetrofitClient {
             .build()
     }
 
-    // Router v2 — تنها API stack کلاینت (v1/protected_proxy.php کاملاً حذف
-    // شده، هم سمت سرور هم سمت کلاینت — DEEP_CODE_AUDIT.md #Phase3.1/3.2).
+    // Router v2 تنها API stack کلاینت است؛ v1/protected_proxy.php کاملاً از سرور و کلاینت حذف شده
     val apiServiceV2: ApiServiceV2 by lazy {
         retrofit.create(ApiServiceV2::class.java)
     }

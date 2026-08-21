@@ -56,10 +56,7 @@ import com.atk.atk_cargo.ui.theme.Red400
 import com.atk.atk_cargo.ui.theme.Red50
 import com.atk.atk_cargo.ui.theme.Red700
 
-// این فایل کارت‌های اطلاعاتی (RealTimeLoadingCard, CompactInfo, StatisticItem) را از
-// RealTimeLoadingBottomSheet.kt جدا نگه می‌دارد (A1-6، بازسازی ساختاری). وابسته به پالت
-// رنگ internal تعریف‌شده در RealTimeLoadingBottomSheet.kt (RealTime*) که چون هم‌پکیج
-// است نیازی به import ندارد.
+// کارت‌های اطلاعاتی، جدا از RealTimeLoadingBottomSheet.kt (A1-6) اما هم‌پکیج و بدون import اضافه
 
 @Composable
 fun RealTimeLoadingCard(
@@ -75,9 +72,7 @@ fun RealTimeLoadingCard(
         border = BorderStroke(1.dp, RealTimeCardBorder),
     ) {
         val verticalLineColor = RealTimeAccent
-        // Path به‌جای ساخته‌شدن در هر draw pass، یک‌بار با remember نگه داشته
-        // می‌شود و در drawBehind فقط reset+بازسازی می‌شود (P-4: کاهش GC churn
-        // با چند ده کارت هم‌زمان + animateContentSize).
+        // Path با remember یک‌بار نگه داشته می‌شود تا در هر draw pass ساخته نشود و GC churn کم شود
         val verticalLinePath = remember { Path() }
 
         Box(
@@ -133,9 +128,7 @@ fun RealTimeLoadingCard(
                         color = RealTimeMutedText
                     )
 
-                    // C-4: شرکت باربری قبلاً اینجا (کنار آیکون Person) و هم در ردیف
-                    // آماری پایین («شرکت باربری») نمایش داده می‌شد؛ نسخه‌ی هدر حذف شد
-                    // چون ردیف پایین با برچسب صریح خواناتر و کامل‌تر است.
+                    // نمایش شرکت باربری در هدر حذف شد چون ردیف آماری پایین با برچسب صریح خواناتر است
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surface,
@@ -235,8 +228,7 @@ fun RealTimeLoadingCard(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                // ترتیب برچسب باید با ترتیب مقادیر زیرش (که به‌دلیل
-                                // textDirection = Ltr همیشه خروج/ورود چاپ می‌شود) یکی باشد.
+                                // ترتیب برچسب باید با مقادیر زیرش که همیشه با textDirection = Ltr چاپ می‌شوند یکی باشد
                                 text = if (showEntry) "خروج/ورود" else "خروجی",
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)

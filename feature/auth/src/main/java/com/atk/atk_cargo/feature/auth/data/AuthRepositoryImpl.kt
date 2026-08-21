@@ -17,11 +17,7 @@ import java.util.UUID
 
 // ===== DEPENDENCIES / IMPORTS =====
 
-/**
- * پیاده‌سازی AuthRepository.
- * تمام ارتباط با API و DataStore در اینجا متمرکز است.
- * ViewModel از جزئیات شبکه و ذخیره‌سازی بی‌خبر است.
- */
+// پیاده‌سازی AuthRepository که تمام ارتباط با API و DataStore را متمرکز می‌کند
 class AuthRepositoryImpl(
     private val context: Context,
     private val apiServiceV2: ApiServiceV2,
@@ -30,11 +26,7 @@ class AuthRepositoryImpl(
 
     // ===== SERVICES =====
 
-    /**
-     * شناسه پایدار دستگاه:
-     * ۱. ANDROID_ID (ثابت تا Factory Reset)
-     * ۲. UUID ذخیره‌شده در DataStore (Fallback)
-     */
+    // شناسه پایدار دستگاه: ابتدا ANDROID_ID، در صورت نبود از UUID ذخیره‌شده در DataStore
     @SuppressLint("HardwareIds")
     private suspend fun getOrCreateDeviceId(): String {
         return withContext(Dispatchers.IO) {
@@ -95,9 +87,7 @@ class AuthRepositoryImpl(
                     body.sessionToken?.let { token ->
                         userPreferencesManager.saveSessionToken(token)
                     }
-                    // I-05: نصب‌های اپ قبل از این تغییر این فیلد را در پاسخ
-                    // نمی‌بینند (سرور قدیمی‌تر) — refreshToken آن‌وقت null است،
-                    // پس چیزی ذخیره نمی‌شود و رفتار قبلی (بدون refresh) حفظ می‌شود.
+                    // اگر سرور قدیمی این فیلد را نفرستد، refreshToken چیزی ذخیره نمی‌شود
                     body.refreshToken?.let { refreshToken ->
                         userPreferencesManager.saveRefreshToken(refreshToken)
                     }

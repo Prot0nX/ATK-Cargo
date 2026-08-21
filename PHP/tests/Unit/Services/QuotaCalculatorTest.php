@@ -8,11 +8,7 @@ namespace App\Tests\Unit\Services;
 use App\Services\QuotaCalculator;
 use PHPUnit\Framework\TestCase;
 
-/**
- * تست‌های واحد منطق محاسبه‌ی تناژ/وضعیت کوتاژ (I-02) — این اعداد مستقیماً
- * روی تصمیم‌های عملیاتی واقعی (چند تن قابل بارگیری است، کوتاژ فعال است یا
- * نه) اثر می‌گذارند و قبل از این هیچ تست خودکاری نداشتند.
- */
+// تست‌های واحد منطق محاسبه‌ی تناژ و وضعیت کوتاژ (I-02)
 final class QuotaCalculatorTest extends TestCase {
     private QuotaCalculator $calculator;
 
@@ -42,8 +38,7 @@ final class QuotaCalculatorTest extends TestCase {
             isPercentageRestricted: true
         );
 
-        // isPercentageRestricted=true ولی percentage=null یعنی هیچ مقداری برای
-        // کسر کردن مشخص نشده — نباید کرش کند یا مقدار غیرمنتظره برگرداند.
+        // وقتی percentage خالی است نباید کرش کند یا مقدار غیرمنتظره برگرداند.
         $this->assertSame(500.0, $result);
     }
 
@@ -78,9 +73,7 @@ final class QuotaCalculatorTest extends TestCase {
             isPercentageRestricted: true
         );
 
-        // نتیجه می‌تواند منفی شود (باقی‌مانده کمتر از کل کسرشونده)؛ این
-        // متد خودش این حالت را محدود نمی‌کند — مسئولیت لایه‌ی بالاتر است،
-        // پس تست فقط رفتار فعلی (بدون clamp) را مستند می‌کند.
+// نتیجه می‌تواند منفی شود؛ این متد مقدار را محدود نمی‌کند، مستندسازی رفتار فعلی است.
         $this->assertSame(-500.0, $result);
     }
 
@@ -122,8 +115,7 @@ final class QuotaCalculatorTest extends TestCase {
     }
 
     public function testOverloadedQuotaAboveHundredPercentStillShowsCompletedMessage(): void {
-        // اگر به هر دلیلی (مثلاً بارگیری همزمان) عدد از ۱۰۰٪ رد شود، پیام
-        // باید همچنان «تکمیل شده» باشد، نه یک پیام غیرمنتظره یا خطا.
+        // اگر عدد از ۱۰۰٪ رد شود، پیام باید همچنان «تکمیل شده» باشد.
         $message = $this->calculator->generateStatusMessage(
             isActive: true,
             percentageLoaded: 104.5,

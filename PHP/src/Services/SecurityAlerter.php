@@ -7,18 +7,7 @@ namespace App\Services;
 
 use App\Core\Logger;
 
-/**
- * اعلان فوری برای رویدادهای امنیتی بحرانی (DEEP_CODE_AUDIT.md → «نبود
- * مانیتورینگ و هشدار» → مورد ۲). قبلاً رویدادهایی مثل REFRESH_TOKEN_REUSE_DETECTED
- * فقط در یک فایل متنی نوشته می‌شدند که کسی نمی‌خواند.
- *
- * کانال: Telegram Bot API (ساده‌ترین راه بدون نیاز به SMTP/mail server روی
- * هاست اشتراکی). با نبود SECURITY_ALERT_TELEGRAM_BOT_TOKEN/CHAT_ID در .env
- * کاملاً no-op است — یعنی نصب این قابلیت هیچ رفتار فعلی را نمی‌شکند.
- *
- * هرگز نباید مسیر اصلی درخواست (login/refresh) را با خطای شبکه‌ی خودش قطع
- * کند: تمام خطاها فقط لاگ می‌شوند، هیچ‌کدام throw نمی‌شوند.
- */
+// اعلان فوری رویدادهای امنیتی بحرانی از طریق Telegram Bot API؛ بدون تنظیم توکن/چت‌آیدی کاملاً no-op است و خطاهایش هرگز throw نمی‌شوند
 class SecurityAlerter {
     private static ?self $instance = null;
 
@@ -48,8 +37,7 @@ class SecurityAlerter {
     /**
      * @param string $event شناسه‌ی کوتاه رویداد، مثل REFRESH_TOKEN_REUSE_DETECTED
      * @param string $message متن فارسی قابل‌خواندن برای ادمین
-     * @param string|null $dedupeKey کلید یکتا برای cooldown (پیش‌فرض: خود $event)؛
-     *        مثلاً "ACCOUNT_LOCKED:username" تا قفل‌شدن مکرر یک حساب طی ۵ دقیقه فقط یک بار اعلان بدهد.
+     * @param string|null $dedupeKey کلید یکتا برای cooldown (پیش‌فرض: خود $event)؛ مثلاً "ACCOUNT_LOCKED:username" تا اعلان تکراری طی ۵ دقیقه ارسال نشود
      */
     public function alert(string $event, string $message, ?string $dedupeKey = null): void {
         try {

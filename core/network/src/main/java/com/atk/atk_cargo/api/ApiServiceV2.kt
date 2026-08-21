@@ -61,12 +61,7 @@ interface ApiServiceV2 {
     @GET("api/v2/index.php")
     suspend fun getShipDetails(
         @Query("route") route: String,
-        // سرور این پاسخ را با Cache-Control: max-age=6 می‌فرستد (سمت‌سرور،
-        // برای بار عادی/polling مفید است)؛ OkHttp طبق آن تا ۶ ثانیه اصلاً
-        // درخواست شبکه نمی‌زند و پاسخ کش‌شده را برمی‌گرداند — یعنی رفرش بلافاصله
-        // بعد از یک نوشتن (toggleQuotaStatus/editQuota/...) می‌توانست همان
-        // پاسخ قدیمی را نشان دهد. "no-cache" این کش محلی را دور می‌زند و
-        // OkHttp را مجبور به یک درخواست شرطی واقعی (If-None-Match) می‌کند.
+        // "no-cache" کش محلی OkHttp را دور می‌زند تا رفرش بعد از نوشتن، پاسخ قدیمیِ کش‌شده را برنگرداند
         @Header("Cache-Control") cacheControl: String? = null
     ): Response<Ship>
 
@@ -221,17 +216,14 @@ interface ApiServiceV2 {
         @Query("route") route: String = "cargo"
     ): Response<SaveOrUpdateResponse>
 
-    // PATCH/DELETE — قبلاً POST بودند؛ فعل معنایی درست، هماهنگ با
-    // routes/api_v2.php سمت سرور (DEEP_CODE_REVIEW.md Phase4 #33).
+    // PATCH/DELETE قبلاً POST بودند؛ فعل معنایی درست، هماهنگ با routes/api_v2.php سمت سرور
     @PATCH("api/v2/index.php")
     suspend fun updateCargoInfo(
         @Body cargoInfo: CargoInfo,
         @Query("route") route: String = "cargo/update"
     ): Response<SaveOrUpdateResponse>
 
-    // @DELETE استاندارد Retrofit اجازه‌ی @Body نمی‌دهد ("Non-body HTTP
-    // method cannot contain @Body") — این endpoint id/password را در بدنه
-    // می‌فرستد، پس از @HTTP(hasBody=true) استفاده می‌شود.
+    // @DELETE استاندارد Retrofit با @Body کار نمی‌کند، پس این endpoint (که id/password در بدنه می‌فرستد) از @HTTP(hasBody=true) استفاده می‌کند
     @HTTP(method = "DELETE", path = "api/v2/index.php", hasBody = true)
     suspend fun deleteCargo(
         @Body cargoInfoRequest: CargoInfoRequest,
@@ -251,9 +243,7 @@ interface ApiServiceV2 {
     ): Response<Void>
 
     // ===== USERS =====
-    // برخلاف الگوی v1 (که action را در query می‌فرستد)، اینجا نیازی به
-    // @Query("action") نیست چون خودِ handler هر route در api_v2.php
-    // $_GET['action'] را قبل از صدا زدن UserController::handle تنظیم می‌کند.
+    // برخلاف v1، اینجا نیازی به @Query("action") نیست چون handler هر route خودش action را قبل از UserController::handle تنظیم می‌کند
 
     @GET("api/v2/index.php")
     suspend fun getAllUsers(
@@ -294,8 +284,7 @@ interface ApiServiceV2 {
         @Query("route") route: String
     ): ApiResponse
 
-    // @HTTP(hasBody=true) نه @DELETE — همان دلیل بالا (@DELETE استاندارد
-    // Retrofit با @Body کامپایل نمی‌شود).
+    // @HTTP(hasBody=true) نه @DELETE — همان دلیل بالا (@DELETE استاندارد Retrofit با @Body کامپایل نمی‌شود)
     @HTTP(method = "DELETE", path = "api/v2/index.php", hasBody = true)
     suspend fun deleteUser(
         @Body request: DeleteUserRequest,
@@ -332,8 +321,7 @@ interface ApiServiceV2 {
         @Query("route") route: String
     ): Response<ApiResponse>
 
-    // @HTTP(hasBody=true) نه @DELETE — همان دلیل بالا (@DELETE استاندارد
-    // Retrofit با @Body کامپایل نمی‌شود).
+    // @HTTP(hasBody=true) نه @DELETE — همان دلیل بالا (@DELETE استاندارد Retrofit با @Body کامپایل نمی‌شود)
     @HTTP(method = "DELETE", path = "api/v2/index.php", hasBody = true)
     suspend fun deleteChatMessage(
         @Body request: DeleteMessageRequest,
@@ -376,8 +364,7 @@ interface ApiServiceV2 {
     ): Response<PermissionSyncResponse>
 
     // ===== AUTH =====
-    // auth/refresh از قبل جدا در TokenRefresher.kt (با OkHttp خام، نه این
-    // interface) مهاجرت شده — همان الگوی route=... را اثبات کرده بود.
+    // auth/refresh قبلاً جدا در TokenRefresher.kt (با OkHttp خام) پیاده‌سازی شده و همان الگوی route=... را استفاده می‌کند
 
     @POST("api/v2/index.php")
     suspend fun checkLogin(

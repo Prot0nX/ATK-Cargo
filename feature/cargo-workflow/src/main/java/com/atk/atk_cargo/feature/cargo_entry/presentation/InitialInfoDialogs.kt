@@ -50,10 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.atk.atk_cargo.feature.cargo_entry.domain.formatNumber
 
-// دیالوگ‌های تأیید/تکراری/عدم‌تطابق/پیام صفحه‌ی ثبت اطلاعات اولیه بار — از
-// InitialInfoScreen.kt به این فایل منتقل شد (DEEP_CODE_AUDIT.md #Phase3.7،
-// شکستن God Composable). rememberInitialInfoPalette در InitialInfoScreen.kt
-// است؛ هم‌پکیج است، نیازی به import اضافه نیست.
+// دیالوگ‌های تأیید، تکراری، عدم‌تطابق و پیام صفحه‌ی ثبت اطلاعات اولیه بار که از InitialInfoScreen.kt منتقل شده‌اند
 
 @Composable
 fun ConfirmationDialog(

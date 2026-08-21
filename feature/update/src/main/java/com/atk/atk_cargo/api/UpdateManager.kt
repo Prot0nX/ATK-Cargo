@@ -273,9 +273,7 @@ class UpdateManager(
         return 0
     }
     
-    /**
-     * دریافت نسخه فعلی برنامه
-     */
+    // دریافت نسخه فعلی برنامه
     private fun getCurrentAppVersion(): String {
         return try {
             val packageInfo = appContext.packageManager.getPackageInfo(appContext.packageName, 0)
@@ -285,14 +283,7 @@ class UpdateManager(
         }
     }
 
-    /**
-     * دامنه‌ی `download_url` را با میزبان `Constants.BASE_URL` (همان دامنه‌ای
-     * که سرور واقعی روی آن اجرا می‌شود) مقایسه می‌کند تا نفوذ به سرور نتواند
-     * کلاینت را به دانلود APK از یک میزبان دلخواه هدایت کند — امضای APK
-     * (`PackageManager` + `Secrets.getExpectedSignatureHash()`) در نصب یک
-     * لایه‌ی دفاعی دیگر است، این فقط جلوی شروع دانلود از میزبان نامعتبر را
-     * می‌گیرد (DEEP_CODE_REVIEW.md Phase2.16).
-     */
+    // بررسی می‌کند که download_url متعلق به همان دامنه معتبر سرور باشد تا از هدایت دانلود به میزبان جعلی جلوگیری شود
     private fun isTrustedDownloadUrl(url: String): Boolean = runCatching {
         val requestHost = java.net.URI(url).takeIf { it.scheme == "https" }?.host ?: return false
         val trustedHost = java.net.URI(Constants.BASE_URL).host ?: return false
@@ -303,10 +294,7 @@ class UpdateManager(
     fun startDownload(downloadUrl: String, startPosition: Long = 0) {
         if (downloadJob?.isActive == true) return
 
-        // download_url و sha256 هر دو از یک پاسخ می‌آیند؛ بدون این بررسی،
-        // نفوذ به سرور (نه فقط MITM شبکه‌ای که certificate pinning آن را
-        // پوشش می‌دهد) می‌تواند APK دلخواه توزیع کند — DEEP_CODE_REVIEW.md
-        // Phase2.16.
+        // بدون این بررسی، نفوذ به سرور می‌تواند کلاینت را به دانلود APK دلخواه هدایت کند
         if (!isTrustedDownloadUrl(downloadUrl)) {
             _downloadState.value = DownloadState.Error("آدرس به‌روزرسانی نامعتبر است.")
             return
@@ -373,9 +361,7 @@ class UpdateManager(
                 if (downloadedBytes.get() >= totalBytes) {
                     val expectedSha256 = _updateInfo.value?.sha256.orEmpty()
                     if (expectedSha256.isEmpty()) {
-                        // fail-closed: بدون هش مرجع از سرور، امکان تأیید یکپارچگی
-                        // فایل وجود ندارد؛ قبلاً این حالت بی‌صدا به‌عنوان معتبر
-                        // علامت می‌خورد (DEEP_CODE_AUDIT.md #Phase1.5).
+                        // fail-closed: بدون هش مرجع از سرور، فایل نامعتبر تلقی می‌شود
                         currentDownloadFile.delete()
                         _downloadState.value = DownloadState.Error("امکان تأیید یکپارچگی فایل وجود ندارد؛ به‌روزرسانی لغو شد.")
                     } else if (!verifyFileSha256(currentDownloadFile, expectedSha256)) {

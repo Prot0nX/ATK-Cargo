@@ -5,9 +5,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.dp
 
-/**
- * مشخصات و پدینگ‌های پیش‌فرض برای انواع استایل‌های کامپوننت.
- */
+// مشخصات و پدینگ‌های پیش‌فرض برای انواع استایل‌های کامپوننت
 @Immutable
 data class ComponentStyles(
     val buttonPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 12.dp),

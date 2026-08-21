@@ -4,11 +4,7 @@ object AnimationManager {
     private var performanceScore: Int = 50
     private var performanceAllowsAnimations: Boolean = true
 
-    // پیش‌فرض true تا وقتی MainActivity مقدار واقعی سیستم را در startup
-    // بخواند (Settings.Global.ANIMATOR_DURATION_SCALE) — کاربری که
-    // «حذف انیمیشن‌ها» را در تنظیمات سیستم فعال کرده (الزام دسترس‌پذیری
-    // برای افراد حساس به حرکت، یا صرفه‌جویی باتری) دیگر انیمیشن نمی‌بیند
-    // (DEEP_CODE_AUDIT.md #Phase3.12).
+    // پیش‌فرض true تا زمانی که MainActivity مقدار واقعی تنظیم سیستمی انیمیشن را بخواند
     private var systemAllowsAnimations: Boolean = true
 
     fun setPerformanceScore(score: Int) {

@@ -43,15 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
-/**
- * زبان طراحی مشترک دیالوگ‌های صفحه ثبت/خروج حواله (RegisterCargoScreen)، بر
- * پایه‌ی همان الگویی که دیالوگ «حواله تکراری» (DuplicateConfirmationDialog)
- * اولین بار معرفی کرد: کارت گرد با انیمیشن ورود/خروج فنری، نشان دایره‌ای رنگی
- * در بالا، عنوان، یک کارت ثانویه برای محتوای اصلی، و یک ردیف دکمه در پایین.
- * بقیه‌ی دیالوگ‌های این صفحه (اطلاع‌رسانی، ثبت وزن خالص، تغییر کوتاژ، حواله‌های
- * تکراری) قبلاً هرکدام پوسته‌ی جدا و ناهماهنگ خودشان را داشتند؛ این فایل آن
- * پوسته‌ی مشترک را یک‌بار تعریف می‌کند تا همه از همینجا استفاده کنند.
- */
+// زبان طراحی مشترک همه‌ی دیالوگ‌های صفحه ثبت/خروج حواله، برگرفته از الگوی دیالوگ «حواله تکراری»
 internal val DialogShellCornerRadius = 24.dp
 internal val DialogContentCornerRadius = 12.dp
 internal val DialogButtonCornerRadius = 12.dp
@@ -75,11 +67,7 @@ internal fun rememberDialogExitTransition() = remember {
     ) + fadeOut(animationSpec = tween(300))
 }
 
-/**
- * پوسته‌ی مشترک: Dialog + Surface گرد (۹۰٪ عرض، گوشه‌ی ۲۴dp) + انیمیشن
- * ورود/خروج فنری + Column داخلی با padding استاندارد. محتوای هر دیالوگ فقط
- * بدنه‌ی داخلی (آیکن، عنوان، متن/فرم، دکمه‌ها) را با [content] پر می‌کند.
- */
+// پوسته‌ی مشترک دیالوگ: Surface گرد با انیمیشن ورود/خروج فنری و Column داخلی استاندارد
 @Composable
 internal fun StandardDialogShell(
     onDismissRequest: () -> Unit,

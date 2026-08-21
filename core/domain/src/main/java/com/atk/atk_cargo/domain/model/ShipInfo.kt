@@ -1,11 +1,6 @@
 package com.atk.atk_cargo.domain.model
 
-/**
- * مدل UI بخش «اطلاعات کشتی» صفحه‌ی ثبت حواله — از QuotaInfo محلی ساخته
- * می‌شود (RegisterCargoScreen)، هرگز مستقیماً از سرور دریافت یا به سرور
- * ارسال نمی‌شود، پس اساساً یک مدل دامنه/UI است نه DTO شبکه. با
- * DEEP_CODE_AUDIT.md #Phase3.6 از data/model (لایه‌ی DTO) به اینجا منتقل شد.
- */
+// مدل UI بخش «اطلاعات کشتی» صفحه‌ی ثبت حواله، از QuotaInfo محلی ساخته می‌شود و هرگز مستقیم با سرور رد و بدل نمی‌شود
 data class ShipInfo(
     val shipName: String,
     val loadingWarehouse: String,

@@ -276,11 +276,7 @@ fun QuotasList(
                             (quota.cargoOwner?.contains(searchQuery, ignoreCase = true) == true)
                 }
                 .groupBy {
-                    // cargoOwner ممکن است null باشد؛ نگاشت آن به کلید null یعنی
-                    // کوتاژهای بدون صاحب کالا بدون هیچ خطایی از لیست حذف می‌شوند
-                    // (groupName?.let در پایین) یا در صورت هم‌زمانی با گروه ""
-                    // باعث تداخل کلید LazyColumn می‌شوند. برچسب صریح مطابق همان
-                    // قراردادی است که سرور در getGroupedQuotas استفاده می‌کند.
+                    // به‌جای نگاشت cargoOwner تهی به کلید null، برچسب صریح "نامشخص" مطابق قرارداد سرور در getGroupedQuotas استفاده می‌شود تا تداخل کلید پیش نیاید
                     when (currentGroupingMode) {
                         WarehouseQuotaGroupingMode.BY_SHIPPING_COMPANY -> it.shippingCompany
                         WarehouseQuotaGroupingMode.BY_CARGO_OWNER -> it.cargoOwner ?: "نامشخص"
@@ -302,15 +298,11 @@ fun QuotasList(
 
             val sortedEntries = when (currentGroupSortingMode) {
                 GroupSortingMode.ALPHABETICAL -> {
-                    // sortedBy روی String از ترتیب کد یونیکد استفاده می‌کند، نه
-                    // ترتیب الفبایی فارسی؛ حروف مشابه عربی/فارسی ("ی"/"ي"،
-                    // "ک"/"ك") در کدپوینت‌های دور از هم مرتب می‌شوند.
+                    // sortedBy معمولی ترتیب کدپوینت یونیکد را می‌دهد نه الفبای فارسی، پس از persianCollator استفاده می‌شود
                     groupedMap.entries.sortedWith(compareBy(persianCollator) { it.key ?: "" })
                 }
                 GroupSortingMode.REMAINING_TONNAGE_ASC, GroupSortingMode.REMAINING_TONNAGE_DESC -> {
-                    // مجموع مانده‌ی هر گروه یک‌بار محاسبه می‌شود، نه به ازای هر
-                    // مقایسه‌ی sort (قبلاً groupedMap[groupName]?.sumOf {...}
-                    // داخل کامپریتور بود: هم jump اضافی در Map، هم جمع تکراری).
+                    // مجموع مانده‌ی هر گروه یک‌بار از پیش محاسبه می‌شود تا در هر مقایسه‌ی sort تکرار نشود
                     val remainingTotals = groupedMap.mapValues { (_, groupQuotas) ->
                         groupQuotas.sumOf { calculateRemainingAfterPercentage(it).toDouble() }
                     }
@@ -395,6 +387,4 @@ private fun SortPill(
     }
 }
 
-// پنل گروه/انتخاب حالت گروه‌بندی در QuotaGroupContent.kt و کارت تکی
-// کوتاژ/دیالوگ ویرایش در QuotaCardComponents.kt هستند (DEEP_CODE_AUDIT.md
-// #Phase3.7، شکستن God Composable). هم‌پکیج‌اند، نیازی به import اضافه نیست.
+// پنل گروه‌بندی در QuotaGroupContent.kt و کارت/دیالوگ ویرایش کوتاژ در QuotaCardComponents.kt هستند (شکستن God Composable)

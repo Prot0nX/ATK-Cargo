@@ -8,11 +8,7 @@ import com.atk.atk_cargo.data.model.UpdateUserRequest
 import com.atk.atk_cargo.data.model.User
 import kotlinx.coroutines.launch
 
-// هر دو تماس شبکه‌ی زیر قبلاً با rememberCoroutineScope()/LaunchedEffect از داخل
-// Composable اجرا می‌شدند — با خروج کاربر از صفحه کنسل می‌شدند
-// (DEEP_CODE_REVIEW.md Top20 #5، فایل‌های ۴ و ۵ از ۹). viewModelScope در برابر
-// ناوبری مقاوم است؛ منطق سطربه‌سطر عیناً حفظ شده و ViewModel فقط نتیجه را با
-// callback به Composable برمی‌گرداند.
+// تماس‌های شبکه با viewModelScope اجرا می‌شوند تا با خروج از صفحه کنسل نشوند
 class ProfileViewModel(
     private val apiServiceV2: ApiServiceV2
 ) : ViewModel() {

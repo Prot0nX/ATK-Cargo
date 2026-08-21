@@ -4,12 +4,7 @@ import androidx.camera.core.ImageProxy
 import com.google.mlkit.vision.common.InputImage
 import kotlin.math.sqrt
 
-/**
- * روی هر فریم دوربین اجرا می‌شود، پس تعداد بافرهای موقت عمداً به حداقل رسیده:
- * یک Bitmap (همان فریم دوربین، بدون کپی دوم) + یک آرایه‌ی پیکسل اصلی + یک بافر
- * scratch مشترک بین فیلترهای میانه و لبه (به‌جای آرایه‌ی جداگانه در هرکدام).
- * نسخه‌ی قبلی یک Bitmap دوم (Canvas+ColorMatrix) و دو آرایه‌ی موقت اضافه می‌ساخت.
- */
+// روی هر فریم دوربین اجرا می‌شود؛ بافرهای موقت برای کارایی بیشتر به حداقل رسیده‌اند
 fun preprocessImage(imageProxy: ImageProxy): InputImage {
     val bitmap = imageProxy.toBitmap()
     val width = bitmap.width

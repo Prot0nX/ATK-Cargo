@@ -9,19 +9,9 @@ use App\Core\Logger;
 use App\Exceptions\ApiException;
 use App\Repositories\LicenseRepository;
 
-/**
- * منطق تجاری پنل مدیریت لایسنس (PHP/Lic) — جدا از لایه‌ی HTTP، تا api.php
- * فقط یک نگاشت نازک action→متد بماند.
- *
- * خطاهای قابل نمایش به کاربر همگی ApiException با کد وضعیت مناسب‌اند؛
- * api.php آن‌ها را به پاسخ JSON تبدیل می‌کند (همان الگوی $safeCall در
- * src/routes/api_v2.php).
- */
+// منطق تجاری پنل مدیریت لایسنس، جدا از لایه‌ی HTTP؛ خطاهای کاربر با ApiException به JSON تبدیل می‌شوند
 final class LicenseAdminService {
-    /**
-     * پلن‌های مجاز. مقدار در دیتابیس ذخیره می‌شود، برچسب فارسی فقط برای
-     * نمایش است. افزودن پلن جدید فقط همین آرایه را لازم دارد.
-     */
+    // پلن‌های مجاز؛ مقدار در دیتابیس ذخیره می‌شود و برچسب فارسی فقط برای نمایش است
     public const PLANS = [
         'standard' => 'استاندارد',
         'pro'      => 'حرفه‌ای',
@@ -34,10 +24,7 @@ final class LicenseAdminService {
     private const MAX_CONTACT_EMAIL = 190;
     private const MAX_NOTES = 2000;
 
-    /**
-     * تعداد تلاش برای یافتن کلید یکتا. با ۱۲۸ بیت آنتروپی، برخورد عملاً
-     * ناممکن است؛ این حلقه فقط یک محافظ در برابر خرابی منبع تصادف است.
-     */
+    // تعداد تلاش برای یافتن کلید یکتا؛ فقط محافظ در برابر خرابی منبع تصادف
     private const MAX_KEY_ATTEMPTS = 10;
 
     private LicenseRepository $repository;
@@ -149,9 +136,7 @@ final class LicenseAdminService {
             throw new ApiException('لایسنس مورد نظر یافت نشد.', 404);
         }
 
-        // کلید کامل عمداً در جزئیات ممیزی ثبت می‌شود: پس از حذف رکورد، این
-        // تنها ردی است که نشان می‌دهد کدام کلید از کار افتاده — لازم برای
-        // پاسخ به مشتری‌ای که ناگهان لایسنسش کار نمی‌کند.
+        // کلید کامل عمداً در جزئیات ممیزی ثبت می‌شود تا پس از حذف رکورد قابل پیگیری بماند
         AuditLogger::log($actor, 'license.delete', 'license', (string)$id, [
             'company_name' => $existing['company_name'],
             'license_key'  => $existing['license_key'],
@@ -159,10 +144,8 @@ final class LicenseAdminService {
         $this->logger->security("License deleted (id={$id}, company={$existing['company_name']}) by {$actor}");
     }
 
+    // ردیف خام دیتابیس به شکل مصرفی پنل تبدیل می‌شود؛ کلیدها snake_case می‌مانند تا با دیتابیس هم‌نام باشند
     /**
-     * ردیف خام دیتابیس → شکل مصرفی پنل. کلیدها snake_case می‌مانند تا با
-     * ستون‌های دیتابیس هم‌نام باشند و ترجمه‌ی اضافی لازم نشود.
-     *
      * @param array<string,mixed> $row
      * @return array<string,mixed>
      */
@@ -199,10 +182,8 @@ final class LicenseAdminService {
         return $row;
     }
 
+    // اعتبارسنجی و نرمال‌سازی ورودی فرم؛ فقط کلیدهای شناخته‌شده برمی‌گردند
     /**
-     * اعتبارسنجی و نرمال‌سازی ورودی فرم. فقط کلیدهای شناخته‌شده برمی‌گردند،
-     * پس ورودی اضافی کاربر هرگز به کوئری نمی‌رسد.
-     *
      * @param array<string,mixed> $input
      * @return array{company_name:string,plan:string,expires_at:?string,contact_name:?string,contact_phone:?string,contact_email:?string,notes:?string}
      */
@@ -234,14 +215,7 @@ final class LicenseAdminService {
         ];
     }
 
-    /**
-     * ورودی از فرم به شکل `datetime-local` می‌آید (YYYY-MM-DDTHH:MM) یا
-     * فقط تاریخ (YYYY-MM-DD). خالی = نامحدود (NULL در دیتابیس).
-     *
-     * عمداً تاریخ گذشته پذیرفته می‌شود: ادمین باید بتواند یک لایسنس را با
-     * تنظیم تاریخ گذشته فوراً منقضی کند، یا انقضای تاریخی یک قرارداد تمام‌شده
-     * را ثبت کند.
-     */
+    // ورودی از فرم به شکل datetime-local یا فقط تاریخ می‌آید؛ خالی یعنی نامحدود، و تاریخ گذشته عمداً پذیرفته می‌شود
     private function normalizeExpiry(mixed $value): ?string {
         if (!is_string($value)) {
             return null;
@@ -286,8 +260,7 @@ final class LicenseAdminService {
         if ($value === null) {
             return null;
         }
-        // ارقام فارسی/عربی به لاتین تبدیل می‌شوند تا شماره‌ی ذخیره‌شده
-        // یکدست و قابل جستجو بماند.
+        // ارقام فارسی/عربی به لاتین تبدیل می‌شوند تا شماره‌ی ذخیره‌شده یکدست و قابل جستجو بماند
         $value = strtr($value, [
             '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
             '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
@@ -311,12 +284,7 @@ final class LicenseAdminService {
         return $value;
     }
 
-    /**
-     * قرارداد کلید عمداً دست‌نخورده از manage_licenses.php منتقل شده:
-     * ۳۲ کاراکتر hex بزرگ. تغییر این قالب کلاینت اندروید را می‌شکند، چون
-     * LicenseController صریحاً strlen === 32 را چک می‌کند و کلید در
-     * app/src/main/cpp/secrets.cpp کامپایل شده است.
-     */
+    // قرارداد کلید (۳۲ کاراکتر hex بزرگ) دست‌نخورده مانده؛ تغییر آن کلاینت اندروید را می‌شکند
     private function generateUniqueKey(): string {
         for ($attempt = 0; $attempt < self::MAX_KEY_ATTEMPTS; $attempt++) {
             $key = strtoupper(bin2hex(random_bytes(16)));

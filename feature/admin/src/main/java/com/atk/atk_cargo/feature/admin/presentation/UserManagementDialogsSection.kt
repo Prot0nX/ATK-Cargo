@@ -69,11 +69,7 @@ import com.atk.atk_cargo.data.model.UpdateUserRequest
 import com.atk.atk_cargo.data.model.User
 import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 
-// این فایل دیالوگ‌های افزودن/ویرایش/حذف/خروج‌اجباری کاربر را از UserManagementScreen.kt
-// جدا نگه می‌دارد (A1-6، بازسازی ساختاری). وابسته به قطعات internal تعریف‌شده در
-// UserManagementScreen.kt (پالت رنگ‌های Dialog*/UserManagement*/Modal*، و توابع
-// getUserTypeDisplay/sortUsersByType که در همان فایل باقی می‌مانند) که چون هم‌پکیج
-// هستند نیازی به import ندارند.
+// دیالوگ‌های افزودن/ویرایش/حذف/خروج‌اجباری کاربر؛ به قطعات internal هم‌پکیج در UserManagementScreen.kt وابسته است
 
 @Composable
 fun EnhancedAddUserDialog(

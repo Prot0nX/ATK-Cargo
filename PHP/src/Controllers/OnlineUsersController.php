@@ -29,12 +29,7 @@ class OnlineUsersController {
             exit;
         }
 
-        // این کنترلر توسط پنل وب online_users_manager.html (نه اپ اندروید)
-        // مصرف می‌شود، پس گیت هدرمحور AuthenticatesRequests قابل استفاده
-        // نیست؛ به‌جای آن از همان نشست PHP سراسری (session) که PermissionManager.php
-        // با آن لاگین می‌کند استفاده می‌شود — پیش‌تر این endpoint کاملاً بدون
-        // احراز هویت بود و IP/device_id/وضعیت آنلاین تمام کاربران را افشا
-        // می‌کرد و force_logout را برای هرکسی ممکن می‌ساخت (S-04).
+        // احراز هویت از طریق نشست سراسری PermissionManager.php برای جلوگیری از افشای اطلاعات کاربران (S-04)
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -49,11 +44,7 @@ class OnlineUsersController {
 
         try {
             $sessionManager = new SessionManager();
-            // Request::get() از قبل JSON body/POST/GET را به همین ترتیب اولویت
-            // می‌خواند؛ Request::post() اصلاً وجود ندارد — فراخوانی آن باعث
-            // Fatal Error می‌شد (نه یک Exception قابل catch)، پس هر درخواستی
-            // که action را در query نمی‌فرستاد (یا اکشن heartbeat) با خطای
-            // خام ۵۰۰ مواجه می‌شد (B-01).
+            // استفاده از Request::get() برای خواندن اکشن، چون Request::post() وجود ندارد (B-01)
             $action = (string)($this->request->get('action', 'get_online_users'));
 
             switch ($action) {

@@ -23,8 +23,7 @@ use App\Enums\CargoStatus;
 class CargoController {
     use AuthenticatesRequests;
 
-    // بدون ->value: PHP 8.1 (تولید) اجازه‌ی property-fetch در class const را
-    // نمی‌دهد؛ ->value در محل مصرف (self::X->value) اعمال می‌شود.
+    // بدون ->value چون PHP 8.1 اجازه‌ی property-fetch در class const نمی‌دهد
     private const ENTERED = CargoStatus::ENTERED;
     private const EXITED = CargoStatus::EXITED;
 
@@ -42,9 +41,7 @@ class CargoController {
         $this->cargoService = $cargoService ?? new CargoService($this->cargoRepo);
     }
 
-    /**
-     * ثبت یا به‌روزرسانی اطلاعات حواله بارگیری (saveOrUpdateCargoInfo.php)
-     */
+    // ثبت یا به‌روزرسانی اطلاعات حواله بارگیری (saveOrUpdateCargoInfo.php)
     public function saveOrUpdate(): void {
         header('Content-Type: application/json; charset=utf-8');
         ini_set('memory_limit', '64M');
@@ -54,19 +51,14 @@ class CargoController {
 
         $params = $this->request->all();
 
-        // username/userType هرگز از کلاینت پذیرفته نمی‌شوند؛ هویت واقعی از
-        // نشست معتبرشده گرفته می‌شود تا زنجیره‌ی ردیابی (audit trail) با هدر
-        // جعلی قابل دستکاری نباشد.
+        // username/userType از نشست معتبرشده گرفته می‌شود تا audit trail با هدر جعلی قابل دستکاری نباشد
         $params['username'] = $this->authenticatedUsername;
         $params['userType'] = $this->authenticatedUserType;
 
         $requiredFields = ['shipName', 'loadingWarehouse', 'cargoType', 'shippingCompany', 'loadingQuotaNumber', 'trackingNumber'];
         $optionalFields = ['entryTime', 'netWeight', 'scaleReceiptNumber', 'shortageWeight', 'excessWeight', 'exitTime', 'exitDate', 'status', 'confirmation', 'numberOfPeople', 'duplicateConfirmation'];
 
-        // ستون‌های متناظر در CargoInfo همه varchar(100) هستند (schema.sql)؛
-        // بدون این سقف، رشته‌ی بلندتر امروز بی‌صدا truncate می‌شود و بعد از
-        // فعال‌سازی احتمالی STRICT_TRANS_TABLES (DEEP_CODE_AUDIT.md #Phase4.10)
-        // باعث خطای ۵۰۰ خام دیتابیس می‌شد، نه پیام اعتبارسنجی قابل‌فهم.
+        // سقف طول فیلد هم‌راستا با varchar(100) در schema.sql، برای جلوگیری از truncate بی‌صدا (Phase4.10)
         $maxFieldLength = 100;
 
         foreach ($requiredFields as $field) {
@@ -90,31 +82,24 @@ class CargoController {
             $result = $this->cargoService->saveOrUpdateCargo($params);
             Response::json($result['data'], $result['code'] ?? 200);
         } catch (ApiException $e) {
-            // ConflictException (و مشابه آن) کد HTTP معنادار خودش را حمل
-            // می‌کند (۴۰۹ برای تداخل هم‌زمانی)؛ نباید مثل خطای داخلی سرور با
-            // ۵۰۰ عمومی پوشانده شود.
+            // ConflictException کد HTTP معنادار خودش را حمل می‌کند (۴۰۹) و نباید با ۵۰۰ عمومی پوشانده شود
             $this->logger->error("Error in CargoController saveOrUpdate: " . $e->getMessage());
             Response::json(['error' => true, 'message' => $e->getMessage()], $e->getStatusCode());
         } catch (Exception $e) {
-            // برخلاف ApiException بالا، پیام این شاخه ممکن است خطای خام
-            // DB/داخلی باشد؛ فقط لاگ می‌شود، به کلاینت نمی‌رود
-            // (DEEP_CODE_AUDIT.md #Phase2.4).
+            // پیام خام DB/داخلی این شاخه فقط لاگ می‌شود و به کلاینت نمی‌رود (Phase2.4)
             $this->logger->error("Error in CargoController saveOrUpdate: " . $e->getMessage());
             $this->sendErrorResponse('خطای داخلی سرور رخ داده است.');
         }
     }
 
-    /**
-     * به‌روزرسانی کامل اطلاعات حواله بار (updateCargoInfo.php)
-     */
+    // به‌روزرسانی کامل اطلاعات حواله بار (updateCargoInfo.php)
     public function updateCargoInfo(): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('X-Content-Type-Options: nosniff');
         header('X-Frame-Options: DENY');
         header('X-XSS-Protection: 1; mode=block');
 
-        // PATCH — قبلاً POST بود (Phase4 #33: هماهنگ با تغییر فعل در
-        // routes/api_v2.php و کلاینت اندروید).
+        // متد PATCH جایگزین POST قبلی شده، هم‌راستا با routes/api_v2.php و کلاینت اندروید (Phase4 #33)
         if ($_SERVER['REQUEST_METHOD'] !== 'PATCH') {
             Response::json(['error' => true, 'message' => 'روش درخواست نامعتبر است. فقط PATCH مجاز است.'], 405);
         }
@@ -137,8 +122,7 @@ class CargoController {
 
             $trackingNumber = $this->validateStringField($data['trackingNumber'] ?? null, 'شماره حواله');
             $numberOfPeople = $this->validateStringField($data['numberOfPeople'] ?? null, 'تعداد افراد', false);
-            // username/userType از نشست معتبرشده گرفته می‌شود، نه از بدنه‌ی
-            // درخواست، تا زنجیره‌ی ردیابی با هدر جعلی قابل دستکاری نباشد.
+            // username/userType از نشست معتبرشده گرفته می‌شود تا زنجیره‌ی ردیابی با هدر جعلی قابل دستکاری نباشد
             $username = (string)$this->authenticatedUsername;
             $userType = (string)$this->authenticatedUserType;
             $entryTime = $this->validateStringField($data['entryTime'] ?? null, 'زمان ورود');
@@ -199,9 +183,7 @@ class CargoController {
         }
     }
 
-    /**
-     * تأیید حواله توسط بارشمار (confirm_cargo.php)
-     */
+    // تأیید حواله توسط بارشمار (confirm_cargo.php)
     public function confirmCargo(): void {
         header('Content-Type: application/json; charset=UTF-8');
         date_default_timezone_set('Asia/Tehran');
@@ -211,9 +193,7 @@ class CargoController {
         }
 
         $this->requireAuthenticatedSession();
-        // تأیید حواله یک عملیات نوشتنی با اثر مالی/عملیاتی است؛ باید مثل
-        // سایر عملیات نوشتنِ این کنترلر (edit_cargo، delete_cargo) پشت یک
-        // مجوز مشخص قفل شود، نه فقط لاگین بودن.
+        // تأیید حواله باید پشت مجوز مشخص قفل شود، مثل سایر عملیات نوشتنی این کنترلر
         $this->requirePermission('cargo_counter');
 
         $data = json_decode((string)file_get_contents('php://input'), true);
@@ -226,13 +206,11 @@ class CargoController {
         }
 
         $cargoId = (int)$data['id'];
-        // username/userType از نشست معتبرشده گرفته می‌شود، نه از بدنه‌ی
-        // درخواست، تا معلوم شود واقعاً چه کسی حواله را تأیید کرده است.
+        // username/userType از نشست معتبرشده گرفته می‌شود تا معلوم شود واقعاً چه کسی تأیید کرده است
         $username = (string)$this->authenticatedUsername;
         $userType = (string)$this->authenticatedUserType;
 
-        // بدون این دو، هر کاربر مجاز می‌توانست با شماره‌گذاری متوالی id
-        // حواله‌های خارج از کوتاژ/کشتی خودش را هم تأیید کند (IDOR).
+        // بررسی loadingQuotaNumber/shipName برای جلوگیری از تأیید حواله‌های خارج از دامنه‌ی کاربر (IDOR)
         $loadingQuotaNumber = $this->sanitizeString((string)($data['loadingQuotaNumber'] ?? ''));
         $shipName = $this->sanitizeString((string)($data['shipName'] ?? ''));
 
@@ -267,19 +245,12 @@ class CargoController {
                     "message" => "حواله شماره {$cargoData['trackingNumber']} با کوتاژ {$cargoData['loadingQuotaNumber']} در ساعت {$confirmTime} توسط {$username} با موفقیت تأیید شد",
                     "data" => $responseData
                 ];
-                // JSON_NUMERIC_CHECK قبلاً trackingNumber/loadingQuotaNumber
-                // را که رشته‌اند (و می‌توانند صفر ابتدایی داشته باشند) به
-                // عدد تبدیل می‌کرد؛ sendJsonResponse مثل بقیه‌ی endpointهای
-                // این کنترلر بدون آن فلگ و با gzip ارسال می‌کند.
+                // ارسال بدون JSON_NUMERIC_CHECK تا trackingNumber/loadingQuotaNumber با صفر ابتدایی خراب نشوند
                 Response::json($response, 200);
             } else {
                 $exists = $this->cargoRepo->findCargoById($cargoId) !== null;
                 if ($exists) {
-                    // این یک خطای واقعی است (تأیید تکراری یا رقابت هم‌زمانی)،
-                    // نه موفقیت؛ کد ۲۰۰ باعث می‌شد کلاینت آن را success بداند
-                    // و علاوه بر نمایش این پیام به‌عنوان موفقیت، وضعیت محلی را
-                    // هم به‌اشتباه «تأیید شده» علامت بزند
-                    // (CargoDetailsScreen.handleCargoConfirmation).
+                    // کد ۴۰۹ (نه ۲۰۰) چون این خطای واقعی است (تأیید تکراری/رقابت هم‌زمانی)، نه موفقیت
                     Response::json(["status" => "error", "message" => "حواله قبلاً تأیید شده است یا تغییری اعمال نشد"], 409);
                 } else {
                     Response::json(["status" => "error", "message" => "حواله با شناسه ارسالی یافت نشد"], 404);
@@ -287,20 +258,16 @@ class CargoController {
             }
         } catch (Exception $e) {
             $this->logger->error("Error in confirmCargo: " . $e->getMessage());
-            // پیام داخلی mysqli/exception (که می‌تواند نام جدول/ستون را
-            // فاش کند) فقط در لاگ ثبت می‌شود، نه در پاسخ به کلاینت.
+            // پیام داخلی mysqli فقط در لاگ ثبت می‌شود تا نام جدول/ستون افشا نشود
             Response::json(["status" => "error", "message" => "خطایی در سیستم رخ داده است. لطفاً بعداً تلاش کنید."], 500);
         }
     }
 
-    /**
-     * حذف اطلاعات حواله (deleteCargoInfo.php)
-     */
+    // حذف اطلاعات حواله (deleteCargoInfo.php)
     public function deleteCargoInfo(): void {
         header('Content-Type: application/json; charset=UTF-8');
 
-        // DELETE — قبلاً POST بود (Phase4 #33: هماهنگ با تغییر فعل در
-        // routes/api_v2.php و کلاینت اندروید).
+        // متد DELETE جایگزین POST قبلی شده، هم‌راستا با routes/api_v2.php و کلاینت اندروید (Phase4 #33)
         if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
             Response::json(["status" => "error", "message" => "روش درخواست مجاز نیست. لطفاً از روش DELETE استفاده کنید."], 405);
         }
@@ -318,11 +285,7 @@ class CargoController {
             Response::json(["status" => "error", "message" => "شناسه حواله نامعتبر است"], 400);
         }
 
-        // بررسی رمز عبور حذف اینجا و در همین درخواست انجام می‌شود، نه در یک
-        // فراخوانی جداگانه‌ی checkPassword.php قبل از این endpoint؛ چون دو
-        // درخواست HTTP مستقل هیچ تضمینی نمی‌دهند که رمز واقعاً برای همین
-        // عملیات حذف بررسی شده باشد (کافی بود مستقیماً همین endpoint را صدا
-        // بزنند). شمارنده‌ی تلاش ناموفق روی هویت نشست معتبرشده کلید می‌خورد.
+        // بررسی رمز عبور حذف در همین درخواست انجام می‌شود، نه در فراخوانی جداگانه‌ی checkPassword.php، تا تضمین شود رمز برای همین عملیات بررسی شده
         $password = (string)($data['password'] ?? '');
         if ($password === '') {
             Response::json(["status" => "error", "message" => "رمز عبور الزامی است"], 400);
@@ -344,9 +307,7 @@ class CargoController {
         }
     }
 
-    /**
-     * جستجوی حواله با شماره قبض باسکول (search_by_scaleReceipt.php)
-     */
+    // جستجوی حواله با شماره قبض باسکول (search_by_scaleReceipt.php)
     public function searchByScaleReceipt(): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('X-Content-Type-Options: nosniff');
@@ -401,9 +362,7 @@ class CargoController {
         }
     }
 
-    /**
-     * جستجوی حواله با شماره رهگیری (search_by_tracking.php)
-     */
+    // جستجوی حواله با شماره رهگیری (search_by_tracking.php)
     public function searchByTracking(): void {
         header('Content-Type: application/json; charset=UTF-8');
         header('X-Content-Type-Options: nosniff');
@@ -467,9 +426,7 @@ class CargoController {
         }
     }
 
-    /**
-     * دریافت اطلاعات اولیه کشتی و آمار بارهای قبلی (getInitialInfo.php)
-     */
+    // دریافت اطلاعات اولیه کشتی و آمار بارهای قبلی (getInitialInfo.php)
     public function getInitialInfo(): void {
         header('Content-Type: application/json; charset=UTF-8');
         date_default_timezone_set('Asia/Tehran');
@@ -501,12 +458,7 @@ class CargoController {
             $today = jdate('Y/m/d');
             $yesterday = jdate('Y/m/d', time() - 86400);
 
-            // ستون‌های cargoWeight/loadingQuotaNumber و ۴ ستون بعدی همان‌هایی
-            // هستند که مدل InitialInfo کلاینت (CargoModels.kt) واقعاً مصرف
-            // می‌کند؛ remainingWeight/totalNetWeight/averageNetWeight/
-            // remainingServices از جدول خوانده نمی‌شوند چون چند خط پایین‌تر
-            // با مقدار محاسبه‌شده بازنویسی می‌شوند، و percentage/is_enabled
-            // اصلاً در پاسخ استفاده نمی‌شوند.
+            // انتخاب فقط ستون‌های مصرفی مدل InitialInfo کلاینت؛ فیلدهای محاسباتی چند خط پایین‌تر بازنویسی می‌شوند
             $stmt = $this->conn->prepare("SELECT shipName, loadingWarehouse, cargoType, shippingCompany, cargoOwner, cargoWeight, loadingQuotaNumber, isActive, temp_tonnage_status, temp_tonnage_amount FROM InitialInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ? LIMIT 1");
             $stmt->bind_param("ssss", $quotaNumber, $shippingCompany, $warehouse, $cargoType);
             $stmt->execute();
@@ -551,21 +503,7 @@ class CargoController {
             $initialInfo['tempTonnageStatus'] = isset($initialInfo['temp_tonnage_status']) ? (bool)$initialInfo['temp_tonnage_status'] : false;
             $initialInfo['tempTonnageAmount'] = isset($initialInfo['temp_tonnage_amount']) ? (float)$initialInfo['temp_tonnage_amount'] : null;
 
-            // ستون‌های زیر دقیقاً همان‌هایی هستند که data class CargoInfo در
-            // کلاینت (از جمله id، که کلید LazyColumn روی آن است) می‌خواند؛
-            // confirm_username/confirm_usertype/updated_at در پاسخ این
-            // endpoint مصرف نمی‌شوند.
-            //
-            // تمام ستون‌های این جدول (به‌جز id) در دیتابیس NULLABLE هستند
-            // (schema.sql)، اما مدل Kotlin سمت کلاینت اغلب آن‌ها را non-null
-            // تعریف کرده — به‌خصوص netWeight/shortageWeight/excessWeight که
-            // برای رکوردهای «ورود» (هنوز باسکول نشده) واقعاً NULL هستند.
-            // Gson یک non-null String را بدون خطای فوری با null پر می‌کند و
-            // کرش وقتی رخ می‌دهد که همان مقدار به یک پارامتر non-null در
-            // لایه‌ی UI برسد (دقیقاً چیزی که در دیالوگ «بررسی و تأیید حواله»
-            // با رکوردهای در انتظار وزن‌کشی اتفاق می‌افتاد). COALESCE همینجا
-            // مقدار پیش‌فرض امن می‌دهد تا با قرارداد non-null کلاینت سازگار
-            // بماند.
+            // استفاده از COALESCE برای ستون‌های NULLABLE چون مدل Kotlin کلاینت آن‌ها را non-null می‌خواهد و بدون آن کرش می‌کرد
             $cargoStmt = $this->conn->prepare("SELECT id,
                 COALESCE(trackingNumber, '') AS trackingNumber,
                 COALESCE(numberOfPeople, 0) AS numberOfPeople,
@@ -611,9 +549,7 @@ class CargoController {
         }
     }
 
-    /**
-     * ثبت اطلاعات اولیه جدید (saveInitialInfo.php)
-     */
+    // ثبت اطلاعات اولیه جدید (saveInitialInfo.php)
     public function saveInitialInfo(): void {
         header('Content-Type: application/json; charset=UTF-8');
 
@@ -663,16 +599,13 @@ class CargoController {
         } catch (ApiException $e) {
             Response::json(["status" => "error", "message" => $e->getMessage()], $e->getStatusCode());
         } catch (Exception $e) {
-            // خطای خام SQL (شامل نام جدول/ستون) فقط لاگ می‌شود، نه در پاسخ
-            // (DEEP_CODE_AUDIT.md #Phase2.4).
+            // خطای خام SQL فقط لاگ می‌شود، نه در پاسخ (Phase2.4)
             $this->logger->error("Error in saveInitialInfo: " . $e->getMessage());
             Response::json(["status" => "error", "message" => "خطای داخلی سرور رخ داده است."], 500);
         }
     }
 
-    /**
-     * دریافت لیست کشتی‌های فعال (getActiveShips.php)
-     */
+    // دریافت لیست کشتی‌های فعال (getActiveShips.php)
     public function getActiveShips(): void {
         header('Content-Type: application/json; charset=UTF-8');
 
@@ -687,9 +620,7 @@ class CargoController {
         }
     }
 
-    /**
-     * بررسی تکراری بودن شماره قبض باسکول (check_scale_receipt.php)
-     */
+    // بررسی تکراری بودن شماره قبض باسکول (check_scale_receipt.php)
     public function checkScaleReceipt(): void {
         header('Content-Type: application/json; charset=utf-8');
 
@@ -708,14 +639,7 @@ class CargoController {
         }
     }
 
-    // این مقدار در ستون‌های WHERE (findCargoByKeys، findTempTonnage و ...)
-    // برای مقایسه‌ی دقیق استفاده می‌شود. htmlspecialchars اینجا اشتباه بود:
-    // چون این API فقط توسط اپ اندروید (نه مرورگر) مصرف می‌شود، escape کردن
-    // ورودی هیچ محافظتی ایجاد نمی‌کرد و فقط باعث می‌شد مقادیر دارای &/'/"
-    // در InitialInfo (که escape نمی‌شود) با نسخه‌ی escape‌شده در CargoInfo
-    // مطابقت نداشته باشند و رکورد به اشتباه «جدید» تشخیص داده شود. SQL
-    // Injection از قبل با prepared statement بسته است؛ اینجا فقط trim لازم
-    // است.
+    // فقط trim، نه htmlspecialchars، چون escape کردن باعث عدم تطابق با InitialInfo escape‌نشده می‌شد؛ SQL Injection با prepared statement بسته است
     private function sanitizeString(string $input): string {
         return trim($input);
     }
@@ -732,11 +656,7 @@ class CargoController {
         return (string)$sanitized;
     }
 
-    // $maxLength پیش‌فرض ۱۰۰ چون تمام ستون‌های متنی CargoInfo که این متد برایشان
-    // صدا زده می‌شود varchar(100) هستند (schema.sql) — بدون این سقف، رشته‌ی
-    // بلندتر امروز بی‌صدا truncate می‌شود؛ بعد از فعال‌سازی احتمالی
-    // STRICT_TRANS_TABLES (DEEP_CODE_AUDIT.md #Phase4.10) همان ورودی باعث
-    // خطای ۵۰۰ دیتابیس می‌شد، نه خطای اعتبارسنجی صریح و قابل‌فهم.
+    // $maxLength پیش‌فرض ۱۰۰ هم‌راستا با varchar(100) در schema.sql، برای جلوگیری از truncate بی‌صدا (Phase4.10)
     private function validateStringField($value, string $fieldName, bool $required = true, ?int $maxLength = 100): string {
         $strValue = ($value === null) ? '' : (string)$value;
         $sanitized = htmlspecialchars(trim($strValue), ENT_QUOTES, 'UTF-8');

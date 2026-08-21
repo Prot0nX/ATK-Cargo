@@ -54,13 +54,7 @@ fun ServerSyncingScreen() {
     val bgColor = MaterialTheme.colorScheme.background
     val onBgColor = MaterialTheme.colorScheme.onBackground
 
-    // Reduce Motion (Phase4 #34): این صفحه گذراست (فقط حین StartupState.Syncing
-    // نمایش داده می‌شود)، اما مجموعاً ۱۰ انیمیشن هم‌زمان (این ۸ مورد + ۲ مورد
-    // dotAlpha/dotScale پایین‌تر که همین infiniteTransition را به اشتراک
-    // می‌گذارند) یک frame callback مصرف می‌کنند؛ تنظیم سیستمی «حذف
-    // انیمیشن‌ها» را احترام می‌گذارند. خودِ rememberInfiniteTransition
-    // بدون‌قید‌وشرط باقی می‌ماند (چیزی را خودش انیمیت نمی‌کند)، فقط هر
-    // .animateFloat مشروط شده.
+    // همه انیمیشن‌های infinite این صفحه مشروط به تنظیم سیستمی «حذف انیمیشن‌ها» هستند
     val animationsEnabled = AnimationManager.areAnimationsEnabled()
     val infiniteTransition = rememberInfiniteTransition(label = "server_sync")
 

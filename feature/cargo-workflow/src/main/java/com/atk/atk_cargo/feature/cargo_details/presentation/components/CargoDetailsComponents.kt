@@ -734,8 +734,7 @@ fun CargoListSection(
         } ?: Triple(0, 0.0, 0.0)
     }
 
-    // مرتب‌سازی در remember نگه داشته می‌شود تا در هر recomposition/اسکرول
-    // دوباره اجرا نشود؛ فقط با تغییر واقعی گروه مربوطه بازمحاسبه می‌شود.
+    // مرتب‌سازی در remember نگه داشته می‌شود تا در هر recomposition دوباره اجرا نشود
     val sortedUnconfirmed = remember(groupedCargoList[false]) {
         groupedCargoList[false]?.sortedByDescending { it.entryTime } ?: emptyList()
     }
@@ -766,9 +765,7 @@ fun CargoListSection(
             if (selectedTab == 0) {
                 items(
                     items = sortedUnconfirmed,
-                    // trackingNumber می‌تواند تکراری باشد (همان چیزی که
-                    // checkForDuplicateTrackingNumbers برایش هشدار می‌دهد)؛
-                    // id کلید اصلی و یکتای رکورد است.
+                    // trackingNumber می‌تواند تکراری باشد؛ id کلید یکتای رکورد است
                     key = { it.id ?: it.trackingNumber.hashCode() }
                 ) { cargoInfo ->
                     CargoInfoCard(

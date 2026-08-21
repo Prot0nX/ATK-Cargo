@@ -84,10 +84,7 @@ import com.atk.atk_cargo.feature.cargoworkflow.R
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import kotlinx.coroutines.launch
 
-// این فایل دیالوگ «جزئیات حواله» (CargoInfoDetailsDialog) و دیالوگ حذف وابسته‌اش را از
-// RegisterCargoDialogs.kt جدا نگه می‌دارد (A1-6، بازسازی ساختاری). کاملاً خودکفا است —
-// CargoDetailsPalette/rememberCargoDetailsPalette فقط همین‌جا استفاده می‌شدند و به همراه
-// این دیالوگ منتقل شدند؛ به هیچ وابستگی internal از فایل اصلی نیازی ندارد.
+// این فایل دیالوگ جزئیات حواله و دیالوگ حذف وابسته‌اش را از RegisterCargoDialogs.kt جدا نگه می‌دارد
 
 /** رنگ‌های تیل سازگار با تم روشن/تاریک برای دیالوگ جزئیات حواله. */
 private class CargoDetailsPalette(
@@ -404,9 +401,7 @@ fun CargoInfoDetailsDialog(
     if (showDeleteConfirmation) {
         DeleteDialog(
             onConfirm = {
-                // نتیجه‌ی واقعی (موفقیت یا رمز اشتباه/قفل‌شدن) از طریق کانال
-                // پیام‌رسانی خود ViewModel نمایش داده می‌شود؛ اینجا دیگر پیام
-                // موفقیت بی‌قید و شرط نشان داده نمی‌شود.
+                // نتیجه‌ی واقعی از طریق کانال پیام‌رسانی خود ViewModel نمایش داده می‌شود
                 val request = CargoInfoRequest(id = info.id ?: 0, password = password)
                 viewModel.deleteCargo(request)
                 onUpdateTypeChange("cargo_delete")

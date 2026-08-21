@@ -5,9 +5,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * توکن‌های ابعادی (Dimension Tokens) برای اجزای رابط کاربر مانند آیکون‌ها، دکمه‌ها، ورودی‌ها و کارت‌ها.
- */
+// توکن‌های ابعادی برای اجزای رابط کاربر مانند آیکون‌ها، دکمه‌ها، ورودی‌ها و کارت‌ها
 @Immutable
 data class Dimensions(
     val iconXs: Dp = 12.dp,

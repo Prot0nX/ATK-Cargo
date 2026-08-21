@@ -1,6 +1,5 @@
 <?php
-// PHP/User/SessionManager.php
-// Wrapper کلاس قدیمی پنل کاربران جهت حفظ سازگاری کامل و کاهش افزونگی
+// Wrapper کلاس قدیمی پنل کاربران برای حفظ سازگاری و کاهش افزونگی کد
 
 declare(strict_types=1);
 

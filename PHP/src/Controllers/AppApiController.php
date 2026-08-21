@@ -13,13 +13,7 @@ use App\Services\QuotaService;
 use App\Services\ShipService;
 use App\Validators\InputValidator;
 
-/**
- * فقط مسئول احراز هویت/routing/پارس درخواست است (C-05) — منطق تجاری واقعی
- * (کوئری‌های دیتابیس، محاسبات) به ShipService/QuotaService/QuotaCalculator
- * منتقل شده. متدهای عمومی این کلاس (getShipsList، updateQuotaPercentage و
- * غیره) عمداً حفظ شده‌اند — فقط delegate می‌کنند — چون routes/api_v2.php
- * مستقیماً همین امضاها را صدا می‌زند و نباید بشکند.
- */
+// فقط مسئول احراز هویت/routing/پارس درخواست؛ منطق تجاری به ShipService/QuotaService منتقل شده (C-05)
 class AppApiController {
     use AuthenticatesRequests;
 
@@ -33,13 +27,7 @@ class AppApiController {
         $this->quotaService = new QuotaService();
     }
 
-    /**
-     * کلاینت این کنترلر (ReportsRepository سمت اندروید) پاسخ خطا را با شکل
-     * {"error": "متن پیام"} می‌خواند (نه {"error": true, "message": "..."}
-     * که کلاینت CargoController/UtilityController می‌خواند) — override می‌کند
-     * تا AuthenticatesRequests بتواند منطق مشترک را بدون شکستن این قرارداد
-     * سرویس دهد.
-     */
+    // فرمت سفارشی پاسخ خطا برای سازگاری با ساختار مورد انتظار کلاینت اندروید این کنترلر
     protected function sendAuthErrorResponse(string $message, int $httpCode, ?string $code = null): void {
         header('Content-Type: application/json; charset=UTF-8');
         http_response_code($httpCode);
@@ -51,10 +39,7 @@ class AppApiController {
         exit;
     }
 
-    // این actionها داده را تغییر می‌دهند یا حذف می‌کنند و باید فقط با POST
-    // فراخوانی شوند: قابل بازپخش نبودن (URL به‌تنهایی کافی برای اجرای دوباره
-    // نیست)، عدم امکان کش شدن توسط پروکسی/OkHttp (که فقط GET را کش می‌کنند)،
-    // و نبود پارامترهای حساس در Query String لاگ‌های وب‌سرور.
+    // actionهای نوشتنی که فقط با POST مجازند تا قابل کش/بازپخش نباشند و پارامتر حساس در لاگ URL نیفتد
     private const WRITE_ACTIONS = [
         'editQuota',
         'updateQuotaPercentage',
@@ -64,16 +49,7 @@ class AppApiController {
         'updateTemporaryTonnage',
     ];
 
-    // actionهای خواندنی که فقط توسط فیچر گزارش‌ها (ReportsRepository سمت
-    // اندروید) مصرف می‌شوند و باید پشت مجوز view_reports قفل شوند
-    // (DEEP_CODE_AUDIT.md #Phase1.4 — Broken Function Level Authorization).
-    // عمداً «getQuotasList» در این لیست نیست: برخلاف پیشنهاد اولیه‌ی گزارش،
-    // همین action در QuotaValidationUseCase.kt هنگام ثبت حواله (نه فقط
-    // گزارش‌گیری) هم صدا زده می‌شود؛ قفل کردن آن پشت view_reports باعث
-    // می‌شد نقش‌های operator/verifier (که view_reports ندارند) نتوانند
-    // حواله ثبت کنند. «getRealTimeData» اینجا هم در لیست هست چون نسخه‌ی
-    // معادل و مصرف‌شده‌ی آن (AnalyticsController::handleRealTimeLoadingData)
-    // از قبل پشت view_reports است؛ این نسخه اصلاً از کلاینت صدا زده نمی‌شود.
+    // actionهای خواندنی مخصوص فیچر گزارش‌ها که باید پشت مجوز view_reports قفل شوند؛ getQuotasList عمداً حذف شده تا ثبت حواله نشکند (Phase1.4)
     private const READ_ACTIONS_REQUIRING_REPORTS = [
         'getShipsList',
         'getShipDetails',
@@ -85,11 +61,7 @@ class AppApiController {
         'getRealTimeData',
     ];
 
-    // هیچ‌جای دیگری (route/shim) دیگر این متد را صدا نمی‌زند — تأیید شد حین
-    // Phase3 #21؛ Router مستقیماً متدهای عمومی زیر را از طریق $safeCall در
-    // routes/api_v2.php صدا می‌زند، نه این dispatcher قدیمی. پاسخ‌های خطای
-    // داخل همین متد به Response::error() یکسان شدند چون دسترس‌ناپذیر بودن
-    // آن‌ها تأیید شد؛ خودِ حذف متد خارج از دامنه‌ی این تغییر ماند.
+    // این dispatcher قدیمی دیگر از هیچ route صدا زده نمی‌شود؛ حذف کامل آن خارج از دامنه‌ی این تغییر است
     public function handle(): void {
         try {
             if (!$this->request->isGet() && !$this->request->isPost()) {
@@ -120,9 +92,7 @@ class AppApiController {
             switch ($action) {
                 case 'getShipsList':
                     $ships = $this->getShipsList();
-                    // ETag فقط از activeShips/inactiveShips (بخشی که کلاینت واقعاً
-                    // مصرف می‌کند) محاسبه می‌شود، نه از statistics.timestamp که
-                    // همیشه لحظه‌ای است و هر بار ETag را بی‌دلیل عوض می‌کرد.
+                    // ETag فقط از activeShips/inactiveShips محاسبه می‌شود، نه از statistics.timestamp همیشه‌متغیر
                     $etagSource = [
                         'activeShips' => $ships['data']['activeShips'] ?? [],
                         'inactiveShips' => $ships['data']['inactiveShips'] ?? [],
@@ -199,9 +169,7 @@ class AppApiController {
                         (string)$startDateTime,
                         (string)$endDateTime
                     );
-                    // فشرده‌سازی PHP-level حذف شد (P-06): .htaccess از قبل
-                    // mod_deflate را برای application/json فعال کرده؛ فشرده‌سازی
-                    // دوباره اینجا فقط CPU اضافه بدون فایده بود.
+                    // فشرده‌سازی PHP-level حذف شد چون mod_deflate در htaccess همین کار را می‌کند (P-06)
                     header('Content-Type: application/json; charset=UTF-8');
                     echo $filteredSummary;
                     exit;
@@ -366,23 +334,13 @@ class AppApiController {
         } catch (ApiException $e) {
             Response::error($e->getMessage(), $e->getStatusCode(), $e->getDetails());
         } catch (\Throwable $e) {
-            // فقط ApiException (پیام‌های فارسی عمدی) به کلاینت می‌رود؛ بقیه
-            // (مثل خطای خام دیتابیس از ShipService/QuotaService) فقط لاگ
-            // می‌شود تا ساختار جدول/کوئری افشا نشود (DEEP_CODE_AUDIT.md
-            // #Phase2.4).
+            // فقط ApiException به کلاینت می‌رود؛ بقیه‌ی خطاها فقط لاگ می‌شوند تا ساختار دیتابیس افشا نشود (Phase2.4)
             error_log('AppApiController: ' . $e->getMessage());
             Response::error('خطای داخلی سرور رخ داده است.', 500);
         }
     }
 
-    /**
-     * فقط برای پاسخ‌های GET غیرقابل تغییر (idempotent) استفاده شود، هرگز برای
-     * عملیات نوشتن/حذف. ETag از $etagSource (نه کل $data) محاسبه می‌شود تا
-     * فیلدهای همیشه‌متغیر (مثل timestamp) باعث نادیده گرفتن کش نشوند.
-     */
-    // public (نه private) چون route handlerهای api/v2 (خارج از این کلاس) هم
-    // برای همان endpointهای پرکاربرد (getShipsList/getShipDetails/getQuotasList)
-    // به همین کش/ETag نیاز دارند و نباید آن را دوباره‌نویسی کنند.
+    // فقط برای پاسخ‌های GET غیرقابل تغییر؛ public چون route handlerهای api/v2 هم به همین کش/ETag نیاز دارند
     public function sendCacheableJsonResponse($data, array $etagSource, int $maxAgeSeconds): void {
         $etag = '"' . md5(json_encode($etagSource, JSON_UNESCAPED_UNICODE)) . '"';
         header('Cache-Control: private, max-age=' . $maxAgeSeconds);
@@ -397,9 +355,7 @@ class AppApiController {
         Response::json($data);
     }
 
-    // ===== زیر این خط: delegate خالص به ShipService/QuotaService (C-05).
-    // امضاها عمداً دست‌نخورده مانده‌اند چون routes/api_v2.php مستقیماً همین
-    // متدها را صدا می‌زند. =====
+    // ===== زیر این خط: delegate خالص به ShipService/QuotaService؛ امضاها دست‌نخورده چون routes/api_v2.php مستقیماً صدا می‌زند (C-05) =====
 
     public function checkQuotaStatus(array $params): array {
         return $this->quotaService->checkQuotaStatus($params);
@@ -445,19 +401,7 @@ class AppApiController {
         return $this->quotaService->getLoadableTonnage($quotaNumber, $shippingCompany, $warehouse, $cargoType);
     }
 
-    /**
-     * ۶ متد نوشتنی زیر همگی با requireAuthenticatedSession() شروع می‌شوند —
-     * نه برای احراز هویت (Router::dispatch از قبل با ApiAuthGate این کار را
-     * کرده)، بلکه چون این تنها راه پر شدن $this->authenticatedUsername روی
-     * این نمونه‌ی AppApiController است. handle() (تنها جای دیگری که این
-     * مقدار را پر می‌کرد) از حذف app_api.php در فاز ۳.۱ دیگر هرگز صدا زده
-     * نمی‌شود، پس بدون این فراخوانی $this->authenticatedUsername همیشه null
-     * می‌ماند و AuditLogger::log در QuotaService (که با actorUsername!==null
-     * گیت شده) بی‌صدا هیچ‌وقت اجرا نمی‌شود — دقیقاً همان چیزی که رخ می‌داد
-     * (کشف‌شده هنگام بررسی خالی‌ماندن audit_log برای عملیات کوتاژ،
-     * DEEP_CODE_AUDIT.md). این همان الگوی «بررسی دوگانه‌ی واقعی» است که
-     * برای CargoController::saveOrUpdate در routes/api_v2.php مستند شده.
-     */
+    // فراخوانی requireAuthenticatedSession در متدهای نوشتنی زیر نه برای احراز هویت، بلکه برای پر کردن authenticatedUsername جهت AuditLogger لازم است
     public function editQuota(int $id, string $oldQuotaNumber, string $newQuotaNumber, string $shipName, string $shippingCompany, string $warehouse, string $cargoType, float $totalTonnage): bool {
         $this->requireAuthenticatedSession();
         return $this->quotaService->editQuota($id, $oldQuotaNumber, $newQuotaNumber, $shipName, $shippingCompany, $warehouse, $cargoType, $totalTonnage, $this->authenticatedUsername);

@@ -34,10 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
-// کارت خلاصه (قابل ویرایش) و فیلد متنی سفارشی صفحه‌ی ثبت اطلاعات اولیه بار —
-// از InitialInfoScreen.kt به این فایل منتقل شد (DEEP_CODE_AUDIT.md #Phase3.7،
-// شکستن God Composable). rememberInitialInfoPalette در InitialInfoScreen.kt
-// است؛ هم‌پکیج است، نیازی به import اضافه نیست.
+// کارت خلاصه‌ی قابل ویرایش و فیلد متنی سفارشی صفحه‌ی ثبت اطلاعات اولیه بار که از InitialInfoScreen.kt منتقل شده‌اند
 
 @Composable
 fun SummaryCard(

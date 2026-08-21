@@ -3,17 +3,8 @@ package com.atk.atk_cargo.domain.model
 import android.util.Log
 import com.atk.atk_cargo.data.model.CargoInfo
 
-/**
- * مدل دامنه/UI حواله — از CargoInfo (DTO شبکه، data/model/CargoModels.kt) جدا
- * شده (DEEP_CODE_AUDIT.md #Phase3.6) تا تغییر فرمت پاسخ سرور مستقیماً به کد
- * UI/ViewModel سرایت نکند. مپینگ در مرز شبکه (CargoViewModel.loadCargoInfoList)
- * انجام می‌شود؛ CargoInfo فقط برای درخواست/پاسخ Retrofit استفاده می‌شود.
- */
-// netWeight تایپ‌شده‌ی Kilograms است (DEEP_CODE_AUDIT.md #Phase5.1 ادامه):
-// ستون DB متناظر (`CargoInfo.netWeight`) عددی است (`int unsigned` — schema.sql)
-// پس تبدیل امن است. shortageWeight/excessWeight عمداً String ماندند: ستون DB
-// آن‌ها varchar(100) آزاد است (نه اجباراً عددی)، پس تبدیل به Kilograms ریسک
-// تبدیل بی‌صدای داده‌ی قدیمی نامعتبر به null داشت.
+// مدل دامنه/UI حواله، جدا از DTO شبکه‌ی CargoInfo تا فرمت پاسخ سرور مستقیم به UI/ViewModel سرایت نکند
+// netWeight تایپ‌شده‌ی Kilograms است چون عددی است؛ shortageWeight/excessWeight چون در DB آزاد (varchar) هستند عمداً String ماندند
 data class Cargo(
     val id: Int? = null,
     val trackingNumber: String,
@@ -46,8 +37,7 @@ fun CargoInfo.toDomain(): Cargo = Cargo(
     userType = userType,
     entryTime = entryTime,
     netWeight = Kilograms.parse(netWeight).also {
-        // netWeight خالی برای حواله‌ی هنوز باسکول‌نشده (status=ورود) طبیعی
-        // است و لاگ نمی‌شود؛ فقط رشته‌ی غیرخالی و غیرعددی لاگ می‌شود.
+        // فقط رشته‌ی غیرخالی و غیرعددی لاگ می‌شود؛ netWeight خالی برای حواله‌ی هنوز باسکول‌نشده طبیعی است
         if (it == null && netWeight.isNotBlank()) {
             Log.w("Cargo_toDomain", "وزن خالص نامعتبر برای حواله #$trackingNumber: '$netWeight'")
         }

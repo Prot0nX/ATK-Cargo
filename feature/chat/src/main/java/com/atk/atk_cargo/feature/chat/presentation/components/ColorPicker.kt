@@ -38,9 +38,8 @@ fun ColorWheel(
     var saturation by remember { mutableFloatStateOf(1f) }
     var value by remember { mutableFloatStateOf(1f) }
 
-    // Initial calculation (approximate)
-    // In a real app we would convert initialColor to HSV here correctly
-    
+    // محاسبه تقریبی مقدار اولیه؛ تبدیل دقیق initialColor به HSV هنوز انجام نشده
+
     Box(modifier = modifier.aspectRatio(1f)) {
         Canvas(
             modifier = Modifier

@@ -1,12 +1,6 @@
 package com.atk.atk_cargo.api
 
-/**
- * نگه‌دارنده‌ی درون‌حافظه‌ی هویت نشست فعلی برای افزودن خودکار هدرهای احراز هویت
- * به هر درخواست (توسط RetrofitClient) بدون نیاز به پاس دادن دستی این مقادیر در
- * هر Repository/ApiService. مقدار اولیه‌ی آن هنگام راه‌اندازی اپ از
- * UserPreferencesManager خوانده می‌شود (AtkCargoApplication) و پس از آن توسط
- * UserPreferencesManager با هر ورود/خروج به‌روز نگه داشته می‌شود.
- */
+// نگه‌دارنده‌ی درون‌حافظه‌ی هویت نشست فعلی برای افزودن خودکار هدرهای احراز هویت به هر درخواست، بدون نیاز به پاس دادن دستی در هر Repository/ApiService
 object AuthSession {
     @Volatile
     var username: String = ""
@@ -17,8 +11,7 @@ object AuthSession {
     @Volatile
     var sessionToken: String = ""
 
-    // I-05: refresh token — هرگز در هدر درخواست‌های معمولی فرستاده نمی‌شود،
-    // فقط توسط TokenAuthenticator برای POST /auth/refresh خوانده می‌شود.
+    // refresh token هرگز در هدر درخواست‌های معمولی فرستاده نمی‌شود، فقط توسط TokenAuthenticator برای POST /auth/refresh خوانده می‌شود
     @Volatile
     var refreshToken: String = ""
 

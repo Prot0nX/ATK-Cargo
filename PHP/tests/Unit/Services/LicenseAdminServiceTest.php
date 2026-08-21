@@ -11,14 +11,7 @@ use App\Services\LicenseAdminService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
-/**
- * تست‌های واحد منطق تجاری پنل مدیریت لایسنس.
- *
- * ریپازیتوری با mock جایگزین می‌شود (createMock سازنده را صدا نمی‌زند، پس
- * هیچ اتصال دیتابیسی برقرار نمی‌شود). AuditLogger عمداً stub نشده: خودش هر
- * Throwable را می‌بلعد، پس در نبود دیتابیس بی‌صدا رد می‌شود — دقیقاً همان
- * رفتاری که روی نصب‌های بدون جدول audit_log دارد.
- */
+// تست‌های واحد منطق تجاری پنل مدیریت لایسنس با ریپازیتوری mock شده
 final class LicenseAdminServiceTest extends TestCase {
     /** @var LicenseRepository&MockObject */
     private $repository;
@@ -54,8 +47,7 @@ final class LicenseAdminServiceTest extends TestCase {
     }
 
     /**
-     * mock را برای یک create موفق آماده می‌کند و ورودی رسیده به
-     * repository::create را برای بازرسی برمی‌گرداند.
+     * mock را برای یک create موفق آماده می‌کند و داده‌ی ارسالی به create را برمی‌گرداند.
      *
      * @param array<string,mixed> $input
      * @return array{key:string,data:array<string,mixed>}
@@ -81,10 +73,7 @@ final class LicenseAdminServiceTest extends TestCase {
 
     // --- قالب کلید ---------------------------------------------------------
 
-    /**
-     * قرارداد کلید نباید تغییر کند: LicenseController صریحاً strlen === 32 را
-     * چک می‌کند و کلاینت اندروید کلید را کامپایل‌شده دارد.
-     */
+    // قرارداد کلید (طول ۳۲) نباید تغییر کند؛ LicenseController و کلاینت اندروید به آن وابسته‌اند.
     public function testGeneratedKeyIs32UppercaseHexCharacters(): void {
         $captured = $this->captureCreate(['company_name' => 'شرکت الف']);
 
@@ -174,16 +163,12 @@ final class LicenseAdminServiceTest extends TestCase {
     public function testImpossibleCalendarDateIsRejected(): void {
         $this->repository->method('companyNameExists')->willReturn(false);
 
-        // createFromFormat خودش 2027-02-31 را به 3 مارس «سرریز» می‌کند؛ مقایسه‌ی
-        // رفت‌وبرگشتی داخل normalizeExpiry همین را می‌گیرد.
+        // سرریز تاریخ در createFromFormat باید با مقایسه‌ی رفت‌وبرگشتی normalizeExpiry شناسایی شود.
         $this->expectException(ApiException::class);
         $this->service->create(['company_name' => 'شرکت ی', 'expires_at' => '2027-02-31'], 'tester');
     }
 
-    /**
-     * تاریخ گذشته عمداً مجاز است — راهی برای منقضی‌کردن فوری یک لایسنس یا
-     * ثبت انقضای یک قرارداد تمام‌شده.
-     */
+    // تاریخ گذشته عمداً مجاز است تا بتوان لایسنس را فوری منقضی کرد.
     public function testPastExpiryIsAccepted(): void {
         $captured = $this->captureCreate(['company_name' => 'شرکت ک', 'expires_at' => '2020-01-01']);
         $this->assertSame('2020-01-01 23:59:59', $captured['data']['expires_at']);

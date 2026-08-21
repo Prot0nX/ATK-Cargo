@@ -69,10 +69,7 @@ import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import kotlin.math.roundToInt
 
-// کارت‌های تکی «کوتاژ» و «کشتی» و اجزای اختصاصی‌شان — از
-// QuotaManagementDialog.kt به این فایل منتقل شد (DEEP_CODE_AUDIT.md
-// #Phase3.7، شکستن God Composable). رنگ‌های Quota* در QuotaManagementDialog.kt
-// هستند؛ هم‌پکیج است، نیازی به import اضافه نیست.
+// کارت‌های تکی کوتاژ و کشتی، منتقل‌شده از QuotaManagementDialog.kt (شکستن God Composable)
 
 @Composable
 fun IntegratedQuotaCard(

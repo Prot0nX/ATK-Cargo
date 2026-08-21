@@ -48,10 +48,7 @@ import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.domain.shareQuotasData
 import com.atk.atk_cargo.ui.theme.CornerL
 
-// پنل گسترش‌پذیر گروه کوتاژها و سلکتور حالت گروه‌بندی — از QuotasListScreen.kt
-// به این فایل منتقل شد (DEEP_CODE_AUDIT.md #Phase3.7، شکستن God Composable).
-// رنگ‌های Quota* در QuotasListScreen.kt هستند؛ هم‌پکیج است، نیازی به import
-// اضافه نیست.
+// پنل گسترش‌پذیر گروه کوتاژها و سلکتور حالت گروه‌بندی، منتقل‌شده از QuotasListScreen.kt (شکستن God Composable)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

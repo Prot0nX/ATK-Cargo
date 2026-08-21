@@ -2,9 +2,7 @@ package com.atk.atk_cargo.api
 
 import com.google.gson.annotations.SerializedName
 
-/**
- * درخواست ویرایش پیام
- */
+// درخواست ویرایش پیام
 data class EditMessageRequest(
     @SerializedName("action")
     val action: String = "editMessage",
@@ -19,9 +17,7 @@ data class EditMessageRequest(
     val message: String
 )
 
-/**
- * درخواست حذف پیام
- */
+// درخواست حذف پیام
 data class DeleteMessageRequest(
     @SerializedName("action")
     val action: String = "deleteMessage",

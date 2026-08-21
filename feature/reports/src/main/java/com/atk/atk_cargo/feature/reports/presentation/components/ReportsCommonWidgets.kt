@@ -93,12 +93,7 @@ data class FabItem(
 fun FloatingActionButton(
     onRealTimeLoadingClick: () -> Unit,
     onAdvancedSearchClick: () -> Unit,
-    // A-1 (گزارش تحلیل جامع عملیات): این دکمه قبلاً بدون هیچ شرطی به همه
-    // کاربران نشان داده می‌شد، حتی کسانی که مجوز view_reports را ندارند —
-    // با اینکه سرور الان همین مجوز را گیت می‌کند (403 برمی‌گرداند)، تجربه
-    // بهتر این است که کاربر بدون مجوز اصلاً این گزینه را نبیند، نه اینکه با
-    // خطا مواجه شود. nullable شد تا caller بتواند بر اساس مجوز کاربر آن را
-    // اصلاً ارائه ندهد، هم‌الگو با onQuotaManagementClick/onDateRangeClick.
+    // nullable است تا caller بر اساس مجوز view_reports کاربر این گزینه را اصلاً نمایش ندهد
     onAnalyticsClick: (() -> Unit)? = null,
     onDateRangeClick: (() -> Unit)? = null,
     onQuotaManagementClick: (() -> Unit)? = null

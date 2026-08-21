@@ -6,13 +6,7 @@ import com.atk.atk_cargo.data.model.QuotaValidationResult
 import com.atk.atk_cargo.domain.model.QuotaInfo
 import com.atk.atk_cargo.domain.repository.QuotaRepository
 
-/**
- * وابسته به اینترفیس QuotaRepository (core:domain)، نه کلاس مشخص
- * ReportsRepository (که در app باقی می‌ماند و آن را پیاده‌سازی می‌کند) —
- * این ماژول (feature:cargo) اولین feature مستخرج‌شده در Phase4 #29 است؛
- * بدون این مرز، وابستگی مستقیم به یک کلاس در app جهت وابستگی ماژول‌ها را
- * برعکس می‌کرد (DEEP_CODE_REVIEW.md Phase4 #29).
- */
+// وابسته به اینترفیس QuotaRepository (core:domain) نه کلاس مشخص ReportsRepository، تا جهت وابستگی ماژول‌ها برعکس نشود
 class QuotaValidationUseCase(private val repository: QuotaRepository) {
 
     companion object {
@@ -98,9 +92,7 @@ class QuotaValidationUseCase(private val repository: QuotaRepository) {
     }
 
     fun validateTempTonnage(initialInfo: QuotaInfo): TempTonnageValidationResult {
-        // متغیر محلی لازم است: property از ماژول دیگری (core:domain) می‌آید،
-        // پس Kotlin نمی‌تواند بعد از != null آن را smart-cast کند
-        // (DEEP_CODE_AUDIT.md #Phase5.7 — همان محدودیت smart-cast بین‌ماژولی).
+        // متغیر محلی لازم است چون property از ماژول دیگری می‌آید و Kotlin نمی‌تواند بعد از != null آن را smart-cast کند
         val tempTonnageAmount = initialInfo.tempTonnageAmount
         if (initialInfo.tempTonnageStatus && tempTonnageAmount != null) {
             if (tempTonnageAmount <= 0) {

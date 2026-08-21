@@ -3,9 +3,7 @@ package com.atk.atk_cargo.ui.theme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 
-/**
- * دسترسی سیستماتیک و ایزوله به تمامی توکن‌های طراحی دیزاین سیستم ATK-Cargo.
- */
+// دسترسی سیستماتیک و ایزوله به تمامی توکن‌های طراحی دیزاین سیستم ATK-Cargo
 object ATKCargoTheme {
     val spacing: Spacing
         @Composable

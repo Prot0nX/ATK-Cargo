@@ -5,9 +5,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * توکن‌های ارتفاع و سایه (Elevation Tokens) مطابق با مراتب عمق‌دهی Material Design 3.
- */
+// توکن‌های ارتفاع و سایه مطابق با مراتب عمق‌دهی Material Design 3
 @Immutable
 data class Elevation(
     val level0: Dp = 0.dp,
