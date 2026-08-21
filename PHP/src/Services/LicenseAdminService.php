@@ -35,9 +35,7 @@ final class LicenseAdminService {
         $this->logger = Logger::getInstance();
     }
 
-    /**
-     * @return array<int,array<string,mixed>> ردیف‌های آماده برای نمایش
-     */
+    /** @return array<int,array<string,mixed>> ردیف‌های آماده برای نمایش */
     public function list(?string $search, ?string $status): array {
         $status = in_array($status, ['active', 'expired', 'inactive'], true) ? $status : null;
         $rows = $this->repository->listAll($search, $status);
@@ -45,17 +43,12 @@ final class LicenseAdminService {
         return array_map([$this, 'presentRow'], $rows);
     }
 
-    /**
-     * @return array{total:int,active:int,expired:int,inactive:int,this_month:int,last_month:int}
-     */
+    /** @return array{total:int,active:int,expired:int,inactive:int,this_month:int,last_month:int} */
     public function stats(): array {
         return $this->repository->stats();
     }
 
-    /**
-     * @param array<string,mixed> $input
-     * @return array<string,mixed> ردیف ساخته‌شده (شامل کلید تولیدشده)
-     */
+    /** @param array<string,mixed> $input @return array<string,mixed> ردیف ساخته‌شده (شامل کلید تولیدشده) */
     public function create(array $input, string $actor): array {
         $data = $this->validate($input, null);
 
@@ -76,10 +69,7 @@ final class LicenseAdminService {
         return $this->presentRow($row);
     }
 
-    /**
-     * @param array<string,mixed> $input
-     * @return array<string,mixed> ردیف به‌روزشده
-     */
+    /** @param array<string,mixed> $input @return array<string,mixed> ردیف به‌روزشده */
     public function update(int $id, array $input, string $actor): array {
         $existing = $this->requireById($id);
         $data = $this->validate($input, $id);
@@ -106,9 +96,7 @@ final class LicenseAdminService {
         return $this->presentRow($row);
     }
 
-    /**
-     * @return array<string,mixed> ردیف با وضعیت جدید
-     */
+    /** @return array<string,mixed> ردیف با وضعیت جدید */
     public function toggle(int $id, string $actor): array {
         $existing = $this->requireById($id);
         $newState = !(bool)$existing['is_active'];
@@ -144,11 +132,8 @@ final class LicenseAdminService {
         $this->logger->security("License deleted (id={$id}, company={$existing['company_name']}) by {$actor}");
     }
 
-    // ردیف خام دیتابیس به شکل مصرفی پنل تبدیل می‌شود؛ کلیدها snake_case می‌مانند تا با دیتابیس هم‌نام باشند
-    /**
-     * @param array<string,mixed> $row
-     * @return array<string,mixed>
-     */
+    // ردیف خام دیتابیس به شکل مصرفی پنل تبدیل می‌شود؛ کلیدها snake_case می‌مانند تا با دیتابیس هم‌نام باشند.
+    /** @param array<string,mixed> $row @return array<string,mixed> */
     private function presentRow(array $row): array {
         $plan = (string)($row['plan'] ?? 'standard');
 
@@ -171,9 +156,7 @@ final class LicenseAdminService {
         ];
     }
 
-    /**
-     * @return array<string,mixed>
-     */
+    /** @return array<string,mixed> */
     private function requireById(int $id): array {
         $row = $this->repository->findById($id);
         if ($row === null) {
@@ -182,11 +165,8 @@ final class LicenseAdminService {
         return $row;
     }
 
-    // اعتبارسنجی و نرمال‌سازی ورودی فرم؛ فقط کلیدهای شناخته‌شده برمی‌گردند
-    /**
-     * @param array<string,mixed> $input
-     * @return array{company_name:string,plan:string,expires_at:?string,contact_name:?string,contact_phone:?string,contact_email:?string,notes:?string}
-     */
+    // اعتبارسنجی و نرمال‌سازی ورودی فرم؛ فقط کلیدهای شناخته‌شده برمی‌گردند.
+    /** @param array<string,mixed> $input @return array{company_name:string,plan:string,expires_at:?string,contact_name:?string,contact_phone:?string,contact_email:?string,notes:?string} */
     private function validate(array $input, ?int $exceptId): array {
         $companyName = trim((string)($input['company_name'] ?? ''));
         if ($companyName === '') {

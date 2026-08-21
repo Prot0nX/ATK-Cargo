@@ -34,11 +34,7 @@ class SecurityAlerter {
         return !empty($this->botToken) && !empty($this->chatId);
     }
 
-    /**
-     * @param string $event شناسه‌ی کوتاه رویداد، مثل REFRESH_TOKEN_REUSE_DETECTED
-     * @param string $message متن فارسی قابل‌خواندن برای ادمین
-     * @param string|null $dedupeKey کلید یکتا برای cooldown (پیش‌فرض: خود $event)؛ مثلاً "ACCOUNT_LOCKED:username" تا اعلان تکراری طی ۵ دقیقه ارسال نشود
-     */
+    /** @param string $event شناسه‌ی کوتاه رویداد مثل REFRESH_TOKEN_REUSE_DETECTED @param string $message متن فارسی برای ادمین @param string|null $dedupeKey کلید یکتا برای cooldown (پیش‌فرض: خود $event) */
     public function alert(string $event, string $message, ?string $dedupeKey = null): void {
         try {
             Logger::getInstance()->security("[ALERT] [$event] $message");

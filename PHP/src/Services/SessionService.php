@@ -244,10 +244,8 @@ class SessionService {
         return $this->sessionRepository->isAccessTokenExpiredButSessionActive($username, $deviceId, $token);
     }
 
-    // نسخه‌ی بهینه‌شده‌ی isValidToken: اعتبار نشست و userType را با یک کوئری واحد برمی‌گرداند و last_activity را throttled به‌روزرسانی می‌کند
-    /**
-     * @return string|null userType در صورت معتبر بودن نشست، در غیر این صورت null
-     */
+    // نسخه‌ی بهینه‌شده‌ی isValidToken: اعتبار نشست و userType را با یک کوئری واحد برمی‌گرداند و last_activity را throttled به‌روزرسانی می‌کند.
+    /** @return string|null userType در صورت معتبر بودن نشست، در غیر این صورت null */
     public function validateAndGetUserType(string $username, string $deviceId, string $token): ?string {
         if ($username === '' || $deviceId === '' || $token === '') {
             return null;

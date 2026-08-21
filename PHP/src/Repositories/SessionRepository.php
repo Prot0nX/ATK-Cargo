@@ -79,10 +79,8 @@ class SessionRepository {
         return (bool)$stmt->fetch();
     }
 
-    // نسخه‌ی بهینه‌ی isValidToken که userType را هم بدون JOIN روی Users برمی‌گرداند
-    /**
-     * @return string|null userType در صورت معتبر بودن نشست، در غیر این صورت null
-     */
+    // نسخه‌ی بهینه‌ی isValidToken که userType را هم بدون JOIN روی Users برمی‌گرداند.
+    /** @return string|null userType در صورت معتبر بودن نشست، در غیر این صورت null */
     public function validateTokenAndGetUserType(string $username, string $deviceId, string $token): ?string {
         $stmt = $this->db->prepare("
             SELECT userType FROM user_sessions

@@ -20,9 +20,7 @@ final class PasswordGateService {
         $this->conn = Database::getInstance()->getMysqliConnection();
     }
 
-    /**
-     * @return array{success: bool, locked: bool, message: string}
-     */
+    /** @return array{success: bool, locked: bool, message: string} */
     public function verify(string $passwordType, string $password, string $identityKey): array {
         if ($this->isLocked($identityKey, $passwordType)) {
             return [

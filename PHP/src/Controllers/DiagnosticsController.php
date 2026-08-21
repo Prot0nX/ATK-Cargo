@@ -31,11 +31,8 @@ class DiagnosticsController {
         'admin_chat_messages', 'admin_chat_reads', 'audit_log',
     ];
 
-    /**
-     * منطق واقعی health-check جدا از HTTP؛ health_monitor.php این متد را مستقیم صدا می‌زند (Phase3 #28)
-     *
-     * @return array{healthy: bool, status: array, missingTables: array}
-     */
+    // منطق واقعی health-check جدا از HTTP؛ health_monitor.php این متد را مستقیم صدا می‌زند (Phase3 #28)
+    /** @return array{healthy: bool, status: array, missingTables: array} */
     public function evaluateHealth(): array {
         $status = [
             'database' => false,

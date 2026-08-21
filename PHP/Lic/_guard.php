@@ -1,19 +1,5 @@
 <?php
-// PHP/Lic/_guard.php
-//
-// Preamble مشترک همه‌ی صفحات و endpointهای پنل مدیریت لایسنس: پیکربندی
-// نشست، بارگذاری bootstrap (autoload + .env + timezone) و گیت احراز هویت.
-//
-// الگوی نشست عیناً از PermissionManager.php گرفته شده — تنها پنل تحت‌وب
-// دیگر پروژه که احراز هویت مبتنی بر نشست مرورگر دارد. (گیت v2 در
-// ApiAuthGate برای این کار مناسب نیست: آن بر پایه‌ی هدرهای
-// X-Username/X-Device-Id/X-Session-Token کلاینت اندروید است، نه کوکی.)
-//
-// نکته‌ی امنیتی کلیدی نسبت به نسخه‌ی قبلی: پنل قدیمی از فایل‌های استاتیک
-// .html تشکیل شده بود و «احراز هویت» فقط یک بررسی localStorage در
-// جاوااسکریپت بود؛ خودِ manage_licenses.php هیچ بررسی نشستی نداشت و با یک
-// GET ساده تمام کلیدهای لایسنس را برمی‌گرداند. اکنون هر صفحه سمت سرور رندر
-// می‌شود و پیش از تولید هیچ خروجی از همین فایل عبور می‌کند.
+// PHP/Lic/_guard.php — پریمبل مشترک پنل لایسنس: پیکربندی نشست، بارگذاری bootstrap و گیت احراز هویت.
 
 declare(strict_types=1);
 
@@ -21,8 +7,7 @@ use App\Core\Config;
 use App\Core\Csrf;
 use App\Core\Response;
 
-// نام نشست جداگانه تا کوکی این پنل با نشست PermissionManager (که روی همان
-// دامنه و همان مسیر است) تداخل نکند — خروج از یکی نباید دیگری را ببندد.
+// نام نشست جداگانه تا کوکی این پنل با PermissionManager تداخل نکند و خروج از یکی دیگری را نبندد.
 session_name('ATKLIC');
 session_set_cookie_params([
     'lifetime' => 0,
@@ -40,13 +25,7 @@ const LIC_SESSION_KEY = 'lic_admin_auth';
 /** نامی که در جدول audit_log به‌عنوان عامل عملیات ثبت می‌شود. */
 const LIC_ACTOR = 'lic_admin';
 
-/**
- * هدرهای امنیتی صفحات HTML پنل.
- *
- * حالا که هیچ منبع خارجی‌ای بارگذاری نمی‌شود (فونت، آیکون و اسکریپت همگی
- * محلی‌اند)، CSP می‌تواند کاملاً سخت‌گیرانه باشد — برخلاف نسخه‌ی قبلی که
- * CSP اعلام‌شده‌اش با CDNهای واقعاً استفاده‌شده مغایر بود.
- */
+// هدرهای امنیتی صفحات HTML پنل؛ چون همه‌ی منابع محلی‌اند CSP می‌تواند کاملاً سخت‌گیرانه باشد.
 function lic_send_page_headers(): void {
     header('Content-Type: text/html; charset=UTF-8');
     header("Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
@@ -78,9 +57,7 @@ function lic_is_authenticated(): bool {
     return true;
 }
 
-/**
- * پاک‌سازی کامل نشست — هم داده‌ها، هم کوکی سمت مرورگر.
- */
+// پاک‌سازی کامل نشست — هم داده‌ها، هم کوکی سمت مرورگر.
 function lic_destroy_session(): void {
     Csrf::forget();
     $_SESSION = [];
@@ -98,10 +75,7 @@ function lic_destroy_session(): void {
     session_destroy();
 }
 
-/**
- * گیت صفحات HTML: کاربر احراز نشده به login هدایت می‌شود و هرگز بدنه‌ی
- * صفحه را نمی‌بیند.
- */
+// گیت صفحات HTML: کاربر احراز‌نشده به login هدایت می‌شود و هرگز بدنه‌ی صفحه را نمی‌بیند.
 function lic_require_auth_page(): void {
     if (!lic_is_authenticated()) {
         header('Location: login.php');
@@ -109,10 +83,7 @@ function lic_require_auth_page(): void {
     }
 }
 
-/**
- * گیت endpoint‌های JSON: پاسخ ۴۰۱ با کد مشخص تا فرانت‌اند بتواند خودش
- * کاربر را به صفحه‌ی ورود بفرستد.
- */
+// گیت endpointهای JSON: پاسخ ۴۰۱ با کد مشخص تا فرانت‌اند بتواند کاربر را به صفحه‌ی ورود بفرستد.
 function lic_require_auth_json(): void {
     if (!lic_is_authenticated()) {
         Response::json([
@@ -123,21 +94,14 @@ function lic_require_auth_json(): void {
     }
 }
 
-/**
- * تم انتخابی کاربر از کوکی — سمت سرور خوانده می‌شود تا مقدار روی <html>
- * در همان اولین بایت خروجی حاضر باشد و صفحه هنگام بارگذاری از روشن به
- * تاریک نپرد (FOUC).
- *
- * @return string 'light' | 'dark' | '' (خالی = پیروی از تنظیم سیستم)
- */
+// تم انتخابی کاربر از کوکی — سمت سرور خوانده می‌شود تا FOUC هنگام بارگذاری رخ ندهد.
+// @return string 'light' | 'dark' | '' (خالی = پیروی از تنظیم سیستم)
 function lic_theme(): string {
     $theme = $_COOKIE['lic_theme'] ?? '';
     return in_array($theme, ['light', 'dark'], true) ? $theme : '';
 }
 
-/**
- * کوتاه‌نویسی escape خروجی HTML.
- */
+// کوتاه‌نویسی escape خروجی HTML.
 function e(?string $value): string {
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }

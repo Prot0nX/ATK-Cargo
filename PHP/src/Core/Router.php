@@ -68,9 +68,7 @@ final class Router {
         Response::error('مسیر یافت نشد.', 404);
     }
 
-    /**
-     * @return array<string, string>|null آرایه‌ی پارامترهای مسیر در صورت تطبیق، یا null
-     */
+    /** @return array<string, string>|null آرایه‌ی پارامترهای مسیر در صورت تطبیق، یا null */
     private function matchPath(string $pattern, string $path): ?array {
         $patternParts = $pattern === '' ? [] : explode('/', trim($pattern, '/'));
         $pathParts = $path === '' ? [] : explode('/', $path);

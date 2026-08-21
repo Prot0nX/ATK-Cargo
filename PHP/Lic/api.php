@@ -1,20 +1,5 @@
 <?php
-// PHP/Lic/api.php
-//
-// تنها endpoint JSON پنل مدیریت لایسنس.
-//
-// الگو: whitelist صریح action (opt-in)، دقیقاً مثل src/routes/api_v2.php —
-// هر عملیاتی که در جدول زیر نباشد اصلاً وجود ندارد.
-//
-// تفاوت‌های امنیتی نسبت به manage_licenses.php که این فایل جایگزینش می‌شود:
-//   ۱. احراز هویت سمت سرور روی *همه‌ی* actionها (قبلاً هیچ‌کدام گیت نداشتند؛
-//      یک GET بی‌نام‌ونشان تمام کلیدهای لایسنس مشتریان را برمی‌گرداند).
-//   ۲. بررسی واقعی توکن CSRF روی افعال نوشتنی (قبلاً توکن تولید می‌شد اما
-//      هیچ‌جا بررسی نمی‌شد).
-//   ۳. حذف `Access-Control-Allow-Origin: *` — این پنل هرگز نباید
-//      cross-origin پاسخ بدهد.
-//   ۴. تفکیک متد: خواندن با GET، نوشتن با POST (قبلاً action نوشتنی از
-//      طریق GET هم قابل فراخوانی بود).
+// PHP/Lic/api.php — تنها endpoint JSON پنل لایسنس با whitelist صریح action؛ احراز هویت + CSRF روی تمام افعال نوشتنی.
 
 declare(strict_types=1);
 
@@ -45,11 +30,7 @@ if (in_array($action, WRITE_ACTIONS, true)) {
     Response::error('روش درخواست معتبر نیست.', 405);
 }
 
-/**
- * شناسه‌ی لایسنس از ورودی — همه‌ی actionهای هدفمند بر پایه‌ی id عددی کار
- * می‌کنند، نه خودِ license_key. دلیل: کلید یک راز است و نباید در تاریخچه‌ی
- * درخواست‌ها و لاگ‌ها بیش از حد لازم بچرخد.
- */
+// شناسه‌ی لایسنس از ورودی — همه‌ی actionهای هدفمند بر پایه‌ی id عددی کار می‌کنند، نه license_key.
 function lic_required_id(Request $request): int {
     $id = (int)$request->get('id', 0);
     if ($id <= 0) {
@@ -107,9 +88,7 @@ try {
 } catch (ApiException $e) {
     Response::error($e->getMessage(), $e->getStatusCode(), $e->getDetails());
 } catch (\Throwable $e) {
-    // فقط ApiException (پیام‌های عمدی) به کلاینت می‌رسد؛ بقیه صرفاً لاگ
-    // می‌شوند تا ساختار جدول/کوئری افشا نشود — همان قرارداد $safeCall در
-    // src/routes/api_v2.php.
+    // فقط ApiException (پیام‌های عمدی) به کلاینت می‌رسد؛ بقیه لاگ می‌شوند تا ساختار دیتابیس افشا نشود.
     Logger::getInstance()->error('Lic api.php: ' . $e->getMessage());
     Response::error('خطای داخلی سرور رخ داده است.', 500);
 }

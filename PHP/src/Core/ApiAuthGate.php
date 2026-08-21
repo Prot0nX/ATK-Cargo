@@ -10,9 +10,7 @@ use App\Services\SessionService;
 
 // گیت static احراز هویت/مجوز router v2؛ Router::dispatch آن را برای هر route با auth=>true صدا می‌زند
 final class ApiAuthGate {
-    /**
-     * @return array{0: string, 1: string} [username, userType]
-     */
+    /** @return array{0: string, 1: string} [username, userType] */
     public static function requireAuthenticated(Request $request): array {
         MinVersionGate::enforce($request);
 

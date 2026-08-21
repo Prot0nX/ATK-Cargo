@@ -22,10 +22,7 @@ final class LicenseAdminServiceTest extends TestCase {
         $this->service = new LicenseAdminService($this->repository);
     }
 
-    /**
-     * @param array<string,mixed> $overrides
-     * @return array<string,mixed>
-     */
+    /** @param array<string,mixed> $overrides @return array<string,mixed> */
     private function row(array $overrides = []): array {
         return $overrides + [
             'id' => 1,
@@ -46,12 +43,7 @@ final class LicenseAdminServiceTest extends TestCase {
         ];
     }
 
-    /**
-     * mock را برای یک create موفق آماده می‌کند و داده‌ی ارسالی به create را برمی‌گرداند.
-     *
-     * @param array<string,mixed> $input
-     * @return array{key:string,data:array<string,mixed>}
-     */
+    /** mock را برای یک create موفق آماده می‌کند و داده‌ی ارسالی به create را برمی‌گرداند. @param array<string,mixed> $input @return array{key:string,data:array<string,mixed>} */
     private function captureCreate(array $input): array {
         $captured = ['key' => '', 'data' => []];
 
