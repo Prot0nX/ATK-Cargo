@@ -164,7 +164,8 @@ class AnalyticsController {
             Response::error('کوتاژ مورد نظر یافت نشد.', 404);
         }
 
-        $stmt2 = $this->conn->prepare("SELECT trackingNumber, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, exitTime, exitDate, status FROM CargoInfo WHERE loadingQuotaNumber = ?");
+        // LIMIT 2000 سقف محافظتی است نه صفحه‌بندی؛ کل تاریخچه‌ی حواله‌های یک کوتاژ بدون آن نامحدود بود (DEEP_CODE_AUDIT.md #۱۱)
+        $stmt2 = $this->conn->prepare("SELECT trackingNumber, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, exitTime, exitDate, status FROM CargoInfo WHERE loadingQuotaNumber = ? ORDER BY entryTime DESC LIMIT 2000");
         $stmt2->bind_param("s", $kotazh);
         $stmt2->execute();
         $cargoInfo = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);

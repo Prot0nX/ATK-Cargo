@@ -1462,6 +1462,9 @@ Medium (کوتاه‌مدت) تا High (push)
 
 #### [HIGH] هیچ صفحه‌بندی در هیچ endpoint گزارش‌گیری وجود ندارد
 
+> ⚠️ **دامنه کاهش یافت و به‌صورت سقف محافظتی رفع شد (فاز ۲، مورد ۱۱):** بررسی دقیق‌تر نشان داد مکان‌های ذکرشده‌ی این یافته یا کد مرده بودند (`analytics/kotazh` هیچ‌جا از کلاینت اندروید صدا زده نمی‌شود) یا از قبل توسط `GROUP BY` به تعداد کوتاژ/کشتی محدود بودند (نه به تعداد حواله). `LIMIT 2000` روی سه محل واقعاً بدون سقف اضافه شد: `CargoController::getInitialInfo` (که در عمل هم به ورودهای معلق + خروج ۲۴ ساعت اخیر محدود است، نه کل تاریخچه)، `AnalyticsController::handleKotazhRequest`، و `CargoRepository::searchByTracking`. صفحه‌بندی cursor-based واقعی و تغییر قرارداد API انجام نشد — طبق تصمیم کاربر، چون ریسک/فایده‌اش برای این endpointهای مشخص توجیه نداشت.
+
+
 **File:**
 `PHP/src/Controllers/AnalyticsController.php` · `PHP/src/Services/QuotaService.php` · `PHP/src/Services/ShipService.php`
 
@@ -3182,7 +3185,7 @@ Medium
 |---|-------|------|:-----:|
 | ۹ | جایگزینی `LoadingNotificationService` با `PeriodicWorkRequest` | Medium | ✅ اعمال شد |
 | ۱۰ | `remember`/`derivedStateOf` روی خطوط لوله‌ی مجموعه در `ActiveQuotasContent`، `CargoCounterScreen`، `ActiveQuotasGroupedComponents` | Low | ✅ اعمال شد |
-| ۱۱ | صفحه‌بندی cursor-based روی endpointهای تحلیلی و گزارش | Medium | |
+| ۱۱ | صفحه‌بندی cursor-based روی endpointهای تحلیلی و گزارش | Medium | ⚠️ دامنه کاهش یافت — فقط LIMIT محافظتی |
 | ۱۲ | `targetSdk = 36` + تست روی Android 15/16 | Medium | |
 | ۱۳ | یکسان‌سازی رمزگذاری خروجی در `CargoController` (حذف `htmlspecialchars` دوگانه) + migration داده | Medium | |
 | ۱۴ | تبدیل `AnimationManager` به snapshot state + خواندن تنظیم سیستم در `Application.onCreate` | Low | |

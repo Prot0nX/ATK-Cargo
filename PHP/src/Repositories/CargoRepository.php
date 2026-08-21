@@ -258,7 +258,8 @@ class CargoRepository {
     }
 
     public function searchByTracking(string $tracking): array {
-        $query = "SELECT id, trackingNumber, numberOfPeople, username, userType, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, exitTime, exitDate, status, confirm, confirmation, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber FROM CargoInfo WHERE trackingNumber = ? ORDER BY entryTime DESC";
+        // LIMIT 2000 سقف محافظتی است نه صفحه‌بندی؛ فقط در برابر استفاده‌ی مکرر یک شماره حواله محافظت می‌کند (DEEP_CODE_AUDIT.md #۱۱)
+        $query = "SELECT id, trackingNumber, numberOfPeople, username, userType, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, exitTime, exitDate, status, confirm, confirmation, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber FROM CargoInfo WHERE trackingNumber = ? ORDER BY entryTime DESC LIMIT 2000";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) return [];
         $stmt->bind_param("s", $tracking);

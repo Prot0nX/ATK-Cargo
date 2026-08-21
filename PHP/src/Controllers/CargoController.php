@@ -504,6 +504,7 @@ class CargoController {
             $initialInfo['tempTonnageAmount'] = isset($initialInfo['temp_tonnage_amount']) ? (float)$initialInfo['temp_tonnage_amount'] : null;
 
             // استفاده از COALESCE برای ستون‌های NULLABLE چون مدل Kotlin کلاینت آن‌ها را non-null می‌خواهد و بدون آن کرش می‌کرد
+            // LIMIT 2000 سقف محافظتی است نه صفحه‌بندی؛ در عمل به ورودهای معلق + خروج ۲۴ ساعت اخیر محدود است (DEEP_CODE_AUDIT.md #۱۱)
             $cargoStmt = $this->conn->prepare("SELECT id,
                 COALESCE(trackingNumber, '') AS trackingNumber,
                 COALESCE(numberOfPeople, 0) AS numberOfPeople,
@@ -524,7 +525,7 @@ class CargoController {
                 COALESCE(loadingQuotaNumber, 0) AS loadingQuotaNumber,
                 COALESCE(confirm, '') AS confirm,
                 confirmation
-                FROM CargoInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ? AND (status = '" . self::ENTERED->value . "' OR (status = '" . self::EXITED->value . "' AND exitDate >= ? AND exitDate <= ?)) ORDER BY CASE WHEN status = '" . self::ENTERED->value . "' THEN 1 ELSE 2 END, entryTime DESC");
+                FROM CargoInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ? AND (status = '" . self::ENTERED->value . "' OR (status = '" . self::EXITED->value . "' AND exitDate >= ? AND exitDate <= ?)) ORDER BY CASE WHEN status = '" . self::ENTERED->value . "' THEN 1 ELSE 2 END, entryTime DESC LIMIT 2000");
             $cargoStmt->bind_param("ssssss", $quotaNumber, $shippingCompany, $warehouse, $cargoType, $yesterday, $today);
             $cargoStmt->execute();
             $cargoResult = $cargoStmt->get_result();
