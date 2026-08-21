@@ -69,8 +69,8 @@ class Database {
             
             $this->mysqli->set_charset("utf8mb4");
             
-            // بهینه‌سازی‌های پایگاه داده برای سرعت بالاتر
-            $this->mysqli->query("SET SESSION sql_mode = 'NO_ENGINE_SUBSTITUTION'");
+            // STRICT_TRANS_TABLES اضافه شد؛ بدون آن درج داده‌ی طولانی‌تر از ستون بی‌صدا truncate می‌شد (DEEP_CODE_AUDIT.md #۱۸)
+            $this->mysqli->query("SET SESSION sql_mode = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'");
             $this->mysqli->query("SET time_zone = '+03:30'");
         }
         return $this->mysqli;

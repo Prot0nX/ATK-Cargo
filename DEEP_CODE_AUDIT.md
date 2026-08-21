@@ -1665,6 +1665,9 @@ LOW
 
 #### [MEDIUM] دو مسیر دسترسی به دیتابیس (PDO و mysqli) به‌صورت موازی
 
+> ⚠️ **بخشی رفع شد (فاز ۲، مورد ۱۸):** فقط بخش «۱» (وصله‌ی `sql_mode`) اعمال شد — `Database::getMysqliConnection` اکنون `STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION` می‌گذارد. **این تغییر فقط با اتصال به دیتابیس واقعی قابل تأیید کامل است** (این محیط به MySQL/MariaDB زنده دسترسی نداشت)؛ اگر جایی در کدبیس به کوتاه‌شدن بی‌صدای مقدار متکی بوده (که بررسی دستی نشانه‌ای از آن پیدا نکرد)، ممکن است حالا با خطای SQL صریح مواجه شود — قابل ردیابی و اصلاح، نه خرابی خاموش. یکسان‌سازی کامل PDO/mysqli (بخش «۲»، مهاجرت معماری) انجام نشد.
+
+
 **File:**
 `PHP/src/Core/Database.php`
 
@@ -3209,7 +3212,7 @@ Medium
 | ۱۵ | رفع race در `AuthSession` هنگام cold start | Low | ✅ اعمال شد |
 | ۱۶ | ایمن‌سازی `System.loadLibrary` + افزودن `armeabi-v7a` یا پیام خطای صریح | Low | ✅ اعمال شد (پیام خطا، بدون `armeabi-v7a`) |
 | ۱۷ | ابطال نشست فقط برای تغییرات امنیتی در `UserService::updateUser` | Low | ✅ اعمال شد |
-| ۱۸ | یکسان کردن `sql_mode` به `STRICT_TRANS_TABLES` در `Database::getMysqliConnection` | Low | |
+| ۱۸ | یکسان کردن `sql_mode` به `STRICT_TRANS_TABLES` در `Database::getMysqliConnection` | Low | ✅ اعمال شد |
 | ۱۹ | حذف افشای `userType` و پیام متمایز در `checkSession` | Low | |
 | ۲۰ | تست‌های Phase 1 بخش Testing: `UpdateManagerTest`, `CryptoManagerTest`, `AuthControllerTest` | High | |
 
