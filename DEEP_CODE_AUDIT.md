@@ -885,6 +885,8 @@ Low
 
 #### [HIGH] `targetSdk = 34` عقب‌تر از `compileSdk = 36`
 
+> ⏭️ **فعلاً رد شد (فاز ۲، مورد ۱۲):** طبق تصمیم کاربر. این تغییر رفتارهای سطح سیستم (edge-to-edge اجباری، محدودیت‌های FGS) را فعال می‌کند که بدون دستگاه/امولاتور واقعی قابل تست بصری نیست — کامپایل به‌تنهایی کافی نبود. باقی می‌ماند برای زمانی که تست دستی ممکن باشد.
+
 **File:**
 `app/build.gradle.kts`
 
@@ -3186,7 +3188,7 @@ Medium
 | ۹ | جایگزینی `LoadingNotificationService` با `PeriodicWorkRequest` | Medium | ✅ اعمال شد |
 | ۱۰ | `remember`/`derivedStateOf` روی خطوط لوله‌ی مجموعه در `ActiveQuotasContent`، `CargoCounterScreen`، `ActiveQuotasGroupedComponents` | Low | ✅ اعمال شد |
 | ۱۱ | صفحه‌بندی cursor-based روی endpointهای تحلیلی و گزارش | Medium | ⚠️ دامنه کاهش یافت — فقط LIMIT محافظتی |
-| ۱۲ | `targetSdk = 36` + تست روی Android 15/16 | Medium | |
+| ۱۲ | `targetSdk = 36` + تست روی Android 15/16 | Medium | ⏭️ فعلاً رد شد (نیازمند دستگاه واقعی) |
 | ۱۳ | یکسان‌سازی رمزگذاری خروجی در `CargoController` (حذف `htmlspecialchars` دوگانه) + migration داده | Medium | |
 | ۱۴ | تبدیل `AnimationManager` به snapshot state + خواندن تنظیم سیستم در `Application.onCreate` | Low | |
 | ۱۵ | رفع race در `AuthSession` هنگام cold start | Low | |
