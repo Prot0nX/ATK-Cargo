@@ -318,7 +318,7 @@ private fun SummaryStatsButton(onClick: () -> Unit, warningsCount: Int = 0) {
     )
 
     // انیمیشن پالس فقط وقتی هشدار وجود دارد و انیمیشن‌ها فعال‌اند اجرا می‌شود
-    val badgeScale: Float = if (warningsCount > 0 && AnimationManager.areAnimationsEnabled()) {
+    val badgeScale: Float = if (warningsCount > 0 && AnimationManager.areAnimationsEnabled) {
         val infiniteTransition = rememberInfiniteTransition(label = "badge_pulse")
         val scale by infiniteTransition.animateFloat(
             initialValue = 0.92f,
@@ -456,7 +456,7 @@ private fun SystemAwarenessBanner() {
     // پالس تزئینی وضعیت آنلاین/آفلاین، فقط تابع تنظیم سیستمی «حذف انیمیشن‌ها»
     val pulseAlpha: Float
     val pulseScale: Float
-    if (AnimationManager.areAnimationsEnabled()) {
+    if (AnimationManager.areAnimationsEnabled) {
         val pulseTransition = rememberInfiniteTransition(label = "status_pulse")
         pulseAlpha = pulseTransition.animateFloat(
             initialValue = 0.45f,

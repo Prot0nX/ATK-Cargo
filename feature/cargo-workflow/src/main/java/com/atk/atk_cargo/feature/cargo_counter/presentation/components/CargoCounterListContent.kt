@@ -612,8 +612,8 @@ private fun WarehouseCard(
 
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = if (AnimationManager.areAnimationsEnabled()) fadeIn() + expandVertically() else fadeIn(),
-                exit = if (AnimationManager.areAnimationsEnabled()) fadeOut() + shrinkVertically() else fadeOut()
+                enter = if (AnimationManager.areAnimationsEnabled) fadeIn() + expandVertically() else fadeIn(),
+                exit = if (AnimationManager.areAnimationsEnabled) fadeOut() + shrinkVertically() else fadeOut()
             ) {
                 Column(
                     modifier = Modifier.padding(

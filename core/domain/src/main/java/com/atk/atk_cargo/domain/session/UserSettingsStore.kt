@@ -5,7 +5,6 @@ import kotlinx.coroutines.flow.Flow
 // انتزاع نازک روی UserPreferencesManager برای تنظیمات تم/اعلان تا home به کلاس concrete وابسته نشود
 interface UserSettingsStore {
     val themeColor: Flow<Long>
-    val hardwareScore: Flow<Int>
     val loadingNotificationsEnabled: Flow<Boolean>
     val chatNotificationsEnabled: Flow<Boolean>
 

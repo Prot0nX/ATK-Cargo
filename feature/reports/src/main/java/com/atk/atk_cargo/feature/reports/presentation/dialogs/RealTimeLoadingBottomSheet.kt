@@ -484,7 +484,7 @@ fun RefreshOverlay(
 ) {
     val rotationAngle: Float
     val rippleEffect: Float
-    if (AnimationManager.areAnimationsEnabled()) {
+    if (AnimationManager.areAnimationsEnabled) {
         val infiniteTransition = rememberInfiniteTransition(label = "")
         rotationAngle = infiniteTransition.animateFloat(
             initialValue = 0f,

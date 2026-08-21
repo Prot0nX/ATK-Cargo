@@ -41,7 +41,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.atk.atk_cargo.api.UpdateManager
 import com.atk.atk_cargo.api.UserPreferencesManager
-import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.core.navigation.MainScreen
 import com.atk.atk_cargo.core.startup.LocalNotificationPermissionRequester
 import com.atk.atk_cargo.core.startup.LocalStartupViewModel
@@ -90,14 +89,8 @@ class MainActivity : ComponentActivity() {
                     startupViewModel.runStartupSequenceOnce()
                 }
 
-                // پشتیبانی از قابلیت Reduce Motion تنظیمات سیستم در AnimationManager اپ (Phase3 #3.12).
-                LaunchedEffect(Unit) {
-                    val animatorDurationScale = android.provider.Settings.Global.getFloat(
-                        contentResolver,
-                        android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f
-                    )
-                    AnimationManager.setSystemAnimationsEnabled(animatorDurationScale != 0f)
-                }
+                // تنظیم Reduce Motion حالا در AtkCargoApplication.onCreate خوانده می‌شود (DEEP_CODE_AUDIT.md #۱۴)؛
+                // قبلاً اینجا با LaunchedEffect(Unit) بعد از اولین composition اعمال می‌شد و Composableهای زودتر render‌شده هرگز مقدار واقعی را نمی‌دیدند
 
                 LaunchedEffect(Unit) {
 

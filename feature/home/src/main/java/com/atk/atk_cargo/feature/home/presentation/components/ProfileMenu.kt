@@ -104,7 +104,6 @@ fun ProfileMenu(
     val requestNotificationPermission = LocalNotificationPermissionRequester.current
     val userPreferencesManager = koinInject<UserSettingsStore>()
     val profileViewModel: ProfileViewModel = koinViewModel()
-    val hardwareScore by userPreferencesManager.hardwareScore.collectAsStateWithLifecycle(initialValue = -1)
     val loadingEnabled by userPreferencesManager.loadingNotificationsEnabled.collectAsStateWithLifecycle(initialValue = true)
     val chatEnabled by userPreferencesManager.chatNotificationsEnabled.collectAsStateWithLifecycle(initialValue = true)
     val rotationState by animateFloatAsState(
@@ -186,20 +185,6 @@ fun ProfileMenu(
                                     fontWeight = FontWeight.Bold,
                                     color = palette.accent,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                            if (hardwareScore > 0) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(4.dp)
-                                        .clip(CircleShape)
-                                        .background(palette.mutedText.copy(alpha = 0.5f))
-                                )
-                                Text(
-                                    text = "امتیاز سخت‌افزار: $hardwareScore",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = palette.mutedText
                                 )
                             }
                         }

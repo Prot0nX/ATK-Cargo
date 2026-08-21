@@ -580,7 +580,7 @@ private fun CargoEditConfirmHeader() {
                 ),
             contentAlignment = Alignment.Center
         ) {
-            val scale: Float = if (AnimationManager.areAnimationsEnabled()) {
+            val scale: Float = if (AnimationManager.areAnimationsEnabled) {
                 val infiniteTransition = rememberInfiniteTransition(label = "")
                 infiniteTransition.animateFloat(
                     initialValue = 1f,

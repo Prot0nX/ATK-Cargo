@@ -1114,6 +1114,9 @@ Medium (نیازمند بازبینی مدل‌های مصرف‌کننده)
 
 #### [MEDIUM] `AnimationManager` حالت سراسری غیر-snapshot و غیر‌ایمن نسبت به thread است
 
+> ✅ **رفع شد (فاز ۲، مورد ۱۴):** `AnimationManager` به `mutableStateOf` تبدیل شد و `areAnimationsEnabled` اکنون یک property است (۲۰ نقطه‌ی فراخوانی در ۱۲ فایل به‌روزرسانی شدند). خواندن تنظیم سیستم از `LaunchedEffect` در `MainActivity` به `AtkCargoApplication.onCreate` منتقل شد. طبق تصمیم کاربر، `setPerformanceScore`/`performanceScore` (هرگز صدا زده نمی‌شد) به‌جای وصل‌کردن حذف شدند؛ نسخه‌ی تکراری و مرده‌ی `AnimationManager` در `feature/startup` هم حذف شد. در همین راستا `hardwareScore`/`saveHardwareScore` (کد مرده‌ی مرتبط، `UserPreferencesManager`/`UserSettingsStore`/`ProfileMenu`) هم حذف شدند.
+
+
 **File:**
 `core/domain/src/main/java/com/atk/atk_cargo/core/domain/AnimationManager.kt`
 
@@ -3094,10 +3097,10 @@ Medium
 
 | مورد | فایل | شواهد |
 |------|------|--------|
-| `AnimationManager.setPerformanceScore()` | `core/domain/.../AnimationManager.kt:11` | هیچ فراخوانی‌ای وجود ندارد → گیت انیمیشن بر اساس قدرت دستگاه هرگز فعال نمی‌شود |
-| `UserPreferencesManager.saveHardwareScore()` | `app/.../UserPreferencesManager.kt:191` | هیچ فراخوانی‌ای وجود ندارد → `hardwareScore` همیشه `-1` است |
-| نمایش امتیاز سخت‌افزار | `feature/home/.../ProfileMenu.kt:191` | `if (hardwareScore > 0)` همیشه false → UI مرده |
-| `AnimationManager` تکراری | `feature/startup/.../domain/AnimationManager.kt` | نسخه‌ی دوم، هیچ import‌ای به آن اشاره نمی‌کند (همه از `core.domain` می‌آیند) |
+| ~~`AnimationManager.setPerformanceScore()`~~ | `core/domain/.../AnimationManager.kt:11` | ✅ حذف شد (فاز ۲، مورد ۱۴) — به‌جای وصل‌کردن، چون هرگز صدا زده نمی‌شد |
+| ~~`UserPreferencesManager.saveHardwareScore()`~~ | `app/.../UserPreferencesManager.kt:191` | ✅ حذف شد (فاز ۲، مورد ۱۴) |
+| ~~نمایش امتیاز سخت‌افزار~~ | `feature/home/.../ProfileMenu.kt:191` | ✅ حذف شد (فاز ۲، مورد ۱۴) |
+| ~~`AnimationManager` تکراری~~ | `feature/startup/.../domain/AnimationManager.kt` | ✅ حذف شد (فاز ۲، مورد ۱۴) |
 | `ChatDao.markAsRead(messageId)` | `core/database/.../ChatDao.kt:24` | هیچ فراخوانی‌ای وجود ندارد |
 | endpoint `chat/messages/{id}/read` | `PHP/src/routes/api_v2.php:524` | کلاینت هرگز صدا نمی‌زند → `read_by_names` سمت سرور هرگز از این اپ پر نمی‌شود |
 | endpoint `chat/unread-count` | `api_v2.php:498` | کلاینت از `chatDao.getUnreadCount()` محلی استفاده می‌کند |
@@ -3193,7 +3196,7 @@ Medium
 | ۱۱ | صفحه‌بندی cursor-based روی endpointهای تحلیلی و گزارش | Medium | ⚠️ دامنه کاهش یافت — فقط LIMIT محافظتی |
 | ۱۲ | `targetSdk = 36` + تست روی Android 15/16 | Medium | ⏭️ فعلاً رد شد (نیازمند دستگاه واقعی) |
 | ۱۳ | یکسان‌سازی رمزگذاری خروجی در `CargoController` (حذف `htmlspecialchars` دوگانه) + migration داده | Medium | ✅ اعمال شد (اسکریپت migration برای اجرای دستی) |
-| ۱۴ | تبدیل `AnimationManager` به snapshot state + خواندن تنظیم سیستم در `Application.onCreate` | Low | |
+| ۱۴ | تبدیل `AnimationManager` به snapshot state + خواندن تنظیم سیستم در `Application.onCreate` | Low | ✅ اعمال شد |
 | ۱۵ | رفع race در `AuthSession` هنگام cold start | Low | |
 | ۱۶ | ایمن‌سازی `System.loadLibrary` + افزودن `armeabi-v7a` یا پیام خطای صریح | Low | |
 | ۱۷ | ابطال نشست فقط برای تغییرات امنیتی در `UserService::updateUser` | Low | |

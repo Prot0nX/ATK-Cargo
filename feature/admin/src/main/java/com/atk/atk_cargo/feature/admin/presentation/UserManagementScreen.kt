@@ -938,7 +938,7 @@ private fun UserMenuRow(
 
 @Composable
 private fun ShimmerUserLoadingList() {
-    val alphaAnim: Float = if (AnimationManager.areAnimationsEnabled()) {
+    val alphaAnim: Float = if (AnimationManager.areAnimationsEnabled) {
         val transition = rememberInfiniteTransition(label = "shimmer")
         transition.animateFloat(
             initialValue = 0.2f,

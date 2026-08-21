@@ -63,8 +63,6 @@ class UserPreferencesManager(
     // I-05: refresh token — فقط توسط TokenAuthenticator خوانده می‌شود.
     val refreshToken: Flow<String> = preference(REFRESH_TOKEN_KEY, "").map { cryptoManager.decrypt(it) }
 
-    override val hardwareScore: Flow<Int> = preference(HARDWARE_SCORE_KEY, -1)
-
     override val loadingNotificationsEnabled: Flow<Boolean> = preference(LOADING_NOTIFICATIONS_ENABLED_KEY, true)
 
     override val chatNotificationsEnabled: Flow<Boolean> = preference(CHAT_NOTIFICATIONS_ENABLED_KEY, true)
@@ -188,12 +186,6 @@ class UserPreferencesManager(
         }
     }
 
-    suspend fun saveHardwareScore(score: Int) {
-        dataStore.edit { preferences ->
-            preferences[HARDWARE_SCORE_KEY] = score
-        }
-    }
-
     override suspend fun clearUserCredentials() {
         dataStore.edit { preferences ->
             preferences.remove(USERNAME_KEY)
@@ -239,7 +231,6 @@ class UserPreferencesManager(
         private val SESSION_TOKEN_KEY = stringPreferencesKey("session_token")
         private val REFRESH_TOKEN_KEY = stringPreferencesKey("refresh_token")
         private val PERMISSIONS_KEY = stringPreferencesKey("user_permissions")
-        private val HARDWARE_SCORE_KEY = intPreferencesKey("hardware_score")
         private val IS_LOGGED_IN_KEY = booleanPreferencesKey("is_logged_in")
         private val BATTERY_OPTIMIZATION_REQUESTED_KEY = booleanPreferencesKey("battery_optimization_requested")
         private val LAST_SESSION_VERIFIED_TIMESTAMP_KEY = longPreferencesKey("last_session_verified_timestamp")

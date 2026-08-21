@@ -307,8 +307,8 @@ fun RegisterCargoScreen(
 
                 AnimatedVisibility(
                     visible = isFormExpanded,
-                    enter = if (AnimationManager.areAnimationsEnabled()) expandVertically() + fadeIn() else fadeIn(),
-                    exit = if (AnimationManager.areAnimationsEnabled()) shrinkVertically() + fadeOut() else fadeOut()
+                    enter = if (AnimationManager.areAnimationsEnabled) expandVertically() + fadeIn() else fadeIn(),
+                    exit = if (AnimationManager.areAnimationsEnabled) shrinkVertically() + fadeOut() else fadeOut()
                 ) {
                     FormSection(
                         trackingNumber = trackingNumber,
@@ -457,7 +457,7 @@ fun RegisterCargoScreen(
                     var secondsUntilNextRefresh by remember { mutableIntStateOf(AUTO_REFRESH_INTERVAL_SECONDS) }
                     val rotation = animateFloatAsState(
                         targetValue = rotationState,
-                        animationSpec = if (AnimationManager.areAnimationsEnabled()) tween(400) else tween(0),
+                        animationSpec = if (AnimationManager.areAnimationsEnabled) tween(400) else tween(0),
                         label = "rotation"
                     )
 

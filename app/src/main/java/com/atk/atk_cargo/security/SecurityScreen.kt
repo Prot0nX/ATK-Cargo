@@ -141,7 +141,7 @@ fun SecurityBlockScreen(
                     AdvancedOrbitalScanner()
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    val textAlpha: Float = if (AnimationManager.areAnimationsEnabled()) {
+                    val textAlpha: Float = if (AnimationManager.areAnimationsEnabled) {
                         val infiniteTransition = rememberInfiniteTransition(label = "loading_text")
                         infiniteTransition.animateFloat(
                             initialValue = 0.4f,
@@ -704,7 +704,7 @@ fun SignatureHashCard(
 private fun DynamicPremiumBackground(isDark: Boolean) {
     val t1: Float
     val t2: Float
-    if (AnimationManager.areAnimationsEnabled()) {
+    if (AnimationManager.areAnimationsEnabled) {
         val infiniteTransition = rememberInfiniteTransition(label = "bg_flow")
 
         t1 = infiniteTransition.animateFloat(
@@ -781,7 +781,7 @@ private fun AdvancedOrbitalScanner(modifier: Modifier = Modifier) {
     val rotation2: Float
     val pulseScale: Float
     val scanOffset: Float
-    if (AnimationManager.areAnimationsEnabled()) {
+    if (AnimationManager.areAnimationsEnabled) {
         val infiniteTransition = rememberInfiniteTransition(label = "scanner")
 
         rotation1 = infiniteTransition.animateFloat(
@@ -901,7 +901,7 @@ private fun AnimatedWarningIcon() {
     val pulseScale: Float
     val pulseAlpha: Float
     val shakeAngle: Float
-    if (AnimationManager.areAnimationsEnabled()) {
+    if (AnimationManager.areAnimationsEnabled) {
         val pulseTransition = rememberInfiniteTransition(label = "pulse_warning")
 
         pulseScale = pulseTransition.animateFloat(
@@ -983,7 +983,7 @@ private fun AnimatedWarningIcon() {
 private fun AnimatedUpdateIcon(isDark: Boolean) {
     val arrowOffset: Float
     val iconScale: Float
-    if (AnimationManager.areAnimationsEnabled()) {
+    if (AnimationManager.areAnimationsEnabled) {
         val pulseTransition = rememberInfiniteTransition(label = "pulse_update")
 
         arrowOffset = pulseTransition.animateFloat(

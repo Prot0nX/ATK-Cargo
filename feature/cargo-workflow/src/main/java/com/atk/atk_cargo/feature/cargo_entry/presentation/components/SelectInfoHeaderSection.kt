@@ -56,8 +56,8 @@ fun AnimatedHeader(
 
     AnimatedVisibility(
         visible = isVisible,
-        enter = if (AnimationManager.areAnimationsEnabled()) fadeIn() + slideInVertically() else fadeIn(),
-        exit = if (AnimationManager.areAnimationsEnabled()) fadeOut() + slideOutVertically() else fadeOut()
+        enter = if (AnimationManager.areAnimationsEnabled) fadeIn() + slideInVertically() else fadeIn(),
+        exit = if (AnimationManager.areAnimationsEnabled) fadeOut() + slideOutVertically() else fadeOut()
     ) {
         Column(
             modifier = Modifier

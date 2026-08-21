@@ -388,7 +388,7 @@ private fun ModernUpdateContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        val bounce: Float = if (AnimationManager.areAnimationsEnabled()) {
+        val bounce: Float = if (AnimationManager.areAnimationsEnabled) {
             val infiniteTransition = rememberInfiniteTransition(label = "")
             infiniteTransition.animateFloat(
                 initialValue = 0f,

@@ -1,7 +1,9 @@
 package com.atk.atk_cargo.api
 
 import android.app.Application
+import android.provider.Settings
 import com.atk.atk_cargo.BuildConfig
+import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.di.appModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,6 +23,10 @@ class AtkCargoApplication : Application() {
 
         // باید همین ابتدا نصب شود، قبل از هر initialization دیگری که ممکن است کرش کند (Koin، RetrofitClient) تا آن کرش‌ها هم گزارش شوند (DEEP_CODE_AUDIT.md #Phase2.13)
         CrashReporter.install(this)
+
+        // تنظیم Reduce Motion سیستم قبل از اولین composition خوانده می‌شود تا هیچ Composableای مقدار پیش‌فرض را نبیند (DEEP_CODE_AUDIT.md #۱۴)
+        val animatorDurationScale = Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+        AnimationManager.setSystemAnimationsEnabled(animatorDurationScale != 0f)
 
         // Initialize Koin DI
         val koinApp = startKoin {
