@@ -56,7 +56,17 @@ class SecurityAlerter {
         }
     }
 
+    // تماس شبکه به بعد از پایان اسکریپت موکول می‌شود تا مسیر بحرانی login/refresh منتظر Telegram API نماند (DEEP_CODE_AUDIT.md #۱)
     private function sendTelegram(string $text): void {
+        register_shutdown_function(function () use ($text): void {
+            if (function_exists('fastcgi_finish_request')) {
+                @fastcgi_finish_request();
+            }
+            $this->sendTelegramNow($text);
+        });
+    }
+
+    private function sendTelegramNow(string $text): void {
         $url = "https://api.telegram.org/bot{$this->botToken}/sendMessage";
         $payload = json_encode([
             'chat_id' => $this->chatId,
@@ -77,7 +87,7 @@ class SecurityAlerter {
             ],
         ]);
 
-        // @ عمدی: اگر شبکه/DNS در دسترس نباشد نباید warning در پاسخ اصلی درز کند؛ نتیجه هرچه باشد نادیده گرفته می‌شود.
+        // @ عمدی: اگر شبکه/DNS در دسترس نباشد نباید warning درز کند؛ نتیجه هرچه باشد نادیده گرفته می‌شود.
         @file_get_contents($url, false, $context);
     }
 

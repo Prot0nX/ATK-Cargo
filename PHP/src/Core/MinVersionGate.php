@@ -8,9 +8,10 @@ namespace App\Core;
 // قفل نسخه‌ی منقضی مخصوص router جدید (v2)؛ با پاسخ یکدست Response::error، مستقل از AuthenticatesRequests
 final class MinVersionGate {
     public static function enforce(Request $request): void {
+        // نبود هدر دیگر عبور آزاد نمی‌دهد؛ قبلاً همین باعث دور زدن کامل گیت نسخه می‌شد (DEEP_CODE_AUDIT.md #۳)
         $appVersion = $request->getHeader('X-App-Version');
-        if (!$appVersion) {
-            return;
+        if ($appVersion === null || $appVersion === '') {
+            Response::error('هدر X-App-Version الزامی است.', 426);
         }
 
         $configFile = APP_ROOT . '/update_config.php';

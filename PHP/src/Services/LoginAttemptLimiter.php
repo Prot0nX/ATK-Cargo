@@ -6,24 +6,18 @@ declare(strict_types=1);
 namespace App\Services;
 
 // محدودکننده‌ی تلاش‌های ناموفق ورود، با دو شمارنده‌ی مستقل برای username و IP
+// sleep() تصاعدی قبلی حذف شد چون worker را مسدود و بستر DoS می‌کرد (DEEP_CODE_AUDIT.md #۱)
 final class LoginAttemptLimiter {
     private const MAX_USER_ATTEMPTS = 5;
     private const MAX_IP_ATTEMPTS = 50;
     private const LOCKOUT_WINDOW_SECONDS = 900; // ۱۵ دقیقه
     private const CACHE_PREFIX = 'login_gate_attempts_';
-    private const MAX_BACKOFF_SECONDS = 8;
-
-    /** @var callable(int): void */
-    private $sleeper;
 
     /** @var callable(string, string, string): void */
     private $alerter;
 
-    // sleeper و alerter قابل تزریق‌اند تا تست واحد بدون تأخیر واقعی یا درخواست شبکه اجرا شود
-    public function __construct(?callable $sleeper = null, ?callable $alerter = null) {
-        $this->sleeper = $sleeper ?? static function (int $seconds): void {
-            sleep($seconds);
-        };
+    // alerter قابل تزریق است تا تست واحد بدون درخواست شبکه‌ی واقعی اجرا شود
+    public function __construct(?callable $alerter = null) {
         $this->alerter = $alerter ?? static function (string $event, string $message, string $dedupeKey): void {
             SecurityAlerter::getInstance()->alert($event, $message, $dedupeKey);
         };
@@ -53,10 +47,6 @@ final class LoginAttemptLimiter {
                 'ip_locked_' . $ipAddress
             );
         }
-
-        // تأخیر تصاعدی: 2, 4, 8, 8, 8... ثانیه به‌ازای تلاش ناموفق روی همین username
-        $delay = min(2 ** $userAttempts, self::MAX_BACKOFF_SECONDS);
-        ($this->sleeper)($delay);
     }
 
     public function resetAttempts(string $username, string $ipAddress): void {

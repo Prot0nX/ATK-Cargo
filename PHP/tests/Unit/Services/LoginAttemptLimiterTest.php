@@ -8,17 +8,12 @@ namespace App\Tests\Unit\Services;
 use App\Services\LoginAttemptLimiter;
 use PHPUnit\Framework\TestCase;
 
-// تست‌های واحد محدودکننده‌ی brute-force (S-06) با fallback فایلی و sleep جایگزین‌شده برای اجرای فوری
+// تست‌های واحد محدودکننده‌ی brute-force (S-06)؛ sleep() مسدودکننده حذف شد پس دیگر نیازی به تزریق sleeper نیست (DEEP_CODE_AUDIT.md #۱)
 final class LoginAttemptLimiterTest extends TestCase {
     private LoginAttemptLimiter $limiter;
-    /** @var array<int, int> */
-    private array $sleptSeconds;
 
     protected function setUp(): void {
-        $this->sleptSeconds = [];
-        $this->limiter = new LoginAttemptLimiter(function (int $seconds): void {
-            $this->sleptSeconds[] = $seconds;
-        });
+        $this->limiter = new LoginAttemptLimiter();
     }
 
     private function uniqueUsername(): string {
@@ -109,15 +104,17 @@ final class LoginAttemptLimiterTest extends TestCase {
         $this->assertTrue($this->limiter->isLocked($username, $ipB));
     }
 
-    public function testBackoffDelayIsExponentialAndCappedAtMaxBackoffSeconds(): void {
+    public function testRegisterFailedAttemptDoesNotBlockTheCallingThread(): void {
+        // تست رگرسیون: نسخه‌ی قبلی بعد از هر تلاش ناموفق تا ۸ ثانیه sleep() می‌زد (DEEP_CODE_AUDIT.md #۱)
         $username = $this->uniqueUsername();
         $ip = $this->uniqueIp();
 
-        // تلاش ۱ تا ۵: تأخیر باید 2, 4, 8, 8, 8 باشد (سقف MAX_BACKOFF_SECONDS=8).
+        $startedAt = microtime(true);
         for ($i = 0; $i < 5; $i++) {
             $this->limiter->registerFailedAttempt($username, $ip);
         }
+        $elapsedSeconds = microtime(true) - $startedAt;
 
-        $this->assertSame([2, 4, 8, 8, 8], $this->sleptSeconds);
+        $this->assertLessThan(1.0, $elapsedSeconds, 'registerFailedAttempt() باید فوراً برگردد، نه با sleep() مسدودکننده.');
     }
 }

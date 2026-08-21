@@ -8,21 +8,22 @@ namespace App\Controllers;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
-use App\Services\LoginAttemptLimiter;
+use App\Services\CrashReportRateLimiter;
 use PDOException;
 use Throwable;
 
 // health-check و دریافت گزارش کرش، عمداً بدون گیت auth تا برای مانیتورینگ و کرش پیش از لاگین در دسترس باشند (Phase2.13)
 class DiagnosticsController {
     private Request $request;
-    private LoginAttemptLimiter $rateLimiter;
+    private CrashReportRateLimiter $rateLimiter;
 
     // سقف حجم crash_reports.log — DEEP_CODE_REVIEW.md Phase2.14.
     private const MAX_CRASH_LOG_BYTES = 50 * 1024 * 1024;
 
     public function __construct() {
         $this->request = new Request();
-        $this->rateLimiter = new LoginAttemptLimiter();
+        // محدودکننده‌ی اختصاصی به‌جای LoginAttemptLimiter — سقف بالاتر و غیرمسدودکننده (DEEP_CODE_AUDIT.md #۲)
+        $this->rateLimiter = new CrashReportRateLimiter();
     }
 
     // فهرست جداول لازم برای «سالم» دانستن سیستم، مطابق schema.sql (Phase 2.3)
@@ -79,12 +80,12 @@ class DiagnosticsController {
             Response::json(['success' => false, 'message' => 'روش درخواست مجاز نیست'], 405);
         }
 
-        // اعمال rate limit با کلید مجزا (پیشوند crash_) روی LoginAttemptLimiter موجود تا پر شدن دیسک را جلوگیری کند (Phase2.14)
-        $rateLimitKey = 'crash_' . $this->request->getClientIp();
-        if ($this->rateLimiter->isLocked($rateLimitKey, $rateLimitKey)) {
-            Response::json(['success' => false, 'message' => 'تعداد درخواست‌ها بیش از حد مجاز است.'], 429);
+        // عبور از سقف بی‌صدا drop می‌شود (۲۰۰) نه ۴۲۹ تا کلاینت هنگام کرش پیاپی تشویق به retry نشود (DEEP_CODE_AUDIT.md #۲)
+        $clientIp = $this->request->getClientIp();
+        if ($this->rateLimiter->isOverLimit($clientIp)) {
+            Response::json(['success' => true]);
         }
-        $this->rateLimiter->registerFailedAttempt($rateLimitKey, $rateLimitKey);
+        $this->rateLimiter->registerReport($clientIp);
 
         $stackTrace = (string)$this->request->get('stackTrace', '');
         if (trim($stackTrace) === '') {

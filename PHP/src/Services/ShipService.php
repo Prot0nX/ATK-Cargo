@@ -345,10 +345,15 @@ final class ShipService {
         $summaryResult = $stmt->get_result();
         $summary = $summaryResult->fetch_assoc();
 
+        // JOIN روی کلید کامل پنج‌ستونی؛ کمتر از آن می‌توانست i.cargoOwner اشتباه یا ردیف تکراری بدهد (DEEP_CODE_AUDIT.md #۷)
         $detailsQuery = "SELECT c.trackingNumber, c.entryTime, c.netWeight, c.exitTime, c.exitDate, c.scaleReceiptNumber,
             c.username, c.confirm_username, c.cargoType, c.shippingCompany, i.cargoOwner
         FROM CargoInfo c
-        JOIN InitialInfo i ON c.loadingQuotaNumber = i.loadingQuotaNumber AND c.shipName = i.shipName
+        JOIN InitialInfo i ON c.loadingQuotaNumber = i.loadingQuotaNumber
+            AND c.shipName = i.shipName
+            AND c.loadingWarehouse = i.loadingWarehouse
+            AND c.shippingCompany = i.shippingCompany
+            AND c.cargoType = i.cargoType
         WHERE c.loadingQuotaNumber = ? AND c.shipName = ? AND c.loadingWarehouse = ? AND c.status = '" . self::EXITED->value . "'
             AND $dateRangeCondition
         ORDER BY c.exitDate, c.exitTime";

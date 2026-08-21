@@ -251,6 +251,7 @@ class AnalyticsController {
 
         return MicroCache::remember($cacheKey, 5, function () use ($shiftInfo) {
             // INNER JOIN صریح، فیلتر isActive و اشتراک SELECT/JOIN بین دو شیفت (B-11/B-12/C-3)
+            // JOIN روی کلید کامل پنج‌ستونی؛ کمتر از آن باعث بیش‌شماری SUM/COUNT می‌شود (DEEP_CODE_AUDIT.md #۷)
             $baseQuery = "SELECT
                 i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType,
                 COUNT(DISTINCT CASE WHEN c.status = '" . self::ENTERED->value . "' THEN c.id END) AS entryVouchers,
@@ -259,8 +260,10 @@ class AnalyticsController {
                 SUM(CASE WHEN c.status = '" . self::EXITED->value . "' THEN c.netWeight ELSE 0 END) AS totalNetWeight
                 FROM InitialInfo i
                 INNER JOIN CargoInfo c ON i.loadingQuotaNumber = c.loadingQuotaNumber
+                    AND i.shipName = c.shipName
                     AND i.loadingWarehouse = c.loadingWarehouse
                     AND i.shippingCompany = c.shippingCompany
+                    AND i.cargoType = c.cargoType
                 WHERE i.isActive = 1 AND (%s)
                 GROUP BY i.loadingQuotaNumber, i.shipName, i.loadingWarehouse, i.shippingCompany, i.cargoType";
 
@@ -315,12 +318,13 @@ class AnalyticsController {
         // فیلتر isActive و شمارش با COUNT(DISTINCT trackingNumber) برای هم‌راستایی آمار با سایر توابع (B-6/B-7)
         $workdayBoundary = self::WORKDAY_BOUNDARY_TIME;
         $completionData = MicroCache::remember($cacheKey, $cacheTtl, function () use ($yesterdayJalaliDate, $todayJalaliDate, $workdayBoundary) {
-            // افزودن cargoType به شرط JOIN برای جلوگیری از دوبرابر شدن SUM(netWeight) در تطبیق نادرست (B-6)
+            // JOIN روی کلید کامل پنج‌ستونی؛ shipName هم اضافه شد وگرنه SUM/COUNT بیش‌شمار می‌شد (DEEP_CODE_AUDIT.md #۷)
             $query = "SELECT
                         c.loadingQuotaNumber, i.shipName, c.shippingCompany, i.cargoOwner, c.loadingWarehouse, i.cargoType,
                         SUM(c.netWeight) AS last_24h_weight, COUNT(DISTINCT c.trackingNumber) AS last_24h_vouchers
                     FROM CargoInfo c
                     JOIN InitialInfo i ON c.loadingQuotaNumber = i.loadingQuotaNumber
+                        AND c.shipName = i.shipName
                         AND c.loadingWarehouse = i.loadingWarehouse
                         AND c.shippingCompany = i.shippingCompany
                         AND c.cargoType = i.cargoType

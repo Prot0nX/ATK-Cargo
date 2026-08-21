@@ -100,3 +100,15 @@ jobs:
           name: lint-reports
           path: app/build/reports/lint-results-*.html
           retention-days: 14
+
+      # lintRelease فقط قوانین Lint را بررسی می‌کند؛ اجرای واقعی R8/ProGuard غایب بود (DEEP_CODE_AUDIT.md #۴)
+      - name: Assemble release (R8 gate)
+        run: ./gradlew :app:assembleRelease --console=plain
+
+      - name: Upload release mapping
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-mapping
+          path: app/build/outputs/mapping/release/
+          retention-days: 14

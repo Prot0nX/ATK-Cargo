@@ -406,7 +406,8 @@ class StartupViewModel(
     }
 
     companion object {
-        private const val SPLASH_MIN_DURATION = 3800L
+        // کاهش از ۳۸۰۰ به ۱۵۰۰ میلی‌ثانیه؛ زمان برندینگ حفظ شد ولی کف تصنعی کوتاه‌تر شد (DEEP_CODE_AUDIT.md #۵)
+        private const val SPLASH_MIN_DURATION = 1500L
         private const val SPLASH_MAX_DURATION = 5000L
         private const val SESSION_OFFLINE_GRACE_PERIOD_MS = 3 * 24 * 60 * 60 * 1000L // ۳ روز
     }

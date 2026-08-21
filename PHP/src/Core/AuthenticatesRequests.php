@@ -47,11 +47,11 @@ trait AuthenticatesRequests {
         exit;
     }
 
-    // اجرای سمت‌سرور قفل نسخه‌ی منقضی؛ در صورت نبود هدر X-App-Version عبور مجاز است
+    // اجرای سمت‌سرور قفل نسخه‌ی منقضی؛ نبود هدر دیگر عبور آزاد نمی‌دهد، هم‌راستا با MinVersionGate (DEEP_CODE_AUDIT.md #۳)
     private function enforceMinAppVersion(): void {
         $appVersion = $this->request->getHeader('X-App-Version');
-        if (!$appVersion) {
-            return;
+        if ($appVersion === null || $appVersion === '') {
+            $this->sendAuthErrorResponse('هدر X-App-Version الزامی است.', 426);
         }
 
         $configFile = APP_ROOT . '/update_config.php';
