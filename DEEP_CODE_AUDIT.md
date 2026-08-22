@@ -3231,7 +3231,7 @@ Medium
 
 | # | اقدام | تلاش | وضعیت |
 |---|-------|------|:-----:|
-| ۲۱ | Repository برای هر فیچر؛ حذف فراخوانی مستقیم `ApiServiceV2` از ViewModelها | High | ⏳ در انتظار |
+| ۲۱ | Repository برای هر فیچر؛ حذف فراخوانی مستقیم `ApiServiceV2` از ViewModelها | High | ✅ اعمال شد |
 | ۲۲ | تجزیه‌ی `CargoViewModel` — ادغام ۱۰ StateFlow، استخراج UseCase، انتقال کش به Repository | High | ✅ اعمال شد |
 | ۲۳ | هم‌راستا کردن نام پکیج‌ها با ماژول‌ها (رفع ۷ split package) | Medium | ⚠️ دامنه کاهش یافت — فقط ۶ پکیج کوچک؛ `com.atk.atk_cargo.api` (بزرگ‌ترین، سه‌طرفه) طبق تصمیم کاربر باقی ماند |
 | ۲۴ | انتقال `ManageReportsScreen` به `:feature:reports` و `core/ui/components` به `:core:designsystem` | Medium | ✅ اعمال شد |
@@ -3342,6 +3342,17 @@ Medium
 - فایل `PHP/src/Core/AuthenticatesRequests.php` پس از تأیید صفر ارجاع باقی‌مانده (فقط دو کامنت توضیحی در `MinVersionGate.php`/یک تست، بدون وابستگی کد) حذف شد.
 - **بدون تست خودکار برای این ۵ کنترلر** (نه AuthController-style قابل mock، همه مستقیم به mysqli واقعی وصل‌اند) — تنها سپر ایمنی، بازخوانی دستی تک‌تک ۲۸ نقطه‌ی تغییر بود؛ توصیه می‌شود قبل از انتشار این تغییر روی یک نسخه‌ی staging با دیتابیس واقعی دستی تست شود (سناریوهای حیاتی: `getAllUsers` توسط کاربر غیرمدیر باید ۴۰۳ بگیرد؛ `updateUser` روی حساب دیگران بدون `manage_users` باید ۴۰۳ بگیرد؛ حذف/تأیید حواله باید نام‌کاربری واقعی را در audit log ثبت کند).
 - تأیید شد: `php -l` روی ۶ فایل تغییریافته، `vendor/bin/phpstan analyse` (بدون baseline جدید)، `vendor/bin/phpunit` (۱۰۵ تست) و بارگذاری کامل `routes/api_v2.php` (۵۷ route، بدون خطای fatal) — همه سبز.
+
+**یادداشت‌های اجرای مورد ۲۱:**
+
+- پنج ViewModel با فراخوانی مستقیم `ApiServiceV2`/`RetrofitClient` شناسایی شدند: `ProfileViewModel` (feature:home)، `InitialInfoViewModel` (feature:cargo-workflow)، `UserManagementViewModel` (feature:admin)، `StartupViewModel` (:app)، `CargoViewModel` (feature:cargo، بزرگ‌ترین با ۸ نقطه‌ی فراخوانی). طبق تصمیم کاربر، هرکدام در یک کامیت جدا مهاجرت شدند.
+- برای هر فیچر یک Repository جدید در همان ماژول ساخته شد (بدون نیاز به core:domain، چون هیچ‌کدام مثل `QuotaRepository` بین دو فیچر مشترک نبودند): `HomeRepository`/`HomeRepositoryImpl` (feature:home)، `InitialInfoRepository`/`Impl` (feature:cargo-workflow)، `AdminRepository`/`Impl` (feature:admin)، `StartupSessionRepository`/`Impl` (:app، چون `StartupViewModel` خودش هنوز در :app زندگی می‌کند — طبق یادداشت مورد ۲۳).
+- **دو سبک متفاوت طراحی Repository، عمدی و بسته به پیچیدگی تفسیر پاسخ:**
+  - برای عملیات ساده (تغییر رمز، مدیریت کاربر، بررسی نشست، ثبت اطلاعات اولیه) پاسخ HTTP در خودِ Repository به یک `sealed class` دامنه‌ای (`ChangePasswordResult`، `AdminOperationResult`، `ForceLogoutResult`، `SessionCheckOutcome`، `ExistenceCheckStatus`) ترجمه شد؛ ViewModel دیگر هیچ نوع Retrofit/network نمی‌بیند.
+  - برای شش متد باقی‌مانده‌ی `CargoViewModel` (`checkQuotaExistenceCargo`، `saveOrUpdateCargoInfo`، `checkScaleReceiptNumber`، `confirmCargo`، `toggleCargoQuotaStatus`، `deleteCargo`) که به `QuotaRepository` اضافه شدند، عمداً همان `Response<T>` خام Retrofit برگردانده می‌شود. این‌ها منطق تفسیر پاسخ به‌شدت خاص و پرشاخه‌ای در ViewModel دارند (`handleErrorHttpResponse`/`handleSuccessResponse`/`handleErrorResponse`/`parseCargoConfirmError`/`parseDeleteErrorMessage`) که ترجمه‌ی امن آن به یک نوع دامنه‌ی جدید ریسک رگرسیون واقعی در مسیرهای ثبت/حذف/تأیید حواله داشت؛ عبور دادن `Response` خام تضمین می‌کند این منطق حرف‌به‌حرف بدون تغییر بماند و فقط منبع فراخوانی از `apiServiceV2` مستقیم به `repository` جابه‌جا شود.
+  - برای همین شش متد، `core:domain` (میزبان `QuotaRepository`) به `retrofit2`/`gson` نیاز پیدا کرد که قبلاً وابستگی نداشت؛ به `core/domain/build.gradle.kts` اضافه شد (هر دو `implementation`، چون فیچرهای مصرف‌کننده مثل `feature:cargo`/`feature:reports` از قبل وابستگی مستقیم خودشان به retrofit/gson را دارند).
+- **تضاد نام‌گذاری کشف‌شده:** `ReportsRepository` از قبل یک متد `toggleQuotaStatus(id: Int): Boolean` داشت (برای `ReportsViewModel`، مصرف‌شده در صفحات مدیریت گزارش). افزودن متد دوم هم‌نام با امضای پارامتر یکسان ولی نوع بازگشتی متفاوت (`Response<SuccessResponse>`) روی JVMممکن نیست (تضاد overload — نوع بازگشتی جزو امضا نیست). متد جدید `toggleCargoQuotaStatus` نام‌گذاری شد؛ هر دو متد همان endpoint سرور را صدا می‌زنند اما برای دو مصرف‌کننده‌ی متفاوت با نیاز متفاوت (Boolean ساده در برابر پیام خطای دقیق سرور) وجود دارند.
+- تأیید شد: کامپایل جداگانه‌ی هر ماژول تغییریافته (`feature:home`، `feature:cargo-workflow`، `feature:admin`، `:app`، `core:domain`+`feature:reports`+`feature:cargo`) و در پایان یک اجرای ترکیبی `compileDebugKotlin testDebugUnitTest` روی کل پروژه — همه موفق؛ ۱۲/۱۲ تست `CargoViewModelTest` بدون تغییر رفتار سبز ماندند.
 
 **یادداشت‌های اجرای مورد ۲۲:**
 
