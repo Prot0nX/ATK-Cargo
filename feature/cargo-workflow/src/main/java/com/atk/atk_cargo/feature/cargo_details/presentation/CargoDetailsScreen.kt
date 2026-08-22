@@ -69,8 +69,8 @@ import com.atk.atk_cargo.feature.cargo_entry.presentation.SnackbarMessage
 import com.atk.atk_cargo.feature.cargo_entry.presentation.StatusSnackbar
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.MessageDialog
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.QuotaEntryDialog
-import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
-import com.atk.atk_cargo.ui.viewmodel.CargoViewModelFactory
+import com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
+import com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModelFactory
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject

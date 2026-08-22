@@ -3,9 +3,9 @@ package com.atk.atk_cargo.api
 import androidx.compose.ui.graphics.Color
 
 // ===== RE-EXPORT VIEWMODELS & REPOSITORIES =====
-typealias CargoViewModel = com.atk.atk_cargo.ui.viewmodel.CargoViewModel
-typealias CargoViewModelFactory = com.atk.atk_cargo.ui.viewmodel.CargoViewModelFactory
-typealias ReportsViewModel = com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+typealias CargoViewModel = com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
+typealias CargoViewModelFactory = com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModelFactory
+typealias ReportsViewModel = com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 typealias ReportsRepository = com.atk.atk_cargo.data.repository.ReportsRepository
 
 // ===== RE-EXPORT AUTH MODELS =====
@@ -69,16 +69,16 @@ typealias QuotaSortingMode = com.atk.atk_cargo.data.model.QuotaSortingMode
 typealias GroupSortingMode = com.atk.atk_cargo.data.model.GroupSortingMode
 typealias ShipSortingMode = com.atk.atk_cargo.data.model.ShipSortingMode
 typealias QuotaItem = com.atk.atk_cargo.data.model.QuotaItem
-typealias ColorSelector = com.atk.atk_cargo.data.model.ColorSelector
+typealias ColorSelector = com.atk.atk_cargo.core.ui.components.ColorSelector
 
 // ===== UTILS EXPOSED FROM REPORT MODELS =====
-val cardColors = com.atk.atk_cargo.data.model.cardColors
-fun adjustColorForTheme(color: Color, isDarkTheme: Boolean) = com.atk.atk_cargo.data.model.adjustColorForTheme(color, isDarkTheme)
+val cardColors = com.atk.atk_cargo.core.ui.components.cardColors
+fun adjustColorForTheme(color: Color, isDarkTheme: Boolean) = com.atk.atk_cargo.core.ui.components.adjustColorForTheme(color, isDarkTheme)
 fun Float.toTon(): Int = (this / 1000).toInt()
 
 fun formatNumber(number: Number): String {
     return java.text.NumberFormat.getNumberInstance(java.util.Locale.US).format(number)
 }
 
-typealias RealTimeUiState = com.atk.atk_cargo.ui.viewmodel.ReportsViewModel.RealTimeUiState
+typealias RealTimeUiState = com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel.RealTimeUiState
 

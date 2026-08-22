@@ -66,7 +66,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.atk.atk_cargo.data.model.QuotaItem
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 import kotlin.math.roundToInt
 
 // کارت‌های تکی کوتاژ و کشتی، منتقل‌شده از QuotaManagementDialog.kt (شکستن God Composable)

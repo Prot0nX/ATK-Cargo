@@ -79,7 +79,7 @@ import com.atk.atk_cargo.data.model.WarningStatus
 import com.atk.atk_cargo.feature.reports.domain.format
 import com.atk.atk_cargo.feature.reports.domain.formatWeightWithDetail
 import com.atk.atk_cargo.feature.reports.presentation.quota_details.ActionButton
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 

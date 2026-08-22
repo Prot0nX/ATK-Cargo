@@ -72,7 +72,7 @@ import com.atk.atk_cargo.data.model.Quota
 import com.atk.atk_cargo.data.model.Warehouse
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.presentation.warehouse_details.components.DateTimePicker
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 
 private val WarehouseTealAccent: Color
     @Composable get() = MaterialTheme.colorScheme.primary

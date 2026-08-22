@@ -1,6 +1,6 @@
 package com.atk.atk_cargo.feature.cargo.di
 
-import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
+import com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 

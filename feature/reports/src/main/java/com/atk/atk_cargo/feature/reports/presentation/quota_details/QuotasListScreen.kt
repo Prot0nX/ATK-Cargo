@@ -64,7 +64,7 @@ import com.atk.atk_cargo.ui.theme.Purple700
 import com.atk.atk_cargo.ui.theme.Red400
 import com.atk.atk_cargo.ui.theme.Red500
 import com.atk.atk_cargo.ui.theme.Red900
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 import kotlinx.coroutines.flow.StateFlow
 
 // internal (نه private) چون QuotaPercentageDialogSection.kt هم به این پالت نیاز دارد

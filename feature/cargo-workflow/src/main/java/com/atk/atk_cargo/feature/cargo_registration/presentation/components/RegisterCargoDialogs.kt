@@ -78,7 +78,7 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dial
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogTitle
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.StandardDialogShell
 import com.atk.atk_cargo.feature.cargoworkflow.R
-import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
+import com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.delay

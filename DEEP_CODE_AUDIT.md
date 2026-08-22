@@ -3005,15 +3005,15 @@ Low
 
 **Problem:**
 
-| پکیج | ماژول‌ها |
-|------|----------|
-| `com.atk.atk_cargo.api` | `:app` · `:core:network` · `:feature:update` |
-| `com.atk.atk_cargo.core.domain` | `:app` · `:core:domain` |
-| `com.atk.atk_cargo.core.startup` | `:app` · `:core:domain` |
-| `com.atk.atk_cargo.core.ui.components` | `:app` · `:core:designsystem` |
-| `com.atk.atk_cargo.data.model` | `:core:designsystem` · `:core:network` |
-| `com.atk.atk_cargo.ui.viewmodel` | `:feature:cargo` · `:feature:reports` |
-| `com.atk.atk_cargo.utils` | `:app` (test) · `:core:common` |
+| پکیج | ماژول‌ها | وضعیت |
+|------|----------|:-----:|
+| `com.atk.atk_cargo.api` | `:app` · `:core:network` · `:feature:update` | ⏭️ باقی ماند (فاز۳ #۲۳) — سه‌طرفه، ۲۴ فایل مرکزی + ۲۲ importکننده؛ طبق تصمیم کاربر برای یک تغییر جدا کنار گذاشته شد |
+| ~~`com.atk.atk_cargo.core.domain`~~ | `:app` · `:core:domain` | ✅ رفع شد — `AppError.kt` (بدون استفاده) به `com.atk.atk_cargo.error` در `:app` تغییر نام گرفت |
+| ~~`com.atk.atk_cargo.core.startup`~~ | `:app` · `:core:domain` | ✅ رفع شد — `StartupViewModel.kt` در `:app` به `com.atk.atk_cargo.startup` تغییر نام گرفت (سمت `:core:domain`/`StartupComposition.kt` دست‌نخورده ماند) |
+| ~~`com.atk.atk_cargo.core.ui.components`~~ | `:app` · `:core:designsystem` | ✅ رفع شد (فاز۳ #۲۴) |
+| ~~`com.atk.atk_cargo.data.model`~~ | `:core:designsystem` · `:core:network` | ✅ رفع شد — `ColorSelector.kt` به `com.atk.atk_cargo.core.ui.components` در `:core:designsystem` منتقل شد؛ این پکیج حالا فقط در `:core:network` است |
+| ~~`com.atk.atk_cargo.ui.viewmodel`~~ | `:feature:cargo` · `:feature:reports` | ✅ رفع شد — `CargoViewModel` به `feature.cargo.viewmodel`، `ReportsViewModel` به `feature.reports.viewmodel` |
+| ~~`com.atk.atk_cargo.utils`~~ | `:app` (test) · `:core:common` | ✅ رفع شد — `JalaliDateUtilsTest.kt` از `app/src/test` به `core/common/src/test` منتقل شد (تست کنار کلاسی که تست می‌کند) |
 
 **Why it matters:**
 - **نام پکیج، مالکیت ماژول را نشان نمی‌دهد.** وقتی `import com.atk.atk_cargo.api.UpdateManager` را می‌بینی، نمی‌دانی از کدام ماژول می‌آید.
@@ -3231,7 +3231,7 @@ Medium
 |---|-------|------|:-----:|
 | ۲۱ | Repository برای هر فیچر؛ حذف فراخوانی مستقیم `ApiServiceV2` از ViewModelها | High | ⏳ در انتظار |
 | ۲۲ | تجزیه‌ی `CargoViewModel` — ادغام ۱۰ StateFlow، استخراج UseCase، انتقال کش به Repository | High | ⏳ در انتظار |
-| ۲۳ | هم‌راستا کردن نام پکیج‌ها با ماژول‌ها (رفع ۷ split package) | Medium | ⏳ در انتظار |
+| ۲۳ | هم‌راستا کردن نام پکیج‌ها با ماژول‌ها (رفع ۷ split package) | Medium | ⚠️ دامنه کاهش یافت — فقط ۶ پکیج کوچک؛ `com.atk.atk_cargo.api` (بزرگ‌ترین، سه‌طرفه) طبق تصمیم کاربر باقی ماند |
 | ۲۴ | انتقال `ManageReportsScreen` به `:feature:reports` و `core/ui/components` به `:core:designsystem` | Medium | ✅ اعمال شد |
 | ۲۵ | حذف `AuthenticatesRequests` و اتکا به هویت پاس‌شده از Router | Medium | ⏳ در انتظار |
 | ۲۶ | حذف متدهای pass-through `AppApiController` | Medium | ✅ اعمال شد |
@@ -3315,6 +3315,18 @@ Medium
 - `AtkCargoApplication.kt` حالا هشت ماژول جدید را در کنار `appModule` به `startKoin { modules(listOf(...)) }` پاس می‌دهد. Koin بدون توجه به این‌که کدام ماژول Gradle چه چیزی ثبت کرده یک گراف DI واحد می‌سازد، پس مثلاً `StartupViewModel` در `appModule` هنوز می‌تواند `get<ChatRepository>()`/`get<UpdateManager>()` را از `chatModule`/`updateModule` resolve کند — فقط لازم است هر دو در لیست `modules()` باشند (هستند).
 - **تأیید صحت گراف:** چون در این محیط دستگاه/امولاتور برای اجرای واقعی `startKoin` و گرفتن خطای احتمالی «no definition found» در دسترس نبود (و افزودن `koin-test`/`verify()` به‌عنوان یک وابستگی تست جدید خارج از دامنه‌ی این مورد بود)، تک‌تک فراخوانی‌های `get()` در هر ۸ ماژول جدید دستی ردیابی و با بایندینگ متناظرش (در همان ماژول یا `appModule`) تطبیق داده شد — همه resolve می‌شوند.
 - تأیید شد: کل پروژه (`compileDebugKotlin` و `testDebugUnitTest`) موفق.
+
+**یادداشت‌های اجرای مورد ۲۳:**
+
+- طبق تصمیم کاربر، دامنه به ۶ پکیج کوچک محدود شد؛ `com.atk.atk_cargo.api` (سه‌طرفه بین `:app`/`:core:network`/`:feature:update`، ۲۴ فایل تعریف‌کننده + ۲۲ فایل import‌کننده در سراسر پروژه، شامل کلاس‌های مرکزی مثل `ApiServiceV2`/`RetrofitClient`/`Constants`/`TokenStore`) عمداً دست‌نخورده ماند و برای یک تلاش جدا کنار گذاشته شد.
+- برای هرکدام از ۶ پکیج، به‌جای صرفاً تغییر نام، ترجیح با **یکپارچه‌سازی فیزیکی** بود (انتقال فایل «غریبه» به ماژول درست) هرجا بی‌خطر بود:
+  - `AppError.kt` (در `:app`، بدون هیچ فراخوانی‌ای در کل پروژه) — چون افزودن `retrofit2` به `:core:domain` فقط برای میزبانی یک فایل مرده معماری تمیزی نبود، به‌جای انتقال فقط تغییر نام گرفت: `com.atk.atk_cargo.core.domain` → `com.atk.atk_cargo.error` (هنوز در `:app`).
+  - `StartupViewModel.kt` (در `:app`، دو importکننده: `AppModule.kt`, `MainActivity.kt`) از `com.atk.atk_cargo.core.startup` به `com.atk.atk_cargo.startup` تغییر نام گرفت — انتقال فیزیکی به `:core:domain` (کنار `StartupComposition.kt`) یعنی بازسازی کامل ViewModel که همان دامنه‌ی مورد ۲۱/۲۲ (خارج از این نشست) است.
+  - `ColorSelector.kt`/`adjustColorForTheme`/`cardColors` (در `:core:designsystem` ولی زیر پکیج `data.model`) با `git mv` به `com.atk.atk_cargo.core.ui.components` (پکیج designsystem که همین‌جا زندگی می‌کند) منتقل شدند — ۴ importکننده (`DataModel.kt`، `CargoCounterScreen.kt`، `SelectInfoScreen.kt`، `QuotaDetailsScreen.kt`، `ReportsViewModel.kt`) به‌روزرسانی شدند.
+  - `CargoViewModel.kt`/`CargoViewModelTest.kt` (در `:feature:cargo`) و `ReportsViewModel.kt` (در `:feature:reports`) هر دو از `com.atk.atk_cargo.ui.viewmodel` مشترک به پکیج‌های اختصاصی خودشان (`feature.cargo.viewmodel`/`feature.reports.viewmodel`) منتقل شدند — ۱۲ + ۱۷ فایل importکننده (شامل `MainScreen.kt`، `DataModel.kt` و همه‌ی dialogها/صفحات مصرف‌کننده) با `sed` روی الگوی دقیق fully-qualified بازنویسی شدند.
+  - `JalaliDateUtilsTest.kt` از `app/src/test` به `core/common/src/test` منتقل شد (تست کنار کلاسی که تست می‌کند)؛ چون `core:common` تا امروز هیچ `testImplementation` نداشت، `libs.junit` اضافه شد.
+- **بررسی جانبی مهم:** قبل از حذف/انتقال هرکدام، بررسی شد که آیا واقعاً بدون استفاده است یا خیر — `AppError.kt` تنها موردی بود که صفر فراخوان داشت؛ بقیه (`StartupViewModel`, `ColorSelector`, `CargoViewModel`, `ReportsViewModel`) همگی فعال و پرکاربرد بودند، پس هر importکننده‌ای تک‌تک ردیابی و اصلاح شد نه صرفاً حدس زده شد.
+- تأیید شد: `./gradlew compileDebugKotlin` (کل پروژه) و `./gradlew testDebugUnitTest` (کل پروژه، شامل ۱۵ تست `JalaliDateUtilsTest` در خانه‌ی جدیدش) هر دو بدون خطا/شکست.
 
 ### Phase 4 — Optimization (بلندمدت)
 

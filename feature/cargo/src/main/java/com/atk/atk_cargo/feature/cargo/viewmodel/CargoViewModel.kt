@@ -1,4 +1,4 @@
-package com.atk.atk_cargo.ui.viewmodel
+package com.atk.atk_cargo.feature.cargo.viewmodel
 
 import android.util.Log
 import androidx.lifecycle.ViewModel

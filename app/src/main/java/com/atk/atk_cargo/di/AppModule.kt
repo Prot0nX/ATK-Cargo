@@ -4,7 +4,7 @@ package com.atk.atk_cargo.di
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.TokenStore
 import com.atk.atk_cargo.api.UserPreferencesManager
-import com.atk.atk_cargo.core.startup.StartupViewModel
+import com.atk.atk_cargo.startup.StartupViewModel
 import com.atk.atk_cargo.data.db.AppDatabase
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import com.atk.atk_cargo.domain.session.UserSettingsStore

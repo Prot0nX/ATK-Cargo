@@ -56,7 +56,7 @@ import com.atk.atk_cargo.feature.reports.domain.sortShips
 import com.atk.atk_cargo.feature.reports.presentation.components.EmptyShipsState
 import com.atk.atk_cargo.feature.reports.presentation.ships.components.ShipCard
 import com.atk.atk_cargo.feature.reports.presentation.ships.components.ShipSortingSelector
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 
 private data class ShipsTabItem(
     val title: String,

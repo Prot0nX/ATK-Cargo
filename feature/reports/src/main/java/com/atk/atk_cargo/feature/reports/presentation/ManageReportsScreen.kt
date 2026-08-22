@@ -95,7 +95,7 @@ import com.atk.atk_cargo.ui.theme.ATKCargoTheme
 import com.atk.atk_cargo.ui.theme.Corner3XL
 import com.atk.atk_cargo.ui.theme.CornerL
 import com.atk.atk_cargo.ui.theme.CornerXL
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import org.koin.compose.koinInject

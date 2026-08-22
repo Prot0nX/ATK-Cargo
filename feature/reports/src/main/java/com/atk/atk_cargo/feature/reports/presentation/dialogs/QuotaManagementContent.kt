@@ -52,7 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.atk.atk_cargo.data.model.QuotaItem
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 
 // بدنه‌ی دیالوگ مدیریت کوتاژها (تب/فیلتر/مرتب‌سازی/لیست)، منتقل‌شده از QuotaManagementDialog.kt (شکستن God Composable)
 

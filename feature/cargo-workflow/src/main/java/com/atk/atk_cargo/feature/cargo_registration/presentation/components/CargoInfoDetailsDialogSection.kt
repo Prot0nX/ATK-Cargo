@@ -81,7 +81,7 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dial
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.DialogTitle
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.dialogs.StandardDialogShell
 import com.atk.atk_cargo.feature.cargoworkflow.R
-import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
+import com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
 import kotlinx.coroutines.launch
 
 // این فایل دیالوگ جزئیات حواله و دیالوگ حذف وابسته‌اش را از RegisterCargoDialogs.kt جدا نگه می‌دارد

@@ -2,7 +2,7 @@ package com.atk.atk_cargo.feature.reports.di
 
 import com.atk.atk_cargo.data.repository.ReportsRepository
 import com.atk.atk_cargo.domain.repository.QuotaRepository
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 import org.koin.android.ext.koin.androidApplication
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.bind

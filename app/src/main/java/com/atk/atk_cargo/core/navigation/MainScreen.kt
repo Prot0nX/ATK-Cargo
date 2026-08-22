@@ -71,8 +71,8 @@ import com.atk.atk_cargo.feature.home.navigation.homeScreen
 import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import com.atk.atk_cargo.feature.reports.navigation.ManageShipsRoute
 import com.atk.atk_cargo.feature.reports.presentation.ManageReportsScreen
-import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+import com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 

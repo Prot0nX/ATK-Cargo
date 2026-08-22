@@ -12,7 +12,7 @@ import androidx.navigation.toRoute
 import com.atk.atk_cargo.data.model.InitialInfo
 import com.atk.atk_cargo.domain.model.toDomain
 import com.atk.atk_cargo.feature.cargo_registration.presentation.RegisterCargoScreen
-import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
+import com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
 import com.google.gson.Gson
 import kotlinx.serialization.Serializable
 import org.koin.androidx.compose.koinViewModel

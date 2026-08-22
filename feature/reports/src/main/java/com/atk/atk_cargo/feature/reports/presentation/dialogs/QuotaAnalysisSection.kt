@@ -84,7 +84,7 @@ import com.atk.atk_cargo.data.model.QuotaCompletionData
 import com.atk.atk_cargo.data.model.QuotaGroupingMode
 import com.atk.atk_cargo.feature.reports.domain.QuotaGroup
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 import kotlin.math.roundToInt
 
 // بخش «تحلیل کوتاژها»، جدا از ComprehensiveAnalyticsDialog.kt (A1-6) اما هم‌پکیج و بدون import اضافه

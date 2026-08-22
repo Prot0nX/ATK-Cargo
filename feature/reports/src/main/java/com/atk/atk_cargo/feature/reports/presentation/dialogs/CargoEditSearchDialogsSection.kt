@@ -88,7 +88,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.data.model.CargoInfo
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 import kotlinx.coroutines.launch
 
 // دیالوگ‌های نتیجه‌ی جستجو و تأیید ویرایش حواله، جدا از SearchDialogs.kt (A1-6) اما به هم وابسته و هم‌پکیج

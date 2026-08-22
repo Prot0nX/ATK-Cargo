@@ -92,7 +92,7 @@ import com.atk.atk_cargo.ui.theme.Green700
 import com.atk.atk_cargo.ui.theme.Red400
 import com.atk.atk_cargo.ui.theme.Red50
 import com.atk.atk_cargo.ui.theme.Red700
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel.RealTimeUiState
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel.RealTimeUiState
 import kotlinx.coroutines.launch
 
 // internal (نه private) چون RealTimeLoadingCardSection.kt هم به این‌ها نیاز دارد

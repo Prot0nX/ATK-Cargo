@@ -1,4 +1,4 @@
-package com.atk.atk_cargo.core.domain
+package com.atk.atk_cargo.error
 
 import kotlinx.coroutines.CancellationException
 import retrofit2.HttpException

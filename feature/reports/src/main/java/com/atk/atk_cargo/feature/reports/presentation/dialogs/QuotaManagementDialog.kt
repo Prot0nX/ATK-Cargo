@@ -43,7 +43,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.atk.atk_cargo.data.model.QuotaItem
 import com.atk.atk_cargo.feature.reports.presentation.ships.SearchField
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 
 internal val QuotaAccent: Color
     @Composable get() = MaterialTheme.colorScheme.primary

@@ -45,18 +45,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.atk.atk_cargo.data.model.ColorSelector
+import com.atk.atk_cargo.core.ui.components.ColorSelector
 import com.atk.atk_cargo.data.model.Quota
 import com.atk.atk_cargo.data.model.QuotaEditData
-import com.atk.atk_cargo.data.model.adjustColorForTheme
-import com.atk.atk_cargo.data.model.cardColors
+import com.atk.atk_cargo.core.ui.components.adjustColorForTheme
+import com.atk.atk_cargo.core.ui.components.cardColors
 import com.atk.atk_cargo.data.model.toTon
 import com.atk.atk_cargo.feature.reports.domain.calculatePercentage
 import com.atk.atk_cargo.feature.reports.domain.calculateProgress
 import com.atk.atk_cargo.feature.reports.domain.formatNumber
 import com.atk.atk_cargo.feature.reports.presentation.components.InfoCard
 import com.atk.atk_cargo.feature.reports.presentation.components.ProgressBar
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
+import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 import com.atk.atk_cargo.data.model.QuotaDetails as ApiQuotaDetails
 
 @Composable

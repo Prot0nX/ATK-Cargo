@@ -52,10 +52,10 @@ import com.atk.atk_cargo.api.ApiServiceV2
 import com.atk.atk_cargo.api.TokenStore
 import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.data.model.ActiveShipInfo
-import com.atk.atk_cargo.data.model.ColorSelector
+import com.atk.atk_cargo.core.ui.components.ColorSelector
 import com.atk.atk_cargo.data.model.MessageType
 import com.atk.atk_cargo.data.model.RealTimeDataResponse
-import com.atk.atk_cargo.data.model.cardColors
+import com.atk.atk_cargo.core.ui.components.cardColors
 import com.atk.atk_cargo.domain.model.toDomain
 import com.atk.atk_cargo.feature.cargo_counter.presentation.components.AnimatedHeader
 import com.atk.atk_cargo.feature.cargo_counter.presentation.components.GroupedShipList
@@ -186,7 +186,7 @@ fun filterShipsByTab(
 private fun navigateToCargoDetailsScreen(
     navController: NavController,
     shipInfo: ActiveShipInfo,
-    sharedViewModel: com.atk.atk_cargo.ui.viewmodel.CargoViewModel? = null
+    sharedViewModel: com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel? = null
 ) {
     if (sharedViewModel != null) {
         val initialInfo = com.atk.atk_cargo.data.model.InitialInfo(
@@ -234,7 +234,7 @@ private fun navigateToCargoDetailsScreen(
 fun CargoCounterScreen(
     navController: NavController,
     onSessionInvalid: () -> Unit,
-    sharedViewModel: com.atk.atk_cargo.ui.viewmodel.CargoViewModel? = null
+    sharedViewModel: com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel? = null
 ) {
     val context = LocalContext.current
     val userPreferencesManager = koinInject<TokenStore>()

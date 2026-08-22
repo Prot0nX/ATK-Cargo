@@ -97,8 +97,8 @@ import com.atk.atk_cargo.feature.cargo_registration.presentation.components.Quot
 import com.atk.atk_cargo.feature.cargo_registration.presentation.components.ShipInfoSection
 import com.atk.atk_cargo.ui.theme.Amber700
 import com.atk.atk_cargo.ui.theme.Green600
-import com.atk.atk_cargo.ui.viewmodel.CargoDialog
-import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
+import com.atk.atk_cargo.feature.cargo.viewmodel.CargoDialog
+import com.atk.atk_cargo.feature.cargo.viewmodel.CargoViewModel
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.delay

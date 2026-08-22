@@ -1,4 +1,4 @@
-package com.atk.atk_cargo.data.model
+package com.atk.atk_cargo.core.ui.components
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb

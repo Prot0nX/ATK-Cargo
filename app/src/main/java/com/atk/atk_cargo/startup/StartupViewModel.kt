@@ -1,4 +1,4 @@
-package com.atk.atk_cargo.core.startup
+package com.atk.atk_cargo.startup
 
 import android.app.Application
 import android.content.Context
