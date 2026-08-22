@@ -37,8 +37,9 @@ android {
         applicationId = "com.atk.atk_cargo"
         minSdk = 28
         targetSdk = 34
-        versionCode = 11
-        versionName = "4.0.1"
+        // ۴.۱.۰: آستانه‌ی گیت کدهای HTTP معنادار در Response::HTTP_CODES_MIN_APP_VERSION (DEEP_CODE_AUDIT.md فاز۳ #۲۸)
+        versionCode = 12
+        versionName = "4.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         multiDexEnabled = true

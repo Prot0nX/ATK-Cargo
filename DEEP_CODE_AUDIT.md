@@ -3236,7 +3236,7 @@ Medium
 | ۲۵ | حذف `AuthenticatesRequests` و اتکا به هویت پاس‌شده از Router | Medium | ⏳ در انتظار |
 | ۲۶ | حذف متدهای pass-through `AppApiController` | Medium | ✅ اعمال شد |
 | ۲۷ | یکسان‌سازی استک HTTP روی یک `OkHttpClient` مشترک | Medium | ⏳ در انتظار |
-| ۲۸ | یکسان‌سازی معنای کدهای وضعیت HTTP (پشت گیت نسخه) | Medium | ⏳ در انتظار |
+| ۲۸ | یکسان‌سازی معنای کدهای وضعیت HTTP (پشت گیت نسخه) | Medium | ✅ اعمال شد |
 | ۲۹ | حذف کل کد مرده‌ی فهرست‌شده در بخش Technical Debt | Low | ✅ اعمال شد |
 | ۳۰ | پاک‌سازی ریپازیتوری: `graphify-out/` از گیت، `.hprof` از دیسک | Low | ✅ اعمال شد |
 | ۳۱ | گسترش PHPStan به فایل‌های ریشه + baseline + رفتن به level 7 | Low | ✅ اعمال شد |
@@ -3269,6 +3269,20 @@ Medium
 - `AppApiController::sendCacheableJsonResponse` (کمکی ETag/304 برای ۳ route: `ships`, `ships/{shipName}`, `ships/{shipName}/quotas`) به `Response::cacheableJson()` منتقل شد تا در دسترس route handlerهای مستقل هم باشد.
 - کامنت‌های حالا نادرست در `QuotaService.php` («اکنون آن کنترلر فقط delegate می‌کند») و `MicroCache.php` («مشترک بین AppApiController و CargoController») به‌روزرسانی شدند.
 - تأیید شد: `php -l` روی همه‌ی فایل‌های تغییریافته بدون خطا؛ `php -r` بارگذاری کامل `routes/api_v2.php` + ساخت `Router` بدون خطای fatal (۵۷ route)؛ `vendor/bin/phpstan analyse` بعد از regenerate کردن baseline (برای حذف ۱۹ رکورد یتیم مربوط به `AppApiController.php`، از ۴۷۴ به ۴۶۱ خطا) «No errors» می‌دهد؛ کل مجموعه‌ی PHPUnit (۹۹ تست) سبز. تست end-to-end زنده روی دیتابیس واقعی در این محیط ممکن نبود (بدون MySQL محلی، مثل بقیه‌ی این ممیزی).
+
+**یادداشت‌های اجرای مورد ۲۸:**
+
+- طبق تصمیم کاربر: آستانه‌ی نسخه `4.1.0` انتخاب شد (نسخه‌ی فعلی هنگام شروع کار ۴.۰.۱ بود) و کلاینت اندروید هم‌زمان در همین تغییر پچ شد، نه در یک تغییر جدا.
+- `Response::versionGatedJson($body, $legacyHttpCode, $newHttpCode)` به `PHP/src/Core/Response.php` اضافه شد — هدر `X-App-Version` را با ثابت `Response::HTTP_CODES_MIN_APP_VERSION = '4.1.0'` مقایسه می‌کند؛ کلاینت‌های بدون این هدر یا با نسخه‌ی پایین‌تر همچنان کد قدیمی (۲۰۰) می‌گیرند.
+- `AuthController::login()` (۳ شاخه: قفل‌شدن حساب → ۴۲۹، رمز/نام‌کاربری اشتباه → ۴۰۱ با `code: invalid_credentials`، دسترسی به بخش درخواستی رد شد → ۴۰۳) و `AuthController::checkSession()` (نشست نامعتبر → ۴۰۱ با `code: session_invalid`) به این گیت وصل شدند. `login()`ی conflict-session (۴۰۹) و `refresh()` از قبل کد صحیح داشتند و دست‌نخورده ماندند.
+- `ChatController`: پنج بررسی مجوز/مالکیت در `sendMessage`/`editMessage`/`deleteMessage` (که قبلاً همیشه ۲۰۰ برمی‌گرداندند) به همین گیت وصل شدند (→ ۴۰۳)، هم‌راستا با ۴۰۳ صریح و از قبل بدون‌گیت `getMessages` برای همان شرط — **`getMessages` عمداً دست‌نخورده ماند** چون رفتارش از قبل همان هدف نهایی بود و گیت کردنش یک رگرسیون رفتاری برای کلاینت‌های قدیمی می‌ساخت که وجود نداشت.
+- سمت اندروید (هم‌زمان در همین تغییر): `versionName`/`versionCode` در `app/build.gradle.kts` به `4.1.0`/`12` افزایش یافت (منبع مقدار هدر `X-App-Version` که از `PackageInfo.versionName` خوانده می‌شود). بررسی مسیرهای مصرف‌کننده نشان داد بیشتر کد از قبل آماده بود:
+  - `SessionValidator.kt`/`StartupViewModel.kt::checkUserSessionAsync` هر دو فقط شرط `isSuccessful && success==true` را چک می‌کنند و در غیر این صورت بدون توجه به کد دقیق به تلاش رفرش دستی می‌روند — رفتارشان برای ۴۰۱ و ۲۰۰-با-success:false یکسان است، نیازی به تغییر نداشتند (فقط کامنت قدیمی `SessionValidator.kt` که می‌گفت «هرگز ۴۰۱ نمی‌شود» به‌روزرسانی شد).
+  - `AuthRepositoryImpl.kt` از قبل یک `when(response.code())` آماده برای ۴۰۱/۴۰۳/۵۰۰ داشت (احتمالاً پیش‌بینی‌شده برای همین تغییر) — فقط شاخه‌ی ۴۲۹ (که تا امروز هرگز از سرور نمی‌رسید) اضافه شد.
+  - `ChatRepository.kt` تنها جای واقعاً ناقص بود: `sendMessage`/`editMessage`/`deleteMessage` روی خطا فقط `response.body()?.message` را می‌خواندند که برای کد غیر-۲xx همیشه `null` است (Retrofit پیام را در `errorBody()` می‌گذارد نه `body()`) — بدون اصلاح، پیام واقعی سرور («دسترسی غیرمجاز») با یک پیام عمومی جایگزین می‌شد. متد کمکی `extractErrorMessage` (با `org.json.JSONObject`، بدون افزودن وابستگی جدید چون این ماژول Gson ندارد) اضافه شد.
+- تست‌های جدید در `AuthControllerTest.php` (۶ تست: قفل‌شدن/رمز اشتباه/نشست نامعتبر هرکدام هم با نسخه‌ی جدید هم بدون هدر، + یک تست نشست معتبر) اضافه شدند. `ChatController` قابل unit-test نبود چون سازنده‌اش مستقیم به mysqli واقعی وصل می‌شود (بدون DB در این محیط)، هم‌راستا با محدودیت‌های تست قبلی این پروژه.
+- **رگرسیون کشف‌شده حین تست:** پس از چند بار اجرای کامل PHPUnit در همین نشست، شمارنده‌ی fallback فایلی `LoginAttemptLimiter` برای IP `127.0.0.1` در sandbox موقت تست (`sys_get_temp_dir()/atk_cargo_phpunit`) از سقف ۵۰ عبور کرد و باعث شکست کاذب ۴ تست غیرمرتبط شد. این یک ضعف شناخته‌شده‌ی همان rate-limiter فایل‌محور است (نه چیزی که این تغییر ایجاد کرده)؛ پاک کردن پوشه‌ی sandbox موقت رفعش کرد.
+- تأیید شد: `php -l`/`vendor/bin/phpstan analyse` (بعد از regenerate باسلاین برای ۱ خطای جدید در `Response::versionGatedJson`، از ۴۶۱ به ۴۶۲) هر دو تمیز؛ کل PHPUnit (۱۰۵ تست، شامل ۶ تست جدید) سبز؛ `./gradlew :feature:chat:compileDebugKotlin :feature:auth:compileDebugKotlin :core:network:compileDebugKotlin :app:compileDebugKotlin` موفق. تست end-to-end زنده (کلاینت واقعی ↔ سرور واقعی) در این محیط ممکن نبود.
 
 ### Phase 4 — Optimization (بلندمدت)
 

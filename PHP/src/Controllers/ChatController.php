@@ -137,7 +137,8 @@ class ChatController {
 
     private function sendMessage(string $username, string $message): array {
         if (!$this->isAdmin($username)) {
-            return ['success' => false, 'message' => 'فقط ادمین‌ها می‌توانند پیام ارسال کنند'];
+            // کد ۲۰۰ فقط برای کلاینت‌های قدیمی؛ هم‌راستا با ۴۰۳ صریح getMessages برای همین شرط (DEEP_CODE_AUDIT.md فاز۳ #۲۸)
+            Response::versionGatedJson(['success' => false, 'message' => 'فقط ادمین‌ها می‌توانند پیام ارسال کنند'], 200, 403);
         }
 
         $message = InputValidator::sanitize($message);
@@ -184,11 +185,11 @@ class ChatController {
 
     private function editMessage(int $messageId, string $username, string $newMessage): array {
         if (!$this->isAdmin($username)) {
-            return ['success' => false, 'message' => 'دسترسی غیرمجاز'];
+            Response::versionGatedJson(['success' => false, 'message' => 'دسترسی غیرمجاز'], 200, 403);
         }
 
         if (!$this->isMessageOwner($messageId, $username)) {
-            return ['success' => false, 'message' => 'شما فقط می‌توانید پیام‌های خود را ویرایش کنید'];
+            Response::versionGatedJson(['success' => false, 'message' => 'شما فقط می‌توانید پیام‌های خود را ویرایش کنید'], 200, 403);
         }
 
         $newMessage = InputValidator::sanitize($newMessage);
@@ -213,11 +214,11 @@ class ChatController {
 
     private function deleteMessage(int $messageId, string $username): array {
         if (!$this->isAdmin($username)) {
-            return ['success' => false, 'message' => 'دسترسی غیرمجاز'];
+            Response::versionGatedJson(['success' => false, 'message' => 'دسترسی غیرمجاز'], 200, 403);
         }
 
         if (!$this->isMessageOwner($messageId, $username)) {
-            return ['success' => false, 'message' => 'شما فقط می‌توانید پیام‌های خود را حذف کنید'];
+            Response::versionGatedJson(['success' => false, 'message' => 'شما فقط می‌توانید پیام‌های خود را حذف کنید'], 200, 403);
         }
 
         $query = "UPDATE admin_chat_messages SET is_deleted = 1 WHERE id = ?";

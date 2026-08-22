@@ -68,11 +68,12 @@ class AuthController {
 
         // قفل تلاش‌های ناموفق برای هر کاربر و IP جهت جلوگیری از brute-force (S-06)
         if ($this->loginAttemptLimiter->isLocked($username, $ipAddress)) {
-            Response::json([
+            Response::versionGatedJson([
                 'success' => false,
                 'message' => 'تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر تلاش کنید.',
-                'userType' => null
-            ], 200); // ۲۰۰ برای پایداری با کلاینت اندروید، هم‌راستا با بقیه‌ی خطاهای این تابع
+                'userType' => null,
+                'code' => 'rate_limited',
+            ], 200, 429);
         }
 
         // تلاش برای احراز هویت
@@ -85,11 +86,12 @@ class AuthController {
 
         if (!$user) {
             $this->loginAttemptLimiter->registerFailedAttempt($username, $ipAddress);
-            Response::json([
+            Response::versionGatedJson([
                 'success' => false,
                 'message' => 'نام کاربری یا رمز عبور اشتباه است!',
-                'userType' => null
-            ], 200); // بازگرداندن 200 برای پایداری با کلاینت اندروید
+                'userType' => null,
+                'code' => 'invalid_credentials',
+            ], 200, 401);
         }
 
         $this->loginAttemptLimiter->resetAttempts($username, $ipAddress);
@@ -104,11 +106,12 @@ class AuthController {
         }
 
         if (!$allowedAccess) {
-            Response::json([
+            Response::versionGatedJson([
                 'success' => false,
                 'message' => 'شما دسترسی ورود به این بخش را ندارید.',
-                'userType' => null
-            ], 200);
+                'userType' => null,
+                'code' => 'access_denied',
+            ], 200, 403);
         }
 
         // ایجاد یا به‌روزرسانی جلسه‌ی موبایل کاربر
@@ -218,11 +221,12 @@ class AuthController {
             ]);
         } else {
             // پاسخ برای «کاربر وجود ندارد» و «نشست نامعتبر» عمداً یکسان است تا شمارش نام کاربری بدون احراز هویت ممکن نباشد (DEEP_CODE_AUDIT.md #۱۹)
-            Response::json([
+            Response::versionGatedJson([
                 'success' => false,
                 'message' => 'جلسه کاربر فعال نیست. لطفاً وارد شوید.',
-                'userType' => null
-            ], 200); // 200 برای پایداری اندروید
+                'userType' => null,
+                'code' => 'session_invalid',
+            ], 200, 401);
         }
     }
 

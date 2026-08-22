@@ -22,6 +22,18 @@ class ChatRepository(
     // دریافت پیام‌ها از دیتابیس به صورت جریان داده (Flow)
     val messages: Flow<List<ChatMessageEntity>> = chatDao.getAllMessages()
 
+    // برای کد HTTP غیر ۲xx، Retrofit پیام سرور را در body() نمی‌گذارد بلکه در errorBody() — بدون این، پیام‌های واقعی
+    // سرور (مثلاً «دسترسی غیرمجاز») از نسخه‌ی ۴.۱.۰ به بعد که سرور کد واقعی HTTP می‌فرستد گم می‌شدند (DEEP_CODE_AUDIT.md فاز۳ #۲۸)
+    private fun <T> extractErrorMessage(response: retrofit2.Response<T>, fallback: String): String {
+        return try {
+            response.errorBody()?.string()?.let { raw ->
+                org.json.JSONObject(raw).optString("message", fallback)
+            } ?: fallback
+        } catch (_: Exception) {
+            fallback
+        }
+    }
+
     // مشاهده تعداد پیام‌های خوانده نشده
     val unreadCount: Flow<Int> = chatDao.getUnreadCount()
 
@@ -120,7 +132,7 @@ class ChatRepository(
                 }
                 Result.success(Unit)
             } else {
-                val errorMsg = response.body()?.message ?: "خطا در ارسال پیام"
+                val errorMsg = response.body()?.message ?: extractErrorMessage(response, "خطا در ارسال پیام")
                 Log.e("ATK_CHAT_DEBUG", "Send Message: Failed - $errorMsg (Raw message: ${response.body()?.message})")
                 Result.failure(Exception(errorMsg))
             }
@@ -146,7 +158,7 @@ class ChatRepository(
 
                 Result.success(Unit)
             } else {
-                Result.failure(Exception(response.body()?.message ?: "خطا در ویرایش پیام"))
+                Result.failure(Exception(response.body()?.message ?: extractErrorMessage(response, "خطا در ویرایش پیام")))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -166,7 +178,7 @@ class ChatRepository(
                 chatDao.markAsDeleted(messageId)
                 Result.success(Unit)
             } else {
-                Result.failure(Exception(response.body()?.message ?: "خطا در حذف پیام"))
+                Result.failure(Exception(response.body()?.message ?: extractErrorMessage(response, "خطا در حذف پیام")))
             }
         } catch (e: Exception) {
             Result.failure(e)

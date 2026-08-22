@@ -21,7 +21,9 @@ suspend fun validateServerSession(
             return Result.success(true)
         }
 
-        // checkSession همیشه HTTP ۲۰۰ برمی‌گرداند پس هرگز ۴۰۱ نمی‌شود و TokenAuthenticator صدا زده نمی‌شود؛ بدون این تلاش صریح، کاربر با اپ سرد بعد از انقضای access token همیشه به صفحه‌ی ورود می‌رفت
+        // از نسخه‌ی ۴.۱.۰ به بعد checkSession می‌تواند ۴۰۱ هم بدهد، اما code آن 'session_invalid' است نه
+        // 'access_token_expired'، پس TokenAuthenticator (که فقط دومی را رفرش می‌کند) اینجا صدا زده نمی‌شود؛
+        // بدون این تلاش صریح، کاربر با اپ سرد بعد از انقضای access token همیشه به صفحه‌ی ورود می‌رفت (فاز۳ #۲۸)
         val newAccessToken = TokenRefresher.refresh(Secrets.getBaseUrl(), tokenStore)
         if (newAccessToken != null) {
             return Result.success(true)

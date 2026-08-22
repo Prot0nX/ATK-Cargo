@@ -8,6 +8,10 @@ namespace App\Core;
 use App\Exceptions\ResponseSentException;
 
 class Response {
+    // پایین‌ترین X-App-Version که کدهای HTTP معنادار (401/403/409/422/429 و...) به‌جای 200 می‌گیرد؛
+    // نسخه‌های قدیمی‌تر همچنان 200 + success:false می‌گیرند تا نشکنند (DEEP_CODE_AUDIT.md فاز۳ #۲۸)
+    public const HTTP_CODES_MIN_APP_VERSION = '4.1.0';
+
     // ارسال هدرهای امنیتی استاندارد سیستم
     public static function sendSecurityHeaders(): void {
         if (headers_sent()) {
@@ -63,6 +67,14 @@ class Response {
         }
         
         self::json($response, $httpCode);
+    }
+
+    // بدنه‌ی خطای واحد با کد HTTP وابسته به نسخه‌ی کلاینت؛ قرارداد یکسان جایگزین ۲۰۰-همیشگی قدیمی
+    // در AuthController/ChatController (DEEP_CODE_AUDIT.md فاز۳ #۲۸) — $body باید شامل success:false باشد
+    public static function versionGatedJson(array $body, int $legacyHttpCode, int $newHttpCode): void {
+        $appVersion = (new Request())->getHeader('X-App-Version');
+        $useNewCode = $appVersion !== null && version_compare((string)$appVersion, self::HTTP_CODES_MIN_APP_VERSION, '>=');
+        self::json($body, $useNewCode ? $newHttpCode : $legacyHttpCode);
     }
 
     // پاسخ GET قابل‌کش با ETag/304؛ برای اندپوینت‌های غیرقابل‌تغییر که فقط باید وقتی محتوا واقعاً عوض شده دوباره دانلود شوند

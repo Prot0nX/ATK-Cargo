@@ -20,6 +20,9 @@ final class AuthControllerTest extends TestCase {
     protected function setUp(): void {
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+        // چون $_SERVER بین متدهای تست در همان پروسه باقی می‌ماند، بدون این reset تست‌های «کلاینت قدیمی»
+        // می‌توانستند به‌اشتباه هدر تست قبلی را ببینند (فاز۳ #۲۸)
+        unset($_SERVER['HTTP_X_APP_VERSION']);
         $_POST = [];
         $_GET = [];
     }
@@ -104,8 +107,70 @@ final class AuthControllerTest extends TestCase {
 
         $response = $this->captureResponse($controller);
 
+        // بدون X-App-Version یعنی کلاینت قدیمی — کد باید 200 بماند تا نشکند (DEEP_CODE_AUDIT.md فاز۳ #۲۸)
+        $this->assertSame(200, $response->getStatusCode());
         $this->assertFalse($response->getPayload()['success']);
         $this->assertStringContainsString('نام کاربری یا رمز عبور اشتباه است', $response->getPayload()['message']);
+    }
+
+    // از اینجا به بعد: همان دو سناریوی بالا اما با X-App-Version >= آستانه، برای تأیید کد HTTP واقعی (فاز۳ #۲۸)
+
+    public function testLoginIsBlockedAfterAccountIsLockedReturns429ForRecentAppVersion(): void {
+        $_SERVER['HTTP_X_APP_VERSION'] = '4.1.0';
+
+        $username = $this->uniqueUsername();
+        $_POST = ['username' => $username, 'password' => 'wrong-password'];
+
+        $limiter = new LoginAttemptLimiter();
+        for ($i = 0; $i < 5; $i++) {
+            $limiter->registerFailedAttempt($username, '127.0.0.1');
+        }
+
+        $userService = $this->createMock(UserService::class);
+        $userService->expects($this->never())->method('verifyCredentials');
+
+        $controller = new AuthController($userService, $this->createMock(SessionService::class), null, $limiter);
+
+        $response = $this->captureResponse($controller);
+
+        $this->assertSame(429, $response->getStatusCode());
+        $this->assertFalse($response->getPayload()['success']);
+        $this->assertSame('rate_limited', $response->getPayload()['code']);
+    }
+
+    public function testLoginRejectsWrongCredentialsReturns401ForRecentAppVersion(): void {
+        $_SERVER['HTTP_X_APP_VERSION'] = '4.1.0';
+
+        $username = $this->uniqueUsername();
+        $_POST = ['username' => $username, 'password' => 'wrong-password'];
+
+        $userService = $this->createMock(UserService::class);
+        $userService->method('verifyCredentials')->willReturn(null);
+
+        $controller = new AuthController($userService, $this->createMock(SessionService::class), null, new LoginAttemptLimiter());
+
+        $response = $this->captureResponse($controller);
+
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertFalse($response->getPayload()['success']);
+        $this->assertSame('invalid_credentials', $response->getPayload()['code']);
+    }
+
+    public function testLoginRejectsWrongCredentialsStaysAt200ForOlderAppVersion(): void {
+        $_SERVER['HTTP_X_APP_VERSION'] = '4.0.9';
+
+        $username = $this->uniqueUsername();
+        $_POST = ['username' => $username, 'password' => 'wrong-password'];
+
+        $userService = $this->createMock(UserService::class);
+        $userService->method('verifyCredentials')->willReturn(null);
+
+        $controller = new AuthController($userService, $this->createMock(SessionService::class), null, new LoginAttemptLimiter());
+
+        $response = $this->captureResponse($controller);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertFalse($response->getPayload()['success']);
     }
 
     public function testLoginReturnsConflictWhenAnotherDeviceIsAlreadyLoggedIn(): void {
@@ -171,6 +236,55 @@ final class AuthControllerTest extends TestCase {
 
         $this->assertTrue($response->getPayload()['success']);
         $this->assertSame('fake-access-token', $response->getPayload()['session_token']);
+        $this->assertSame('operator', $response->getPayload()['userType']);
+    }
+
+    // تست‌های checkSession — کد HTTP وقتی نشست نامعتبر است هم پشت همان گیت نسخه است (DEEP_CODE_AUDIT.md فاز۳ #۲۸)
+
+    public function testCheckSessionForInvalidSessionStaysAt200ForOlderAppVersion(): void {
+        $_POST = ['username' => 'someone', 'deviceId' => 'device-a', 'sessionToken' => 'bad-token'];
+
+        $sessionService = $this->createMock(SessionService::class);
+        $sessionService->method('validateAndGetUserType')->willReturn(null);
+
+        $controller = new AuthController($this->createMock(UserService::class), $sessionService);
+
+        $response = $this->captureResponse($controller, 'checkSession');
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertFalse($response->getPayload()['success']);
+        $this->assertNull($response->getPayload()['userType']);
+    }
+
+    public function testCheckSessionForInvalidSessionReturns401ForRecentAppVersion(): void {
+        $_SERVER['HTTP_X_APP_VERSION'] = '4.1.0';
+        $_POST = ['username' => 'someone', 'deviceId' => 'device-a', 'sessionToken' => 'bad-token'];
+
+        $sessionService = $this->createMock(SessionService::class);
+        $sessionService->method('validateAndGetUserType')->willReturn(null);
+
+        $controller = new AuthController($this->createMock(UserService::class), $sessionService);
+
+        $response = $this->captureResponse($controller, 'checkSession');
+
+        $this->assertSame(401, $response->getStatusCode());
+        $this->assertFalse($response->getPayload()['success']);
+        $this->assertSame('session_invalid', $response->getPayload()['code']);
+    }
+
+    public function testCheckSessionForValidSessionReturns200RegardlessOfAppVersion(): void {
+        $_SERVER['HTTP_X_APP_VERSION'] = '4.1.0';
+        $_POST = ['username' => 'someone', 'deviceId' => 'device-a', 'sessionToken' => 'good-token'];
+
+        $sessionService = $this->createMock(SessionService::class);
+        $sessionService->method('validateAndGetUserType')->willReturn('operator');
+
+        $controller = new AuthController($this->createMock(UserService::class), $sessionService);
+
+        $response = $this->captureResponse($controller, 'checkSession');
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertTrue($response->getPayload()['success']);
         $this->assertSame('operator', $response->getPayload()['userType']);
     }
 }
