@@ -2,15 +2,14 @@ package com.atk.atk_cargo.feature.home.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.atk.atk_cargo.api.ApiServiceV2
-import com.atk.atk_cargo.api.ApiV2Routes
-import com.atk.atk_cargo.data.model.UpdateUserRequest
 import com.atk.atk_cargo.data.model.User
+import com.atk.atk_cargo.feature.home.data.ChangePasswordResult
+import com.atk.atk_cargo.feature.home.data.HomeRepository
 import kotlinx.coroutines.launch
 
 // تماس‌های شبکه با viewModelScope اجرا می‌شوند تا با خروج از صفحه کنسل نشوند
 class ProfileViewModel(
-    private val apiServiceV2: ApiServiceV2
+    private val repository: HomeRepository
 ) : ViewModel() {
 
     fun loadSelfProfile(
@@ -19,7 +18,7 @@ class ProfileViewModel(
     ) {
         viewModelScope.launch {
             try {
-                onSuccess(apiServiceV2.getSelfProfile())
+                onSuccess(repository.getSelfProfile())
             } catch (_: Exception) {
                 onError()
             }
@@ -36,22 +35,9 @@ class ProfileViewModel(
     ) {
         viewModelScope.launch {
             try {
-                val updateRequest = UpdateUserRequest(
-                    id = user.id,
-                    username = user.username,
-                    fullName = null,
-                    password = newPassword,
-                    currentPassword = currentPassword,
-                    userType = user.userType
-                )
-                val response = apiServiceV2.updateUser(
-                    request = updateRequest,
-                    route = ApiV2Routes.userUpdate(updateRequest.id)
-                )
-                if (response.success) {
-                    onSuccess()
-                } else {
-                    onFailure(response.message)
+                when (val result = repository.changePassword(user, currentPassword, newPassword)) {
+                    is ChangePasswordResult.Success -> onSuccess()
+                    is ChangePasswordResult.Failure -> onFailure(result.message)
                 }
             } catch (e: Exception) {
                 onError(e.message)
