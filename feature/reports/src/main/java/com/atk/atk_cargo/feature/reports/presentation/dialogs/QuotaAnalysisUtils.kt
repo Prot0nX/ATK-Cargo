@@ -30,7 +30,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.atk.atk_cargo.feature.reports.viewmodel.ReportsViewModel
 
 // اشتراک‌گذاری متن و فیلد جستجوی مشترک بخش تحلیل کوتاژها — از QuotaAnalysisSection.kt جدا شد (فاز۴ #۴۰)
 // تابع مشترک برای گرفتن خطای ActivityNotFoundException در هر دو نقطه اشتراک‌گذاری، هم‌راستا با الگوی PDF در ReportsViewModel.kt
