@@ -6,6 +6,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Core\DatabaseManager;
+use PDO;
 
 // دسترسی به جداول role_permissions/user_permissions؛ عمداً بدون fallback، فقط DB
 final class PermissionRepository {
@@ -19,12 +20,10 @@ final class PermissionRepository {
     public function getAllRolePermissions(): array {
         $stmt = $this->db->prepare("SELECT role, feature, allowed FROM role_permissions");
         $stmt->execute();
-        $result = $stmt->get_result();
         $out = [];
-        while ($row = $result->fetch_assoc()) {
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $out[$row['role']][$row['feature']] = (bool)$row['allowed'];
         }
-        $stmt->close();
         return $out;
     }
 
@@ -32,12 +31,10 @@ final class PermissionRepository {
     public function getAllUserPermissions(): array {
         $stmt = $this->db->prepare("SELECT username, feature, allowed FROM user_permissions");
         $stmt->execute();
-        $result = $stmt->get_result();
         $out = [];
-        while ($row = $result->fetch_assoc()) {
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $out[$row['username']][$row['feature']] = (bool)$row['allowed'];
         }
-        $stmt->close();
         return $out;
     }
 
@@ -46,17 +43,12 @@ final class PermissionRepository {
         $this->db->beginTransaction();
         try {
             $del = $this->db->prepare("DELETE FROM role_permissions WHERE role = ?");
-            $del->bind_param("s", $role);
-            $del->execute();
-            $del->close();
+            $del->execute([$role]);
 
             $ins = $this->db->prepare("INSERT INTO role_permissions (role, feature, allowed) VALUES (?, ?, ?)");
             foreach ($permissions as $feature => $allowed) {
-                $allowedInt = $allowed ? 1 : 0;
-                $ins->bind_param("ssi", $role, $feature, $allowedInt);
-                $ins->execute();
+                $ins->execute([$role, $feature, $allowed ? 1 : 0]);
             }
-            $ins->close();
             $this->db->commit();
         } catch (\Throwable $e) {
             $this->db->rollback();
@@ -69,17 +61,12 @@ final class PermissionRepository {
         $this->db->beginTransaction();
         try {
             $del = $this->db->prepare("DELETE FROM user_permissions WHERE username = ?");
-            $del->bind_param("s", $username);
-            $del->execute();
-            $del->close();
+            $del->execute([$username]);
 
             $ins = $this->db->prepare("INSERT INTO user_permissions (username, feature, allowed) VALUES (?, ?, ?)");
             foreach ($permissions as $feature => $allowed) {
-                $allowedInt = $allowed ? 1 : 0;
-                $ins->bind_param("ssi", $username, $feature, $allowedInt);
-                $ins->execute();
+                $ins->execute([$username, $feature, $allowed ? 1 : 0]);
             }
-            $ins->close();
             $this->db->commit();
         } catch (\Throwable $e) {
             $this->db->rollback();
@@ -90,9 +77,7 @@ final class PermissionRepository {
     // حذف تنظیمات اختصاصی کاربر، بازگشت به وراثت از نقش
     public function deleteUserPermissions(string $username): void {
         $stmt = $this->db->prepare("DELETE FROM user_permissions WHERE username = ?");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $stmt->close();
+        $stmt->execute([$username]);
     }
 
     public function getLastUpdatedAt(): ?string {
@@ -104,8 +89,7 @@ final class PermissionRepository {
             ) t"
         );
         $stmt->execute();
-        $row = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row['last_updated'] ?? null;
     }
 }

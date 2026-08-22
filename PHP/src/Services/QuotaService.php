@@ -9,6 +9,7 @@ use App\Core\DatabaseManager;
 use App\Core\MicroCache;
 use App\Validators\InputValidator;
 use App\Enums\CargoStatus;
+use PDO;
 
 // منطق تجاری «کوتاژ» که قبلاً داخل AppApiController بود؛ حالا route handlerهای api_v2.php مستقیماً این سرویس را صدا می‌زنند (Phase3 #26)
 final class QuotaService {
@@ -52,11 +53,9 @@ final class QuotaService {
         LIMIT 1";
 
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("sssss", $quotaNumber, $shipName, $cargoType, $shippingCompany, $warehouse);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $stmt->execute([$quotaNumber, $shipName, $cargoType, $shippingCompany, $warehouse]);
 
-        if ($row = $result->fetch_assoc()) {
+        if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $totalWeight = (float)$row['totalWeight'];
             $loadedWeight = (float)$row['loadedWeight'];
             $isActiveDb = (bool)$row['isActive'];
@@ -110,12 +109,10 @@ final class QuotaService {
 
         $stmt = $this->db->prepare($query);
         $reversedLikeQuotaNumber = strrev($quotaNumber) . '%';
-        $stmt->bind_param("ss", $reversedLikeQuotaNumber, $shipName);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $stmt->execute([$reversedLikeQuotaNumber, $shipName]);
 
         $matchingQuotas = [];
-        while ($row = $result->fetch_assoc()) {
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $totalWeight = (float)$row['totalWeight'];
             $loadedWeight = (float)$row['loadedWeight'];
             $matchingQuotas[] = [
@@ -160,11 +157,9 @@ final class QuotaService {
         WHERE i.loadingQuotaNumber = ?";
 
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("ss", $quotaNumber, $quotaNumber);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $stmt->execute([$quotaNumber, $quotaNumber]);
 
-        if ($row = $result->fetch_assoc()) {
+        if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $totalTonnage = floatval($row['totalTonnage']);
             $loadedTonnage = floatval($row['loadedTonnage']);
             $remainingTonnage = $totalTonnage - $loadedTonnage;
@@ -242,15 +237,13 @@ final class QuotaService {
         $endTime = substr($endDateTime, 11, 8);
 
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("ssssssss",
+        $stmt->execute([
             $shipName, $startDate, $startDate, $startTime, $endDate, $endDate, $endTime,
             $shipName
-        );
-        $stmt->execute();
-        $result = $stmt->get_result();
+        ]);
         $quotas = [];
 
-        while ($row = $result->fetch_assoc()) {
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $loadedTonnage = floatval($row['loadedTonnage']);
             $totalTonnage = floatval($row['totalTonnage']);
             $remainingTonnage = $totalTonnage - $loadedTonnage;
@@ -289,13 +282,13 @@ final class QuotaService {
 
         $stmt = $this->db->prepare($query);
         if ($shipName !== null && $shipName !== '') {
-            $stmt->bind_param("s", $shipName);
+            $stmt->execute([$shipName]);
+        } else {
+            $stmt->execute();
         }
-        $stmt->execute();
-        $result = $stmt->get_result();
         $quotas = [];
 
-        while ($row = $result->fetch_assoc()) {
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $totalTonnage = floatval($row['totalTonnage']);
             $percentage = $row['percentage'] !== null ? floatval($row['percentage']) : null;
             $isPercentageRestricted = (bool)$row['is_enabled'];
@@ -356,12 +349,10 @@ final class QuotaService {
         LIMIT 2000";
 
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("ss", $shipName, $shipName);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $stmt->execute([$shipName, $shipName]);
         $quotas = [];
 
-        while ($row = $result->fetch_assoc()) {
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $loadedTonnage = floatval($row['loadedTonnage']);
             $totalTonnage = floatval($row['totalTonnage']);
             $remainingTonnage = $totalTonnage - $loadedTonnage;
@@ -397,22 +388,18 @@ final class QuotaService {
 
         $whereConditions = ["i.loadingQuotaNumber = ?"];
         $params = [$quotaNumber];
-        $types = "s";
 
         if (!empty($shippingCompany)) {
             $whereConditions[] = "i.shippingCompany = ?";
             $params[] = $shippingCompany;
-            $types .= "s";
         }
         if (!empty($warehouse)) {
             $whereConditions[] = "i.loadingWarehouse = ?";
             $params[] = $warehouse;
-            $types .= "s";
         }
         if (!empty($cargoType)) {
             $whereConditions[] = "i.cargoType = ?";
             $params[] = $cargoType;
-            $types .= "s";
         }
 
         $query = "SELECT i.loadingQuotaNumber as number, i.cargoWeight as totalTonnage, i.percentage, i.is_enabled, COALESCE(exit_data.loadedTonnage, 0) as loadedTonnage
@@ -428,14 +415,11 @@ final class QuotaService {
         WHERE " . implode(" AND ", $whereConditions) . " LIMIT 1";
 
         $derivedParams = array_merge([$quotaNumber], $params);
-        $derivedTypes = "s" . $types;
 
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param($derivedTypes, ...$derivedParams);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $stmt->execute($derivedParams);
 
-        if ($row = $result->fetch_assoc()) {
+        if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $loadedTonnage = floatval($row['loadedTonnage']);
             $totalTonnage = floatval($row['totalTonnage']);
             $remainingTonnage = $totalTonnage - $loadedTonnage;
@@ -471,10 +455,8 @@ final class QuotaService {
 
             $selectQuery = "SELECT loadingQuotaNumber, shipName, loadingWarehouse, shippingCompany, cargoType FROM InitialInfo WHERE id = ?";
             $selectStmt = $this->db->prepare($selectQuery);
-            $selectStmt->bind_param("i", $id);
-            $selectStmt->execute();
-            $result = $selectStmt->get_result();
-            $oldData = $result->fetch_assoc();
+            $selectStmt->execute([$id]);
+            $oldData = $selectStmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$oldData) {
                 throw new \Exception("کوتاژ با شناسه مشخص شده یافت نشد");
@@ -482,17 +464,15 @@ final class QuotaService {
 
             $queryInitialInfo = "UPDATE InitialInfo SET loadingQuotaNumber = ?, shipName = ?, shippingCompany = ?, loadingWarehouse = ?, cargoType = ?, cargoWeight = ? WHERE id = ?";
             $stmtInitialInfo = $this->db->prepare($queryInitialInfo);
-            $stmtInitialInfo->bind_param("sssssdi", $newQuotaNumber, $shipName, $shippingCompany, $warehouse, $cargoType, $totalTonnage, $id);
-            $stmtInitialInfo->execute();
+            $stmtInitialInfo->execute([$newQuotaNumber, $shipName, $shippingCompany, $warehouse, $cargoType, $totalTonnage, $id]);
 
             $queryCargoInfo = "UPDATE CargoInfo SET loadingQuotaNumber = ?, shipName = ?, loadingWarehouse = ?, shippingCompany = ?, cargoType = ?
                 WHERE loadingQuotaNumber = ? AND shipName = ? AND loadingWarehouse = ? AND shippingCompany = ? AND cargoType = ?";
             $stmtCargoInfo = $this->db->prepare($queryCargoInfo);
-            $stmtCargoInfo->bind_param("ssssssssss",
+            $stmtCargoInfo->execute([
                 $newQuotaNumber, $shipName, $warehouse, $shippingCompany, $cargoType,
                 $oldData['loadingQuotaNumber'], $oldData['shipName'], $oldData['loadingWarehouse'], $oldData['shippingCompany'], $oldData['cargoType']
-            );
-            $stmtCargoInfo->execute();
+            ]);
 
             $this->db->commit();
             MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
@@ -524,9 +504,8 @@ final class QuotaService {
     // نام کشتی مرتبط با یک ردیف InitialInfo، برای invalidate کردن کش per-ship بعد از نوشتن با فقط id
     private function getShipNameById(int $id): ?string {
         $stmt = $this->db->prepare("SELECT shipName FROM InitialInfo WHERE id = ?");
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->execute([$id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row['shipName'] ?? null;
     }
 
@@ -543,8 +522,7 @@ final class QuotaService {
         $isEnabled = ($percentage > 0.00) ? 1 : 0;
         $query = "UPDATE InitialInfo SET percentage = ?, is_enabled = ? WHERE id = ?";
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("dii", $percentage, $isEnabled, $id);
-        $success = $stmt->execute();
+        $success = $stmt->execute([$percentage, $isEnabled, $id]);
         if ($success) {
             $this->forgetShipCaches($shipName);
             if ($actorUsername !== null) {
@@ -557,15 +535,13 @@ final class QuotaService {
     public function toggleQuotaStatus(int $id, ?string $actorUsername = null): bool {
         // یک SELECT اضافه تا جزئیات معنادار (وضعیت قبل/بعد و شماره کوتاژ) برای audit_log ثبت شود
         $beforeStmt = $this->db->prepare("SELECT shipName, loadingQuotaNumber, isActive FROM InitialInfo WHERE id = ?");
-        $beforeStmt->bind_param("i", $id);
-        $beforeStmt->execute();
-        $before = $beforeStmt->get_result()->fetch_assoc();
+        $beforeStmt->execute([$id]);
+        $before = $beforeStmt->fetch(PDO::FETCH_ASSOC);
         $shipName = $before['shipName'] ?? null;
 
         $query = "UPDATE InitialInfo SET isActive = NOT isActive WHERE id = ?";
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("i", $id);
-        $success = $stmt->execute();
+        $success = $stmt->execute([$id]);
         if ($success) {
             MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
             $this->forgetShipCaches($shipName);
@@ -586,8 +562,7 @@ final class QuotaService {
         $shipName = $this->getShipNameById($id);
         $query = "UPDATE InitialInfo SET is_enabled = ? WHERE id = ?";
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("ii", $isEnabled, $id);
-        $success = $stmt->execute();
+        $success = $stmt->execute([$isEnabled, $id]);
         if ($success) {
             $this->forgetShipCaches($shipName);
             if ($actorUsername !== null) {
@@ -609,10 +584,8 @@ final class QuotaService {
 
             $checkQuery = "SELECT COUNT(*) as count FROM InitialInfo WHERE loadingQuotaNumber = ? AND shipName = ? AND loadingWarehouse = ? AND shippingCompany = ? AND cargoType = ?";
             $checkStmt = $this->db->prepare($checkQuery);
-            $checkStmt->bind_param("sssss", $quotaNumber, $shipName, $warehouse, $shippingCompany, $cargoType);
-            $checkStmt->execute();
-            $checkResult = $checkStmt->get_result();
-            $row = $checkResult->fetch_assoc();
+            $checkStmt->execute([$quotaNumber, $shipName, $warehouse, $shippingCompany, $cargoType]);
+            $row = $checkStmt->fetch(PDO::FETCH_ASSOC);
 
             if ($row['count'] == 0) {
                 $this->db->rollback();
@@ -621,13 +594,11 @@ final class QuotaService {
 
             $cargoQuery = "DELETE FROM CargoInfo WHERE loadingQuotaNumber = ? AND shipName = ? AND loadingWarehouse = ? AND shippingCompany = ? AND cargoType = ?";
             $cargoStmt = $this->db->prepare($cargoQuery);
-            $cargoStmt->bind_param("sssss", $quotaNumber, $shipName, $warehouse, $shippingCompany, $cargoType);
-            $cargoStmt->execute();
+            $cargoStmt->execute([$quotaNumber, $shipName, $warehouse, $shippingCompany, $cargoType]);
 
             $initialQuery = "DELETE FROM InitialInfo WHERE loadingQuotaNumber = ? AND shipName = ? AND loadingWarehouse = ? AND shippingCompany = ? AND cargoType = ?";
             $initialStmt = $this->db->prepare($initialQuery);
-            $initialStmt->bind_param("sssss", $quotaNumber, $shipName, $warehouse, $shippingCompany, $cargoType);
-            $initialStmt->execute();
+            $initialStmt->execute([$quotaNumber, $shipName, $warehouse, $shippingCompany, $cargoType]);
 
             $this->db->commit();
             MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
@@ -670,23 +641,22 @@ final class QuotaService {
 
         $checkQuery = "SELECT loadingQuotaNumber FROM InitialInfo WHERE loadingQuotaNumber = ?";
         $checkStmt = $this->db->prepare($checkQuery);
-        $checkStmt->bind_param("s", $quotaNumber);
-        $checkStmt->execute();
-        if ($checkStmt->get_result()->num_rows === 0) {
+        $checkStmt->execute([$quotaNumber]);
+        if ($checkStmt->fetch(PDO::FETCH_ASSOC) === false) {
             throw new \Exception('کوتاژ مورد نظر یافت نشد');
         }
 
         if ($enabledVal && $tonnageVal !== null) {
             $query = "UPDATE InitialInfo SET temp_tonnage_status = 1, temp_tonnage_amount = ? WHERE loadingQuotaNumber = ?";
             $stmt = $this->db->prepare($query);
-            $stmt->bind_param("ds", $tonnageVal, $quotaNumber);
+            $execParams = [$tonnageVal, $quotaNumber];
         } else {
             $query = "UPDATE InitialInfo SET temp_tonnage_status = 0, temp_tonnage_amount = NULL WHERE loadingQuotaNumber = ?";
             $stmt = $this->db->prepare($query);
-            $stmt->bind_param("s", $quotaNumber);
+            $execParams = [$quotaNumber];
         }
 
-        if ($stmt->execute()) {
+        if ($stmt->execute($execParams)) {
             if ($actorUsername !== null) {
                 AuditLogger::log($actorUsername, 'updateTemporaryTonnage', 'quota', $quotaNumber, [
                     'enabled' => $enabledVal,

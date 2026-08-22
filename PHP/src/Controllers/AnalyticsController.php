@@ -7,7 +7,7 @@ namespace App\Controllers;
 
 use Exception;
 use InvalidArgumentException;
-use mysqli;
+use PDO;
 use App\Core\Database;
 use App\Core\Logger;
 use App\Core\MicroCache;
@@ -21,7 +21,7 @@ class AnalyticsController {
     private const ENTERED = CargoStatus::ENTERED;
     private const EXITED = CargoStatus::EXITED;
 
-    private mysqli $conn;
+    private PDO $conn;
     private Logger $logger;
     private Request $request;
     // هویت از Router::dispatch می‌آید نه اعتبارسنجی داخلی؛ فقط برای لاگ استفاده می‌شود (DEEP_CODE_AUDIT.md فاز۳ #۲۵)
@@ -33,7 +33,7 @@ class AnalyticsController {
     private const SHIFT_DAY_END_TIME = '19:00:00';
 
     public function __construct() {
-        $this->conn = Database::getInstance()->getMysqliConnection();
+        $this->conn = Database::getInstance()->getPdoConnection();
         $this->logger = Logger::getInstance();
         $this->request = new Request();
     }
@@ -91,10 +91,8 @@ class AnalyticsController {
         }
 
         $stmt = $this->conn->prepare("SELECT shipName, loadingWarehouse, cargoType, shippingCompany, cargoWeight, loadingQuotaNumber FROM InitialInfo WHERE loadingQuotaNumber = ?");
-        $stmt->bind_param("s", $kotazh);
-        $stmt->execute();
-        $kotazhInfo = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
+        $stmt->execute([$kotazh]);
+        $kotazhInfo = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$kotazhInfo) {
             Response::error('کوتاژ مورد نظر یافت نشد.', 404);
@@ -102,10 +100,8 @@ class AnalyticsController {
 
         // LIMIT 2000 سقف محافظتی است نه صفحه‌بندی؛ کل تاریخچه‌ی حواله‌های یک کوتاژ بدون آن نامحدود بود (DEEP_CODE_AUDIT.md #۱۱)
         $stmt2 = $this->conn->prepare("SELECT trackingNumber, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, exitTime, exitDate, status FROM CargoInfo WHERE loadingQuotaNumber = ? ORDER BY entryTime DESC LIMIT 2000");
-        $stmt2->bind_param("s", $kotazh);
-        $stmt2->execute();
-        $cargoInfo = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
-        $stmt2->close();
+        $stmt2->execute([$kotazh]);
+        $cargoInfo = $stmt2->fetchAll(PDO::FETCH_ASSOC);
 
         Response::json([
             'kotazhInfo' => $kotazhInfo,
@@ -206,20 +202,15 @@ class AnalyticsController {
 
             if ($shiftInfo['type'] === 'روز') {
                 $shiftCondition = "(c.exitDate = ? AND c.exitTime BETWEEN ? AND ?) OR (c.status = '" . self::ENTERED->value . "' AND c.exitDate IS NULL)";
-                $paramTypes = "sss";
                 $params = [$shiftInfo['startDate'], $shiftInfo['startTime'], $shiftInfo['endTime']];
             } else {
                 $shiftCondition = "(c.exitDate = ? AND c.exitTime >= ?) OR (c.exitDate = ? AND c.exitTime < ?) OR (c.status = '" . self::ENTERED->value . "' AND c.exitDate IS NULL)";
-                $paramTypes = "ssss";
                 $params = [$shiftInfo['startDate'], $shiftInfo['startTime'], $shiftInfo['endDate'], $shiftInfo['endTime']];
             }
 
             $stmt = $this->conn->prepare(sprintf($baseQuery, $shiftCondition));
-            $stmt->bind_param($paramTypes, ...$params);
-            $stmt->execute();
-            $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-            $stmt->close();
-            return $result;
+            $stmt->execute($params);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         });
     }
 
@@ -270,12 +261,10 @@ class AnalyticsController {
                     ORDER BY last_24h_vouchers DESC";
 
             $stmt = $this->conn->prepare($query);
-            $stmt->bind_param("ss", $yesterdayJalaliDate, $todayJalaliDate);
-            $stmt->execute();
-            $result = $stmt->get_result();
+            $stmt->execute([$yesterdayJalaliDate, $todayJalaliDate]);
 
             $rows = [];
-            while ($row = $result->fetch_assoc()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $rows[] = [
                     'loadingQuotaNumber' => $row['loadingQuotaNumber'],
                     'shipName' => $row['shipName'],
@@ -287,7 +276,6 @@ class AnalyticsController {
                     'last_24h_vouchers' => (int)$row['last_24h_vouchers'],
                 ];
             }
-            $stmt->close();
             return $rows;
         });
 

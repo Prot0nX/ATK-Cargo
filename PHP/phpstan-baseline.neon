@@ -26,18 +26,13 @@ parameters:
 			path: Lic/export.php
 
 		-
-			message: "#^Cannot call method fetch_assoc\\(\\) on bool\\|mysqli_result\\.$#"
+			message: "#^Cannot call method fetch\\(\\) on PDOStatement\\|false\\.$#"
 			count: 1
 			path: PermissionManager.php
 
 		-
 			message: "#^Parameter \\#1 \\$name of function setcookie expects string, string\\|false given\\.$#"
 			count: 1
-			path: PermissionManager.php
-
-		-
-			message: "#^Parameter \\#1 \\$string of function htmlspecialchars expects string, float\\|int\\|string\\|null given\\.$#"
-			count: 5
 			path: PermissionManager.php
 
 		-
@@ -876,36 +871,6 @@ parameters:
 			path: scripts/rotate_logs.php
 
 		-
-			message: "#^Cannot call method bind_param\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 4
-			path: src/Controllers/AnalyticsController.php
-
-		-
-			message: "#^Cannot call method close\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 4
-			path: src/Controllers/AnalyticsController.php
-
-		-
-			message: "#^Cannot call method execute\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 4
-			path: src/Controllers/AnalyticsController.php
-
-		-
-			message: "#^Cannot call method fetch_all\\(\\) on mysqli_result\\|false\\.$#"
-			count: 2
-			path: src/Controllers/AnalyticsController.php
-
-		-
-			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
-			count: 2
-			path: src/Controllers/AnalyticsController.php
-
-		-
-			message: "#^Cannot call method get_result\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 4
-			path: src/Controllers/AnalyticsController.php
-
-		-
 			message: "#^Method App\\\\Controllers\\\\AnalyticsController\\:\\:determineShiftInfo\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Controllers/AnalyticsController.php
@@ -941,61 +906,6 @@ parameters:
 			path: src/Controllers/AuthController.php
 
 		-
-			message: "#^Cannot access offset 'avgNetWeight' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
-			count: 1
-			path: src/Controllers/CargoController.php
-
-		-
-			message: "#^Cannot access offset 'cargoWeight' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
-			count: 1
-			path: src/Controllers/CargoController.php
-
-		-
-			message: "#^Cannot access offset 'remainingWeight' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
-			count: 1
-			path: src/Controllers/CargoController.php
-
-		-
-			message: "#^Cannot access offset 'totalNetWeight' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
-			count: 1
-			path: src/Controllers/CargoController.php
-
-		-
-			message: "#^Cannot access offset 'totalVouchers' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
-			count: 1
-			path: src/Controllers/CargoController.php
-
-		-
-			message: "#^Cannot access property \\$num_rows on mysqli_result\\|false\\.$#"
-			count: 1
-			path: src/Controllers/CargoController.php
-
-		-
-			message: "#^Cannot call method bind_param\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 3
-			path: src/Controllers/CargoController.php
-
-		-
-			message: "#^Cannot call method close\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 4
-			path: src/Controllers/CargoController.php
-
-		-
-			message: "#^Cannot call method execute\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 3
-			path: src/Controllers/CargoController.php
-
-		-
-			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
-			count: 3
-			path: src/Controllers/CargoController.php
-
-		-
-			message: "#^Cannot call method get_result\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 3
-			path: src/Controllers/CargoController.php
-
-		-
 			message: "#^Method App\\\\Controllers\\\\CargoController\\:\\:validateNumericField\\(\\) has parameter \\$value with no type specified\\.$#"
 			count: 1
 			path: src/Controllers/CargoController.php
@@ -1004,16 +914,6 @@ parameters:
 			message: "#^Method App\\\\Controllers\\\\CargoController\\:\\:validateStringField\\(\\) has parameter \\$value with no type specified\\.$#"
 			count: 1
 			path: src/Controllers/CargoController.php
-
-		-
-			message: "#^Cannot call method fetch_all\\(\\) on mysqli_result\\|false\\.$#"
-			count: 3
-			path: src/Controllers/ChatController.php
-
-		-
-			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
-			count: 3
-			path: src/Controllers/ChatController.php
 
 		-
 			message: "#^Method App\\\\Controllers\\\\ChatController\\:\\:deleteMessage\\(\\) return type has no value type specified in iterable type array\\.$#"
@@ -1027,11 +927,6 @@ parameters:
 
 		-
 			message: "#^Method App\\\\Controllers\\\\ChatController\\:\\:getMessages\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/ChatController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\ChatController\\:\\:getUserFullName\\(\\) should return string but returns float\\|int\\|string\\.$#"
 			count: 1
 			path: src/Controllers/ChatController.php
 
@@ -1059,31 +954,6 @@ parameters:
 			message: "#^Method App\\\\Controllers\\\\LicenseController\\:\\:presentLicense\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Controllers/LicenseController.php
-
-		-
-			message: "#^Cannot access property \\$num_rows on mysqli_result\\|false\\.$#"
-			count: 3
-			path: src/Controllers/UtilityController.php
-
-		-
-			message: "#^Cannot call method bind_param\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 3
-			path: src/Controllers/UtilityController.php
-
-		-
-			message: "#^Cannot call method close\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 5
-			path: src/Controllers/UtilityController.php
-
-		-
-			message: "#^Cannot call method execute\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 3
-			path: src/Controllers/UtilityController.php
-
-		-
-			message: "#^Cannot call method get_result\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 3
-			path: src/Controllers/UtilityController.php
 
 		-
 			message: "#^Method App\\\\Controllers\\\\UtilityController\\:\\:sendSyncResponse\\(\\) has parameter \\$extra with no value type specified in iterable type array\\.$#"
@@ -1251,16 +1121,6 @@ parameters:
 			path: src/Exceptions/ResponseSentException.php
 
 		-
-			message: "#^Cannot access property \\$num_rows on mysqli_result\\|false\\.$#"
-			count: 1
-			path: src/Repositories/CargoRepository.php
-
-		-
-			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
-			count: 9
-			path: src/Repositories/CargoRepository.php
-
-		-
 			message: "#^Method App\\\\Repositories\\\\CargoRepository\\:\\:confirmCargo\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Repositories/CargoRepository.php
@@ -1339,26 +1199,6 @@ parameters:
 			message: "#^Method App\\\\Repositories\\\\LicenseRepository\\:\\:listAll\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Repositories/LicenseRepository.php
-
-		-
-			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
-			count: 3
-			path: src/Repositories/PermissionRepository.php
-
-		-
-			message: "#^Method App\\\\Repositories\\\\PermissionRepository\\:\\:getAllRolePermissions\\(\\) should return array\\<string, array\\<string, bool\\>\\> but returns array\\<int\\|string, array\\<int\\|string, bool\\>\\>\\.$#"
-			count: 1
-			path: src/Repositories/PermissionRepository.php
-
-		-
-			message: "#^Method App\\\\Repositories\\\\PermissionRepository\\:\\:getAllUserPermissions\\(\\) should return array\\<string, array\\<string, bool\\>\\> but returns array\\<int\\|string, array\\<int\\|string, bool\\>\\>\\.$#"
-			count: 1
-			path: src/Repositories/PermissionRepository.php
-
-		-
-			message: "#^Method App\\\\Repositories\\\\PermissionRepository\\:\\:getLastUpdatedAt\\(\\) should return string\\|null but returns float\\|int\\|string\\|null\\.$#"
-			count: 1
-			path: src/Repositories/PermissionRepository.php
 
 		-
 			message: "#^Method App\\\\Repositories\\\\SessionRepository\\:\\:createSession\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
@@ -1491,36 +1331,6 @@ parameters:
 			path: src/Services/LicenseAdminService.php
 
 		-
-			message: "#^Cannot access offset 'password' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
-			count: 1
-			path: src/Services/PasswordGateService.php
-
-		-
-			message: "#^Cannot call method bind_param\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 1
-			path: src/Services/PasswordGateService.php
-
-		-
-			message: "#^Cannot call method close\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 1
-			path: src/Services/PasswordGateService.php
-
-		-
-			message: "#^Cannot call method execute\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 1
-			path: src/Services/PasswordGateService.php
-
-		-
-			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
-			count: 1
-			path: src/Services/PasswordGateService.php
-
-		-
-			message: "#^Cannot call method get_result\\(\\) on mysqli_stmt\\|false\\.$#"
-			count: 1
-			path: src/Services/PasswordGateService.php
-
-		-
 			message: "#^Method App\\\\Services\\\\PermissionService\\:\\:getUserPermissions\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Services/PermissionService.php
@@ -1534,31 +1344,6 @@ parameters:
 			message: "#^Method App\\\\Services\\\\PermissionService\\:\\:loadFromJsonFile\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Services/PermissionService.php
-
-		-
-			message: "#^Cannot access offset 'count' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
-			count: 1
-			path: src/Services/QuotaService.php
-
-		-
-			message: "#^Cannot access offset 'isActive' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
-			count: 1
-			path: src/Services/QuotaService.php
-
-		-
-			message: "#^Cannot access offset 'loadingQuotaNumber' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
-			count: 1
-			path: src/Services/QuotaService.php
-
-		-
-			message: "#^Cannot access property \\$num_rows on mysqli_result\\|false\\.$#"
-			count: 1
-			path: src/Services/QuotaService.php
-
-		-
-			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
-			count: 11
-			path: src/Services/QuotaService.php
 
 		-
 			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:checkQuotaExistenceCargo\\(\\) return type has no value type specified in iterable type array\\.$#"
@@ -1611,27 +1396,7 @@ parameters:
 			path: src/Services/QuotaService.php
 
 		-
-			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:getShipNameById\\(\\) should return string\\|null but returns float\\|int\\|string\\|null\\.$#"
-			count: 1
-			path: src/Services/QuotaService.php
-
-		-
 			message: "#^Method App\\\\Services\\\\QuotaService\\:\\:updateTemporaryTonnage\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Services/QuotaService.php
-
-		-
-			message: "#^Parameter \\#1 \\$shipName of method App\\\\Services\\\\QuotaService\\:\\:forgetShipCaches\\(\\) expects string\\|null, float\\|int\\|string\\|null given\\.$#"
-			count: 1
-			path: src/Services/QuotaService.php
-
-		-
-			message: "#^Parameter \\#1 \\$shipName of static method App\\\\Services\\\\AppApiCacheKeys\\:\\:quotasList\\(\\) expects string, float\\|int\\|string\\|null given\\.$#"
-			count: 1
-			path: src/Services/QuotaService.php
-
-		-
-			message: "#^Parameter \\#1 \\$shipName of static method App\\\\Services\\\\AppApiCacheKeys\\:\\:shipDetails\\(\\) expects string, float\\|int\\|string\\|null given\\.$#"
 			count: 1
 			path: src/Services/QuotaService.php
 
@@ -1674,21 +1439,6 @@ parameters:
 			message: "#^Method App\\\\Services\\\\SessionService\\:\\:refreshTokens\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Services/SessionService.php
-
-		-
-			message: "#^Cannot access offset 'totalNetWeight' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
-			count: 1
-			path: src/Services/ShipService.php
-
-		-
-			message: "#^Cannot access offset 'voucherCount' on array\\<string, float\\|int\\|string\\|null\\>\\|false\\.$#"
-			count: 1
-			path: src/Services/ShipService.php
-
-		-
-			message: "#^Cannot call method fetch_assoc\\(\\) on mysqli_result\\|false\\.$#"
-			count: 7
-			path: src/Services/ShipService.php
 
 		-
 			message: "#^Method App\\\\Services\\\\ShipService\\:\\:computeShipDetails\\(\\) return type has no value type specified in iterable type array\\.$#"

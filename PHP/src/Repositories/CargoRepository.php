@@ -5,38 +5,34 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
-use mysqli;
+use PDO;
 use App\Core\Database;
 use App\Enums\CargoStatus;
 use App\Enums\CargoConfirmStatus;
 
 class CargoRepository {
-    private mysqli $conn;
+    private PDO $conn;
     // بدون ->value چون PHP 8.1 اجازه‌ی property-fetch در class const را نمی‌دهد
     private const ENTERED = CargoStatus::ENTERED;
     private const EXITED = CargoStatus::EXITED;
     private const CONFIRMED = CargoConfirmStatus::CONFIRMED;
 
     public function __construct() {
-        $this->conn = Database::getInstance()->getMysqliConnection();
+        $this->conn = Database::getInstance()->getPdoConnection();
     }
 
-    public function getMysqliConnection(): mysqli {
+    public function getPdoConnection(): PDO {
         return $this->conn;
     }
 
     public function find24hCargo(string $shipName, string $trackingNumber, string $yesterdayStart): ?array {
-        $query = "SELECT loadingQuotaNumber, loadingWarehouse, shippingCompany, exitTime, exitDate, status, entryTime 
-                  FROM CargoInfo 
-                  WHERE shipName = ? AND trackingNumber = ? AND updated_at >= ? 
+        $query = "SELECT loadingQuotaNumber, loadingWarehouse, shippingCompany, exitTime, exitDate, status, entryTime
+                  FROM CargoInfo
+                  WHERE shipName = ? AND trackingNumber = ? AND updated_at >= ?
                   ORDER BY id DESC LIMIT 1";
         $stmt = $this->conn->prepare($query);
-        if (!$stmt) return null;
-        $stmt->bind_param("sss", $shipName, $trackingNumber, $yesterdayStart);
-        $stmt->execute();
-        $result = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
-        return $result ?: null;
+        $stmt->execute([$shipName, $trackingNumber, $yesterdayStart]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
     // FOR UPDATE رکورد را قفل می‌کند تا درخواست‌های هم‌زمان روی همان حواله سریالی پردازش شوند؛ باید داخل تراکنش فراخوانی شود
@@ -53,12 +49,8 @@ class CargoRepository {
                   shippingCompany = ? AND loadingQuotaNumber = ? AND trackingNumber = ?
                   ORDER BY id DESC LIMIT 1 FOR UPDATE";
         $stmt = $this->conn->prepare($query);
-        if (!$stmt) return null;
-        $stmt->bind_param("ssssss", $shipName, $warehouse, $cargoType, $company, $quotaNumber, $trackingNumber);
-        $stmt->execute();
-        $result = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
-        return $result ?: null;
+        $stmt->execute([$shipName, $warehouse, $cargoType, $company, $quotaNumber, $trackingNumber]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
     public function insertCargo(array $params, string $currentTime, int $numberOfPeople): bool {
@@ -71,12 +63,11 @@ class CargoRepository {
             (SELECT id FROM InitialInfo WHERE loadingQuotaNumber = ? AND shipName = ? AND loadingWarehouse = ? AND shippingCompany = ? AND cargoType = ? LIMIT 1),
             ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
-        if (!$stmt) return false;
         // netWeight هنوز مقداری ندارد؛ باید NULL درج شود نه '' که در ستون عددی خطا می‌دهد
         $netWeight = ($params['netWeight'] === '' || $params['netWeight'] === null) ? null : $params['netWeight'];
         // scaleReceiptNumber هم به همین دلیل NULL می‌شود تا با UNIQUE INDEX پیشنهادی تداخل نکند
         $scaleReceiptNumber = ($params['scaleReceiptNumber'] === '' || $params['scaleReceiptNumber'] === null) ? null : $params['scaleReceiptNumber'];
-        $stmt->bind_param("sssssssssssssssssss",
+        return $stmt->execute([
             $params['trackingNumber'],
             $currentTime,
             $netWeight,
@@ -96,10 +87,7 @@ class CargoRepository {
             $numberOfPeople,
             $params['username'],
             $params['userType']
-        );
-        $res = $stmt->execute();
-        $stmt->close();
-        return $res;
+        ]);
     }
 
     // وضعیت فعال/غیرفعال کوتاژ، محدودیت درصدی و تناژ باقی‌مانده را در یک کوئری برمی‌گرداند تا سرور هم همان کنترل‌های کلاینت را اعمال کند
@@ -122,56 +110,39 @@ class CargoRepository {
                   i.shippingCompany = ? AND i.loadingQuotaNumber = ?
             LIMIT 1";
         $stmt = $this->conn->prepare($query);
-        if (!$stmt) return null;
-        $stmt->bind_param(
-            "ssssssssss",
+        $stmt->execute([
             $shipName, $warehouse, $cargoType, $company, $quota,
             $shipName, $warehouse, $cargoType, $company, $quota
-        );
-        $stmt->execute();
-        $res = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
-        return $res ?: null;
+        ]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
     public function findTempTonnage(string $shipName, string $warehouse, string $cargoType, string $company, string $quota): ?array {
-        $query = "SELECT temp_tonnage_status, temp_tonnage_amount FROM InitialInfo 
-                  WHERE shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND 
+        $query = "SELECT temp_tonnage_status, temp_tonnage_amount FROM InitialInfo
+                  WHERE shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND
                         shippingCompany = ? AND loadingQuotaNumber = ? LIMIT 1";
         $stmt = $this->conn->prepare($query);
-        if (!$stmt) return null;
-        $stmt->bind_param("sssss", $shipName, $warehouse, $cargoType, $company, $quota);
-        $stmt->execute();
-        $res = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
-        return $res ?: null;
+        $stmt->execute([$shipName, $warehouse, $cargoType, $company, $quota]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
     public function updateTempTonnage(float $newTemp, string $shipName, string $warehouse, string $cargoType, string $company, string $quota): bool {
-        $query = "UPDATE InitialInfo SET temp_tonnage_amount = ? 
-                  WHERE shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND 
+        $query = "UPDATE InitialInfo SET temp_tonnage_amount = ?
+                  WHERE shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND
                         shippingCompany = ? AND loadingQuotaNumber = ?";
         $stmt = $this->conn->prepare($query);
-        if (!$stmt) return false;
-        $stmt->bind_param("dsssss", $newTemp, $shipName, $warehouse, $cargoType, $company, $quota);
-        $res = $stmt->execute();
-        $stmt->close();
-        return $res;
+        return $stmt->execute([$newTemp, $shipName, $warehouse, $cargoType, $company, $quota]);
     }
 
-    // شرط status='ورود' عمداً اضافه شده تا دو خروج هم‌زمان روی یک حواله باعث کسر دوباره‌ی تناژ نشوند؛ affected_rows تداخل را نشان می‌دهد
+    // شرط status='ورود' عمداً اضافه شده تا دو خروج هم‌زمان روی یک حواله باعث کسر دوباره‌ی تناژ نشوند؛ rowCount تداخل را نشان می‌دهد
     public function updateCargoExit(int $cargoId, string $netWeight, string $scaleReceipt, string $currentTime, string $currentDate, string $username, string $userType): bool {
         $query = "UPDATE CargoInfo SET
             netWeight = ?, scaleReceiptNumber = ?, exitTime = ?, exitDate = ?,
             status = '" . self::EXITED->value . "', username = ?, userType = ?
         WHERE id = ? AND status = '" . self::ENTERED->value . "'";
         $stmt = $this->conn->prepare($query);
-        if (!$stmt) return false;
-        $stmt->bind_param("ssssssi", $netWeight, $scaleReceipt, $currentTime, $currentDate, $username, $userType, $cargoId);
-        $res = $stmt->execute();
-        $affected = $stmt->affected_rows;
-        $stmt->close();
-        return $res && $affected > 0;
+        $res = $stmt->execute([$netWeight, $scaleReceipt, $currentTime, $currentDate, $username, $userType, $cargoId]);
+        return $res && $stmt->rowCount() > 0;
     }
 
     public function updateCargoShortageOrExcess(int $cargoId, string $shortageWeight, string $excessWeight, string $username, string $userType): bool {
@@ -179,51 +150,35 @@ class CargoRepository {
             shortageWeight = ?, excessWeight = ?, username = ?, userType = ?
         WHERE id = ? AND status = '" . self::ENTERED->value . "'";
         $stmt = $this->conn->prepare($query);
-        if (!$stmt) return false;
-        $stmt->bind_param("ssssi", $shortageWeight, $excessWeight, $username, $userType, $cargoId);
-        $res = $stmt->execute();
-        $affected = $stmt->affected_rows;
-        $stmt->close();
-        return $res && $affected > 0;
+        $res = $stmt->execute([$shortageWeight, $excessWeight, $username, $userType, $cargoId]);
+        return $res && $stmt->rowCount() > 0;
     }
 
     public function findCargoById(int $id): ?array {
         $stmt = $this->conn->prepare("SELECT * FROM CargoInfo WHERE id = ? LIMIT 1");
-        if (!$stmt) return null;
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-        $res = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
-        return $res ?: null;
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
     public function isScaleReceiptDuplicate(string $receipt, int $excludeId): bool {
         $stmt = $this->conn->prepare("SELECT id FROM CargoInfo WHERE scaleReceiptNumber = ? AND id != ? LIMIT 1");
-        if (!$stmt) return false;
-        $stmt->bind_param("si", $receipt, $excludeId);
-        $stmt->execute();
-        $res = $stmt->get_result()->num_rows > 0;
-        $stmt->close();
-        return $res;
+        $stmt->execute([$receipt, $excludeId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
     }
 
     public function updateCargoFull(int $id, array $data): bool {
-        $query = "UPDATE CargoInfo SET 
-            trackingNumber = ?, numberOfPeople = ?, username = ?, userType = ?, 
-            entryTime = ?, netWeight = ?, scaleReceiptNumber = ?, shortageWeight = ?, 
-            excessWeight = ?, exitTime = ?, exitDate = ?, status = ?, confirm = ? 
+        $query = "UPDATE CargoInfo SET
+            trackingNumber = ?, numberOfPeople = ?, username = ?, userType = ?,
+            entryTime = ?, netWeight = ?, scaleReceiptNumber = ?, shortageWeight = ?,
+            excessWeight = ?, exitTime = ?, exitDate = ?, status = ?, confirm = ?
             WHERE id = ?";
         $stmt = $this->conn->prepare($query);
-        if (!$stmt) return false;
-        $stmt->bind_param("sssssssssssssi", 
-            $data['trackingNumber'], $data['numberOfPeople'], $data['username'], $data['userType'], 
-            $data['entryTime'], $data['netWeight'], $data['scaleReceiptNumber'], $data['shortageWeight'], 
+        $res = $stmt->execute([
+            $data['trackingNumber'], $data['numberOfPeople'], $data['username'], $data['userType'],
+            $data['entryTime'], $data['netWeight'], $data['scaleReceiptNumber'], $data['shortageWeight'],
             $data['excessWeight'], $data['exitTime'], $data['exitDate'], $data['status'], $data['confirm'], $id
-        );
-        $res = $stmt->execute();
-        $affected = $stmt->affected_rows;
-        $stmt->close();
-        return $res && ($affected > 0);
+        ]);
+        return $res && ($stmt->rowCount() > 0);
     }
 
     public function confirmCargo(int $cargoId, string $username, string $userType, string $loadingQuotaNumber, string $shipName): array {
@@ -236,58 +191,36 @@ class CargoRepository {
                   WHERE id = ? AND loadingQuotaNumber = ? AND shipName = ?
                         AND status = '" . self::ENTERED->value . "' AND (confirm IS NULL OR confirm != '" . self::CONFIRMED->value . "')";
         $stmt = $this->conn->prepare($query);
-        if (!$stmt) return ['success' => false, 'affected' => 0];
-        $stmt->bind_param("ssiss", $username, $userType, $cargoId, $loadingQuotaNumber, $shipName);
-        $stmt->execute();
-        $affected = $stmt->affected_rows;
-        $stmt->close();
-        return ['success' => true, 'affected' => $affected];
+        $stmt->execute([$username, $userType, $cargoId, $loadingQuotaNumber, $shipName]);
+        return ['success' => true, 'affected' => $stmt->rowCount()];
     }
 
     public function deleteCargoById(int $id): bool {
         $stmt = $this->conn->prepare("DELETE FROM CargoInfo WHERE id = ?");
-        if (!$stmt) return false;
-        $stmt->bind_param("i", $id);
-        $stmt->execute();
-        $affected = $stmt->affected_rows;
-        $stmt->close();
-        return $affected > 0;
+        $stmt->execute([$id]);
+        return $stmt->rowCount() > 0;
     }
 
     public function searchByScaleReceipt(string $receipt): ?array {
         $query = "SELECT id, trackingNumber, numberOfPeople, username, userType, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, exitTime, exitDate, status, confirm, confirmation, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber FROM CargoInfo WHERE scaleReceiptNumber = ? LIMIT 1";
         $stmt = $this->conn->prepare($query);
-        if (!$stmt) return null;
-        $stmt->bind_param("s", $receipt);
-        $stmt->execute();
-        $res = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
-        return $res ?: null;
+        $stmt->execute([$receipt]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
     public function searchByTracking(string $tracking): array {
         // LIMIT 2000 سقف محافظتی است نه صفحه‌بندی؛ فقط در برابر استفاده‌ی مکرر یک شماره حواله محافظت می‌کند (DEEP_CODE_AUDIT.md #۱۱)
         $query = "SELECT id, trackingNumber, numberOfPeople, username, userType, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, exitTime, exitDate, status, confirm, confirmation, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber FROM CargoInfo WHERE trackingNumber = ? ORDER BY entryTime DESC LIMIT 2000";
         $stmt = $this->conn->prepare($query);
-        if (!$stmt) return [];
-        $stmt->bind_param("s", $tracking);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $list = [];
-        while ($row = $res->fetch_assoc()) {
-            $list[] = $row;
-        }
-        $stmt->close();
-        return $list;
+        $stmt->execute([$tracking]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function getActiveShipsList(): array {
         $stmt = $this->conn->prepare("SELECT shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber FROM InitialInfo WHERE isActive = 1");
-        if (!$stmt) return [];
         $stmt->execute();
-        $res = $stmt->get_result();
         $list = [];
-        while ($row = $res->fetch_assoc()) {
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $list[] = [
                 'shipName' => $row['shipName'],
                 'loadingWarehouse' => $row['loadingWarehouse'],
@@ -296,17 +229,12 @@ class CargoRepository {
                 'loadingQuotaNumber' => $row['loadingQuotaNumber']
             ];
         }
-        $stmt->close();
         return $list;
     }
 
     public function findByScaleReceiptNumber(string $receipt): ?array {
         $stmt = $this->conn->prepare("SELECT trackingNumber, netWeight, loadingQuotaNumber FROM CargoInfo WHERE scaleReceiptNumber = ? LIMIT 1");
-        if (!$stmt) return null;
-        $stmt->bind_param("s", $receipt);
-        $stmt->execute();
-        $res = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
-        return $res ?: null;
+        $stmt->execute([$receipt]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 }

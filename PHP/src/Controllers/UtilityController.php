@@ -7,7 +7,7 @@ namespace App\Controllers;
 
 use Exception;
 use InvalidArgumentException;
-use mysqli;
+use PDO;
 use App\Core\Database;
 use App\Core\Logger;
 use App\Core\Request;
@@ -15,12 +15,12 @@ use App\Core\Response;
 use App\Services\PermissionService;
 
 class UtilityController {
-    private mysqli $conn;
+    private PDO $conn;
     private Logger $logger;
     private Request $request;
 
     public function __construct() {
-        $this->conn = Database::getInstance()->getMysqliConnection();
+        $this->conn = Database::getInstance()->getPdoConnection();
         $this->logger = Logger::getInstance();
         $this->request = new Request();
     }
@@ -69,11 +69,8 @@ class UtilityController {
             }
 
             $stmt = $this->conn->prepare("SELECT 1 FROM SignChecker WHERE app_signature = ? LIMIT 1");
-            $stmt->bind_param("s", $receivedSignature);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $isValid = $result->num_rows > 0;
-            $stmt->close();
+            $stmt->execute([$receivedSignature]);
+            $isValid = $stmt->fetch(PDO::FETCH_ASSOC) !== false;
 
             Response::json(['is_valid' => $isValid]);
         } catch (Exception $e) {
@@ -104,25 +101,17 @@ class UtilityController {
             $shippingCompany = (string)$data['shippingCompany'];
 
             $stmt = $this->conn->prepare("SELECT id FROM InitialInfo WHERE loadingQuotaNumber = ? AND shipName = ? AND loadingWarehouse = ? AND cargoType = ? AND shippingCompany = ?");
-            $stmt->bind_param("issss", $loadingQuotaNumber, $shipName, $loadingWarehouse, $cargoType, $shippingCompany);
-            $stmt->execute();
-            $result = $stmt->get_result();
+            $stmt->execute([$loadingQuotaNumber, $shipName, $loadingWarehouse, $cargoType, $shippingCompany]);
 
-            if ($result->num_rows > 0) {
-                $stmt->close();
+            if ($stmt->fetch(PDO::FETCH_ASSOC) !== false) {
                 Response::json(["status" => "exists", "message" => "اطلاعات وارد شده قبلاً ثبت شده است."]);
             } else {
-                $stmt->close();
                 $stmtPartial = $this->conn->prepare("SELECT id FROM InitialInfo WHERE loadingQuotaNumber = ?");
-                $stmtPartial->bind_param("i", $loadingQuotaNumber);
-                $stmtPartial->execute();
-                $resultPartial = $stmtPartial->get_result();
+                $stmtPartial->execute([$loadingQuotaNumber]);
 
-                if ($resultPartial->num_rows > 0) {
-                    $stmtPartial->close();
+                if ($stmtPartial->fetch(PDO::FETCH_ASSOC) !== false) {
                     Response::json(["status" => "partial_match", "message" => "شماره کوتاژ قبلاً ثبت شده، اما با مشخصات متفاوت. ثبت اطلاعات جدید مجاز است."]);
                 } else {
-                    $stmtPartial->close();
                     Response::json(["status" => "not_exists", "message" => "اطلاعات وارد شده قابل ثبت است."]);
                 }
             }

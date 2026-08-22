@@ -7,13 +7,11 @@ namespace App\Core;
 
 use PDO;
 use PDOException;
-use mysqli;
 use Exception;
 
 class Database {
     private static ?self $instance = null;
     private ?PDO $pdo = null;
-    private ?mysqli $mysqli = null;
     private Config $config;
 
     private function __construct() {
@@ -43,6 +41,10 @@ class Database {
                     PDO::ATTR_EMULATE_PREPARES => false,
                     PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
                 ]);
+
+                // هم‌راستا با نشست mysqli قبلی (SET NAMES نمی‌تواند در همان دستور با سایر assignmentها ترکیب شود، پس جدا اجرا می‌شود) تا مهاجرت مصرف‌کننده‌ها به PDO رفتار خاموش را تغییر ندهد (DEEP_CODE_AUDIT.md #۳۸)
+                $this->pdo->exec("SET SESSION sql_mode = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'");
+                $this->pdo->exec("SET time_zone = '+03:30'");
             } catch (PDOException $e) {
                 error_log("PDO Connection failed: " . $e->getMessage());
                 throw new Exception("خطا در اتصال به پایگاه داده (PDO)");
@@ -51,37 +53,8 @@ class Database {
         return $this->pdo;
     }
 
-    // دریافت کانکشن mysqli بهینه‌شده جهت حفظ سازگاری با توابع قدیمی
-    public function getMysqliConnection(): mysqli {
-        if ($this->mysqli === null) {
-            $host = $this->config->get('db_host');
-            $user = $this->config->get('db_user');
-            $pass = $this->config->get('db_pass');
-            $name = $this->config->get('db_name');
-
-            // بررسی اتصال دائم مشابه برخی توابع قدیمی
-            $this->mysqli = new mysqli($host, $user, $pass, $name);
-            
-            if ($this->mysqli->connect_error) {
-                error_log("Mysqli Connection failed: " . $this->mysqli->connect_error);
-                throw new Exception("خطا در اتصال به پایگاه داده (mysqli)");
-            }
-            
-            $this->mysqli->set_charset("utf8mb4");
-            
-            // STRICT_TRANS_TABLES اضافه شد؛ بدون آن درج داده‌ی طولانی‌تر از ستون بی‌صدا truncate می‌شد (DEEP_CODE_AUDIT.md #۱۸)
-            $this->mysqli->query("SET SESSION sql_mode = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'");
-            $this->mysqli->query("SET time_zone = '+03:30'");
-        }
-        return $this->mysqli;
-    }
-
     // بستن اتصالات
     public function closeConnections(): void {
-        if ($this->mysqli !== null) {
-            $this->mysqli->close();
-            $this->mysqli = null;
-        }
         $this->pdo = null;
     }
 }

@@ -32,10 +32,10 @@ class CargoService {
         $trackingNumber = $params['trackingNumber'];
         $loadingQuotaNumber = $params['loadingQuotaNumber'];
 
-        $conn = $this->repo->getMysqliConnection();
-        $conn->autocommit(FALSE);
-        $conn->query("SET SESSION sql_mode = 'STRICT_TRANS_TABLES'");
-        $conn->query("SET SESSION innodb_lock_wait_timeout = 5");
+        $conn = $this->repo->getPdoConnection();
+        $conn->exec("SET SESSION sql_mode = 'STRICT_TRANS_TABLES'");
+        $conn->exec("SET SESSION innodb_lock_wait_timeout = 5");
+        $conn->beginTransaction();
 
         try {
             $yesterdayStart = date('Y-m-d 00:00:00', strtotime('-1 day'));
@@ -93,7 +93,7 @@ class CargoService {
                     }
                     $warningParts[] = "وضعیت فعلی حواله: {$existing24hCargo['status']}";
 
-                    $conn->rollback();
+                    $conn->rollBack();
                     return [
                         "code" => 409,
                         "data" => [
@@ -132,7 +132,7 @@ class CargoService {
                         
                         $warningMessage = "شماره حواله \"{$trackingNumber}\" برای شماره کوتاژ \"{$loadingQuotaNumber}\" برای کشتی [ {$shipName} ] قبلاً در تاریخ {$cargoDate} و ساعت {$cargoTime} در وضعیت [ {$cargoStatus} ] ثبت شده است.\n\nآیا اطمینان دارید که می‌خواهید حواله جدید با همین مشخصات ثبت کنید؟";
                         
-                        $conn->rollback();
+                        $conn->rollBack();
                         return [
                             "code" => 409,
                             "data" => [
@@ -237,7 +237,7 @@ class CargoService {
                             $params['userType']
                         );
                         if (!$exitApplied) {
-                            $conn->rollback();
+                            $conn->rollBack();
                             throw new ConflictException("این حواله هم‌زمان توسط درخواست دیگری به‌روزرسانی شد. لطفاً فهرست را بروزرسانی کنید.");
                         }
                     } elseif (!empty($params['shortageWeight']) || !empty($params['excessWeight'])) {
@@ -250,7 +250,7 @@ class CargoService {
                             $params['userType']
                         );
                         if (!$shortageApplied) {
-                            $conn->rollback();
+                            $conn->rollBack();
                             throw new ConflictException("این حواله هم‌زمان توسط درخواست دیگری به‌روزرسانی شد. لطفاً فهرست را بروزرسانی کنید.");
                         }
                     } else {
@@ -277,7 +277,7 @@ class CargoService {
                 ];
             }
         } catch (Exception $e) {
-            $conn->rollback();
+            $conn->rollBack();
             $this->logger->error("Error in CargoService saveOrUpdate: " . $e->getMessage());
             throw $e;
         }

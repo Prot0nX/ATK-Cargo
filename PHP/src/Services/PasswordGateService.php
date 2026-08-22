@@ -6,7 +6,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Core\Database;
-use mysqli;
+use PDO;
 
 // دروازه‌ی مشترک بررسی رمزهای عملیاتی؛ شمارنده‌ی تلاش‌ها روی APCu با کلید هویت نشست نگه‌داری می‌شود، نه $_SESSION
 final class PasswordGateService {
@@ -14,10 +14,10 @@ final class PasswordGateService {
     private const LOCKOUT_WINDOW_SECONDS = 900; // 15 دقیقه
     private const CACHE_PREFIX = 'pwd_gate_attempts_';
 
-    private mysqli $conn;
+    private PDO $conn;
 
     public function __construct() {
-        $this->conn = Database::getInstance()->getMysqliConnection();
+        $this->conn = Database::getInstance()->getPdoConnection();
     }
 
     /** @return array{success: bool, locked: bool, message: string} */
@@ -31,12 +31,10 @@ final class PasswordGateService {
         }
 
         $stmt = $this->conn->prepare("SELECT password FROM Passwords WHERE passwordType = ? LIMIT 1");
-        $stmt->bind_param("s", $passwordType);
-        $stmt->execute();
-        $row = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
+        $stmt->execute([$passwordType]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $isValid = $row !== null && password_verify($password, (string)$row['password']);
+        $isValid = $row !== false && password_verify($password, (string)$row['password']);
 
         if ($isValid) {
             $this->resetAttempts($identityKey, $passwordType);

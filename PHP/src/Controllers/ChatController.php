@@ -6,8 +6,8 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use Exception;
-use mysqli;
-use mysqli_stmt;
+use PDO;
+use PDOStatement;
 use App\Core\Database;
 use App\Core\Logger;
 use App\Core\Request;
@@ -16,14 +16,14 @@ use App\Exceptions\ApiException;
 use App\Validators\InputValidator;
 
 class ChatController {
-    private mysqli $conn;
+    private PDO $conn;
     private Logger $logger;
     private Request $request;
     private const MAX_MESSAGE_LENGTH = 1000;
     private const MESSAGE_FETCH_LIMIT = 100;
 
     public function __construct() {
-        $this->conn = Database::getInstance()->getMysqliConnection();
+        $this->conn = Database::getInstance()->getPdoConnection();
         $this->logger = Logger::getInstance();
         $this->request = new Request();
     }
@@ -112,23 +112,18 @@ class ChatController {
         $whereAdmin = "u.userType = 'admin'";
 
         if ($olderThanId > 0) {
-            $query = "SELECT $baseFields $join WHERE c.id < ? AND $whereAdmin ORDER BY c.id DESC LIMIT ?";
-            $stmt = $this->prepareAndExecute($query, 'sii', $username, $olderThanId, $limit);
-            $results = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-            $stmt->close();
-            return array_reverse($results);
+            // LIMIT به‌صورت مستقیم درج می‌شود چون $limit از نوع int PHP است (نه رشته‌ی کاربر) و PDO با real prepared statements پارامتر رشته‌ای در LIMIT را نمی‌پذیرد
+            $query = "SELECT $baseFields $join WHERE c.id < ? AND $whereAdmin ORDER BY c.id DESC LIMIT $limit";
+            $stmt = $this->prepareAndExecute($query, $username, $olderThanId);
+            return array_reverse($stmt->fetchAll(PDO::FETCH_ASSOC));
         } elseif ($lastMessageId > 0) {
             $query = "SELECT $baseFields $join WHERE c.id > ? AND $whereAdmin ORDER BY c.id ASC";
-            $stmt = $this->prepareAndExecute($query, 'si', $username, $lastMessageId);
-            $results = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-            $stmt->close();
-            return $results;
+            $stmt = $this->prepareAndExecute($query, $username, $lastMessageId);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } else {
-            $query = "SELECT $baseFields $join WHERE $whereAdmin ORDER BY c.id DESC LIMIT ?";
-            $stmt = $this->prepareAndExecute($query, 'si', $username, $limit);
-            $results = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-            $stmt->close();
-            return array_reverse($results);
+            $query = "SELECT $baseFields $join WHERE $whereAdmin ORDER BY c.id DESC LIMIT $limit";
+            $stmt = $this->prepareAndExecute($query, $username);
+            return array_reverse($stmt->fetchAll(PDO::FETCH_ASSOC));
         }
     }
 
@@ -150,12 +145,10 @@ class ChatController {
         $query = "INSERT INTO admin_chat_messages (username, message) VALUES (?, ?)";
         
         try {
-            $stmt = $this->prepareAndExecute($query, 'ss', $username, $message);
-            $messageId = $stmt->insert_id;
-            $stmt->close();
+            $this->prepareAndExecute($query, $username, $message);
+            $messageId = (int)$this->conn->lastInsertId();
 
-            $stmt2 = $this->prepareAndExecute("INSERT INTO admin_chat_reads (message_id, username) VALUES (?, ?)", 'is', $messageId, $username);
-            $stmt2->close();
+            $this->prepareAndExecute("INSERT INTO admin_chat_reads (message_id, username) VALUES (?, ?)", $messageId, $username);
 
             $fullName = $this->getUserFullName($username);
             
@@ -197,8 +190,7 @@ class ChatController {
         $query = "UPDATE admin_chat_messages SET message = ?, updated_at = NOW() WHERE id = ?";
         
         try {
-            $stmt = $this->prepareAndExecute($query, 'si', $newMessage, $messageId);
-            $stmt->close();
+            $this->prepareAndExecute($query, $newMessage, $messageId);
             return [
                 'success' => true,
                 'message' => 'پیام ویرایش شد',
@@ -221,8 +213,7 @@ class ChatController {
         $query = "UPDATE admin_chat_messages SET is_deleted = 1 WHERE id = ?";
         
         try {
-            $stmt = $this->prepareAndExecute($query, 'i', $messageId);
-            $stmt->close();
+            $this->prepareAndExecute($query, $messageId);
             return ['success' => true, 'message' => 'پیام حذف شد'];
         } catch (Exception $e) {
             return ['success' => false, 'message' => 'خطا در حذف پیام'];
@@ -231,32 +222,31 @@ class ChatController {
 
     private function isMessageOwner(int $messageId, string $username): bool {
         $query = "SELECT username FROM admin_chat_messages WHERE id = ? LIMIT 1";
-        $stmt = $this->prepareAndExecute($query, 'i', $messageId);
-        $result = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
+        $stmt = $this->prepareAndExecute($query, $messageId);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result && $result['username'] === $username;
     }
 
     private function getUserFullName(string $username): string {
-        $stmt = $this->prepareAndExecute("SELECT fullName FROM Users WHERE username = ? LIMIT 1", 's', $username);
-        $result = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
+        $stmt = $this->prepareAndExecute("SELECT fullName FROM Users WHERE username = ? LIMIT 1", $username);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result['fullName'] ?? $username;
     }
 
     private function isAdmin(string $username): bool {
-        $stmt = $this->prepareAndExecute("SELECT userType FROM Users WHERE username = ? LIMIT 1", 's', $username);
-        $result = $stmt->get_result()->fetch_assoc();
-        $stmt->close();
+        $stmt = $this->prepareAndExecute("SELECT userType FROM Users WHERE username = ? LIMIT 1", $username);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result && $result['userType'] === 'admin';
     }
 
-    private function prepareAndExecute(string $query, string $types, ...$params): mysqli_stmt {
-        $stmt = $this->conn->prepare($query);
-        if (!$stmt) throw new Exception('SQL Error: ' . $this->conn->error);
-        if (!empty($types)) $stmt->bind_param($types, ...$params);
-        if (!$stmt->execute()) throw new Exception('SQL Exec Error: ' . $stmt->error);
-        return $stmt;
+    private function prepareAndExecute(string $query, ...$params): PDOStatement {
+        try {
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute($params);
+            return $stmt;
+        } catch (\PDOException $e) {
+            throw new Exception('SQL Error: ' . $e->getMessage());
+        }
     }
 
 }

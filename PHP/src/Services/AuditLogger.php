@@ -22,8 +22,7 @@ final class AuditLogger {
 
             $query = "INSERT INTO audit_log (username, action, entity_type, entity_id, details) VALUES (?, ?, ?, ?, ?)";
             $stmt = $db->prepare($query);
-            $stmt->bind_param("sssss", $actorUsername, $action, $entityType, $entityId, $detailsJson);
-            $stmt->execute();
+            $stmt->execute([$actorUsername, $action, $entityType, $entityId, $detailsJson]);
         } catch (\Throwable $e) {
             error_log('AuditLogger: failed to write audit log entry - ' . $e->getMessage());
         }

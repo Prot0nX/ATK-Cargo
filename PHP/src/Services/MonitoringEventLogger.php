@@ -22,8 +22,7 @@ final class MonitoringEventLogger {
             $db = new DatabaseManager();
             $query = "INSERT INTO monitoring_events (event_type, severity, message, source, dedupe_key) VALUES (?, ?, ?, ?, ?)";
             $stmt = $db->prepare($query);
-            $stmt->bind_param("sssss", $eventType, $severity, $message, $source, $dedupeKey);
-            $stmt->execute();
+            $stmt->execute([$eventType, $severity, $message, $source, $dedupeKey]);
         } catch (\Throwable $e) {
             error_log('MonitoringEventLogger: failed to write monitoring event - ' . $e->getMessage());
         }

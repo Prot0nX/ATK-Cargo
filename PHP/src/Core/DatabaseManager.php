@@ -6,28 +6,29 @@ declare(strict_types=1);
 namespace App\Core;
 
 use Exception;
-use mysqli;
-use mysqli_stmt;
+use PDO;
+use PDOException;
+use PDOStatement;
 
 class DatabaseManager {
-    private mysqli $conn;
+    private PDO $conn;
     private array $preparedStatements = [];
 
     public function __construct() {
-        $this->conn = Database::getInstance()->getMysqliConnection();
+        $this->conn = Database::getInstance()->getPdoConnection();
     }
 
-    public function prepare(string $query): mysqli_stmt {
-        $stmt = $this->conn->prepare($query);
-        if (!$stmt) {
-            // جزئیات خطای mysqli فقط در لاگ سرور ثبت می‌شود، پاسخ کلاینت عمومی است
-            error_log('DatabaseManager::prepare failed: ' . $this->conn->error);
+    public function prepare(string $query): PDOStatement {
+        try {
+            return $this->conn->prepare($query);
+        } catch (PDOException $e) {
+            // جزئیات خطای PDO فقط در لاگ سرور ثبت می‌شود، پاسخ کلاینت عمومی است
+            error_log('DatabaseManager::prepare failed: ' . $e->getMessage());
             throw new Exception('خطا در پردازش درخواست. لطفاً بعداً تلاش کنید.');
         }
-        return $stmt;
     }
 
-    public function getPreparedStatement(string $key, string $query): mysqli_stmt {
+    public function getPreparedStatement(string $key, string $query): PDOStatement {
         if (!isset($this->preparedStatements[$key])) {
             $this->preparedStatements[$key] = $this->prepare($query);
         }
@@ -39,7 +40,7 @@ class DatabaseManager {
     }
 
     public function beginTransaction(): void {
-        $this->conn->begin_transaction();
+        $this->conn->beginTransaction();
     }
 
     public function commit(): void {
@@ -47,6 +48,6 @@ class DatabaseManager {
     }
 
     public function rollback(): void {
-        $this->conn->rollback();
+        $this->conn->rollBack();
     }
 }

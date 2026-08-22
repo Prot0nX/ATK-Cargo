@@ -161,10 +161,10 @@ if ($is_authenticated && isset($_POST['save_permissions'])) {
 $users_list = [];
 if ($is_authenticated) {
     try {
-        // قبلاً از یک اتصال mysqli مستقل استفاده می‌شد که تنظیمات SET SESSION را نداشت و باعث دو سوکت جدا به دیتابیس می‌شد (C-03)
-        $conn = \App\Core\Database::getInstance()->getMysqliConnection();
-        $res = $conn->query("SELECT username, fullName, userType FROM Users ORDER BY username ASC");
-        while ($row = $res->fetch_assoc()) {
+        // قبلاً از یک اتصال مستقل استفاده می‌شد که تنظیمات SET SESSION را نداشت و باعث دو سوکت جدا به دیتابیس می‌شد (C-03)
+        $conn = \App\Core\Database::getInstance()->getPdoConnection();
+        $stmt = $conn->query("SELECT username, fullName, userType FROM Users ORDER BY username ASC");
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
             $users_list[] = $row;
         }
     } catch (Exception $e) {

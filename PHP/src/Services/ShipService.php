@@ -10,6 +10,7 @@ use App\Core\MicroCache;
 use App\Exceptions\ApiException;
 use App\Validators\InputValidator;
 use App\Enums\CargoStatus;
+use PDO;
 
 // منطق تجاری «کشتی/انبار» که از AppApiController استخراج شده تا آن کنترلر فقط dispatch/پارس درخواست باشد
 final class ShipService {
@@ -46,12 +47,11 @@ final class ShipService {
 
             $stmt = $this->db->prepare($query);
             $stmt->execute();
-            $result = $stmt->get_result();
 
             $activeShips = [];
             $inactiveShips = [];
 
-            while ($row = $result->fetch_assoc()) {
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $ship = [
                     'name' => $row['shipName'],
                     'cargoType' => $row['cargoType'],
@@ -110,17 +110,14 @@ final class ShipService {
         GROUP BY i.shipName, i.loadingWarehouse";
 
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("ss", $shipName, $shipName);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $stmt->execute([$shipName, $shipName]);
 
         // totalVoucherCount فقط به shipName وابسته است؛ به‌جای زیرکوئری تکراری برای هر انبار، یک بار جدا محاسبه می‌شود
         $voucherStmt = $this->db->prepare(
             "SELECT COUNT(DISTINCT trackingNumber) as totalVoucherCount FROM CargoInfo WHERE shipName = ? AND status = '" . self::EXITED->value . "'"
         );
-        $voucherStmt->bind_param("s", $shipName);
-        $voucherStmt->execute();
-        $totalVoucherCount = (int)($voucherStmt->get_result()->fetch_assoc()['totalVoucherCount'] ?? 0);
+        $voucherStmt->execute([$shipName]);
+        $totalVoucherCount = (int)($voucherStmt->fetch(PDO::FETCH_ASSOC)['totalVoucherCount'] ?? 0);
 
         $warehouses = [];
         $totalQuotaCount = 0;
@@ -128,7 +125,7 @@ final class ShipService {
         $totalRemainingTonnage = 0;
         $isActive = false;
 
-        while ($row = $result->fetch_assoc()) {
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $warehouseTotalTonnage = floatval($row['totalTonnage']);
             $warehouseLoadedTonnage = floatval($row['loadedTonnage']);
             $warehouseRemainingTonnage = $warehouseTotalTonnage - $warehouseLoadedTonnage;
@@ -195,18 +192,14 @@ final class ShipService {
         WHERE i.shipName = ? AND i.loadingWarehouse = ?";
 
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("ssssss", $shipName, $warehouseName, $shipName, $warehouseName, $shipName, $warehouseName);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $stmt->execute([$shipName, $warehouseName, $shipName, $warehouseName, $shipName, $warehouseName]);
 
         $exitDatesByQuota = [];
         $exitQuery = "SELECT DISTINCT loadingQuotaNumber, exitDate, exitTime FROM CargoInfo c WHERE c.shipName = ?
             AND c.loadingWarehouse = ? AND c.status = '" . self::EXITED->value . "' ORDER BY loadingQuotaNumber, exitDate, exitTime";
         $exitStmt = $this->db->prepare($exitQuery);
-        $exitStmt->bind_param("ss", $shipName, $warehouseName);
-        $exitStmt->execute();
-        $exitResultAll = $exitStmt->get_result();
-        while ($exitRow = $exitResultAll->fetch_assoc()) {
+        $exitStmt->execute([$shipName, $warehouseName]);
+        while ($exitRow = $exitStmt->fetch(PDO::FETCH_ASSOC)) {
             $exitDatesByQuota[$exitRow['loadingQuotaNumber']][] = [
                 'date' => $exitRow['exitDate'],
                 'time' => $exitRow['exitTime']
@@ -227,7 +220,7 @@ final class ShipService {
         $seenCargoOwners = [];
         $activeQuotasCount = 0;
 
-        while ($row = $result->fetch_assoc()) {
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $quotaNumber = $row['loadingQuotaNumber'];
             $cargoType = $row['cargoType'];
             $shippingCompany = $row['shippingCompany'];
@@ -339,11 +332,10 @@ final class ShipService {
         WHERE c.loadingQuotaNumber = ? AND c.shipName = ? AND c.loadingWarehouse = ? AND c.status = '" . self::EXITED->value . "'
             AND $dateRangeCondition";
 
+        $summaryParams = [$selectedQuota, $shipName, $warehouseName, $startDate, $startDate, $startTime, $endDate, $endDate, $endTime];
         $stmt = $this->db->prepare($summaryQuery);
-        $stmt->bind_param("sssssssss", $selectedQuota, $shipName, $warehouseName, $startDate, $startDate, $startTime, $endDate, $endDate, $endTime);
-        $stmt->execute();
-        $summaryResult = $stmt->get_result();
-        $summary = $summaryResult->fetch_assoc();
+        $stmt->execute($summaryParams);
+        $summary = $stmt->fetch(PDO::FETCH_ASSOC);
 
         // JOIN روی کلید کامل پنج‌ستونی؛ کمتر از آن می‌توانست i.cargoOwner اشتباه یا ردیف تکراری بدهد (DEEP_CODE_AUDIT.md #۷)
         $detailsQuery = "SELECT c.trackingNumber, c.entryTime, c.netWeight, c.exitTime, c.exitDate, c.scaleReceiptNumber,
@@ -359,15 +351,13 @@ final class ShipService {
         ORDER BY c.exitDate, c.exitTime";
 
         $stmtDetails = $this->db->prepare($detailsQuery);
-        $stmtDetails->bind_param("sssssssss", $selectedQuota, $shipName, $warehouseName, $startDate, $startDate, $startTime, $endDate, $endDate, $endTime);
-        $stmtDetails->execute();
-        $detailsResult = $stmtDetails->get_result();
+        $stmtDetails->execute($summaryParams);
 
         $voucherDetails = [];
         $totalWeights = [];
         $uniqueUsers = [];
 
-        while ($row = $detailsResult->fetch_assoc()) {
+        while ($row = $stmtDetails->fetch(PDO::FETCH_ASSOC)) {
             if (!isset($totalWeights[$row['cargoType']])) {
                 $totalWeights[$row['cargoType']] = 0;
             }

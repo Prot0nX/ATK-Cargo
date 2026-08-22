@@ -7,7 +7,7 @@ namespace App\Controllers;
 
 use Exception;
 use InvalidArgumentException;
-use mysqli;
+use PDO;
 use App\Core\Database;
 use App\Core\MicroCache;
 use App\Core\Request;
@@ -24,14 +24,14 @@ class CargoController {
     private const ENTERED = CargoStatus::ENTERED;
     private const EXITED = CargoStatus::EXITED;
 
-    private mysqli $conn;
+    private PDO $conn;
     private Request $request;
     private Logger $logger;
     private CargoService $cargoService;
     private CargoRepository $cargoRepo;
 
     public function __construct(?CargoService $cargoService = null, ?CargoRepository $cargoRepo = null) {
-        $this->conn = Database::getInstance()->getMysqliConnection();
+        $this->conn = Database::getInstance()->getPdoConnection();
         $this->request = new Request();
         $this->logger = Logger::getInstance();
         $this->cargoRepo = $cargoRepo ?? new CargoRepository();
@@ -245,7 +245,7 @@ class CargoController {
             }
         } catch (Exception $e) {
             $this->logger->error("Error in confirmCargo: " . $e->getMessage());
-            // پیام داخلی mysqli فقط در لاگ ثبت می‌شود تا نام جدول/ستون افشا نشود
+            // پیام داخلی PDO فقط در لاگ ثبت می‌شود تا نام جدول/ستون افشا نشود
             Response::json(["status" => "error", "message" => "خطایی در سیستم رخ داده است. لطفاً بعداً تلاش کنید."], 500);
         }
     }
@@ -441,32 +441,25 @@ class CargoController {
 
             // انتخاب فقط ستون‌های مصرفی مدل InitialInfo کلاینت؛ فیلدهای محاسباتی چند خط پایین‌تر بازنویسی می‌شوند
             $stmt = $this->conn->prepare("SELECT shipName, loadingWarehouse, cargoType, shippingCompany, cargoOwner, cargoWeight, loadingQuotaNumber, isActive, temp_tonnage_status, temp_tonnage_amount FROM InitialInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ? LIMIT 1");
-            $stmt->bind_param("ssss", $quotaNumber, $shippingCompany, $warehouse, $cargoType);
-            $stmt->execute();
-            $initialResult = $stmt->get_result();
+            $stmt->execute([$quotaNumber, $shippingCompany, $warehouse, $cargoType]);
+            $initialInfo = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($initialResult->num_rows === 0) {
-                $stmt->close();
+            if ($initialInfo === false) {
                 Response::json([
                     "status" => "error",
                     "message" => "اطلاعات وارد شده (شامل نوع کالا) مطابقت ندارد. لطفاً مقادیر را بررسی کنید."
                 ], 404);
             }
 
-            $initialInfo = $initialResult->fetch_assoc();
-            $stmt->close();
-
-            $statsStmt = $this->conn->prepare("SELECT 
+            $statsStmt = $this->conn->prepare("SELECT
                 COUNT(*) as totalVouchers,
                 COALESCE(SUM(CASE WHEN status = '" . self::EXITED->value . "' THEN netWeight ELSE 0 END), 0) as totalNetWeight,
                 COUNT(CASE WHEN status = '" . self::EXITED->value . "' THEN 1 END) as exitedVouchers,
                 COUNT(CASE WHEN status = '" . self::ENTERED->value . "' THEN 1 END) as remainingVouchers,
                 COALESCE(AVG(CASE WHEN status = '" . self::EXITED->value . "' AND netWeight > 0 THEN netWeight END), 0) as avgNetWeight
                 FROM CargoInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ?");
-            $statsStmt->bind_param("ssss", $quotaNumber, $shippingCompany, $warehouse, $cargoType);
-            $statsStmt->execute();
-            $stats = $statsStmt->get_result()->fetch_assoc();
-            $statsStmt->close();
+            $statsStmt->execute([$quotaNumber, $shippingCompany, $warehouse, $cargoType]);
+            $stats = $statsStmt->fetch(PDO::FETCH_ASSOC);
 
             $totalNetWeight = (int)$stats['totalNetWeight'];
             $totalVouchers = (int)$stats['totalVouchers'];
@@ -507,15 +500,8 @@ class CargoController {
                 COALESCE(confirm, '') AS confirm,
                 confirmation
                 FROM CargoInfo WHERE loadingQuotaNumber = ? AND shippingCompany = ? AND loadingWarehouse = ? AND cargoType = ? AND (status = '" . self::ENTERED->value . "' OR (status = '" . self::EXITED->value . "' AND exitDate >= ? AND exitDate <= ?)) ORDER BY CASE WHEN status = '" . self::ENTERED->value . "' THEN 1 ELSE 2 END, entryTime DESC LIMIT 2000");
-            $cargoStmt->bind_param("ssssss", $quotaNumber, $shippingCompany, $warehouse, $cargoType, $yesterday, $today);
-            $cargoStmt->execute();
-            $cargoResult = $cargoStmt->get_result();
-
-            $cargoInfoList = [];
-            while ($row = $cargoResult->fetch_assoc()) {
-                $cargoInfoList[] = $row;
-            }
-            $cargoStmt->close();
+            $cargoStmt->execute([$quotaNumber, $shippingCompany, $warehouse, $cargoType, $yesterday, $today]);
+            $cargoInfoList = $cargoStmt->fetchAll(PDO::FETCH_ASSOC);
 
             Response::json([
                 "status" => "success",
@@ -551,11 +537,8 @@ class CargoController {
             }
 
             $stmt = $this->conn->prepare("INSERT INTO InitialInfo (shipName, loadingWarehouse, cargoType, shippingCompany, cargoWeight, loadingQuotaNumber, remainingWeight, totalNetWeight, averageNetWeight, remainingServices, cargoOwner, isActive) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)");
-            if (!$stmt) {
-                throw new Exception("خطا در آماده‌سازی دستور SQL: " . $this->conn->error);
-            }
 
-            $stmt->bind_param("ssssdddddds", 
+            if (!$stmt->execute([
                 $data['shipName'],
                 $data['loadingWarehouse'],
                 $data['cargoType'],
@@ -567,12 +550,9 @@ class CargoController {
                 $data['averageNetWeight'],
                 $data['remainingServices'],
                 $data['cargoOwner']
-            );
-
-            if (!$stmt->execute()) {
-                throw new Exception("خطا در اجرای دستور SQL: " . $stmt->error);
+            ])) {
+                throw new Exception("خطا در اجرای دستور SQL درج InitialInfo");
             }
-            $stmt->close();
             MicroCache::forget(MicroCache::SHIPS_LIST_KEY);
 
             Response::json(["status" => "success", "message" => "اطلاعات با موفقیت ثبت شد."]);
