@@ -5,6 +5,14 @@ import android.provider.Settings
 import com.atk.atk_cargo.BuildConfig
 import com.atk.atk_cargo.core.domain.AnimationManager
 import com.atk.atk_cargo.di.appModule
+import com.atk.atk_cargo.feature.admin.di.adminModule
+import com.atk.atk_cargo.feature.auth.di.authModule
+import com.atk.atk_cargo.feature.cargo.di.cargoModule
+import com.atk.atk_cargo.feature.cargoworkflow.di.cargoWorkflowModule
+import com.atk.atk_cargo.feature.chat.di.chatModule
+import com.atk.atk_cargo.feature.home.di.homeModule
+import com.atk.atk_cargo.feature.reports.di.reportsModule
+import com.atk.atk_cargo.feature.update.di.updateModule
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -35,7 +43,20 @@ class AtkCargoApplication : Application() {
                 androidLogger()
             }
             androidContext(this@AtkCargoApplication)
-            modules(appModule)
+            // appModule فقط زیرساخت مشترک است؛ هر فیچر ماژول Koin خودش را جدا صادر می‌کند (DEEP_CODE_AUDIT.md فاز۳ #۳۳)
+            modules(
+                listOf(
+                    appModule,
+                    authModule,
+                    chatModule,
+                    reportsModule,
+                    cargoModule,
+                    cargoWorkflowModule,
+                    homeModule,
+                    adminModule,
+                    updateModule
+                )
+            )
         }
 
         // WorkManager از قبل توسط InitializationProvider مقداردهی می‌شود؛ فراخوانی دستی initialize() اینجا همیشه IllegalStateException می‌داد

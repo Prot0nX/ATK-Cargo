@@ -3,35 +3,26 @@ package com.atk.atk_cargo.di
 // ارتقای DSL ویومدل به Koin 4.x چندسکویی در org.koin.core.module.dsl (Phase4 #36).
 import com.atk.atk_cargo.api.RetrofitClient
 import com.atk.atk_cargo.api.TokenStore
-import com.atk.atk_cargo.api.UpdateManager
 import com.atk.atk_cargo.api.UserPreferencesManager
 import com.atk.atk_cargo.core.startup.StartupViewModel
 import com.atk.atk_cargo.data.db.AppDatabase
-import com.atk.atk_cargo.data.repository.ReportsRepository
-import com.atk.atk_cargo.domain.repository.QuotaRepository
 import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import com.atk.atk_cargo.domain.session.UserSettingsStore
-import com.atk.atk_cargo.feature.admin.presentation.UserManagementViewModel
-import com.atk.atk_cargo.feature.auth.data.AuthRepository
-import com.atk.atk_cargo.feature.auth.data.AuthRepositoryImpl
-import com.atk.atk_cargo.feature.auth.domain.LoginUseCase
-import com.atk.atk_cargo.feature.auth.domain.LogoutUseCase
-import com.atk.atk_cargo.feature.auth.viewmodel.AuthViewModel
-import com.atk.atk_cargo.feature.cargo_counter.presentation.CargoCounterViewModel
-import com.atk.atk_cargo.feature.cargo_entry.presentation.InitialInfoViewModel
 import com.atk.atk_cargo.feature.chat.data.ChatPreferencesStore
-import com.atk.atk_cargo.feature.chat.data.ChatRepository
-import com.atk.atk_cargo.feature.home.presentation.ProfileViewModel
 import com.atk.atk_cargo.security.CryptoManager
 import com.atk.atk_cargo.security.SecurityVerifier
-import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
-import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
+// فقط زیرساخت مشترک بین فیچرها (احراز هویت نشست، دیتابیس محلی، امنیت) اینجا می‌ماند؛ هر فیچر ماژول Koin خودش
+// را در پکیج di مربوطه صادر می‌کند (authModule، chatModule، reportsModule، ...) — DEEP_CODE_AUDIT.md فاز۳ #۳۳.
+// StartupViewModel هم چون خودش هنوز در :app زندگی می‌کند (app/.../core/startup) اینجا مانده، نه به‌خاطر
+// وابستگی‌اش به فیچرهای دیگر — Koin بدون توجه به این‌که کدام ماژول Gradle چه چیزی را register کرده، یک گراف
+// واحد می‌سازد، پس get<ChatRepository>()/get<UpdateManager>() از موجودهای authModule/chatModule/updateModule
+// در AtkCargoApplication (که همه‌ی ماژول‌ها را با هم لود می‌کند) به‌درستی resolve می‌شوند.
 val appModule = module {
     // ===== API Service =====
     // استفاده انحصاری از Router v2 به عنوان تنها API stack کلاینت (DEEP_CODE_AUDIT.md #Phase3.1/3.2).
@@ -51,31 +42,10 @@ val appModule = module {
     // اتصال UserPreferencesManager به UserSettingsStore (core:domain) جهت تفکیک وابستگی.
     single<UserSettingsStore> { get<UserPreferencesManager>() }
 
-    // ===== دیتابیس محلی و مخازن =====
+    // ===== دیتابیس محلی =====
     single { AppDatabase.getDatabase(androidContext()) }
-    single { ChatRepository(get<AppDatabase>().chatDao(), get(), get()) }
-    single { ReportsRepository(get()) } bind QuotaRepository::class
-    single<AuthRepository> {
-        AuthRepositoryImpl(
-            context = androidContext(),
-            apiServiceV2 = get(),
-            userPreferencesManager = get()
-        )
-    }
 
-    // ===== Use Cases =====
-    single { LoginUseCase(get()) }
-    single { LogoutUseCase(get(), get()) }
-
-    // ===== ViewModels =====
-    viewModel { ReportsViewModel(get(), androidApplication()) }
-    viewModel { CargoViewModel(get(), get()) }
-    viewModel { AuthViewModel(loginUseCase = get(), context = androidContext()) }
-    single { UpdateManager(androidContext()) }
+    // ===== ViewModelهایی که خودشان هنوز در :app هستند =====
     viewModel { StartupViewModel(androidApplication(), get(), get(), get(), get()) }
-    viewModel { InitialInfoViewModel(get()) }
-    viewModel { CargoCounterViewModel(get()) }
-    viewModel { ProfileViewModel(get()) }
-    viewModel { UserManagementViewModel(get()) }
 }
 

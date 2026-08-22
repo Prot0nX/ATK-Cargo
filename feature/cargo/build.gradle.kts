@@ -41,6 +41,8 @@ dependencies {
     implementation(libs.retrofit.gson)
 
     implementation(libs.kotlinx.coroutines.android)
+    // برای CargoModule.kt (فیچر خودش را در Koin ثبت می‌کند، DEEP_CODE_AUDIT.md فاز۳ #۳۳)
+    implementation(libs.koin.android)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

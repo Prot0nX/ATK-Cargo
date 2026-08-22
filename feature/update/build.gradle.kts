@@ -49,6 +49,8 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
 
     implementation(libs.kotlinx.coroutines.android)
+    // برای UpdateModule.kt (فیچر خودش را در Koin ثبت می‌کند، DEEP_CODE_AUDIT.md فاز۳ #۳۳)
+    implementation(libs.koin.android)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

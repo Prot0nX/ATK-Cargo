@@ -3241,7 +3241,7 @@ Medium
 | ۳۰ | پاک‌سازی ریپازیتوری: `graphify-out/` از گیت، `.hprof` از دیسک | Low | ✅ اعمال شد |
 | ۳۱ | گسترش PHPStan به فایل‌های ریشه + baseline + رفتن به level 7 | Low | ✅ اعمال شد |
 | ۳۲ | وصل کردن `health_monitor.php` به cron + هشدار تلگرام | Low | ⏭️ فعلاً کنار گذاشته شد — طبق کاربر، بعداً با رویکرد متفاوت اجرا می‌شود |
-| ۳۳ | ماژول Koin به‌ازای هر فیچر | Medium | ⏳ در انتظار |
+| ۳۳ | ماژول Koin به‌ازای هر فیچر | Medium | ✅ اعمال شد |
 
 **یادداشت‌های اجرای مورد ۲۹:**
 
@@ -3306,6 +3306,15 @@ Medium
   - در همین مسیر یک import اشتباه/میراثی هم برطرف شد: `com.atk.atk_cargo.api.CargoInfo` در واقع یک `typealias` محلی `:app` بود (در `DataModel.kt`) به سمت `com.atk.atk_cargo.data.model.CargoInfo` واقعی در `core:network`؛ حالا مستقیم از مسیر canonical import می‌شود.
 - پوشه‌های خالی‌شده‌ی `app/.../ui/screens`، `app/.../core/ui/components` و `app/.../ui` (که بعد از این دو انتقال هیچ فایلی نداشتند) حذف شدند.
 - تأیید شد: `./gradlew :core:designsystem:compileDebugKotlin :feature:reports:compileDebugKotlin :app:compileDebugKotlin` و کل پروژه (`compileDebugKotlin`) موفق؛ `:feature:reports:testDebugUnitTest`/`:core:designsystem:testDebugUnitTest`/`:app:testDebugUnitTest` سبز (بدون تست UI موجود برای این صفحه‌ی خاص، مطابق وضعیت شناخته‌شده‌ی پوشش تست پروژه).
+
+**یادداشت‌های اجرای مورد ۳۳:**
+
+- `appModule` (تک‌فایل ۸۰ خطی در `:app`) به هشت ماژول Koin مجزا تقسیم شد، هرکدام در پکیج `feature.<name>.di` همان فیچر: `authModule` (`AuthRepository`, `LoginUseCase`, `LogoutUseCase`, `AuthViewModel`)، `chatModule` (`ChatRepository`)، `reportsModule` (`ReportsRepository`↔`QuotaRepository`, `ReportsViewModel`)، `cargoModule` (`CargoViewModel`)، `cargoWorkflowModule` (`InitialInfoViewModel`, `CargoCounterViewModel`)، `homeModule` (`ProfileViewModel`)، `adminModule` (`UserManagementViewModel`)، `updateModule` (`UpdateManager`).
+- `appModule` فقط زیرساخت واقعاً مشترک بین فیچرها ماند: `ApiServiceV2`، `CryptoManager`/`SecurityVerifier`، `AppDatabase`، و بایندینگ‌های چهارگانه‌ی اینترفیس مرزی `UserPreferencesManager` (`TokenStore`/`UserPreferencesStore`/`ChatPreferencesStore`/`UserSettingsStore`) — این‌ها واقعاً cross-cutting هستند، نه مخصوص یک فیچر. `StartupViewModel` هم چون خودش هنوز فیزیکی در `app/.../core/startup` است (جابه‌جایی آن خارج از دامنه‌ی این مورد است) در `appModule` ماند.
+- سه ماژول (`feature:cargo`, `feature:chat`, `feature:update`) قبلاً هیچ وابستگی Koin نداشتند (چون فقط از appModule متمرکز استفاده می‌شد)؛ `libs.koin.android` به `build.gradle.kts` هرکدام اضافه شد.
+- `AtkCargoApplication.kt` حالا هشت ماژول جدید را در کنار `appModule` به `startKoin { modules(listOf(...)) }` پاس می‌دهد. Koin بدون توجه به این‌که کدام ماژول Gradle چه چیزی ثبت کرده یک گراف DI واحد می‌سازد، پس مثلاً `StartupViewModel` در `appModule` هنوز می‌تواند `get<ChatRepository>()`/`get<UpdateManager>()` را از `chatModule`/`updateModule` resolve کند — فقط لازم است هر دو در لیست `modules()` باشند (هستند).
+- **تأیید صحت گراف:** چون در این محیط دستگاه/امولاتور برای اجرای واقعی `startKoin` و گرفتن خطای احتمالی «no definition found» در دسترس نبود (و افزودن `koin-test`/`verify()` به‌عنوان یک وابستگی تست جدید خارج از دامنه‌ی این مورد بود)، تک‌تک فراخوانی‌های `get()` در هر ۸ ماژول جدید دستی ردیابی و با بایندینگ متناظرش (در همان ماژول یا `appModule`) تطبیق داده شد — همه resolve می‌شوند.
+- تأیید شد: کل پروژه (`compileDebugKotlin` و `testDebugUnitTest`) موفق.
 
 ### Phase 4 — Optimization (بلندمدت)
 
