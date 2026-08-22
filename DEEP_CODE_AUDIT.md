@@ -3232,7 +3232,7 @@ Medium
 | ۲۱ | Repository برای هر فیچر؛ حذف فراخوانی مستقیم `ApiServiceV2` از ViewModelها | High | ⏳ در انتظار |
 | ۲۲ | تجزیه‌ی `CargoViewModel` — ادغام ۱۰ StateFlow، استخراج UseCase، انتقال کش به Repository | High | ⏳ در انتظار |
 | ۲۳ | هم‌راستا کردن نام پکیج‌ها با ماژول‌ها (رفع ۷ split package) | Medium | ⏳ در انتظار |
-| ۲۴ | انتقال `ManageReportsScreen` به `:feature:reports` و `core/ui/components` به `:core:designsystem` | Medium | ⏳ در انتظار |
+| ۲۴ | انتقال `ManageReportsScreen` به `:feature:reports` و `core/ui/components` به `:core:designsystem` | Medium | ✅ اعمال شد |
 | ۲۵ | حذف `AuthenticatesRequests` و اتکا به هویت پاس‌شده از Router | Medium | ⏳ در انتظار |
 | ۲۶ | حذف متدهای pass-through `AppApiController` | Medium | ✅ اعمال شد |
 | ۲۷ | یکسان‌سازی استک HTTP روی یک `OkHttpClient` مشترک | Medium | ✅ اعمال شد |
@@ -3294,6 +3294,18 @@ Medium
   - `SecurityVerifier.kt` (ماژول `:app`) — سه فراخوانی `HttpURLConnection` خام (`authenticateSignatureWithServer`, `fetchLicenseInfo`, `fetchLicenseValidation`) به OkHttp مهاجرت کردند؛ همان `BUFFER_DURATION=8000ms` برای connect/read حفظ شد و منطق «فقط پاسخ موفق پردازش شود» عیناً با `response.isSuccessful` بازتولید شد (بدون دست‌بردن در باگ نامرتبط «۴۰۳ لایسنس به خطای شبکه ترجمه می‌شود» که در بخش دیگری از گزارش، نه این مورد، مستند است).
 - certificate pinning به Network Security Config (سطح پلتفرم) متکی است، نه به کد کلاینت خاص — طبق تحلیل خود گزارش، مهاجرت `SecurityVerifier` از `HttpURLConnection` به OkHttp تأثیری روی pinning ندارد.
 - تأیید شد: `./gradlew :core:network:compileDebugKotlin :feature:update:compileDebugKotlin :app:compileDebugKotlin` و کل پروژه (`compileDebugKotlin`) موفق؛ `:feature:update:testDebugUnitTest` (۱۸ تست `UpdateManagerTest`) سبز. تست end-to-end زنده (handshake واقعی) در این محیط ممکن نبود.
+
+**یادداشت‌های اجرای مورد ۲۴:**
+
+- شش فایل `core/ui/components/*.kt` (`ConfirmationDialog`, `DateRangePicker`, `EmptyState`, `LoadingOverlay`, `SearchBar`, `SnackbarMessage`) با `git mv` به `:core:designsystem` منتقل شدند — **بدون تغییر package** (`com.atk.atk_cargo.core.ui.components` از قبل هم آنجا وجود داشت؛ `StatisticsCard`/`ErrorState` قبلاً منتقل شده بودند)، پس هیچ import‌ای در بقیه‌ی پروژه نیاز به تغییر نداشت — این پکیج بین `:app` و `:core:designsystem` split شده بود و حالا یکپارچه است.
+- به `core/designsystem/build.gradle.kts` دو وابستگی اضافه شد: `core:network` (چون `SnackbarMessage.kt` به `MessageType` نیاز دارد) و `kotlinx-coroutines-android` (چون همان فایل از `delay` استفاده می‌کند) — قبلاً هیچ‌کدام را نداشت چون این فایل‌ها هرگز در این ماژول کامپایل نشده بودند.
+- `ManageReportsScreen.kt` (۱۰۳۴ خط) با `git mv` به `:feature:reports/.../presentation/` منتقل و package به `com.atk.atk_cargo.feature.reports.presentation` تغییر کرد. سه وابستگی به کد مخصوص `:app` که مانع انتقال بودند رفع شدند:
+  - `navController.navigateToHome()` (از `feature:home`) — چون `feature:home` از قبل به `feature:reports` وابسته است، افزودن وابستگی معکوس یک چرخه‌ی ماژول می‌ساخت. پارامتر ورودی از `navController: NavController?` به `onSessionInvalid: (() -> Unit)?` تغییر کرد (همان الگوی `onSessionInvalid` که `CargoCounterOperationScreen` در `MainScreen.kt` از قبل استفاده می‌کند)؛ فراخوان در `:app` حالا `onSessionInvalid = { navController.navigateToHome() }` پاس می‌دهد.
+  - `Intent(context, MainActivity::class.java)` (کلاس مخصوص `:app`) — با `context.packageManager.getLaunchIntentForPackage(context.packageName)` جایگزین شد که بدون وابستگی به کلاس فعالیت اصلی، همان اثر (راه‌اندازی مجدد اپ) را دارد؛ فقط وقتی `onSessionInvalid` هم `null` باشد اجرا می‌شود (fallback نهایی).
+  - `koinInject<UserPreferencesManager>()` (کلاس concrete مخصوص `:app`) — با دو تزریق جدا از اینترفیس‌های مرزی موجود جایگزین شد: `koinInject<TokenStore>()` (برای `validateServerSession`) و `koinInject<UserPreferencesStore>()` (برای `.permissions`)، هر دو از قبل در `AppModule.kt` به همان سینگلتون `UserPreferencesManager` وصل بودند — تزریق مستقیم اینترفیس به‌جای کلاس concrete، نه یک workaround.
+  - در همین مسیر یک import اشتباه/میراثی هم برطرف شد: `com.atk.atk_cargo.api.CargoInfo` در واقع یک `typealias` محلی `:app` بود (در `DataModel.kt`) به سمت `com.atk.atk_cargo.data.model.CargoInfo` واقعی در `core:network`؛ حالا مستقیم از مسیر canonical import می‌شود.
+- پوشه‌های خالی‌شده‌ی `app/.../ui/screens`، `app/.../core/ui/components` و `app/.../ui` (که بعد از این دو انتقال هیچ فایلی نداشتند) حذف شدند.
+- تأیید شد: `./gradlew :core:designsystem:compileDebugKotlin :feature:reports:compileDebugKotlin :app:compileDebugKotlin` و کل پروژه (`compileDebugKotlin`) موفق؛ `:feature:reports:testDebugUnitTest`/`:core:designsystem:testDebugUnitTest`/`:app:testDebugUnitTest` سبز (بدون تست UI موجود برای این صفحه‌ی خاص، مطابق وضعیت شناخته‌شده‌ی پوشش تست پروژه).
 
 ### Phase 4 — Optimization (بلندمدت)
 

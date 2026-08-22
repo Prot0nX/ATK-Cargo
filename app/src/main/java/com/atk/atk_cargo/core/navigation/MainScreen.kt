@@ -70,7 +70,7 @@ import com.atk.atk_cargo.feature.home.navigation.HomeRoute
 import com.atk.atk_cargo.feature.home.navigation.homeScreen
 import com.atk.atk_cargo.feature.home.navigation.navigateToHome
 import com.atk.atk_cargo.feature.reports.navigation.ManageShipsRoute
-import com.atk.atk_cargo.ui.screens.ManageReportsScreen
+import com.atk.atk_cargo.feature.reports.presentation.ManageReportsScreen
 import com.atk.atk_cargo.ui.viewmodel.CargoViewModel
 import com.atk.atk_cargo.ui.viewmodel.ReportsViewModel
 import org.koin.androidx.compose.koinViewModel
@@ -202,7 +202,7 @@ fun MainScreen() {
                                             popExitTransition = manageShipsTransitions.popExit
                                         ) {
                                             val reportsViewModel: ReportsViewModel = koinViewModel()
-                                            ManageReportsScreen(viewModel = reportsViewModel, navController = navController)
+                                            ManageReportsScreen(viewModel = reportsViewModel, onSessionInvalid = { navController.navigateToHome() })
                                         }
                                         val adminChatTransitions = standardTransitions(initialScale = 0.90f, targetScale = 1.10f)
                                         composable<AdminChatRoute>(

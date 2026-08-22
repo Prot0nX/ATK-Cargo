@@ -29,6 +29,9 @@ android {
 }
 
 dependencies {
+    // برای StatusSnackbar که MessageType را از core:network می‌خواند (فایل core/ui/components منتقل‌شده از :app، DEEP_CODE_AUDIT.md فاز۳ #۲۴)
+    implementation(project(":core:network"))
+
     implementation(platform(libs.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
@@ -37,4 +40,5 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.core.ktx.v1160)
+    implementation(libs.kotlinx.coroutines.android)
 }

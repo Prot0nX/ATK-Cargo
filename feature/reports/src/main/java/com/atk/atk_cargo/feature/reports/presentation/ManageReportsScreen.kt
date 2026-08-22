@@ -1,4 +1,4 @@
-package com.atk.atk_cargo.ui.screens
+package com.atk.atk_cargo.feature.reports.presentation
 
 
 import android.annotation.SuppressLint
@@ -70,16 +70,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.atk.atk_cargo.MainActivity
-import com.atk.atk_cargo.api.CargoInfo
-import com.atk.atk_cargo.api.UserPreferencesManager
+import com.atk.atk_cargo.api.TokenStore
 import com.atk.atk_cargo.api.validateServerSession
 import com.atk.atk_cargo.core.ui.components.PersianDatePickerDialog
-import com.atk.atk_cargo.feature.home.navigation.navigateToHome
+import com.atk.atk_cargo.data.model.CargoInfo
+import com.atk.atk_cargo.domain.session.UserPreferencesStore
 import com.atk.atk_cargo.feature.reports.presentation.components.FloatingActionButton
 import com.atk.atk_cargo.feature.reports.presentation.details.ShipDetails
 import com.atk.atk_cargo.feature.reports.presentation.dialogs.AdvancedSearchDialog
@@ -104,40 +102,43 @@ import org.koin.compose.koinInject
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
 
+// onSessionInvalid از بیرون (:app) پاس داده می‌شود تا این ماژول به feature:home وابسته نشود (که خودش به feature:reports
+// وابسته است و وابستگی معکوس ایجاد می‌کرد)؛ نبود آن یعنی این صفحه مستقل از گراف ناوبری اصلی میزبانی شده، پس با
+// راه‌اندازی مجدد اکتیویتی پیش‌فرض برنامه (بدون رفرنس مستقیم به MainActivity) بازیابی می‌شود (DEEP_CODE_AUDIT.md فاز۳ #۲۴)
 @RequiresApi(Build.VERSION_CODES.HONEYCOMB)
 @Composable
-fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavController? = null) {
+fun ManageReportsScreen(viewModel: ReportsViewModel, onSessionInvalid: (() -> Unit)? = null) {
     val context = LocalContext.current
-    val userPreferencesManager = koinInject<UserPreferencesManager>()
+    // UserPreferencesManager (پیاده‌سازی واقعی) در :app است؛ این ماژول از طریق اینترفیس‌های مرزی TokenStore/UserPreferencesStore
+    // به همان سینگلتون دسترسی دارد (الگوی از قبل موجود در AppModule.kt، DEEP_CODE_AUDIT.md فاز۳ #۲۴)
+    val tokenStore = koinInject<TokenStore>()
+    val userPreferencesStore = koinInject<UserPreferencesStore>()
+
+    fun relaunchApp() {
+        if (onSessionInvalid != null) {
+            onSessionInvalid()
+        } else {
+            context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { intent ->
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                context.startActivity(intent)
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         try {
-            val result = validateServerSession(userPreferencesManager)
+            val result = validateServerSession(tokenStore)
             result.fold(
                 onSuccess = {
                     // Session معتبر است، ادامه می‌دهد
                 },
-                onFailure = {
-                    if (navController != null) {
-                        navController.navigateToHome()
-                    } else {
-                        val intent = Intent(context, MainActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        context.startActivity(intent)
-                    }
-                }
+                onFailure = { relaunchApp() }
             )
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Log.e("ManageReportsScreen", "خطا در بررسی وضعیت ورود: ${e.message}")
-            if (navController != null) {
-                navController.navigateToHome()
-            } else {
-                val intent = Intent(context, MainActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                context.startActivity(intent)
-            }
+            relaunchApp()
         }
     }
 
@@ -163,7 +164,7 @@ fun ManageReportsScreen(viewModel: ReportsViewModel, navController: NavControlle
     val loadingError = reportsUiState.loadingError
 
     // A-1: مجوز view_reports اکنون سمت کلاینت هم چک می‌شود؛ userPermissions از همان Flow ذخیره‌شده‌ی DataStore می‌آید که PermissionPoller به‌روز می‌کند (حداکثر با تأخیر یک دور polling، ۳ دقیقه)
-    val userPermissions by userPreferencesManager.permissions.collectAsStateWithLifecycle(initialValue = emptyMap())
+    val userPermissions by userPreferencesStore.permissions.collectAsStateWithLifecycle(initialValue = emptyMap())
     val canViewReports = userPermissions["view_reports"] == true
 
     ATKCargoTheme(darkTheme = isSystemInDarkTheme()) {
