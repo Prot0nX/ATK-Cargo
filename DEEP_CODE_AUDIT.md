@@ -3408,9 +3408,17 @@ Medium
 | ۳۷ | افزودن `UNIQUE KEY` کلید طبیعی به `InitialInfo` و FK از `CargoInfo` | High | |
 | ۳۸ | یکسان‌سازی دسترسی دیتابیس روی PDO و حذف `getMysqliConnection` | High | |
 | ۳۹ | جایگزینی polling با push (SSE یا FCM واقعی) | High | |
-| ۴۰ | تجزیه‌ی فایل‌های بزرگ Compose (سقف ۳۰۰ خط) | High | |
+| ۴۰ | تجزیه‌ی فایل‌های بزرگ Compose (سقف ۳۰۰ خط) | High | ⚠️ دامنه کاهش یافت — فقط ۳ فایل بالای ۱۰۰۰ خط |
 | ۴۱ | مهاجرت شبکه از Gson به `kotlinx.serialization` | High | |
 | ۴۲ | رسیدن به پوشش تست ۴۰٪+ روی لایه‌های دامنه و داده | High | |
+
+**یادداشت‌های اجرای مورد ۴۰:**
+
+- طبق تصمیم کاربر، دامنه به ۳ فایل بالای ۱۰۰۰ خط محدود شد (از حدود ۵۵ فایل Compose بالای سقف ۳۰۰ خط در کل پروژه): `CargoEditSearchDialogsSection.kt` (۱۲۳۵ خط، `feature:reports`)، `SecurityScreen.kt` (۱۱۵۰ خط، `:app`)، `QuotaAnalysisSection.kt` (۱۰۴۱ خط، `feature:reports`).
+- هر فایل بر اساس مرزهای composable موجود (نه بازنویسی منطق) به ۷ فایل هم‌پکیج تقسیم شد؛ در مجموع ۳ فایل ۳۴۲۶ خطی به ۲۰ فایل با میانگین ~۱۵۰ خط تبدیل شدند. توابع کمکی که فقط داخل همان فایل اصلی استفاده می‌شدند `private` ماندند؛ آن‌هایی که بین چند فایل جدید مشترک بودند (مثل `InfoCard`/`DetailRowCargo` در فایل اول، `UIConfig`/`DynamicPremiumBackground` در فایل دوم، `ShareConfirmDialog`/`AnalyticsQuotaCard` در فایل سوم) به `internal` تغییر یافتند — نه `public`، چون مصرف‌کننده‌شان همیشه در همان ماژول است.
+- ایمپورت‌ها برای هر فایل جدید بر اساس نمادهای واقعاً استفاده‌شده هرس شدند (نه کپی کامل لیست اصلی)؛ تنها نکته‌ی ظریف تکراری در هر ۳ فایل: `androidx.compose.runtime.getValue`/`setValue` (برای `by remember`) در متن هیچ نمادی literal ندارند، پس هرس خودکار مبتنی بر grep این دو را نادرست حذف می‌کرد — با بازرسی دستی هر فایلی که از `by` استفاده می‌کرد شناسایی و اصلاح شد.
+- نتیجه‌ی نهایی: از ۲۰ فایل جدید، ۱۸ زیر سقف ۳۰۰ خط هستند؛ دو فایل کمی بالاتر ماندند چون تجزیه‌ی بیشترشان state محلی (`remember`) را بین چند فایل پخش می‌کرد که ریسک واقعی داشت — `SearchResultDialog.kt` (۴۱۶ خط، composable اصلی حاوی تمام state ویرایش) و `SecurityBlockScreen.kt` (۳۵۹ خط، composable اصلی صفحه‌ی مسدودسازی). این دو عمداً به‌جای شکستن بیشتر، به همین شکل نگه داشته شدند.
+- تأیید شد: `./gradlew :feature:reports:compileDebugKotlin`، `:app:compileDebugKotlin` و در پایان `compileDebugKotlin testDebugUnitTest` روی کل پروژه — همه موفق، بدون تغییر رفتار (فقط جابه‌جایی کد بین فایل‌ها، بدون تغییر منطق).
 
 ---
 
