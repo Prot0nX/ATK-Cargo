@@ -2,9 +2,9 @@ package com.atk.atk_cargo.feature.cargo_entry.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.atk.atk_cargo.api.ApiServiceV2
 import com.atk.atk_cargo.data.model.CheckExistenceRequest
 import com.atk.atk_cargo.data.model.InitialInfo
+import com.atk.atk_cargo.feature.cargo_entry.data.InitialInfoRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -21,7 +21,7 @@ sealed interface InitialInfoEvent {
 
 // این ViewModel از viewModelScope استفاده می‌کند تا فراخوانی‌های شبکه با خروج کاربر یا چرخش صفحه کنسل نشوند
 class InitialInfoViewModel(
-    private val apiServiceV2: ApiServiceV2
+    private val repository: InitialInfoRepository
 ) : ViewModel() {
 
     private val _events = Channel<InitialInfoEvent>(Channel.BUFFERED)
@@ -30,13 +30,7 @@ class InitialInfoViewModel(
     fun checkExistence(request: CheckExistenceRequest) {
         viewModelScope.launch {
             try {
-                val response = apiServiceV2.checkExistence(request)
-                val status = when (response.body()?.status) {
-                    "not_exists" -> ExistenceCheckStatus.NOT_EXISTS
-                    "exists" -> ExistenceCheckStatus.EXISTS
-                    "partial_match" -> ExistenceCheckStatus.PARTIAL_MATCH
-                    else -> null
-                }
+                val status = repository.checkExistence(request)
                 if (status != null) {
                     _events.send(InitialInfoEvent.ExistenceChecked(status))
                 } else {
@@ -53,8 +47,7 @@ class InitialInfoViewModel(
     fun submitInitialInfo(info: InitialInfo) {
         viewModelScope.launch {
             try {
-                val response = apiServiceV2.saveInitialInfo(info)
-                if (response.isSuccessful) {
+                if (repository.submitInitialInfo(info)) {
                     _events.send(InitialInfoEvent.SubmitSucceeded)
                 } else {
                     _events.send(InitialInfoEvent.OperationFailed("خطا در ثبت اطلاعات"))
