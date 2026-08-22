@@ -7,7 +7,7 @@ namespace App\Core;
 
 // کش کوتاه‌مدت سمت سرور برای endpointهای پرتکرار؛ بدون APCu مستقیم محاسبه می‌کند
 final class MicroCache {
-    // کلید کش لیست کشتی‌ها، مشترک بین AppApiController و CargoController
+    // کلید کش لیست کشتی‌ها، مشترک بین ShipService و CargoController
     public const SHIPS_LIST_KEY = 'app_api_ships_list';
 
     public static function remember(string $key, int $ttlSeconds, callable $compute) {

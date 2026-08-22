@@ -3234,7 +3234,7 @@ Medium
 | ۲۳ | هم‌راستا کردن نام پکیج‌ها با ماژول‌ها (رفع ۷ split package) | Medium | ⏳ در انتظار |
 | ۲۴ | انتقال `ManageReportsScreen` به `:feature:reports` و `core/ui/components` به `:core:designsystem` | Medium | ⏳ در انتظار |
 | ۲۵ | حذف `AuthenticatesRequests` و اتکا به هویت پاس‌شده از Router | Medium | ⏳ در انتظار |
-| ۲۶ | حذف متدهای pass-through `AppApiController` | Medium | ⏳ در انتظار |
+| ۲۶ | حذف متدهای pass-through `AppApiController` | Medium | ✅ اعمال شد |
 | ۲۷ | یکسان‌سازی استک HTTP روی یک `OkHttpClient` مشترک | Medium | ⏳ در انتظار |
 | ۲۸ | یکسان‌سازی معنای کدهای وضعیت HTTP (پشت گیت نسخه) | Medium | ⏳ در انتظار |
 | ۲۹ | حذف کل کد مرده‌ی فهرست‌شده در بخش Technical Debt | Low | ✅ اعمال شد |
@@ -3260,6 +3260,15 @@ Medium
 - سطح از ۵ به ۷ افزایش یافت و بلافاصله `--generate-baseline` اجرا شد: **۴۷۴ خطا در ۴۷ فایل** (`phpstan-baseline.neon`، شامل همان ۴۶ خطای `jdf.php` + خطاهای جدید سطح ۶/۷ در کد پروژه مثل `Lic/_guard.php`/`Lic/export.php`) baseline شدند تا هیچ‌کدام بلاک نشوند اما کد جدید از این پس زیر سطح ۷ واقعی چک شود. `phpstan.neon` با `includes: [phpstan-baseline.neon]` آن را بارگذاری می‌کند.
 - CI (`ci.yml`) به‌روزرسانی شد: نام مرحله از «PHPStan (level 5)» به «PHPStan (level 7)» تغییر کرد و کامنت بالای آن با وضعیت واقعی (baseline به‌جای ignoreErrors) هم‌راستا شد.
 - تأیید شد: `vendor/bin/phpstan analyse` با پیکربندی نهایی «No errors» می‌دهد؛ کل مجموعه‌ی PHPUnit (۹۹ تست، ۱۹۵ assertion) سبز است.
+
+**یادداشت‌های اجرای مورد ۲۶:**
+
+- `AppApiController` دو بخش کاملاً جدا داشت: یک dispatcher قدیمی مرده (`handle()`، از هیچ route صدا زده نمی‌شد — طبق کامنت خودِ فایل) و ۲۲ متد pass-through که واقعاً از `routes/api_v2.php` صدا زده می‌شدند (delegate خالص به `ShipService`/`QuotaService`). هر دو حذف شدند و **کل فایل `AppApiController.php` پاک شد** — بعد از حذف delegateها چیزی برای نگه‌داشتن کلاس باقی نمی‌ماند.
+- ۱۷ محل فراخوانی در `routes/api_v2.php` مستقیماً به `(new ShipService())->...`/`(new QuotaService())->...` تغییر کردند، هم‌راستا با الگوی «Direct passthrough» که بقیه‌ی این فایل (مثل `CargoController`) از قبل استفاده می‌کند.
+- برای ۶ اکشن نوشتنی (`editQuota`, `updateQuotaPercentage`, `toggleQuotaStatus`, `updateQuotaPercentageRestriction`, `deleteQuota`, `updateTemporaryTonnage`) که برای `AuditLogger` به نام کاربر نیاز دارند: به‌جای اینکه closureهای جدید دوباره یک بار دیگر نشست را (مثل متد حذف‌شده‌ی `AppApiController`) validate کنند، از پارامتر سوم closure که خودِ `Router::dispatch` از قبل با `ApiAuthGate::requireAuthenticated` پر کرده استفاده شد — این **حذف یک اعتبارسنجی نشست تکراری** در هر درخواست نوشتنی است، نه فقط جابه‌جایی کد؛ رفتار نهایی (کاربر تأییدشده‌ی یکسان در لاگ) دقیقاً همان است.
+- `AppApiController::sendCacheableJsonResponse` (کمکی ETag/304 برای ۳ route: `ships`, `ships/{shipName}`, `ships/{shipName}/quotas`) به `Response::cacheableJson()` منتقل شد تا در دسترس route handlerهای مستقل هم باشد.
+- کامنت‌های حالا نادرست در `QuotaService.php` («اکنون آن کنترلر فقط delegate می‌کند») و `MicroCache.php` («مشترک بین AppApiController و CargoController») به‌روزرسانی شدند.
+- تأیید شد: `php -l` روی همه‌ی فایل‌های تغییریافته بدون خطا؛ `php -r` بارگذاری کامل `routes/api_v2.php` + ساخت `Router` بدون خطای fatal (۵۷ route)؛ `vendor/bin/phpstan analyse` بعد از regenerate کردن baseline (برای حذف ۱۹ رکورد یتیم مربوط به `AppApiController.php`، از ۴۷۴ به ۴۶۱ خطا) «No errors» می‌دهد؛ کل مجموعه‌ی PHPUnit (۹۹ تست) سبز. تست end-to-end زنده روی دیتابیس واقعی در این محیط ممکن نبود (بدون MySQL محلی، مثل بقیه‌ی این ممیزی).
 
 ### Phase 4 — Optimization (بلندمدت)
 

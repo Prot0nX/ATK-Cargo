@@ -10,7 +10,7 @@ use App\Core\MicroCache;
 use App\Validators\InputValidator;
 use App\Enums\CargoStatus;
 
-// منطق تجاری «کوتاژ» که قبلاً داخل AppApiController بود؛ اکنون آن کنترلر فقط delegate می‌کند
+// منطق تجاری «کوتاژ» که قبلاً داخل AppApiController بود؛ حالا route handlerهای api_v2.php مستقیماً این سرویس را صدا می‌زنند (Phase3 #26)
 final class QuotaService {
     // بدون ->value: PHP 8.1 (تولید) اجازه‌ی property-fetch در class const را نمی‌دهد.
     private const EXITED = CargoStatus::EXITED;

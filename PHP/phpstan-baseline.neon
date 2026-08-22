@@ -936,86 +936,6 @@ parameters:
 			path: src/Controllers/AnalyticsController.php
 
 		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:checkQuotaExistenceCargo\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:checkQuotaStatus\\(\\) has parameter \\$params with no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:checkQuotaStatus\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getAllQuotasList\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getFilteredQuotas\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getGroupedQuotas\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getLoadableTonnage\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getQuotaDetails\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getQuotasList\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getShipDetails\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getShipsList\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:getWarehouseDetails\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:sendCacheableJsonResponse\\(\\) has parameter \\$data with no type specified\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:sendCacheableJsonResponse\\(\\) has parameter \\$etagSource with no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Method App\\\\Controllers\\\\AppApiController\\:\\:updateTemporaryTonnage\\(\\) return type has no value type specified in iterable type array\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
-			message: "#^Parameter \\#1 \\$string of function md5 expects string, string\\|false given\\.$#"
-			count: 1
-			path: src/Controllers/AppApiController.php
-
-		-
 			message: "#^Method App\\\\Controllers\\\\AuthController\\:\\:getUserPermissions\\(\\) return type has no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Controllers/AuthController.php
@@ -1261,6 +1181,16 @@ parameters:
 			path: src/Core/Request.php
 
 		-
+			message: "#^Method App\\\\Core\\\\Response\\:\\:cacheableJson\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Response.php
+
+		-
+			message: "#^Method App\\\\Core\\\\Response\\:\\:cacheableJson\\(\\) has parameter \\$etagSource with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Response.php
+
+		-
 			message: "#^Method App\\\\Core\\\\Response\\:\\:error\\(\\) has parameter \\$details with no value type specified in iterable type array\\.$#"
 			count: 1
 			path: src/Core/Response.php
@@ -1272,6 +1202,11 @@ parameters:
 
 		-
 			message: "#^Method App\\\\Core\\\\Response\\:\\:success\\(\\) has parameter \\$data with no value type specified in iterable type array\\.$#"
+			count: 1
+			path: src/Core/Response.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of function md5 expects string, string\\|false given\\.$#"
 			count: 1
 			path: src/Core/Response.php
 

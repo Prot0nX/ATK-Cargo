@@ -7,7 +7,6 @@
 declare(strict_types=1);
 
 use App\Controllers\AnalyticsController;
-use App\Controllers\AppApiController;
 use App\Controllers\AuthController;
 use App\Controllers\CargoController;
 use App\Controllers\ChatController;
@@ -18,15 +17,8 @@ use App\Controllers\UtilityController;
 use App\Core\Request;
 use App\Core\Response;
 use App\Exceptions\ApiException;
-
-// یک نمونه‌ی مشترک AppApiController برای تمام routeهای این فایل، به‌جای ساخت جداگانه به‌ازای هر route
-$appApi = static function (): AppApiController {
-    static $instance = null;
-    if ($instance === null) {
-        $instance = new AppApiController();
-    }
-    return $instance;
-};
+use App\Services\QuotaService;
+use App\Services\ShipService;
 
 // تبدیل استثناهای رایج کنترلرها به پاسخ JSON یکدست، مطابق catch-block v1
 $safeCall = static function (callable $fn) {
@@ -48,15 +40,15 @@ return [
         'path' => 'ships',
         'auth' => true,
         'permission' => 'view_reports',
-        'handler' => function () use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi) {
-                $controller = $appApi();
-                $ships = $controller->getShipsList();
+        'handler' => function () use ($safeCall): void {
+            $safeCall(function () {
+                $ships = (new ShipService())->getShipsList();
+                // ETag فقط از activeShips/inactiveShips محاسبه می‌شود، نه از statistics.timestamp همیشه‌متغیر
                 $etagSource = [
                     'activeShips' => $ships['data']['activeShips'] ?? [],
                     'inactiveShips' => $ships['data']['inactiveShips'] ?? [],
                 ];
-                $controller->sendCacheableJsonResponse($ships, $etagSource, 8);
+                Response::cacheableJson($ships, $etagSource, 8);
             });
         },
     ],
@@ -65,11 +57,10 @@ return [
         'path' => 'ships/{shipName}',
         'auth' => true,
         'permission' => 'view_reports',
-        'handler' => function (array $params) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $params) {
-                $controller = $appApi();
-                $details = $controller->getShipDetails($params['shipName']);
-                $controller->sendCacheableJsonResponse($details, $details, 6);
+        'handler' => function (array $params) use ($safeCall): void {
+            $safeCall(function () use ($params) {
+                $details = (new ShipService())->getShipDetails($params['shipName']);
+                Response::cacheableJson($details, $details, 6);
             });
         },
     ],
@@ -78,9 +69,9 @@ return [
         'path' => 'ships/{shipName}/warehouses/{warehouseName}',
         'auth' => true,
         'permission' => 'view_reports',
-        'handler' => function (array $params) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $params) {
-                $details = $appApi()->getWarehouseDetails($params['shipName'], $params['warehouseName']);
+        'handler' => function (array $params) use ($safeCall): void {
+            $safeCall(function () use ($params) {
+                $details = (new ShipService())->getWarehouseDetails($params['shipName'], $params['warehouseName']);
                 Response::json($details);
             });
         },
@@ -91,11 +82,10 @@ return [
         'path' => 'ships/{shipName}/quotas',
         'auth' => true,
         'permission' => null,
-        'handler' => function (array $params) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $params) {
-                $controller = $appApi();
-                $quotas = $controller->getQuotasList($params['shipName']);
-                $controller->sendCacheableJsonResponse($quotas, $quotas, 6);
+        'handler' => function (array $params) use ($safeCall): void {
+            $safeCall(function () use ($params) {
+                $quotas = (new QuotaService())->getQuotasList($params['shipName']);
+                Response::cacheableJson($quotas, $quotas, 6);
             });
         },
     ],
@@ -106,15 +96,15 @@ return [
         'path' => 'quotas/filtered',
         'auth' => true,
         'permission' => 'view_reports',
-        'handler' => function (array $params, Request $request) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $request) {
+        'handler' => function (array $params, Request $request) use ($safeCall): void {
+            $safeCall(function () use ($request) {
                 $shipName = (string)$request->get('shipName', '');
                 $startDateTime = (string)$request->get('startDateTime', '');
                 $endDateTime = (string)$request->get('endDateTime', '');
                 if ($shipName === '' || $startDateTime === '' || $endDateTime === '') {
                     throw new \Exception('پارامترهای ورودی ناقص هستند - نام کشتی، تاریخ شروع و پایان الزامی است');
                 }
-                Response::json($appApi()->getFilteredQuotas($shipName, $startDateTime, $endDateTime));
+                Response::json((new QuotaService())->getFilteredQuotas($shipName, $startDateTime, $endDateTime));
             });
         },
     ],
@@ -123,8 +113,8 @@ return [
         'path' => 'quotas/filtered-summary',
         'auth' => true,
         'permission' => 'view_reports',
-        'handler' => function (array $params, Request $request) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $request) {
+        'handler' => function (array $params, Request $request) use ($safeCall): void {
+            $safeCall(function () use ($request) {
                 $shipName = (string)$request->get('shipName', '');
                 $warehouseName = (string)$request->get('warehouseName', '');
                 $selectedQuota = (string)$request->get('selectedQuota', '');
@@ -134,7 +124,7 @@ return [
                     throw new \Exception('پارامترهای ورودی ناقص هستند');
                 }
                 // getFilteredSummary یک رشته‌ی JSON آماده برمی‌گرداند، پس مستقیم echo می‌شود
-                $summary = $appApi()->getFilteredSummary($shipName, $warehouseName, $selectedQuota, $startDateTime, $endDateTime);
+                $summary = (new ShipService())->getFilteredSummary($shipName, $warehouseName, $selectedQuota, $startDateTime, $endDateTime);
                 header('Content-Type: application/json; charset=UTF-8');
                 echo $summary;
                 exit;
@@ -146,13 +136,13 @@ return [
         'path' => 'quotas/grouped',
         'auth' => true,
         'permission' => 'view_reports',
-        'handler' => function (array $params, Request $request) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $request) {
+        'handler' => function (array $params, Request $request) use ($safeCall): void {
+            $safeCall(function () use ($request) {
                 $shipNameFilter = $request->get('shipName');
                 $shipNameFilter = ($shipNameFilter !== null && trim((string)$shipNameFilter) !== '')
                     ? \App\Validators\InputValidator::sanitize((string)$shipNameFilter)
                     : null;
-                Response::json($appApi()->getGroupedQuotas($shipNameFilter));
+                Response::json((new QuotaService())->getGroupedQuotas($shipNameFilter));
             });
         },
     ],
@@ -161,14 +151,14 @@ return [
         'path' => 'quotas/existence',
         'auth' => true,
         'permission' => null,
-        'handler' => function (array $params, Request $request) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $request) {
+        'handler' => function (array $params, Request $request) use ($safeCall): void {
+            $safeCall(function () use ($request) {
                 $quotaNumber = (string)$request->get('quotaNumber', '');
                 $shipName = (string)$request->get('shipName', '');
                 if ($quotaNumber === '' || $shipName === '') {
                     throw new \Exception('شماره کوتاژ یا نام کشتی مشخص نشده است');
                 }
-                Response::json($appApi()->checkQuotaExistenceCargo($quotaNumber, $shipName));
+                Response::json((new QuotaService())->checkQuotaExistenceCargo($quotaNumber, $shipName));
             });
         },
     ],
@@ -177,9 +167,9 @@ return [
         'path' => 'quotas/{quotaNumber}',
         'auth' => true,
         'permission' => 'view_reports',
-        'handler' => function (array $params) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $params) {
-                $details = $appApi()->getQuotaDetails($params['quotaNumber']);
+        'handler' => function (array $params) use ($safeCall): void {
+            $safeCall(function () use ($params) {
+                $details = (new QuotaService())->getQuotaDetails($params['quotaNumber']);
                 if ($details === null) {
                     Response::json(['error' => 'کوتاژ مورد نظر یافت نشد'], 404);
                 }
@@ -192,9 +182,9 @@ return [
         'path' => 'quotas/{quotaNumber}/status',
         'auth' => true,
         'permission' => null,
-        'handler' => function (array $params, Request $request) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $params, $request) {
-                $status = $appApi()->checkQuotaStatus([
+        'handler' => function (array $params, Request $request) use ($safeCall): void {
+            $safeCall(function () use ($params, $request) {
+                $status = (new QuotaService())->checkQuotaStatus([
                     'quotaNumber' => $params['quotaNumber'],
                     'shipName' => (string)$request->get('shipName', ''),
                     'cargoType' => (string)$request->get('cargoType', ''),
@@ -210,9 +200,9 @@ return [
         'path' => 'quotas/{quotaNumber}/loadable-tonnage',
         'auth' => true,
         'permission' => null,
-        'handler' => function (array $params, Request $request) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $params, $request) {
-                Response::json($appApi()->getLoadableTonnage(
+        'handler' => function (array $params, Request $request) use ($safeCall): void {
+            $safeCall(function () use ($params, $request) {
+                Response::json((new QuotaService())->getLoadableTonnage(
                     $params['quotaNumber'],
                     (string)$request->get('shippingCompany', ''),
                     (string)$request->get('warehouse', ''),
@@ -228,8 +218,9 @@ return [
         'path' => 'quotas/edit',
         'auth' => true,
         'permission' => 'manage_quotas',
-        'handler' => function (array $params, Request $request) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $request) {
+        // امضای closure پنج‌پارامتری است چون Router هم request/params و هم username احرازشده را پاس می‌دهد (Phase3 #26)
+        'handler' => function (array $params, Request $request, ?string $username) use ($safeCall): void {
+            $safeCall(function () use ($request, $username) {
                 $body = $request->all();
                 $required = ['id', 'oldQuotaNumber', 'newQuotaNumber', 'shipName', 'shippingCompany', 'warehouse', 'cargoType', 'totalTonnage'];
                 foreach ($required as $field) {
@@ -237,7 +228,7 @@ return [
                         throw new \Exception('پارامترهای ورودی ناقص هستند');
                     }
                 }
-                $result = $appApi()->editQuota(
+                $result = (new QuotaService())->editQuota(
                     (int)$body['id'],
                     (string)$body['oldQuotaNumber'],
                     (string)$body['newQuotaNumber'],
@@ -245,7 +236,8 @@ return [
                     (string)$body['shippingCompany'],
                     (string)$body['warehouse'],
                     (string)$body['cargoType'],
-                    (float)$body['totalTonnage']
+                    (float)$body['totalTonnage'],
+                    $username
                 );
                 Response::json(['success' => $result]);
             });
@@ -256,13 +248,13 @@ return [
         'path' => 'quotas/{id}/percentage',
         'auth' => true,
         'permission' => 'manage_quotas',
-        'handler' => function (array $params, Request $request) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $params, $request) {
+        'handler' => function (array $params, Request $request, ?string $username) use ($safeCall): void {
+            $safeCall(function () use ($params, $request, $username) {
                 $percentage = $request->get('percentage');
                 if ($percentage === null) {
                     throw new \Exception('درصد مشخص نشده است');
                 }
-                $result = $appApi()->updateQuotaPercentage((int)$params['id'], (float)$percentage);
+                $result = (new QuotaService())->updateQuotaPercentage((int)$params['id'], (float)$percentage, $username);
                 Response::json(['success' => $result]);
             });
         },
@@ -272,9 +264,9 @@ return [
         'path' => 'quotas/{id}/toggle-status',
         'auth' => true,
         'permission' => 'manage_quotas',
-        'handler' => function (array $params) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $params) {
-                $result = $appApi()->toggleQuotaStatus((int)$params['id']);
+        'handler' => function (array $params, Request $request, ?string $username) use ($safeCall): void {
+            $safeCall(function () use ($params, $username) {
+                $result = (new QuotaService())->toggleQuotaStatus((int)$params['id'], $username);
                 Response::json(['success' => $result]);
             });
         },
@@ -284,13 +276,13 @@ return [
         'path' => 'quotas/{id}/percentage-restriction',
         'auth' => true,
         'permission' => 'manage_quotas',
-        'handler' => function (array $params, Request $request) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $params, $request) {
+        'handler' => function (array $params, Request $request, ?string $username) use ($safeCall): void {
+            $safeCall(function () use ($params, $request, $username) {
                 $isEnabled = $request->get('isEnabled');
                 if ($isEnabled === null) {
                     throw new \Exception('مقدار محدودیت مشخص نشده است');
                 }
-                $result = $appApi()->updateQuotaPercentageRestriction((int)$params['id'], (int)$isEnabled);
+                $result = (new QuotaService())->updateQuotaPercentageRestriction((int)$params['id'], (int)$isEnabled, $username);
                 Response::json(['success' => $result]);
             });
         },
@@ -300,8 +292,8 @@ return [
         'path' => 'quotas/delete',
         'auth' => true,
         'permission' => 'manage_quotas',
-        'handler' => function (array $params, Request $request) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $request) {
+        'handler' => function (array $params, Request $request, ?string $username) use ($safeCall): void {
+            $safeCall(function () use ($request, $username) {
                 $body = $request->all();
                 $required = ['quotaNumber', 'shipName', 'warehouse', 'shippingCompany', 'cargoType'];
                 foreach ($required as $field) {
@@ -309,12 +301,13 @@ return [
                         throw new \Exception('پارامترهای ورودی ناقص هستند');
                     }
                 }
-                $result = $appApi()->deleteQuota(
+                $result = (new QuotaService())->deleteQuota(
                     (string)$body['quotaNumber'],
                     (string)$body['shipName'],
                     (string)$body['warehouse'],
                     (string)$body['shippingCompany'],
-                    (string)$body['cargoType']
+                    (string)$body['cargoType'],
+                    $username
                 );
                 Response::json(['success' => $result]);
             });
@@ -325,8 +318,8 @@ return [
         'path' => 'quotas/{quotaNumber}/temporary-tonnage',
         'auth' => true,
         'permission' => 'manage_quotas',
-        'handler' => function (array $params, Request $request) use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi, $params, $request) {
+        'handler' => function (array $params, Request $request, ?string $username) use ($safeCall): void {
+            $safeCall(function () use ($params, $request, $username) {
                 $enabled = $request->get('enabled');
                 if ($enabled === null) {
                     throw new \Exception('پارامترهای ورودی ناقص هستند');
@@ -337,7 +330,7 @@ return [
                     throw new \Exception('مقدار تناژ موقت الزامی است');
                 }
                 $tonnageVal = $tonnage !== null ? (float)$tonnage : null;
-                $result = $appApi()->updateTemporaryTonnage($params['quotaNumber'], $enabledVal, $tonnageVal);
+                $result = (new QuotaService())->updateTemporaryTonnage($params['quotaNumber'], $enabledVal, $tonnageVal, $username);
                 Response::json($result);
             });
         },
@@ -349,9 +342,9 @@ return [
         'path' => 'realtime/ships',
         'auth' => true,
         'permission' => null,
-        'handler' => function () use ($appApi, $safeCall): void {
-            $safeCall(function () use ($appApi) {
-                $shipsList = $appApi()->getShipsList();
+        'handler' => function () use ($safeCall): void {
+            $safeCall(function () {
+                $shipsList = (new ShipService())->getShipsList();
                 Response::json([
                     'ships' => $shipsList['data']['activeShips'] ?? [],
                     'timestamp' => date('Y-m-d H:i:s'),

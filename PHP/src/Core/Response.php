@@ -65,6 +65,21 @@ class Response {
         self::json($response, $httpCode);
     }
 
+    // پاسخ GET قابل‌کش با ETag/304؛ برای اندپوینت‌های غیرقابل‌تغییر که فقط باید وقتی محتوا واقعاً عوض شده دوباره دانلود شوند
+    public static function cacheableJson(array $data, array $etagSource, int $maxAgeSeconds): void {
+        $etag = '"' . md5(json_encode($etagSource, JSON_UNESCAPED_UNICODE)) . '"';
+        header('Cache-Control: private, max-age=' . $maxAgeSeconds);
+        header("ETag: $etag");
+
+        $ifNoneMatch = (new Request())->getHeader('If-None-Match');
+        if ($ifNoneMatch !== null && trim($ifNoneMatch) === $etag) {
+            http_response_code(304);
+            exit;
+        }
+
+        self::json($data);
+    }
+
     // ارسال پاسخ موفقیت استاندارد
     public static function success(string $message = '', ?array $data = null, int $httpCode = 200): void {
         $response = [
