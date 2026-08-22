@@ -21,7 +21,7 @@ fun getMenuItemsForUserType(userPermissions: Map<String, Boolean>): List<MenuIte
     if (userPermissions["manage_users"] == true) {
         items.add(MenuItem("مدیریت کاربران", R.drawable.profile_admin, "manage_users", "مدیریت", "سطح دسترسی"))
     }
-    // آیکون اختصاصی ندارد؛ ic_reports موقتاً استفاده شد (DEEP_CODE_AUDIT.md فاز۳ #۳۲ فاز ج)
+    // iconResourceId اینجا صرفاً فرمی است؛ آیکون واقعی از روی title در CategorizedMenuGrid (HomeScreen.kt) انتخاب می‌شود
     if (userPermissions["view_monitoring"] == true) {
         items.add(MenuItem("مانیتورینگ", R.drawable.ic_reports, "view_monitoring", "مدیریت", "رویدادهای سلامت و امنیت سیستم"))
     }

@@ -61,6 +61,7 @@ import androidx.compose.material.icons.rounded.AddTask
 import androidx.compose.material.icons.rounded.DirectionsBoat
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.ManageAccounts
+import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -731,6 +732,7 @@ private fun CompactMenuCard(
         "تعریف کشتی" -> Pair(Icons.Rounded.AddTask, Color(0xFF0891B2))
         "مدیریت کاربران" -> Pair(Icons.Rounded.ManageAccounts, Color(0xFF4F46E5))
         "مدیریت کشتی ها" -> Pair(Icons.Rounded.DirectionsBoat, Color(0xFF0D9488))
+        "مانیتورینگ" -> Pair(Icons.Rounded.Visibility, Color(0xFFDC2626))
         else -> Pair(Icons.AutoMirrored.Rounded.Assignment, MaterialTheme.colorScheme.primary)
     }
 
@@ -864,6 +866,7 @@ private fun WideMenuCard(
         "تعریف کشتی" -> Pair(Icons.Rounded.AddTask, Color(0xFF0891B2))
         "مدیریت کاربران" -> Pair(Icons.Rounded.ManageAccounts, Color(0xFF4F46E5))
         "مدیریت کشتی ها" -> Pair(Icons.Rounded.DirectionsBoat, Color(0xFF0D9488))
+        "مانیتورینگ" -> Pair(Icons.Rounded.Visibility, Color(0xFFDC2626))
         else -> when (item.category) {
             "نظارت" -> Pair(Icons.AutoMirrored.Rounded.ManageSearch, Color(0xFF2563EB))
             "ارتباطات" -> Pair(Icons.Rounded.Forum, Color(0xFFE11D48))
