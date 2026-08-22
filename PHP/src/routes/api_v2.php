@@ -12,6 +12,7 @@ use App\Controllers\CargoController;
 use App\Controllers\ChatController;
 use App\Controllers\DiagnosticsController;
 use App\Controllers\LicenseController;
+use App\Controllers\MonitoringController;
 use App\Controllers\UserController;
 use App\Controllers\UtilityController;
 use App\Core\Request;
@@ -531,6 +532,45 @@ return [
     [
         'method' => 'POST', 'path' => 'diagnostics/crash', 'auth' => false, 'permission' => null,
         'handler' => function () { (new DiagnosticsController())->reportCrash(); },
+    ],
+
+    // ===== MONITORING — نوشتن رویداد از داخل SecurityAlerter::alert() انجام می‌شود؛ این مسیرها فقط خواندن/تایید REST هستند
+    // (DEEP_CODE_AUDIT.md فاز۳ #۳۲ بازبینی‌شده — سرور دسترسی خروجی اینترنت ندارد، پس Telegram جایگزین pull-based شد.
+    // فاز الف فقط: بدون داشبورد وب/بخش اندروید در این نشست) =====
+    [
+        // auth=>false مشابه health اصلی: همان دلیل دسترسی عمومی، همان کنترلر صدا زده می‌شود
+        'method' => 'GET', 'path' => 'monitoring/health', 'auth' => false, 'permission' => null,
+        'handler' => function () { (new DiagnosticsController())->health(); },
+    ],
+    [
+        'method' => 'GET', 'path' => 'monitoring/events', 'auth' => true, 'permission' => 'view_monitoring',
+        'handler' => function (array $params, Request $request) use ($safeCall): void {
+            $safeCall(function () use ($request) {
+                $status = (string)$request->get('status', 'open');
+                $limit = max(1, min((int)$request->get('limit', 50), 200));
+                $beforeIdRaw = $request->get('beforeId');
+                $beforeId = $beforeIdRaw !== null ? (int)$beforeIdRaw : null;
+                $events = (new MonitoringController())->listEvents($status, $limit, $beforeId);
+                Response::json(['success' => true, 'events' => $events]);
+            });
+        },
+    ],
+    [
+        'method' => 'POST', 'path' => 'monitoring/events/{id}/acknowledge', 'auth' => true, 'permission' => 'view_monitoring',
+        'handler' => function (array $params, Request $request, ?string $username) use ($safeCall): void {
+            $safeCall(function () use ($params, $username) {
+                (new MonitoringController())->acknowledge((int)$params['id'], (string)$username);
+                Response::json(['success' => true]);
+            });
+        },
+    ],
+    [
+        'method' => 'GET', 'path' => 'monitoring/summary', 'auth' => true, 'permission' => 'view_monitoring',
+        'handler' => function () use ($safeCall): void {
+            $safeCall(function () {
+                Response::json(['success' => true] + (new MonitoringController())->summary());
+            });
+        },
     ],
 
     // ===== این ۶ مسیر جایگزین shimهای مستقل حذف‌شده‌ی ریشه‌ی PHP/ شدند و اکنون تنها راه دسترسی‌اند؛ هشدار: URLهای قدیمی هنوز در کلاینت hardcode هستند و اکنون ۴۰۴ می‌دهند =====

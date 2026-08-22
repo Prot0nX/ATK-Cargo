@@ -3242,7 +3242,7 @@ Medium
 | ۲۹ | حذف کل کد مرده‌ی فهرست‌شده در بخش Technical Debt | Low | ✅ اعمال شد |
 | ۳۰ | پاک‌سازی ریپازیتوری: `graphify-out/` از گیت، `.hprof` از دیسک | Low | ✅ اعمال شد |
 | ۳۱ | گسترش PHPStan به فایل‌های ریشه + baseline + رفتن به level 7 | Low | ✅ اعمال شد |
-| ۳۲ | وصل کردن `health_monitor.php` به cron + هشدار تلگرام | Low | ⏭️ فعلاً کنار گذاشته شد — طبق کاربر، بعداً با رویکرد متفاوت اجرا می‌شود |
+| ۳۲ | وصل کردن `health_monitor.php` به مانیتورینگ — بازطراحی‌شده به مدل pull-based (سرور دسترسی خروجی اینترنت ندارد، Telegram اصولاً ممکن نیست) | Medium | ✅ فاز الف (بک‌اند) اعمال شد — داشبورد وب و بخش اندروید فازهای بعدی، خارج از این نشست |
 | ۳۳ | ماژول Koin به‌ازای هر فیچر | Medium | ✅ اعمال شد |
 
 **یادداشت‌های اجرای مورد ۲۹:**
@@ -3353,6 +3353,17 @@ Medium
   - برای همین شش متد، `core:domain` (میزبان `QuotaRepository`) به `retrofit2`/`gson` نیاز پیدا کرد که قبلاً وابستگی نداشت؛ به `core/domain/build.gradle.kts` اضافه شد (هر دو `implementation`، چون فیچرهای مصرف‌کننده مثل `feature:cargo`/`feature:reports` از قبل وابستگی مستقیم خودشان به retrofit/gson را دارند).
 - **تضاد نام‌گذاری کشف‌شده:** `ReportsRepository` از قبل یک متد `toggleQuotaStatus(id: Int): Boolean` داشت (برای `ReportsViewModel`، مصرف‌شده در صفحات مدیریت گزارش). افزودن متد دوم هم‌نام با امضای پارامتر یکسان ولی نوع بازگشتی متفاوت (`Response<SuccessResponse>`) روی JVMممکن نیست (تضاد overload — نوع بازگشتی جزو امضا نیست). متد جدید `toggleCargoQuotaStatus` نام‌گذاری شد؛ هر دو متد همان endpoint سرور را صدا می‌زنند اما برای دو مصرف‌کننده‌ی متفاوت با نیاز متفاوت (Boolean ساده در برابر پیام خطای دقیق سرور) وجود دارند.
 - تأیید شد: کامپایل جداگانه‌ی هر ماژول تغییریافته (`feature:home`، `feature:cargo-workflow`، `feature:admin`، `:app`، `core:domain`+`feature:reports`+`feature:cargo`) و در پایان یک اجرای ترکیبی `compileDebugKotlin testDebugUnitTest` روی کل پروژه — همه موفق؛ ۱۲/۱۲ تست `CargoViewModelTest` بدون تغییر رفتار سبز ماندند.
+
+**یادداشت‌های اجرای مورد ۳۲ (بازبینی‌شده — فاز الف/بک‌اند):**
+
+- کاربر اطلاع داد سرور تولید **هیچ دسترسی خروجی به اینترنت ندارد**، پس برنامه‌ی اصلی این مورد (اتصال `health_monitor.php` به هشدار Telegram از طریق `SecurityAlerter`) اصولاً غیرممکن است، نه فقط پیکربندی‌نشده — `SecurityAlerter` از ابتدا بدون توکن/چت‌آیدی no-op بوده، پس در عمل هیچ هشداری هرگز واقعاً ارسال نشده است.
+- راه‌حل جایگزین: یک مدل **pull-based**. جدول جدید `monitoring_events` (migration `2026_08_22_create_monitoring_events_table.sql`) رویدادها را ذخیره می‌کند و از طریق ۴ route جدید REST (`GET monitoring/health`, `GET monitoring/events`, `POST monitoring/events/{id}/acknowledge`, `GET monitoring/summary`) در دسترس قرار می‌گیرد — بدون هیچ push خروجی از سرور. داشبورد وب و بخش نظارت اپ اندروید عمداً **خارج از این فاز** ماندند و در نشست‌های بعدی (با تأیید کاربر) پیاده می‌شوند.
+- نوشتن رویداد از داخل `SecurityAlerter::alert()` اضافه شد (کلاس جدید `MonitoringEventLogger`، دقیقاً هم‌الگو با `AuditLogger` — mysqli، best-effort، هرگز throw نمی‌کند)، مستقل از cooldown ۵ دقیقه‌ی تلگرام — یعنی هر رخداد در جدول دیده می‌شود، نه فقط اولین مورد هر cooldown. چون این هوک داخل `alert()` است، **`health_monitor.php` هیچ تغییری نیاز نداشت** — همان یک فراخوانی موجودش خودکار در جدول جدید هم ثبت می‌شود.
+- خواندن/تایید از طریق `MonitoringRepository` (PDO، هم‌الگو با `LicenseRepository`) و `MonitoringController` انجام می‌شود؛ پرمیشن جدید `view_monitoring` (فقط ادمین) هم به `config/permissions.json` (منبع زنده‌ی فعلی) و هم به seed هنوز-اجرانشده‌ی `2026_08_19_permissions_to_database.sql` اضافه شد تا هر دو مسیر داده هماهنگ بمانند.
+- `summary()` وضعیت سلامت را **زنده** با فراخوانی مستقیم `DiagnosticsController::evaluateHealth()` محاسبه می‌کند (همان متدی که `health_monitor.php` صدا می‌زند)، نه از یک ردیف ذخیره‌شده — تصمیم عمدی تا جدول با heartbeat هر ۵ دقیقه شلوغ نشود و دو منبع حقیقت برای «سالم بودن الان» پیش نیاید.
+- **کشف حین توسعه:** نسخه‌ی نصب‌شده‌ی PHPStan (1.12.34، قدیمی) در تفسیر docblock تک‌خطی ترکیبی `@param ... @return ...` باگ دارد — تگ `@return` را وقتی توضیح متن `@param` قبل از آن یک کاراکتر `|` (یا حتی بدون آن) داشته باشد گم می‌کند، و خطای «no value type specified in iterable type array» کاذب می‌دهد حتی با نوع generics کاملاً درست. با تست ایزوله (فایل موقت خارج از مسیر واقعی) تأیید شد؛ رفع شد با تبدیل تمام docblockهای ترکیبی این مورد به فرمت چندخطی (هر تگ در خط خودش) — کد پروژه‌ی موجود (`LicenseRepository`/`LicenseAdminService`) هم به همین باگ دچار است اما چون قدیمی‌تر از معرفی PHPStan به پروژه بوده، در `phpstan-baseline.neon` پنهان مانده، نه واقعاً رفع‌شده.
+- تأیید شد: `php -l` روی همه‌ی فایل‌های جدید/تغییریافته، `vendor/bin/phpstan analyse` کل پروژه بدون خطا، `vendor/bin/phpunit` کل پروژه (۱۱۲ تست شامل ۷ تست جدید `MonitoringControllerTest` — قبلاً ۱۰۵ — همه سبز)، بارگذاری کامل `routes/api_v2.php` (۶۱ route، ۴ تای جدید با auth/permission درست) و یک فراخوانی زنده‌ی `SecurityAlerter::alert()` که بدون دیتابیس واقعی هم بدون throw/fatal کامل شد (رفتار best-effort طبق طراحی).
+- **محدودیت این تأیید:** در این محیط به یک MySQL/MariaDB واقعی دسترسی نبود، پس اجرای واقعی migration و درج/خواندن ردیف واقعی در `monitoring_events` تست نشد — طبق قرارداد پروژه (بدون runner خودکار)، قبل از deploy باید دستی روی یک دیتابیس throwaway یا production (با backup) اجرا و با یک سناریوی end-to-end (alert واقعی → ردیف → `GET monitoring/events` → `acknowledge` → ۴۰۹ در تلاش دوم) تأیید شود.
 
 **یادداشت‌های اجرای مورد ۲۲:**
 

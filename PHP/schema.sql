@@ -199,6 +199,29 @@ CREATE TABLE `licenses` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
+-- Table structure for table `monitoring_events`
+-- DEEP_CODE_AUDIT.md فاز۳ #۳۲ (بازبینی‌شده) — migrations/2026_08_22_create_monitoring_events_table.sql
+-- سرور دسترسی خروجی به اینترنت ندارد؛ این جدول جایگزین هشدار Telegram است (مدل pull-based).
+--
+DROP TABLE IF EXISTS `monitoring_events`;
+CREATE TABLE `monitoring_events` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `event_type` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `severity` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'warning',
+  `message` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `source` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `dedupe_key` varchar(150) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `acknowledged_at` datetime DEFAULT NULL,
+  `acknowledged_by` varchar(150) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_monitoring_unresolved` (`acknowledged_at`,`created_at`),
+  KEY `idx_monitoring_created` (`created_at`),
+  KEY `idx_monitoring_dedupe` (`dedupe_key`,`created_at`),
+  KEY `idx_monitoring_source` (`source`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
 -- Table structure for table `role_permissions`
 -- DEEP_CODE_AUDIT.md #Phase4.7 — migrations/2026_08_19_permissions_to_database.sql
 --

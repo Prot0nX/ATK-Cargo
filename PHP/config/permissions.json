@@ -12,7 +12,8 @@
             "view_reports": true,
             "active_quotas": true,
             "tonnage_warning": true,
-            "manage_quotas": true
+            "manage_quotas": true,
+            "view_monitoring": true
         },
         "operator": {
             "initial_info": true,
@@ -26,7 +27,8 @@
             "view_reports": false,
             "active_quotas": false,
             "tonnage_warning": false,
-            "manage_quotas": false
+            "manage_quotas": false,
+            "view_monitoring": false
         },
         "verifier": {
             "initial_info": false,
@@ -40,7 +42,8 @@
             "view_reports": false,
             "active_quotas": false,
             "tonnage_warning": false,
-            "manage_quotas": false
+            "manage_quotas": false,
+            "view_monitoring": false
         }
     },
     "users": []

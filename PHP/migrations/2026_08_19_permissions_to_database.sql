@@ -53,6 +53,7 @@ INSERT IGNORE INTO role_permissions (role, feature, allowed) VALUES
   ('admin', 'active_quotas', 1),
   ('admin', 'tonnage_warning', 1),
   ('admin', 'manage_quotas', 1),
+  ('admin', 'view_monitoring', 1),
 
   ('operator', 'initial_info', 1),
   ('operator', 'select_info', 1),
@@ -66,6 +67,7 @@ INSERT IGNORE INTO role_permissions (role, feature, allowed) VALUES
   ('operator', 'active_quotas', 0),
   ('operator', 'tonnage_warning', 0),
   ('operator', 'manage_quotas', 0),
+  ('operator', 'view_monitoring', 0),
 
   ('verifier', 'initial_info', 0),
   ('verifier', 'select_info', 0),
@@ -78,7 +80,8 @@ INSERT IGNORE INTO role_permissions (role, feature, allowed) VALUES
   ('verifier', 'view_reports', 0),
   ('verifier', 'active_quotas', 0),
   ('verifier', 'tonnage_warning', 0),
-  ('verifier', 'manage_quotas', 0);
+  ('verifier', 'manage_quotas', 0),
+  ('verifier', 'view_monitoring', 0);
 
 -- ⚠️ اگر روی دیتابیس تولید شما config/permissions.json حاوی مقادیر متفاوت
 -- یا بخش "users" غیرخالی است (تنظیمات اختصاصی کاربر)، قبل از اجرای این

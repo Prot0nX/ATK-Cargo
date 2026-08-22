@@ -39,6 +39,18 @@ class SecurityAlerter {
         try {
             Logger::getInstance()->security("[ALERT] [$event] $message");
 
+            // نوشتن best-effort در DB مانیتورینگ — تنها کانال هشدار واقعی روی سروری که
+            // اصلاً دسترسی خروجی به اینترنت ندارد (Telegram زیر همیشه no-op می‌ماند).
+            // عمداً مستقل از cooldown تلگرام زیر: هر رخداد باید در فهرست رویدادهای
+            // داشبورد آینده دیده شود، نه فقط اولین مورد هر ۵ دقیقه (DEEP_CODE_AUDIT.md فاز۳ #۳۲).
+            MonitoringEventLogger::record(
+                $event,
+                'critical',
+                $message,
+                self::inferSource($event),
+                $dedupeKey ?? $event
+            );
+
             if (!$this->isConfigured()) {
                 return;
             }
@@ -119,5 +131,10 @@ class SecurityAlerter {
             mkdir($dir, 0755, true);
         }
         return $dir . "/{$safeKey}.json";
+    }
+
+    // health_monitor.php رویدادهای HEALTH_CHECK_* می‌فرستد؛ بقیه از مسیرهای امنیتی می‌آیند
+    private static function inferSource(string $event): string {
+        return str_starts_with($event, 'HEALTH_CHECK') ? 'health_check' : 'security';
     }
 }
