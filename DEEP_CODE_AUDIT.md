@@ -3405,7 +3405,7 @@ Medium
 | ۳۴ | جایگزینی راز کلاینت با challenge–response مبتنی بر Keystore | High | |
 | ۳۵ | مهاجرت `entryTime`/`exitTime`/`exitDate` به `DATETIME` | High | |
 | ۳۶ | یکسان‌سازی نوع ستون‌های وزن روی `DECIMAL(12,2)` | Medium | |
-| ۳۷ | افزودن `UNIQUE KEY` کلید طبیعی به `InitialInfo` و FK از `CargoInfo` | High | |
+| ۳۷ | افزودن `UNIQUE KEY` کلید طبیعی به `InitialInfo` و FK از `CargoInfo` | High | ⚠️ migration نوشته شد — هنوز روی production اجرا نشده |
 | ۳۸ | یکسان‌سازی دسترسی دیتابیس روی PDO و حذف `getMysqliConnection` | High | |
 | ۳۹ | جایگزینی polling با push (SSE یا FCM واقعی) | High | |
 | ۴۰ | تجزیه‌ی فایل‌های بزرگ Compose (سقف ۳۰۰ خط) | High | ⚠️ دامنه کاهش یافت — فقط ۳ فایل بالای ۱۰۰۰ خط |
@@ -3419,6 +3419,16 @@ Medium
 - ایمپورت‌ها برای هر فایل جدید بر اساس نمادهای واقعاً استفاده‌شده هرس شدند (نه کپی کامل لیست اصلی)؛ تنها نکته‌ی ظریف تکراری در هر ۳ فایل: `androidx.compose.runtime.getValue`/`setValue` (برای `by remember`) در متن هیچ نمادی literal ندارند، پس هرس خودکار مبتنی بر grep این دو را نادرست حذف می‌کرد — با بازرسی دستی هر فایلی که از `by` استفاده می‌کرد شناسایی و اصلاح شد.
 - نتیجه‌ی نهایی: از ۲۰ فایل جدید، ۱۸ زیر سقف ۳۰۰ خط هستند؛ دو فایل کمی بالاتر ماندند چون تجزیه‌ی بیشترشان state محلی (`remember`) را بین چند فایل پخش می‌کرد که ریسک واقعی داشت — `SearchResultDialog.kt` (۴۱۶ خط، composable اصلی حاوی تمام state ویرایش) و `SecurityBlockScreen.kt` (۳۵۹ خط، composable اصلی صفحه‌ی مسدودسازی). این دو عمداً به‌جای شکستن بیشتر، به همین شکل نگه داشته شدند.
 - تأیید شد: `./gradlew :feature:reports:compileDebugKotlin`، `:app:compileDebugKotlin` و در پایان `compileDebugKotlin testDebugUnitTest` روی کل پروژه — همه موفق، بدون تغییر رفتار (فقط جابه‌جایی کد بین فایل‌ها، بدون تغییر منطق).
+
+**یادداشت‌های اجرای مورد ۳۷:**
+
+- دو migration جدا نوشته شد، طبق تصمیم کاربر («هر دو مرحله را بنویس، مرحله‌ی دوم را مشروط به اجرای قبلی»): `2026_08_22_add_initial_info_unique_key.sql` (مرحله ۱ — `UNIQUE KEY uk_initial_natural` روی کلید طبیعی `InitialInfo`) و `2026_08_22_add_cargo_info_initial_info_fk.sql` (مرحله ۲ — ستون `initial_info_id` + backfill + FK واقعی به `InitialInfo.id`).
+- مرحله ۲ صریحاً به اجرای موفق مرحله ۱ روی همان دیتابیس وابسته است: بدون یکتایی کلید طبیعی، `UPDATE...JOIN` مرحله‌ی backfill می‌تواند هر ردیف `CargoInfo` را به‌طور غیرقطعی به یکی از چند `InitialInfo` منطبق وصل کند — این وابستگی در کامنت بالای هر دو فایل و در جدول `migrations/README.md` مستند شد.
+- **کشف حین بررسی:** بدون تغییر کد همراه، FK فقط رکوردهای قدیمی backfill‌شده را پوشش می‌داد و برای رکوردهای جدید همیشه `NULL` می‌ماند (چون `CargoRepository::insertCargo` از `initial_info_id` بی‌خبر بود) — یعنی محدودیت ارجاعی عملاً فقط تزئینی می‌شد، نه یک حفاظت واقعی رو به جلو. به همین دلیل `CargoRepository::insertCargo` هم در همین commit تغییر کرد: مقدار `initial_info_id` از طریق یک subquery روی همان کلید طبیعی در همان کوئری INSERT resolve می‌شود (بدون round-trip اضافه).
+- `ON DELETE CASCADE` انتخاب شد چون دقیقاً هم‌رفتار با `QuotaService::deleteQuota` موجود است — آن متد از قبل صریحاً ابتدا ردیف‌های `CargoInfo` مرتبط و سپس `InitialInfo` را حذف می‌کند؛ این FK فقط همان رفتار را در سطح دیتابیس هم تضمین می‌کند، رفتار جدیدی اضافه نمی‌کند.
+- `initial_info_id` عمداً NULL-پذیر ماند: رکوردهای قدیمی `CargoInfo` که کوتاژشان از قبل حذف شده کلید طبیعی منطبقی ندارند و باید بدون خطا NULL بمانند؛ MySQL مقادیر NULL را از بررسی FK معاف می‌کند، پس این ردیف‌های یتیم قدیمی مانع `ADD CONSTRAINT` نمی‌شوند.
+- تشخیص خودکار ردیف‌های تکراری/یتیم عمداً در migration انجام نشد — طبق کامنت بالای فایل مرحله ۱، انتخاب نادرست بین دو ردیف تکراری می‌تواند داده‌ی کوتاژ واقعی (`remainingWeight`, `percentage`, تنظیمات تناژ موقت) را از بین ببرد؛ هر دو کوئری تشخیص در کامنت فایل قرار گرفتند تا کاربر پیش از اجرا دستی بررسی کند.
+- تأیید شد: `php -l` روی `CargoRepository.php`، `vendor/bin/phpstan analyse` بدون خطای جدید، و کل مجموعه‌ی PHPUnit (۱۱۲ تست) — تنها ۱ شکست، یک تست زمان‌سنجی نامرتبط (`LoginAttemptLimiterTest::testRegisterFailedAttemptDoesNotBlockTheCallingThread`) که با همان تأخیر شناخته‌شده‌ی «DB unavailable/connection refused» این محیط sandbox (بدون MySQL محلی) تیک می‌خورد، نه با این تغییر. اجرای واقعی migrationها و آزمایش end-to-end روی یک دیتابیس واقعی در این محیط ممکن نبود — طبق همان محدودیت مستند‌شده در موارد قبلی این فاز.
 
 **یادداشت مورد ۴۱ (رد شد):** بررسی اولیه نشان داد `RetrofitClient.kt` یک `FloatTypeAdapter` سفارشی Gson دارد که ناسازگاری واقعی پاسخ سرور PHP روی فیلدهای float را می‌پوشاند (مقدار `null`، رشته‌ی غیرقابل‌پارس، یا نوع نامنتظر — هرکدام بی‌صدا به `0f` تبدیل می‌شوند). `kotlinx.serialization` معادل «یک‌بار ثبت، همه‌جا اعمال» برای این رفتار ندارد؛ بازتولیدش نیازمند یک `@Contextual` serializer دستی روی تک‌تک ~۱۰۶ فیلد Float/Gson-annotation در ۲۲ فایل و ۸ ماژول Gradle است، بدون امکان تست در برابر پاسخ واقعی سرور در این محیط (بدون دسترسی به production). طبق تصمیم کاربر، این مورد فعلاً رد شد تا زمانی که تست در برابر سرور واقعی ممکن باشد.
 

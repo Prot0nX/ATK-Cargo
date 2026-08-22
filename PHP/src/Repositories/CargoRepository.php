@@ -62,18 +62,21 @@ class CargoRepository {
     }
 
     public function insertCargo(array $params, string $currentTime, int $numberOfPeople): bool {
+        // initial_info_id از طریق subquery روی کلید طبیعی resolve می‌شود؛ اگر کوتاژ منطبقی نبود (نباید در جریان عادی رخ دهد) بی‌صدا NULL می‌ماند، هم‌راستا با FK اختیاری (DEEP_CODE_AUDIT.md #۳۷)
         $query = "INSERT INTO CargoInfo (
-            trackingNumber, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight, 
-            status, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber, 
-            numberOfPeople, username, userType
-        ) VALUES (?, ?, ?, ?, ?, ?, '" . self::ENTERED->value . "', ?, ?, ?, ?, ?, ?, ?, ?)";
+            trackingNumber, entryTime, netWeight, scaleReceiptNumber, shortageWeight, excessWeight,
+            status, shipName, loadingWarehouse, cargoType, shippingCompany, loadingQuotaNumber,
+            initial_info_id, numberOfPeople, username, userType
+        ) VALUES (?, ?, ?, ?, ?, ?, '" . self::ENTERED->value . "', ?, ?, ?, ?, ?,
+            (SELECT id FROM InitialInfo WHERE loadingQuotaNumber = ? AND shipName = ? AND loadingWarehouse = ? AND shippingCompany = ? AND cargoType = ? LIMIT 1),
+            ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
         if (!$stmt) return false;
         // netWeight هنوز مقداری ندارد؛ باید NULL درج شود نه '' که در ستون عددی خطا می‌دهد
         $netWeight = ($params['netWeight'] === '' || $params['netWeight'] === null) ? null : $params['netWeight'];
         // scaleReceiptNumber هم به همین دلیل NULL می‌شود تا با UNIQUE INDEX پیشنهادی تداخل نکند
         $scaleReceiptNumber = ($params['scaleReceiptNumber'] === '' || $params['scaleReceiptNumber'] === null) ? null : $params['scaleReceiptNumber'];
-        $stmt->bind_param("ssssssssssssss",
+        $stmt->bind_param("sssssssssssssssssss",
             $params['trackingNumber'],
             $currentTime,
             $netWeight,
@@ -85,6 +88,11 @@ class CargoRepository {
             $params['cargoType'],
             $params['shippingCompany'],
             $params['loadingQuotaNumber'],
+            $params['loadingQuotaNumber'],
+            $params['shipName'],
+            $params['loadingWarehouse'],
+            $params['shippingCompany'],
+            $params['cargoType'],
             $numberOfPeople,
             $params['username'],
             $params['userType']
