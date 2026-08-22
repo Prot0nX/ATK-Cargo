@@ -3398,17 +3398,19 @@ Medium
 
 ### Phase 4 — Optimization (بلندمدت)
 
-| # | اقدام | تلاش |
-|---|-------|------|
-| ۳۴ | جایگزینی راز کلاینت با challenge–response مبتنی بر Keystore | High |
-| ۳۵ | مهاجرت `entryTime`/`exitTime`/`exitDate` به `DATETIME` | High |
-| ۳۶ | یکسان‌سازی نوع ستون‌های وزن روی `DECIMAL(12,2)` | Medium |
-| ۳۷ | افزودن `UNIQUE KEY` کلید طبیعی به `InitialInfo` و FK از `CargoInfo` | High |
-| ۳۸ | یکسان‌سازی دسترسی دیتابیس روی PDO و حذف `getMysqliConnection` | High |
-| ۳۹ | جایگزینی polling با push (SSE یا FCM واقعی) | High |
-| ۴۰ | تجزیه‌ی فایل‌های بزرگ Compose (سقف ۳۰۰ خط) | High |
-| ۴۱ | مهاجرت شبکه از Gson به `kotlinx.serialization` | High |
-| ۴۲ | رسیدن به پوشش تست ۴۰٪+ روی لایه‌های دامنه و داده | High |
+> **وضعیت:** مورد به مورد و با تأیید کاربر پیش می‌رود.
+
+| # | اقدام | تلاش | وضعیت |
+|---|-------|------|:---:|
+| ۳۴ | جایگزینی راز کلاینت با challenge–response مبتنی بر Keystore | High | |
+| ۳۵ | مهاجرت `entryTime`/`exitTime`/`exitDate` به `DATETIME` | High | |
+| ۳۶ | یکسان‌سازی نوع ستون‌های وزن روی `DECIMAL(12,2)` | Medium | |
+| ۳۷ | افزودن `UNIQUE KEY` کلید طبیعی به `InitialInfo` و FK از `CargoInfo` | High | |
+| ۳۸ | یکسان‌سازی دسترسی دیتابیس روی PDO و حذف `getMysqliConnection` | High | |
+| ۳۹ | جایگزینی polling با push (SSE یا FCM واقعی) | High | |
+| ۴۰ | تجزیه‌ی فایل‌های بزرگ Compose (سقف ۳۰۰ خط) | High | |
+| ۴۱ | مهاجرت شبکه از Gson به `kotlinx.serialization` | High | |
+| ۴۲ | رسیدن به پوشش تست ۴۰٪+ روی لایه‌های دامنه و داده | High | |
 
 ---
 
